@@ -21,3 +21,27 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
+
+*.iml
+.idea/
+*.class
+bin/
+build/
+
+target/
+generated/
+felix-cache/
+stargate-lib/*
+!stargate-lib/.keep
+
+data0
+commitlogs
+metadata
+
+.mvn/wrapper/maven-wrapper.jar
+settings.xml
+
+.project
+.classpath
+*.prefs
+.factorypath

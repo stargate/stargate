@@ -1,0 +1,14 @@
+<assembly>
+    <id>stargate-jar</id>
+    <formats>
+        <format>jar</format>
+    </formats>
+    <includeBaseDirectory>false</includeBaseDirectory>
+
+    <dependencySets>
+        <dependencySet>
+            <scope>compile</scope>
+            <unpack>true</unpack>
+        </dependencySet>
+    </dependencySets>
+</assembly>
