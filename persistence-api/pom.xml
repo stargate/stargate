@@ -18,10 +18,6 @@
       <id>central</id>
       <url>https://repo.maven.apache.org/maven2</url>
     </repository>
-    <repository>
-      <id>artifactory-releases</id>
-      <url>https://repo.datastax.com/datastax-releases-local</url>
-    </repository>
   </repositories>
 
   <dependencies>
@@ -36,9 +32,9 @@
       <version>1.2.3</version>
     </dependency>
     <dependency>
-      <groupId>com.datastax.duzzt</groupId>
-      <artifactId>processor</artifactId>
-      <version>0.0.9-dse</version>
+      <groupId>com.github.misberner.duzzt</groupId>
+      <artifactId>duzzt-processor</artifactId>
+      <version>0.1.0</version>
     </dependency>
     <dependency>
       <groupId>javax.annotation</groupId>
@@ -103,7 +99,7 @@
           <archive>
             <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
           </archive>
-          <outputDirectory>${project.basedir}/../stargate--lib</outputDirectory>
+          <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
         </configuration>
       </plugin>
     </plugins>
