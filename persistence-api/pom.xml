@@ -103,7 +103,7 @@
           <archive>
             <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
           </archive>
-          <outputDirectory>${project.basedir}/../stargate--lib</outputDirectory>
+          <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
         </configuration>
       </plugin>
     </plugins>

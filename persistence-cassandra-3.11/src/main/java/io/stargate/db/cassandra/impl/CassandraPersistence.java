@@ -1,6 +1,7 @@
 package io.stargate.db.cassandra.impl;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -159,9 +160,15 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
     @Override
     public ClientState newClientState(SocketAddress remoteAddress)
     {
-        if (authenticator.requireAuthentication() || remoteAddress != null)
+        return newClientState(remoteAddress, (InetSocketAddress)null);
+    }
+
+    @Override
+    public ClientState<org.apache.cassandra.service.ClientState> newClientState(SocketAddress remoteAddress, InetSocketAddress publicAddress)
+    {
+        if (authenticator.requireAuthentication() && remoteAddress != null)
         {
-            return ClientStateWrapper.forExternalCalls(remoteAddress);
+            return ClientStateWrapper.forExternalCalls(remoteAddress, publicAddress);
         }
 
         return ClientStateWrapper.forInternalCalls();

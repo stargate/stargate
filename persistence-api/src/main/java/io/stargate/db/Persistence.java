@@ -1,5 +1,7 @@
 package io.stargate.db;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -28,6 +30,8 @@ public interface Persistence<T,C,Q>
     QueryState<Q> newQueryState(ClientState<C> clientState);
 
     ClientState<C> newClientState(SocketAddress remoteAddress);
+
+    ClientState<C> newClientState(SocketAddress remoteAddress, InetSocketAddress publicAddress);
 
     ClientState newClientState(SocketAddress remoteAddress, String name);
 

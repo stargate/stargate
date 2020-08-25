@@ -1,11 +1,14 @@
 package io.stargate.db;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 
 public interface ClientState<T>
 {
     InetSocketAddress getRemoteAddress();
+
+    InetSocketAddress getPublicAddress();
 
     String getRawKeyspace();
 
