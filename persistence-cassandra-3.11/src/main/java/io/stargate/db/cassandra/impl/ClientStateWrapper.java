@@ -10,13 +10,25 @@ import io.stargate.db.ClientState;
 public class ClientStateWrapper implements ClientState<org.apache.cassandra.service.ClientState>
 {
     private org.apache.cassandra.service.ClientState wrapped;
+    private InetSocketAddress publicAddress;
     private AuthenticatedUser<?> user;
+
+    private ClientStateWrapper(org.apache.cassandra.service.ClientState wrapped, InetSocketAddress publicAddress)
+    {
+        this(wrapped);
+        this.publicAddress = publicAddress;
+    }
 
     private ClientStateWrapper(org.apache.cassandra.service.ClientState wrapped)
     {
         if (wrapped.getUser() != null)
             this.user = new AuthenticatorWrapper.AuthenticatedUserWrapper(wrapped.getUser());
         this.wrapped = wrapped;
+    }
+
+    public static ClientStateWrapper forExternalCalls(SocketAddress remoteAddress, InetSocketAddress publicAddress)
+    {
+        return new ClientStateWrapper(org.apache.cassandra.service.ClientState.forExternalCalls(remoteAddress), publicAddress);
     }
 
     public static ClientStateWrapper forExternalCalls(SocketAddress remoteAddress)
@@ -33,6 +45,12 @@ public class ClientStateWrapper implements ClientState<org.apache.cassandra.serv
     public InetSocketAddress getRemoteAddress()
     {
         return wrapped.getRemoteAddress();
+    }
+
+    @Override
+    public InetSocketAddress getPublicAddress()
+    {
+        return publicAddress;
     }
 
     @Override
