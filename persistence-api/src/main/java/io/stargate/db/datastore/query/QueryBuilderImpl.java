@@ -53,7 +53,7 @@ import static java.util.stream.Collectors.toSet;
 /**
  * Convenience builder for creating queries.
  */
-@GenerateEmbeddedDSL(reusable = true, modifier = AFModifier.DEFAULT, autoVarArgs = false, name = "QueryBuilder", syntax = "(<keyspace>|<table>|<insert>|<update>|<delete>|<select>|<index>|<type>) consistencyLevel? (future|prepare|execute)", where = {
+@GenerateEmbeddedDSL(modifier = AFModifier.DEFAULT, autoVarArgs = false, name = "QueryBuilder", syntax = "(<keyspace>|<table>|<insert>|<update>|<delete>|<select>|<index>|<type>) consistencyLevel? (future|prepare|execute)", where = {
         @SubExpr(name = "keyspace", definedAs = "<keyspaceCreate> | <keyspaceAlter> | (drop keyspace ifExists?)"),
         @SubExpr(name = "keyspaceCreate", definedAs = "(create keyspace ifNotExists? withReplication andDurableWrites?)"),
         @SubExpr(name = "keyspaceAlter", definedAs = "(alter keyspace (withReplication andDurableWrites?)?)"),
@@ -145,31 +145,31 @@ public class QueryBuilderImpl
         return expression().getAllNodesOfType(WhereCondition.type());
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void create()
     {
         isCreate = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void alter()
     {
         isAlter = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void drop()
     {
         isDrop = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void truncate()
     {
         isTruncate = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void keyspace(String keyspace)
     {
         keyspace(Keyspace.reference(keyspace));
@@ -181,45 +181,45 @@ public class QueryBuilderImpl
         isKeyspace = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void withVertexLabel()
     {
         withVertexLabel(ANONYMOUS_LABEL);
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void withEdgeLabel()
     {
         withEdgeLabel(ANONYMOUS_LABEL);
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void withVertexLabel(String vertexLabel)
     {
         checkArgument(vertexLabel != null, "'withVertexLabel(label)' must be non-null");
         this.vertexLabel = vertexLabel;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void withEdgeLabel(String edgeLabel)
     {
         checkArgument(edgeLabel != null, "'withEdgeLabel(label)' must be non-null");
         this.edgeLabel = edgeLabel;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void withoutVertexLabel()
     {
         withoutVertexLabel(ANONYMOUS_LABEL);
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void withoutEdgeLabel()
     {
         withoutEdgeLabel(ANONYMOUS_LABEL);
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void withoutVertexLabel(String vertexLabel)
     {
         checkArgument(vertexLabel != null, "'withoutVertexLabel(label)' must be non-null");
@@ -227,7 +227,7 @@ public class QueryBuilderImpl
         isWithoutGraphLabel = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void withoutEdgeLabel(String edgeLabel)
     {
         checkArgument(edgeLabel != null, "'withoutEdgeLabel(label)' must be non-null");
@@ -235,63 +235,63 @@ public class QueryBuilderImpl
         isWithoutGraphLabel = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void fromVertexLabel(String fromVertexLabel)
     {
         checkArgument(fromVertexLabel != null, "'fromVertexLabel(label)' must be non-null");
         this.fromVertexLabel = fromVertexLabel;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void toVertexLabel(String toVertexLabel)
     {
         checkArgument(toVertexLabel != null, "'toVertexLabel(label)' must be non-null");
         this.toVertexLabel = toVertexLabel;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void rename()
     {
         this.isRenameGraphLabel = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void vertexLabel()
     {
         this.isRenameVertexLabel = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void edgeLabel()
     {
         this.isRenameVertexLabel = false;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void fromLabel(String fromLabel)
     {
         this.fromLabel = fromLabel;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void toLabel(String toLabel)
     {
         this.toLabel = toLabel;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void fromColumn(String column)
     {
         fromColumn(Column.create(column, Column.Kind.Clustering));
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void fromColumn(String column, Column.Kind kind)
     {
         fromColumn(Column.create(column, kind));
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void fromColumn(Column column)
     {
         fromColumns.add(column);
@@ -305,13 +305,13 @@ public class QueryBuilderImpl
         }
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void toColumn(String column, Column.Kind kind)
     {
         toColumn(Column.create(column, kind));
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void toColumn(Column column)
     {
         toColumns.add(column);
@@ -325,13 +325,13 @@ public class QueryBuilderImpl
         }
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void table(String keyspace, String table)
     {
         table(Keyspace.reference(keyspace), Table.reference(keyspace, table));
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void table(String table)
     {
         checkArgument(keyspace != null, "Keyspace must be specified");
@@ -345,19 +345,19 @@ public class QueryBuilderImpl
         isTable = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void withReplication(String replication)
     {
         this.replication = replication;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void andDurableWrites(boolean durableWrites)
     {
         this.durableWrites = Optional.of(durableWrites);
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void ifNotExists()
     {
         ifNotExists(true);
@@ -368,7 +368,7 @@ public class QueryBuilderImpl
         this.ifNotExists = ifNotExists;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void ifExists()
     {
         ifExists(true);
@@ -379,13 +379,13 @@ public class QueryBuilderImpl
         this.ifExists = ifExists;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void withComment(String comment)
     {
         this.comment = comment;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String column)
     {
         column(Column.reference(column));
@@ -406,38 +406,38 @@ public class QueryBuilderImpl
         }
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String column, Column.ColumnType type, Column.Kind kind)
     {
         column(ImmutableColumn.builder().name(column).type(type).kind(kind).build());
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String column, Column.ColumnType type, Column.Kind kind, Column.Order order)
     {
         column(ImmutableColumn.builder().name(column).type(type).kind(kind).order(order).build());
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String column, Class type, Column.Kind kind)
     {
         column(ImmutableColumn.builder().name(column).type(type).kind(kind).build());
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String column, Class type, Column.Kind kind, Column.Order order)
     {
         column(ImmutableColumn.builder().name(column).type(type).kind(kind).order(order)
                 .build());
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String column, Column.Kind kind)
     {
         column(ImmutableColumn.builder().name(column).kind(kind).build());
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String column, Column.Kind kind, Column.Order order)
     {
         column(ImmutableColumn.builder().name(column).kind(kind).order(order).build());
@@ -448,7 +448,7 @@ public class QueryBuilderImpl
         column(Column.STAR);
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String column, Column.ColumnType type)
     {
         column(column, type, Column.Kind.Regular);
@@ -466,13 +466,13 @@ public class QueryBuilderImpl
                 table != null ? table.name() : "");
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String column, Class type)
     {
         column(column, type, Column.Kind.Regular);
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void addColumn(String column, Column.ColumnType type)
     {
         addColumn(ImmutableColumn.builder().name(column).type(type).kind(Column.Kind.Regular).build());
@@ -496,7 +496,7 @@ public class QueryBuilderImpl
         }
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void dropColumn(String column)
     {
         dropColumn(Column.reference(column));
@@ -515,7 +515,7 @@ public class QueryBuilderImpl
         }
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void insertInto(String keyspace, String table)
     {
         insertInto(Keyspace.reference(keyspace), Table.reference(keyspace, table));
@@ -528,7 +528,7 @@ public class QueryBuilderImpl
         this.table = table;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void update(String keyspace, String table)
     {
         update(Keyspace.reference(keyspace), Table.reference(keyspace, table));
@@ -541,25 +541,25 @@ public class QueryBuilderImpl
         this.table = table;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void delete()
     {
         isDelete = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void select()
     {
         isSelect = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void from(String keyspace, String queryable)
     {
         from(Keyspace.reference(keyspace), Table.reference(keyspace, queryable));
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void from(String queryable)
     {
         checkArgument(keyspace != null, "Keyspace must be specified");
@@ -578,13 +578,13 @@ public class QueryBuilderImpl
         this.index = view;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void value(String column, Object value)
     {
         value(Column.reference(column), value);
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void value(String column)
     {
         value(Column.reference(column));
@@ -649,13 +649,13 @@ public class QueryBuilderImpl
         }
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void materializedView(String keyspace, String name)
     {
         materializedView(Keyspace.reference(keyspace), name);
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void materializedView(String name)
     {
         checkArgument(keyspace != null, "Keyspace must be specified");
@@ -669,18 +669,18 @@ public class QueryBuilderImpl
         isMaterializedView = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void asSelect()
     {
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void on(String keyspace, String table)
     {
         on(Keyspace.reference(keyspace), Table.reference(keyspace, table));
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void on(String table)
     {
         checkArgument(keyspace != null, "Keyspace must be specified");
@@ -693,7 +693,7 @@ public class QueryBuilderImpl
         this.table = table;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void index(String index)
     {
         index(SecondaryIndex.reference(index));
@@ -705,7 +705,7 @@ public class QueryBuilderImpl
         isIndex = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void index(String keyspace, String index)
     {
         index(Keyspace.reference(keyspace), SecondaryIndex.reference(index));
@@ -718,7 +718,7 @@ public class QueryBuilderImpl
         isIndex = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void indexingType(CollectionIndexingType indexingType)
     {
         if (indexingType.indexEntries())
@@ -739,31 +739,31 @@ public class QueryBuilderImpl
         }
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void indexKeys()
     {
         indexKeys = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void indexValues()
     {
         indexValues = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void indexEntries()
     {
         indexEntries = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void indexFull()
     {
         indexFull = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void type(String keyspace, UserDefinedType userDefinedType)
     {
         this.type = userDefinedType;
@@ -823,26 +823,26 @@ public class QueryBuilderImpl
         return prepare().execute(dataStore);
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public ResultSet execute(Object... args) throws ExecutionException, InterruptedException
     {
         return prepare().execute(dataStore, Optional.ofNullable(this.consistencyLevel), args).get();
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void consistencyLevel(ConsistencyLevel consistencyLevel)
     {
         this.consistencyLevel = consistencyLevel;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void ttl()
     {
         ttl = ImmutableValue.<Integer>builder().column(Column.TTL).build();
         parameters.add(this.ttl);
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void ttl(int ttl)
     {
         this.ttl = ImmutableValue.<Integer>builder().column(Column.TTL).value(ttl).build();

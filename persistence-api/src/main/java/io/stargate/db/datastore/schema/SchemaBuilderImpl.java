@@ -66,7 +66,7 @@ public class SchemaBuilderImpl
         this.callback = callback;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void keyspace(String name)
     {
         if (keyspaceName != null)
@@ -85,7 +85,7 @@ public class SchemaBuilderImpl
         keyspaceName = name;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void type(String typeName)
     {
         finishLast();
@@ -120,7 +120,7 @@ public class SchemaBuilderImpl
         return ImmutableKeyspace.builder().name(keyspaceName).userDefinedTypes(udts).build();
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void table(String name)
     {
         finishLast();
@@ -157,7 +157,7 @@ public class SchemaBuilderImpl
         }
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String name, Column.ColumnType type, Column.Kind kind)
     {
         checkIndexOnColumn(name);
@@ -168,7 +168,7 @@ public class SchemaBuilderImpl
                 .build());
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String name, Column.ColumnType type, Column.Kind kind, Column.Order order)
     {
         checkIndexOnColumn(name);
@@ -177,7 +177,7 @@ public class SchemaBuilderImpl
         columns.add(ImmutableColumn.builder().name(name).type(type).kind(kind).order(order).build());
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String name, Class type, Column.Kind kind)
     {
         checkIndexOnColumn(name);
@@ -187,7 +187,7 @@ public class SchemaBuilderImpl
         columns.add(ImmutableColumn.builder().name(name).type(type).kind(kind).order(order).build());
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String name, Class type, Column.Kind kind, Column.Order order)
     {
         checkIndexOnColumn(name);
@@ -197,7 +197,7 @@ public class SchemaBuilderImpl
                 .build());
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String name, Column.Kind kind)
     {
         checkIndexOnColumn(name);
@@ -208,7 +208,7 @@ public class SchemaBuilderImpl
         materializedViewColumns.add(ImmutableColumn.builder().name(name).kind(kind).order(order).build());
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String name, Column.Kind kind, Column.Order order)
     {
         checkIndexOnColumn(name);
@@ -222,7 +222,7 @@ public class SchemaBuilderImpl
         materializedViewColumns.add(ImmutableColumn.builder().name(name).kind(kind).order(order).build());
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String name, Column.ColumnType type)
     {
         checkIndexOnColumn(name);
@@ -238,7 +238,7 @@ public class SchemaBuilderImpl
         columns.add(ImmutableColumn.builder().name(name).type(type.dereference(udtKeyspace())).kind(Column.Kind.Regular).build());
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String name, Class<?> type)
     {
         checkIndexOnColumn(name);
@@ -249,7 +249,7 @@ public class SchemaBuilderImpl
         columns.add(ImmutableColumn.builder().name(name).type(type).kind(Column.Kind.Regular).build());
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void column(String name)
     {
         Preconditions.checkState(materializedViewName != null || secondaryIndexName != null,
@@ -264,7 +264,7 @@ public class SchemaBuilderImpl
         }
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void secondaryIndex(String name)
     {
         finishLast();
@@ -272,50 +272,50 @@ public class SchemaBuilderImpl
         secondaryIndexName = name;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void materializedView(String name)
     {
         finishLast();
         materializedViewName = name;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void indexKeys()
     {
         indexKeys = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void indexValues()
     {
         indexValues = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void indexEntries()
     {
         indexEntries = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void indexFull()
     {
         indexFull = true;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void from(String fromVertex)
     {
         this.fromVertex = fromVertex;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void to(String toVertex)
     {
         this.toVertex = toVertex;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void fromColumn(String... columns)
     {
         for (String column : columns)
@@ -324,7 +324,7 @@ public class SchemaBuilderImpl
         }
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void toColumn(String... columns)
     {
         for (String column : columns)
@@ -333,25 +333,25 @@ public class SchemaBuilderImpl
         }
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void fromColumn(List<String> columns)
     {
         fromColumn(columns.toArray(new String[0]));
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void toColumn(List<String> columns)
     {
         toColumn(columns.toArray(new String[0]));
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void withReplication(Map<String, String> replication)
     {
         this.replication = replication;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public void andDurableWrites(boolean durableWrites)
     {
         this.durableWrites = Optional.of(durableWrites);
@@ -509,7 +509,7 @@ public class SchemaBuilderImpl
         return columnMappings;
     }
 
-    @DSLAction(displayed = true)
+    @DSLAction
     public Schema build()
     {
         finishLastUDT();
