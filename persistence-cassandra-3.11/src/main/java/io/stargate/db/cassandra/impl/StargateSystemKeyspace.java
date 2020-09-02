@@ -2,6 +2,7 @@ package io.stargate.db.cassandra.impl;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -13,16 +14,19 @@ import org.apache.cassandra.concurrent.Stage;
 import org.apache.cassandra.concurrent.StageManager;
 import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.config.Schema;
+import org.apache.cassandra.config.SchemaConstants;
 import org.apache.cassandra.cql3.CQLStatement;
+import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.db.Keyspace;
+import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
 import org.apache.cassandra.gms.VersionedValue;
+import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.schema.Functions;
 import org.apache.cassandra.schema.KeyspaceMetadata;
 import org.apache.cassandra.schema.KeyspaceParams;
@@ -30,6 +34,8 @@ import org.apache.cassandra.schema.Tables;
 import org.apache.cassandra.schema.Types;
 import org.apache.cassandra.schema.Views;
 import org.apache.cassandra.service.StorageService;
+import org.apache.cassandra.thrift.cassandraConstants;
+import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.utils.FBUtilities;
 import org.slf4j.Logger;
@@ -38,13 +44,41 @@ import org.slf4j.LoggerFactory;
 import com.google.common.util.concurrent.Futures;
 
 import static org.apache.cassandra.cql3.QueryProcessor.executeInternal;
+import static org.apache.cassandra.cql3.QueryProcessor.executeOnceInternal;
 
 public class StargateSystemKeyspace
 {
     private static final Logger logger = LoggerFactory.getLogger(StargateSystemKeyspace.class);
 
     public static final String SYSTEM_KEYSPACE_NAME = "stargate_system";
+    public static final String LOCAL_TABLE_NAME = "stargate_local";
     public static final String PEERS_TABLE_NAME = "stargate_peers";
+
+    public static final UUID SCHEMA_VERSION = UUID.fromString("17846767-28a1-4acd-a967-f609ff1375f1");
+
+    private static final CFMetaData Local =
+            compile(LOCAL_TABLE_NAME,
+                    "information about the local node",
+                    "CREATE TABLE %s ("
+                            + "key text,"
+                            + "bootstrapped text,"
+                            + "broadcast_address inet,"
+                            + "cluster_name text,"
+                            + "cql_version text,"
+                            + "data_center text,"
+                            + "gossip_generation int,"
+                            + "host_id uuid,"
+                            + "listen_address inet,"
+                            + "native_protocol_version text,"
+                            + "partitioner text,"
+                            + "rack text,"
+                            + "release_version text,"
+                            + "rpc_address inet,"
+                            + "schema_version uuid,"
+                            + "thrift_version text,"
+                            + "tokens set<varchar>,"
+                            + "truncated_at map<uuid, blob>,"
+                            + "PRIMARY KEY ((key)))");
 
     public static final CFMetaData Peers =
             compile(PEERS_TABLE_NAME,
@@ -69,7 +103,7 @@ public class StargateSystemKeyspace
 
     public static Tables tables()
     {
-        return Tables.of(Peers);
+        return Tables.of(Local, Peers);
     }
 
     public static KeyspaceMetadata metadata()
@@ -77,21 +111,66 @@ public class StargateSystemKeyspace
         return KeyspaceMetadata.create(SYSTEM_KEYSPACE_NAME, KeyspaceParams.local(), tables(), Views.none(), Types.none(), Functions.none());
     }
 
-    private static boolean isSystemPeers(CQLStatement statement)
+    public static void persistLocalMetadata()
+    {
+        String req = "INSERT INTO %s.%s (" +
+                "key," +
+                "cluster_name," +
+                "release_version," +
+                "cql_version," +
+                "thrift_version," +
+                "native_protocol_version," +
+                "data_center," +
+                "rack," +
+                "partitioner," +
+                "rpc_address," +
+                "broadcast_address," +
+                "listen_address," +
+                "bootstrapped," +
+                "host_id," +
+                "tokens," +
+                "schema_version" +
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
+        executeOnceInternal(String.format(req, SYSTEM_KEYSPACE_NAME, LOCAL_TABLE_NAME),
+                SystemKeyspace.LOCAL,
+                DatabaseDescriptor.getClusterName(),
+                FBUtilities.getReleaseVersionString(),
+                QueryProcessor.CQL_VERSION.toString(),
+                cassandraConstants.VERSION,
+                String.valueOf(ProtocolVersion.CURRENT.asInt()),
+                snitch.getDatacenter(FBUtilities.getBroadcastAddress()),
+                snitch.getRack(FBUtilities.getBroadcastAddress()),
+                DatabaseDescriptor.getPartitioner().getClass().getName(),
+                DatabaseDescriptor.getRpcAddress(),
+                FBUtilities.getBroadcastAddress(),
+                FBUtilities.getLocalAddress(),
+                SystemKeyspace.BootstrapState.COMPLETED.name(),
+                SystemKeyspace.getLocalHostId(),
+                Collections.singleton(DatabaseDescriptor.getPartitioner().getMinimumToken().toString()),
+                SCHEMA_VERSION);
+    }
+
+    private static boolean isSystemLocal(SelectStatement statement)
+    {
+        return statement.columnFamily().equals(SystemKeyspace.LOCAL);
+    }
+
+    private static boolean isSystemLocalOrPeers(CQLStatement statement)
     {
         if (statement instanceof SelectStatement)
         {
             SelectStatement selectStatement = (SelectStatement) statement;
-            return selectStatement.keyspace().equals("system") && selectStatement.columnFamily().equals("peers");
+            return selectStatement.keyspace().equals(SchemaConstants.SYSTEM_KEYSPACE_NAME) && (isSystemLocal(selectStatement) || selectStatement.columnFamily().equals(SystemKeyspace.PEERS)) ;
         }
         return false;
     }
 
-    private static ResultMessage.Rows interceptSystemPeers(CQLStatement statement, org.apache.cassandra.service.QueryState state, org.apache.cassandra.cql3.QueryOptions options, long queryStartNanoTime)
+    private static ResultMessage.Rows interceptSystemLocalOrPeers(CQLStatement statement, org.apache.cassandra.service.QueryState state, org.apache.cassandra.cql3.QueryOptions options, long queryStartNanoTime)
     {
         SelectStatement selectStatement = (SelectStatement) statement;
         SelectStatement peersSelectStatement =
-                new SelectStatement(StargateSystemKeyspace.Peers,
+                new SelectStatement(isSystemLocal(selectStatement) ? Local : Peers,
                         selectStatement.getBoundTerms(),
                         selectStatement.parameters,
                         selectStatement.getSelection(),
@@ -106,21 +185,21 @@ public class StargateSystemKeyspace
     }
 
 
-    public static boolean maybeCompleteSystemPeers(CQLStatement statement, org.apache.cassandra.service.QueryState state, org.apache.cassandra.cql3.QueryOptions options, long queryStartNanoTime, CompletableFuture<Result> future)
+    public static boolean maybeCompleteSystemLocalOrPeers(CQLStatement statement, org.apache.cassandra.service.QueryState state, org.apache.cassandra.cql3.QueryOptions options, long queryStartNanoTime, CompletableFuture<Result> future)
     {
-        if (isSystemPeers(statement))
+        if (isSystemLocalOrPeers(statement))
         {
-            future.complete(Conversion.toResult(interceptSystemPeers(statement, state, options, queryStartNanoTime), options.getProtocolVersion()));
+            future.complete(Conversion.toResult(interceptSystemLocalOrPeers(statement, state, options, queryStartNanoTime), options.getProtocolVersion()));
             return true;
         }
         return false;
     }
 
-    public static boolean maybeCompleteSystemPeersInternal(CQLStatement statement, org.apache.cassandra.service.QueryState state, org.apache.cassandra.cql3.QueryOptions options, long queryStartNanoTime, CompletableFuture<ResultMessage> future)
+    public static boolean maybeCompleteSystemLocalOrPeersInternal(CQLStatement statement, org.apache.cassandra.service.QueryState state, org.apache.cassandra.cql3.QueryOptions options, long queryStartNanoTime, CompletableFuture<ResultMessage> future)
     {
-        if (isSystemPeers(statement))
+        if (isSystemLocalOrPeers(statement))
         {
-            future.complete(interceptSystemPeers(statement, state, options, queryStartNanoTime));
+            future.complete(interceptSystemLocalOrPeers(statement, state, options, queryStartNanoTime));
             return true;
         }
         return false;
@@ -211,14 +290,16 @@ public class StargateSystemKeyspace
                     }
                     break;
                 case SCHEMA:
-                    // Use the local schema version for all peers (always in agreement) because stargate waits
+                    // Use a fix schema version for all peers (always in agreement) because stargate waits
                     // for DDL queries to reach agreement before returning.
-                    updatePeerInfo(endpoint, "schema_version", Schema.instance.getVersion(), executor);
+                    updatePeerInfo(endpoint, "schema_version", SCHEMA_VERSION, executor);
                     break;
                 case HOST_ID:
                     updatePeerInfo(endpoint, "host_id", UUID.fromString(value.value), executor);
                     break;
             }
+
+            updatePeerInfo(endpoint, "tokens", Collections.singleton(DatabaseDescriptor.getPartitioner().getMinimumToken().toString()), executor);
         }
 
         @Override
