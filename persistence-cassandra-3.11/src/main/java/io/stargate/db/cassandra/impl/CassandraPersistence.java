@@ -101,6 +101,7 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
         handler = org.apache.cassandra.service.ClientState.getCQLQueryHandler();
 
         Gossiper.instance.register(new StargateSystemKeyspace.PeersUpdater());
+        StargateSystemKeyspace.persistLocalMetadata();
     }
 
     @Override
@@ -158,31 +159,33 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
     }
 
     @Override
-    public ClientState newClientState(SocketAddress remoteAddress)
-    {
-        return newClientState(remoteAddress, (InetSocketAddress)null);
-    }
-
-    @Override
     public ClientState<org.apache.cassandra.service.ClientState> newClientState(SocketAddress remoteAddress, InetSocketAddress publicAddress)
     {
-        if (authenticator.requireAuthentication() && remoteAddress != null)
+        if (remoteAddress == null)
+        {
+            throw new IllegalArgumentException("No remote address provided");
+        }
+
+        if (authenticator.requireAuthentication())
         {
             return ClientStateWrapper.forExternalCalls(remoteAddress, publicAddress);
         }
 
-        return ClientStateWrapper.forInternalCalls();
+        assert remoteAddress instanceof InetSocketAddress;
+        ClientStateWrapper state = ClientStateWrapper.forExternalCalls((InetSocketAddress) remoteAddress, publicAddress);
+        state.login(new AuthenticatorWrapper.AuthenticatedUserWrapper(AuthenticatedUser.ANONYMOUS_USER));
+        return state;
     }
 
     @Override
-    public ClientState newClientState(SocketAddress remoteAddress, String name)
+    public ClientState newClientState(String name)
     {
         if (Strings.isNullOrEmpty(name))
         {
             return ClientStateWrapper.forInternalCalls();
         }
 
-        ClientStateWrapper state = ClientStateWrapper.forExternalCalls(remoteAddress);
+        ClientStateWrapper state = ClientStateWrapper.forExternalCalls(null);
         state.login(new AuthenticatorWrapper.AuthenticatedUserWrapper(new AuthenticatedUser(name)));
         return state;
     }
@@ -221,7 +224,7 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
                 }
 
                 CQLStatement statement = QueryProcessor.parseStatement(cql, internalState).statement;
-                if (!StargateSystemKeyspace.maybeCompleteSystemPeers(statement, internalState, internalOptions, queryStartNanoTime, future))
+                if (!StargateSystemKeyspace.maybeCompleteSystemLocalOrPeers(statement, internalState, internalOptions, queryStartNanoTime, future))
                 {
                     future.complete(Conversion.toResult(
                             QueryProcessor.instance
@@ -279,7 +282,7 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
                 }
 
                 CQLStatement statement = prepared.statement;
-                if (!StargateSystemKeyspace.maybeCompleteSystemPeers(statement, internalState, internalOptions, queryStartNanoTime, future))
+                if (!StargateSystemKeyspace.maybeCompleteSystemLocalOrPeers(statement, internalState, internalOptions, queryStartNanoTime, future))
                 {
                     future.complete(Conversion.toResult(
                             handler
