@@ -108,7 +108,8 @@ Use HELP for help.
 Curl over port 8082
 
 ```sh
-curl -L -X GET 'localhost:8082/v1/health' \
+curl -L -X GET 'localhost:8082/v1/keyspaces' \
 --header 'accept: application/json' \
---header 'content-type: application/json'
+--header 'content-type: application/json' \
+--header 'X-Cassandra-Token: <AUTH_TOKEN>'
 ```
