@@ -739,6 +739,9 @@ public abstract class Column implements SchemaEntity, Comparable<Column>
 
     public boolean isPrimaryKeyComponent()
     {
+        if (kind() == null) {
+            return false;
+        }
         return kind().isPrimaryKeyKind();
     }
 

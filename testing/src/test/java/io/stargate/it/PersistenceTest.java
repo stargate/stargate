@@ -95,7 +95,7 @@ public class PersistenceTest extends BaseOsgiIntegrationTest
     public void setup() throws InvalidSyntaxException
     {
         Persistence persistence = getOsgiService("io.stargate.db.Persistence", Persistence.class);
-        ClientState clientState = persistence.newClientState(new InetSocketAddress("127.0.0.11", 0));
+        ClientState clientState = persistence.newClientState("");
         QueryState queryState = persistence.newQueryState(clientState);
         dataStore = persistence.newDataStore(queryState, null);
         logger.info("{} {} {}", clientState, queryState, dataStore);

@@ -44,8 +44,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
-import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Uninterruptibles;
 import io.stargate.db.Authenticator;
 import io.stargate.db.BatchType;
 import io.stargate.db.ClientState;
@@ -78,7 +78,7 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
     @Override
     public void initialize(Config config)
     {
-        System.out.println("Initializing CassandraPersistence");
+        logger.info("Initializing CassandraPersistence");
         System.setProperty("cassandra.join_ring", "false");
         daemon = new CassandraDaemon(true);
 
@@ -96,11 +96,16 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
 
         daemon.start();
 
+        waitForSchema(StorageService.RING_DELAY);
+
         root = new InternalDataStore();
         authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
         handler = org.apache.cassandra.service.ClientState.getCQLQueryHandler();
 
         Gossiper.instance.register(new StargateSystemKeyspace.PeersUpdater());
+        StargateSystemKeyspace.persistLocalMetadata();
+
+        StorageService.instance.waitForSchema(StorageService.RING_DELAY);
     }
 
     @Override
@@ -158,31 +163,33 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
     }
 
     @Override
-    public ClientState newClientState(SocketAddress remoteAddress)
-    {
-        return newClientState(remoteAddress, (InetSocketAddress)null);
-    }
-
-    @Override
     public ClientState<org.apache.cassandra.service.ClientState> newClientState(SocketAddress remoteAddress, InetSocketAddress publicAddress)
     {
-        if (authenticator.requireAuthentication() && remoteAddress != null)
+        if (remoteAddress == null)
+        {
+            throw new IllegalArgumentException("No remote address provided");
+        }
+
+        if (authenticator.requireAuthentication())
         {
             return ClientStateWrapper.forExternalCalls(remoteAddress, publicAddress);
         }
 
-        return ClientStateWrapper.forInternalCalls();
+        assert remoteAddress instanceof InetSocketAddress;
+        ClientStateWrapper state = ClientStateWrapper.forExternalCalls((InetSocketAddress) remoteAddress, publicAddress);
+        state.login(new AuthenticatorWrapper.AuthenticatedUserWrapper(AuthenticatedUser.ANONYMOUS_USER));
+        return state;
     }
 
     @Override
-    public ClientState newClientState(SocketAddress remoteAddress, String name)
+    public ClientState newClientState(String name)
     {
         if (Strings.isNullOrEmpty(name))
         {
             return ClientStateWrapper.forInternalCalls();
         }
 
-        ClientStateWrapper state = ClientStateWrapper.forExternalCalls(remoteAddress);
+        ClientStateWrapper state = ClientStateWrapper.forExternalCalls(null);
         state.login(new AuthenticatorWrapper.AuthenticatedUserWrapper(new AuthenticatedUser(name)));
         return state;
     }
@@ -196,8 +203,6 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
     @Override
     public CompletableFuture<? extends Result> query(String cql, QueryState state, QueryOptions options, Map<String, ByteBuffer> customPayload, boolean isTracingRequested, long queryStartNanoTime)
     {
-        Stopwatch executionTimer = Stopwatch.createStarted();
-
         CompletableFuture<Result> future = new CompletableFuture<>();
 
         EXECUTOR.submit(() ->
@@ -221,7 +226,7 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
                 }
 
                 CQLStatement statement = QueryProcessor.parseStatement(cql, internalState).statement;
-                if (!StargateSystemKeyspace.maybeCompleteSystemPeers(statement, internalState, internalOptions, queryStartNanoTime, future))
+                if (!StargateSystemKeyspace.maybeCompleteSystemLocalOrPeers(statement, internalState, internalOptions, queryStartNanoTime, future))
                 {
                     future.complete(Conversion.toResult(
                             QueryProcessor.instance
@@ -239,16 +244,12 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
             }
         });
 
-        future.whenComplete((v, t) -> logger.debug("{} took {}ms", cql, executionTimer.stop().elapsed(TimeUnit.MILLISECONDS)));
-
         return future;
     }
 
     @Override
     public CompletableFuture<? extends Result> execute(MD5Digest id, QueryState state, QueryOptions options, Map<String, ByteBuffer> customPayload, boolean isTracingRequested, long queryStartNanoTime)
     {
-        Stopwatch executionTimer = Stopwatch.createStarted();
-
         CompletableFuture<Result> future = new CompletableFuture<>();
 
         EXECUTOR.submit(() ->
@@ -279,7 +280,7 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
                 }
 
                 CQLStatement statement = prepared.statement;
-                if (!StargateSystemKeyspace.maybeCompleteSystemPeers(statement, internalState, internalOptions, queryStartNanoTime, future))
+                if (!StargateSystemKeyspace.maybeCompleteSystemLocalOrPeers(statement, internalState, internalOptions, queryStartNanoTime, future))
                 {
                     future.complete(Conversion.toResult(
                             handler
@@ -297,16 +298,12 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
             }
         });
 
-        future.whenComplete((v, t) -> logger.debug("{} took {}ms", id, executionTimer.stop().elapsed(TimeUnit.MILLISECONDS)));
-
         return future;
     }
 
     @Override
     public CompletableFuture<? extends Result> prepare(String cql, QueryState state, Map<String, ByteBuffer> customPayload, boolean isTracingRequested)
     {
-        Stopwatch executionTimer = Stopwatch.createStarted();
-
         CompletableFuture<Result> future = new CompletableFuture<>();
 
         InternalDataStore.EXECUTOR.submit(() ->
@@ -341,16 +338,12 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
             }
         });
 
-        future.whenComplete((v, t) -> logger.debug("Prepare {} took {}ms", cql, executionTimer.stop().elapsed(TimeUnit.MILLISECONDS)));
-
         return future;
     }
 
     @Override
     public CompletableFuture<? extends Result> batch(BatchType type, List<Object> queryOrIds, List<List<ByteBuffer>> values, QueryState state, QueryOptions options, Map<String, ByteBuffer> customPayload, boolean isTracingRequested, long queryStartNanoTime)
     {
-        Stopwatch executionTimer = Stopwatch.createStarted();
-
         CompletableFuture<Result> future = new CompletableFuture<>();
 
         EXECUTOR.submit(() ->
@@ -447,9 +440,6 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
                 Tracing.instance.stopSession();
             }
         });
-
-        future.whenComplete((v, t) -> logger.debug("BEGIN BATCH [... {} statements ...]; APPLY BATCH; took {}ms",
-                queryOrIds.size(), executionTimer.stop().elapsed(TimeUnit.MILLISECONDS)));
 
         return future;
     }
@@ -554,5 +544,24 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
 
         // TODO we don't have [typed] access to CQL bind variables here.  CASSANDRA-4560 is open to add support.
         Tracing.instance.begin("Execute batch of CQL3 queries", state.getClientAddress(), builder.build());
+    }
+
+    /**
+     * When "cassandra.join_ring" is "false" {@link StorageService#initServer()}  will not wait for schema to propagate to the coordinator only node. This
+     * method fixes that limitation by waiting for at least one backend ring member to become available and for their schemas to agree before allowing
+     * initialization to continue.
+     */
+    private void waitForSchema(int delay)
+    {
+        for (int i = 0; i < delay; i += 1000)
+        {
+            if (Gossiper.instance.getLiveTokenOwners().size() > 0 && isInSchemaAgreement())
+            {
+                logger.debug("current schema version: {}", Schema.instance.getVersion());
+                break;
+            }
+
+            Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+        }
     }
 }
