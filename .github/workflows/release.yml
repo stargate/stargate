@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  create-release:
+    name: create release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - name: Copy release URL into file
+        run: |
+          mkdir release
+          printf "%s" "${{ steps.create_release.outputs.upload_url }}" > release/url.txt
+      - name: Stash file containing the release URL as an artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: release-url
+          path: ./release
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.2
+        with:
+          java-version: 1.8
+      - name: Build with Maven
+        run: |
+          mvn -q -ff clean package -DskipTests
+      - name: zip-up
+        run: |
+          zip stargate-jars.zip starctl stargate-lib/*.jar
+      - name: Retrieve stashed release URL
+        uses: actions/download-artifact@v1
+        with:
+          name: release-url
+      - name: Read release URL
+        id: get_release_url
+        run: echo ::set-output name=URL::$(cat release-url/url.txt)
+      - name: Upload jars
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.get_release_url.outputs.URL }}
+          asset_path: stargate-jars.zip
+          asset_name: stargate-jars.zip
+          asset_content_type: text/html
+
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set version
+        id: vars
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+      - uses: actions/setup-java@v1.4.2
+        with:
+          java-version: 1.8
+      - name: Publish package
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ steps.vars.outputs.tag }}
+        run: |
+          RELEASE_VERSION="${RELEASE_VERSION:1}"
+          REPO="gh::default::https://maven.pkg.github.com/${GITHUB_REPOSITORY}"
+          mvn -B clean deploy -Drevision="$RELEASE_VERSION" -DskipTests -DaltDeploymentRepository="${REPO}" -DaltSnapshotDeploymentRepository="${REPO}" && \
+          mvn versions:set-property -Dproperty=revision -DnewVersion=$RELEASE_VERSION -DgenerateBackupPoms=false
+      - name: Rev Version
+        if: success()
+        uses: EndBug/add-and-commit@v4
+        env:
+          RELEASE_VERSION: ${{ steps.vars.outputs.tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          message: "Bumping version to ${RELEASE_VERSION:1}"
+          add: "pom.xml"
