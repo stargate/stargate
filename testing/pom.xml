@@ -85,7 +85,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy</artifactId>
@@ -146,6 +145,12 @@
             <groupId>com.github.rvesse</groupId>
             <artifactId>airline</artifactId>
             <version>${airline.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>3.12.11</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
