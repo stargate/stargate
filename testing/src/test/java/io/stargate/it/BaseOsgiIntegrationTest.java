@@ -75,7 +75,7 @@ public class BaseOsgiIntegrationTest
     static GenericContainer backendContainer;
     static Starter stargateStarter;
     static String datacenter;
-    static String stargateHost;
+    public static String stargateHost;
     static String rack;
 
     @Parameterized.Parameter(0)

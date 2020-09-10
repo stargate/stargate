@@ -30,9 +30,12 @@ import com.datastax.oss.driver.api.core.cql.QueryTrace;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
+import com.datastax.oss.driver.api.core.type.DataTypes;
+import com.datastax.oss.driver.api.core.type.TupleType;
 import com.datastax.oss.driver.internal.core.loadbalancing.DcInferringLoadBalancingPolicy;
 import net.jcip.annotations.NotThreadSafe;
 
@@ -315,6 +318,36 @@ public class CQLTest extends BaseOsgiIntegrationTest
         Row row = rows.next();
         assertThat(row.getString("key")).isEqualTo("abc");
         assertThat(row.getString("value")).isEqualTo("def");
+    }
+
+    @Test
+    public void tupleTest()
+    {
+        createKeyspace();
+        session.execute(String.format("CREATE TABLE \"%s\".\"%s\" (key text PRIMARY KEY, value tuple<text,int,int> )", keyspace, table));
+
+        TupleType tupleType = DataTypes.tupleOf(DataTypes.TEXT, DataTypes.INT, DataTypes.INT);
+        TupleValue tupleValue = tupleType.newValue("hello", 1, 2);
+        session.execute(SimpleStatement.builder(insertIntoQuery())
+                .setTracing(true)
+                .addPositionalValues("abc", tupleValue)
+                .build());
+
+        ResultSet rs = session.execute(SimpleStatement.builder(selectFromQuery(true))
+                .addPositionalValue("abc")
+                .build());
+
+        Iterator<Row> rows = rs.iterator();
+        assertThat(rows).hasNext();
+
+        Row row = rows.next();
+        assertThat(row.getString("key")).isEqualTo("abc");
+
+        TupleValue tupleReturnValue = row.getTupleValue("value");
+        assertThat(tupleReturnValue).isNotNull();
+        assertThat(tupleReturnValue.getString(0)).isEqualTo("hello");
+        assertThat(tupleReturnValue.getInt(1)).isEqualTo(1);
+        assertThat(tupleReturnValue.getInt(2)).isEqualTo(2);
     }
 
     private static <T> T waitFor(Supplier<Optional<T>> supplier) throws InterruptedException

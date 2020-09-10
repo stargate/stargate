@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.stargate</groupId>
         <artifactId>stargate</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>${revision}</version>
     </parent>
 
     <groupId>io.stargate.it</groupId>
@@ -49,21 +49,21 @@
         <dependency>
             <groupId>io.stargate.db</groupId>
             <artifactId>persistence-api</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${revision}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>io.stargate.db.cassandra</groupId>
             <artifactId>persistence-cassandra-3.11</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${revision}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>io.stargate.auth.api</groupId>
             <artifactId>auth-api</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${revision}</version>
             <scope>provided</scope>
             <exclusions>
                 <exclusion>
@@ -73,6 +73,18 @@
             </exclusions>
         </dependency>
 
+        <dependency>
+            <groupId>io.stargate.web</groupId>
+            <artifactId>restapi</artifactId>
+            <version>${revision}</version>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy</artifactId>
@@ -126,13 +138,19 @@
         <dependency>
             <groupId>io.stargate.starter</groupId>
             <artifactId>stargate-starter</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${revision}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.github.rvesse</groupId>
             <artifactId>airline</artifactId>
             <version>${airline.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>3.12.11</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
