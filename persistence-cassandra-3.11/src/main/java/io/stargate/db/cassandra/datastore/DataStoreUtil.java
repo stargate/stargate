@@ -1,9 +1,4 @@
-/*
- * Copyright DataStax, Inc.
- *
- * Please see the included license file for details.
- */
-package io.stargate.db.datastore.common.util;
+package io.stargate.db.cassandra.datastore;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,6 +22,7 @@ import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
 import com.datastax.oss.protocol.internal.ProtocolConstants;
 import com.google.common.collect.ImmutableMap;
+import io.stargate.db.datastore.common.util.ColumnUtils;
 import io.stargate.db.datastore.schema.CollectionIndexingType;
 import io.stargate.db.datastore.schema.Column;
 import io.stargate.db.datastore.schema.ImmutableCollectionIndexingType;
