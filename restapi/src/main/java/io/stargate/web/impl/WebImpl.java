@@ -1,19 +1,19 @@
 package io.stargate.web.impl;
 
 import io.stargate.auth.AuthenticationService;
-import io.stargate.coordinator.Coordinator;
+import io.stargate.db.Persistence;
 
 public class WebImpl {
 
-    private Coordinator coordinator;
+    private Persistence persistence;
     private AuthenticationService authenticationService;
 
-    public Coordinator getCoordinator() {
-        return coordinator;
+    public Persistence getPersistence() {
+        return persistence;
     }
 
-    public void setCoordinator(Coordinator coordinator) {
-        this.coordinator = coordinator;
+    public void setPersistence(Persistence persistence) {
+        this.persistence = persistence;
     }
 
     public AuthenticationService getAuthenticationService() {
@@ -25,7 +25,7 @@ public class WebImpl {
     }
 
     public void start() throws Exception {
-        Server server = new Server(coordinator.getPersistence(), this.authenticationService);
+        Server server = new Server(persistence, this.authenticationService);
         server.run("server", "config.yaml");
     }
 }

@@ -18,7 +18,7 @@
         <module>restapi</module>
         <module>auth-api</module>
         <module>authentication</module>
-        <module>auth-service-file</module>
+        <module>auth-table-based-service</module>
         <!-- testing last -->
         <module>testing</module>
     </modules>

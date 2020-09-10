@@ -49,7 +49,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
     private String keyspaceName;
     private String tableName;
     private static String authToken;
-    private static String host = "http://localhost";
+    private static String host = "http://" + stargateHost;
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Before

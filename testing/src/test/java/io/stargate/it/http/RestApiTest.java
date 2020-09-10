@@ -61,7 +61,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest
     private DataStore dataStore;
     private String keyspace;
     private static String authToken;
-    private static String host = "http://localhost";
+    private static String host = "http://" + stargateHost;
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Before

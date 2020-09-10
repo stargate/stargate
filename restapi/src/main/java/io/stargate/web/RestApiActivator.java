@@ -6,39 +6,36 @@ import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceEvent;
 import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.stargate.auth.AuthenticationService;
-import io.stargate.coordinator.Coordinator;
+import io.stargate.db.Persistence;
 import io.stargate.web.impl.WebImpl;
 
 /**
  * Activator for the restapi bundle
  */
 public class RestApiActivator implements BundleActivator, ServiceListener {
+    private static final Logger log = LoggerFactory.getLogger(RestApiActivator.class);
 
     private BundleContext context;
     private final WebImpl web = new WebImpl();
-    private ServiceReference coordinatorReference;
+    private ServiceReference persistenceReference;
     private ServiceReference authenticationReference;
 
-    static String AUTH_IDENTIFIER = "AuthTableBasedService";
-
-    static {
-        String auth = System.getProperty("stargate.auth_id");
-        if (auth != null) {
-            AUTH_IDENTIFIER = auth;
-        }
-    }
+    static String AUTH_IDENTIFIER = System.getProperty("stargate.auth_id", "AuthTableBasedService");
+    static String PERSISTENCE_IDENTIFIER = System.getProperty("stargate.persistence_id", "CassandraPersistence");
 
     @Override
     public void start(BundleContext context) throws InvalidSyntaxException {
         this.context = context;
-        System.out.println("Starting restapi....");
+        log.info("Starting restapi....");
         synchronized (web) {
             try {
                 String authFilter = String.format("(AuthIdentifier=%s)", AUTH_IDENTIFIER);
-                String coordinatorFilter = "(objectClass=io.stargate.coordinator.Coordinator)";
-                context.addServiceListener(this, String.format("(|%s%s)", coordinatorFilter, authFilter));
+                String persistenceFilter = String.format("(Identifier=%s)", PERSISTENCE_IDENTIFIER);
+                context.addServiceListener(this, String.format("(|%s%s)", persistenceFilter, authFilter));
             } catch (InvalidSyntaxException ise) {
                 throw new RuntimeException(ise);
             }
@@ -50,26 +47,25 @@ public class RestApiActivator implements BundleActivator, ServiceListener {
                     Object service = context.getService(ref);
                     if (service instanceof AuthenticationService && ref.getProperty("AuthIdentifier") != null
                             && ref.getProperty("AuthIdentifier").equals(AUTH_IDENTIFIER)) {
-                        System.out.println("Setting authenticationService in RestApiActivator");
+                        log.info("Setting authenticationService in RestApiActivator");
                         this.web.setAuthenticationService((AuthenticationService)service);
                         break;
                     }
                 }
             }
 
-            coordinatorReference = context.getServiceReference(Coordinator.class.getName());
-            if (coordinatorReference != null) {
-                System.out.println("Setting coordinator in RestApiActivator");
-                this.web.setCoordinator((Coordinator)context.getService(coordinatorReference));
+            persistenceReference = context.getServiceReference(Persistence.class.getName());
+            if (persistenceReference != null && persistenceReference.getProperty("Identifier").equals(PERSISTENCE_IDENTIFIER)) {
+                log.info("Setting persistence in RestApiActivator");
+                this.web.setPersistence((Persistence)context.getService(persistenceReference));
             }
 
-            if (this.web.getCoordinator() != null && this.web.getAuthenticationService() != null) {
+            if (this.web.getPersistence() != null && this.web.getAuthenticationService() != null) {
                 try {
                     this.web.start();
-                    System.out.println("Started restapi....");
+                    log.info("Started restapi....");
                 } catch (Exception e) {
-                    System.out.println("Failed");
-                    e.printStackTrace();
+                    log.error("Failed", e);
                 }
             }
         }
@@ -77,8 +73,8 @@ public class RestApiActivator implements BundleActivator, ServiceListener {
 
     @Override
     public void stop(BundleContext context) {
-        if (coordinatorReference != null) {
-            context.ungetService(coordinatorReference);
+        if (persistenceReference != null) {
+            context.ungetService(persistenceReference);
         }
 
         if (authenticationReference != null) {
@@ -93,35 +89,34 @@ public class RestApiActivator implements BundleActivator, ServiceListener {
         synchronized (web) {
             switch (type) {
                 case (ServiceEvent.REGISTERED):
-                    System.out.println("Service of type " + objectClass[0] + " registered.");
+                    log.info("Service of type " + objectClass[0] + " registered.");
                     Object service = context.getService(serviceEvent.getServiceReference());
 
-                    if (service instanceof Coordinator) {
-                        System.out.println("Setting coordinator in RestApiActivator");
-                        this.web.setCoordinator((Coordinator) service);
+                    if (service instanceof Persistence) {
+                        log.info("Setting persistence in RestApiActivator");
+                        this.web.setPersistence((Persistence) service);
                     } else if (service instanceof AuthenticationService && serviceEvent.getServiceReference().getProperty("AuthIdentifier") != null
                             && serviceEvent.getServiceReference().getProperty("AuthIdentifier").equals(AUTH_IDENTIFIER)) {
-                        System.out.println("Setting authenticationService in RestApiActivator");
+                        log.info("Setting authenticationService in RestApiActivator");
                         this.web.setAuthenticationService((AuthenticationService)service);
                     }
 
-                    if (this.web.getCoordinator() != null && this.web.getAuthenticationService() != null) {
+                    if (this.web.getPersistence() != null && this.web.getAuthenticationService() != null) {
                         try {
                             this.web.start();
-                            System.out.println("Started restapi.... (via svc changed)");
+                            log.info("Started restapi.... (via svc changed)");
                         } catch (Exception e) {
-                            System.out.println("Failed");
-                            e.printStackTrace();
+                            log.error("Failed", e);
                         }
                     }
                     break;
                 case (ServiceEvent.UNREGISTERING):
-                    System.out.println("Service of type " + objectClass[0] + " unregistered.");
+                    log.info("Service of type " + objectClass[0] + " unregistered.");
                     context.ungetService(serviceEvent.getServiceReference());
                     break;
                 case (ServiceEvent.MODIFIED):
                     // TODO: [doug] 2020-06-15, Mon, 12:58 do something here...
-                    System.out.println("Service of type " + objectClass[0] + " modified.");
+                    log.info("Service of type " + objectClass[0] + " modified.");
                     break;
                 default:
                     break;

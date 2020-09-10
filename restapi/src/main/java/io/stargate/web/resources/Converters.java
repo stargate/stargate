@@ -154,7 +154,7 @@ public class Converters {
                 try {
                     List foo = mapper.readValue(value, List.class);
                 } catch (JsonProcessingException e) {
-                    e.printStackTrace();
+                    logger.error("Failed", e);
                 }
                 value = removeSuffix(removePrefix(value, "["), "]");
 

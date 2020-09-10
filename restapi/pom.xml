@@ -33,18 +33,6 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>io.stargate.coordinator</groupId>
-            <artifactId>coordinator</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
             <groupId>io.stargate.auth</groupId>
             <artifactId>authentication</artifactId>
             <version>1.0-SNAPSHOT</version>
@@ -181,7 +169,6 @@
                             !org.slf4j.helpers,
                             !org.slf4j.spi,
                             !org.eclipse.jetty.security,
-                            io.stargate.coordinator,
                             io.stargate.db,
                             org.apache.cassandra.stargate,
                             org.apache.cassandra.stargate.*,
