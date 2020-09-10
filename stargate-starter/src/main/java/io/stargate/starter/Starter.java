@@ -176,6 +176,10 @@ public class Starter {
         System.setProperty("stargate.listen_address", listenHostStr);
         System.setProperty("stargate.cql_port", String.valueOf(cqlPort));
         System.setProperty("stargate.enable_auth", enableAuth ? "true" : "false");
+
+        // Restrict the listen address for Jersey endpoints
+        System.setProperty("dw.server.adminConnectors[0].bindHost", listenHostStr);
+        System.setProperty("dw.server.applicationConnectors[0].bindHost", listenHostStr);
     }
 
     public void start() throws BundleException
