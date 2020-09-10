@@ -9,7 +9,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import io.stargate.db.Result;
 import org.apache.cassandra.concurrent.Stage;
 import org.apache.cassandra.concurrent.StageManager;
 import org.apache.cassandra.config.CFMetaData;
@@ -33,6 +32,7 @@ import org.apache.cassandra.schema.KeyspaceParams;
 import org.apache.cassandra.schema.Tables;
 import org.apache.cassandra.schema.Types;
 import org.apache.cassandra.schema.Views;
+import org.apache.cassandra.service.MigrationManager;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.thrift.cassandraConstants;
 import org.apache.cassandra.transport.ProtocolVersion;
@@ -42,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.Futures;
+import io.stargate.db.Result;
 
 import static org.apache.cassandra.cql3.QueryProcessor.executeInternal;
 import static org.apache.cassandra.cql3.QueryProcessor.executeOnceInternal;
@@ -293,6 +294,10 @@ public class StargateSystemKeyspace
                     // Use a fix schema version for all peers (always in agreement) because stargate waits
                     // for DDL queries to reach agreement before returning.
                     updatePeerInfo(endpoint, "schema_version", SCHEMA_VERSION, executor);
+
+                    // This fix schedules a schema pull for the non-member node and is required because
+                    // `StorageService.onChange()` doesn't do this for non-member nodes.
+                    MigrationManager.instance.scheduleSchemaPull(endpoint, epState);
                     break;
                 case HOST_ID:
                     updatePeerInfo(endpoint, "host_id", UUID.fromString(value.value), executor);

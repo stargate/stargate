@@ -5,6 +5,7 @@ import java.util.logging.Logger;
 
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -43,8 +44,13 @@ public class AuthApiServer {
         context.setContextPath("/");
         context.setErrorHandler(new ErrorHandler());
 
-        // TODO: [doug] 2020-06-18, Thu, 0:48 make port configurable 
-        server = new Server(8081);
+        server = new Server();
+        ServerConnector connector = new ServerConnector(server);
+        connector.setHost(System.getProperty("stargate.listen_address"));
+        // TODO: [doug] 2020-06-18, Thu, 0:48 make port configurable
+        connector.setPort(8081);
+        server.addConnector(connector);
+
         server.setHandler(context);
         server.addBean(new ErrorHandler());
 

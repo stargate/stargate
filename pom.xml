@@ -19,6 +19,8 @@
         <module>auth-api</module>
         <module>authentication</module>
         <module>auth-service-file</module>
+        <!-- testing last -->
+        <module>testing</module>
     </modules>
 
     <properties>

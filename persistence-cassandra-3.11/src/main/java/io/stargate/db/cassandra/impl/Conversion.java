@@ -50,8 +50,8 @@ import io.stargate.db.ClientState;
 import io.stargate.db.QueryOptions;
 import io.stargate.db.QueryState;
 import io.stargate.db.Result;
+import io.stargate.db.cassandra.datastore.DataStoreUtil;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.common.util.DataStoreUtil;
 import io.stargate.db.datastore.schema.Column;
 import io.stargate.db.datastore.schema.ImmutableColumn;
 
@@ -246,7 +246,7 @@ public class Conversion
     {
         ResultMessage.SchemaChange schemaChange = (ResultMessage.SchemaChange)resultMessage;
         Event.SchemaChange change = schemaChange.change;
-        return new Result.SchemaChangeMetadata(change.target.toString(), change.target.toString(), change.keyspace, change.name, change.argTypes);
+        return new Result.SchemaChangeMetadata(change.change.toString(), change.target.toString(), change.keyspace, change.name, change.argTypes);
     }
 
     public static Result toResult(ResultMessage resultMessage, org.apache.cassandra.transport.ProtocolVersion version)

@@ -69,7 +69,6 @@ import io.stargate.db.datastore.ExecutionInfo;
 import io.stargate.db.datastore.PreparedStatement;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.common.util.ColumnUtils;
-import io.stargate.db.datastore.common.util.DataStoreUtil;
 import io.stargate.db.datastore.common.util.SchemaTool;
 import io.stargate.db.datastore.query.Parameter;
 import io.stargate.db.datastore.schema.AbstractTable;
@@ -155,9 +154,9 @@ public class InternalDataStore implements DataStore
 
         Stopwatch executionTimer = Stopwatch.createStarted();
 
-        return new Executor(this, ipsList, vals, Optional.empty())
+        return new Executor(this, ipsList, vals, consistencyLevel)
                 .execute(executionTimer)
-                .whenComplete((r, t) -> LOG.debug("BEGIN BATCH [... {} statements ...]; APPLY BATCH; took {}ms",
+                .whenComplete((r, t) -> LOG.trace("BEGIN BATCH [... {} statements ...]; APPLY BATCH; took {}ms",
                         statements.size(), executionTimer.stop().elapsed(TimeUnit.MILLISECONDS)));
     }
 
@@ -787,7 +786,7 @@ public class InternalDataStore implements DataStore
 
             return new Executor(dataStore, cql, index, consistencyLevel)
                     .execute(executionTimer)
-                    .whenComplete((r, e) -> LOG.debug("{} took {}ms", cql, executionTimer.stop().elapsed(TimeUnit.MILLISECONDS)));
+                    .whenComplete((r, e) -> LOG.trace("{} took {}ms", cql, executionTimer.stop().elapsed(TimeUnit.MILLISECONDS)));
         }
 
         private CompletableFuture<ResultSet> executePrepared(InternalDataStore dataStore,
@@ -815,7 +814,7 @@ public class InternalDataStore implements DataStore
                                 .execute(executionTimer)
                                 .whenComplete((r, t) ->
                                 {
-                                    LOG.debug("{} with parameters {} took {}ms", cql, parameters, executionTimer.stop().elapsed(TimeUnit.MILLISECONDS));
+                                    LOG.trace("{} with parameters {} took {}ms", cql, parameters, executionTimer.stop().elapsed(TimeUnit.MILLISECONDS));
                                 });
                     });
         }
