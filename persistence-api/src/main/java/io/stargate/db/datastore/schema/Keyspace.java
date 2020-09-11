@@ -32,7 +32,7 @@ public abstract class Keyspace implements SchemaEntity
 
     /**
      * This list is verified in a test against SystemInfo. We don't want to use this directly though for
-     * ExternalDataStore as it shouldn't have dependencies on DSE internal classes
+     * ExternalDataStore as it shouldn't have dependencies on Cassandra's internal classes
      */
     public static final Set<String> SYSTEM_KEYSPACES = ImmutableSet.of(
             "system",
