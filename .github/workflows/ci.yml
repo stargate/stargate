@@ -13,9 +13,9 @@ jobs:
         with:
           java-version: 1.8
       - name: Setup Github Package Registry
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          run: |
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
             mkdir -p ~/.m2
             cat <<EOF > ~/.m2/settings.xml
             <settings>
