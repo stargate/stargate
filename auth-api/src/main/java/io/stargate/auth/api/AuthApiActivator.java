@@ -6,29 +6,25 @@ import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceEvent;
 import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.server.AuthApiServer;
 
 public class AuthApiActivator implements BundleActivator, ServiceListener {
+    private static final Logger log = LoggerFactory.getLogger(AuthApiActivator.class);
 
     private BundleContext context;
     private final AuthApiServer apiServer = new AuthApiServer();
     private ServiceReference authenticationServiceReference;
 
-    static String AUTH_IDENTIFIER = "AuthTableBasedService";
-
-    static {
-        String auth = System.getProperty("stargate.auth_id");
-        if (auth != null) {
-            AUTH_IDENTIFIER = auth;
-        }
-    }
+    static String AUTH_IDENTIFIER = System.getProperty("stargate.auth_id", "AuthTableBasedService");
 
     @Override
     public void start(BundleContext context) throws InvalidSyntaxException {
         this.context = context;
-        System.out.println("Starting apiServer....");
+        log.info("Starting apiServer....");
         synchronized (apiServer) {
             try {
                 context.addServiceListener(this, String.format("(AuthIdentifier=%s)", AUTH_IDENTIFIER));
@@ -45,7 +41,7 @@ public class AuthApiActivator implements BundleActivator, ServiceListener {
                             && ref.getProperty("AuthIdentifier").equals(AUTH_IDENTIFIER)) {
                         this.apiServer.setAuthService((AuthenticationService) service);
                         this.apiServer.start();
-                        System.out.println("Started authApiServer....");
+                        log.info("Started authApiServer....");
                         break;
                     }
                 }
@@ -67,28 +63,28 @@ public class AuthApiActivator implements BundleActivator, ServiceListener {
         synchronized (apiServer) {
             switch (type) {
                 case (ServiceEvent.REGISTERED):
-                    System.out.println("Service of type " + objectClass[0] + " registered.");
+                    log.info("Service of type " + objectClass[0] + " registered.");
                     Object service = context.getService(serviceEvent.getServiceReference());
 
                     if (service instanceof AuthenticationService && serviceEvent.getServiceReference().getProperty("AuthIdentifier") != null
                             && serviceEvent.getServiceReference().getProperty("AuthIdentifier").equals(AUTH_IDENTIFIER)) {
-                        System.out.println("Setting authenticationService in AuthApiActivator");
+                        log.info("Setting authenticationService in AuthApiActivator");
                         this.apiServer.setAuthService((AuthenticationService) service);
                     }
 
                     if (this.apiServer.getAuthService() != null) {
                         this.apiServer.start();
-                        System.out.println("Started authApiServer....");
+                        log.info("Started authApiServer....");
                     }
 
                     break;
                 case (ServiceEvent.UNREGISTERING):
-                    System.out.println("Service of type " + objectClass[0] + " unregistered.");
+                    log.info("Service of type " + objectClass[0] + " unregistered.");
                     context.ungetService(serviceEvent.getServiceReference());
                     break;
                 case (ServiceEvent.MODIFIED):
                     // TODO: [doug] 2020-06-15, Mon, 12:58 do something here...
-                    System.out.println("Service of type " + objectClass[0] + " modified.");
+                    log.info("Service of type " + objectClass[0] + " modified.");
                     break;
                 default:
                     break;

@@ -4,7 +4,7 @@
 
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
     
     <modules>
@@ -15,14 +15,19 @@
         <module>coordinator</module>
         <module>filterchain</module>
         <module>cql</module>
+        <module>restapi</module>
         <module>auth-api</module>
         <module>authentication</module>
-        <module>auth-service-file</module>
+        <module>auth-table-based-service</module>
+        <!-- testing last -->
+        <module>testing</module>
     </modules>
 
     <properties>
         <osgi.bundle.version>${project.version}</osgi.bundle.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.scm.id>github</project.scm.id>
+        <revision>0.0.1-SNAPSHOT</revision>
     </properties>
 
     <dependencies>
