@@ -75,7 +75,7 @@ jobs:
           mvn -q -ff clean package -DskipTests
       - name: zip-up
         run: |
-          zip stargate-jars.zip starctl stargate-lib/*.jar
+          zip stargate-jars.zip stargate-lib/*.jar
       - name: Retrieve stashed release URL
         uses: actions/download-artifact@v1
         with:
@@ -143,10 +143,11 @@ jobs:
           mvn --batch-mode release:update-versions -DautoVersionSubmodules=true versions:commit
       - name: Rev Version
         if: success()
-        uses: EndBug/add-and-commit@v4
+        uses: peter-evans/create-pull-request@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          message: "Bumping version for next release"
-          add: "*/*.xml"
-          ref: "master"
+          commit-message: "Bumping version for next release"
+          title: "Bumping version for next release"
+          branch-suffix: "short-commit-hash"
+          base: "master"
