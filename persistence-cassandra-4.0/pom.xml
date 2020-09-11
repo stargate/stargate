@@ -20,7 +20,7 @@
 
     <repositories>
         <repository>
-            <id>github</id>
+            <id>gh</id>
             <url>https://maven.pkg.github.com/stargate/stargate</url>
         </repository>
     </repositories>

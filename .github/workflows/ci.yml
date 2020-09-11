@@ -16,18 +16,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-            mkdir -p ~/.m2
-            cat <<EOF > ~/.m2/settings.xml
-            <settings>
-              <servers>
-                <server>
-                  <id>gh</id>
-                  <username>$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $1}')</username>
-                  <password>${GITHUB_TOKEN}</password>
-                </server>
-             </servers>
-            </settings>
-            EOF
+          mkdir -p ~/.m2
+          cat <<EOF > ~/.m2/settings.xml
+          <settings>
+            <servers>
+              <server>
+                <id>gh</id>
+                <username>$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $1}')</username>
+                <password>${GITHUB_TOKEN}</password>
+              </server>
+           </servers>
+          </settings>
+          EOF
       - name: Cache Maven packages
         uses: actions/cache@v1
         with:
