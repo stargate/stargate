@@ -129,6 +129,10 @@ public class Starter {
         "requiring additional nodes or existing cluster")
     boolean developerMode = false;
 
+    @Order(value = 15)
+    @Option(name = {"--bind-to-listen-address"}, description = "When set, it binds web services to listen address only")
+    boolean bindToListenAddressOnly = false;
+
     private BundleContext context;
     private Felix framework;
     private List<Bundle> bundleList;
@@ -206,10 +210,14 @@ public class Starter {
         System.setProperty("stargate.use_proxy_protocol", useProxyProtocol ? "true" : "false");
         System.setProperty("stargate.emulate_dbaas_defaults", emulateDbaasDefaults ? "true" : "false");
         System.setProperty("stargate.developer_mode", String.valueOf(developerMode));
+        System.setProperty("stargate.bind_to_listen_address", String.valueOf(bindToListenAddressOnly));
 
-        // Restrict the listen address for Jersey endpoints
-        System.setProperty("dw.server.adminConnectors[0].bindHost", listenHostStr);
-        System.setProperty("dw.server.applicationConnectors[0].bindHost", listenHostStr);
+        if (bindToListenAddressOnly)
+        {
+            // Restrict the listen address for Jersey endpoints
+            System.setProperty("dw.server.adminConnectors[0].bindHost", listenHostStr);
+            System.setProperty("dw.server.applicationConnectors[0].bindHost", listenHostStr);
+        }
 
         // Don't step on native logback functionality. If someone wants to use built in logback args then just use those.
         if (System.getProperty("logback.configurationFile") == null) {
