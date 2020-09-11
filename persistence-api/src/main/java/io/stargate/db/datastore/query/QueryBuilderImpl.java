@@ -1380,11 +1380,6 @@ public class QueryBuilderImpl
                 .filter(n -> !colNames.contains(n)).collect(toList());
         checkArgument(unknownWhereColNames.isEmpty(), "Query contains unknown where columns '%s'",
                 unknownWhereColNames);
-
-        Map<Column, Long> frequency = getConditions().stream()
-                .collect(Collectors.groupingBy(WhereCondition::column, counting()));
-        frequency.forEach((col, freq) -> checkArgument(freq == 1,
-                "Query contained more than one condition for column '%s'", col.name()));
     }
 
     private void checkOrders(AbstractTable queryable)
@@ -1728,7 +1723,7 @@ public class QueryBuilderImpl
             {
                 query.append(" ADD (");
                 query.append(
-                        addColumns.stream().map(c -> c.cqlName() + " " + c.type().cqlDefinition())
+                        addColumns.stream().map(c -> c.cqlName() + " " + c.type().cqlDefinition() + (c.kind() == Column.Kind.Static ? " STATIC" : ""))
                                 .collect(Collectors.joining(", ")));
                 query.append(")");
             }

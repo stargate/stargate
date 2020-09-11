@@ -11,14 +11,6 @@ import java.util.Hashtable;
 
 import org.apache.cassandra.auth.CassandraAuthorizer;
 import org.apache.cassandra.auth.PasswordAuthenticator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.stargate.db.Persistence;
-import io.stargate.db.cassandra.impl.CassandraPersistence;
-import io.stargate.db.datastore.common.StargateConfigSnitch;
-import io.stargate.db.datastore.common.StargateSeedProvider;
-
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.ParameterizedClass;
 import org.apache.cassandra.dht.Murmur3Partitioner;
@@ -27,6 +19,13 @@ import org.apache.cassandra.locator.SimpleSnitch;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.stargate.db.Persistence;
+import io.stargate.db.cassandra.impl.CassandraPersistence;
+import io.stargate.db.datastore.common.StargateConfigSnitch;
+import io.stargate.db.datastore.common.StargateSeedProvider;
 
 public class CassandraPersistenceActivator implements BundleActivator {
 

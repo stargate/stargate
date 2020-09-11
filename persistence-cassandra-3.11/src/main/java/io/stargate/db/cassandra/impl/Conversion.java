@@ -4,7 +4,9 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.cassandra.config.DatabaseDescriptor;
@@ -14,18 +16,26 @@ import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.cql3.statements.ParsedStatement;
 import org.apache.cassandra.exceptions.CassandraException;
 import org.apache.cassandra.service.pager.PagingState;
+import org.apache.cassandra.stargate.cql3.functions.FunctionName;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import org.apache.cassandra.stargate.db.WriteType;
 import org.apache.cassandra.stargate.exceptions.AlreadyExistsException;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
 import org.apache.cassandra.stargate.exceptions.ConfigurationException;
+import org.apache.cassandra.stargate.exceptions.FunctionExecutionException;
 import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
 import org.apache.cassandra.stargate.exceptions.IsBootstrappingException;
 import org.apache.cassandra.stargate.exceptions.OverloadedException;
 import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
+import org.apache.cassandra.stargate.exceptions.ReadFailureException;
+import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
+import org.apache.cassandra.stargate.exceptions.RequestFailureReason;
 import org.apache.cassandra.stargate.exceptions.SyntaxException;
 import org.apache.cassandra.stargate.exceptions.TruncateException;
 import org.apache.cassandra.stargate.exceptions.UnauthorizedException;
 import org.apache.cassandra.stargate.exceptions.UnavailableException;
+import org.apache.cassandra.stargate.exceptions.WriteFailureException;
+import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
@@ -40,8 +50,8 @@ import io.stargate.db.ClientState;
 import io.stargate.db.QueryOptions;
 import io.stargate.db.QueryState;
 import io.stargate.db.Result;
+import io.stargate.db.cassandra.datastore.DataStoreUtil;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.common.util.DataStoreUtil;
 import io.stargate.db.datastore.schema.Column;
 import io.stargate.db.datastore.schema.ImmutableColumn;
 
@@ -119,9 +129,28 @@ public class Conversion
         return MD5Digest.wrap(id.bytes);
     }
 
+    public static Map<InetAddressAndPort, RequestFailureReason> toExternal(Map<InetAddress, org.apache.cassandra.exceptions.RequestFailureReason> internal)
+    {
+        Map<InetAddressAndPort, RequestFailureReason> external = new HashMap<>(internal.size());
+        for (Map.Entry<InetAddress, org.apache.cassandra.exceptions.RequestFailureReason> entry : internal.entrySet())
+        {
+            external.put(InetAddressAndPort.getByAddress(entry.getKey()), RequestFailureReason.fromCode(entry.getValue().code));
+        }
+        return external;
+    }
+
+    public static WriteType toExternal(org.apache.cassandra.db.WriteType internal)
+    {
+        return WriteType.fromOrdinal(internal.ordinal());
+    }
+
+    public static FunctionName toExternal(org.apache.cassandra.cql3.functions.FunctionName internal)
+    {
+        return new FunctionName(internal.keyspace, internal.name);
+    }
+
     public static RuntimeException toExternal(org.apache.cassandra.exceptions.CassandraException e)
     {
-        // TODO: Fix all errors
         switch (e.code())
         {
             case SERVER_ERROR:
@@ -140,15 +169,20 @@ public class Conversion
             case TRUNCATE_ERROR:
                 return new TruncateException(e.getCause());
             case WRITE_TIMEOUT:
-                return e;
+                org.apache.cassandra.exceptions.WriteTimeoutException wte = (org.apache.cassandra.exceptions.WriteTimeoutException) e;
+                return new WriteTimeoutException(toExternal(wte.writeType), toExternal(wte.consistency), wte.received, wte.blockFor, wte.getMessage());
             case READ_TIMEOUT:
-                return e;
+                org.apache.cassandra.exceptions.ReadTimeoutException rte = (org.apache.cassandra.exceptions.ReadTimeoutException) e;
+                return new ReadTimeoutException(toExternal(rte.consistency), rte.received, rte.blockFor, rte.dataPresent);
             case READ_FAILURE:
-                return e;
+                org.apache.cassandra.exceptions.ReadFailureException rfe = (org.apache.cassandra.exceptions.ReadFailureException) e;
+                return new ReadFailureException(toExternal(rfe.consistency), rfe.received, rfe.blockFor, rfe.dataPresent, toExternal(rfe.failureReasonByEndpoint));
             case FUNCTION_FAILURE:
-                return e;
+                org.apache.cassandra.exceptions.FunctionExecutionException fee = (org.apache.cassandra.exceptions.FunctionExecutionException) e;
+                return new FunctionExecutionException(toExternal(fee.functionName), fee.argTypes, fee.detail);
             case WRITE_FAILURE:
-                return e;
+                org.apache.cassandra.exceptions.WriteFailureException wfe = (org.apache.cassandra.exceptions.WriteFailureException) e;
+                return new WriteFailureException(toExternal(wfe.consistency), wfe.received, wfe.blockFor, toExternal(wfe.writeType), toExternal(wfe.failureReasonByEndpoint));
             case SYNTAX_ERROR:
                 return new SyntaxException(e.getMessage());
             case UNAUTHORIZED:
@@ -212,7 +246,7 @@ public class Conversion
     {
         ResultMessage.SchemaChange schemaChange = (ResultMessage.SchemaChange)resultMessage;
         Event.SchemaChange change = schemaChange.change;
-        return new Result.SchemaChangeMetadata(change.target.toString(), change.target.toString(), change.keyspace, change.name, change.argTypes);
+        return new Result.SchemaChangeMetadata(change.change.toString(), change.target.toString(), change.keyspace, change.name, change.argTypes);
     }
 
     public static Result toResult(ResultMessage resultMessage, org.apache.cassandra.transport.ProtocolVersion version)

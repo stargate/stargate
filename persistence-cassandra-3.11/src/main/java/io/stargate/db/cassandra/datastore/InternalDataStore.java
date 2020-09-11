@@ -69,7 +69,6 @@ import io.stargate.db.datastore.ExecutionInfo;
 import io.stargate.db.datastore.PreparedStatement;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.common.util.ColumnUtils;
-import io.stargate.db.datastore.common.util.DataStoreUtil;
 import io.stargate.db.datastore.common.util.SchemaTool;
 import io.stargate.db.datastore.query.Parameter;
 import io.stargate.db.datastore.schema.AbstractTable;
@@ -155,9 +154,9 @@ public class InternalDataStore implements DataStore
 
         Stopwatch executionTimer = Stopwatch.createStarted();
 
-        return new Executor(this, ipsList, vals, Optional.empty())
+        return new Executor(this, ipsList, vals, consistencyLevel)
                 .execute(executionTimer)
-                .whenComplete((r, t) -> LOG.debug("BEGIN BATCH [... {} statements ...]; APPLY BATCH; took {}ms",
+                .whenComplete((r, t) -> LOG.trace("BEGIN BATCH [... {} statements ...]; APPLY BATCH; took {}ms",
                         statements.size(), executionTimer.stop().elapsed(TimeUnit.MILLISECONDS)));
     }
 
@@ -189,7 +188,7 @@ public class InternalDataStore implements DataStore
         private final List<ColumnSpecification> columnSpecifications;
 
         public CachedPreparationInfo(ParsedStatement.Prepared qhPrepared, MD5Digest statementId, Column[] tableColumns,
-                List<ColumnSpecification> columnSpecifications)
+                                     List<ColumnSpecification> columnSpecifications)
         {
             this.qhPrepared = qhPrepared;
             this.statementId = statementId;
@@ -224,7 +223,7 @@ public class InternalDataStore implements DataStore
         private PagingState pagingState;
 
         Executor(InternalDataStore dataStore, ParsedStatement.Prepared prepared, List<ByteBuffer> boundValues,
-                Optional<Index> index, Optional<ConsistencyLevel> consistencyLevel)
+                 Optional<Index> index, Optional<ConsistencyLevel> consistencyLevel)
         {
             this.consistencyLevel = consistencyLevel;
             this.dataStore = dataStore;
@@ -239,7 +238,7 @@ public class InternalDataStore implements DataStore
         }
 
         Executor(InternalDataStore dataStore, String unpreparedCql, Optional<Index> index,
-                Optional<ConsistencyLevel> consistencyLevel)
+                 Optional<ConsistencyLevel> consistencyLevel)
         {
             this.consistencyLevel = consistencyLevel;
             this.dataStore = dataStore;
@@ -254,7 +253,7 @@ public class InternalDataStore implements DataStore
         }
 
         Executor(InternalDataStore dataStore, List<InternalPreparedStatement> batchStatements,
-                List<Object[]> batchBoundValues, Optional<ConsistencyLevel> consistencyLevel)
+                 List<Object[]> batchBoundValues, Optional<ConsistencyLevel> consistencyLevel)
         {
             this.consistencyLevel = consistencyLevel;
             this.dataStore = dataStore;
@@ -306,7 +305,7 @@ public class InternalDataStore implements DataStore
                 {
                     long queryStartNanoTime = System.nanoTime();
                     CQLStatement statement = QueryProcessor.parseStatement(unpreparedCql, queryState).statement;
-                    if (!StargateSystemKeyspace.maybeCompleteSystemPeersInternal(statement, queryState, queryOptions, queryStartNanoTime, future))
+                    if (!StargateSystemKeyspace.maybeCompleteSystemLocalOrPeersInternal(statement, queryState, queryOptions, queryStartNanoTime, future))
                     {
                         ResultMessage resultMessage = QueryProcessor.instance.processStatement(statement, queryState, queryOptions, queryStartNanoTime);
                         if (resultMessage instanceof ResultMessage.Rows) {
@@ -345,7 +344,7 @@ public class InternalDataStore implements DataStore
                 try
                 {
                     long queryStartNanoTime = System.nanoTime();
-                    if (!StargateSystemKeyspace.maybeCompleteSystemPeersInternal(prepared.statement, queryState, queryOptions, queryStartNanoTime, future))
+                    if (!StargateSystemKeyspace.maybeCompleteSystemLocalOrPeersInternal(prepared.statement, queryState, queryOptions, queryStartNanoTime, future))
                     {
                         ResultMessage resultMessage = QueryProcessor.instance.processPrepared(prepared.statement, queryState, queryOptions, null, System.nanoTime());
 
@@ -624,9 +623,9 @@ public class InternalDataStore implements DataStore
     {
         List<Column> columns = new ArrayList<>();
         Streams.of(tableMetadata.allColumnsInSelectOrder()).forEach(
-                        c -> columns
-                                .add(ImmutableColumn.builder().name(c.name.toString()).type(DataStoreUtil.getTypeFromInternal(c.type))
-                                        .kind(getKind(c.kind)).order(getOrder(c.clusteringOrder())).build()));
+                c -> columns
+                        .add(ImmutableColumn.builder().name(c.name.toString()).type(DataStoreUtil.getTypeFromInternal(c.type))
+                                .kind(getKind(c.kind)).order(getOrder(c.clusteringOrder())).build()));
         return columns;
     }
 
@@ -787,12 +786,12 @@ public class InternalDataStore implements DataStore
 
             return new Executor(dataStore, cql, index, consistencyLevel)
                     .execute(executionTimer)
-                    .whenComplete((r, e) -> LOG.debug("{} took {}ms", cql, executionTimer.stop().elapsed(TimeUnit.MILLISECONDS)));
+                    .whenComplete((r, e) -> LOG.trace("{} took {}ms", cql, executionTimer.stop().elapsed(TimeUnit.MILLISECONDS)));
         }
 
         private CompletableFuture<ResultSet> executePrepared(InternalDataStore dataStore,
-                                                  Optional<ConsistencyLevel> consistencyLevel,
-                                                  Object[] parameters)
+                                                             Optional<ConsistencyLevel> consistencyLevel,
+                                                             Object[] parameters)
         {
             convertPlaceholderParameters(parameters);
 
@@ -815,14 +814,14 @@ public class InternalDataStore implements DataStore
                                 .execute(executionTimer)
                                 .whenComplete((r, t) ->
                                 {
-                                    LOG.debug("{} with parameters {} took {}ms", cql, parameters, executionTimer.stop().elapsed(TimeUnit.MILLISECONDS));
+                                    LOG.trace("{} with parameters {} took {}ms", cql, parameters, executionTimer.stop().elapsed(TimeUnit.MILLISECONDS));
                                 });
                     });
         }
 
         // copied from internal C* code and slightly adjusted
         private List<ByteBuffer> createBoundValues(Column[] columns, List<ColumnSpecification> columnSpecifications,
-                Object[] values)
+                                                   Object[] values)
         {
             if (columns.length == 0)
             {
@@ -869,8 +868,8 @@ public class InternalDataStore implements DataStore
                         // value using the correct type information from the underlying column type
                         int parameterIdx = column.type().rawType() == Column.Type.Map
                                 && colNameStartsWithIgnoreCase(spec, VALUE, VALUE_LEN)
-                                        ? 1
-                                        : 0;
+                                ? 1
+                                : 0;
                         value = ColumnUtils.toInternalValue(column.type().parameters().get(parameterIdx), value);
                     }
                     ByteBuffer val = ((AbstractType) spec.type).decompose(value);

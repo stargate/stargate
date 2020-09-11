@@ -29,11 +29,9 @@ public interface Persistence<T,C,Q>
 
     QueryState<Q> newQueryState(ClientState<C> clientState);
 
-    ClientState<C> newClientState(SocketAddress remoteAddress);
-
     ClientState<C> newClientState(SocketAddress remoteAddress, InetSocketAddress publicAddress);
 
-    ClientState newClientState(SocketAddress remoteAddress, String name);
+    ClientState newClientState(String name);
 
     Authenticator getAuthenticator();
 
