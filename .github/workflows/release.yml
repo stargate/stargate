@@ -34,7 +34,9 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
+          with:
+            ref: "master"
       - name: Setup Java JDK
         uses: actions/setup-java@v1.4.2
         with:
@@ -83,6 +85,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: "master"
       - name: Set version
         id: vars
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
@@ -121,3 +125,4 @@ jobs:
         with:
           message: "Bumping version for next release"
           add: "*/*.xml"
+          ref: "master"
