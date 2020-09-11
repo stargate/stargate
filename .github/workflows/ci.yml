@@ -15,6 +15,8 @@ jobs:
       - name: Setup Github Package Registry
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
         run: |
           mkdir -p ~/.m2
           cat <<EOF > ~/.m2/settings.xml
@@ -25,6 +27,16 @@ jobs:
                 <username>$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $1}')</username>
                 <password>${GITHUB_TOKEN}</password>
               </server>
+              <server>
+                <id>artifactory-snapshots</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+              <server>
+                <id>artifactory-releases</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+             </server>
            </servers>
           </settings>
           EOF
