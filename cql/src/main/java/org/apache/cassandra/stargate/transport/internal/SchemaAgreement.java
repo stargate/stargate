@@ -11,7 +11,7 @@ import io.stargate.db.Result;
 
 
 /**
- * A temporary workaround to make the coordinator wait for schema agreement on behalf of the
+ * A temporary workaround to make the stargate coordinator wait for schema agreement on behalf of the
  * client. The problem with this is it will most likely make the client's request timeout if schema
  * agreement doesn't happen quickly.
  */
