@@ -159,17 +159,22 @@ public class Starter {
             throw new IllegalArgumentException("--cluster-version must be a number");
         }
 
+        if (developerMode) {
+            if (seedList.size() == 0) {
+                // Default to use itself as seed in developer mode
+                seedList.add(listenHostStr);
+            }
+
+            // Use a simple snitch for developer mode
+            simpleSnitch = true;
+        }
+
         if (!simpleSnitch && (dc == null || rack == null)) {
             throw new IllegalArgumentException("--dc and --rack are both required unless --simple-snitch is specified.");
         }
 
         if (seedList.size() == 0) {
-            if (!developerMode) {
-                throw new IllegalArgumentException("At least one seed node address is required.");
-            }
-
-            // Default to use itself as seed in developer mode
-            seedList.add(listenHostStr);
+            throw new IllegalArgumentException("At least one seed node address is required.");
         }
 
         for (String seed : seedList)
