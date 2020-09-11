@@ -33,12 +33,6 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>io.stargate.coordinator</groupId>
-            <artifactId>coordinator</artifactId>
-            <version>${revision}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
             <version>4.1.42.Final</version>
@@ -120,7 +114,6 @@
                             !org.slf4j.spi,
                             !sun.misc,
                             !org.eclipse.jetty.security,
-                            io.stargate.coordinator,
                             io.stargate.db,
                             org.apache.cassandra.stargate,
                             org.apache.cassandra.stargate.*
