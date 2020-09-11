@@ -71,9 +71,7 @@ public class Starter {
     @Option(name = { "--cluster-name" }, title = "cluster_name", arity = 1, description = "Name of backend cluster")
     String clusterName;
 
-    @Required
     @Order(value = 2)
-    @MinOccurrences(occurrences = 1)
     @Option(name = { "--cluster-seed"}, title = "seed_address", description = "Seed node address")
     List<String> seedList = new ArrayList<>();
 
@@ -125,6 +123,16 @@ public class Starter {
     @Option(name = {"--emulate-dbaas-defaults"}, description = "Updated defaults reflect those of DataStax Astra at the time of the currently used DSE release")
     private boolean emulateDbaasDefaults = false;
 
+    @Order(value = 14)
+    @Option(name = {"--developer-mode"}, description = "Defines whether the stargate node should also behave as a " +
+        "regular node, joining the ring with tokens assigned in order to facilitate getting started quickly and not " +
+        "requiring additional nodes or existing cluster")
+    boolean developerMode = false;
+
+    @Order(value = 15)
+    @Option(name = {"--bind-to-listen-address"}, description = "When set, it binds web services to listen address only")
+    boolean bindToListenAddressOnly = false;
+
     private BundleContext context;
     private Felix framework;
     private List<Bundle> bundleList;
@@ -153,6 +161,16 @@ public class Starter {
     {
         if (version == null || version.trim().isEmpty() || !NumberUtils.isParsable(version)) {
             throw new IllegalArgumentException("--cluster-version must be a number");
+        }
+
+        if (developerMode) {
+            if (seedList.size() == 0) {
+                // Default to use itself as seed in developer mode
+                seedList.add(listenHostStr);
+            }
+
+            // Use a simple snitch for developer mode
+            simpleSnitch = true;
         }
 
         if (!simpleSnitch && (dc == null || rack == null)) {
@@ -191,10 +209,15 @@ public class Starter {
         System.setProperty("stargate.enable_auth", enableAuth ? "true" : "false");
         System.setProperty("stargate.use_proxy_protocol", useProxyProtocol ? "true" : "false");
         System.setProperty("stargate.emulate_dbaas_defaults", emulateDbaasDefaults ? "true" : "false");
+        System.setProperty("stargate.developer_mode", String.valueOf(developerMode));
+        System.setProperty("stargate.bind_to_listen_address", String.valueOf(bindToListenAddressOnly));
 
-        // Restrict the listen address for Jersey endpoints
-        System.setProperty("dw.server.adminConnectors[0].bindHost", listenHostStr);
-        System.setProperty("dw.server.applicationConnectors[0].bindHost", listenHostStr);
+        if (bindToListenAddressOnly)
+        {
+            // Restrict the listen address for Jersey endpoints
+            System.setProperty("dw.server.adminConnectors[0].bindHost", listenHostStr);
+            System.setProperty("dw.server.applicationConnectors[0].bindHost", listenHostStr);
+        }
 
         // Don't step on native logback functionality. If someone wants to use built in logback args then just use those.
         if (System.getProperty("logback.configurationFile") == null) {
