@@ -71,9 +71,7 @@ public class Starter {
     @Option(name = { "--cluster-name" }, title = "cluster_name", arity = 1, description = "Name of backend cluster")
     String clusterName;
 
-    @Required
     @Order(value = 2)
-    @MinOccurrences(occurrences = 1)
     @Option(name = { "--cluster-seed"}, title = "seed_address", description = "Seed node address")
     List<String> seedList = new ArrayList<>();
 
@@ -125,6 +123,12 @@ public class Starter {
     @Option(name = {"--emulate-dbaas-defaults"}, description = "Updated defaults reflect those of DataStax Astra at the time of the currently used DSE release")
     private boolean emulateDbaasDefaults = false;
 
+    @Order(value = 14)
+    @Option(name = {"--developer-mode"}, description = "Defines whether the stargate node should also behave as a " +
+        "regular node, joining the ring with tokens assigned in order to facilitate getting started quickly and not " +
+        "requiring additional nodes or existing cluster")
+    boolean developerMode = false;
+
     private BundleContext context;
     private Felix framework;
     private List<Bundle> bundleList;
@@ -160,7 +164,12 @@ public class Starter {
         }
 
         if (seedList.size() == 0) {
-            throw new IllegalArgumentException("At least one seed node address is required.");
+            if (!developerMode) {
+                throw new IllegalArgumentException("At least one seed node address is required.");
+            }
+
+            // Default to use itself as seed in developer mode
+            seedList.add(listenHostStr);
         }
 
         for (String seed : seedList)
@@ -191,6 +200,7 @@ public class Starter {
         System.setProperty("stargate.enable_auth", enableAuth ? "true" : "false");
         System.setProperty("stargate.use_proxy_protocol", useProxyProtocol ? "true" : "false");
         System.setProperty("stargate.emulate_dbaas_defaults", emulateDbaasDefaults ? "true" : "false");
+        System.setProperty("stargate.developer_mode", String.valueOf(developerMode));
 
         // Restrict the listen address for Jersey endpoints
         System.setProperty("dw.server.adminConnectors[0].bindHost", listenHostStr);
