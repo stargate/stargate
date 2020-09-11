@@ -52,7 +52,12 @@ public class AuthApiServer {
 
         server = new Server();
         ServerConnector connector = new ServerConnector(server);
-        connector.setHost(System.getProperty("stargate.listen_address"));
+
+        if (Boolean.parseBoolean(System.getProperty("stargate.bind_to_listen_address")))
+        {
+            connector.setHost(System.getProperty("stargate.listen_address"));
+        }
+
         // TODO: [doug] 2020-06-18, Thu, 0:48 make port configurable
         connector.setPort(8081);
         server.addConnector(connector);
