@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.stargate.persistence</groupId>
     <artifactId>persistence-extensions</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.0.1-SNAPSHOT</version>
   </parent>
 
   <groupId>io.stargate.db.dse</groupId>
@@ -30,18 +30,22 @@
       <id>artifactory-releases</id>
       <url>https://repo.datastax.com/datastax-releases-local</url>
     </repository>
+    <repository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/stargate/stargate</url>
+    </repository>
   </repositories>
 
   <dependencies>
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-common</artifactId>
-      <version>1.0-SNAPSHOT</version>
+      <version>0.0.4</version>
     </dependency>
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>1.0-SNAPSHOT</version>
+      <version>0.0.4</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -71,7 +75,6 @@
         </exclusion>
       </exclusions>
     </dependency>
-
 
     <dependency>
       <groupId>com.datastax.dse</groupId>
