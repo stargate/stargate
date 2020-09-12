@@ -1,0 +1,22 @@
+mutation UpdateProducts(
+    $value: ProductsInput!
+    $ifExists: Boolean
+    $ifCondition: ProductsFilterInput
+    $options: MutationOptions
+) {
+    updateProducts(
+        value: $value
+        ifExists: $ifExists
+        ifCondition: $ifCondition
+        options: $options
+    ) {
+        applied
+        value {
+            id
+            name
+            price
+            created
+            description
+        }
+    }
+}

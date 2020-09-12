@@ -1,0 +1,16 @@
+mutation InsertProducts(
+    $value: ProductsInput!
+    $ifNotExists: Boolean
+    $options: MutationOptions
+) {
+    insertProducts(value: $value, ifNotExists: $ifNotExists, options: $options) {
+        applied
+        value {
+            id
+            name
+            price
+            created
+            description
+        }
+    }
+}

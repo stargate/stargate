@@ -23,10 +23,7 @@ import graphql.kickstart.execution.GraphQLObjectMapper;
 import graphql.kickstart.servlet.core.internal.GraphQLThreadFactory;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
-import io.stargate.coordinator.Coordinator;
-import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
@@ -39,7 +36,6 @@ import io.stargate.graphql.graphqlservlet.GraphqlCustomContextBuilder;
 public class CustomGraphQLServlet extends HttpServlet implements Servlet {
     private static final Logger log = LoggerFactory.getLogger(CustomGraphQLServlet.class);
     private final boolean isAsyncServletModeEnabled;
-    private final Coordinator coordinator;
     private final Persistence persistence;
     private AuthenticationService authenticationService;
     private ExecutorService asyncExecutor = Executors.newCachedThreadPool(new GraphQLThreadFactory());
@@ -48,10 +44,9 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet {
 
     private Map<String, HttpRequestHandlerImpl> handlerMap;
 
-    public CustomGraphQLServlet(boolean isAsyncServletModeEnabled, Coordinator coordinator, AuthenticationService authenticationService) {
+    public CustomGraphQLServlet(boolean isAsyncServletModeEnabled, Persistence persistence, AuthenticationService authenticationService) {
         this.isAsyncServletModeEnabled = isAsyncServletModeEnabled;
-        this.coordinator = coordinator;
-        this.persistence = coordinator.getPersistence();
+        this.persistence = persistence;
         this.authenticationService = authenticationService;
 
         refreshExecutor = Executors.newSingleThreadScheduledExecutor();
@@ -77,7 +72,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet {
             Map map = new HashMap();
             for (Keyspace keyspace : dataStore.schema().keyspaces()) {
                 try {
-                    GraphQLSchema schema = new GqlKeyspaceSchema(coordinator, authenticationService, keyspace).build().build();
+                    GraphQLSchema schema = new GqlKeyspaceSchema(persistence, authenticationService, keyspace).build().build();
                     GraphQLConfiguration configuration = GraphQLConfiguration
                             .with(schema)
                             .with(new GraphqlCustomContextBuilder())

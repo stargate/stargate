@@ -1,0 +1,22 @@
+query GetKeyspace($name: String!) {
+    keyspace(name: $name) {
+        name
+        dcs {
+            name
+            replicas
+        }
+        tables {
+            name
+            columns {
+                name
+                kind
+                type {
+                    basic
+                    info {
+                        name
+                    }
+                }
+            }
+        }
+    }
+}

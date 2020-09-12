@@ -1,0 +1,11 @@
+mutation DropTable(
+    $keyspaceName: String!
+    $tableName: String!
+    $ifExists: Boolean
+) {
+    dropTable(
+        keyspaceName: $keyspaceName
+        tableName: $tableName
+        ifExists: $ifExists
+    )
+}

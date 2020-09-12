@@ -6,38 +6,35 @@ import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceEvent;
 import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.stargate.auth.AuthenticationService;
-import io.stargate.coordinator.Coordinator;
+import io.stargate.db.Persistence;
 
 /**
  * Activator for the web bundle
  */
 public class GraphqlActivator implements BundleActivator, ServiceListener {
+    private static final Logger log = LoggerFactory.getLogger(GraphqlActivator.class);
 
     private BundleContext context;
-    private ServiceReference coordinatorReference;
+    private ServiceReference persistenceReference;
     private ServiceReference authenticationReference;
     private WebImpl web;
 
-    static String AUTH_IDENTIFIER = "AuthTableBasedService";
-
-    static {
-        String auth = System.getProperty("stargate.auth_id");
-        if (auth != null) {
-            AUTH_IDENTIFIER = auth;
-        }
-    }
+    static String AUTH_IDENTIFIER = System.getProperty("stargate.auth_id", "AuthTableBasedService");
+    static String PERSISTENCE_IDENTIFIER = System.getProperty("stargate.persistence_id", "CassandraPersistence");
 
     @Override
     public void start(BundleContext context) throws InvalidSyntaxException {
         web = new WebImpl();
         this.context = context;
-        System.out.println("Starting graphql....");
+        log.info("Starting graphql....");
         try {
             String authFilter = String.format("(AuthIdentifier=%s)", AUTH_IDENTIFIER);
-            String coordinatorFilter = "(objectClass=io.stargate.coordinator.Coordinator)";
-            context.addServiceListener(this, String.format("(|%s%s)", coordinatorFilter, authFilter));
+            String persistenceFilter = String.format("(Identifier=%s)", PERSISTENCE_IDENTIFIER);
+            context.addServiceListener(this, String.format("(|%s%s)", persistenceFilter, authFilter));
         } catch (InvalidSyntaxException ise) {
             throw new RuntimeException(ise);
         }
@@ -49,34 +46,33 @@ public class GraphqlActivator implements BundleActivator, ServiceListener {
                 Object service = context.getService(ref);
                 if (service instanceof AuthenticationService && ref.getProperty("AuthIdentifier") != null
                         && ref.getProperty("AuthIdentifier").equals(AUTH_IDENTIFIER)) {
-                    System.out.println("Setting authenticationService in GraphqlActivator");
+                    log.info("Setting authenticationService in GraphqlActivator");
                     this.web.setAuthenticationService((AuthenticationService)service);
                     break;
                 }
             }
         }
 
-        coordinatorReference = context.getServiceReference(Coordinator.class.getName());
-        if (coordinatorReference != null) {
-            System.out.println("Setting coordinator in GraphqlActivator");
-            this.web.setCoordinator((Coordinator)context.getService(coordinatorReference));
+        persistenceReference = context.getServiceReference(Persistence.class.getName());
+        if (persistenceReference != null && persistenceReference.getProperty("Identifier").equals(PERSISTENCE_IDENTIFIER)) {
+            log.info("Setting persistence in GraphqlActivator");
+            this.web.setPersistence((Persistence)context.getService(persistenceReference));
         }
 
-        if (this.web.getCoordinator() != null && this.web.getAuthenticationService() != null) {
+        if (this.web.getPersistence() != null && this.web.getAuthenticationService() != null) {
             try {
                 this.web.start();
-                System.out.println("Started graphql....");
+                log.info("Started graphql....");
             } catch (Exception e) {
-                System.out.println("Failed");
-                e.printStackTrace();
+                log.error("Failed", e);
             }
         }
     }
 
     @Override
     public void stop(BundleContext context) {
-        if (coordinatorReference != null) {
-            context.ungetService(coordinatorReference);
+        if (persistenceReference != null) {
+            context.ungetService(persistenceReference);
         }
         if (authenticationReference != null) {
             context.ungetService(authenticationReference);
@@ -84,7 +80,7 @@ public class GraphqlActivator implements BundleActivator, ServiceListener {
         try {
             web.stop();
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Failed", e);
         }
     }
 
@@ -94,24 +90,24 @@ public class GraphqlActivator implements BundleActivator, ServiceListener {
         String[] objectClass = (String[]) serviceEvent.getServiceReference().getProperty("objectClass");
         switch (type) {
             case (ServiceEvent.REGISTERED):
-                System.out.println("Service of type " + objectClass[0] + " registered.");
+                log.info("Service of type " + objectClass[0] + " registered.");
                 Object service = context.getService(serviceEvent.getServiceReference());
 
-                if (service instanceof Coordinator) {
-                    System.out.println("Setting coordinator in GraphqlActivator");
-                    this.web.setCoordinator((Coordinator) service);
+                if (service instanceof Persistence) {
+                    log.info("Setting persistence in GraphqlActivator");
+                    this.web.setPersistence((Persistence) service);
                 } else if (service instanceof AuthenticationService && serviceEvent.getServiceReference().getProperty("AuthIdentifier") != null
                         && serviceEvent.getServiceReference().getProperty("AuthIdentifier").equals(AUTH_IDENTIFIER)) {
-                    System.out.println("Setting authenticationService in GraphqlActivator");
+                    log.info("Setting authenticationService in GraphqlActivator");
                     this.web.setAuthenticationService((AuthenticationService)service);
                 }
 
-                if (this.web.getCoordinator() != null && this.web.getAuthenticationService() != null) {
-                    System.out.println("Started graphql...." + service);
+                if (this.web.getPersistence() != null && this.web.getAuthenticationService() != null) {
+                    log.info("Started graphql...." + service);
                     try {
                         web.start();
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        log.error("Failed", e);
                     }
                 }
                 break;
@@ -119,7 +115,7 @@ public class GraphqlActivator implements BundleActivator, ServiceListener {
                 try {
                     web.stop();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    log.error("Failed", e);
                 }
                 break;
         }

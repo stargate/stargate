@@ -2,14 +2,6 @@ package io.stargate.graphql.core;
 
 import java.util.HashMap;
 
-import io.stargate.auth.AuthenticationService;
-import io.stargate.coordinator.Coordinator;
-import io.stargate.graphql.fetchers.AlterTableAddFetcher;
-import io.stargate.graphql.fetchers.AlterTableDropFetcher;
-import io.stargate.graphql.fetchers.CreateTableDataFetcher;
-import io.stargate.graphql.fetchers.DropTableFetcher;
-import io.stargate.graphql.fetchers.KeyspaceFetcher;
-import io.stargate.graphql.fetchers.SchemaDataFetcherFactory;
 import graphql.Scalars;
 import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLEnumType;
@@ -22,21 +14,29 @@ import graphql.schema.GraphQLOutputType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeReference;
+import io.stargate.auth.AuthenticationService;
+import io.stargate.db.Persistence;
+import io.stargate.graphql.fetchers.AlterTableAddFetcher;
+import io.stargate.graphql.fetchers.AlterTableDropFetcher;
+import io.stargate.graphql.fetchers.CreateTableDataFetcher;
+import io.stargate.graphql.fetchers.DropTableFetcher;
+import io.stargate.graphql.fetchers.KeyspaceFetcher;
+import io.stargate.graphql.fetchers.SchemaDataFetcherFactory;
 
 import static graphql.schema.GraphQLList.list;
 import static graphql.schema.GraphQLNonNull.nonNull;
 
 public class KeyspaceManagementSchema {
     private final HashMap<String, GraphQLType> objects;
-    private final Coordinator coordinator;
+    private final Persistence persistence;
     private AuthenticationService authenticationService;
     private SchemaDataFetcherFactory schemaDataFetcherFactory;
 
-    public KeyspaceManagementSchema(Coordinator coordinator, AuthenticationService authenticationService) {
-        this.coordinator = coordinator;
+    public KeyspaceManagementSchema(Persistence persistence, AuthenticationService authenticationService) {
+        this.persistence = persistence;
         this.objects = new HashMap<>();
         this.authenticationService = authenticationService;
-        this.schemaDataFetcherFactory = new SchemaDataFetcherFactory(coordinator, authenticationService);
+        this.schemaDataFetcherFactory = new SchemaDataFetcherFactory(persistence, authenticationService);
     }
 
     public GraphQLSchema.Builder build() {
@@ -111,7 +111,7 @@ public class KeyspaceManagementSchema {
                         .name("name")
                         .type(nonNull(Scalars.GraphQLString)))
                 .type(buildKeyspace())
-                .dataFetcher(new KeyspaceFetcher(coordinator, authenticationService).new KeyspaceByNameFetcher())
+                .dataFetcher(new KeyspaceFetcher(persistence, authenticationService).new KeyspaceByNameFetcher())
                 .build();
     }
 
@@ -217,7 +217,7 @@ public class KeyspaceManagementSchema {
         return GraphQLFieldDefinition.newFieldDefinition()
                 .name("keyspaces")
                 .type(list(buildKeyspace()))
-                .dataFetcher(new KeyspaceFetcher(coordinator, authenticationService).new KeyspacesFetcher())
+                .dataFetcher(new KeyspaceFetcher(persistence, authenticationService).new KeyspacesFetcher())
                 .build();
     }
 

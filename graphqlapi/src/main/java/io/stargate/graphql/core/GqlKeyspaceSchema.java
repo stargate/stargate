@@ -8,11 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.stargate.auth.AuthenticationService;
-import io.stargate.coordinator.Coordinator;
-import io.stargate.db.datastore.schema.Column;
-import io.stargate.db.datastore.schema.Keyspace;
-import io.stargate.db.datastore.schema.Table;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -32,10 +30,17 @@ import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeReference;
 import graphql.schema.idl.SchemaPrinter;
+import io.stargate.auth.AuthenticationService;
+import io.stargate.db.Persistence;
+import io.stargate.db.datastore.schema.Column;
+import io.stargate.db.datastore.schema.Keyspace;
+import io.stargate.db.datastore.schema.Table;
 
 import static graphql.Scalars.GraphQLString;
 
 public class GqlKeyspaceSchema {
+    private static final Logger log = LoggerFactory.getLogger(GqlKeyspaceSchema.class);
+
     private final DataFetchers fetcherFactory;
     private final Map<Column.ColumnType, GraphQLInputObjectType> filterInputTypes;
     private final Map<Table, GraphQLOutputType> entityResultMap = new HashMap<>();
@@ -65,11 +70,11 @@ public class GqlKeyspaceSchema {
                     .build())
             .build();
 
-    public GqlKeyspaceSchema(Coordinator coordinator, AuthenticationService authenticationService, Keyspace keyspace) {
+    public GqlKeyspaceSchema(Persistence persistence, AuthenticationService authenticationService, Keyspace keyspace) {
         this.tables = keyspace.tables();
 
         this.nameMapping = new NameMapping(tables);
-        this.fetcherFactory = new DataFetchers(coordinator, keyspace, nameMapping, authenticationService);
+        this.fetcherFactory = new DataFetchers(persistence, keyspace, nameMapping, authenticationService);
         this.filterInputTypes = buildFilterInputTypes();
     }
 
@@ -91,7 +96,7 @@ public class GqlKeyspaceSchema {
                 tableQueryField = buildQuery(table);
                 tableMutationFields = buildMutations(table);
             } catch (Exception e) {
-                System.out.println("Skipping table " + table.name());
+                log.warn("Skipping table " + table.name());
                 continue;
             }
 

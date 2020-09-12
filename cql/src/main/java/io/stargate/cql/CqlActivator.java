@@ -10,14 +10,19 @@ import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceEvent;
 import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.stargate.cql.impl.CqlImpl;
-import io.stargate.coordinator.Coordinator;
+import io.stargate.db.Persistence;
 
 public class CqlActivator implements BundleActivator, ServiceListener {
+    private static final Logger log = LoggerFactory.getLogger(CqlActivator.class);
+
     private BundleContext context;
     private final CqlImpl cql = new CqlImpl(makeConfig());
     private ServiceReference reference;
+    static String PERSISTENCE_IDENTIFIER = System.getProperty("stargate.persistence_id", "CassandraPersistence");
 
     private static Config makeConfig()
     {
@@ -38,21 +43,22 @@ public class CqlActivator implements BundleActivator, ServiceListener {
     }
 
     @Override
-    public void start(BundleContext context) throws Exception {
+    public void start(BundleContext context) {
         this.context = context;
-        System.out.println("Starting CQL....");
+        log.info("Starting CQL....");
         synchronized (cql) {
             try {
-                context.addServiceListener(this, "(objectClass=io.stargate.coordinator.Coordinator)");
+                context.addServiceListener(this, String.format("(Identifier=%s)", PERSISTENCE_IDENTIFIER));
             } catch (InvalidSyntaxException ise) {
                 throw new RuntimeException(ise);
             }
-            reference = context.getServiceReference(Coordinator.class.getName());
+
+            reference = context.getServiceReference(Persistence.class.getName());
             if (reference != null) {
                 Object service = context.getService(reference);
                 if (service != null) {
-                    this.cql.start(((Coordinator) service).getPersistence());
-                    System.out.println("Started CQL....");
+                    this.cql.start(((Persistence) service));
+                    log.info("Started CQL....");
                 }
             }
         }
@@ -70,21 +76,21 @@ public class CqlActivator implements BundleActivator, ServiceListener {
         synchronized (cql) {
             switch (type) {
                 case (ServiceEvent.REGISTERED):
-                    System.out.println("Service of type " + objectClass[0] + " registered.");
+                    log.info("Service of type " + objectClass[0] + " registered.");
                     reference = serviceEvent.getServiceReference();
                     Object service = context.getService(reference);
 
-                    System.out.println("Setting coordinator in CqlActivator");
-                    this.cql.start(((Coordinator)service).getPersistence());
-                    System.out.println("Started CQL....");
+                    log.info("Setting persistence in CqlActivator");
+                    this.cql.start(((Persistence)service));
+                    log.info("Started CQL....");
                     break;
                 case (ServiceEvent.UNREGISTERING):
-                    System.out.println("Service of type " + objectClass[0] + " unregistered.");
+                    log.info("Service of type " + objectClass[0] + " unregistered.");
                     context.ungetService(serviceEvent.getServiceReference());
                     break;
                 case (ServiceEvent.MODIFIED):
                     // TODO: [doug] 2020-06-15, Mon, 12:58 do something here...
-                    System.out.println("Service of type " + objectClass[0] + " modified.");
+                    log.info("Service of type " + objectClass[0] + " modified.");
                     break;
                 default:
                     break;

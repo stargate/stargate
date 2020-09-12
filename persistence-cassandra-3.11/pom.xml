@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>io.stargate</groupId>
         <artifactId>stargate</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>0.0.5-SNAPSHOT</version>
     </parent>
 
     <groupId>io.stargate.db.cassandra</groupId>
@@ -28,13 +26,13 @@
         <dependency>
             <groupId>io.stargate.db</groupId>
             <artifactId>persistence-api</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>0.0.5-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.stargate.db</groupId>
             <artifactId>persistence-common</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>0.0.5-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.cassandra</groupId>
@@ -171,12 +169,12 @@
                             <tasks>
                                 <!-- Remove root package classes -->
                                 <delete>
-                                    <fileset dir="${project.build.directory}/sjk-core/" includes="*.class"/>
+                                    <fileset dir="${project.build.directory}/sjk-core/" includes="*.class" />
                                 </delete>
                                 <jar destfile="${project.build.directory}/classes/sjk-core-0.14.jar">
-                                    <fileset dir="${project.build.directory}/sjk-core"/>
+                                    <fileset dir="${project.build.directory}/sjk-core" />
                                 </jar>
-                                <delete dir="${project.build.directory}/sjk-core"/>
+                                <delete dir="${project.build.directory}/sjk-core" />
                             </tasks>
                         </configuration>
                     </execution>

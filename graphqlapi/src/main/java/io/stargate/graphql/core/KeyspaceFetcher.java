@@ -7,7 +7,6 @@ import java.util.Set;
 
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
-import io.stargate.coordinator.Coordinator;
 import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
 import io.stargate.db.QueryState;
@@ -25,8 +24,8 @@ public class KeyspaceFetcher {
     public Persistence persistence;
     private AuthenticationService authenticationService;
 
-    public KeyspaceFetcher(Coordinator coordinator, AuthenticationService authenticationService) {
-        persistence = coordinator.getPersistence();
+    public KeyspaceFetcher(Persistence persistence, AuthenticationService authenticationService) {
+        this.persistence = persistence;
         this.authenticationService = authenticationService;
     }
 

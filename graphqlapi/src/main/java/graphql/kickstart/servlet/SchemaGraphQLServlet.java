@@ -1,19 +1,19 @@
 package graphql.kickstart.servlet;
 
+import graphql.kickstart.execution.GraphQLObjectMapper;
+import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
-import io.stargate.coordinator.Coordinator;
+import io.stargate.db.Persistence;
 import io.stargate.graphql.core.KeyspaceManagementSchema;
 import io.stargate.graphql.graphqlservlet.CassandraUnboxingGraphqlErrorHandler;
 import io.stargate.graphql.graphqlservlet.GraphqlCustomContextBuilder;
-import graphql.kickstart.execution.GraphQLObjectMapper;
-import graphql.schema.GraphQLSchema;
 
 public class SchemaGraphQLServlet extends SimpleGraphQLHttpServlet {
-    private final Coordinator coordinator;
+    private final Persistence persistence;
     private final AuthenticationService authenticationService;
 
-    public SchemaGraphQLServlet(Coordinator coordinator, AuthenticationService authenticationService) {
-        this.coordinator = coordinator;
+    public SchemaGraphQLServlet(Persistence persistence, AuthenticationService authenticationService) {
+        this.persistence = persistence;
         this.authenticationService = authenticationService;
     }
     @Override
@@ -28,6 +28,6 @@ public class SchemaGraphQLServlet extends SimpleGraphQLHttpServlet {
     }
 
     private GraphQLSchema createSchema() {
-        return new KeyspaceManagementSchema(coordinator, authenticationService).build().build();
+        return new KeyspaceManagementSchema(persistence, authenticationService).build().build();
     }
 }

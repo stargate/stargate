@@ -9,20 +9,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import io.stargate.auth.AuthenticationService;
-import io.stargate.auth.StoredCredentials;
-import io.stargate.auth.UnauthorizedException;
-import io.stargate.coordinator.Coordinator;
-import io.stargate.db.ClientState;
-import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
-import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.Row;
-import io.stargate.db.datastore.schema.Column;
-import io.stargate.db.datastore.schema.Keyspace;
-import io.stargate.db.datastore.schema.Table;
-import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import com.datastax.oss.driver.api.core.metadata.schema.ClusteringOrder;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.condition.Condition;
@@ -40,18 +26,29 @@ import com.google.common.collect.ImmutableMap;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
+import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.StoredCredentials;
+import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.ClientState;
+import io.stargate.db.Persistence;
+import io.stargate.db.QueryState;
+import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.datastore.Row;
+import io.stargate.db.datastore.schema.Column;
+import io.stargate.db.datastore.schema.Keyspace;
+import io.stargate.db.datastore.schema.Table;
+import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 
 import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.literal;
 
 public class DataFetchers {
     private final NameMapping nameMapping;
-    private final Coordinator coordinator;
     private final Persistence persistence;
     private AuthenticationService authenticationService;
 
-    public DataFetchers(Coordinator coordinator, Keyspace keyspace, NameMapping nameMapping, AuthenticationService authenticationService) {
-        this.coordinator = coordinator;
-        this.persistence = coordinator.getPersistence();
+    public DataFetchers(Persistence persistence, Keyspace keyspace, NameMapping nameMapping, AuthenticationService authenticationService) {
+        this.persistence = persistence;
         this.authenticationService = authenticationService;
 
         this.nameMapping = nameMapping;

@@ -5,9 +5,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableMap;
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.SelectedField;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
-import io.stargate.coordinator.Coordinator;
 import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
 import io.stargate.db.QueryState;
@@ -16,17 +19,13 @@ import io.stargate.db.datastore.schema.Column;
 import io.stargate.db.datastore.schema.Keyspace;
 import io.stargate.db.datastore.schema.Table;
 import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
-import com.google.common.collect.ImmutableMap;
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.SelectedField;
 
 public class KeyspaceFetcher {
     public Persistence persistence;
     private AuthenticationService authenticationService;
 
-    public KeyspaceFetcher(Coordinator coordinator, AuthenticationService authenticationService) {
-        persistence = coordinator.getPersistence();
+    public KeyspaceFetcher(Persistence persistence, AuthenticationService authenticationService) {
+        this.persistence = persistence;
         this.authenticationService = authenticationService;
     }
 

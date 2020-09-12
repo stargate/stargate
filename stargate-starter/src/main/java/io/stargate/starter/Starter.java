@@ -1,5 +1,6 @@
 package io.stargate.starter;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
@@ -23,9 +24,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import javax.inject.Inject;
 
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.felix.framework.Felix;
+import org.apache.felix.framework.util.FelixConstants;
+import org.apache.felix.resolver.Logger;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleException;
+import org.osgi.framework.Constants;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
 
 import com.github.rvesse.airline.HelpOption;
 import com.github.rvesse.airline.SingleCommand;
@@ -39,14 +48,6 @@ import com.github.rvesse.airline.annotations.restrictions.Required;
 import com.github.rvesse.airline.help.cli.CliCommandUsageGenerator;
 import com.github.rvesse.airline.parser.ParseResult;
 import com.github.rvesse.airline.parser.errors.ParseException;
-import org.apache.felix.framework.Felix;
-import org.apache.felix.framework.util.FelixConstants;
-import org.osgi.framework.Bundle;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.BundleException;
-import org.osgi.framework.Constants;
-import org.osgi.framework.InvalidSyntaxException;
-import org.osgi.framework.ServiceReference;
 
 /**
  * Starts a OSGi container and installs and starts all needed bundles
@@ -70,9 +71,7 @@ public class Starter {
     @Option(name = { "--cluster-name" }, title = "cluster_name", arity = 1, description = "Name of backend cluster")
     String clusterName;
 
-    @Required
     @Order(value = 2)
-    @MinOccurrences(occurrences = 1)
     @Option(name = { "--cluster-seed"}, title = "seed_address", description = "Seed node address")
     List<String> seedList = new ArrayList<>();
 
@@ -116,6 +115,24 @@ public class Starter {
     @Option(name = {"--enable-auth"}, description = "Set to enable PasswordAuthenticator")
     private boolean enableAuth = false;
 
+    @Order(value = 12)
+    @Option(name = {"--use-proxy-protocol"}, description = "Use proxy protocol to determine the public address and port of CQL requests")
+    private boolean useProxyProtocol = false;
+
+    @Order(value = 13)
+    @Option(name = {"--emulate-dbaas-defaults"}, description = "Updated defaults reflect those of DataStax Astra at the time of the currently used DSE release")
+    private boolean emulateDbaasDefaults = false;
+
+    @Order(value = 14)
+    @Option(name = {"--developer-mode"}, description = "Defines whether the stargate node should also behave as a " +
+        "regular node, joining the ring with tokens assigned in order to facilitate getting started quickly and not " +
+        "requiring additional nodes or existing cluster")
+    boolean developerMode = false;
+
+    @Order(value = 15)
+    @Option(name = {"--bind-to-listen-address"}, description = "When set, it binds web services to listen address only")
+    boolean bindToListenAddressOnly = false;
+
     private BundleContext context;
     private Felix framework;
     private List<Bundle> bundleList;
@@ -146,6 +163,16 @@ public class Starter {
             throw new IllegalArgumentException("--cluster-version must be a number");
         }
 
+        if (developerMode) {
+            if (seedList.size() == 0) {
+                // Default to use itself as seed in developer mode
+                seedList.add(listenHostStr);
+            }
+
+            // Use a simple snitch for developer mode
+            simpleSnitch = true;
+        }
+
         if (!simpleSnitch && (dc == null || rack == null)) {
             throw new IllegalArgumentException("--dc and --rack are both required unless --simple-snitch is specified.");
         }
@@ -166,6 +193,10 @@ public class Starter {
             }
         }
 
+        if (emulateDbaasDefaults && !dse) {
+            throw new IllegalArgumentException("--emulate-dbaas-defaults is currently only supported with DSE");
+        }
+
         System.setProperty("stargate.persistence_id", dse ? "DsePersistence" : "CassandraPersistence");
         System.setProperty("stargate.datacenter", dc == null ? "datacenter1" : dc);
         System.setProperty("stargate.rack", rack == null ? "rack1" : rack);
@@ -176,6 +207,22 @@ public class Starter {
         System.setProperty("stargate.listen_address", listenHostStr);
         System.setProperty("stargate.cql_port", String.valueOf(cqlPort));
         System.setProperty("stargate.enable_auth", enableAuth ? "true" : "false");
+        System.setProperty("stargate.use_proxy_protocol", useProxyProtocol ? "true" : "false");
+        System.setProperty("stargate.emulate_dbaas_defaults", emulateDbaasDefaults ? "true" : "false");
+        System.setProperty("stargate.developer_mode", String.valueOf(developerMode));
+        System.setProperty("stargate.bind_to_listen_address", String.valueOf(bindToListenAddressOnly));
+
+        if (bindToListenAddressOnly)
+        {
+            // Restrict the listen address for Jersey endpoints
+            System.setProperty("dw.server.adminConnectors[0].bindHost", listenHostStr);
+            System.setProperty("dw.server.applicationConnectors[0].bindHost", listenHostStr);
+        }
+
+        // Don't step on native logback functionality. If someone wants to use built in logback args then just use those.
+        if (System.getProperty("logback.configurationFile") == null) {
+            System.setProperty("logback.configurationFile", JAR_DIRECTORY + "/logback.xml");
+        }
     }
 
     public void start() throws BundleException
@@ -191,7 +238,7 @@ public class Starter {
         // Initialize Apache Felix Framework
         Map<String, String> configMap = new HashMap<>();
         configMap.put(Constants.FRAMEWORK_STORAGE_CLEAN, "onFirstInit");
-        configMap.put(FelixConstants.LOG_LEVEL_PROP, "4");
+        configMap.put(FelixConstants.LOG_LEVEL_PROP, System.getProperty("felix.log.level", String.valueOf(Logger.LOG_WARNING)));
         configMap.put(FelixConstants.FRAMEWORK_SYSTEMPACKAGES_EXTRA, "sun.misc,sun.nio.ch,com.sun.management");
         framework = new Felix(configMap);
         framework.init();
@@ -402,5 +449,4 @@ public class Starter {
             System.exit(1);
         }
     }
-
 }

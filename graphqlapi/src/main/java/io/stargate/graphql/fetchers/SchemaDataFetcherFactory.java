@@ -1,15 +1,14 @@
 package io.stargate.graphql.fetchers;
 
 import io.stargate.auth.AuthenticationService;
-import io.stargate.coordinator.Coordinator;
 import io.stargate.db.Persistence;
 
 public class SchemaDataFetcherFactory {
     private final Persistence persistence;
     private AuthenticationService authenticationService;
 
-    public SchemaDataFetcherFactory(Coordinator coordinator, AuthenticationService authenticationService) {
-        this.persistence = coordinator.getPersistence();
+    public SchemaDataFetcherFactory(Persistence persistence, AuthenticationService authenticationService) {
+        this.persistence = persistence;
         this.authenticationService = authenticationService;
     }
 

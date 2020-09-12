@@ -7,7 +7,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.model.AuthTokenResponse;
@@ -17,6 +18,7 @@ import io.stargate.auth.model.Secret;
 
 @Path("/v1")
 public class AuthResource {
+    private static final Logger logger = LoggerFactory.getLogger(AuthResource.class);
 
     final AuthenticationService authService;
 
@@ -49,6 +51,12 @@ public class AuthResource {
             return Response.status(Response.Status.UNAUTHORIZED)
                     .entity(new Error("Failed to create token: " + e.getMessage()))
                     .build();
+        } catch (Exception e) {
+            logger.error("Failed to create token", e);
+            return Response
+                    .status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new Error("Failed to create token: " + e.getMessage()))
+                    .build();
         }
 
         return Response.ok(new AuthTokenResponse().authToken(token)).build();
@@ -77,6 +85,12 @@ public class AuthResource {
             token = authService.createToken(body.getUsername(), body.getPassword());
         } catch (UnauthorizedException e) {
             return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(new Error("Failed to create token: " + e.getMessage()))
+                    .build();
+        } catch (Exception e) {
+            logger.error("Failed to create token", e);
+            return Response
+                    .status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(new Error("Failed to create token: " + e.getMessage()))
                     .build();
         }
