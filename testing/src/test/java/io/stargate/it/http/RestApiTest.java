@@ -106,6 +106,16 @@ public class RestApiTest extends BaseOsgiIntegrationTest
     }
 
     @Test
+    public void getKeyspacesMissingToken() throws IOException {
+        RestUtils.get("", String.format("%s:8082/v1/keyspaces", host), HttpStatus.SC_UNAUTHORIZED);
+    }
+
+    @Test
+    public void getKeyspacesBadToken() throws IOException {
+        RestUtils.get("foo", String.format("%s:8082/v1/keyspaces", host), HttpStatus.SC_UNAUTHORIZED);
+    }
+
+    @Test
     public void getTables() throws IOException {
         String body = RestUtils.get(authToken, String.format("%s:8082/v1/keyspaces/system/tables", host), HttpStatus.SC_OK);
 
