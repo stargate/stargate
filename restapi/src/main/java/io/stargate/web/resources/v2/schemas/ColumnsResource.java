@@ -34,7 +34,7 @@ import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
 
-@Path("/schemas/keyspaces/{keyspaceName}/tables/{tableName}/columns")
+@Path("/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}/columns")
 @Produces(MediaType.APPLICATION_JSON)
 public class ColumnsResource {
     private static final Logger logger = LoggerFactory.getLogger(ColumnsResource.class);

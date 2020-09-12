@@ -90,7 +90,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest
 
         String body = RestUtils.post("", String.format("%s:8081/v1/auth/token/generate", host),
                 objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
-                HttpStatus.SC_OK);
+                HttpStatus.SC_CREATED);
 
         AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
         authToken = authTokenResponse.getAuthToken();

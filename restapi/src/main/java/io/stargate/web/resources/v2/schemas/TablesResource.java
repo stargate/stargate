@@ -39,7 +39,7 @@ import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
 
-@Path("/schemas/keyspaces/{keyspaceName}/tables")
+@Path("/v2/schemas/keyspaces/{keyspaceName}/tables")
 @Produces(MediaType.APPLICATION_JSON)
 public class TablesResource {
     private static final Logger logger = LoggerFactory.getLogger(TablesResource.class);
