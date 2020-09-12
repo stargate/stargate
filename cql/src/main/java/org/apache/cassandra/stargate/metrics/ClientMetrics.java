@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.codahale.metrics.MetricRegistry;
 import org.apache.cassandra.stargate.transport.internal.ClientStat;
 import org.apache.cassandra.stargate.transport.internal.ConnectedClient;
 import org.apache.cassandra.stargate.transport.internal.Server;
@@ -47,6 +48,7 @@ public final class ClientMetrics
 
     private volatile boolean initialized = false;
     private Collection<Server> servers = Collections.emptyList();
+    private MetricRegistry metricRegistry;
 
     private Meter authSuccess;
     private Meter authFailure;
@@ -84,12 +86,13 @@ public final class ClientMetrics
         return clients;
     }
 
-    public synchronized void init(Collection<Server> servers)
+    public synchronized void init(Collection<Server> servers, MetricRegistry metricRegistry)
     {
         if (initialized)
             return;
 
         this.servers = servers;
+        this.metricRegistry = metricRegistry;
 
         registerGauge("connectedNativeClients",       this::countConnectedClients);
         registerGauge("connectedNativeClientsByUser", this::countConnectedClientsByUser);
@@ -155,11 +158,11 @@ public final class ClientMetrics
 
     private <T> Gauge<T> registerGauge(String name, Gauge<T> gauge)
     {
-        return Metrics.register(factory.createMetricName(name), gauge);
+        return metricRegistry.register(factory.createMetricName(name).getMetricName(), gauge);
     }
 
     private Meter registerMeter(String name)
     {
-        return Metrics.meter(factory.createMetricName(name));
+        return metricRegistry.meter(factory.createMetricName(name).getMetricName());
     }
 }
