@@ -4,10 +4,13 @@ This project includes software developed by
 The Apache Software Foundation (http://www.apache.org/),
 including Apache Cassandra (http://cassandra.apache.org/)
 
+The project includes software developed at DataStax, Inc. (http:www.datastax.com).
+Copyright DataStax, Inc. All Rights Reserved.
+
 For a detailed list of all packages included and their associated licenses,
 please refer to the file licenses-report.txt.
 
-Including the Copyrights from the original Apache Cassandra project
+This project may include the following
 Apache Cassandra
 Copyright 2009-2020 The Apache Software Foundation
 
