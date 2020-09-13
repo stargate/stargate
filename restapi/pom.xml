@@ -38,6 +38,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>io.stargate.health</groupId>
+            <artifactId>health-checker</artifactId>
+            <version>0.0.6-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>io.dropwizard</groupId>
             <artifactId>dropwizard-jersey</artifactId>
             <version>${dropwizard.version}</version>
@@ -176,6 +182,8 @@
                             !io.dropwizard.logging,
                             io.stargate.db.datastore,
                             io.stargate.db.datastore.query,
+                            io.stargate.health.metrics.api,
+                            com.codahale.metrics,
                             org.osgi.framework,
                         </Import-Package>
                         <Export-Package>!*</Export-Package>

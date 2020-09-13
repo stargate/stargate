@@ -15,6 +15,7 @@
  */
 package io.stargate.web.impl;
 
+import io.stargate.health.metrics.api.Metrics;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
 import java.util.EnumSet;
@@ -49,10 +50,12 @@ public class Server extends Application<ApplicationConfiguration> {
 
     Persistence persistence;
     AuthenticationService authenticationService;
+    private final Metrics metrics;
 
-    public Server(Persistence persistence, AuthenticationService authenticationService) {
+    public Server(Persistence persistence, AuthenticationService authenticationService, Metrics metrics) {
         this.persistence = persistence;
         this.authenticationService = authenticationService;
+        this.metrics = metrics;
     }
 
     @Override
@@ -85,6 +88,7 @@ public class Server extends Application<ApplicationConfiguration> {
     public void initialize(final Bootstrap<ApplicationConfiguration> bootstrap) {
         super.initialize(bootstrap);
         bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
+        bootstrap.setMetricRegistry(metrics.getRegistry("restapi"));
     }
 
     private void enableCors(Environment environment) {
