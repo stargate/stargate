@@ -15,4 +15,9 @@ public class MetricsImpl implements Metrics {
   public MetricRegistry getRegistry() {
     return registry;
   }
+
+  @Override
+  public MetricRegistry getRegistry(String prefix) {
+    return new PrefixingMetricRegistry(registry, prefix);
+  }
 }
