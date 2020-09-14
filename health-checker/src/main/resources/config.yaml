@@ -1,4 +1,5 @@
 server:
+  type: health-checker
   applicationConnectors:
     - type: http
       port: 8084

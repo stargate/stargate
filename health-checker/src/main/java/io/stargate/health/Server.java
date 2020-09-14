@@ -1,5 +1,7 @@
 package io.stargate.health;
 
+import io.prometheus.client.CollectorRegistry;
+import io.prometheus.client.dropwizard.DropwizardExports;
 import io.stargate.health.metrics.api.Metrics;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
@@ -32,12 +34,16 @@ public class Server extends Application<ApplicationConfiguration> {
             }
         });
         environment.jersey().register(CheckerResource.class);
+
+        // Export all DropWizard metrics to Prometheus, they will be picked up later by the
+        // Prometheus MetricsServlet.
+        CollectorRegistry.defaultRegistry.register(new DropwizardExports(metrics.getRegistry()));
     }
 
     @Override
     public void initialize(final Bootstrap<ApplicationConfiguration> bootstrap) {
         super.initialize(bootstrap);
         bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
-        bootstrap.setMetricRegistry(metrics.getRegistry());
+        bootstrap.setMetricRegistry(metrics.getRegistry("health-checker"));
     }
 }
