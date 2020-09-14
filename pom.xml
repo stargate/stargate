@@ -47,6 +47,7 @@
                             <directory>${project.basedir}/stargate-lib/</directory>
                             <excludes>
                                 <exclude>.keep</exclude>
+                                <exclude>logback.xml</exclude>
                             </excludes>
                             <followSymlinks>false</followSymlinks>
                         </fileset>
