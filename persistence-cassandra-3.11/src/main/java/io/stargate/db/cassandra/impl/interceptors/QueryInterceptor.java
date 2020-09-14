@@ -12,7 +12,7 @@ import io.stargate.db.QueryState;
 import io.stargate.db.Result;
 
 /**
- * A interface for intercepting queries and node lifecycle events. It's used to intercept `system.local`
+ * An interface for intercepting queries and node lifecycle events. It's used to intercept `system.local`
  * and `system.peers` queries and topology events for stargate nodes.
  */
 public interface QueryInterceptor
