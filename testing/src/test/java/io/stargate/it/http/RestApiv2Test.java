@@ -73,7 +73,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
         String body = RestUtils.post("", String.format("%s:8081/v1/auth/token/generate", host),
                 objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
-                HttpStatus.SC_OK);
+                HttpStatus.SC_CREATED);
 
         AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
         authToken = authTokenResponse.getAuthToken();
@@ -89,7 +89,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getKeyspaces() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces", host), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces", host), HttpStatus.SC_OK);
 
         ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
         List<Keyspace> keyspaces = objectMapper.convertValue(response.getData(), new TypeReference<List<Keyspace>>() { });
@@ -110,7 +110,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getKeyspacesPretty() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces?pretty=true", host), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces?pretty=true", host), HttpStatus.SC_OK);
 
         ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
         List<Keyspace> keyspaces = objectMapper.convertValue(response.getData(), new TypeReference<List<Keyspace>>() { });
@@ -121,7 +121,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getKeyspacesRaw() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces?raw=true", host), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces?raw=true", host), HttpStatus.SC_OK);
 
         List<Keyspace> keyspaces = objectMapper.readValue(body, new TypeReference<List<Keyspace>>() { });
         assertThat(keyspaces)
@@ -131,7 +131,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getKeyspacesPrettyAndRaw() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces?pretty=true&raw=true", host), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces?pretty=true&raw=true", host), HttpStatus.SC_OK);
 
         List<Keyspace> keyspaces = objectMapper.readValue(body, new TypeReference<List<Keyspace>>() { });
         assertThat(keyspaces)
@@ -141,7 +141,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getKeyspace() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/system", host), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/system", host), HttpStatus.SC_OK);
 
         ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
         Keyspace keyspace = objectMapper.convertValue(response.getData(), Keyspace.class);
@@ -151,7 +151,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getKeyspacePretty() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/system?pretty=true", host), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/system?pretty=true", host), HttpStatus.SC_OK);
 
         ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
         Keyspace keyspace = objectMapper.convertValue(response.getData(), Keyspace.class);
@@ -161,7 +161,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getKeyspaceRaw() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/system?raw=true", host), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/system?raw=true", host), HttpStatus.SC_OK);
 
         Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
 
@@ -170,7 +170,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getKeyspacePrettyAndRaw() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/system?pretty=true&raw=true", host), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/system?pretty=true&raw=true", host), HttpStatus.SC_OK);
 
         Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
 
@@ -179,7 +179,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getKeyspaceNotFound() throws IOException {
-        RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/ks_not_found", host), HttpStatus.SC_NOT_FOUND);
+        RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/ks_not_found", host), HttpStatus.SC_NOT_FOUND);
     }
 
     @Test
@@ -187,7 +187,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         String keyspaceName = "ks_createkeyspace_" + System.currentTimeMillis();
         createKeyspace(keyspaceName);
 
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s?raw=true", host, keyspaceName), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s?raw=true", host, keyspaceName), HttpStatus.SC_OK);
 
         Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
 
@@ -199,16 +199,16 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         String keyspaceName = "ks_createkeyspace_" + System.currentTimeMillis();
         createKeyspace(keyspaceName);
 
-        RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s", host, keyspaceName), HttpStatus.SC_OK);
+        RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s", host, keyspaceName), HttpStatus.SC_OK);
 
-        RestUtils.delete(authToken, String.format("%s:8082/schemas/keyspaces/%s", host, keyspaceName), HttpStatus.SC_NO_CONTENT);
+        RestUtils.delete(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s", host, keyspaceName), HttpStatus.SC_NO_CONTENT);
 
-        RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s", host, keyspaceName), HttpStatus.SC_NOT_FOUND);
+        RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s", host, keyspaceName), HttpStatus.SC_NOT_FOUND);
     }
 
     @Test
     public void getTables() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/system/tables", host), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/system/tables", host), HttpStatus.SC_OK);
 
         ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
         List<TableResponse> tables = objectMapper.convertValue(response.getData(), new TypeReference<List<TableResponse>>() { });
@@ -221,7 +221,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getTablesPretty() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/system/tables?pretty=true", host), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/system/tables?pretty=true", host), HttpStatus.SC_OK);
 
         ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
         List<TableResponse> tables = objectMapper.convertValue(response.getData(), new TypeReference<List<TableResponse>>() { });
@@ -234,7 +234,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getTablesRaw() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/system/tables?raw=true", host), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/system/tables?raw=true", host), HttpStatus.SC_OK);
 
         List<TableResponse> tables = objectMapper.readValue(body, new TypeReference<List<TableResponse>>() { });
 
@@ -246,7 +246,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getTablesPrettyAndRaw() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/system/tables?pretty=true&raw=true", host), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/system/tables?pretty=true&raw=true", host), HttpStatus.SC_OK);
 
         List<TableResponse> tables = objectMapper.readValue(body, new TypeReference<List<TableResponse>>() { });
 
@@ -258,7 +258,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getTable() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/system/tables/local", host), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/system/tables/local", host), HttpStatus.SC_OK);
 
         ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
         TableResponse table = objectMapper.convertValue(response.getData(), TableResponse.class);
@@ -269,7 +269,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getTableRaw() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/system/tables/local?raw=true", host), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/system/tables/local?raw=true", host), HttpStatus.SC_OK);
 
         TableResponse table = objectMapper.readValue(body, TableResponse.class);
         assertThat(table.getKeyspace()).isEqualTo("system");
@@ -279,7 +279,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getTablePretty() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/system/tables/local?pretty=true", host), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/system/tables/local?pretty=true", host), HttpStatus.SC_OK);
 
         ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
         TableResponse table = objectMapper.convertValue(response.getData(), TableResponse.class);
@@ -290,7 +290,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getTablePrettyAndRaw() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/system/tables/local?pretty=true&raw=true", host), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/system/tables/local?pretty=true&raw=true", host), HttpStatus.SC_OK);
 
         TableResponse table = objectMapper.readValue(body, TableResponse.class);
         assertThat(table.getKeyspace()).isEqualTo("system");
@@ -300,7 +300,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getTableNotFound() throws IOException {
-        RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/system/tables/tbl_not_found", host), HttpStatus.SC_NOT_FOUND);
+        RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/system/tables/tbl_not_found", host), HttpStatus.SC_NOT_FOUND);
     }
 
     @Test
@@ -308,7 +308,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         createKeyspace(keyspaceName);
         createTable(keyspaceName, tableName);
 
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s?raw=true", host, keyspaceName, tableName), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s?raw=true", host, keyspaceName, tableName), HttpStatus.SC_OK);
 
         TableResponse table = objectMapper.readValue(body, TableResponse.class);
         assertThat(table.getKeyspace()).isEqualTo(keyspaceName);
@@ -328,7 +328,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         tableOptions.setDefaultTimeToLive(5);
         tableUpdate.setTableOptions(tableOptions);
 
-        RestUtils.put(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s", host, keyspaceName, tableName),
+        RestUtils.put(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s", host, keyspaceName, tableName),
                 objectMapper.writeValueAsString(tableUpdate), HttpStatus.SC_CREATED);
     }
 
@@ -337,7 +337,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         createKeyspace(keyspaceName);
         createTable(keyspaceName, tableName);
 
-        RestUtils.delete(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s", host, keyspaceName, tableName), HttpStatus.SC_NO_CONTENT);
+        RestUtils.delete(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s", host, keyspaceName, tableName), HttpStatus.SC_NO_CONTENT);
     }
 
     @Test
@@ -931,7 +931,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         createKeyspace(keyspaceName);
         createTable(keyspaceName, tableName);
 
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName), HttpStatus.SC_OK);
         ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
         List<ColumnDefinition> columns = objectMapper.convertValue(response.getData(), new TypeReference<List<ColumnDefinition>>() { });
         assertThat(columns)
@@ -944,7 +944,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         createKeyspace(keyspaceName);
         createTable(keyspaceName, tableName);
 
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns?raw=true", host, keyspaceName, tableName), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns?raw=true", host, keyspaceName, tableName), HttpStatus.SC_OK);
         List<ColumnDefinition> columns = objectMapper.readValue(body, new TypeReference<List<ColumnDefinition>>() { });
         assertThat(columns)
                 .anySatisfy(value -> assertThat(value)
@@ -956,7 +956,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         createKeyspace(keyspaceName);
         createTable(keyspaceName, tableName);
 
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns?pretty=true", host, keyspaceName, tableName), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns?pretty=true", host, keyspaceName, tableName), HttpStatus.SC_OK);
         ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
         List<ColumnDefinition> columns = objectMapper.convertValue(response.getData(), new TypeReference<List<ColumnDefinition>>() { });
         assertThat(columns)
@@ -969,7 +969,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         createKeyspace(keyspaceName);
         createTable(keyspaceName, tableName);
 
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns?pretty=true&raw=true", host, keyspaceName, tableName), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns?pretty=true&raw=true", host, keyspaceName, tableName), HttpStatus.SC_OK);
         List<ColumnDefinition> columns = objectMapper.readValue(body, new TypeReference<List<ColumnDefinition>>() { });
         assertThat(columns)
                 .anySatisfy(value -> assertThat(value)
@@ -978,7 +978,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getColumnsBadTable() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, "foo"), HttpStatus.SC_BAD_REQUEST);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, "foo"), HttpStatus.SC_BAD_REQUEST);
         Error response = objectMapper.readValue(body, Error.class);
 
         assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
@@ -989,7 +989,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
     public void getColumnsBadKeyspace() throws IOException {
         createKeyspace(keyspaceName);
 
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns", host, "foo", tableName), HttpStatus.SC_BAD_REQUEST);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, "foo", tableName), HttpStatus.SC_BAD_REQUEST);
         Error response = objectMapper.readValue(body, Error.class);
 
         assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
@@ -1001,7 +1001,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         createKeyspace(keyspaceName);
         createTable(keyspaceName, tableName);
 
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, tableName, "age"), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, tableName, "age"), HttpStatus.SC_OK);
         ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
         ColumnDefinition column = objectMapper.convertValue(response.getData(), ColumnDefinition.class);
         assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "Int", false));
@@ -1012,7 +1012,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         createKeyspace(keyspaceName);
         createTable(keyspaceName, tableName);
 
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, tableName, "foo"), HttpStatus.SC_NOT_FOUND);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, tableName, "foo"), HttpStatus.SC_NOT_FOUND);
         Error response = objectMapper.readValue(body, Error.class);
 
         assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
@@ -1024,7 +1024,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         createKeyspace(keyspaceName);
         createTable(keyspaceName, tableName);
 
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true", host, keyspaceName, tableName, "age"), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true", host, keyspaceName, tableName, "age"), HttpStatus.SC_OK);
         ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
         assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "Int", false));
     }
@@ -1034,7 +1034,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         createKeyspace(keyspaceName);
         createTable(keyspaceName, tableName);
 
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s?pretty=true", host, keyspaceName, tableName, "age"), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?pretty=true", host, keyspaceName, tableName, "age"), HttpStatus.SC_OK);
         ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
         ColumnDefinition column = objectMapper.convertValue(response.getData(), ColumnDefinition.class);
         assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "Int", false));
@@ -1045,7 +1045,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         createKeyspace(keyspaceName);
         createTable(keyspaceName, tableName);
 
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s?pretty=true&raw=true", host, keyspaceName, tableName, "age"), HttpStatus.SC_OK);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?pretty=true&raw=true", host, keyspaceName, tableName, "age"), HttpStatus.SC_OK);
         ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
         assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "Int", false));
     }
@@ -1054,7 +1054,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
     public void getColumnBadTable() throws IOException {
         createKeyspace(keyspaceName);
 
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, "foo", "age"), HttpStatus.SC_BAD_REQUEST);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, "foo", "age"), HttpStatus.SC_BAD_REQUEST);
         Error response = objectMapper.readValue(body, Error.class);
 
         assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
@@ -1063,7 +1063,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getColumnBadKeyspace() throws IOException {
-        String body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s", host, "foo", tableName, "age"), HttpStatus.SC_BAD_REQUEST);
+        String body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s", host, "foo", tableName, "age"), HttpStatus.SC_BAD_REQUEST);
         Error response = objectMapper.readValue(body, Error.class);
 
         assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
@@ -1077,13 +1077,13 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
         ColumnDefinition columnDefinition = new ColumnDefinition("name", "Varchar");
 
-        String body = RestUtils.post(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
+        String body = RestUtils.post(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
                 objectMapper.writeValueAsString(columnDefinition), HttpStatus.SC_CREATED);
         Map<String,String> response = objectMapper.readValue(body, Map.class);
 
         assertThat(response.get("name")).isEqualTo("name");
 
-        body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true", host, keyspaceName, tableName, "name"),
+        body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true", host, keyspaceName, tableName, "name"),
                 HttpStatus.SC_OK);
         ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
         assertThat(column).isEqualToComparingFieldByField(columnDefinition);
@@ -1096,13 +1096,13 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
         ColumnDefinition columnDefinition = new ColumnDefinition("name", "Varchar");
 
-        String body = RestUtils.post(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns?pretty=true", host, keyspaceName, tableName),
+        String body = RestUtils.post(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns?pretty=true", host, keyspaceName, tableName),
                 objectMapper.writeValueAsString(columnDefinition), HttpStatus.SC_CREATED);
         Map<String,String> response = objectMapper.readValue(body, Map.class);
 
         assertThat(response.get("name")).isEqualTo("name");
 
-        body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true", host, keyspaceName, tableName, "name"),
+        body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true", host, keyspaceName, tableName, "name"),
                 HttpStatus.SC_OK);
         ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
         assertThat(column).isEqualToComparingFieldByField(columnDefinition);
@@ -1115,7 +1115,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
         ColumnDefinition columnDefinition = new ColumnDefinition("name", "badType");
 
-        String body = RestUtils.post(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
+        String body = RestUtils.post(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
                 objectMapper.writeValueAsString(columnDefinition), HttpStatus.SC_BAD_REQUEST);
         Error response = objectMapper.readValue(body, Error.class);
 
@@ -1130,13 +1130,13 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
         ColumnDefinition columnDefinition = new ColumnDefinition("balance", "Float", true);
 
-        String body = RestUtils.post(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
+        String body = RestUtils.post(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
                 objectMapper.writeValueAsString(columnDefinition), HttpStatus.SC_CREATED);
         Map<String,String> response = objectMapper.readValue(body, Map.class);
 
         assertThat(response.get("name")).isEqualTo("balance");
 
-        body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true", host, keyspaceName, tableName, "balance"),
+        body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true", host, keyspaceName, tableName, "balance"),
                 HttpStatus.SC_OK);
         ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
         assertThat(column).isEqualToComparingFieldByField(columnDefinition);
@@ -1149,13 +1149,13 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
         ColumnDefinition columnDefinition = new ColumnDefinition("identifier", "Uuid");
 
-        String body = RestUtils.put(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, tableName, "id"),
+        String body = RestUtils.put(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, tableName, "id"),
                 objectMapper.writeValueAsString(columnDefinition), HttpStatus.SC_OK);
         Map<String,String> response = objectMapper.readValue(body, Map.class);
 
         assertThat(response.get("name")).isEqualTo("identifier");
 
-        body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true", host, keyspaceName, tableName, "identifier"), HttpStatus.SC_OK);
+        body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true", host, keyspaceName, tableName, "identifier"), HttpStatus.SC_OK);
         ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
         assertThat(column).isEqualToComparingFieldByField(columnDefinition);
     }
@@ -1167,13 +1167,13 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
         ColumnDefinition columnDefinition = new ColumnDefinition("identifier", "Uuid");
 
-        String body = RestUtils.put(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s?pretty=true", host, keyspaceName, tableName, "id"),
+        String body = RestUtils.put(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?pretty=true", host, keyspaceName, tableName, "id"),
                 objectMapper.writeValueAsString(columnDefinition), HttpStatus.SC_OK);
         Map<String,String> response = objectMapper.readValue(body, Map.class);
 
         assertThat(response.get("name")).isEqualTo("identifier");
 
-        body = RestUtils.get(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true", host, keyspaceName, tableName, "identifier"), HttpStatus.SC_OK);
+        body = RestUtils.get(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true", host, keyspaceName, tableName, "identifier"), HttpStatus.SC_OK);
         ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
         assertThat(column).isEqualToComparingFieldByField(columnDefinition);
     }
@@ -1185,7 +1185,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
         ColumnDefinition columnDefinition = new ColumnDefinition("name", "text");
 
-        String body = RestUtils.put(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, tableName, "notFound"),
+        String body = RestUtils.put(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, tableName, "notFound"),
                 objectMapper.writeValueAsString(columnDefinition), HttpStatus.SC_BAD_REQUEST);
         Error response = objectMapper.readValue(body, Error.class);
 
@@ -1200,7 +1200,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
         ColumnDefinition columnDefinition = new ColumnDefinition("name", "text");
 
-        String body = RestUtils.put(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, "foo", "age"),
+        String body = RestUtils.put(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, "foo", "age"),
                 objectMapper.writeValueAsString(columnDefinition), HttpStatus.SC_BAD_REQUEST);
         Error response = objectMapper.readValue(body, Error.class);
 
@@ -1212,7 +1212,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
     public void updateColumnBadKeyspace() throws IOException {
         ColumnDefinition columnDefinition = new ColumnDefinition("name", "text");
 
-        String body = RestUtils.put(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s", host, "foo", tableName, "age"),
+        String body = RestUtils.put(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s", host, "foo", tableName, "age"),
                 objectMapper.writeValueAsString(columnDefinition), HttpStatus.SC_BAD_REQUEST);
         Error response = objectMapper.readValue(body, Error.class);
 
@@ -1225,7 +1225,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         createKeyspace(keyspaceName);
         createTable(keyspaceName, tableName);
 
-        RestUtils.delete(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, tableName, "age"), HttpStatus.SC_NO_CONTENT);
+        RestUtils.delete(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, tableName, "age"), HttpStatus.SC_NO_CONTENT);
     }
 
     @Test
@@ -1233,7 +1233,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         createKeyspace(keyspaceName);
         createTable(keyspaceName, tableName);
 
-        RestUtils.delete(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, tableName, "foo"),
+        RestUtils.delete(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, tableName, "foo"),
                 HttpStatus.SC_BAD_REQUEST);
     }
 
@@ -1241,7 +1241,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
     public void deleteColumnBadTable() throws IOException {
         createKeyspace(keyspaceName);
 
-        String body = RestUtils.delete(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, "foo", "age"), HttpStatus.SC_BAD_REQUEST);
+        String body = RestUtils.delete(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, "foo", "age"), HttpStatus.SC_BAD_REQUEST);
         Error response = objectMapper.readValue(body, Error.class);
 
         assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
@@ -1250,7 +1250,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void deleteColumnBadKeyspace() throws IOException {
-        String body = RestUtils.delete(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s", host, "foo", tableName, "age"), HttpStatus.SC_BAD_REQUEST);
+        String body = RestUtils.delete(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s", host, "foo", tableName, "age"), HttpStatus.SC_BAD_REQUEST);
         Error response = objectMapper.readValue(body, Error.class);
 
         assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
@@ -1262,7 +1262,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         createKeyspace(keyspaceName);
         createTable(keyspaceName, tableName);
 
-        String body = RestUtils.delete(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, tableName, "id"), HttpStatus.SC_BAD_REQUEST);
+        String body = RestUtils.delete(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s", host, keyspaceName, tableName, "id"), HttpStatus.SC_BAD_REQUEST);
         Error response = objectMapper.readValue(body, Error.class);
 
         assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
@@ -1286,7 +1286,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         primaryKey.setPartitionKey(Collections.singletonList("id"));
         tableAdd.setPrimaryKey(primaryKey);
 
-        RestUtils.post(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables", host, keyspaceName),
+        RestUtils.post(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
                 objectMapper.writeValueAsString(tableAdd), HttpStatus.SC_CREATED);
     }
 
@@ -1310,14 +1310,14 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
         tableAdd.setPrimaryKey(primaryKey);
 
 
-        RestUtils.post(authToken, String.format("%s:8082/schemas/keyspaces/%s/tables", host, keyspaceName),
+        RestUtils.post(authToken, String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
                 objectMapper.writeValueAsString(tableAdd), HttpStatus.SC_CREATED);
     }
 
     private void createKeyspace(String keyspaceName) throws IOException {
         String createKeyspaceRequest = String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspaceName);
 
-        RestUtils.post(authToken, String.format("%s:8082/schemas/keyspaces", host),
+        RestUtils.post(authToken, String.format("%s:8082/v2/schemas/keyspaces", host),
                 createKeyspaceRequest, HttpStatus.SC_CREATED);
     }
 

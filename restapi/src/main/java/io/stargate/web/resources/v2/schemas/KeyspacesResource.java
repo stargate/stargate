@@ -48,7 +48,7 @@ import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
 
-@Path("/schemas/keyspaces")
+@Path("/v2/schemas/keyspaces")
 @Produces(MediaType.APPLICATION_JSON)
 public class KeyspacesResource {
     private static final Logger logger = LoggerFactory.getLogger(KeyspacesResource.class);

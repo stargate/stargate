@@ -74,7 +74,10 @@ public class AuthResource {
                     .build();
         }
 
-        return Response.ok(new AuthTokenResponse().authToken(token)).build();
+        return Response
+                .status(Response.Status.CREATED)
+                .entity(new AuthTokenResponse().authToken(token))
+                .build();
     }
 
     @POST
@@ -110,7 +113,10 @@ public class AuthResource {
                     .build();
         }
 
-        return Response.ok(new AuthTokenResponse().authToken(token)).build();
+        return Response
+                .status(Response.Status.CREATED)
+                .entity(new AuthTokenResponse().authToken(token))
+                .build();
     }
 
 }
