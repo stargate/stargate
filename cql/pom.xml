@@ -70,6 +70,12 @@
             <artifactId>javatuples</artifactId>
             <version>1.2</version>
         </dependency>
+      <dependency>
+        <groupId>io.stargate.auth</groupId>
+        <artifactId>authentication</artifactId>
+        <version>0.0.6-SNAPSHOT</version>
+        <scope>compile</scope>
+      </dependency>
     </dependencies>
 
     <build>

@@ -20,14 +20,24 @@ package org.apache.cassandra.stargate.transport.internal;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.security.cert.X509Certificate;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.UUID;
+
+import org.apache.cassandra.stargate.exceptions.AuthenticationException;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Counter;
+import com.google.common.base.Strings;
 import io.netty.channel.Channel;
 import io.netty.handler.ssl.SslHandler;
+import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.StoredCredentials;
+import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.Authenticator;
 import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
@@ -40,13 +50,15 @@ public class ServerConnection extends Connection
     private volatile Authenticator.SaslNegotiator saslNegotiator;
     private final ClientState clientState;
     private final Persistence persistence;
+    private final AuthenticationService authentication;
     private volatile ConnectionStage stage;
     public final Counter requests = new Counter();
 
-    ServerConnection(Channel channel, ProxyInfo proxyInfo, ProtocolVersion version, Connection.Tracker tracker, Persistence persistence)
+    ServerConnection(Channel channel, ProxyInfo proxyInfo, ProtocolVersion version, Connection.Tracker tracker, Persistence persistence, AuthenticationService authentication)
     {
         super(channel, version, tracker);
         this.persistence = persistence;
+        this.authentication = authentication;
         clientState = persistence.newClientState(channel.remoteAddress(), proxyInfo != null ? proxyInfo.publicAddress : null);
         stage = ConnectionStage.ESTABLISHED;
     }
@@ -124,8 +136,15 @@ public class ServerConnection extends Connection
     public Authenticator.SaslNegotiator getSaslNegotiator(QueryState queryState)
     {
         if (saslNegotiator == null)
-            saslNegotiator = persistence
-                    .getAuthenticator().newSaslNegotiator(queryState.getClientAddress(), certificates());
+        {
+            if (authentication != null)
+                saslNegotiator = new PlainTextTokenSaslNegotiator(saslNegotiator, persistence, authentication);
+            else
+            {
+                saslNegotiator = persistence
+                        .getAuthenticator().newSaslNegotiator(queryState.getClientAddress(), certificates());
+            }
+        }
         return saslNegotiator;
     }
 
@@ -150,4 +169,5 @@ public class ServerConnection extends Connection
         }
         return certificates;
     }
+
 }

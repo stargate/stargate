@@ -28,6 +28,8 @@ import org.osgi.framework.ServiceReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Strings;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.cql.impl.CqlImpl;
 import io.stargate.db.Persistence;
 
@@ -36,7 +38,10 @@ public class CqlActivator implements BundleActivator, ServiceListener {
 
     private BundleContext context;
     private final CqlImpl cql = new CqlImpl(makeConfig());
-    private ServiceReference reference;
+    private ServiceReference persistenceReference;
+    private ServiceReference authenticationReference;
+
+    static String AUTH_IDENTIFIER = System.getProperty("stargate.cql_auth_id");
     static String PERSISTENCE_IDENTIFIER = System.getProperty("stargate.persistence_id", "CassandraPersistence");
 
     private static Config makeConfig()
@@ -58,30 +63,47 @@ public class CqlActivator implements BundleActivator, ServiceListener {
     }
 
     @Override
-    public void start(BundleContext context) {
+    public void start(BundleContext context) throws InvalidSyntaxException
+    {
         this.context = context;
         log.info("Starting CQL....");
         synchronized (cql) {
             try {
-                context.addServiceListener(this, String.format("(Identifier=%s)", PERSISTENCE_IDENTIFIER));
+                String authFilter = String.format("(AuthIdentifier=%s)", AUTH_IDENTIFIER);
+                String persistenceFilter = String.format("(Identifier=%s)", PERSISTENCE_IDENTIFIER);
+                context.addServiceListener(this, String.format("(|%s%s)", persistenceFilter, authFilter));
             } catch (InvalidSyntaxException ise) {
                 throw new RuntimeException(ise);
             }
 
-            reference = context.getServiceReference(Persistence.class.getName());
-            if (reference != null) {
-                Object service = context.getService(reference);
-                if (service != null) {
-                    this.cql.start(((Persistence) service));
-                    log.info("Started CQL....");
+
+            ServiceReference[] refs = context.getServiceReferences(AuthenticationService.class.getName(), null);
+            if (refs != null) {
+                for (ServiceReference ref : refs) {
+                    // Get the service object.
+                    Object service = context.getService(ref);
+                    if (service instanceof AuthenticationService && ref.getProperty("AuthIdentifier") != null
+                            && ref.getProperty("AuthIdentifier").equals(AUTH_IDENTIFIER)) {
+                        log.info("Setting authenticationService in CqlActivator");
+                        authenticationReference = ref;
+                        break;
+                    }
                 }
             }
+
+            persistenceReference = context.getServiceReference(Persistence.class.getName());
+            if (persistenceReference != null)
+                log.info("Setting persistence in CqlActivator");
+
+            maybeStartService();
         }
     }
 
     @Override
     public void stop(BundleContext context) {
-        context.ungetService(reference);
+        context.ungetService(persistenceReference);
+        if (authenticationReference != null)
+            context.ungetService(authenticationReference);
     }
 
     @Override
@@ -92,12 +114,18 @@ public class CqlActivator implements BundleActivator, ServiceListener {
             switch (type) {
                 case (ServiceEvent.REGISTERED):
                     log.info("Service of type " + objectClass[0] + " registered.");
-                    reference = serviceEvent.getServiceReference();
-                    Object service = context.getService(reference);
+                    Object service = context.getService(serviceEvent.getServiceReference());
 
-                    log.info("Setting persistence in CqlActivator");
-                    this.cql.start(((Persistence)service));
-                    log.info("Started CQL....");
+                    if (service instanceof Persistence) {
+                        log.info("Setting persistence in CqlActivator");
+                        persistenceReference = serviceEvent.getServiceReference();
+                    } else if (service instanceof AuthenticationService && serviceEvent.getServiceReference().getProperty("AuthIdentifier") != null
+                            && serviceEvent.getServiceReference().getProperty("AuthIdentifier").equals(AUTH_IDENTIFIER)) {
+                        log.info("Setting authenticationService in RestApiActivator");
+                        authenticationReference = serviceEvent.getServiceReference();
+                    }
+
+                    maybeStartService();
                     break;
                 case (ServiceEvent.UNREGISTERING):
                     log.info("Service of type " + objectClass[0] + " unregistered.");
@@ -112,4 +140,26 @@ public class CqlActivator implements BundleActivator, ServiceListener {
             }
         }
     }
+
+    public void maybeStartService()
+    {
+        if (persistenceReference != null && (!requiresAuthentication() || authenticationReference != null)) {
+            Object persistenceService = context.getService(persistenceReference);
+
+            Object authenticationService = null;
+            if (authenticationReference != null)
+                authenticationService = context.getService(authenticationReference);
+
+            if (persistenceService != null) {
+                this.cql.start((Persistence) persistenceService, (AuthenticationService)authenticationService);
+                log.info("Started CQL....");
+            }
+        }
+    }
+
+    public boolean requiresAuthentication()
+    {
+        return !Strings.isNullOrEmpty(AUTH_IDENTIFIER);
+    }
+
 }

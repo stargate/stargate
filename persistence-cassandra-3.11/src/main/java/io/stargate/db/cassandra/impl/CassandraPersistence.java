@@ -110,6 +110,14 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
         daemon = new CassandraDaemon(true);
 
         DatabaseDescriptor.daemonInitialization(() -> config);
+
+        root = new InternalDataStore();
+        authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
+        handler = org.apache.cassandra.service.ClientState.getCQLQueryHandler();
+
+        interceptor = new DefaultQueryInterceptor();
+        interceptor.initialize();
+
         try
         {
             daemon.init(null);
@@ -124,14 +132,8 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
 
         daemon.start();
 
+
         waitForSchema(StorageService.RING_DELAY);
-
-        root = new InternalDataStore();
-        authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
-        handler = org.apache.cassandra.service.ClientState.getCQLQueryHandler();
-        interceptor = new DefaultQueryInterceptor();
-
-        interceptor.initialize();
     }
 
     @Override
@@ -218,6 +220,12 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
         ClientStateWrapper state = ClientStateWrapper.forExternalCalls(null);
         state.login(new AuthenticatorWrapper.AuthenticatedUserWrapper(new AuthenticatedUser(name)));
         return state;
+    }
+
+    @Override
+    public io.stargate.db.AuthenticatedUser<?> newAuthenticatedUser(String name)
+    {
+        return new AuthenticatorWrapper.AuthenticatedUserWrapper(new AuthenticatedUser(name));
     }
 
     @Override
@@ -595,5 +603,7 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
 
             Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
+
+        MigrationManager.waitUntilReadyForBootstrap();
     }
 }

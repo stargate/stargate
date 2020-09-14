@@ -48,6 +48,8 @@ public interface Persistence<T,C,Q>
 
     ClientState newClientState(String name);
 
+    AuthenticatedUser<?> newAuthenticatedUser(String name);
+
     Authenticator getAuthenticator();
 
     DataStore newDataStore(QueryState<Q> state, QueryOptions<C> queryOptions);
