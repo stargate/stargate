@@ -121,6 +121,14 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
     if [[ ! -z "$USE_PROXY_PROTOCOL" ]]; then
         STARGATE_ARGS+=("--use-proxy-protocol" "$USE_PROXY_PROTOCOL")
     fi
+
+    if [[ ! -z "$DEVELOPER_MODE" ]]; then
+        STARGATE_ARGS+=("--developer-mode")
+    fi
+
+    if [[ ! -z "$BIND_TO_LISTEN_ADDRESS" ]]; then
+        STARGATE_ARGS+=("--bind-to-listen-address")
+    fi
 fi
 
 declare -a CMD=(java -server -Xmx64G)

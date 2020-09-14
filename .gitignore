@@ -33,6 +33,7 @@ generated/
 felix-cache/
 stargate-lib/*
 !stargate-lib/.keep
+!stargate-lib/logback.xml
 
 data0
 commitlogs

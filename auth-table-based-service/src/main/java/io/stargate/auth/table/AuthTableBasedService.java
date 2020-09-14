@@ -26,6 +26,7 @@ import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
@@ -137,13 +138,24 @@ public class AuthTableBasedService implements AuthenticationService {
 
     @Override
     public StoredCredentials validateToken(String token) throws UnauthorizedException {
+        if (Strings.isNullOrEmpty(token)) {
+            throw new UnauthorizedException("authorization failed - missing token");
+        }
+
+        UUID uuid;
+        try{
+            uuid = UUID.fromString(token);
+        } catch (IllegalArgumentException exception){
+            throw new UnauthorizedException("authorization failed - bad token");
+        }
+
         StoredCredentials storedCredentials = new StoredCredentials();
         try {
             ResultSet resultSet = dataStore.query()
                     .select()
                     .star()
                     .from(AUTH_KEYSPACE, AUTH_TABLE)
-                    .where("auth_token", WhereCondition.Predicate.Eq, UUID.fromString(token))
+                    .where("auth_token", WhereCondition.Predicate.Eq, uuid)
                     .execute();
 
             if (resultSet.isEmpty()) {

@@ -139,4 +139,37 @@ class StarterTest {
 
         assertThat(thrown.getMessage()).isEqualTo("--cluster-version must be a number");
     }
+
+    @Test
+    void testSeedsNotPresentThrows() {
+        Starter starter = new Starter();
+        starter.simpleSnitch = true;
+
+        starter.clusterName = "foo";
+        starter.version = "3.11";
+
+        assertThrows(
+            IllegalArgumentException.class,
+            starter::setStargateProperties,
+            "At least one seed node address is required."
+        );
+    }
+
+    @Test
+    void testDeveloperModeSetsDefaultSeedsAndSnitch() {
+        Starter starter = new Starter();
+        starter.developerMode = true;
+
+        starter.clusterName = "foo";
+        starter.version = "3.11";
+
+        assertThat(starter.seedList).hasSize(0);
+        assertThat(starter.simpleSnitch).isFalse();
+
+        starter.setStargateProperties();
+
+        assertThat(System.getProperty("stargate.seed_list")).isEqualTo("127.0.0.1");
+        assertThat(System.getProperty("stargate.developer_mode")).isEqualTo("true");
+        assertThat(System.getProperty("stargate.snitch_classname")).isEqualTo("SimpleSnitch");
+    }
 }
