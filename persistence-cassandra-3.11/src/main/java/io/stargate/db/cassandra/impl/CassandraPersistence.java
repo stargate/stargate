@@ -86,7 +86,12 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
     public void initialize(Config config)
     {
         logger.info("Initializing CassandraPersistence");
-        System.setProperty("cassandra.join_ring", "false");
+
+        if (!Boolean.parseBoolean(System.getProperty("stargate.developer_mode")))
+        {
+            System.setProperty("cassandra.join_ring", "false");
+        }
+
         daemon = new CassandraDaemon(true);
 
         DatabaseDescriptor.daemonInitialization(() -> config);
