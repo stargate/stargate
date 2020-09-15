@@ -3,7 +3,7 @@
  *
  * Please see the included license file for details.
  */
-package io.stargate.db.dse.datastax;
+package io.stargate.db.dse.datastore;
 
 import javax.inject.Inject;
 import java.nio.ByteBuffer;
@@ -283,8 +283,7 @@ public class InternalDataStore implements DataStore
         private Single<ResultMessage> queryUnprepared()
         {
             return QueryProcessor.instance
-                    .process(unpreparedCql, queryState, queryOptions, null, ApolloTime.approximateNanoTime())
-                    // Solr queries need to be executed on a TPC thread since DSP-15891
+                    .process(unpreparedCql, queryState, queryOptions, ApolloTime.approximateNanoTime())
                     .subscribeOn(TPC.bestTPCScheduler());
         }
 

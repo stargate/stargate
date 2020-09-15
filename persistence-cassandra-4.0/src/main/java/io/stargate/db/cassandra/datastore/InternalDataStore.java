@@ -64,7 +64,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.stargate.db.Result;
-import io.stargate.db.cassandra.impl.StargateSystemKeyspace;
 import io.stargate.db.cassandra.impl.Conversion;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ExecutionInfo;
@@ -307,19 +306,14 @@ public class InternalDataStore implements DataStore
             {
                 try
                 {
-                    long queryStartNanoTime = System.nanoTime();
-                    CQLStatement statement = QueryProcessor.parseStatement(unpreparedCql, queryState.getClientState());
-                    if (!StargateSystemKeyspace.maybeCompleteSystemLocalOrPeersInternal(statement, queryState, queryOptions, queryStartNanoTime, future)) {
-                        ResultMessage resultMessage = QueryProcessor.instance.processStatement(statement, queryState, queryOptions, System.nanoTime());
-                        if (resultMessage instanceof ResultMessage.Rows) {
-                            ResultMessage.Rows rows = (ResultMessage.Rows)resultMessage;
-                            this.pagingState = rows.result.metadata.getPagingState();
-
-                            return;
-                        }
-
-                        future.complete(resultMessage);
+                    CQLStatement statement = QueryProcessor.instance.parse(unpreparedCql, queryState, queryOptions);
+                    ResultMessage resultMessage = QueryProcessor.instance.process(statement, queryState, queryOptions, null, System.nanoTime());
+                    if (resultMessage instanceof ResultMessage.Rows) {
+                        ResultMessage.Rows rows = (ResultMessage.Rows)resultMessage;
+                        this.pagingState = rows.result.metadata.getPagingState();
                     }
+
+                    future.complete(resultMessage);
                 }
                 catch (Throwable t)
                 {
@@ -338,17 +332,13 @@ public class InternalDataStore implements DataStore
             {
                 try
                 {
-                    long queryStartNanoTime = System.nanoTime();
-                    if (!StargateSystemKeyspace.maybeCompleteSystemLocalOrPeersInternal(prepared.statement, queryState, queryOptions, queryStartNanoTime, future))
-                    {
-                        ResultMessage resultMessage = QueryProcessor.instance.processPrepared(prepared.statement, queryState, queryOptions, null, queryStartNanoTime);
-                        if (resultMessage instanceof ResultMessage.Rows) {
-                            ResultMessage.Rows rows = (ResultMessage.Rows)resultMessage;
-                            this.pagingState = rows.result.metadata.getPagingState();
-                        }
-
-                        future.complete(resultMessage);
+                    ResultMessage resultMessage = QueryProcessor.instance.processPrepared(prepared.statement, queryState, queryOptions, null, System.nanoTime());
+                    if (resultMessage instanceof ResultMessage.Rows) {
+                        ResultMessage.Rows rows = (ResultMessage.Rows)resultMessage;
+                        this.pagingState = rows.result.metadata.getPagingState();
                     }
+
+                    future.complete(resultMessage);
                 }
                 catch (Throwable t)
                 {

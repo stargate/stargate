@@ -10,7 +10,7 @@ public class StargateLocalView extends StargateNodeView
 {
     StargateLocalView()
     {
-        super(NodesSystemViews.virtualFromLegacy(NodesSystemViews.Local, LocalNodeSystemView.NAME));
+        super(StargateSystemKeyspace.virtualFromLegacy(NodesSystemViews.Local, StargateSystemKeyspace.LOCAL_TABLE_NAME));
     }
 
     @Override

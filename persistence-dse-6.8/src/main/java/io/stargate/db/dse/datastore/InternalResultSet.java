@@ -3,7 +3,7 @@
  *
  * Please see the included license file for details.
  */
-package io.stargate.db.dse.datastax;
+package io.stargate.db.dse.datastore;
 
 import javax.validation.constraints.NotNull;
 import java.nio.ByteBuffer;

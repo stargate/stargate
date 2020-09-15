@@ -6,14 +6,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryProcessor;
-import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.cql3.statements.schema.CreateTableStatement;
 import org.apache.cassandra.db.Keyspace;
@@ -27,9 +26,11 @@ import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
 import org.apache.cassandra.gms.VersionedValue;
 import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.locator.InetAddressAndPort;
+import org.apache.cassandra.schema.ColumnMetadata;
 import org.apache.cassandra.schema.Functions;
 import org.apache.cassandra.schema.KeyspaceMetadata;
 import org.apache.cassandra.schema.KeyspaceParams;
+import org.apache.cassandra.schema.MigrationManager;
 import org.apache.cassandra.schema.Schema;
 import org.apache.cassandra.schema.SchemaConstants;
 import org.apache.cassandra.schema.TableId;
@@ -37,15 +38,14 @@ import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.schema.Tables;
 import org.apache.cassandra.schema.Types;
 import org.apache.cassandra.schema.Views;
-import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.transport.ProtocolVersion;
-import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.utils.FBUtilities;
+import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.stargate.db.Result;
 
 import static java.lang.String.format;
 import static org.apache.cassandra.cql3.QueryProcessor.executeInternal;
@@ -56,13 +56,13 @@ public class StargateSystemKeyspace
     private static final Logger logger = LoggerFactory.getLogger(StargateSystemKeyspace.class);
 
     public static final String SYSTEM_KEYSPACE_NAME = "stargate_system";
-    public static final String LOCAL_TABLE_NAME = "stargate_local";
-    public static final String PEERS_TABLE_NAME = "stargate_peers";
-    public static final String PEERS_V2_TABLE_NAME = "stargate_peers_v2";
+    public static final String LOCAL_TABLE_NAME = "local";
+    public static final String PEERS_TABLE_NAME = "peers";
+    public static final String PEERS_V2_TABLE_NAME = "peers_v2";
 
     public static final UUID SCHEMA_VERSION = UUID.fromString("17846767-28a1-4acd-a967-f609ff1375f1");
 
-    private static final TableMetadata Local =
+    public static final TableMetadata Local =
             parse(LOCAL_TABLE_NAME,
                     "information about the local node",
                     "CREATE TABLE %s ("
@@ -87,10 +87,10 @@ public class StargateSystemKeyspace
                             + "tokens set<varchar>,"
                             + "truncated_at map<uuid, blob>,"
                             + "PRIMARY KEY ((key)))"
-            ).recordDeprecatedSystemColumn("thrift_version", UTF8Type.instance)
+            ).recordColumnDrop(ColumnMetadata.regularColumn(SYSTEM_KEYSPACE_NAME, LOCAL_TABLE_NAME, "thrift_version", UTF8Type.instance), Long.MAX_VALUE) // Record deprecated
                     .build();
 
-    private static final TableMetadata Peers =
+    public static final TableMetadata Peers =
             parse(PEERS_TABLE_NAME,
                     "information about known peers in the cluster",
                     "CREATE TABLE %s ("
@@ -106,7 +106,7 @@ public class StargateSystemKeyspace
                             + "PRIMARY KEY ((peer)))")
                     .build();
 
-    private static final TableMetadata PeersV2 =
+    public static final TableMetadata PeersV2 =
             parse(PEERS_V2_TABLE_NAME,
                     "information about known peers in the cluster",
                     "CREATE TABLE %s ("
@@ -128,10 +128,18 @@ public class StargateSystemKeyspace
     private static TableMetadata.Builder parse(String table, String description, String cql)
     {
         return CreateTableStatement.parse(format(cql, table), SYSTEM_KEYSPACE_NAME)
-                .id(TableId.forSystemTable(SYSTEM_KEYSPACE_NAME, table))
+                .id(forSystemTable(SYSTEM_KEYSPACE_NAME, table))
                 .gcGraceSeconds(0)
                 .memtableFlushPeriod((int) TimeUnit.HOURS.toMillis(1))
                 .comment(description);
+    }
+
+    /**
+     * Copy of {@link TableId#forSystemTable(String, String)} without assertion.
+     */
+    private static TableId forSystemTable(String keyspace, String table)
+    {
+        return TableId.fromUUID(UUID.nameUUIDFromBytes(ArrayUtils.addAll(keyspace.getBytes(), table.getBytes())));
     }
 
     public static Tables tables()
@@ -188,42 +196,17 @@ public class StargateSystemKeyspace
                 SCHEMA_VERSION);
     }
 
-    public IEndpointStateChangeSubscriber getPeersUpdater()
-    {
-        return new PeersUpdater();
-    }
-
-    public static boolean maybeCompleteSystemLocalOrPeers(CQLStatement statement, org.apache.cassandra.service.QueryState state, org.apache.cassandra.cql3.QueryOptions options, long queryStartNanoTime, CompletableFuture<Result> future)
-    {
-        if (isSystemLocalOrPeers(statement))
-        {
-            future.complete(Conversion.toResult(interceptSystemLocalOrPeers(statement, state, options, queryStartNanoTime), options.getProtocolVersion()));
-            return true;
-        }
-        return false;
-    }
-
-    public static boolean maybeCompleteSystemLocalOrPeersInternal(CQLStatement statement, org.apache.cassandra.service.QueryState state, org.apache.cassandra.cql3.QueryOptions options, long queryStartNanoTime, CompletableFuture<ResultMessage> future)
-    {
-        if (isSystemLocalOrPeers(statement))
-        {
-            future.complete(interceptSystemLocalOrPeers(statement, state, options, queryStartNanoTime));
-            return true;
-        }
-        return false;
-    }
-
-    private static boolean isSystemPeers(SelectStatement statement)
+    public static boolean isSystemPeers(SelectStatement statement)
     {
         return statement.columnFamily().equals(SystemKeyspace.LEGACY_PEERS);
     }
 
-    private static boolean isSystemPeersV2(SelectStatement statement)
+    public static boolean isSystemPeersV2(SelectStatement statement)
     {
         return statement.columnFamily().equals(SystemKeyspace.PEERS_V2);
     }
 
-    private static boolean isSystemLocalOrPeers(CQLStatement statement)
+    public static boolean isSystemLocalOrPeers(CQLStatement statement)
     {
         if (statement instanceof SelectStatement)
         {
@@ -234,27 +217,10 @@ public class StargateSystemKeyspace
         return false;
     }
 
-    private static ResultMessage.Rows interceptSystemLocalOrPeers(CQLStatement statement, org.apache.cassandra.service.QueryState state, org.apache.cassandra.cql3.QueryOptions options, long queryStartNanoTime)
+    public static boolean isStargateNode(EndpointState epState)
     {
-        SelectStatement selectStatement = (SelectStatement) statement;
-        TableMetadata tableMetadata = Local;
-        if (isSystemPeers(selectStatement))
-            tableMetadata = Peers;
-        else if (isSystemPeersV2(selectStatement))
-            tableMetadata = PeersV2;
-        SelectStatement peersSelectStatement =
-                new SelectStatement(tableMetadata,
-                        selectStatement.bindVariables,
-                        selectStatement.parameters,
-                        selectStatement.getSelection(),
-                        selectStatement.getRestrictions(),
-                        false,
-                        null,
-                        null,
-                        null,
-                        null);
-        ResultMessage.Rows rows = peersSelectStatement.execute(state, options, queryStartNanoTime);
-        return new ResultMessage.Rows(new ResultSet(selectStatement.getResultMetadata(), rows.result.rows));
+        VersionedValue value = epState.getApplicationState(ApplicationState.X10);
+        return value != null && value.value.equals("stargate");
     }
 
     public static synchronized void updatePeerInfo(InetAddressAndPort ep, String columnName, Object value)
@@ -309,12 +275,21 @@ public class StargateSystemKeyspace
 
     public static class PeersUpdater implements IEndpointStateChangeSubscriber
     {
+        private final Set<InetAddressAndPort> liveStargateNodes = Sets.newConcurrentHashSet();
+
         @Override
         public void onJoin(InetAddressAndPort endpoint, EndpointState epState)
         {
+            if (!isStargateNode(epState))
+            {
+                return;
+            }
+
+            updateTokens(endpoint);
+
             for (Map.Entry<ApplicationState, VersionedValue> entry : epState.states())
             {
-                onChange(endpoint, entry.getKey(), entry.getValue());
+                applyState(endpoint, entry.getKey(), entry.getValue(), epState);
             }
         }
 
@@ -338,11 +313,43 @@ public class StargateSystemKeyspace
                 return;
             }
 
-            if (FBUtilities.getLocalAddressAndPort().equals(endpoint) || StorageService.instance.getTokenMetadata().isMember(endpoint))  // We only want stargate nodes (no members)
+            // We only want stargate nodes
+            if (FBUtilities.getLocalAddressAndPort().equals(endpoint) || !isStargateNode(epState))
             {
                 return;
             }
 
+            if (liveStargateNodes.add(endpoint))
+                onJoin(endpoint, epState);
+            else
+                applyState(endpoint, state, value, epState);
+
+        }
+
+        @Override
+        public void onAlive(InetAddressAndPort endpoint, EndpointState state)
+        {
+        }
+
+        @Override
+        public void onDead(InetAddressAndPort endpoint, EndpointState state)
+        {
+        }
+
+        @Override
+        public void onRemove(InetAddressAndPort endpoint)
+        {
+            liveStargateNodes.remove(endpoint);
+            removeEndpoint(endpoint);
+        }
+
+        @Override
+        public void onRestart(InetAddressAndPort endpoint, EndpointState state)
+        {
+        }
+
+        private void applyState(InetAddressAndPort endpoint, ApplicationState state, VersionedValue value, EndpointState epState)
+        {
             switch (state)
             {
                 case RELEASE_VERSION:
@@ -379,34 +386,20 @@ public class StargateSystemKeyspace
                     // Use a fix schema version for all peers (always in agreement) because stargate waits
                     // for DDL queries to reach agreement before returning.
                     updatePeerInfo(endpoint, "schema_version", Schema.instance.getVersion());
+
+                    // This fix schedules a schema pull for the non-member node and is required because
+                    // `StorageService.onChange()` doesn't do this for non-member nodes.
+                    MigrationManager.instance.scheduleSchemaPull(endpoint, epState);
                     break;
                 case HOST_ID:
                     updatePeerInfo(endpoint, "host_id", UUID.fromString(value.value));
                     break;
             }
+        }
 
+        private void updateTokens(InetAddressAndPort endpoint)
+        {
             updatePeerInfo(endpoint, "tokens", Collections.singleton(DatabaseDescriptor.getPartitioner().getMinimumToken().toString()));
-        }
-
-        @Override
-        public void onAlive(InetAddressAndPort endpoint, EndpointState state)
-        {
-        }
-
-        @Override
-        public void onDead(InetAddressAndPort endpoint, EndpointState state)
-        {
-        }
-
-        @Override
-        public void onRemove(InetAddressAndPort endpoint)
-        {
-            removeEndpoint(endpoint);
-        }
-
-        @Override
-        public void onRestart(InetAddressAndPort endpoint, EndpointState state)
-        {
         }
     }
 }

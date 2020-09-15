@@ -1,4 +1,4 @@
-package io.stargate.db.dse.datastax;
+package io.stargate.db.dse.datastore;
 
 import java.util.ArrayList;
 import java.util.Arrays;

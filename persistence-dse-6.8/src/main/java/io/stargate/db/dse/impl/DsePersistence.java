@@ -1,16 +1,15 @@
 package io.stargate.db.dse.impl;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.cassandra.auth.AuthenticatedUser;
@@ -22,18 +21,11 @@ import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.cql3.QueryHandler;
 import org.apache.cassandra.cql3.QueryProcessor;
-import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.cql3.statements.ModificationStatement;
-import org.apache.cassandra.cql3.statements.SelectStatement;
-import org.apache.cassandra.db.marshal.InetAddressType;
-import org.apache.cassandra.db.marshal.Int32Type;
-import org.apache.cassandra.db.marshal.SetType;
-import org.apache.cassandra.db.marshal.UTF8Type;
-import org.apache.cassandra.db.marshal.UUIDType;
 import org.apache.cassandra.exceptions.InvalidRequestException;
+import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.Gossiper;
-import org.apache.cassandra.schema.SchemaConstants;
 import org.apache.cassandra.schema.SchemaManager;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.service.ClientState;
@@ -44,17 +36,15 @@ import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.apache.cassandra.tracing.Tracing;
-import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.bdp.db.nodes.virtual.LocalNodeSystemView;
-import com.datastax.bdp.db.nodes.virtual.PeersSystemView;
 import com.datastax.bdp.util.SchemaTool;
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Uninterruptibles;
 import io.reactivex.Single;
 import io.stargate.db.Authenticator;
 import io.stargate.db.BatchType;
@@ -64,7 +54,10 @@ import io.stargate.db.QueryOptions;
 import io.stargate.db.QueryState;
 import io.stargate.db.Result;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.dse.datastax.InternalDataStore;
+import io.stargate.db.dse.datastore.InternalDataStore;
+import io.stargate.db.dse.impl.interceptors.DefaultQueryInterceptor;
+import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
+import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
 
 public class DsePersistence implements Persistence<Config, org.apache.cassandra.service.ClientState, org.apache.cassandra.service.QueryState>
 {
@@ -76,6 +69,7 @@ public class DsePersistence implements Persistence<Config, org.apache.cassandra.
     private DataStore root;
     private Authenticator authenticator;
     private QueryHandler handler;
+    private QueryInterceptor interceptor;
 
     @Override
     public String name()
@@ -115,15 +109,21 @@ public class DsePersistence implements Persistence<Config, org.apache.cassandra.
             throw new RuntimeException("Unable to start DSE persistence layer", t);
         }
 
-        StargateSystemKeyspace.initialize();
+        // Use special gossip state "X10" to differentiate stargate nodes
+        Gossiper.instance.addLocalApplicationState(ApplicationState.X10, StorageService.instance.valueFactory.dsefsState("stargate"));
+
+        waitForSchema(StorageService.RING_DELAY);
+
+        if (USE_PROXY_PROTOCOL)
+            interceptor = new ProxyProtocolQueryInterceptor();
+        else
+            interceptor = new DefaultQueryInterceptor();
+
+        interceptor.initialize();
 
         root = new InternalDataStore();
         authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
         handler = ClientState.getCQLQueryHandler();
-
-        Gossiper.instance.register(StargateSystemKeyspace.instance.getPeersUpdater());
-
-        StargateSystemKeyspace.instance.persistLocalMetadata();
     }
 
     @Override
@@ -141,8 +141,8 @@ public class DsePersistence implements Persistence<Config, org.apache.cassandra.
     public void registerEventListener(EventListener listener)
     {
         EventListenerWrapper wrapper = new EventListenerWrapper(listener);
-        StorageService.instance.register(wrapper);
         SchemaManager.instance.registerListener(wrapper);
+        interceptor.register(wrapper);
     }
 
     @Override
@@ -217,27 +217,25 @@ public class DsePersistence implements Persistence<Config, org.apache.cassandra.
     {
         try
         {
-            ProtocolVersion version = Conversion.toInternal(options.getProtocolVersion());
             org.apache.cassandra.service.QueryState internalState = Conversion.toInternal(state);
             org.apache.cassandra.cql3.QueryOptions internalOptions = Conversion.toInternal(options);
 
             return Conversion.toFuture(Single.defer(() ->
             {
-                final UUID tracingId = beginTraceQuery(cql, internalState, internalOptions, customPayload, isTracingRequested);
-
-                Single<Result> resp = Single.defer(() ->
+                try
                 {
+                    final UUID tracingId = beginTraceQuery(cql, internalState, internalOptions, customPayload, isTracingRequested);
+
                     checkIsLoggedIn(internalState);
 
                     CQLStatement statement = QueryProcessor.parseStatement(cql, internalState);
-                    return maybeHandleSystemLocalOrPeers(statement, state, version, tracingId, handler
-                            .processStatement(statement, internalState, internalOptions, customPayload, queryStartNanoTime));
-                });
 
-                return resp
-                        .flatMap(result -> Tracing.instance.stopSessionAsync().toSingleDefault(result))
-                        .onErrorResumeNext((e) -> Single.error(Conversion.handleException(e)))
-                        .subscribeOn(TPC.bestTPCScheduler());
+                    return processStatement(statement, state, options, customPayload, queryStartNanoTime, tracingId);
+                }
+                catch (Exception e)
+                {
+                    return Single.error(Conversion.handleException(e));
+                }
             }));
         }
         catch (Exception e)
@@ -252,32 +250,30 @@ public class DsePersistence implements Persistence<Config, org.apache.cassandra.
     {
         try
         {
-            ProtocolVersion version = Conversion.toInternal(options.getProtocolVersion());
             org.apache.cassandra.service.QueryState internalState = Conversion.toInternal(state);
             org.apache.cassandra.cql3.QueryOptions internalOptions = Conversion.toInternal(options);
 
             return Conversion.toFuture(Single.defer(() ->
             {
-                QueryHandler.Prepared prepared = handler.getPrepared(Conversion.toInternal(id));
-                if (prepared == null)
+                try
                 {
-                    return Single.error(new PreparedQueryNotFoundException(id));
-                }
+                    QueryHandler.Prepared prepared = handler.getPrepared(Conversion.toInternal(id));
+                    if (prepared == null)
+                    {
+                        return Single.error(new PreparedQueryNotFoundException(id));
+                    }
 
-                final CQLStatement statement = prepared.statement;
-                final UUID tracingId = beginTraceExecute(statement, internalState, internalOptions, customPayload, isTracingRequested);
+                    final CQLStatement statement = prepared.statement;
+                    final UUID tracingId = beginTraceExecute(statement, internalState, internalOptions, customPayload, isTracingRequested);
 
-                Single<Result> resp = Single.defer(() ->
-                {
                     checkIsLoggedIn(internalState);
-                    return maybeHandleSystemLocalOrPeers(statement, state, version, tracingId, handler
-                            .processStatement(statement, internalState, internalOptions, customPayload, queryStartNanoTime));
-                });
 
-                return resp
-                        .flatMap(result -> Tracing.instance.stopSessionAsync().toSingleDefault(result))
-                        .onErrorResumeNext((e) -> Single.error(Conversion.handleException(e)))
-                        .subscribeOn(TPC.bestTPCScheduler());
+                    return processStatement(statement, state, options, customPayload, queryStartNanoTime, tracingId);
+                }
+                catch (Exception e)
+                {
+                    return Single.error(Conversion.handleException(e));
+                }
             }));
         }
         catch (Exception e)
@@ -510,71 +506,45 @@ public class DsePersistence implements Persistence<Config, org.apache.cassandra.
 
     }
 
-    private Single<Result> maybeHandleSystemLocalOrPeers(CQLStatement statement, QueryState state, ProtocolVersion version, UUID tracingId, Single<ResultMessage> single)
+    private Single<Result> processStatement(CQLStatement statement,
+                                            QueryState state, QueryOptions options,
+                                            Map<String, ByteBuffer> customPayload, long queryStartNanoTime,
+                                            UUID tracingId)
     {
-        // If we're using proxy protocol then return return the public IPs as entries from `system.local` and `system.peers`
-        if (USE_PROXY_PROTOCOL && statement instanceof SelectStatement)
+        Single<Result> resp = interceptor.interceptQuery(handler, statement, state, options, customPayload, queryStartNanoTime);
+        if (resp == null)
         {
-            SelectStatement selectStatement = (SelectStatement) statement;
+            org.apache.cassandra.service.QueryState internalState = Conversion.toInternal(state);
+            org.apache.cassandra.cql3.QueryOptions internalOptions = Conversion.toInternal(options);
 
-            if (selectStatement.keyspace().equals(SchemaConstants.SYSTEM_VIEWS_KEYSPACE_NAME))
-            {
-                String tableName = selectStatement.table();
-                if (tableName.equals(PeersSystemView.NAME))
-                {
-                    // Returning an empty result for now, but this will return the result of the proxy's DNS A records in the future
-                    return single.flatMap((r) -> Single.just(Conversion.toResult(new ResultMessage.Rows(new org.apache.cassandra.cql3.ResultSet(((SelectStatement) statement).getResultMetadata())), version)));
-                }
-                else if (tableName.equals(LocalNodeSystemView.NAME))
-                {
-                    return single
-                            .map((result) ->
-                            {
-                                if (result.kind == ResultMessage.Kind.ROWS)
-                                {
-                                    ResultMessage.Rows rows = (ResultMessage.Rows) result;
-                                    if (!rows.result.isEmpty())
-                                    {
-                                        ResultSet.ResultMetadata metadata = rows.result.metadata;
-                                        InetAddress publicAddress = state.getClientState().getPublicAddress().getAddress();
-                                        int publicPort = state.getClientState().getPublicAddress().getPort();
-
-                                        int index = 0;
-                                        // Intercept and replace all address/port entries with the proxy protocol's public address and port
-                                        for (ColumnSpecification column : metadata.names)
-                                        {
-                                            switch (column.name.toString())
-                                            {
-                                                case "rpc_address":
-                                                case "peer_address":
-                                                case "broadcast_address":
-                                                case "native_transport_address":
-                                                case "listen_address":
-                                                    rows.result.rows.get(0).set(index, InetAddressType.instance.decompose(publicAddress));
-                                                    break;
-                                                case "native_transport_port":
-                                                case "native_transport_port_ssl":
-                                                    rows.result.rows.get(0).set(index, Int32Type.instance.decompose(publicPort));
-                                                    break;
-                                                case "host_id":
-                                                    // Return a deterministic entry for `host_id` based on the public address.
-                                                    rows.result.rows.get(0).set(index, UUIDType.instance.decompose(UUID.nameUUIDFromBytes(publicAddress.getAddress())));
-                                                    break;
-                                                case "tokens":
-                                                    // All entries handle the entire token ring. This prevents some driver from crashing when `tokens` is null.
-                                                    rows.result.rows.get(0).set(index, SetType.getInstance(UTF8Type.instance, false).decompose(Collections.singleton(DatabaseDescriptor.getPartitioner().getMinimumToken().toString())));
-                                            }
-                                            ++index;
-                                        }
-                                    }
-                                }
-                                return Conversion.toResult(result, version).setTracingId(tracingId);
-                            });
-                }
-            }
+            resp = handler
+                    .processStatement(statement, internalState, internalOptions, customPayload, queryStartNanoTime)
+                    .map(r -> Conversion.toResult(r, internalOptions.getProtocolVersion()));
         }
 
-        return single.map(result -> Conversion.toResult(result, version).setTracingId(tracingId));
+        return resp
+                .map(r -> r.setTracingId(tracingId))
+                .flatMap(result -> Tracing.instance.stopSessionAsync().toSingleDefault(result))
+                .onErrorResumeNext((e) -> Single.error(Conversion.handleException(e)))
+                .subscribeOn(TPC.bestTPCScheduler());
     }
 
+    /**
+     * When "cassandra.join_ring" is "false" {@link StorageService#initServer()}  will not wait for schema to propagate to the coordinator only node. This
+     * method fixes that limitation by waiting for at least one backend ring member to become available and for their schemas to agree before allowing
+     * initialization to continue.
+     */
+    private void waitForSchema(int delay)
+    {
+        for (int i = 0; i < delay; i += 1000)
+        {
+            if (Gossiper.instance.getLiveTokenOwners().size() > 0 && isInSchemaAgreement())
+            {
+                logger.debug("current schema version: {}", SchemaManager.instance.getVersion());
+                break;
+            }
+
+            Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+        }
+    }
 }
