@@ -15,9 +15,10 @@
  */
 package io.stargate.db.cassandra.impl;
 
+import java.lang.reflect.Field;
 import java.net.InetAddress;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -69,9 +70,13 @@ import io.stargate.db.cassandra.datastore.DataStoreUtil;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.schema.Column;
 import io.stargate.db.datastore.schema.ImmutableColumn;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Conversion
 {
+	private static final Logger LOG = LoggerFactory.getLogger(Conversion.class);
+
     public static org.apache.cassandra.service.QueryState toInternal(QueryState<org.apache.cassandra.service.QueryState> state)
     {
         if (state == null)
@@ -233,9 +238,22 @@ public class Conversion
 
         EnumSet<Result.Flag> flags = EnumSet.noneOf(Result.Flag.class);
 
-        ByteBuffer pagingState = null;
+		PagingState pagingState = null;
         MD5Digest resultMetadataId = null;
-        return new Result.ResultMetadata(flags, columns, resultMetadataId, pagingState);
+        try
+		{
+			Field f = metadata.getClass().getDeclaredField("pagingState");
+			f.setAccessible(true);
+			pagingState = (PagingState) f.get(metadata);
+			System.out.println("metadata: " + metadata);
+			System.out.println("pagingState: " + pagingState + " for version: " + version + "stack trace: " + Arrays.toString(Thread.currentThread().getStackTrace()));
+
+		} catch(Exception e)
+		{
+			LOG.info("Unable to get paging state", e);
+		}
+
+        return new Result.ResultMetadata(flags, columns, resultMetadataId, pagingState != null ? pagingState.serialize(version): null);
     }
 
     public static Result.PreparedMetadata toPreparedMetadata(List<ColumnSpecification> names, short[] indexes)
