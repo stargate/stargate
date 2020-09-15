@@ -157,6 +157,24 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>au.com.acegi</groupId>
+                <artifactId>xml-format-maven-plugin</artifactId>
+                <version>3.1.2</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>xml-check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <excludes>
+                        <exclude>.idea/**</exclude>
+                        <exclude>**/target/**</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
         </plugins>
         <pluginManagement>
             <plugins>
