@@ -41,9 +41,8 @@ jobs:
         uses: actions/setup-java@v1.4.2
         with:
           java-version: 1.8
-      - name: Setup Github Package Registry
+      - name: Setup Maven
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
         run: |
@@ -51,11 +50,6 @@ jobs:
           cat <<EOF > ~/.m2/settings.xml
           <settings>
             <servers>
-              <server>
-                <id>gh</id>
-                <username>$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $1}')</username>
-                <password>${GITHUB_TOKEN}</password>
-              </server>
               <server>
                 <id>artifactory-snapshots</id>
                 <username>${ARTIFACTORY_USERNAME}</username>
@@ -105,9 +99,12 @@ jobs:
       - uses: actions/setup-java@v1.4.2
         with:
           java-version: 1.8
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
       - name: Setup Github Package Registry
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
         run: |
@@ -115,11 +112,6 @@ jobs:
           cat <<EOF > ~/.m2/settings.xml
           <settings>
             <servers>
-              <server>
-                <id>gh</id>
-                <username>$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $1}')</username>
-                <password>${GITHUB_TOKEN}</password>
-              </server>
               <server>
                 <id>artifactory-snapshots</id>
                 <username>${ARTIFACTORY_USERNAME}</username>
