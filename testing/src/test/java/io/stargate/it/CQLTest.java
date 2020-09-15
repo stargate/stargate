@@ -86,7 +86,7 @@ public class CQLTest extends BaseOsgiIntegrationTest
 
         session = CqlSession.builder()
                 .withConfigLoader(loader)
-                .addContactPoint(new InetSocketAddress(stargateHost, 9042)).build();
+                .addContactPoint(new InetSocketAddress(stargateHost, 9043)).build();
 
         String testName = name.getMethodName();
         if(testName.contains("[")) {
