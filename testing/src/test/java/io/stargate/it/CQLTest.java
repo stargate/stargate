@@ -18,12 +18,14 @@ package io.stargate.it;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -84,10 +86,12 @@ public class CQLTest extends BaseOsgiIntegrationTest
 
         session = CqlSession.builder()
                 .withConfigLoader(loader)
-                .addContactPoint(new InetSocketAddress(stargateHost, 9043)).build();
+                .addContactPoint(new InetSocketAddress(stargateHost, 9042)).build();
 
         String testName = name.getMethodName();
-        testName = testName.substring(0, testName.indexOf("["));
+        if(testName.contains("[")) {
+			testName = testName.substring(0, testName.indexOf("["));
+		}
         keyspace = "ks_" + testName;
         table = testName;
 
@@ -95,7 +99,7 @@ public class CQLTest extends BaseOsgiIntegrationTest
 
     private void createKeyspace()
     {
-        session.execute(String.format("CREATE KEYSPACE \"%s\" WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 }", keyspace));
+        session.execute(String.format("CREATE KEYSPACE IF NOT EXISTS \"%s\" WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 }", keyspace));
     }
 
     private void createTable()
@@ -103,6 +107,19 @@ public class CQLTest extends BaseOsgiIntegrationTest
         createKeyspace();
         session.execute(String.format("CREATE TABLE \"%s\".\"%s\" (key text PRIMARY KEY, value text)", keyspace, table));
     }
+
+    private void paginationTestSetup(){
+		createKeyspace();
+
+		session.execute(
+				SimpleStatement.newInstance(
+						String.format("CREATE TABLE IF NOT EXISTS \"%s\".\"%s\" (k int, cc int, v int, PRIMARY KEY(k, cc))", keyspace, table)));
+		for (int i = 0; i < 20; i++) {
+			session.execute(
+					SimpleStatement.newInstance(
+							String.format("INSERT INTO \"%s\".\"%s\" (k, cc, v) VALUES (1, ?, ?)", keyspace, table), i, i));
+		}
+	}
 
     private String insertIntoQuery()
     {
@@ -364,6 +381,31 @@ public class CQLTest extends BaseOsgiIntegrationTest
         assertThat(tupleReturnValue.getInt(1)).isEqualTo(1);
         assertThat(tupleReturnValue.getInt(2)).isEqualTo(2);
     }
+
+    @Test
+	public void shouldFetchDataUsingPagination()
+	{
+		paginationTestSetup();
+
+		BoundStatement boundStatement =
+				session
+						.prepare(SimpleStatement.newInstance(
+								String.format("SELECT * FROM \"%s\".\"%s\" WHERE k = ?", keyspace, table)).setPageSize(15))
+						.bind(1);
+
+		// fetch the first page
+		ResultSet resultSet = session.execute(boundStatement);
+		assertThat(resultSet.getAvailableWithoutFetching()).isEqualTo(15);
+		assertThat(resultSet.isFullyFetched()).isFalse();
+
+		ByteBuffer pagingState =
+				resultSet.getExecutionInfo().getPagingState();
+
+		// fetch the last page
+		resultSet = session.execute(boundStatement.setPagingState(pagingState));
+		assertThat(resultSet.getAvailableWithoutFetching()).isEqualTo(5);
+		assertThat(resultSet.isFullyFetched()).isTrue();
+	}
 
     private static <T> T waitFor(Supplier<Optional<T>> supplier) throws InterruptedException
     {
