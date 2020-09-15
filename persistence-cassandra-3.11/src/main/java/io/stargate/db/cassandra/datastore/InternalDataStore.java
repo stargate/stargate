@@ -303,20 +303,7 @@ public class InternalDataStore implements DataStore
                 try
                 {
                     ResultMessage resultMessage = QueryProcessor.instance.process(unpreparedCql, queryState, queryOptions, System.nanoTime());
-                    if (resultMessage instanceof ResultMessage.Rows) {
-                        try {
-                            org.apache.cassandra.cql3.ResultSet result = ((ResultMessage.Rows) resultMessage).result;
-                            // Didn't really want to grab this using reflection but the only alternative would be to decode
-                            // the ResultMessage in the same way the driver does which is overkill in order to pull a single
-                            // field. Luckily this is public in both DSE and C* 4.0 so we'll only need this here.
-                            Field f = result.metadata.getClass().getDeclaredField("pagingState");
-                            f.setAccessible(true);
-                            this.pagingState = (PagingState) f.get(result.metadata);
-                        } catch (Exception e)
-                        {
-                            LOG.info("Unable to get paging state", e);
-                        }
-                    }
+                    maybeSetPagingState(resultMessage);
                     future.complete(resultMessage);
                 }
                 catch (Throwable t)
@@ -337,24 +324,7 @@ public class InternalDataStore implements DataStore
                 try
                 {
                     ResultMessage resultMessage = QueryProcessor.instance.processPrepared(prepared.statement, queryState, queryOptions, null, System.nanoTime());
-
-                    if (resultMessage instanceof ResultMessage.Rows) {
-                        try
-                        {
-                            org.apache.cassandra.cql3.ResultSet result = ((ResultMessage.Rows) resultMessage).result;
-                            // Didn't really want to grab this using reflection but the only alternative would be to decode
-                            // the ResultMessage in the same way the driver does which is overkill in order to pull a single
-                            // field. Luckily this is public in both DSE and C* 4.0 so we'll only need this here.
-                            Field f = result.metadata.getClass().getDeclaredField("pagingState");
-                            f.setAccessible(true);
-                            this.pagingState = (PagingState) f.get(result.metadata);
-                        }
-                        catch (Exception e)
-                        {
-                            LOG.info("Unable to get paging state", e);
-                        }
-                    }
-
+                    maybeSetPagingState(resultMessage);
                     future.complete(resultMessage);
                 }
                 catch (Throwable t)
@@ -364,6 +334,26 @@ public class InternalDataStore implements DataStore
             });
 
             return future;
+        }
+
+        private void maybeSetPagingState(ResultMessage resultMessage)
+        {
+            if (resultMessage instanceof ResultMessage.Rows) {
+                try
+                {
+                    org.apache.cassandra.cql3.ResultSet result = ((ResultMessage.Rows) resultMessage).result;
+                    // Didn't really want to grab this using reflection but the only alternative would be to decode
+                    // the ResultMessage in the same way the driver does which is overkill in order to pull a single
+                    // field. Luckily this is public in both DSE and C* 4.0 so we'll only need this here.
+                    Field f = result.metadata.getClass().getDeclaredField("pagingState");
+                    f.setAccessible(true);
+                    this.pagingState = (PagingState) f.get(result.metadata);
+                }
+                catch (Exception e)
+                {
+                    LOG.info("Unable to get paging state", e);
+                }
+            }
         }
 
         private CompletableFuture<ResultMessage> queryBatch()

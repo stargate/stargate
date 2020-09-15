@@ -238,10 +238,8 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
 
                 CQLStatement statement = QueryProcessor.parseStatement(cql, internalState).statement;
 
-                Result result;
-                if  (interceptor.shouldInterceptQuery(statement, state, options, customPayload, queryStartNanoTime))
-                    result = interceptor.interceptQuery(handler, statement, state, options, customPayload, queryStartNanoTime);
-                else
+                Result result = interceptor.interceptQuery(handler, statement, state, options, customPayload, queryStartNanoTime);
+                if  (result == null)
                 {
                     result = Conversion.toResult(
                             QueryProcessor.instance
@@ -297,10 +295,8 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
 
                 CQLStatement statement = prepared.statement;
 
-                Result result;
-                if  (interceptor.shouldInterceptQuery(statement, state, options, customPayload, queryStartNanoTime))
-                    result = interceptor.interceptQuery(handler, statement, state, options, customPayload, queryStartNanoTime);
-                else
+                Result result = interceptor.interceptQuery(handler, statement, state, options, customPayload, queryStartNanoTime);
+                if  (result == null)
                 {
                     result = Conversion.toResult(
                             QueryProcessor.instance
