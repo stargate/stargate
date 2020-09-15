@@ -7,7 +7,7 @@
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>Core dependencies for Stargate</description>
+    <description>Core modules for Stargate</description>
     <url>http://github.com/stargate/stargate</url>
 
     <modules>
