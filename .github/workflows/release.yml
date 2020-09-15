@@ -129,9 +129,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          REPO="gh::default::https://maven.pkg.github.com/${GITHUB_REPOSITORY}"
           mvn versions:set -DremoveSnapshot versions:commit
-          mvn -B clean deploy -DskipTests -DaltDeploymentRepository="${REPO}" -DaltSnapshotDeploymentRepository="${REPO}" && \
+          mvn -B clean deploy -DskipTests && \
           mvn --batch-mode release:update-versions -DautoVersionSubmodules=true versions:commit
       - name: Rev Version
         if: success()
