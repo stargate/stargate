@@ -40,7 +40,10 @@ import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.cql3.statements.ModificationStatement;
 import org.apache.cassandra.cql3.statements.ParsedStatement;
+import org.apache.cassandra.gms.ApplicationState;
+import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.gms.VersionedValue;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.service.ClientWarn;
 import org.apache.cassandra.service.MigrationManager;
@@ -53,6 +56,7 @@ import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.apache.cassandra.tracing.Tracing;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.transport.messages.ResultMessage;
+import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.apache.cassandra.utils.UUIDGen;
 import org.slf4j.Logger;
@@ -70,6 +74,8 @@ import io.stargate.db.QueryOptions;
 import io.stargate.db.QueryState;
 import io.stargate.db.Result;
 import io.stargate.db.cassandra.datastore.InternalDataStore;
+import io.stargate.db.cassandra.impl.interceptors.DefaultQueryInterceptor;
+import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.common.util.SchemaTool;
 
@@ -83,6 +89,7 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
     private CassandraDaemon daemon;
     private Authenticator authenticator;
     private QueryHandler handler;
+    private QueryInterceptor interceptor;
 
     @Override
     public String name()
@@ -112,7 +119,8 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
             throw new RuntimeException("Unable to start Cassandra persistence layer", e);
         }
 
-        Schema.instance.load(StargateSystemKeyspace.metadata());
+        // Use special gossip state "X10" to differentiate stargate nodes
+        Gossiper.instance.addLocalApplicationState(ApplicationState.X10, StorageService.instance.valueFactory.releaseVersion("stargate"));
 
         daemon.start();
 
@@ -121,11 +129,9 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
         root = new InternalDataStore();
         authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
         handler = org.apache.cassandra.service.ClientState.getCQLQueryHandler();
+        interceptor = new DefaultQueryInterceptor();
 
-        Gossiper.instance.register(new StargateSystemKeyspace.PeersUpdater());
-        StargateSystemKeyspace.persistLocalMetadata();
-
-        StorageService.instance.waitForSchema(StorageService.RING_DELAY);
+        interceptor.initialize();
     }
 
     @Override
@@ -143,8 +149,8 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
     public void registerEventListener(EventListener listener)
     {
         EventListenerWrapper wrapper = new EventListenerWrapper(listener);
-        StorageService.instance.register(wrapper);
         MigrationManager.instance.register(wrapper);
+        interceptor.register(wrapper);
     }
 
     @Override
@@ -246,13 +252,16 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
                 }
 
                 CQLStatement statement = QueryProcessor.parseStatement(cql, internalState).statement;
-                if (!StargateSystemKeyspace.maybeCompleteSystemLocalOrPeers(statement, internalState, internalOptions, queryStartNanoTime, future))
+
+                Result result = interceptor.interceptQuery(handler, statement, state, options, customPayload, queryStartNanoTime);
+                if  (result == null)
                 {
-                    future.complete(Conversion.toResult(
+                    result = Conversion.toResult(
                             QueryProcessor.instance
-                                    .processStatement(statement, internalState, internalOptions, queryStartNanoTime), internalOptions.getProtocolVersion())
-                            .setTracingId(tracingId));
+                                    .processStatement(statement, internalState, internalOptions, queryStartNanoTime), internalOptions.getProtocolVersion());
                 }
+
+                future.complete(result.setTracingId(tracingId));
             }
             catch (Throwable t)
             {
@@ -300,13 +309,16 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
                 }
 
                 CQLStatement statement = prepared.statement;
-                if (!StargateSystemKeyspace.maybeCompleteSystemLocalOrPeers(statement, internalState, internalOptions, queryStartNanoTime, future))
+
+                Result result = interceptor.interceptQuery(handler, statement, state, options, customPayload, queryStartNanoTime);
+                if  (result == null)
                 {
-                    future.complete(Conversion.toResult(
-                            handler
-                                    .processPrepared(statement, internalState, internalOptions, customPayload, queryStartNanoTime), internalOptions.getProtocolVersion())
-                            .setTracingId(tracingId));
+                    result = Conversion.toResult(
+                            QueryProcessor.instance
+                                    .processPrepared(statement, internalState, internalOptions, queryStartNanoTime), internalOptions.getProtocolVersion());
                 }
+
+                future.complete(result.setTracingId(tracingId));
             }
             catch (Throwable t)
             {
