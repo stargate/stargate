@@ -18,7 +18,6 @@ package io.stargate.db.cassandra.impl;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -66,6 +65,7 @@ import io.stargate.db.ClientState;
 import io.stargate.db.QueryOptions;
 import io.stargate.db.QueryState;
 import io.stargate.db.Result;
+import io.stargate.db.Result.Flag;
 import io.stargate.db.cassandra.datastore.DataStoreUtil;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.schema.Column;
@@ -245,15 +245,17 @@ public class Conversion
 			Field f = metadata.getClass().getDeclaredField("pagingState");
 			f.setAccessible(true);
 			pagingState = (PagingState) f.get(metadata);
-			System.out.println("metadata: " + metadata);
-			System.out.println("pagingState: " + pagingState + " for version: " + version + "stack trace: " + Arrays.toString(Thread.currentThread().getStackTrace()));
+			if(pagingState != null)
+			{
+				flags.add(Flag.HAS_MORE_PAGES);
+			}
 
 		} catch(Exception e)
 		{
 			LOG.info("Unable to get paging state", e);
 		}
 
-        return new Result.ResultMetadata(flags, columns, resultMetadataId, pagingState != null ? pagingState.serialize(version): null);
+        return new Result.ResultMetadata(flags, columns, resultMetadataId, pagingState != null ? pagingState.serialize(version) : null);
     }
 
     public static Result.PreparedMetadata toPreparedMetadata(List<ColumnSpecification> names, short[] indexes)
