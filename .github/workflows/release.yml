@@ -79,13 +79,18 @@ jobs:
           java-version: 1.8
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
+      - id: install-secret-key
+        name: Install gpg secret key
+        run: |
+          cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+          gpg --list-secret-keys --keyid-format LONG
       - name: Publish package
         env:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
         run: |
           mvn versions:set -DremoveSnapshot versions:commit
-          mvn -B clean deploy -DskipTests && \
+          mvn -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy && \
           mvn --batch-mode release:update-versions -DautoVersionSubmodules=true versions:commit
       - name: Rev Version
         if: success()
