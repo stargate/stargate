@@ -147,9 +147,11 @@ public class PersistenceTest extends BaseOsgiIntegrationTest
                 .column("data_center")
                 .from("system", "peers")
                 .future();
+        row = rs.get().one();
 
         logger.info(String.valueOf(row));
-        assertThat(rs.get()).isEmpty(); // Should only contain stargate peers (so it should be empty)
+        assertThat(row).isNotNull();
+        assertThat(row.columns().get(0).name()).isEqualTo("data_center");
     }
 
     @Test

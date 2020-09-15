@@ -100,12 +100,12 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest
 
     @Test
     public void getKeyspacesMissingToken() throws IOException {
-        RestUtils.get("", String.format("%s:8082/schemas/keyspaces", host), HttpStatus.SC_UNAUTHORIZED);
+        RestUtils.get("", String.format("%s:8082/v2/schemas/keyspaces", host), HttpStatus.SC_UNAUTHORIZED);
     }
 
     @Test
     public void getKeyspacesBadToken() throws IOException {
-        RestUtils.get("foo", String.format("%s:8082/schemas/keyspaces", host), HttpStatus.SC_UNAUTHORIZED);
+        RestUtils.get("foo", String.format("%s:8082/v2/schemas/keyspaces", host), HttpStatus.SC_UNAUTHORIZED);
     }
 
     @Test
