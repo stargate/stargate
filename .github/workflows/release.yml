@@ -127,7 +127,8 @@ jobs:
           EOF
       - name: Publish package
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
         run: |
           mvn versions:set -DremoveSnapshot versions:commit
           mvn -B clean deploy -DskipTests && \
