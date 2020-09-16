@@ -312,10 +312,6 @@ public class StargateSystemKeyspace
                     // Use a fix schema version for all peers (always in agreement) because stargate waits
                     // for DDL queries to reach agreement before returning.
                     updatePeerInfo(endpoint, "schema_version", SCHEMA_VERSION, executor);
-
-                    // This fix schedules a schema pull for the non-member node and is required because
-                    // `StorageService.onChange()` doesn't do this for non-member nodes.
-                    MigrationManager.instance.scheduleSchemaPull(endpoint, epState);
                     break;
                 case HOST_ID:
                     updatePeerInfo(endpoint, "host_id", UUID.fromString(value.value), executor);

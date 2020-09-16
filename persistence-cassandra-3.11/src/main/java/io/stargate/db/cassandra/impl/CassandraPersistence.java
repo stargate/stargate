@@ -16,6 +16,7 @@
 package io.stargate.db.cassandra.impl;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
@@ -43,9 +44,11 @@ import org.apache.cassandra.cql3.statements.ParsedStatement;
 import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
 import org.apache.cassandra.gms.VersionedValue;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.service.ClientWarn;
+import org.apache.cassandra.service.IEndpointLifecycleSubscriber;
 import org.apache.cassandra.service.MigrationManager;
 import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.service.StorageService;
@@ -110,6 +113,15 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
         daemon = new CassandraDaemon(true);
 
         DatabaseDescriptor.daemonInitialization(() -> config);
+
+        root = new InternalDataStore();
+        authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
+        handler = org.apache.cassandra.service.ClientState.getCQLQueryHandler();
+        interceptor = new DefaultQueryInterceptor();
+        interceptor.initialize();
+
+        Gossiper.instance.register(new SchemaMigrationListener());
+
         try
         {
             daemon.init(null);
@@ -125,13 +137,6 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
         daemon.start();
 
         waitForSchema(StorageService.RING_DELAY);
-
-        root = new InternalDataStore();
-        authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
-        handler = org.apache.cassandra.service.ClientState.getCQLQueryHandler();
-        interceptor = new DefaultQueryInterceptor();
-
-        interceptor.initialize();
     }
 
     @Override
@@ -595,5 +600,51 @@ public class CassandraPersistence implements Persistence<Config, org.apache.cass
 
             Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
+
+        // Wait for any inflight schema migrations
+        MigrationManager.waitUntilReadyForBootstrap();
+    }
+
+    /**
+     * This fix schedules a schema pull for the non-member node and is required because `StorageService.onChange()` doesn't do this for non-member nodes.
+     */
+    private static class SchemaMigrationListener implements IEndpointStateChangeSubscriber
+    {
+        @Override
+        public void onJoin(InetAddress endpoint, EndpointState epState)
+        {
+            MigrationManager.instance.scheduleSchemaPull(endpoint, epState);
+        }
+
+        @Override
+        public void beforeChange(InetAddress endpoint, EndpointState currentState, ApplicationState newStateKey, VersionedValue newValue) { }
+
+        @Override
+        public void onChange(InetAddress endpoint, ApplicationState state, VersionedValue value)
+        {
+            if (!FBUtilities.getLocalAddress().equals(endpoint) && state == ApplicationState.SCHEMA)
+            {
+                EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(endpoint);
+                if (epState == null || Gossiper.instance.isDeadState(epState))
+                {
+                    logger.debug("Ignoring state change for dead or unknown endpoint: {}", endpoint);
+                    return;
+                }
+
+                MigrationManager.instance.scheduleSchemaPull(endpoint, epState);
+            }
+        }
+
+        @Override
+        public void onAlive(InetAddress endpoint, EndpointState state) { }
+
+        @Override
+        public void onDead(InetAddress endpoint, EndpointState state) { }
+
+        @Override
+        public void onRemove(InetAddress endpoint) { }
+
+        @Override
+        public void onRestart(InetAddress endpoint, EndpointState state) { }
     }
 }
