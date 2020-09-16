@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -405,6 +406,27 @@ public class CQLTest extends BaseOsgiIntegrationTest
 		resultSet = session.execute(boundStatement.setPagingState(pagingState));
 		assertThat(resultSet.getAvailableWithoutFetching()).isEqualTo(5);
 		assertThat(resultSet.isFullyFetched()).isTrue();
+	}
+
+	@Test
+	public void shouldUsePaginationForSimpleStatement()
+	{
+		paginationTestSetup();
+
+		String selectQuery = String.format("SELECT * FROM \"%s\".\"%s\" WHERE k = ?", keyspace, table);
+		PreparedStatement selectPs = session.prepare(selectQuery);
+
+		Statement<?> stmt = SimpleStatement.newInstance(selectQuery, 1);
+		// fetch the first page
+		ResultSet rs = session.execute(stmt.setPageSize(15));
+		assertThat(rs.getAvailableWithoutFetching()).isEqualTo(15);
+		ByteBuffer pageState = rs.getExecutionInfo().getPagingState();
+		assertThat(pageState).isNotNull();
+
+		// fetch the last page
+		rs = session.execute(selectPs.bind(1).setPageSize(15).setPagingState(pageState));
+		assertThat(rs.getAvailableWithoutFetching()).isEqualTo(5);
+		assertThat(rs.getExecutionInfo().getPagingState()).isNull();
 	}
 
     private static <T> T waitFor(Supplier<Optional<T>> supplier) throws InterruptedException
