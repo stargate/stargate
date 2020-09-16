@@ -239,18 +239,18 @@ public class Conversion
         EnumSet<Result.Flag> flags = EnumSet.noneOf(Result.Flag.class);
 
 		PagingState pagingState = null;
-        MD5Digest resultMetadataId = null;
-        try
+		MD5Digest resultMetadataId = null;
+		try
 		{
 			Field f = metadata.getClass().getDeclaredField("pagingState");
 			f.setAccessible(true);
 			pagingState = (PagingState) f.get(metadata);
-			if(pagingState != null)
+			if (pagingState != null)
 			{
 				flags.add(Flag.HAS_MORE_PAGES);
 			}
-
-		} catch(Exception e)
+		}
+		catch (Exception e)
 		{
 			LOG.info("Unable to get paging state", e);
 		}
