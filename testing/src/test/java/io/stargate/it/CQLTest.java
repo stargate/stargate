@@ -382,7 +382,7 @@ public class CQLTest extends BaseOsgiIntegrationTest
         assertThat(tupleReturnValue.getInt(2)).isEqualTo(2);
     }
 
-    @Test
+	@Test
 	public void shouldFetchDataUsingPagination()
 	{
 		paginationTestSetup();
