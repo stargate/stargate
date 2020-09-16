@@ -5,12 +5,12 @@
     <parent>
         <groupId>io.stargate</groupId>
         <artifactId>stargate</artifactId>
-        <version>0.0.6-SNAPSHOT</version>
+        <version>0.0.7-SNAPSHOT</version>
     </parent>
 
     <groupId>io.stargate.cql</groupId>
     <artifactId>cql</artifactId>
-    <version>0.0.6-SNAPSHOT</version>
+    <version>0.0.7-SNAPSHOT</version>
 
     <dependencies>
         <dependency>
@@ -27,7 +27,7 @@
         <dependency>
             <groupId>io.stargate.db</groupId>
             <artifactId>persistence-api</artifactId>
-            <version>0.0.6-SNAPSHOT</version>
+            <version>0.0.7-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
