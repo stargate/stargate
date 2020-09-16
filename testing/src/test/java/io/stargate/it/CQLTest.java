@@ -384,7 +384,7 @@ public class CQLTest extends BaseOsgiIntegrationTest
     }
 
 	@Test
-	public void shouldFetchDataUsingPagination()
+	public void shouldUsePaginationForBoundStatement()
 	{
 		paginationTestSetup();
 
