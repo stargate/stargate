@@ -17,21 +17,27 @@
  */
 package org.apache.cassandra.stargate.exceptions;
 
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.util.Map;
-
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.db.WriteType;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+public class WriteFailureException extends RequestFailureException {
+  public final WriteType writeType;
 
-public class WriteFailureException extends RequestFailureException
-{
-    public final WriteType writeType;
-
-    public WriteFailureException(ConsistencyLevel consistency, int received, int blockFor, WriteType writeType, Map<InetAddressAndPort, RequestFailureReason> failureReasonByEndpoint)
-    {
-        super(ExceptionCode.WRITE_FAILURE, consistency, received, blockFor, ImmutableMap.copyOf(failureReasonByEndpoint));
-        this.writeType = writeType;
-    }
+  public WriteFailureException(
+      ConsistencyLevel consistency,
+      int received,
+      int blockFor,
+      WriteType writeType,
+      Map<InetAddressAndPort, RequestFailureReason> failureReasonByEndpoint) {
+    super(
+        ExceptionCode.WRITE_FAILURE,
+        consistency,
+        received,
+        blockFor,
+        ImmutableMap.copyOf(failureReasonByEndpoint));
+    this.writeType = writeType;
+  }
 }

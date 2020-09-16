@@ -20,13 +20,21 @@ package org.apache.cassandra.stargate.exceptions;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.db.WriteType;
 
-public class CasWriteTimeoutException extends WriteTimeoutException
-{
-    public final int contentions;
+public class CasWriteTimeoutException extends WriteTimeoutException {
+  public final int contentions;
 
-    public CasWriteTimeoutException(WriteType writeType, ConsistencyLevel consistency, int received, int blockFor, int contentions)
-    {
-        super(writeType, consistency, received, blockFor, String.format("CAS operation timed out - encountered contentions: %d", contentions));
-        this.contentions = contentions;
-    }
+  public CasWriteTimeoutException(
+      WriteType writeType,
+      ConsistencyLevel consistency,
+      int received,
+      int blockFor,
+      int contentions) {
+    super(
+        writeType,
+        consistency,
+        received,
+        blockFor,
+        String.format("CAS operation timed out - encountered contentions: %d", contentions));
+    this.contentions = contentions;
+  }
 }

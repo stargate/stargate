@@ -19,10 +19,8 @@ package org.apache.cassandra.stargate.exceptions;
 
 import java.io.IOException;
 
-public class IncompatibleSchemaException extends IOException
-{
-    public IncompatibleSchemaException(String msg)
-    {
-        super(msg);
-    }
+public class IncompatibleSchemaException extends IOException {
+  public IncompatibleSchemaException(String msg) {
+    super(msg);
+  }
 }

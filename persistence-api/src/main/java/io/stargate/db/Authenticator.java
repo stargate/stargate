@@ -15,25 +15,22 @@
  */
 package io.stargate.db;
 
-import javax.security.cert.X509Certificate;
 import java.net.InetAddress;
-
+import javax.security.cert.X509Certificate;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
 
-public interface Authenticator
-{
-    String getInternalClassName();
+public interface Authenticator {
+  String getInternalClassName();
 
-    boolean requireAuthentication();
+  boolean requireAuthentication();
 
-    SaslNegotiator newSaslNegotiator(InetAddress clientAddress, X509Certificate[] certificates);
+  SaslNegotiator newSaslNegotiator(InetAddress clientAddress, X509Certificate[] certificates);
 
-    interface SaslNegotiator
-    {
-        byte[] evaluateResponse(byte[] clientResponse) throws AuthenticationException;
+  interface SaslNegotiator {
+    byte[] evaluateResponse(byte[] clientResponse) throws AuthenticationException;
 
-        boolean isComplete();
+    boolean isComplete();
 
-        AuthenticatedUser<?> getAuthenticatedUser() throws AuthenticationException;
-    }
+    AuthenticatedUser<?> getAuthenticatedUser() throws AuthenticationException;
+  }
 }

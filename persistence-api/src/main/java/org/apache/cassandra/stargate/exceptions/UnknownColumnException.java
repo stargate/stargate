@@ -17,10 +17,8 @@
  */
 package org.apache.cassandra.stargate.exceptions;
 
-public final class UnknownColumnException extends IncompatibleSchemaException
-{
-    public UnknownColumnException(String msg)
-    {
-        super(msg);
-    }
+public final class UnknownColumnException extends IncompatibleSchemaException {
+  public UnknownColumnException(String msg) {
+    super(msg);
+  }
 }

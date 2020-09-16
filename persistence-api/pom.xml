@@ -1,24 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
   <modelVersion>4.0.0</modelVersion>
-
   <!-- inherit common settings -->
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
     <version>0.0.6-SNAPSHOT</version>
   </parent>
-
   <groupId>io.stargate.db</groupId>
   <artifactId>persistence-api</artifactId>
-
   <repositories>
     <repository>
       <id>central</id>
       <url>https://repo.maven.apache.org/maven2</url>
     </repository>
   </repositories>
-
   <dependencies>
     <dependency>
       <groupId>org.immutables</groupId>
@@ -61,7 +57,6 @@
       <version>25.1-jre</version>
     </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <plugin>
@@ -73,10 +68,8 @@
             <Bundle-Name>Persistence</Bundle-Name>
             <Bundle-Description>DB component for project</Bundle-Description>
             <Bundle-SymbolicName>io.stargate.db</Bundle-SymbolicName>
-            <Import-Package>
-              org.osgi.framework
-            </Import-Package>
-            <Export-Package>
+            <Import-Package>org.osgi.framework</Import-Package>
+            <Export-Package><![CDATA[
               io.stargate.db,
               io.stargate.db.datastore,
               io.stargate.db.datastore.schema,
@@ -84,7 +77,7 @@
               org.apache.cassandra.stargate,
               org.apache.cassandra.stargate.*,
               com.datastax.oss.driver.*
-            </Export-Package>
+            ]]></Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>

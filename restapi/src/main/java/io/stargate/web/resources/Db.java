@@ -15,11 +15,6 @@
  */
 package io.stargate.web.resources;
 
-import javax.ws.rs.NotFoundException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.util.Collection;
-
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
@@ -31,6 +26,9 @@ import io.stargate.db.QueryState;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.schema.Keyspace;
 import io.stargate.db.datastore.schema.Table;
+import java.nio.ByteBuffer;
+import java.util.Collection;
+import javax.ws.rs.NotFoundException;
 
 public class Db {
   private final Persistence persistence;
@@ -83,19 +81,20 @@ public class Db {
     return this.persistence.newDataStore(queryState, null);
   }
 
-  public DataStore getDataStoreForToken(String token, int pageSize, ByteBuffer pagingState) throws UnauthorizedException {
+  public DataStore getDataStoreForToken(String token, int pageSize, ByteBuffer pagingState)
+      throws UnauthorizedException {
     StoredCredentials storedCredentials = authenticationService.validateToken(token);
     ClientState clientState = this.persistence.newClientState(storedCredentials.getRoleName());
     QueryState queryState = this.persistence.newQueryState(clientState);
 
-    QueryOptions queryOptions = DefaultQueryOptions.builder()
-                                                   .options(DefaultQueryOptions.SpecificOptions.builder()
-                                                                               .pageSize(pageSize)
-                                                                               .pagingState(pagingState)
-                                                                               .build()
-                                                   )
-                                                   .build();
-
+    QueryOptions queryOptions =
+        DefaultQueryOptions.builder()
+            .options(
+                DefaultQueryOptions.SpecificOptions.builder()
+                    .pageSize(pageSize)
+                    .pagingState(pagingState)
+                    .build())
+            .build();
 
     return this.persistence.newDataStore(queryState, queryOptions);
   }

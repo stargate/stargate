@@ -20,15 +20,12 @@ package org.apache.cassandra.stargate.exceptions;
 
 import java.io.IOException;
 
-public class ChecksumMismatchException extends IOException
-{
-    public ChecksumMismatchException()
-    {
-        super();
-    }
+public class ChecksumMismatchException extends IOException {
+  public ChecksumMismatchException() {
+    super();
+  }
 
-    public ChecksumMismatchException(String s)
-    {
-        super(s);
-    }
+  public ChecksumMismatchException(String s) {
+    super(s);
+  }
 }

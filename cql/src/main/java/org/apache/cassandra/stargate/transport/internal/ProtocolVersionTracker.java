@@ -17,69 +17,66 @@
  */
 package org.apache.cassandra.stargate.transport.internal;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
-
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
+/** This class tracks the last 100 connections per protocol version */
+public class ProtocolVersionTracker {
+  private static final int DEFAULT_MAX_CAPACITY = 100;
 
-/**
- * This class tracks the last 100 connections per protocol version
- */
-public class ProtocolVersionTracker
-{
-    private static final int DEFAULT_MAX_CAPACITY = 100;
+  private final EnumMap<ProtocolVersion, LoadingCache<InetAddress, Long>> clientsByProtocolVersion;
 
-    private final EnumMap<ProtocolVersion, LoadingCache<InetAddress, Long>> clientsByProtocolVersion;
+  ProtocolVersionTracker() {
+    this(DEFAULT_MAX_CAPACITY);
+  }
 
-    ProtocolVersionTracker()
-    {
-        this(DEFAULT_MAX_CAPACITY);
+  private ProtocolVersionTracker(int capacity) {
+    clientsByProtocolVersion = new EnumMap<>(ProtocolVersion.class);
+
+    for (ProtocolVersion version : ProtocolVersion.values()) {
+      clientsByProtocolVersion.put(
+          version,
+          Caffeine.newBuilder().maximumSize(capacity).build(key -> System.currentTimeMillis()));
     }
+  }
 
-    private ProtocolVersionTracker(int capacity)
-    {
-        clientsByProtocolVersion = new EnumMap<>(ProtocolVersion.class);
+  void addConnection(InetAddress addr, ProtocolVersion version) {
+    clientsByProtocolVersion.get(version).put(addr, System.currentTimeMillis());
+  }
 
-        for (ProtocolVersion version : ProtocolVersion.values())
-        {
-            clientsByProtocolVersion.put(version, Caffeine.newBuilder().maximumSize(capacity)
-                                                          .build(key -> System.currentTimeMillis()));
-        }
-    }
+  List<ClientStat> getAll() {
+    List<ClientStat> result = new ArrayList<>();
 
-    void addConnection(InetAddress addr, ProtocolVersion version)
-    {
-        clientsByProtocolVersion.get(version).put(addr, System.currentTimeMillis());
-    }
+    clientsByProtocolVersion.forEach(
+        (version, cache) ->
+            cache
+                .asMap()
+                .forEach(
+                    (address, lastSeenTime) ->
+                        result.add(new ClientStat(address, version, lastSeenTime))));
 
-    List<ClientStat> getAll()
-    {
-        List<ClientStat> result = new ArrayList<>();
+    return result;
+  }
 
-        clientsByProtocolVersion.forEach((version, cache) ->
-            cache.asMap().forEach((address, lastSeenTime) -> result.add(new ClientStat(address, version, lastSeenTime))));
+  List<ClientStat> getAll(ProtocolVersion version) {
+    List<ClientStat> result = new ArrayList<>();
 
-        return result;
-    }
+    clientsByProtocolVersion
+        .get(version)
+        .asMap()
+        .forEach(
+            (address, lastSeenTime) -> result.add(new ClientStat(address, version, lastSeenTime)));
 
-    List<ClientStat> getAll(ProtocolVersion version)
-    {
-        List<ClientStat> result = new ArrayList<>();
+    return result;
+  }
 
-        clientsByProtocolVersion.get(version).asMap().forEach((address, lastSeenTime) ->
-            result.add(new ClientStat(address, version, lastSeenTime)));
-
-        return result;
-    }
-
-    public void clear()
-    {
-        clientsByProtocolVersion.values().forEach(Cache::invalidateAll);
-    }
+  public void clear() {
+    clientsByProtocolVersion.values().forEach(Cache::invalidateAll);
+  }
 }

@@ -17,20 +17,15 @@
  */
 package org.apache.cassandra.stargate.exceptions;
 
-/**
- * Thrown when an operation problem has occured (e.g. division by zero with integer).
- */
-public final class OperationExecutionException extends RequestExecutionException
-{
+/** Thrown when an operation problem has occured (e.g. division by zero with integer). */
+public final class OperationExecutionException extends RequestExecutionException {
 
-    /**
-     * Creates an <code>OperationExecutionException</code> with the specified message.
-     *
-     * @param msg the error message
-     */
-    public OperationExecutionException(String msg)
-    {
-        super(ExceptionCode.FUNCTION_FAILURE, msg);
-    }
-
+  /**
+   * Creates an <code>OperationExecutionException</code> with the specified message.
+   *
+   * @param msg the error message
+   */
+  public OperationExecutionException(String msg) {
+    super(ExceptionCode.FUNCTION_FAILURE, msg);
+  }
 }
