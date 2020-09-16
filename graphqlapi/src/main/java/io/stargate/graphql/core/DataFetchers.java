@@ -74,13 +74,8 @@ public class DataFetchers {
             DataStore dataStore = persistence.newDataStore(queryState, null);
 
             String statement = buildStatement(table, environment, dataStore);
-            CompletableFuture<ResultSet> rs = dataStore.query(statement);
-            ResultSet resultSet = rs.get();
-
-            ImmutableMap.Builder resultMap = ImmutableMap.builder();
-            resultMap.put("value", environment.getArgument("value"));
-
-            return resultMap.build();
+            return dataStore.query(statement)
+                .thenApply(resultSet -> ImmutableMap.of("value", environment.getArgument("value")));
         }
 
         public abstract String buildStatement(Table table, DataFetchingEnvironment environment, DataStore dataStore);
