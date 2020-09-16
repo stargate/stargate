@@ -503,7 +503,6 @@ public class CQLTest extends BaseOsgiIntegrationTest
             .withBoolean(DefaultDriverOption.METADATA_TOKEN_MAP_ENABLED, false)
             .withString(DefaultDriverOption.LOAD_BALANCING_POLICY_CLASS, DcInferringLoadBalancingPolicy.class.getName())
             .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(5))
-            .withDuration(DefaultDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(5))
             .withDuration(DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(5));
     }
 }
