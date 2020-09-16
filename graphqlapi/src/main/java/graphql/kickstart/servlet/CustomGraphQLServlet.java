@@ -109,9 +109,14 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet {
             Optional<Row> first = resultSet.rows().stream()
                     .filter(r -> r.has("wt"))
                     .filter(r -> r.getLong(writetimeColumn) > 0)
-                    .filter(r -> !r.getString("keyspace_name").equals("system") &&
-                            !r.getString("keyspace_name").equals("system_schema") &&
-                            !r.getString("keyspace_name").equals("data_endpoint_auth"))
+                    .filter(r -> {
+                        String keyspaceName = r.getString("keyspace_name");
+                        return !keyspaceName.equals("system") &&
+                                !keyspaceName.equals("data_endpoint_auth") &&
+                                !keyspaceName.equals("solr_admin") &&
+                                !keyspaceName.startsWith("system_") &&
+                                !keyspaceName.startsWith("dse_");
+                    })
                     .min(Comparator.comparing(r -> r.getLong(writetimeColumn)));
 
             DEFAULT_KEYSPACE = first.map(row -> row.getString("keyspace_name")).orElse(null);
