@@ -28,13 +28,13 @@
         <dependency>
             <groupId>io.stargate.db</groupId>
             <artifactId>persistence-api</artifactId>
-            <version>0.0.4</version>
+            <version>0.0.6</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.stargate.db</groupId>
             <artifactId>persistence-common</artifactId>
-            <version>0.0.4</version>
+            <version>0.0.6</version>
         </dependency>
         <dependency>
             <groupId>org.apache.cassandra</groupId>
