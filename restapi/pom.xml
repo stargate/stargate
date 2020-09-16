@@ -87,7 +87,7 @@
         <dependency>
             <groupId>com.datastax.oss</groupId>
             <artifactId>java-driver-core</artifactId>
-            <version>4.3.0</version>
+            <version>${driver.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.validation</groupId>

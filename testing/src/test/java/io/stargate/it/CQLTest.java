@@ -20,7 +20,6 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -35,6 +34,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -76,12 +77,19 @@ public class CQLTest extends BaseOsgiIntegrationTest
     private String keyspace;
     private static CqlSession session;
 
+    private static final int KEYSPACE_NAME_MAX_LENGTH = 48;
+
     @Before
     public void setup()
     {
         String testName = name.getMethodName();
         testName = testName.substring(0, testName.indexOf("["));
         keyspace = "ks_" + new Date().getTime() + "_" + testName;
+
+        if (keyspace.length() > KEYSPACE_NAME_MAX_LENGTH) {
+            keyspace = keyspace.substring(0, KEYSPACE_NAME_MAX_LENGTH);
+        }
+
         table = testName;
     }
 
@@ -98,7 +106,10 @@ public class CQLTest extends BaseOsgiIntegrationTest
     @AfterClass
     public static void afterAll()
     {
-        session.close();
+        if (session != null)
+        {
+            session.close();
+        }
     }
 
     private void createKeyspace()
@@ -113,17 +124,17 @@ public class CQLTest extends BaseOsgiIntegrationTest
     }
 
     private void paginationTestSetup(){
-		createKeyspace();
+        createKeyspace();
 
-		session.execute(
-				SimpleStatement.newInstance(
-						String.format("CREATE TABLE IF NOT EXISTS \"%s\".\"%s\" (k int, cc int, v int, PRIMARY KEY(k, cc))", keyspace, table)));
-		for (int i = 0; i < 20; i++) {
-			session.execute(
-					SimpleStatement.newInstance(
-							String.format("INSERT INTO \"%s\".\"%s\" (k, cc, v) VALUES (1, ?, ?)", keyspace, table), i, i));
-		}
-	}
+        session.execute(
+            SimpleStatement.newInstance(
+                String.format("CREATE TABLE IF NOT EXISTS \"%s\".\"%s\" (k int, cc int, v int, PRIMARY KEY(k, cc))", keyspace, table)));
+        for (int i = 0; i < 20; i++) {
+            session.execute(
+                SimpleStatement.newInstance(
+                    String.format("INSERT INTO \"%s\".\"%s\" (k, cc, v) VALUES (1, ?, ?)", keyspace, table), i, i));
+        }
+    }
 
     private String insertIntoQuery()
     {
@@ -274,7 +285,7 @@ public class CQLTest extends BaseOsgiIntegrationTest
         assertThat(rs.getExecutionInfo().getTracingId()).isNotNull();
 
         QueryTrace trace = rs.getExecutionInfo().getQueryTrace();
-        assertThat(trace.getCoordinator()).isEqualTo(InetAddress.getByName(stargateHost));
+        assertThat(trace.getCoordinatorAddress().getAddress()).isEqualTo(InetAddress.getByName(stargateHost));
         assertThat(trace.getRequestType()).isEqualTo("Execute CQL3 query");
         assertThat(trace.getEvents()).isNotEmpty();
     }
@@ -292,7 +303,7 @@ public class CQLTest extends BaseOsgiIntegrationTest
         assertThat(rs.getExecutionInfo().getTracingId()).isNotNull();
 
         QueryTrace trace = rs.getExecutionInfo().getQueryTrace();
-        assertThat(trace.getCoordinator()).isEqualTo(InetAddress.getByName(stargateHost));
+        assertThat(trace.getCoordinatorAddress().getAddress()).isEqualTo(InetAddress.getByName(stargateHost));
         assertThat(trace.getRequestType()).isEqualTo("Execute CQL3 prepared query");
         assertThat(trace.getEvents()).isNotEmpty();
     }
@@ -314,7 +325,7 @@ public class CQLTest extends BaseOsgiIntegrationTest
 
         ResultSet rs = session.execute(batch);
         QueryTrace trace = rs.getExecutionInfo().getQueryTrace();
-        assertThat(trace.getCoordinator()).isEqualTo(InetAddress.getByName(stargateHost));
+        assertThat(trace.getCoordinatorAddress().getAddress()).isEqualTo(InetAddress.getByName(stargateHost));
         assertThat(trace.getRequestType()).isEqualTo("Execute batch of CQL3 queries");
         assertThat(trace.getEvents()).isNotEmpty();
     }
@@ -386,21 +397,20 @@ public class CQLTest extends BaseOsgiIntegrationTest
         assertThat(tupleReturnValue.getInt(2)).isEqualTo(2);
     }
 
-    @Test
-    public void compressionTest()
+    @ParameterizedTest
+    @ValueSource(strings = { "lz4", "snappy" })
+    public void compressionTest(String compression)
     {
-        Arrays.stream(new String[] {"lz4", "snappy"}).forEach(compression -> {
-            try (CqlSession session = CqlSession.builder()
-                                                .withConfigLoader(getDriverConfigLoaderBuilder()
-                                                    .withString(DefaultDriverOption.PROTOCOL_COMPRESSION, compression)
-                                                    .build())
-                                                .addContactPoint(new InetSocketAddress(stargateHost, 9043))
+        try (CqlSession session = CqlSession.builder()
+                                            .withConfigLoader(getDriverConfigLoaderBuilder()
+                                                .withString(DefaultDriverOption.PROTOCOL_COMPRESSION, compression)
                                                 .build())
-            {
-                ResultSet rs = session.execute("SELECT * FROM system.local");
-                assertThat(rs.one().getString("key")).isEqualTo("local");
-            }
-        });
+                                            .addContactPoint(new InetSocketAddress(stargateHost, 9043))
+                                            .build())
+        {
+            ResultSet rs = session.execute("SELECT * FROM system.local");
+            assertThat(rs.one().getString("key")).isEqualTo("local");
+        }
     }
 
     @Test
