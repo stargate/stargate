@@ -190,14 +190,14 @@
                         <Bundle-Description>Cassandra DB component for project</Bundle-Description>
                         <Bundle-SymbolicName>io.stargate.db.cassandra</Bundle-SymbolicName>
                         <Bundle-Activator>io.stargate.db.cassandra.CassandraPersistenceActivator</Bundle-Activator>
-                        <Import-Package>
+                        <Import-Package><![CDATA[
                             org.osgi.framework,
                             io.stargate.db,
                             io.stargate.db.datastore,
                             io.stargate.db.datastore.*,
                             org.apache.cassandra.stargate,
                             !com.codahale.metrics.graphite.*
-                        </Import-Package>
+                        ]]></Import-Package>
                         <Export-Package>
                             io.stargate.db.cassandra
                         </Export-Package>

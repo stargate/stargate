@@ -231,7 +231,7 @@
                         <Bundle-Description>Auth API for Stargate project</Bundle-Description>
                         <Bundle-SymbolicName>io.stargate.auth.api</Bundle-SymbolicName>
                         <Bundle-Activator>io.stargate.auth.api.AuthApiActivator</Bundle-Activator>
-                        <Import-Package>
+                        <Import-Package><![CDATA[
                             javax.validation.*,
                             javax.servlet.*,
                             javax.ws.rs.*,
@@ -256,7 +256,7 @@
                             org.osgi.framework.*,
                             org.jvnet.hk2.external.generator.*,
                             io.stargate.auth
-                        </Import-Package>
+                        ]]></Import-Package>
                         <Export-Package>!*</Export-Package>
                         <DynamicImport-Package>*</DynamicImport-Package>
                         <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>

@@ -76,7 +76,7 @@
             <Import-Package>
               org.osgi.framework
             </Import-Package>
-            <Export-Package>
+            <Export-Package><![CDATA[
               io.stargate.db,
               io.stargate.db.datastore,
               io.stargate.db.datastore.schema,
@@ -84,7 +84,7 @@
               org.apache.cassandra.stargate,
               org.apache.cassandra.stargate.*,
               com.datastax.oss.driver.*
-            </Export-Package>
+            ]]></Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>

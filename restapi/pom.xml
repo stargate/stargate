@@ -142,7 +142,7 @@
                         <Bundle-SymbolicName>io.stargate.web</Bundle-SymbolicName>
                         <Bundle-Activator>io.stargate.web.RestApiActivator</Bundle-Activator>
                         <Embed-Transitive>true</Embed-Transitive>
-                        <Import-Package>
+                        <Import-Package><![CDATA[
                             !org.eclipse.jetty.http,
                             !org.eclipse.jetty.http.pathmap,
                             !com.sun.nio.file,
@@ -177,7 +177,7 @@
                             io.stargate.db.datastore,
                             io.stargate.db.datastore.query,
                             org.osgi.framework,
-                        </Import-Package>
+                        ]]></Import-Package>
                         <Export-Package>!*</Export-Package>
                         <DynamicImport-Package>*</DynamicImport-Package>
                         <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>

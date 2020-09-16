@@ -85,7 +85,7 @@
                         <Bundle-SymbolicName>io.stargate.cql</Bundle-SymbolicName>
                         <Bundle-Activator>io.stargate.cql.CqlActivator</Bundle-Activator>
                         <!-- TODO [doug] do this the right way https://baptiste-wicht.com/posts/2010/03/bundle-non-osgi-dependencies-maven.html -->
-                        <Import-Package>
+                        <Import-Package><![CDATA[
                             !org.eclipse.jetty.http,
                             !org.eclipse.jetty.http.pathmap,
                             !com.sun.nio.file,
@@ -115,7 +115,7 @@
                             io.stargate.db,
                             org.apache.cassandra.stargate,
                             org.apache.cassandra.stargate.*
-                        </Import-Package>
+                        ]]></Import-Package>
                         <Export-Package>!*</Export-Package>
                         <DynamicImport-Package>*</DynamicImport-Package>
                         <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
