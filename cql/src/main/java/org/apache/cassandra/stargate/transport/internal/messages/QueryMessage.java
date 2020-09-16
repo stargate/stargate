@@ -17,80 +17,67 @@
  */
 package org.apache.cassandra.stargate.transport.internal.messages;
 
+import io.netty.buffer.ByteBuf;
+import io.stargate.db.Persistence;
+import io.stargate.db.QueryOptions;
+import io.stargate.db.QueryState;
+import io.stargate.db.Result;
 import java.util.concurrent.CompletableFuture;
-
 import org.apache.cassandra.stargate.cql3.DefaultQueryOptions;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.stargate.transport.internal.Message;
 import org.apache.cassandra.stargate.transport.internal.SchemaAgreement;
 
-import io.stargate.db.Persistence;
-import io.stargate.db.QueryOptions;
-import io.stargate.db.QueryState;
-import io.stargate.db.Result;
-import io.netty.buffer.ByteBuf;
-
-/**
- * A CQL query
- */
-public class QueryMessage extends Message.Request
-{
-    public static final Message.Codec<QueryMessage> codec = new Message.Codec<QueryMessage>()
-    {
-        public QueryMessage decode(ByteBuf body, ProtocolVersion version)
-        {
-            String query = CBUtil.readLongString(body);
-            return new QueryMessage(query, DefaultQueryOptions.codec.decode(body, version));
+/** A CQL query */
+public class QueryMessage extends Message.Request {
+  public static final Message.Codec<QueryMessage> codec =
+      new Message.Codec<QueryMessage>() {
+        public QueryMessage decode(ByteBuf body, ProtocolVersion version) {
+          String query = CBUtil.readLongString(body);
+          return new QueryMessage(query, DefaultQueryOptions.codec.decode(body, version));
         }
 
-        public void encode(QueryMessage msg, ByteBuf dest, ProtocolVersion version)
-        {
-            CBUtil.writeLongString(msg.query, dest);
-            if (version == ProtocolVersion.V1)
-                CBUtil.writeConsistencyLevel(msg.options.getConsistency(), dest);
-            else
-                DefaultQueryOptions.codec.encode(msg.options, dest, version);
+        public void encode(QueryMessage msg, ByteBuf dest, ProtocolVersion version) {
+          CBUtil.writeLongString(msg.query, dest);
+          if (version == ProtocolVersion.V1)
+            CBUtil.writeConsistencyLevel(msg.options.getConsistency(), dest);
+          else DefaultQueryOptions.codec.encode(msg.options, dest, version);
         }
 
-        public int encodedSize(QueryMessage msg, ProtocolVersion version)
-        {
-            int size = CBUtil.sizeOfLongString(msg.query);
+        public int encodedSize(QueryMessage msg, ProtocolVersion version) {
+          int size = CBUtil.sizeOfLongString(msg.query);
 
-            if (version == ProtocolVersion.V1)
-            {
-                size += CBUtil.sizeOfConsistencyLevel(msg.options.getConsistency());
-            }
-            else
-            {
-                size += DefaultQueryOptions.codec.encodedSize(msg.options, version);
-            }
-            return size;
+          if (version == ProtocolVersion.V1) {
+            size += CBUtil.sizeOfConsistencyLevel(msg.options.getConsistency());
+          } else {
+            size += DefaultQueryOptions.codec.encodedSize(msg.options, version);
+          }
+          return size;
         }
-    };
+      };
 
-    public final String query;
-    public final QueryOptions options;
+  public final String query;
+  public final QueryOptions options;
 
-    public QueryMessage(String query, QueryOptions options)
-    {
-        super(Type.QUERY);
-        this.query = query;
-        this.options = options;
-    }
+  public QueryMessage(String query, QueryOptions options) {
+    super(Type.QUERY);
+    this.query = query;
+    this.options = options;
+  }
 
-    @Override
-    protected CompletableFuture<? extends Response> execute(Persistence persistence, QueryState state, long queryStartNanoTime)
-    {
-        CompletableFuture<? extends Result> future = persistence.query(query, state, options, getCustomPayload(), isTracingRequested(), queryStartNanoTime);
-        return SchemaAgreement
-                .maybeWaitForAgreement(future, persistence)
-                .thenApply(result -> new ResultMessage(result));
-    }
+  @Override
+  protected CompletableFuture<? extends Response> execute(
+      Persistence persistence, QueryState state, long queryStartNanoTime) {
+    CompletableFuture<? extends Result> future =
+        persistence.query(
+            query, state, options, getCustomPayload(), isTracingRequested(), queryStartNanoTime);
+    return SchemaAgreement.maybeWaitForAgreement(future, persistence)
+        .thenApply(result -> new ResultMessage(result));
+  }
 
-    @Override
-    public String toString()
-    {
-        return String.format("QUERY %s [pageSize = %d]", query, options.getPageSize());
-    }
+  @Override
+  public String toString() {
+    return String.format("QUERY %s [pageSize = %d]", query, options.getPageSize());
+  }
 }

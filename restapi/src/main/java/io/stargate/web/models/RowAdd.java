@@ -28,8 +28,7 @@ public class RowAdd {
     this.columns = columns;
   }
 
-  public RowAdd() {
-  }
+  public RowAdd() {}
 
   public RowAdd(List<ColumnModel> columns) {
     this.columns = columns;

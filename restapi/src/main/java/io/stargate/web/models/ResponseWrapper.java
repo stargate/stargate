@@ -21,20 +21,20 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ResponseWrapper<T> {
-    @JsonProperty("data")
-    T data;
+  @JsonProperty("data")
+  T data;
 
-    public T getData() {
-        return data;
-    }
+  public T getData() {
+    return data;
+  }
 
-    public ResponseWrapper setData(T data) {
-        this.data = data;
-        return this;
-    }
+  public ResponseWrapper setData(T data) {
+    this.data = data;
+    return this;
+  }
 
-    @JsonCreator
-    public ResponseWrapper(@JsonProperty("data") final T data) {
-        this.data = data;
-    }
+  @JsonCreator
+  public ResponseWrapper(@JsonProperty("data") final T data) {
+    this.data = data;
+  }
 }

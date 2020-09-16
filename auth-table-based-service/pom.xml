@@ -1,86 +1,79 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
-    <parent>
-        <groupId>io.stargate</groupId>
-        <artifactId>stargate</artifactId>
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.stargate</groupId>
+    <artifactId>stargate</artifactId>
         <version>0.0.7-SNAPSHOT</version>
-    </parent>
-
-    <groupId>io.stargate.auth.table</groupId>
-    <artifactId>auth-table-based-service</artifactId>
+  </parent>
+  <groupId>io.stargate.auth.table</groupId>
+  <artifactId>auth-table-based-service</artifactId>
     <version>0.0.7-SNAPSHOT</version>
-
-    <dependencies>
-        <dependency>
-            <groupId>io.stargate.auth</groupId>
-            <artifactId>authentication</artifactId>
+  <dependencies>
+    <dependency>
+      <groupId>io.stargate.auth</groupId>
+      <artifactId>authentication</artifactId>
             <version>0.0.7-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.stargate.db</groupId>
-            <artifactId>persistence-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.db</groupId>
+      <artifactId>persistence-api</artifactId>
             <version>0.0.7-SNAPSHOT</version>
-            <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.7.25</version>
-        </dependency>
-        <dependency>
-            <groupId>org.mindrot</groupId>
-            <artifactId>jbcrypt</artifactId>
-            <version>0.4</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>RELEASE</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <configuration>
-                    <unpackBundle>true</unpackBundle>
-                    <instructions>
-                        <Bundle-Name>AuthTableBasedService</Bundle-Name>
-                        <Bundle-Description>AuthTableBasedService component for project</Bundle-Description>
-                        <Bundle-SymbolicName>io.stargate.auth.table</Bundle-SymbolicName>
-                        <Bundle-Activator>io.stargate.auth.table.AuthTableBasedServiceActivator</Bundle-Activator>
-                        <Import-Package>
-                            io.stargate.auth, org.osgi.framework
-                        </Import-Package>
-                        <Export-Package>io.stargate.auth.table</Export-Package>
-                        <DynamicImport-Package>*</DynamicImport-Package>
-                        <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
-                    </instructions>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-                    </archive>
-                    <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.7.25</version>
+    </dependency>
+    <dependency>
+      <groupId>org.mindrot</groupId>
+      <artifactId>jbcrypt</artifactId>
+      <version>0.4</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>RELEASE</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <configuration>
+          <unpackBundle>true</unpackBundle>
+          <instructions>
+            <Bundle-Name>AuthTableBasedService</Bundle-Name>
+            <Bundle-Description>AuthTableBasedService component for project</Bundle-Description>
+            <Bundle-SymbolicName>io.stargate.auth.table</Bundle-SymbolicName>
+            <Bundle-Activator>io.stargate.auth.table.AuthTableBasedServiceActivator</Bundle-Activator>
+            <Import-Package>io.stargate.auth, org.osgi.framework</Import-Package>
+            <Export-Package>io.stargate.auth.table</Export-Package>
+            <DynamicImport-Package>*</DynamicImport-Package>
+            <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
+          </instructions>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+          </archive>
+          <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
