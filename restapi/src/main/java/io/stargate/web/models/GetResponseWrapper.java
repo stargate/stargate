@@ -21,45 +21,49 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GetResponseWrapper<T> {
-    @JsonProperty("count")
-    int count;
-    @JsonProperty("pageState")
-    String pageState;
-    @JsonProperty("data")
-    T data;
+  @JsonProperty("count")
+  int count;
 
-    public int getCount() {
-        return count;
-    }
+  @JsonProperty("pageState")
+  String pageState;
 
-    public GetResponseWrapper setCount(int count) {
-        this.count = count;
-        return this;
-    }
+  @JsonProperty("data")
+  T data;
 
-    public String getPageState() {
-        return pageState;
-    }
+  public int getCount() {
+    return count;
+  }
 
-    public GetResponseWrapper setPageState(String pageState) {
-        this.pageState = pageState;
-        return this;
-    }
+  public GetResponseWrapper setCount(int count) {
+    this.count = count;
+    return this;
+  }
 
-    public T getData() {
-        return data;
-    }
+  public String getPageState() {
+    return pageState;
+  }
 
-    public GetResponseWrapper setData(T data) {
-        this.data = data;
-        return this;
-    }
+  public GetResponseWrapper setPageState(String pageState) {
+    this.pageState = pageState;
+    return this;
+  }
 
-    @JsonCreator
-    public GetResponseWrapper(@JsonProperty("count") final int count, @JsonProperty("pageState") final String pageState,
-                              @JsonProperty("data") final T data) {
-        this.count = count;
-        this.pageState = pageState;
-        this.data = data;
-    }
+  public T getData() {
+    return data;
+  }
+
+  public GetResponseWrapper setData(T data) {
+    this.data = data;
+    return this;
+  }
+
+  @JsonCreator
+  public GetResponseWrapper(
+      @JsonProperty("count") final int count,
+      @JsonProperty("pageState") final String pageState,
+      @JsonProperty("data") final T data) {
+    this.count = count;
+    this.pageState = pageState;
+    this.data = data;
+  }
 }

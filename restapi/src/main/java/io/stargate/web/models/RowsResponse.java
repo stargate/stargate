@@ -21,20 +21,21 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class RowsResponse {
-    boolean success = true;
-    int rowsModified = 0;
+  boolean success = true;
+  int rowsModified = 0;
 
-    @JsonCreator
-    public RowsResponse(@JsonProperty("success") boolean success, @JsonProperty("rowsModified") int rowsModified) {
-        this.success = success;
-        this.rowsModified = rowsModified;
-    }
+  @JsonCreator
+  public RowsResponse(
+      @JsonProperty("success") boolean success, @JsonProperty("rowsModified") int rowsModified) {
+    this.success = success;
+    this.rowsModified = rowsModified;
+  }
 
-    public boolean getSuccess() {
-        return success;
-    }
+  public boolean getSuccess() {
+    return success;
+  }
 
-    public int getRowsModified() {
-        return rowsModified;
-    }
+  public int getRowsModified() {
+    return rowsModified;
+  }
 }

@@ -15,78 +15,68 @@
  */
 package io.stargate.db.datastore.query;
 
+import io.stargate.db.datastore.schema.Column;
 import java.util.Optional;
 import java.util.function.Function;
 
-import io.stargate.db.datastore.schema.Column;
+public interface Parameter<T> extends Comparable<Parameter> {
+  Column column();
 
-public interface Parameter<T> extends Comparable<Parameter>
-{
-    Column column();
+  Optional<Object> value();
 
-    Optional<Object> value();
+  Object UNSET =
+      new SpecialTermMarker() {
+        static final String term = "<unset>";
 
-    Object UNSET = new SpecialTermMarker()
-    {
-        final static String term = "<unset>";
         @Override
-        public String toString()
-        {
-            return term;
+        public String toString() {
+          return term;
         }
 
         @Override
-        public int hashCode()
-        {
-            return term.hashCode();
+        public int hashCode() {
+          return term.hashCode();
         }
 
         @Override
-        public boolean equals(Object obj)
-        {
-            return obj != null && this.toString().equals(obj.toString());
+        public boolean equals(Object obj) {
+          return obj != null && this.toString().equals(obj.toString());
         }
-    };
+      };
 
-    Object NULL = new SpecialTermMarker()
-    {
+  Object NULL =
+      new SpecialTermMarker() {
         static final String term = "<null>";
 
         @Override
-        public String toString()
-        {
-            return term;
+        public String toString() {
+          return term;
         }
 
         @Override
-        public int hashCode()
-        {
-            return term.hashCode();
+        public int hashCode() {
+          return term.hashCode();
         }
 
         @Override
-        public boolean equals(Object obj)
-        {
-            return obj != null && this.toString().equals(obj.toString());
+        public boolean equals(Object obj) {
+          return obj != null && this.toString().equals(obj.toString());
         }
-    };
+      };
 
-    Optional<Function<T, Object>> bindingFunction();
+  Optional<Function<T, Object>> bindingFunction();
 
-    default int compareTo(Parameter other)
-    {
-        return column().name().compareTo(other.column().name());
-    }
+  default int compareTo(Parameter other) {
+    return column().name().compareTo(other.column().name());
+  }
 
-    default boolean ignored()
-    {
-        return false;
-    }
+  default boolean ignored() {
+    return false;
+  }
 
-    default Parameter<T> ignore()
-    {
-        return this;
-    }
+  default Parameter<T> ignore() {
+    return this;
+  }
 
-    interface SpecialTermMarker{}
+  interface SpecialTermMarker {}
 }

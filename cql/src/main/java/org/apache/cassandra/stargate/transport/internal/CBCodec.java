@@ -17,13 +17,13 @@
  */
 package org.apache.cassandra.stargate.transport.internal;
 
+import io.netty.buffer.ByteBuf;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 
-import io.netty.buffer.ByteBuf;
+public interface CBCodec<T> {
+  public T decode(ByteBuf body, ProtocolVersion version);
 
-public interface CBCodec<T>
-{
-    public T decode(ByteBuf body, ProtocolVersion version);
-    public void encode(T t, ByteBuf dest, ProtocolVersion version);
-    public int encodedSize(T t, ProtocolVersion version);
+  public void encode(T t, ByteBuf dest, ProtocolVersion version);
+
+  public int encodedSize(T t, ProtocolVersion version);
 }

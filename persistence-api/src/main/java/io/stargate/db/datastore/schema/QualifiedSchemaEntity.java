@@ -17,13 +17,11 @@ package io.stargate.db.datastore.schema;
 
 import org.immutables.value.Value;
 
-public interface QualifiedSchemaEntity extends SchemaEntity
-{
-    String keyspace();
+public interface QualifiedSchemaEntity extends SchemaEntity {
+  String keyspace();
 
-    @Value.Lazy
-    default String cqlKeyspace()
-    {
-        return ColumnUtils.maybeQuote(keyspace());
-    }
+  @Value.Lazy
+  default String cqlKeyspace() {
+    return ColumnUtils.maybeQuote(keyspace());
+  }
 }

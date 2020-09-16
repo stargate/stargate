@@ -15,154 +15,154 @@
  */
 package io.stargate.db.datastore.schema;
 
-import javax.annotation.Nullable;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
+import io.stargate.db.datastore.query.ColumnOrder;
+import io.stargate.db.datastore.query.WhereCondition;
 import java.util.List;
 import java.util.OptionalLong;
 import java.util.Set;
-
+import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
-import io.stargate.db.datastore.query.ColumnOrder;
-import io.stargate.db.datastore.query.WhereCondition;
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
-
 @Value.Immutable(prehash = true)
-public abstract class SecondaryIndex implements Index, QualifiedSchemaEntity
-{
-    private static final long serialVersionUID = 424886903165529554L;
+public abstract class SecondaryIndex implements Index, QualifiedSchemaEntity {
+  private static final long serialVersionUID = 424886903165529554L;
 
-    private static final Set<WhereCondition.Predicate> ALLOWED_PREDICATES = ImmutableSet.of(WhereCondition.Predicate.Eq, WhereCondition.Predicate.Contains, WhereCondition.Predicate.ContainsKey,
-            WhereCondition.Predicate.ContainsValue, WhereCondition.Predicate.EntryEq);
+  private static final Set<WhereCondition.Predicate> ALLOWED_PREDICATES =
+      ImmutableSet.of(
+          WhereCondition.Predicate.Eq,
+          WhereCondition.Predicate.Contains,
+          WhereCondition.Predicate.ContainsKey,
+          WhereCondition.Predicate.ContainsValue,
+          WhereCondition.Predicate.EntryEq);
 
-    @Nullable
-    public abstract Column column();
+  @Nullable
+  public abstract Column column();
 
-    public abstract CollectionIndexingType indexingType();
+  public abstract CollectionIndexingType indexingType();
 
-    public static SecondaryIndex create(String keyspace, String name, Column column)
-    {
-        return ImmutableSecondaryIndex.builder().keyspace(keyspace).name(name).column(column)
-                .indexingType(ImmutableCollectionIndexingType.builder().build())
-                .build();
+  public static SecondaryIndex create(String keyspace, String name, Column column) {
+    return ImmutableSecondaryIndex.builder()
+        .keyspace(keyspace)
+        .name(name)
+        .column(column)
+        .indexingType(ImmutableCollectionIndexingType.builder().build())
+        .build();
+  }
+
+  public static SecondaryIndex create(
+      String keyspace, String name, Column column, CollectionIndexingType indexingType) {
+    return ImmutableSecondaryIndex.builder()
+        .keyspace(keyspace)
+        .name(name)
+        .column(column)
+        .indexingType(indexingType)
+        .build();
+  }
+
+  public static SecondaryIndex reference(String name) {
+    return ImmutableSecondaryIndex.builder()
+        .keyspace("ignored-maybe")
+        .name(name)
+        .indexingType(ImmutableCollectionIndexingType.builder().build())
+        .build();
+  }
+
+  @Override
+  public boolean supports(
+      List<Column> select,
+      List<WhereCondition<?>> conditions,
+      List<ColumnOrder> orders,
+      OptionalLong limit) {
+    if (!orders.isEmpty()) {
+      // Secondary index does not support orders
+      return false;
     }
 
-    public static SecondaryIndex create(String keyspace, String name, Column column,
-                                        CollectionIndexingType indexingType)
-    {
-        return ImmutableSecondaryIndex.builder().keyspace(keyspace).name(name).column(column).indexingType(indexingType)
-                .build();
+    if (conditions.isEmpty()) {
+      // Secondary index does not support full scan
+      return false;
     }
 
-    public static SecondaryIndex reference(String name)
-    {
-        return ImmutableSecondaryIndex.builder().keyspace("ignored-maybe").name(name)
-                .indexingType(ImmutableCollectionIndexingType.builder().build()).build();
+    if (conditions.size() > 1 && !eqUsedOnAllNonMatchingPKColumns(conditions)) {
+      // multiple conditions are not supported
+      return false;
     }
 
-    @Override
-    public boolean supports(List<Column> select, List<WhereCondition<?>> conditions, List<ColumnOrder> orders,
-                            OptionalLong limit)
-    {
-        if (!orders.isEmpty())
-        {
-            // Secondary index does not support orders
-            return false;
-        }
+    return conditions.stream()
+        .anyMatch(
+            w -> matchesColumn(w) && predicateAllowed(w) && predicateSupportedByIndexingType(w));
+  }
 
-        if (conditions.isEmpty())
-        {
-            // Secondary index does not support full scan
-            return false;
-        }
+  private boolean eqUsedOnAllNonMatchingPKColumns(List<WhereCondition<?>> conditions) {
+    return conditions.stream()
+        .filter(w -> !matchesColumn(w))
+        .allMatch(
+            w ->
+                w.column().isPrimaryKeyComponent()
+                    && WhereCondition.Predicate.Eq.equals(w.predicate()));
+  }
 
-        if (conditions.size() > 1 && !eqUsedOnAllNonMatchingPKColumns(conditions))
-        {
-            // multiple conditions are not supported
-            return false;
-        }
+  private boolean matchesColumn(WhereCondition<?> w) {
+    return w.column().reference().equals(column().reference());
+  }
 
-        return conditions.stream()
-                .anyMatch(w -> matchesColumn(w) && predicateAllowed(w) && predicateSupportedByIndexingType(w));
+  @Override
+  public int priority() {
+    return 2;
+  }
+
+  private boolean predicateAllowed(WhereCondition<?> w) {
+    WhereCondition.Predicate predicate = w.predicate();
+    if (!ALLOWED_PREDICATES.contains(predicate)) {
+      return false;
     }
 
-    private boolean eqUsedOnAllNonMatchingPKColumns(List<WhereCondition<?>> conditions)
-    {
-        return conditions.stream()
-                .filter(w -> !matchesColumn(w))
-                .allMatch(w -> w.column().isPrimaryKeyComponent() && WhereCondition.Predicate.Eq.equals(w.predicate()));
+    if (WhereCondition.Predicate.Eq.equals(predicate)) {
+      return column().isPrimaryKeyComponent() || column().isFrozenCollection() || matchesColumn(w);
     }
 
-    private boolean matchesColumn(WhereCondition<?> w)
-    {
-        return w.column().reference().equals(column().reference());
+    if (WhereCondition.Predicate.ContainsKey.equals(predicate)
+        || WhereCondition.Predicate.EntryEq.equals(predicate)
+        || WhereCondition.Predicate.ContainsValue.equals(predicate)) {
+      return column().ofTypeMap() && !column().isFrozenCollection();
     }
 
-    @Override
-    public int priority()
-    {
-        return 2;
+    if (WhereCondition.Predicate.Contains.equals(predicate)) {
+      return column().ofTypeListOrSet() && !column().isFrozenCollection();
     }
 
-    private boolean predicateAllowed(WhereCondition<?> w)
-    {
-        WhereCondition.Predicate predicate = w.predicate();
-        if (!ALLOWED_PREDICATES.contains(predicate))
-        {
-            return false;
-        }
+    return true;
+  }
 
-        if (WhereCondition.Predicate.Eq.equals(predicate))
-        {
-            return column().isPrimaryKeyComponent() || column().isFrozenCollection() || matchesColumn(w);
-        }
-
-        if (WhereCondition.Predicate.ContainsKey.equals(predicate) || WhereCondition.Predicate.EntryEq.equals(predicate) || WhereCondition.Predicate.ContainsValue.equals(predicate))
-        {
-            return column().ofTypeMap() && !column().isFrozenCollection();
-        }
-
-        if (WhereCondition.Predicate.Contains.equals(predicate))
-        {
-            return column().ofTypeListOrSet() && !column().isFrozenCollection();
-        }
-
-        return true;
+  private boolean predicateSupportedByIndexingType(WhereCondition<?> w) {
+    WhereCondition.Predicate predicate = w.predicate();
+    if (!column().isCollection()) {
+      // nothing to check if it's not a CQL collection
+      return true;
     }
 
-    private boolean predicateSupportedByIndexingType(WhereCondition<?> w)
-    {
-        WhereCondition.Predicate predicate = w.predicate();
-        if (!column().isCollection())
-        {
-            // nothing to check if it's not a CQL collection
-            return true;
-        }
-
-        if (indexingType().indexFull())
-        {
-            return true;
-        }
-
-        if (indexingType().indexKeys())
-        {
-            return WhereCondition.Predicate.ContainsKey.equals(predicate);
-        }
-
-        if (indexingType().indexValues())
-        {
-            return WhereCondition.Predicate.ContainsValue.equals(predicate) || WhereCondition.Predicate.Contains.equals(predicate);
-        }
-
-        if (indexingType().indexEntries())
-        {
-            return WhereCondition.Predicate.EntryEq.equals(predicate);
-        }
-        return false;
+    if (indexingType().indexFull()) {
+      return true;
     }
 
-    @Override
-    public String indexTypeName()
-    {
-        return "Secondary index";
+    if (indexingType().indexKeys()) {
+      return WhereCondition.Predicate.ContainsKey.equals(predicate);
     }
+
+    if (indexingType().indexValues()) {
+      return WhereCondition.Predicate.ContainsValue.equals(predicate)
+          || WhereCondition.Predicate.Contains.equals(predicate);
+    }
+
+    if (indexingType().indexEntries()) {
+      return WhereCondition.Predicate.EntryEq.equals(predicate);
+    }
+    return false;
+  }
+
+  @Override
+  public String indexTypeName() {
+    return "Secondary index";
+  }
 }

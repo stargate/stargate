@@ -17,127 +17,108 @@
  */
 package org.apache.cassandra.stargate.transport.internal;
 
+import com.google.common.collect.ImmutableMap;
+import io.netty.handler.ssl.SslHandler;
+import io.stargate.db.AuthenticatedUser;
+import io.stargate.db.ClientState;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Optional;
 
-import io.stargate.db.AuthenticatedUser;
-import io.stargate.db.ClientState;
-import com.google.common.collect.ImmutableMap;
-import io.netty.handler.ssl.SslHandler;
+public final class ConnectedClient {
+  public static final String ADDRESS = "address";
+  public static final String USER = "user";
+  public static final String VERSION = "version";
+  public static final String DRIVER_NAME = "driverName";
+  public static final String DRIVER_VERSION = "driverVersion";
+  public static final String REQUESTS = "requests";
+  public static final String KEYSPACE = "keyspace";
+  public static final String SSL = "ssl";
+  public static final String CIPHER = "cipher";
+  public static final String PROTOCOL = "protocol";
 
-public final class ConnectedClient
-{
-    public static final String ADDRESS = "address";
-    public static final String USER = "user";
-    public static final String VERSION = "version";
-    public static final String DRIVER_NAME = "driverName";
-    public static final String DRIVER_VERSION = "driverVersion";
-    public static final String REQUESTS = "requests";
-    public static final String KEYSPACE = "keyspace";
-    public static final String SSL = "ssl";
-    public static final String CIPHER = "cipher";
-    public static final String PROTOCOL = "protocol";
+  private static final String UNDEFINED = "undefined";
 
-    private static final String UNDEFINED = "undefined";
+  private final ServerConnection connection;
 
-    private final ServerConnection connection;
+  ConnectedClient(ServerConnection connection) {
+    this.connection = connection;
+  }
 
-    ConnectedClient(ServerConnection connection)
-    {
-        this.connection = connection;
-    }
+  public ConnectionStage stage() {
+    return connection.stage();
+  }
 
-    public ConnectionStage stage()
-    {
-        return connection.stage();
-    }
+  public InetSocketAddress remoteAddress() {
+    return state().getRemoteAddress();
+  }
 
-    public InetSocketAddress remoteAddress()
-    {
-        return state().getRemoteAddress();
-    }
+  public Optional<String> username() {
+    AuthenticatedUser<?> user = state().getUser();
 
-    public Optional<String> username()
-    {
-        AuthenticatedUser<?> user = state().getUser();
+    return null != user ? Optional.of(user.getName()) : Optional.empty();
+  }
 
-        return null != user
-             ? Optional.of(user.getName())
-             : Optional.empty();
-    }
+  public int protocolVersion() {
+    return connection.getVersion().asInt();
+  }
 
-    public int protocolVersion()
-    {
-        return connection.getVersion().asInt();
-    }
+  public Optional<String> driverName() {
+    return state().getDriverName();
+  }
 
-    public Optional<String> driverName()
-    {
-        return state().getDriverName();
-    }
+  public Optional<String> driverVersion() {
+    return state().getDriverVersion();
+  }
 
-    public Optional<String> driverVersion()
-    {
-        return state().getDriverVersion();
-    }
+  public long requestCount() {
+    return connection.requests.getCount();
+  }
 
-    public long requestCount()
-    {
-        return connection.requests.getCount();
-    }
+  public Optional<String> keyspace() {
+    return Optional.ofNullable(state().getRawKeyspace());
+  }
 
-    public Optional<String> keyspace()
-    {
-        return Optional.ofNullable(state().getRawKeyspace());
-    }
+  public boolean sslEnabled() {
+    return null != sslHandler();
+  }
 
-    public boolean sslEnabled()
-    {
-        return null != sslHandler();
-    }
+  public Optional<String> sslCipherSuite() {
+    SslHandler sslHandler = sslHandler();
 
-    public Optional<String> sslCipherSuite()
-    {
-        SslHandler sslHandler = sslHandler();
+    return null != sslHandler
+        ? Optional.of(sslHandler.engine().getSession().getCipherSuite())
+        : Optional.empty();
+  }
 
-        return null != sslHandler
-             ? Optional.of(sslHandler.engine().getSession().getCipherSuite())
-             : Optional.empty();
-    }
+  public Optional<String> sslProtocol() {
+    SslHandler sslHandler = sslHandler();
 
-    public Optional<String> sslProtocol()
-    {
-        SslHandler sslHandler = sslHandler();
+    return null != sslHandler
+        ? Optional.of(sslHandler.engine().getSession().getProtocol())
+        : Optional.empty();
+  }
 
-        return null != sslHandler
-             ? Optional.of(sslHandler.engine().getSession().getProtocol())
-             : Optional.empty();
-    }
+  private ClientState state() {
+    return connection.getClientState();
+  }
 
-    private ClientState state()
-    {
-        return connection.getClientState();
-    }
+  private SslHandler sslHandler() {
+    return connection.channel().pipeline().get(SslHandler.class);
+  }
 
-    private SslHandler sslHandler()
-    {
-        return connection.channel().pipeline().get(SslHandler.class);
-    }
-
-    public Map<String, String> asMap()
-    {
-        return ImmutableMap.<String, String>builder()
-                           .put(ADDRESS, remoteAddress().toString())
-                           .put(USER, username().orElse(UNDEFINED))
-                           .put(VERSION, String.valueOf(protocolVersion()))
-                           .put(DRIVER_NAME, driverName().orElse(UNDEFINED))
-                           .put(DRIVER_VERSION, driverVersion().orElse(UNDEFINED))
-                           .put(REQUESTS, String.valueOf(requestCount()))
-                           .put(KEYSPACE, keyspace().orElse(""))
-                           .put(SSL, Boolean.toString(sslEnabled()))
-                           .put(CIPHER, sslCipherSuite().orElse(UNDEFINED))
-                           .put(PROTOCOL, sslProtocol().orElse(UNDEFINED))
-                           .build();
-    }
+  public Map<String, String> asMap() {
+    return ImmutableMap.<String, String>builder()
+        .put(ADDRESS, remoteAddress().toString())
+        .put(USER, username().orElse(UNDEFINED))
+        .put(VERSION, String.valueOf(protocolVersion()))
+        .put(DRIVER_NAME, driverName().orElse(UNDEFINED))
+        .put(DRIVER_VERSION, driverVersion().orElse(UNDEFINED))
+        .put(REQUESTS, String.valueOf(requestCount()))
+        .put(KEYSPACE, keyspace().orElse(""))
+        .put(SSL, Boolean.toString(sslEnabled()))
+        .put(CIPHER, sslCipherSuite().orElse(UNDEFINED))
+        .put(PROTOCOL, sslProtocol().orElse(UNDEFINED))
+        .build();
+  }
 }

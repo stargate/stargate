@@ -19,28 +19,20 @@
 
 package org.apache.cassandra.stargate.utils;
 
+import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import java.util.Collections;
 import java.util.Set;
 
-import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
+public final class Architecture {
+  // Note that s390x, aarch64, & ppc64le architectures are not officially supported and adding them
+  // here is only done out
+  // of convenience for those that want to run C* on these architectures at their own risk (see
+  // #11214, #13326, & #13615)
+  private static final Set<String> UNALIGNED_ARCH =
+      Collections.unmodifiableSet(
+          Sets.newHashSet("i386", "x86", "amd64", "x86_64", "s390x", "aarch64", "ppc64le"));
 
-public final class Architecture
-{
-    // Note that s390x, aarch64, & ppc64le architectures are not officially supported and adding them here is only done out
-    // of convenience for those that want to run C* on these architectures at their own risk (see #11214, #13326, & #13615)
-    private static final Set<String> UNALIGNED_ARCH = Collections.unmodifiableSet(Sets.newHashSet(
-            "i386",
-            "x86",
-            "amd64",
-            "x86_64",
-            "s390x",
-            "aarch64",
-            "ppc64le"
-    ));
+  public static final boolean IS_UNALIGNED = UNALIGNED_ARCH.contains(System.getProperty("os.arch"));
 
-    public static final boolean IS_UNALIGNED = UNALIGNED_ARCH.contains(System.getProperty("os.arch"));
-
-    private Architecture()
-    {
-    }
+  private Architecture() {}
 }

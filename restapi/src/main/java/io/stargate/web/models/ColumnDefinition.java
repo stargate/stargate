@@ -31,9 +31,9 @@ public class ColumnDefinition {
 
   @JsonCreator
   public ColumnDefinition(
-          @JsonProperty("name") final String name,
-          @JsonProperty("typeDefinition") final String typeDefinition,
-          @JsonProperty("static") final boolean isStatic) {
+      @JsonProperty("name") final String name,
+      @JsonProperty("typeDefinition") final String typeDefinition,
+      @JsonProperty("static") final boolean isStatic) {
     this.name = name;
     this.typeDefinition = typeDefinition;
     this.isStatic = isStatic;
