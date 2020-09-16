@@ -29,7 +29,7 @@ docker run --name local-cassandra \
 Cassandra Cluster Manager: Start a Cassandra 3.11 instance ([link to ccm](https://github.com/riptano/ccm))
 
 ```sh
-ccm create -v 3.11.6 -b -n 1:0 -i 127.0.0.1 stargate && ccm start
+ccm create stargate -v 3.11.6 -n 1 -s -b
 ```
 
 ### Start commands
