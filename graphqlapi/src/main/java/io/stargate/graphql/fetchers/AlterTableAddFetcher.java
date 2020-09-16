@@ -37,9 +37,7 @@ public class AlterTableAddFetcher implements io.stargate.graphql.fetchers.Schema
         QueryState queryState = persistence.newQueryState(clientState);
         DataStore dataStore = persistence.newDataStore(queryState, null);
 
-        CompletableFuture<ResultSet> resultSetSingle = dataStore.query(getQuery(environment));
-        resultSetSingle.get();
-        return true;
+        return dataStore.query(getQuery(environment)).thenApply(result -> true);
     }
 
     public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {

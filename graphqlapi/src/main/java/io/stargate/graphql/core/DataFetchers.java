@@ -243,15 +243,13 @@ public class DataFetchers {
             QueryState queryState = persistence.newQueryState(clientState);
             DataStore dataStore = persistence.newDataStore(queryState, null);
 
-            CompletableFuture<ResultSet> rs = dataStore.query(statement);
-            ResultSet resultSet = rs.get();
-
-            List<Map<String, Object>> results = new ArrayList<>();
-            for (Row row : resultSet.rows()) {
-                results.add(row2Map(row));
-            }
-
-            return ImmutableMap.of("values", results);
+            return dataStore.query(statement).thenApply(resultSet -> {
+                List<Map<String, Object>> results = new ArrayList<>();
+                for (Row row : resultSet.rows()) {
+                    results.add(row2Map(row));
+                }
+                return ImmutableMap.of("values", results);
+            });
         }
 
 
