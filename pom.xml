@@ -29,6 +29,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.scm.id>github</project.scm.id>
         <doclint>none</doclint>
+        <driver.version>4.9.0</driver.version>
     </properties>
 
     <dependencies>
