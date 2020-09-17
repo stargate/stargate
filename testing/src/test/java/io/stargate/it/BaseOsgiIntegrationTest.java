@@ -410,8 +410,8 @@ public class BaseOsgiIntegrationTest {
         rack = "rack1";
       }
 
-      for (int i = 0; i < numberOfStargateNodes; i++) {
-        stargateHosts.add("127.0.0.20" + i);
+      for (int i = 1; i <= numberOfStargateNodes; i++) {
+        stargateHosts.add("127.0.0.1" + i);
       }
       String seedHost = cassandraListenAddress;
       Integer seedPort = 7000;
