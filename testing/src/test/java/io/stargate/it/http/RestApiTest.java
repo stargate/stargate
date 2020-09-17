@@ -592,6 +592,143 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void queryWithFilterMissingColumnName() throws IOException {
+    String tableName = "tbl_query_" + System.currentTimeMillis();
+    createTable(tableName);
+
+    Query query = new Query();
+    List<Filter> filters = new ArrayList<>();
+
+    Filter filter = new Filter();
+    filter.setOperator(Filter.Operator.eq);
+    filter.setValue(Collections.singletonList("John Doe"));
+    filters.add(filter);
+
+    query.setFilters(filters);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspace, tableName),
+        objectMapper.writeValueAsString(query),
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void queryWithFilterMissingOperator() throws IOException {
+    String tableName = "tbl_query_" + System.currentTimeMillis();
+    createTable(tableName);
+
+    Query query = new Query();
+    List<Filter> filters = new ArrayList<>();
+
+    Filter filter = new Filter();
+    filter.setColumnName("firstName");
+    filter.setValue(Collections.singletonList("John Doe"));
+    filters.add(filter);
+
+    query.setFilters(filters);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspace, tableName),
+        objectMapper.writeValueAsString(query),
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void queryWithFilterEmptyValueList() throws IOException {
+    String tableName = "tbl_query_" + System.currentTimeMillis();
+    createTable(tableName);
+
+    Query query = new Query();
+    List<Filter> filters = new ArrayList<>();
+
+    Filter filter = new Filter();
+    filter.setColumnName("firstName");
+    filter.setOperator(Filter.Operator.eq);
+    filter.setValue(Collections.emptyList());
+    filters.add(filter);
+
+    query.setFilters(filters);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspace, tableName),
+        objectMapper.writeValueAsString(query),
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void queryWithFilterMissingValueList() throws IOException {
+    String tableName = "tbl_query_" + System.currentTimeMillis();
+    createTable(tableName);
+
+    Query query = new Query();
+    List<Filter> filters = new ArrayList<>();
+
+    Filter filter = new Filter();
+    filter.setColumnName("firstName");
+    filter.setOperator(Filter.Operator.eq);
+    filters.add(filter);
+
+    query.setFilters(filters);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspace, tableName),
+        objectMapper.writeValueAsString(query),
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void queryWithEmptyFilter() throws IOException {
+    String tableName = "tbl_query_" + System.currentTimeMillis();
+    createTable(tableName);
+
+    Query query = new Query();
+    List<Filter> filters = new ArrayList<>();
+    filters.add(new Filter());
+
+    query.setFilters(filters);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspace, tableName),
+        objectMapper.writeValueAsString(query),
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void queryWithEmptyFilters() throws IOException {
+    String tableName = "tbl_query_" + System.currentTimeMillis();
+    createTable(tableName);
+
+    Query query = new Query();
+
+    query.setFilters(Collections.emptyList());
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspace, tableName),
+        objectMapper.writeValueAsString(query),
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void queryWithMissingFilter() throws IOException {
+    String tableName = "tbl_query_" + System.currentTimeMillis();
+    createTable(tableName);
+
+    Query query = new Query();
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspace, tableName),
+        objectMapper.writeValueAsString(query),
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
   public void getColumns() throws IOException {
     String tableName = "tbl_getcolumns_" + System.currentTimeMillis();
     createTable(tableName);
