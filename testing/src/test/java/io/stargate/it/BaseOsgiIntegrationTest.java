@@ -452,25 +452,36 @@ public class BaseOsgiIntegrationTest {
       }
       logger.info("Starting: {} stargate nodes", numberOfStargateNodes);
       for (int i = 0; i < numberOfStargateNodes; i++) {
-        logger.info("Starting node nr: {} for seedHost:seedPort = {}:{}", i, seedHost, seedPort);
+        logger.info(
+            "Starting node nr: {} for seedHost:seedPort = {}:{} and address: {}",
+            i,
+            seedHost,
+            seedPort,
+            stargateHosts.get(i));
         // Start stargate and get the persistence object
-        Starter starter =
-            new Starter(
-                "Test Cluster",
-                version,
-                stargateHosts.get(i),
-                seedHost,
-                seedPort,
-                datacenter,
-                rack,
-                isDse,
-                !isDse,
-                9043,
-                new ServerSocket(0).getLocalPort());
-        starter.start();
-        logger.info("Stargate node nr: {} started successfully", i);
-        // add to starters only if it start() successfully
-        stargateStarters.add(starter);
+        try {
+          Starter starter =
+              new Starter(
+                  "Test Cluster",
+                  version,
+                  stargateHosts.get(i),
+                  seedHost,
+                  seedPort,
+                  datacenter,
+                  rack,
+                  isDse,
+                  !isDse,
+                  9043,
+                  new ServerSocket(0).getLocalPort());
+          starter.start();
+          logger.info("Stargate node nr: {} started successfully", i);
+          // add to starters only if it start() successfully
+          stargateStarters.add(starter);
+        } catch (Exception ex) {
+          logger.error("Exception when starting stargate node nr: {}", i);
+        } finally {
+          logger.error("After starting stargate node nr: {}", i);
+        }
       }
     }
   }
