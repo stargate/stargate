@@ -17,14 +17,20 @@ package io.stargate.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.codahale.metrics.Timer;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.driver.api.core.metadata.Node;
+import com.datastax.oss.driver.api.core.metrics.DefaultNodeMetric;
 import com.datastax.oss.driver.internal.core.loadbalancing.DcInferringLoadBalancingPolicy;
 import java.net.InetSocketAddress;
 import java.time.Duration;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import net.jcip.annotations.NotThreadSafe;
 import org.junit.Before;
@@ -58,6 +64,9 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
             .withDuration(DefaultDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(5))
             .withDuration(DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(5))
             .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
+            .withStringList(
+                DefaultDriverOption.METRICS_NODE_ENABLED,
+                Collections.singletonList(DefaultNodeMetric.CQL_MESSAGES.getPath()))
             .build();
 
     CqlSessionBuilder cqlSessionBuilder = CqlSession.builder().withConfigLoader(loader);
@@ -79,5 +88,54 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
     List<Row> all = session.execute("SELECT * FROM system.peers").all();
     // system.peers should have 2 records (all stargate nodes - 1)
     assertThat(all.size()).isEqualTo(2);
+  }
+
+  @Test
+  public void shouldDistributeTrafficUniformly() {
+    // given
+    createKeyspaceAndTable();
+    long totalNumberOfRequests = 300;
+    long numberOfRequestPerNode = totalNumberOfRequests / numberOfStargateNodes;
+    // difference tolerance - every node should have numberOfRequestPerNode +- tolerance
+    long tolerance = 5;
+
+    // when
+    for (int i = 0; i < totalNumberOfRequests; i++) {
+      session.execute(
+          SimpleStatement.newInstance(
+              String.format(
+                  "INSERT INTO \"%s\".\"%s\" (k, cc, v) VALUES (1, ?, ?)", keyspace, table),
+              i,
+              i));
+    }
+
+    // then
+    Collection<Node> nodes = session.getMetadata().getNodes().values();
+    assertThat(nodes.size()).isEqualTo(numberOfStargateNodes);
+    for (Node n : nodes) {
+      long cqlMessages =
+          ((Timer)
+                  session.getMetrics().get().getNodeMetric(n, DefaultNodeMetric.CQL_MESSAGES).get())
+              .getCount();
+      assertThat(cqlMessages)
+          .isBetween(numberOfRequestPerNode - tolerance, numberOfRequestPerNode + tolerance);
+    }
+  }
+
+  private void createKeyspace() {
+    session.execute(
+        String.format(
+            "CREATE KEYSPACE IF NOT EXISTS \"%s\" WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 }",
+            keyspace));
+  }
+
+  private void createKeyspaceAndTable() {
+    createKeyspace();
+
+    session.execute(
+        SimpleStatement.newInstance(
+            String.format(
+                "CREATE TABLE IF NOT EXISTS \"%s\".\"%s\" (k int, cc int, v int, PRIMARY KEY(k, cc))",
+                keyspace, table)));
   }
 }
