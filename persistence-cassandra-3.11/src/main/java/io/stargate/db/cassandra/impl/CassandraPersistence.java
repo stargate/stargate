@@ -103,14 +103,6 @@ public class CassandraPersistence
     daemon = new CassandraDaemon(true);
 
     DatabaseDescriptor.daemonInitialization(() -> config);
-
-    root = new InternalDataStore();
-    authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
-    handler = org.apache.cassandra.service.ClientState.getCQLQueryHandler();
-
-    interceptor = new DefaultQueryInterceptor();
-    interceptor.initialize();
-
     try {
       daemon.init(null);
     } catch (IOException e) {
@@ -124,6 +116,13 @@ public class CassandraPersistence
     daemon.start();
 
     waitForSchema(StorageService.RING_DELAY);
+
+    root = new InternalDataStore();
+    authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
+    handler = org.apache.cassandra.service.ClientState.getCQLQueryHandler();
+
+    interceptor = new DefaultQueryInterceptor();
+    interceptor.initialize();
   }
 
   @Override
@@ -567,7 +566,5 @@ public class CassandraPersistence
 
       Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
-
-    MigrationManager.waitUntilReadyForBootstrap();
   }
 }
