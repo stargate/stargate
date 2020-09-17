@@ -1,7 +1,17 @@
 /*
- * Copyright DataStax, Inc.
+ * Copyright DataStax, Inc. and/or The Stargate Authors
  *
- * Please see the included license file for details.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.stargate.db.cassandra.datastore;
 
@@ -62,7 +72,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.stargate.db.Result;
-import io.stargate.db.cassandra.impl.StargateSystemKeyspace;
 import io.stargate.db.cassandra.impl.Conversion;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ExecutionInfo;
@@ -303,28 +312,9 @@ public class InternalDataStore implements DataStore
             {
                 try
                 {
-                    long queryStartNanoTime = System.nanoTime();
-                    CQLStatement statement = QueryProcessor.parseStatement(unpreparedCql, queryState).statement;
-                    if (!StargateSystemKeyspace.maybeCompleteSystemLocalOrPeersInternal(statement, queryState, queryOptions, queryStartNanoTime, future))
-                    {
-                        ResultMessage resultMessage = QueryProcessor.instance.processStatement(statement, queryState, queryOptions, queryStartNanoTime);
-                        if (resultMessage instanceof ResultMessage.Rows) {
-                            try {
-                                org.apache.cassandra.cql3.ResultSet result = ((ResultMessage.Rows) resultMessage).result;
-                                // Didn't really want to grab this using reflection but the only alternative would be to decode
-                                // the ResultMessage in the same way the driver does which is overkill in order to pull a single
-                                // field. Luckily this is public in both DSE and C* 4.0 so we'll only need this here.
-                                Field f = result.metadata.getClass().getDeclaredField("pagingState");
-                                f.setAccessible(true);
-                                this.pagingState = (PagingState) f.get(result.metadata);
-                            } catch (Exception e)
-                            {
-                                LOG.info("Unable to get paging state", e);
-                            }
-                        }
-
-                        future.complete(resultMessage);
-                    }
+                    ResultMessage resultMessage = QueryProcessor.instance.process(unpreparedCql, queryState, queryOptions, System.nanoTime());
+                    maybeSetPagingState(resultMessage);
+                    future.complete(resultMessage);
                 }
                 catch (Throwable t)
                 {
@@ -343,30 +333,9 @@ public class InternalDataStore implements DataStore
             {
                 try
                 {
-                    long queryStartNanoTime = System.nanoTime();
-                    if (!StargateSystemKeyspace.maybeCompleteSystemLocalOrPeersInternal(prepared.statement, queryState, queryOptions, queryStartNanoTime, future))
-                    {
-                        ResultMessage resultMessage = QueryProcessor.instance.processPrepared(prepared.statement, queryState, queryOptions, null, System.nanoTime());
-
-                        if (resultMessage instanceof ResultMessage.Rows) {
-                            try
-                            {
-                                org.apache.cassandra.cql3.ResultSet result = ((ResultMessage.Rows) resultMessage).result;
-                                // Didn't really want to grab this using reflection but the only alternative would be to decode
-                                // the ResultMessage in the same way the driver does which is overkill in order to pull a single
-                                // field. Luckily this is public in both DSE and C* 4.0 so we'll only need this here.
-                                Field f = result.metadata.getClass().getDeclaredField("pagingState");
-                                f.setAccessible(true);
-                                this.pagingState = (PagingState) f.get(result.metadata);
-                            }
-                            catch (Exception e)
-                            {
-                                LOG.info("Unable to get paging state", e);
-                            }
-                        }
-
-                        future.complete(resultMessage);
-                    }
+                    ResultMessage resultMessage = QueryProcessor.instance.processPrepared(prepared.statement, queryState, queryOptions, null, System.nanoTime());
+                    maybeSetPagingState(resultMessage);
+                    future.complete(resultMessage);
                 }
                 catch (Throwable t)
                 {
@@ -375,6 +344,26 @@ public class InternalDataStore implements DataStore
             });
 
             return future;
+        }
+
+        private void maybeSetPagingState(ResultMessage resultMessage)
+        {
+            if (resultMessage instanceof ResultMessage.Rows) {
+                try
+                {
+                    org.apache.cassandra.cql3.ResultSet result = ((ResultMessage.Rows) resultMessage).result;
+                    // Didn't really want to grab this using reflection but the only alternative would be to decode
+                    // the ResultMessage in the same way the driver does which is overkill in order to pull a single
+                    // field. Luckily this is public in both DSE and C* 4.0 so we'll only need this here.
+                    Field f = result.metadata.getClass().getDeclaredField("pagingState");
+                    f.setAccessible(true);
+                    this.pagingState = (PagingState) f.get(result.metadata);
+                }
+                catch (Exception e)
+                {
+                    LOG.info("Unable to get paging state", e);
+                }
+            }
         }
 
         private CompletableFuture<ResultMessage> queryBatch()

@@ -1,3 +1,18 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.it;
 
 import java.lang.Double;
@@ -132,9 +147,11 @@ public class PersistenceTest extends BaseOsgiIntegrationTest
                 .column("data_center")
                 .from("system", "peers")
                 .future();
+        row = rs.get().one();
 
         logger.info(String.valueOf(row));
-        assertThat(rs.get()).isEmpty(); // Should only contain stargate peers (so it should be empty)
+        assertThat(row).isNotNull();
+        assertThat(row.columns().get(0).name()).isEqualTo("data_center");
     }
 
     @Test

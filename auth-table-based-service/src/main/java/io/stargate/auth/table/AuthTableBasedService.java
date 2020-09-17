@@ -1,3 +1,18 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.auth.table;
 
 import java.time.Instant;
@@ -11,6 +26,7 @@ import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
@@ -122,13 +138,24 @@ public class AuthTableBasedService implements AuthenticationService {
 
     @Override
     public StoredCredentials validateToken(String token) throws UnauthorizedException {
+        if (Strings.isNullOrEmpty(token)) {
+            throw new UnauthorizedException("authorization failed - missing token");
+        }
+
+        UUID uuid;
+        try{
+            uuid = UUID.fromString(token);
+        } catch (IllegalArgumentException exception){
+            throw new UnauthorizedException("authorization failed - bad token");
+        }
+
         StoredCredentials storedCredentials = new StoredCredentials();
         try {
             ResultSet resultSet = dataStore.query()
                     .select()
                     .star()
                     .from(AUTH_KEYSPACE, AUTH_TABLE)
-                    .where("auth_token", WhereCondition.Predicate.Eq, UUID.fromString(token))
+                    .where("auth_token", WhereCondition.Predicate.Eq, uuid)
                     .execute();
 
             if (resultSet.isEmpty()) {

@@ -29,7 +29,7 @@ docker run --name local-cassandra \
 Cassandra Cluster Manager: Start a Cassandra 3.11 instance ([link to ccm](https://github.com/riptano/ccm))
 
 ```sh
-ccm create -v 3.11.6 -b -n 1:0 -i 127.0.0.1 stargate && ccm start
+ccm create stargate -v 3.11.6 -n 1 -s -b
 ```
 
 ### Start commands
@@ -105,7 +105,18 @@ Use HELP for help.
 Curl over port 8082
 
 ```sh
-curl -L -X GET 'localhost:8082/v1/health' \
+# Generate an auth token
+curl -L -X POST 'http://localhost:8081/v1/auth' \
+-H 'Content-Type: application/json' \
+--data-raw '{
+    "username": "username",
+    "password": "password"
+}'
+
+
+# Get all keyspaces using the auth token from the previous request
+curl -L -X GET 'localhost:8082/v1/keyspaces' \
 --header 'accept: application/json' \
---header 'content-type: application/json'
+--header 'content-type: application/json' \
+--header 'X-Cassandra-Token: <AUTH_TOKEN>'
 ```

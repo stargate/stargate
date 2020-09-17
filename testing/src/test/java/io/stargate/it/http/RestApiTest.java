@@ -1,3 +1,18 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.it.http;
 
 import java.io.IOException;
@@ -90,7 +105,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest
 
         String body = RestUtils.post("", String.format("%s:8081/v1/auth/token/generate", host),
                 objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
-                HttpStatus.SC_OK);
+                HttpStatus.SC_CREATED);
 
         AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
         authToken = authTokenResponse.getAuthToken();
@@ -103,6 +118,16 @@ public class RestApiTest extends BaseOsgiIntegrationTest
 
         List<String> keyspaces = objectMapper.readValue(body, new TypeReference<List<String>>() { });
         assertThat(keyspaces).containsAnyOf("system","system_auth","system_distributed","system_schema","system_traces");
+    }
+
+    @Test
+    public void getKeyspacesMissingToken() throws IOException {
+        RestUtils.get("", String.format("%s:8082/v1/keyspaces", host), HttpStatus.SC_UNAUTHORIZED);
+    }
+
+    @Test
+    public void getKeyspacesBadToken() throws IOException {
+        RestUtils.get("foo", String.format("%s:8082/v1/keyspaces", host), HttpStatus.SC_UNAUTHORIZED);
     }
 
     @Test
