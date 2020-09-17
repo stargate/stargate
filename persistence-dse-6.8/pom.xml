@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate.persistence</groupId>
     <artifactId>persistence-extensions</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.0.3-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db.dse</groupId>
   <artifactId>persistence-dse-6.8</artifactId>
@@ -216,12 +216,12 @@
               <tasks>
                 <!-- Remove root package classes -->
                 <delete>
-                  <fileset dir="${project.build.directory}/sjk-core/" includes="*.class"/>
+                  <fileset dir="${project.build.directory}/sjk-core/" includes="*.class" />
                 </delete>
                 <jar destfile="${project.build.directory}/classes/sjk-core-0.14.jar">
-                  <fileset dir="${project.build.directory}/sjk-core"/>
+                  <fileset dir="${project.build.directory}/sjk-core" />
                 </jar>
-                <delete dir="${project.build.directory}/sjk-core"/>
+                <delete dir="${project.build.directory}/sjk-core" />
               </tasks>
             </configuration>
           </execution>
