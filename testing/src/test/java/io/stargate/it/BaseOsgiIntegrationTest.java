@@ -452,12 +452,14 @@ public class BaseOsgiIntegrationTest {
       }
       logger.info("Starting: {} stargate nodes", numberOfStargateNodes);
       for (int i = 0; i < numberOfStargateNodes; i++) {
+        int jmxPort = new ServerSocket(0).getLocalPort();
         logger.info(
-            "Starting node nr: {} for seedHost:seedPort = {}:{} and address: {}",
+            "Starting node nr: {} for seedHost:seedPort = {}:{}, address: {} and jmxPort: {}",
             i,
             seedHost,
             seedPort,
-            stargateHosts.get(i));
+            stargateHosts.get(i),
+            jmxPort);
         // Start stargate and get the persistence object
         try {
           Starter starter =
@@ -472,7 +474,7 @@ public class BaseOsgiIntegrationTest {
                   isDse,
                   !isDse,
                   9043,
-                  new ServerSocket(0).getLocalPort());
+                  jmxPort);
           starter.start();
           logger.info("Stargate node nr: {} started successfully", i);
           // add to starters only if it start() successfully
