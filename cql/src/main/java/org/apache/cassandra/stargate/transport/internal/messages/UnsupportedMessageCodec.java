@@ -18,39 +18,31 @@
 
 package org.apache.cassandra.stargate.transport.internal.messages;
 
+import io.netty.buffer.ByteBuf;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.netty.buffer.ByteBuf;
+/** Catch-all codec for any unsupported legacy messages. */
+public class UnsupportedMessageCodec<T extends Message> implements Message.Codec<T> {
+  public static final UnsupportedMessageCodec instance = new UnsupportedMessageCodec();
 
-/**
- * Catch-all codec for any unsupported legacy messages.
- */
-public class UnsupportedMessageCodec <T extends Message> implements Message.Codec<T>
-{
-    public final static UnsupportedMessageCodec instance = new UnsupportedMessageCodec();
+  private static final Logger logger = LoggerFactory.getLogger(UnsupportedMessageCodec.class);
 
-    private static final Logger logger = LoggerFactory.getLogger(UnsupportedMessageCodec.class);
-
-    public T decode(ByteBuf body, ProtocolVersion version)
-    {
-        if (ProtocolVersion.SUPPORTED.contains(version))
-        {
-            logger.error("Received invalid message for supported protocol version {}", version);
-        }
-        throw new ProtocolException("Unsupported message");
+  public T decode(ByteBuf body, ProtocolVersion version) {
+    if (ProtocolVersion.SUPPORTED.contains(version)) {
+      logger.error("Received invalid message for supported protocol version {}", version);
     }
+    throw new ProtocolException("Unsupported message");
+  }
 
-    public void encode(T t, ByteBuf dest, ProtocolVersion version)
-    {
-        throw new ProtocolException("Unsupported message");
-    }
+  public void encode(T t, ByteBuf dest, ProtocolVersion version) {
+    throw new ProtocolException("Unsupported message");
+  }
 
-    public int encodedSize(T t, ProtocolVersion version)
-    {
-        return 0;
-    }
+  public int encodedSize(T t, ProtocolVersion version) {
+    return 0;
+  }
 }

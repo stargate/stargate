@@ -17,15 +17,12 @@
  */
 package org.apache.cassandra.stargate.exceptions;
 
-public class AuthenticationException extends RequestValidationException
-{
-    public AuthenticationException(String msg)
-    {
-        super(ExceptionCode.BAD_CREDENTIALS, msg);
-    }
+public class AuthenticationException extends RequestValidationException {
+  public AuthenticationException(String msg) {
+    super(ExceptionCode.BAD_CREDENTIALS, msg);
+  }
 
-    public AuthenticationException(String msg, Throwable e)
-    {
-        super(ExceptionCode.BAD_CREDENTIALS, msg, e);
-    }
+  public AuthenticationException(String msg, Throwable e) {
+    super(ExceptionCode.BAD_CREDENTIALS, msg, e);
+  }
 }

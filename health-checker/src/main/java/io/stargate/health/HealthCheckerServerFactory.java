@@ -1,8 +1,5 @@
 package io.stargate.health;
 
-import java.util.EnumSet;
-import java.util.stream.Collectors;
-
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.codahale.metrics.servlets.HealthCheckServlet;
@@ -11,6 +8,8 @@ import io.dropwizard.jersey.filter.AllowedMethodsFilter;
 import io.dropwizard.jetty.MutableServletContextHandler;
 import io.dropwizard.jetty.NonblockingServletHolder;
 import io.dropwizard.server.DefaultServerFactory;
+import java.util.EnumSet;
+import java.util.stream.Collectors;
 import javax.servlet.DispatcherType;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;

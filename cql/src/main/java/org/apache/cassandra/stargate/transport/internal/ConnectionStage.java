@@ -17,7 +17,8 @@
  */
 package org.apache.cassandra.stargate.transport.internal;
 
-public enum ConnectionStage
-{
-    ESTABLISHED, AUTHENTICATING, READY
+public enum ConnectionStage {
+  ESTABLISHED,
+  AUTHENTICATING,
+  READY
 }

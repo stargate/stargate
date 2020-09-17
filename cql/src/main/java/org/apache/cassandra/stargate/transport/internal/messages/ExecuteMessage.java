@@ -17,8 +17,12 @@
  */
 package org.apache.cassandra.stargate.transport.internal.messages;
 
+import io.netty.buffer.ByteBuf;
+import io.stargate.db.Persistence;
+import io.stargate.db.QueryOptions;
+import io.stargate.db.QueryState;
+import io.stargate.db.Result;
 import java.util.concurrent.CompletableFuture;
-
 import org.apache.cassandra.stargate.cql3.DefaultQueryOptions;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
@@ -26,90 +30,81 @@ import org.apache.cassandra.stargate.transport.internal.Message;
 import org.apache.cassandra.stargate.transport.internal.SchemaAgreement;
 import org.apache.cassandra.stargate.utils.MD5Digest;
 
-import io.stargate.db.Persistence;
-import io.stargate.db.QueryOptions;
-import io.stargate.db.QueryState;
-import io.stargate.db.Result;
-import io.netty.buffer.ByteBuf;
+public class ExecuteMessage extends Message.Request {
+  public static final Message.Codec<ExecuteMessage> codec =
+      new Message.Codec<ExecuteMessage>() {
+        public ExecuteMessage decode(ByteBuf body, ProtocolVersion version) {
+          MD5Digest statementId = MD5Digest.wrap(CBUtil.readBytes(body));
 
-public class ExecuteMessage extends Message.Request
-{
-    public static final Message.Codec<ExecuteMessage> codec = new Message.Codec<ExecuteMessage>()
-    {
-        public ExecuteMessage decode(ByteBuf body, ProtocolVersion version)
-        {
-            MD5Digest statementId = MD5Digest.wrap(CBUtil.readBytes(body));
+          MD5Digest resultMetadataId = null;
+          if (version.isGreaterOrEqualTo(ProtocolVersion.V5))
+            resultMetadataId = MD5Digest.wrap(CBUtil.readBytes(body));
 
-            MD5Digest resultMetadataId = null;
-            if (version.isGreaterOrEqualTo(ProtocolVersion.V5))
-                resultMetadataId = MD5Digest.wrap(CBUtil.readBytes(body));
-
-            return new ExecuteMessage(statementId, resultMetadataId, DefaultQueryOptions.codec.decode(body, version));
+          return new ExecuteMessage(
+              statementId, resultMetadataId, DefaultQueryOptions.codec.decode(body, version));
         }
 
-        public void encode(ExecuteMessage msg, ByteBuf dest, ProtocolVersion version)
-        {
-            CBUtil.writeBytes(msg.statementId.bytes, dest);
+        public void encode(ExecuteMessage msg, ByteBuf dest, ProtocolVersion version) {
+          CBUtil.writeBytes(msg.statementId.bytes, dest);
 
-            if (version.isGreaterOrEqualTo(ProtocolVersion.V5))
-                CBUtil.writeBytes(msg.resultMetadataId.bytes, dest);
+          if (version.isGreaterOrEqualTo(ProtocolVersion.V5))
+            CBUtil.writeBytes(msg.resultMetadataId.bytes, dest);
 
-            if (version == ProtocolVersion.V1)
-            {
-                CBUtil.writeValueList(msg.options.getValues(), dest);
-                CBUtil.writeConsistencyLevel(msg.options.getConsistency(), dest);
-            }
-            else
-            {
-                DefaultQueryOptions.codec.encode(msg.options, dest, version);
-            }
+          if (version == ProtocolVersion.V1) {
+            CBUtil.writeValueList(msg.options.getValues(), dest);
+            CBUtil.writeConsistencyLevel(msg.options.getConsistency(), dest);
+          } else {
+            DefaultQueryOptions.codec.encode(msg.options, dest, version);
+          }
         }
 
-        public int encodedSize(ExecuteMessage msg, ProtocolVersion version)
-        {
-            int size = 0;
-            size += CBUtil.sizeOfBytes(msg.statementId.bytes);
+        public int encodedSize(ExecuteMessage msg, ProtocolVersion version) {
+          int size = 0;
+          size += CBUtil.sizeOfBytes(msg.statementId.bytes);
 
-            if (version.isGreaterOrEqualTo(ProtocolVersion.V5))
-                size += CBUtil.sizeOfBytes(msg.resultMetadataId.bytes);
+          if (version.isGreaterOrEqualTo(ProtocolVersion.V5))
+            size += CBUtil.sizeOfBytes(msg.resultMetadataId.bytes);
 
-            if (version == ProtocolVersion.V1)
-            {
-                size += CBUtil.sizeOfValueList(msg.options.getValues());
-                size += CBUtil.sizeOfConsistencyLevel(msg.options.getConsistency());
-            }
-            else
-            {
-                size += DefaultQueryOptions.codec.encodedSize(msg.options, version);
-            }
-            return size;
+          if (version == ProtocolVersion.V1) {
+            size += CBUtil.sizeOfValueList(msg.options.getValues());
+            size += CBUtil.sizeOfConsistencyLevel(msg.options.getConsistency());
+          } else {
+            size += DefaultQueryOptions.codec.encodedSize(msg.options, version);
+          }
+          return size;
         }
-    };
+      };
 
-    public final MD5Digest statementId;
-    public final MD5Digest resultMetadataId;
-    public final QueryOptions options;
+  public final MD5Digest statementId;
+  public final MD5Digest resultMetadataId;
+  public final QueryOptions options;
 
-    public ExecuteMessage(MD5Digest statementId, MD5Digest resultMetadataId, QueryOptions options)
-    {
-        super(Message.Type.EXECUTE);
-        this.statementId = statementId;
-        this.options = options;
-        this.resultMetadataId = resultMetadataId;
-    }
+  public ExecuteMessage(MD5Digest statementId, MD5Digest resultMetadataId, QueryOptions options) {
+    super(Message.Type.EXECUTE);
+    this.statementId = statementId;
+    this.options = options;
+    this.resultMetadataId = resultMetadataId;
+  }
 
-    @Override
-    protected CompletableFuture<? extends Response> execute(Persistence persistence, QueryState state, long queryStartNanoTime)
-    {
-        CompletableFuture<? extends Result> future = persistence.execute(statementId, state, options, getCustomPayload(), isTracingRequested(), queryStartNanoTime);
-        return SchemaAgreement
-                .maybeWaitForAgreement(future, persistence)
-                .thenApply(result -> new ResultMessage(result));
-    }
+  @Override
+  protected CompletableFuture<? extends Response> execute(
+      Persistence persistence, QueryState state, long queryStartNanoTime) {
+    CompletableFuture<? extends Result> future =
+        persistence.execute(
+            statementId,
+            state,
+            options,
+            getCustomPayload(),
+            isTracingRequested(),
+            queryStartNanoTime);
+    return SchemaAgreement.maybeWaitForAgreement(future, persistence)
+        .thenApply(result -> new ResultMessage(result));
+  }
 
-    @Override
-    public String toString()
-    {
-        return String.format("EXECUTE %s with %d values at consistency %s", statementId, options.getValues().size(), options.getConsistency());
-    }
+  @Override
+  public String toString() {
+    return String.format(
+        "EXECUTE %s with %d values at consistency %s",
+        statementId, options.getValues().size(), options.getConsistency());
+  }
 }

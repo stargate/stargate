@@ -17,42 +17,36 @@
  */
 package org.apache.cassandra.stargate.transport.internal;
 
+import com.google.common.collect.ImmutableMap;
 import java.net.InetAddress;
 import java.util.Map;
-
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 
-import com.google.common.collect.ImmutableMap;
+public final class ClientStat {
+  public static final String INET_ADDRESS = "inetAddress";
+  public static final String PROTOCOL_VERSION = "protocolVersion";
+  public static final String LAST_SEEN_TIME = "lastSeenTime";
 
-public final class ClientStat
-{
-    public static final String INET_ADDRESS = "inetAddress";
-    public static final String PROTOCOL_VERSION = "protocolVersion";
-    public static final String LAST_SEEN_TIME = "lastSeenTime";
+  final InetAddress remoteAddress;
+  final ProtocolVersion protocolVersion;
+  final long lastSeenTime;
 
-    final InetAddress remoteAddress;
-    final ProtocolVersion protocolVersion;
-    final long lastSeenTime;
+  ClientStat(InetAddress remoteAddress, ProtocolVersion protocolVersion, long lastSeenTime) {
+    this.remoteAddress = remoteAddress;
+    this.lastSeenTime = lastSeenTime;
+    this.protocolVersion = protocolVersion;
+  }
 
-    ClientStat(InetAddress remoteAddress, ProtocolVersion protocolVersion, long lastSeenTime)
-    {
-        this.remoteAddress = remoteAddress;
-        this.lastSeenTime = lastSeenTime;
-        this.protocolVersion = protocolVersion;
-    }
+  @Override
+  public String toString() {
+    return String.format("ClientStat{%s, %s, %d}", remoteAddress, protocolVersion, lastSeenTime);
+  }
 
-    @Override
-    public String toString()
-    {
-        return String.format("ClientStat{%s, %s, %d}", remoteAddress, protocolVersion, lastSeenTime);
-    }
-
-    public Map<String, String> asMap()
-    {
-        return ImmutableMap.<String, String>builder()
-                           .put(INET_ADDRESS, remoteAddress.toString())
-                           .put(PROTOCOL_VERSION, protocolVersion.toString())
-                           .put(LAST_SEEN_TIME, String.valueOf(lastSeenTime))
-                           .build();
-    }
+  public Map<String, String> asMap() {
+    return ImmutableMap.<String, String>builder()
+        .put(INET_ADDRESS, remoteAddress.toString())
+        .put(PROTOCOL_VERSION, protocolVersion.toString())
+        .put(LAST_SEEN_TIME, String.valueOf(lastSeenTime))
+        .build();
+  }
 }

@@ -1,14 +1,5 @@
 package io.stargate.health.metrics.impl;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.ConcurrentMap;
-
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
@@ -19,6 +10,14 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.MetricRegistryListener;
 import com.codahale.metrics.MetricSet;
 import com.codahale.metrics.Timer;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Wraps an existing registry to prefix every new metric with a given string on the fly.

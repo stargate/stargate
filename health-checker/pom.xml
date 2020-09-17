@@ -1,23 +1,18 @@
-<?xml version="1.0"?>
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
   <!-- inherit common settings -->
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
     <version>0.0.6-SNAPSHOT</version>
   </parent>
-
   <groupId>io.stargate.health</groupId>
   <artifactId>health-checker</artifactId>
-
   <properties>
     <jettyVersion>9.4.24.v20191120</jettyVersion>
     <dropwizard.version>2.0.10</dropwizard.version>
   </properties>
-
   <dependencies>
     <dependency>
       <groupId>io.stargate.db</groupId>
@@ -46,7 +41,6 @@
       <artifactId>json-simple</artifactId>
       <version>1.1</version>
     </dependency>
-
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>javax.servlet-api</artifactId>
@@ -138,7 +132,6 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <plugin>
@@ -152,7 +145,7 @@
             <Bundle-SymbolicName>io.stargate.health</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.health.HealthCheckerActivator</Bundle-Activator>
             <Embed-Transitive>true</Embed-Transitive>
-            <Import-Package>
+            <Import-Package><![CDATA[
               !org.eclipse.jetty.http,
               !org.eclipse.jetty.http.pathmap,
               !com.sun.nio.file,
@@ -182,11 +175,11 @@
               !ch.qos.logback.core.*,
               !io.dropwizard.logging,
               org.osgi.framework
-            </Import-Package>
-            <Export-Package>
+            ]]></Import-Package>
+            <Export-Package><![CDATA[
               io.stargate.health.metrics.api,
               com.codahale.metrics
-            </Export-Package>
+            ]]></Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
           </instructions>

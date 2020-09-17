@@ -1,15 +1,14 @@
 package io.stargate.health;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.text.MessageFormat;
-
 import com.codahale.metrics.servlets.AdminServlet;
 import com.codahale.metrics.servlets.CpuProfileServlet;
 import com.codahale.metrics.servlets.HealthCheckServlet;
 import com.codahale.metrics.servlets.PingServlet;
 import com.codahale.metrics.servlets.ThreadDumpServlet;
 import io.prometheus.client.exporter.MetricsServlet;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.text.MessageFormat;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;

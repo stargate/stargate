@@ -24,8 +24,7 @@ public class ClusteringExpression {
 
   @JsonCreator
   public ClusteringExpression(
-          @JsonProperty("name") String column,
-          @JsonProperty("order") String order) {
+      @JsonProperty("name") String column, @JsonProperty("order") String order) {
     this.column = column;
     this.order = order;
   }

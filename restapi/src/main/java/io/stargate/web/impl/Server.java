@@ -15,26 +15,17 @@
  */
 package io.stargate.web.impl;
 
-import io.dropwizard.cli.Cli;
-import io.dropwizard.util.JarLocation;
-import io.stargate.health.metrics.api.Metrics;
-import javax.servlet.DispatcherType;
-import javax.servlet.FilterRegistration;
-import java.util.EnumSet;
-
-import org.eclipse.jetty.servlets.CrossOriginFilter;
-import org.glassfish.hk2.utilities.binding.AbstractBinder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.dropwizard.Application;
+import io.dropwizard.cli.Cli;
 import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import io.dropwizard.util.JarLocation;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
+import io.stargate.health.metrics.api.Metrics;
 import io.stargate.web.config.ApplicationConfiguration;
 import io.stargate.web.resources.ColumnResource;
 import io.stargate.web.resources.Db;
@@ -46,79 +37,93 @@ import io.stargate.web.resources.v2.RowsResource;
 import io.stargate.web.resources.v2.schemas.ColumnsResource;
 import io.stargate.web.resources.v2.schemas.KeyspacesResource;
 import io.stargate.web.resources.v2.schemas.TablesResource;
+import java.util.EnumSet;
+import javax.servlet.DispatcherType;
+import javax.servlet.FilterRegistration;
+import org.eclipse.jetty.servlets.CrossOriginFilter;
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Server extends Application<ApplicationConfiguration> {
-    private static final Logger logger = LoggerFactory.getLogger(Server.class);
+  private static final Logger logger = LoggerFactory.getLogger(Server.class);
 
-    Persistence persistence;
-    AuthenticationService authenticationService;
-    private final Metrics metrics;
+  Persistence persistence;
+  AuthenticationService authenticationService;
+  private final Metrics metrics;
 
-    public Server(Persistence persistence, AuthenticationService authenticationService, Metrics metrics) {
-        this.persistence = persistence;
-        this.authenticationService = authenticationService;
-        this.metrics = metrics;
-    }
+  public Server(
+      Persistence persistence, AuthenticationService authenticationService, Metrics metrics) {
+    this.persistence = persistence;
+    this.authenticationService = authenticationService;
+    this.metrics = metrics;
+  }
 
-    /**
-     * The only reason we override this is to remove the call to {@code bootstrap.registerMetrics()}.
-     *
-     * JVM metrics are registered once at the top level in the health-checker module.
-     */
-    @Override
-    public void run(String... arguments) {
-        final Bootstrap<ApplicationConfiguration> bootstrap = new Bootstrap<>(this);
-        addDefaultCommands(bootstrap);
-        initialize(bootstrap);
+  /**
+   * The only reason we override this is to remove the call to {@code bootstrap.registerMetrics()}.
+   *
+   * <p>JVM metrics are registered once at the top level in the health-checker module.
+   */
+  @Override
+  public void run(String... arguments) {
+    final Bootstrap<ApplicationConfiguration> bootstrap = new Bootstrap<>(this);
+    addDefaultCommands(bootstrap);
+    initialize(bootstrap);
 
-        final Cli cli = new Cli(new JarLocation(getClass()), bootstrap, System.out, System.err);
-        // only exit if there's an error running the command
-        cli.run(arguments).ifPresent(this::onFatalError);
-    }
+    final Cli cli = new Cli(new JarLocation(getClass()), bootstrap, System.out, System.err);
+    // only exit if there's an error running the command
+    cli.run(arguments).ifPresent(this::onFatalError);
+  }
 
-    @Override
-    public void run(final ApplicationConfiguration applicationConfiguration, final Environment environment) {
-        final Db db = new Db(persistence, authenticationService);
+  @Override
+  public void run(
+      final ApplicationConfiguration applicationConfiguration, final Environment environment) {
+    final Db db = new Db(persistence, authenticationService);
 
-        environment.getObjectMapper().configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-        environment.getObjectMapper().registerModule(new JavaTimeModule());
+    environment.getObjectMapper().configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+    environment.getObjectMapper().registerModule(new JavaTimeModule());
 
-        environment.jersey().register(new AbstractBinder() {
-            @Override
-            protected void configure() {
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
                 bind(db).to(Db.class);
-            }
-        });
-        environment.jersey().register(KeyspaceResource.class);
-        environment.jersey().register(TableResource.class);
-        environment.jersey().register(RowResource.class);
-        environment.jersey().register(ColumnResource.class);
-        environment.jersey().register(HealthResource.class);
-        environment.jersey().register(RowsResource.class);
-        environment.jersey().register(TablesResource.class);
-        environment.jersey().register(KeyspacesResource.class);
-        environment.jersey().register(ColumnsResource.class);
+              }
+            });
+    environment.jersey().register(KeyspaceResource.class);
+    environment.jersey().register(TableResource.class);
+    environment.jersey().register(RowResource.class);
+    environment.jersey().register(ColumnResource.class);
+    environment.jersey().register(HealthResource.class);
+    environment.jersey().register(RowsResource.class);
+    environment.jersey().register(TablesResource.class);
+    environment.jersey().register(KeyspacesResource.class);
+    environment.jersey().register(ColumnsResource.class);
 
-        enableCors(environment);
-    }
+    enableCors(environment);
+  }
 
-    @Override
-    public void initialize(final Bootstrap<ApplicationConfiguration> bootstrap) {
-        super.initialize(bootstrap);
-        bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
-        bootstrap.setMetricRegistry(metrics.getRegistry("restapi"));
-    }
+  @Override
+  public void initialize(final Bootstrap<ApplicationConfiguration> bootstrap) {
+    super.initialize(bootstrap);
+    bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
+    bootstrap.setMetricRegistry(metrics.getRegistry("restapi"));
+  }
 
-    private void enableCors(Environment environment) {
-        FilterRegistration.Dynamic filter = environment.servlets().addFilter("cors", CrossOriginFilter.class);
+  private void enableCors(Environment environment) {
+    FilterRegistration.Dynamic filter =
+        environment.servlets().addFilter("cors", CrossOriginFilter.class);
 
-        filter.setInitParameter(CrossOriginFilter.ALLOWED_METHODS_PARAM, "POST,GET,OPTIONS,PUT,DELETE,PATCH");
-        filter.setInitParameter(CrossOriginFilter.ALLOWED_ORIGINS_PARAM, "*");
-        filter.setInitParameter(CrossOriginFilter.ACCESS_CONTROL_ALLOW_ORIGIN_HEADER, "*");
-        filter.setInitParameter(CrossOriginFilter.ALLOWED_HEADERS_PARAM, "*");
-        filter.setInitParameter(CrossOriginFilter.ALLOW_CREDENTIALS_PARAM, "true");
-        filter.setInitParameter(CrossOriginFilter.EXPOSED_HEADERS_PARAM, "Date");
+    filter.setInitParameter(
+        CrossOriginFilter.ALLOWED_METHODS_PARAM, "POST,GET,OPTIONS,PUT,DELETE,PATCH");
+    filter.setInitParameter(CrossOriginFilter.ALLOWED_ORIGINS_PARAM, "*");
+    filter.setInitParameter(CrossOriginFilter.ACCESS_CONTROL_ALLOW_ORIGIN_HEADER, "*");
+    filter.setInitParameter(CrossOriginFilter.ALLOWED_HEADERS_PARAM, "*");
+    filter.setInitParameter(CrossOriginFilter.ALLOW_CREDENTIALS_PARAM, "true");
+    filter.setInitParameter(CrossOriginFilter.EXPOSED_HEADERS_PARAM, "Date");
 
-        filter.addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), true, "/*");
-    }
+    filter.addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), true, "/*");
+  }
 }
