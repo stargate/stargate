@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -40,6 +39,7 @@ import net.bytebuddy.implementation.bind.annotation.AllArguments;
 import net.bytebuddy.implementation.bind.annotation.Origin;
 import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 import net.bytebuddy.matcher.ElementMatchers;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.runners.Parameterized;
 import org.objenesis.Objenesis;
@@ -331,7 +331,7 @@ public class BaseOsgiIntegrationTest {
             + dockerImage
             + " on address: "
             + cassandraListenAddress
-            + "and skipHostNetworking: "
+            + " and skipHostNetworking: "
             + skipHostNetworking);
 
     GenericContainer backend;
@@ -383,7 +383,7 @@ public class BaseOsgiIntegrationTest {
 
   @Before
   public void baseSetup() throws BundleException, InterruptedException, IOException {
-    String cassandraListenAddress = "127.0.0." + new Random().nextInt(199);
+    String cassandraListenAddress = "127.0.0.2";
 
     if (backendContainer != null && !backendContainer.getDockerImageName().equals(dockerImage)) {
       logger.info("Docker image changed {} {}", dockerImage, backendContainer.getDockerImageName());
@@ -474,16 +474,16 @@ public class BaseOsgiIntegrationTest {
     }
   }
 
-  //  @AfterClass
-  //  public static void cleanup() throws BundleException, InterruptedException {
-  //    logger.info("stop stargate instances and cassandra container");
-  //    for (Starter stargateStarter : stargateStarters) {
-  //      stargateStarter.stop();
-  //    }
-  //    if (backendContainer != null) {
-  //      backendContainer.stop();
-  //    }
-  //    backendContainer = null;
-  //    stargateStarters = new ArrayList<>();
-  //  }
+  @AfterClass
+  public static void cleanup() throws BundleException, InterruptedException {
+    logger.info("stop stargate instances and cassandra container");
+    for (Starter stargateStarter : stargateStarters) {
+      stargateStarter.stop();
+    }
+    if (backendContainer != null) {
+      backendContainer.stop();
+    }
+    backendContainer = null;
+    stargateStarters = new ArrayList<>();
+  }
 }
