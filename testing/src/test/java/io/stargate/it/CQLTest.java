@@ -41,7 +41,6 @@ import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.TupleType;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.internal.core.loadbalancing.DcInferringLoadBalancingPolicy;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -162,13 +161,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     Iterator<Row> rows = rs.iterator();
     assertThat(rows).hasNext();
     assertThat(rows.next().getInetAddress("listen_address"))
-        .isEqualTo(InetAddress.getByName(getStargateHost()));
-  }
-
-  @Test
-  public void querySystemPeers() {
-    ResultSet rs = session.execute("SELECT * FROM system.peers");
-    assertThat(rs.all()).isEmpty();
+        .isEqualTo(getStargateInetSocketAddresses());
   }
 
   @Test
@@ -287,8 +280,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     assertThat(rs.getExecutionInfo().getTracingId()).isNotNull();
 
     QueryTrace trace = rs.getExecutionInfo().getQueryTrace();
-    assertThat(trace.getCoordinatorAddress().getAddress())
-        .isEqualTo(InetAddress.getByName(getStargateHost()));
+    assertThat(trace.getCoordinatorAddress().getAddress()).isIn(getStargateInetSocketAddresses());
     assertThat(trace.getRequestType()).isEqualTo("Execute CQL3 query");
     assertThat(trace.getEvents()).isNotEmpty();
   }
@@ -303,8 +295,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     assertThat(rs.getExecutionInfo().getTracingId()).isNotNull();
 
     QueryTrace trace = rs.getExecutionInfo().getQueryTrace();
-    assertThat(trace.getCoordinatorAddress().getAddress())
-        .isEqualTo(InetAddress.getByName(getStargateHost()));
+    assertThat(trace.getCoordinatorAddress().getAddress()).isIn(getStargateInetSocketAddresses());
     assertThat(trace.getRequestType()).isEqualTo("Execute CQL3 prepared query");
     assertThat(trace.getEvents()).isNotEmpty();
   }
@@ -327,8 +318,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
     ResultSet rs = session.execute(batch);
     QueryTrace trace = rs.getExecutionInfo().getQueryTrace();
-    assertThat(trace.getCoordinatorAddress().getAddress())
-        .isEqualTo(InetAddress.getByName(getStargateHost()));
+    assertThat(trace.getCoordinatorAddress().getAddress()).isIn(getStargateInetSocketAddresses());
     assertThat(trace.getRequestType()).isEqualTo("Execute batch of CQL3 queries");
     assertThat(trace.getEvents()).isNotEmpty();
   }

@@ -20,9 +20,12 @@ import io.stargate.starter.Starter;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.net.UnknownHostException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -119,6 +122,13 @@ public class BaseOsgiIntegrationTest {
 
   public static List<String> getStargateHosts() {
     return stargateHosts;
+  }
+
+  public static List<InetAddress> getStargateInetSocketAddresses() throws UnknownHostException {
+    return Arrays.asList(
+        InetAddress.getByName(getStargateHost(0)),
+        InetAddress.getByName(getStargateHost(1)),
+        InetAddress.getByName(getStargateHost(2)));
   }
 
   @Parameterized.Parameters(name = "{index}: {0}")
@@ -382,8 +392,6 @@ public class BaseOsgiIntegrationTest {
 
   @Before
   public void baseSetup() throws BundleException, InterruptedException, IOException {
-    logger.info(
-        "baseSetup for: {} and number of stargate nodes: {}", dockerImage, numberOfStargateNodes);
     String cassandraListenAddress = "127.0.0.2";
 
     if (backendContainer != null && !backendContainer.getDockerImageName().equals(dockerImage)) {
@@ -487,17 +495,4 @@ public class BaseOsgiIntegrationTest {
       }
     }
   }
-
-  //  @AfterClass
-  //  public static void cleanup() throws BundleException, InterruptedException {
-  //    logger.info("stop stargate instances and cassandra container");
-  //    for (Starter stargateStarter : stargateStarters) {
-  //      stargateStarter.stop();
-  //    }
-  //    if (backendContainer != null) {
-  //      backendContainer.stop();
-  //    }
-  //    backendContainer = null;
-  //    stargateStarters = new ArrayList<>();
-  //  }
 }
