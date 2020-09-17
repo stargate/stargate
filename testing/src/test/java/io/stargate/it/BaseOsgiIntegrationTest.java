@@ -330,7 +330,9 @@ public class BaseOsgiIntegrationTest {
         "Staring cassandraContainer for: "
             + dockerImage
             + " on address: "
-            + cassandraListenAddress);
+            + cassandraListenAddress
+            + "and skipHostNetworking: "
+            + skipHostNetworking);
 
     GenericContainer backend;
     if (skipHostNetworking) {
@@ -449,7 +451,7 @@ public class BaseOsgiIntegrationTest {
       }
       logger.info("Starting: {} stargate nodes", numberOfStargateNodes);
       for (int i = 0; i < numberOfStargateNodes; i++) {
-        logger.info("Starting node nr: {}", i);
+        logger.info("Starting node nr: {} for seedHost:seedPort = {}:{}", i, seedHost, seedPort);
         // Start stargate and get the persistence object
         Starter starter =
             new Starter(
