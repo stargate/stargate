@@ -4,6 +4,7 @@ import static io.stargate.db.cassandra.datastore.InternalDataStore.EXECUTOR;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Uninterruptibles;
 import io.stargate.db.Authenticator;
 import io.stargate.db.BatchType;
 import io.stargate.db.ClientState;
@@ -13,6 +14,8 @@ import io.stargate.db.QueryOptions;
 import io.stargate.db.QueryState;
 import io.stargate.db.Result;
 import io.stargate.db.cassandra.datastore.InternalDataStore;
+import io.stargate.db.cassandra.impl.interceptors.DefaultQueryInterceptor;
+import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.common.util.SchemaTool;
 import java.io.IOException;
@@ -25,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.cassandra.audit.AuditLogManager;
 import org.apache.cassandra.auth.AuthenticatedUser;
@@ -39,6 +43,7 @@ import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.VariableSpecifications;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.cql3.statements.ModificationStatement;
+import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.schema.Schema;
 import org.apache.cassandra.service.CassandraDaemon;
@@ -66,6 +71,7 @@ public class CassandraPersistence
   private CassandraDaemon daemon;
   private Authenticator authenticator;
   private QueryHandler handler;
+  private QueryInterceptor interceptor;
 
   @Override
   public String name() {
@@ -85,16 +91,20 @@ public class CassandraPersistence
       throw new RuntimeException("Unable to start Cassandra persistence layer", e);
     }
 
-    Schema.instance.load(StargateSystemKeyspace.metadata());
+    // Use special gossip state "X10" to differentiate stargate nodes
+    Gossiper.instance.addLocalApplicationState(
+        ApplicationState.X10, StorageService.instance.valueFactory.releaseVersion("stargate"));
 
     daemon.start();
+
+    waitForSchema(StorageService.RING_DELAY);
 
     root = new InternalDataStore();
     authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
     handler = org.apache.cassandra.service.ClientState.getCQLQueryHandler();
+    interceptor = new DefaultQueryInterceptor();
 
-    Gossiper.instance.register(new StargateSystemKeyspace.PeersUpdater());
-    StargateSystemKeyspace.persistLocalMetadata();
+    interceptor.initialize();
   }
 
   @Override
@@ -109,8 +119,8 @@ public class CassandraPersistence
   @Override
   public void registerEventListener(EventListener listener) {
     EventListenerWrapper wrapper = new EventListenerWrapper(listener);
-    StorageService.instance.register(wrapper);
     Schema.instance.registerListener(wrapper);
+    interceptor.register(wrapper);
   }
 
   @Override
@@ -204,15 +214,19 @@ public class CassandraPersistence
 
             CQLStatement statement =
                 QueryProcessor.parseStatement(cql, Conversion.toInternal(state.getClientState()));
-            if (!StargateSystemKeyspace.maybeCompleteSystemLocalOrPeers(
-                statement, internalState, internalOptions, queryStartNanoTime, future)) {
-              future.complete(
+
+            Result result =
+                interceptor.interceptQuery(
+                    handler, statement, state, options, customPayload, queryStartNanoTime);
+            if (result == null) {
+              result =
                   Conversion.toResult(
-                          QueryProcessor.instance.processStatement(
-                              statement, internalState, internalOptions, queryStartNanoTime),
-                          version)
-                      .setTracingId(tracingId));
+                      QueryProcessor.instance.processStatement(
+                          statement, internalState, internalOptions, queryStartNanoTime),
+                      internalOptions.getProtocolVersion());
             }
+
+            future.complete(result.setTracingId(tracingId));
           } catch (Throwable t) {
             Conversion.handleException(future, t);
           } finally {
@@ -255,19 +269,18 @@ public class CassandraPersistence
 
             if (shouldTrace) beginTraceExecute(prepared, state, options, version);
 
-            if (!StargateSystemKeyspace.maybeCompleteSystemLocalOrPeers(
-                statement, internalState, internalOptions, queryStartNanoTime, future)) {
-              future.complete(
+            Result result =
+                interceptor.interceptQuery(
+                    handler, statement, state, options, customPayload, queryStartNanoTime);
+            if (result == null) {
+              result =
                   Conversion.toResult(
-                          handler.processPrepared(
-                              statement,
-                              internalState,
-                              internalOptions,
-                              customPayload,
-                              queryStartNanoTime),
-                          version)
-                      .setTracingId(tracingId));
+                      QueryProcessor.instance.processPrepared(
+                          statement, internalState, internalOptions, queryStartNanoTime),
+                      internalOptions.getProtocolVersion());
             }
+
+            future.complete(result.setTracingId(tracingId));
           } catch (Throwable t) {
             Conversion.handleException(future, t);
           } finally {
@@ -528,5 +541,22 @@ public class CassandraPersistence
     // support.
     Tracing.instance.begin(
         "Execute batch of CQL3 queries", state.getClientAddress(), builder.build());
+  }
+
+  /**
+   * When "cassandra.join_ring" is "false" {@link StorageService#initServer()} will not wait for
+   * schema to propagate to the coordinator only node. This method fixes that limitation by waiting
+   * for at least one backend ring member to become available and for their schemas to agree before
+   * allowing initialization to continue.
+   */
+  private void waitForSchema(int delay) {
+    for (int i = 0; i < delay; i += 1000) {
+      if (Gossiper.instance.getLiveTokenOwners().size() > 0 && isInSchemaAgreement()) {
+        logger.debug("current schema version: {}", Schema.instance.getVersion());
+        break;
+      }
+
+      Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+    }
   }
 }

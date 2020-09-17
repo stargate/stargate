@@ -9,7 +9,7 @@ import io.stargate.db.Result;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.schema.Column;
 import io.stargate.db.datastore.schema.ImmutableColumn;
-import io.stargate.db.dse.datastax.DataStoreUtil;
+import io.stargate.db.dse.datastore.DataStoreUtil;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -298,7 +298,7 @@ public class Conversion {
     ResultMessage.SchemaChange schemaChange = (ResultMessage.SchemaChange) resultMessage;
     Event.SchemaChange change = schemaChange.change;
     return new Result.SchemaChangeMetadata(
-        change.target.toString(),
+        change.change.toString(),
         change.target.toString(),
         change.keyspace,
         change.name,

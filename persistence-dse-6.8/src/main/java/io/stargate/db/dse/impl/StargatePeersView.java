@@ -1,12 +1,13 @@
 package io.stargate.db.dse.impl;
 
 import com.datastax.bdp.db.nodes.virtual.NodesSystemViews;
-import com.datastax.bdp.db.nodes.virtual.PeersSystemView;
 import org.apache.cassandra.db.virtual.DataSet;
 
 public class StargatePeersView extends StargateNodeView {
   StargatePeersView() {
-    super(NodesSystemViews.virtualFromLegacy(NodesSystemViews.Peers, PeersSystemView.NAME));
+    super(
+        StargateSystemKeyspace.virtualFromLegacy(
+            NodesSystemViews.Peers, StargateSystemKeyspace.PEERS_TABLE_NAME));
   }
 
   @Override
