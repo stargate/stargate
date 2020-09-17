@@ -290,6 +290,7 @@ public class Starter {
     System.setProperty("stargate.developer_mode", String.valueOf(developerMode));
     System.setProperty("stargate.bind_to_listen_address", String.valueOf(bindToListenAddressOnly));
     System.setProperty("cassandra.jmx.remote.port", String.valueOf(jmxPort));
+    System.setProperty("cassandra.jmx.local.port", String.valueOf(jmxPort));
     System.setProperty("stargate.dynamic_snitch", String.valueOf(dynamicSnitch));
 
     if (bindToListenAddressOnly) {
