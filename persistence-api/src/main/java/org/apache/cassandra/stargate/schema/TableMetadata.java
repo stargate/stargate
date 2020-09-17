@@ -1,5 +1,6 @@
 package org.apache.cassandra.stargate.schema;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -11,4 +12,15 @@ import java.util.UUID;
 public interface TableMetadata {
   /** Gets the table id. */
   UUID getId();
+
+  String getKeyspace();
+
+  String getName();
+
+  List<ColumnMetadata> getPartitionKeys();
+
+  List<ColumnMetadata> getClusteringKeys();
+
+  /** A collection of static and regular columns. */
+  List<ColumnMetadata> getColumns();
 }
