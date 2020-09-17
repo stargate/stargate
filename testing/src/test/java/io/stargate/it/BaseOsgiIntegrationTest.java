@@ -98,8 +98,6 @@ public class BaseOsgiIntegrationTest {
 
   static String rack;
 
-  private static final String CASSANDRA_LISTEN_ADDRESS = "127.0.0." + new Random().nextInt(199);
-
   @Parameterized.Parameter(0)
   public String dockerImage;
 
@@ -325,7 +323,8 @@ public class BaseOsgiIntegrationTest {
   }
 
   /** Starts a docker backend for the persistance layer */
-  GenericContainer startBackend() throws IOException, InterruptedException {
+  GenericContainer startBackend(String cassandraListenAddress)
+      throws IOException, InterruptedException {
     boolean skipHostNetworking = Boolean.getBoolean(SKIP_HOST_NETWORKING_FLAG);
     logger.info("Staring cassandraContainer for: " + dockerImage);
 
@@ -348,8 +347,8 @@ public class BaseOsgiIntegrationTest {
                   Wait.forLogMessage(".*Starting listening for CQL clients.*", 1)
                       .withStartupTimeout(java.time.Duration.of(120, ChronoUnit.SECONDS)))
               .withNetworkMode("host")
-              .withEnv("LISTEN_ADDRESS", CASSANDRA_LISTEN_ADDRESS)
-              .withEnv("CASSANDRA_LISTEN_ADDRESS", CASSANDRA_LISTEN_ADDRESS);
+              .withEnv("LISTEN_ADDRESS", cassandraListenAddress)
+              .withEnv("CASSANDRA_LISTEN_ADDRESS", cassandraListenAddress);
     }
 
     backend.start();
@@ -378,6 +377,8 @@ public class BaseOsgiIntegrationTest {
 
   @Before
   public void baseSetup() throws BundleException, InterruptedException, IOException {
+    String cassandraListenAddress = "127.0.0." + new Random().nextInt(199);
+
     if (backendContainer != null && !backendContainer.getDockerImageName().equals(dockerImage)) {
       logger.info("Docker image changed {} {}", dockerImage, backendContainer.getDockerImageName());
 
@@ -392,7 +393,7 @@ public class BaseOsgiIntegrationTest {
     }
 
     if (backendContainer == null) {
-      backendContainer = startBackend();
+      backendContainer = startBackend(cassandraListenAddress);
 
       if (isDse) {
         datacenter = "dc1";
@@ -405,7 +406,7 @@ public class BaseOsgiIntegrationTest {
       for (int i = 0; i < numberOfStargateNodes; i++) {
         stargateHosts.add("127.0.0.20" + i);
       }
-      String seedHost = CASSANDRA_LISTEN_ADDRESS;
+      String seedHost = cassandraListenAddress;
       Integer seedPort = 7000;
       // This logic only works with C* >= 4.0
       if (Boolean.getBoolean(SKIP_HOST_NETWORKING_FLAG)) {
