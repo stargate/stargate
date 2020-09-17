@@ -31,7 +31,6 @@ import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.internal.core.type.codec.registry.DefaultCodecRegistry;
 import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -77,7 +76,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
   public static final Column STAR = reference("*");
   public static final Column TTL = Column.create("[ttl]", Type.Int);
 
-  public interface ColumnType extends Serializable {
+  public interface ColumnType extends java.io.Serializable {
     AttachmentPoint CUSTOM_ATTACHMENT_POINT =
         new AttachmentPoint() {
 

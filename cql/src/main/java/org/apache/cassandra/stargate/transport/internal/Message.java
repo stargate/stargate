@@ -636,7 +636,7 @@ public abstract class Message {
                   request
                       .getSourceFrame()
                       .release(); // ok to release since flush was the last call and does not throw
-                                  // after adding the item to the queue
+                  // after adding the item to the queue
                   // JVMStabilityInspector.inspectThrowable(t); // TODO
                   logger.error(
                       "Failed to reply, got another error whilst writing reply: {}",
@@ -676,7 +676,7 @@ public abstract class Message {
         request
             .getSourceFrame()
             .release(); // ok to release since flush was the last call and does not throw after
-                        // adding the item to the queue
+        // adding the item to the queue
         // JVMStabilityInspector.inspectThrowable(t); // TODO
         logger.error(
             "Failed to reply with error {}, got error whilst writing error reply: {}",
