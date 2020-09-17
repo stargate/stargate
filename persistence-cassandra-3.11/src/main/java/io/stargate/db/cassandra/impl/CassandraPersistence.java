@@ -120,8 +120,8 @@ public class CassandraPersistence
     root = new InternalDataStore();
     authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
     handler = org.apache.cassandra.service.ClientState.getCQLQueryHandler();
-
     interceptor = new DefaultQueryInterceptor();
+
     interceptor.initialize();
   }
 
