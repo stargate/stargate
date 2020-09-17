@@ -131,7 +131,7 @@ public class TablesResource {
     final PrimaryKey primaryKey = new PrimaryKey(partitionKey, clusteringKey);
     final int ttl =
         0; // TODO: [doug] 2020-09-1, Tue, 0:08 get this from schema (select default_time_to_live
-           // from tables;)
+    // from tables;)
     final TableOptions tableOptions = new TableOptions(ttl, clusteringExpression);
 
     return new TableResponse(

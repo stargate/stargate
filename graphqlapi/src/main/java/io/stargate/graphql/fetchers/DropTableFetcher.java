@@ -1,6 +1,5 @@
 package io.stargate.graphql.fetchers;
 
-
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import com.datastax.oss.driver.api.querybuilder.schema.Drop;
 import graphql.schema.DataFetcher;

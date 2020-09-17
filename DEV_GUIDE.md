@@ -1,3 +1,16 @@
+## Code conventions
+
+We use [google-java-format](https://github.com/google/google-java-format) for Java code, and
+[xml-format-maven-plugin](https://github.com/acegi/xml-format-maven-plugin) for XML.
+
+Both are integrated with Maven: the build will fail if some files are not formatted correctly.
+
+To fix formatting issues from the command line, run the following:
+
+```
+mvn xml-format:xml-format fmt:format
+```
+
 ## Building
 
 To build locally run the following:
