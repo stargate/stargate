@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -96,6 +97,8 @@ public class BaseOsgiIntegrationTest {
   private static List<String> stargateHosts = new ArrayList<>();
 
   static String rack;
+
+  private static final String CASSANDRA_LISTEN_ADDRESS = "127.0.0." + new Random().nextInt(199);
 
   @Parameterized.Parameter(0)
   public String dockerImage;
@@ -345,9 +348,8 @@ public class BaseOsgiIntegrationTest {
                   Wait.forLogMessage(".*Starting listening for CQL clients.*", 1)
                       .withStartupTimeout(java.time.Duration.of(120, ChronoUnit.SECONDS)))
               .withNetworkMode("host")
-              .withEnv("LISTEN_ADDRESS", "127.0.0.2")
-              .withEnv("CASSANDRA_LISTEN_ADDRESS", "127.0.0.2")
-              .withEnv("JMX_PORT", String.valueOf(new ServerSocket(0).getLocalPort()));
+              .withEnv("LISTEN_ADDRESS", CASSANDRA_LISTEN_ADDRESS)
+              .withEnv("CASSANDRA_LISTEN_ADDRESS", CASSANDRA_LISTEN_ADDRESS);
     }
 
     backend.start();
@@ -401,9 +403,9 @@ public class BaseOsgiIntegrationTest {
       }
 
       for (int i = 0; i < numberOfStargateNodes; i++) {
-        stargateHosts.add("127.0.0.1" + i);
+        stargateHosts.add("127.0.0.20" + i);
       }
-      String seedHost = "127.0.0.2";
+      String seedHost = CASSANDRA_LISTEN_ADDRESS;
       Integer seedPort = 7000;
       // This logic only works with C* >= 4.0
       if (Boolean.getBoolean(SKIP_HOST_NETWORKING_FLAG)) {
