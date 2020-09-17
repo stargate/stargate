@@ -1,22 +1,18 @@
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
   <!-- inherit common settings -->
   <parent>
     <groupId>io.stargate.persistence</groupId>
     <artifactId>persistence-extensions</artifactId>
     <version>0.0.2-SNAPSHOT</version>
   </parent>
-
   <groupId>io.stargate.db.dse</groupId>
   <artifactId>persistence-dse-6.8</artifactId>
-
   <properties>
     <dse.version>6.8.2-69139b3</dse.version>
     <junit.version>5.6.2</junit.version>
   </properties>
-
   <repositories>
     <repository>
       <id>central</id>
@@ -31,17 +27,16 @@
       <url>https://repo.datastax.com/datastax-releases-local</url>
     </repository>
   </repositories>
-
   <dependencies>
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-common</artifactId>
-      <version>0.0.6</version>
+      <version>0.0.7</version>
     </dependency>
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.6</version>
+      <version>0.0.7</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -71,7 +66,6 @@
         </exclusion>
       </exclusions>
     </dependency>
-
     <dependency>
       <groupId>com.datastax.dse</groupId>
       <artifactId>dse-commons</artifactId>
@@ -126,32 +120,31 @@
       <artifactId>javatuples</artifactId>
       <version>1.2</version>
     </dependency>
-        <dependency>
-        <groupId>org.junit.jupiter</groupId>
-        <artifactId>junit-jupiter</artifactId>
-        <version>${junit.version}</version>
-        <exclusions>
-            <exclusion>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-            </exclusion>
-        </exclusions>
-        <scope>test</scope>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+        </exclusion>
+      </exclusions>
+      <scope>test</scope>
     </dependency>
     <dependency>
-        <groupId>org.assertj</groupId>
-        <artifactId>assertj-core</artifactId>
-        <version>3.14.0</version>
-        <scope>test</scope>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>3.14.0</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
-        <groupId>com.datastax.dse</groupId>
-        <artifactId>dse-java-driver-core</artifactId>
-        <version>1.10.0-dse+20200217</version>
-        <scope>test</scope>
+      <groupId>com.datastax.dse</groupId>
+      <artifactId>dse-java-driver-core</artifactId>
+      <version>1.10.0-dse+20200217</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <plugin>
@@ -202,9 +195,7 @@
                   <groupId>org.gridkit.jvmtool</groupId>
                   <artifactId>sjk-core</artifactId>
                   <version>0.14</version>
-                  <outputDirectory>
-                    ${project.build.directory}/sjk-core
-                  </outputDirectory>
+                  <outputDirectory>${project.build.directory}/sjk-core</outputDirectory>
                 </artifactItem>
               </artifactItems>
             </configuration>
@@ -246,18 +237,8 @@
             <Bundle-Description>DSE DB component for project</Bundle-Description>
             <Bundle-SymbolicName>io.stargate.db.dse</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.db.dse.DsePersistenceActivator</Bundle-Activator>
-            <Import-Package>
-              org.osgi.framework,
-              io.stargate.db,
-              io.stargate.db.datastore,
-              io.stargate.db.datastore.schema,
-              io.stargate.db.datastore.query,
-              org.apache.cassandra.stargate,
-              !com.codahale.metrics.graphite.*
-            </Import-Package>
-            <Export-Package>
-              io.stargate.db.dse
-            </Export-Package>
+            <Import-Package>org.osgi.framework, io.stargate.db, io.stargate.db.datastore, io.stargate.db.datastore.schema, io.stargate.db.datastore.query, org.apache.cassandra.stargate, !com.codahale.metrics.graphite.*</Import-Package>
+            <Export-Package>io.stargate.db.dse</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
             <Bundle-ClassPath>.,sjk-core-0.14.jar,{maven-dependencies}</Bundle-ClassPath>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
