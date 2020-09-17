@@ -35,12 +35,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AuthTableBasedService implements AuthenticationService {
+
   private static final Logger logger = LoggerFactory.getLogger(AuthTableBasedService.class);
 
   private Persistence persistence;
   private DataStore dataStore;
-  private static final String AUTH_KEYSPACE = "data_endpoint_auth";
-  private static final String AUTH_TABLE = "token";
+  private static final String AUTH_KEYSPACE =
+      System.getProperty("stargate.auth_keyspace", "data_endpoint_auth");
+  private static final String AUTH_TABLE = System.getProperty("stargate.auth_table", "token");
   private static final int tokenTTL =
       Integer.parseInt(System.getProperty("stargate.auth_tokenttl", "1800"));
 
@@ -52,11 +54,16 @@ public class AuthTableBasedService implements AuthenticationService {
     this.persistence = persistence;
     this.dataStore = persistence.newDataStore(null, null);
 
-    initAuthTable(this.dataStore);
+    if (Boolean.parseBoolean(System.getProperty("stargate.auth_tablebased_init", "true"))) {
+      initAuthTable(this.dataStore);
+    }
   }
 
   private void initAuthTable(DataStore dataStore) {
     try {
+      logger.info(
+          "Initializing keyspace {} and table {} for table based auth", AUTH_KEYSPACE, AUTH_TABLE);
+
       dataStore
           .query(
               String.format(
