@@ -68,14 +68,7 @@ public class CqlActivator implements BundleActivator, ServiceListener {
         this.context = context;
         log.info("Starting CQL....");
         synchronized (cql) {
-            try {
-                String authFilter = String.format("(AuthIdentifier=%s)", AUTH_IDENTIFIER);
-                String persistenceFilter = String.format("(Identifier=%s)", PERSISTENCE_IDENTIFIER);
-                context.addServiceListener(this, String.format("(|%s%s)", persistenceFilter, authFilter));
-            } catch (InvalidSyntaxException ise) {
-                throw new RuntimeException(ise);
-            }
-
+            context.addServiceListener(this, String.format("(|(AuthIdentifier=%s)(Identifier=%s))", AUTH_IDENTIFIER, PERSISTENCE_IDENTIFIER));
 
             ServiceReference[] refs = context.getServiceReferences(AuthenticationService.class.getName(), null);
             if (refs != null) {

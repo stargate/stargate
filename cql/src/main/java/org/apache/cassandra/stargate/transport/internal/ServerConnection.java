@@ -137,13 +137,11 @@ public class ServerConnection extends Connection
     {
         if (saslNegotiator == null)
         {
+            saslNegotiator = persistence
+                    .getAuthenticator().newSaslNegotiator(queryState.getClientAddress(), certificates());
+
             if (authentication != null)
                 saslNegotiator = new PlainTextTokenSaslNegotiator(saslNegotiator, persistence, authentication);
-            else
-            {
-                saslNegotiator = persistence
-                        .getAuthenticator().newSaslNegotiator(queryState.getClientAddress(), certificates());
-            }
         }
         return saslNegotiator;
     }

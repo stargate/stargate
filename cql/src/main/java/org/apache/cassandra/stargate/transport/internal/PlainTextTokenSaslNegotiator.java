@@ -18,7 +18,7 @@ class PlainTextTokenSaslNegotiator implements Authenticator.SaslNegotiator
 {
     private static final Logger logger = LoggerFactory.getLogger(PlainTextTokenSaslNegotiator.class);
 
-    static final String TOKEN_USERNAME = System.getProperty("stargate.cql_token_username", "__token__");
+    static final String TOKEN_USERNAME = System.getProperty("stargate.cql_token_username", "token");
     static final int TOKEN_MAX_LENGTH = Integer.parseInt(System.getProperty("stargate.cql_token_max_length", "36"));
 
     static final byte NUL = 0;
@@ -26,7 +26,7 @@ class PlainTextTokenSaslNegotiator implements Authenticator.SaslNegotiator
     private final Persistence persistence;
     private final AuthenticationService authentication;
     private final Authenticator.SaslNegotiator wrapped;
-    StoredCredentials credentials;
+    private StoredCredentials credentials;
     private String username;
     private String password;
 
@@ -42,36 +42,9 @@ class PlainTextTokenSaslNegotiator implements Authenticator.SaslNegotiator
     @Override
     public byte[] evaluateResponse(byte[] clientResponse) throws AuthenticationException
     {
-        decodeCredentials(clientResponse);
-        if (username.equals(TOKEN_USERNAME))
-        {
-            try
-            {
-                logger.trace("Attempting to validate token");
-                if (password.length() > TOKEN_MAX_LENGTH)
-                {
-                    logger.error("Token was too long ({} characters)", password.length());
-                    invalidCredentials();
-                }
-
-                credentials = authentication.validateToken(password);
-                if (credentials == null)
-                {
-                    logger.error("Null credentials returned from authentication service");
-                    invalidCredentials();
-                }
-            }
-            catch (UnauthorizedException e)
-            {
-                logger.error("Unable to validate token", e);
-                invalidCredentials();
-            }
-        }
-        else
-        {
-            wrapped.evaluateResponse(clientResponse);
-        }
-        return null;
+        if (attemptTokenAuthentication(clientResponse))
+            return null;
+        return wrapped.evaluateResponse(clientResponse);
     }
 
     @Override
@@ -89,15 +62,47 @@ class PlainTextTokenSaslNegotiator implements Authenticator.SaslNegotiator
             return wrapped.getAuthenticatedUser();
     }
 
+    private boolean attemptTokenAuthentication(byte[] clientResponse)
+    {
+        try
+        {
+            decodeCredentials(clientResponse);
+
+            if (!username.equals(TOKEN_USERNAME))
+                return false;
+
+            logger.trace("Attempting to validate token");
+            if (password.length() > TOKEN_MAX_LENGTH)
+            {
+                logger.error("Token was too long ({} characters)", password.length());
+                return false;
+            }
+
+            credentials = authentication.validateToken(password);
+            if (credentials == null)
+            {
+                logger.error("Null credentials returned from authentication service");
+                return false;
+            }
+        }
+        catch (Exception e)
+        {
+            logger.error("Unable to validate token", e);
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * Copy of the private method:
      * org.apache.cassandra.auth.PasswordAuthenticator.PlainTextSaslAuthenticator#decodeCredentials(byte[]).
      *
      * @param bytes encoded credentials string sent by the client
-     * @throws org.apache.cassandra.exceptions.AuthenticationException if either the
+     * @throws AuthenticationException if either the
      *         authnId or password is null
      */
-    private void decodeCredentials(byte[] bytes) throws org.apache.cassandra.exceptions.AuthenticationException
+    private void decodeCredentials(byte[] bytes) throws AuthenticationException
     {
         logger.trace("Decoding credentials from client token");
         byte[] user = null;
@@ -112,23 +117,18 @@ class PlainTextTokenSaslNegotiator implements Authenticator.SaslNegotiator
                 else if (user == null)
                     user = Arrays.copyOfRange(bytes, i + 1, end);
                 else
-                    throw new org.apache.cassandra.exceptions.AuthenticationException("Credential format error: username or password is empty or contains NUL(\\0) character");
+                    throw new AuthenticationException("Credential format error: username or password is empty or contains NUL(\\0) character");
 
                 end = i;
             }
         }
 
         if (pass == null || pass.length == 0)
-            throw new org.apache.cassandra.exceptions.AuthenticationException("Password must not be null");
+            throw new AuthenticationException("Password must not be null");
         if (user == null || user.length == 0)
-            throw new org.apache.cassandra.exceptions.AuthenticationException("Authentication ID must not be null");
+            throw new AuthenticationException("Authentication ID must not be null");
 
         username = new String(user, StandardCharsets.UTF_8);
         password = new String(pass, StandardCharsets.UTF_8);
-    }
-
-    private void invalidCredentials()
-    {
-        throw new AuthenticationException(String.format("Provided username %s and/or password are incorrect", username));
     }
 }
