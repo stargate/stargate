@@ -15,15 +15,25 @@
  */
 package io.stargate.it.backends;
 
-import com.github.peterwippermann.junit4.parameterizedsuite.ParameterizedSuite;
-import java.util.Collections;
-import org.junit.runner.RunWith;
+import io.stargate.it.MultipleStargateInstancesTest;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Suite;
 
-@RunWith(ParameterizedSuite.class)
-public class Cassandra311Backend extends AllBackendSuite {
-  @Parameterized.Parameters(name = "{index}: {0}")
-  public static Iterable<Object[]> functions() {
-    return Collections.singletonList(new Object[] {"cassandra:3.11.6", false, "3.11", 1});
-  }
+/**
+ * Allows a suite of tests to run against a number of persistence backends. Each backend should
+ * extend this class.
+ */
+@Suite.SuiteClasses({MultipleStargateInstancesTest.class})
+public abstract class MultipleNodesBackendSuite {
+  @Parameterized.Parameter(0)
+  public String dockerImage;
+
+  @Parameterized.Parameter(1)
+  public Boolean isDse;
+
+  @Parameterized.Parameter(2)
+  public String version;
+
+  @Parameterized.Parameter(3)
+  public Integer numberOfStargateNodes;
 }
