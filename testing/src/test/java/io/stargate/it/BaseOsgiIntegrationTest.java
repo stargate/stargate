@@ -383,6 +383,8 @@ public class BaseOsgiIntegrationTest {
 
   @Before
   public void baseSetup() throws BundleException, InterruptedException, IOException {
+    logger.info(
+        "baseSetup for: {} and number of stargate nodes: {}", dockerImage, numberOfStargateNodes);
     String cassandraListenAddress = "127.0.0.2";
 
     if (backendContainer != null && !backendContainer.getDockerImageName().equals(dockerImage)) {
