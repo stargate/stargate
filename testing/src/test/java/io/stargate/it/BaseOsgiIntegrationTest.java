@@ -39,7 +39,6 @@ import net.bytebuddy.implementation.bind.annotation.AllArguments;
 import net.bytebuddy.implementation.bind.annotation.Origin;
 import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 import net.bytebuddy.matcher.ElementMatchers;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.runners.Parameterized;
 import org.objenesis.Objenesis;
@@ -476,16 +475,16 @@ public class BaseOsgiIntegrationTest {
     }
   }
 
-  @AfterClass
-  public static void cleanup() throws BundleException, InterruptedException {
-    logger.info("stop stargate instances and cassandra container");
-    for (Starter stargateStarter : stargateStarters) {
-      stargateStarter.stop();
-    }
-    if (backendContainer != null) {
-      backendContainer.stop();
-    }
-    backendContainer = null;
-    stargateStarters = new ArrayList<>();
-  }
+  //  @AfterClass
+  //  public static void cleanup() throws BundleException, InterruptedException {
+  //    logger.info("stop stargate instances and cassandra container");
+  //    for (Starter stargateStarter : stargateStarters) {
+  //      stargateStarter.stop();
+  //    }
+  //    if (backendContainer != null) {
+  //      backendContainer.stop();
+  //    }
+  //    backendContainer = null;
+  //    stargateStarters = new ArrayList<>();
+  //  }
 }
