@@ -326,7 +326,11 @@ public class BaseOsgiIntegrationTest {
   GenericContainer startBackend(String cassandraListenAddress)
       throws IOException, InterruptedException {
     boolean skipHostNetworking = Boolean.getBoolean(SKIP_HOST_NETWORKING_FLAG);
-    logger.info("Staring cassandraContainer for: " + dockerImage);
+    logger.info(
+        "Staring cassandraContainer for: "
+            + dockerImage
+            + " on address: "
+            + cassandraListenAddress);
 
     GenericContainer backend;
     if (skipHostNetworking) {
