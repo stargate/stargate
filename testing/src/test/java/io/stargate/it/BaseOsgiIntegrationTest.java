@@ -347,8 +347,7 @@ public class BaseOsgiIntegrationTest {
               .withNetworkMode("host")
               .withEnv("LISTEN_ADDRESS", "127.0.0.2")
               .withEnv("CASSANDRA_LISTEN_ADDRESS", "127.0.0.2")
-              .withEnv(
-                  "cassandra.jmx.remote.port", String.valueOf(new ServerSocket(0).getLocalPort()));
+              .withEnv("JMX_PORT", String.valueOf(new ServerSocket(0).getLocalPort()));
     }
 
     backend.start();
