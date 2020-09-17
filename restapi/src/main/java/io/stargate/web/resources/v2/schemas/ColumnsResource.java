@@ -50,6 +50,7 @@ import org.slf4j.LoggerFactory;
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}/columns")
 @Produces(MediaType.APPLICATION_JSON)
 public class ColumnsResource {
+
   private static final Logger logger = LoggerFactory.getLogger(ColumnsResource.class);
 
   @Inject private Db db;
@@ -81,9 +82,11 @@ public class ColumnsResource {
           List<ColumnDefinition> columnDefinitions =
               tableMetadata.columns().stream()
                   .map(
-                      (col) ->
-                          new ColumnDefinition(
-                              col.name(), col.type().name(), col.kind() == Column.Kind.Static))
+                      (col) -> {
+                        String type = col.type() == null ? null : col.type().cqlDefinition();
+                        return new ColumnDefinition(
+                            col.name(), type, col.kind() == Column.Kind.Static);
+                      })
                   .collect(Collectors.toList());
 
           Object response = raw ? columnDefinitions : new ResponseWrapper(columnDefinitions);
@@ -170,8 +173,9 @@ public class ColumnsResource {
                 .build();
           }
 
+          String type = col.type() == null ? null : col.type().cqlDefinition();
           ColumnDefinition columnDefinition =
-              new ColumnDefinition(col.name(), col.type().name(), col.kind() == Column.Kind.Static);
+              new ColumnDefinition(col.name(), type, col.kind() == Column.Kind.Static);
           Object response = raw ? columnDefinition : new ResponseWrapper(columnDefinition);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response, pretty))
