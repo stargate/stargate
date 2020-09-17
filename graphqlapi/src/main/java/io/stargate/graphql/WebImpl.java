@@ -31,7 +31,7 @@ public class WebImpl {
     ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
     context.setContextPath("/");
     ServletHolder servletHolder =
-        new ServletHolder(new CustomGraphQLServlet(true, persistence, authenticationService));
+        new ServletHolder(new CustomGraphQLServlet(persistence, authenticationService));
     context.addServlet(servletHolder, "/graphql/*");
     ServletHolder schema =
         new ServletHolder(new SchemaGraphQLServlet(persistence, authenticationService));
