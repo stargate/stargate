@@ -65,15 +65,15 @@ import org.slf4j.LoggerFactory;
 @RunWith(Parameterized.class)
 @NotThreadSafe
 public class RestApiTest extends BaseOsgiIntegrationTest {
+
   private static final Logger logger = LoggerFactory.getLogger(RestApiTest.class);
-
-  @Rule public TestName name = new TestName();
-
-  private DataStore dataStore;
-  private String keyspace;
+  private static final ObjectMapper objectMapper = new ObjectMapper();
   private static String authToken;
   private static String host = "http://" + stargateHost;
-  private static final ObjectMapper objectMapper = new ObjectMapper();
+  @Rule
+  public TestName name = new TestName();
+  private DataStore dataStore;
+  private String keyspace;
 
   @Before
   public void setup()
@@ -117,11 +117,27 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void createTokenBadCreds() throws IOException {
+    RestUtils.post(
+        "",
+        String.format("%s:8081/v1/auth/token/generate", host),
+        objectMapper.writeValueAsString(new Credentials("bad", "real_bad")),
+        HttpStatus.SC_UNAUTHORIZED);
+  }
+
+  @Test
+  public void createTokenEmptyBody() throws IOException {
+    RestUtils.post(
+        "", String.format("%s:8081/v1/auth/token/generate", host), "", HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
   public void getKeyspaces() throws IOException {
     String body =
         RestUtils.get(authToken, String.format("%s:8082/v1/keyspaces", host), HttpStatus.SC_OK);
 
-    List<String> keyspaces = objectMapper.readValue(body, new TypeReference<List<String>>() {});
+    List<String> keyspaces = objectMapper.readValue(body, new TypeReference<List<String>>() {
+    });
     assertThat(keyspaces)
         .containsAnyOf(
             "system", "system_auth", "system_distributed", "system_schema", "system_traces");
@@ -143,7 +159,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken, String.format("%s:8082/v1/keyspaces/system/tables", host), HttpStatus.SC_OK);
 
-    List<String> keyspaces = objectMapper.readValue(body, new TypeReference<List<String>>() {});
+    List<String> keyspaces = objectMapper.readValue(body, new TypeReference<List<String>>() {
+    });
     assertThat(keyspaces)
         .containsAnyOf(
             "IndexInfo",
@@ -184,7 +201,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
             String.format("%s:8082/v1/keyspaces/%s/tables/%s", host, keyspace, tableName),
             HttpStatus.SC_OK);
 
-    TableResponse table = objectMapper.readValue(body, new TypeReference<TableResponse>() {});
+    TableResponse table = objectMapper.readValue(body, new TypeReference<TableResponse>() {
+    });
     assertThat(table.getName()).isEqualTo(tableName);
   }
 
@@ -220,7 +238,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     String body = getRow(tableName, rowIdentifier);
 
-    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {
+    });
     assertThat(rowResponse.getCount()).isEqualTo(1);
     assertThat(rowResponse.getRows().get(0).get("id")).isEqualTo(rowIdentifier);
     assertThat(rowResponse.getRows().get(0).get("firstName")).isEqualTo("John");
@@ -247,7 +266,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     String row = getRow(tableName, rowIdentifier);
 
-    RowResponse rowResponse = objectMapper.readValue(row, new TypeReference<RowResponse>() {});
+    RowResponse rowResponse = objectMapper.readValue(row, new TypeReference<RowResponse>() {
+    });
     assertThat(rowResponse.getCount()).isEqualTo(1);
     assertThat(rowResponse.getRows().get(0).get("id")).isEqualTo(rowIdentifier);
     assertThat(rowResponse.getRows().get(0).get("firstName")).isEqualTo("John");
@@ -272,7 +292,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     rowResponse =
         objectMapper.readValue(
-            getRow(tableName, rowIdentifier), new TypeReference<RowResponse>() {});
+            getRow(tableName, rowIdentifier), new TypeReference<RowResponse>() {
+            });
     assertThat(rowResponse.getCount()).isEqualTo(1);
     assertThat(rowResponse.getRows().get(0).get("id")).isEqualTo(rowIdentifier);
     assertThat(rowResponse.getRows().get(0).get("firstName")).isEqualTo("Fred");
@@ -287,7 +308,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
                 "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s", host, "system", "local", "local"),
             HttpStatus.SC_OK);
 
-    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {
+    });
     assertThat(rowResponse.getCount()).isEqualTo(1);
     assertThat(rowResponse.getRows().get(0).get("cluster_name")).isEqualTo("Test Cluster");
   }
@@ -348,7 +370,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
                 "%s:8082/v1/keyspaces/%s/tables/%s/rows?pageSize=2", host, keyspace, tableName),
             HttpStatus.SC_OK);
 
-    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
+    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {
+    });
     assertThat(rows.getCount()).isEqualTo(2);
     assertThat(rows.getPageState()).isNotNull();
   }
@@ -400,7 +423,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
             String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
             HttpStatus.SC_OK);
 
-    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
+    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {
+    });
     assertThat(rows.getCount()).isEqualTo(3);
   }
 
@@ -438,7 +462,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(rowAdd),
             HttpStatus.SC_CREATED);
 
-    RowsResponse rowsResponse = objectMapper.readValue(body, new TypeReference<RowsResponse>() {});
+    RowsResponse rowsResponse = objectMapper.readValue(body, new TypeReference<RowsResponse>() {
+    });
     assertThat(rowsResponse.getRowsModified()).isEqualTo(1);
     assertThat(rowsResponse.getSuccess()).isTrue();
 
@@ -490,7 +515,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(query),
             HttpStatus.SC_OK);
 
-    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {
+    });
     assertThat(rowResponse.getCount()).isEqualTo(1);
     assertThat(rowResponse.getRows().get(0).get("id")).isEqualTo(rowIdentifier);
   }
@@ -572,7 +598,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(query),
             HttpStatus.SC_OK);
 
-    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
+    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {
+    });
     assertThat(rows.getCount()).isEqualTo(1);
     assertThat(rows.getRows().get(0).get("date")).isEqualTo("2020-08-10T18:48:31.020Z");
   }
@@ -589,7 +616,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
             HttpStatus.SC_OK);
 
     List<ColumnDefinition> columnDefinitions =
-        objectMapper.readValue(body, new TypeReference<List<ColumnDefinition>>() {});
+        objectMapper.readValue(body, new TypeReference<List<ColumnDefinition>>() {
+        });
     assertThat(columnDefinitions.size()).isEqualTo(3);
     columnDefinitions.sort(Comparator.comparing(ColumnDefinition::getName));
     assertThat(columnDefinitions.get(0).getName()).isEqualTo("firstName");
@@ -608,7 +636,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
             HttpStatus.SC_OK);
 
     ColumnDefinition columnDefinition =
-        objectMapper.readValue(body, new TypeReference<ColumnDefinition>() {});
+        objectMapper.readValue(body, new TypeReference<ColumnDefinition>() {
+        });
     assertThat(columnDefinition.getName()).isEqualTo("firstName");
     assertThat(columnDefinition.getTypeDefinition()).isEqualTo("Varchar");
   }
@@ -673,7 +702,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
             HttpStatus.SC_CREATED);
 
     SuccessResponse successResponse =
-        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
+        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {
+        });
     assertThat(successResponse.getSuccess()).isTrue();
   }
 
@@ -696,7 +726,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(rowAdd),
             HttpStatus.SC_CREATED);
 
-    RowsResponse rowsResponse = objectMapper.readValue(body, new TypeReference<RowsResponse>() {});
+    RowsResponse rowsResponse = objectMapper.readValue(body, new TypeReference<RowsResponse>() {
+    });
     assertThat(rowsResponse.getRowsModified()).isEqualTo(1);
     assertThat(rowsResponse.getSuccess()).isTrue();
   }
@@ -711,7 +742,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
             HttpStatus.SC_CREATED);
 
     SuccessResponse successResponse =
-        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
+        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {
+        });
     assertThat(successResponse.getSuccess()).isTrue();
   }
 }
