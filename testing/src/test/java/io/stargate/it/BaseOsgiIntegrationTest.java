@@ -325,6 +325,7 @@ public class BaseOsgiIntegrationTest {
   /** Starts a docker backend for the persistance layer */
   GenericContainer startBackend() throws IOException, InterruptedException {
     boolean skipHostNetworking = Boolean.getBoolean(SKIP_HOST_NETWORKING_FLAG);
+    logger.info("Staring cassandraContainer for: " + dockerImage);
 
     GenericContainer backend;
     if (skipHostNetworking) {
@@ -466,6 +467,7 @@ public class BaseOsgiIntegrationTest {
 
   @After
   public void cleanup() throws BundleException, InterruptedException {
+    logger.info("stop stargate instances and cassandra container");
     for (Starter stargateStarter : stargateStarters) {
       stargateStarter.stop();
     }
