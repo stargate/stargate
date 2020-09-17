@@ -18,41 +18,40 @@
 
 package org.apache.cassandra.stargate.transport.internal.frame;
 
+import io.netty.buffer.ByteBuf;
 import java.io.IOException;
 import java.util.EnumSet;
-
 import org.apache.cassandra.stargate.transport.internal.Frame;
 
-import io.netty.buffer.ByteBuf;
+public interface FrameBodyTransformer {
+  /**
+   * Accepts the input buffer representing the frame body of an incoming message and applies a
+   * transformation. Example transformations include decompression and recombining checksummed
+   * chunks into a single, serialized message body.
+   *
+   * @param inputBuf the frame body from an inbound message
+   * @return the new frame body bytes
+   * @throws IOException if the transformation failed for any reason
+   */
+  ByteBuf transformInbound(ByteBuf inputBuf, EnumSet<Frame.Header.Flag> flags) throws IOException;
 
-public interface FrameBodyTransformer
-{
-    /**
-     * Accepts the input buffer representing the frame body of an incoming message and applies a transformation.
-     * Example transformations include decompression and recombining checksummed chunks into a single, serialized
-     * message body.
-     * @param inputBuf the frame body from an inbound message
-     * @return the new frame body bytes
-     * @throws IOException if the transformation failed for any reason
-     */
-    ByteBuf transformInbound(ByteBuf inputBuf, EnumSet<Frame.Header.Flag> flags) throws IOException;
+  /**
+   * Accepts an input buffer representing the frame body of an outbound message and applies a
+   * transformation. Example transformations include compression and splitting into checksummed
+   * chunks.
+   *
+   * @param inputBuf the frame body from an outgoing message
+   * @return the new frame body bytes
+   * @throws IOException if the transformation failed for any reason
+   */
+  ByteBuf transformOutbound(ByteBuf inputBuf) throws IOException;
 
-    /**
-     * Accepts an input buffer representing the frame body of an outbound message and applies a transformation.
-     * Example transformations include compression and splitting into checksummed chunks.
-
-     * @param inputBuf the frame body from an outgoing message
-     * @return the new frame body bytes
-     * @throws IOException if the transformation failed for any reason
-     */
-    ByteBuf transformOutbound(ByteBuf inputBuf) throws IOException;
-
-    /**
-     * Returns an EnumSet of the flags that should be added to the header for any message whose frame body has been
-     * modified by the transformer. E.g. it may add perform chunking & checksumming to the frame body,
-     * compress it, or both.
-     * @return EnumSet containing the header flags to set on messages transformed
-     */
-    EnumSet<Frame.Header.Flag> getOutboundHeaderFlags();
-
+  /**
+   * Returns an EnumSet of the flags that should be added to the header for any message whose frame
+   * body has been modified by the transformer. E.g. it may add perform chunking & checksumming to
+   * the frame body, compress it, or both.
+   *
+   * @return EnumSet containing the header flags to set on messages transformed
+   */
+  EnumSet<Frame.Header.Flag> getOutboundHeaderFlags();
 }

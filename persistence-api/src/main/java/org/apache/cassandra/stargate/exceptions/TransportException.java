@@ -17,15 +17,10 @@
  */
 package org.apache.cassandra.stargate.exceptions;
 
-public interface TransportException
-{
-    /**
-     * The exception code.
-     */
-    public ExceptionCode code();
+public interface TransportException {
+  /** The exception code. */
+  public ExceptionCode code();
 
-    /**
-     * The exception message.
-     */
-    public String getMessage();
+  /** The exception message. */
+  public String getMessage();
 }

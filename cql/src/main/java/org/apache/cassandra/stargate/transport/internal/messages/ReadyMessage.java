@@ -17,41 +17,31 @@
  */
 package org.apache.cassandra.stargate.transport.internal.messages;
 
+import io.netty.buffer.ByteBuf;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.Message;
 
-import io.netty.buffer.ByteBuf;
-
-/**
- * Message to indicate that the server is ready to receive requests.
- */
-public class ReadyMessage extends Message.Response
-{
-    public static final Message.Codec<ReadyMessage> codec = new Message.Codec<ReadyMessage>()
-    {
-        public ReadyMessage decode(ByteBuf body, ProtocolVersion version)
-        {
-            return new ReadyMessage();
+/** Message to indicate that the server is ready to receive requests. */
+public class ReadyMessage extends Message.Response {
+  public static final Message.Codec<ReadyMessage> codec =
+      new Message.Codec<ReadyMessage>() {
+        public ReadyMessage decode(ByteBuf body, ProtocolVersion version) {
+          return new ReadyMessage();
         }
 
-        public void encode(ReadyMessage msg, ByteBuf dest, ProtocolVersion version)
-        {
+        public void encode(ReadyMessage msg, ByteBuf dest, ProtocolVersion version) {}
+
+        public int encodedSize(ReadyMessage msg, ProtocolVersion version) {
+          return 0;
         }
+      };
 
-        public int encodedSize(ReadyMessage msg, ProtocolVersion version)
-        {
-            return 0;
-        }
-    };
+  public ReadyMessage() {
+    super(Message.Type.READY);
+  }
 
-    public ReadyMessage()
-    {
-        super(Message.Type.READY);
-    }
-
-    @Override
-    public String toString()
-    {
-        return "READY";
-    }
+  @Override
+  public String toString() {
+    return "READY";
+  }
 }

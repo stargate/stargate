@@ -35,6 +35,5 @@ public class ColumnModel {
     this.value = value;
   }
 
-  public ColumnModel() {
-  }
+  public ColumnModel() {}
 }

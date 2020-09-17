@@ -17,87 +17,75 @@
  */
 package org.apache.cassandra.stargate.transport.internal.messages;
 
+import io.netty.buffer.ByteBuf;
+import io.stargate.db.AuthenticatedUser;
+import io.stargate.db.Authenticator;
+import io.stargate.db.Persistence;
+import io.stargate.db.QueryState;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
-
+import org.apache.cassandra.exceptions.AuthenticationException;
 import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.stargate.transport.internal.Message;
 import org.apache.cassandra.stargate.transport.internal.ServerConnection;
-import org.apache.cassandra.exceptions.AuthenticationException;
-
-import io.stargate.db.AuthenticatedUser;
-import io.stargate.db.Authenticator;
-import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
-import io.netty.buffer.ByteBuf;
 
 /**
- * A SASL token message sent from client to server. Some SASL
- * mechanisms and clients may send an initial token before
- * receiving a challenge from the server.
+ * A SASL token message sent from client to server. Some SASL mechanisms and clients may send an
+ * initial token before receiving a challenge from the server.
  */
-public class AuthResponse extends Message.Request
-{
-    public static final Message.Codec<AuthResponse> codec = new Message.Codec<AuthResponse>()
-    {
-        public AuthResponse decode(ByteBuf body, ProtocolVersion version)
-        {
-            if (version == ProtocolVersion.V1)
-                throw new ProtocolException("SASL Authentication is not supported in version 1 of the protocol");
+public class AuthResponse extends Message.Request {
+  public static final Message.Codec<AuthResponse> codec =
+      new Message.Codec<AuthResponse>() {
+        public AuthResponse decode(ByteBuf body, ProtocolVersion version) {
+          if (version == ProtocolVersion.V1)
+            throw new ProtocolException(
+                "SASL Authentication is not supported in version 1 of the protocol");
 
-            ByteBuffer b = CBUtil.readValue(body);
-            byte[] token = new byte[b.remaining()];
-            b.get(token);
-            return new AuthResponse(token);
+          ByteBuffer b = CBUtil.readValue(body);
+          byte[] token = new byte[b.remaining()];
+          b.get(token);
+          return new AuthResponse(token);
         }
 
-        public void encode(AuthResponse response, ByteBuf dest, ProtocolVersion version)
-        {
-            CBUtil.writeValue(response.token, dest);
+        public void encode(AuthResponse response, ByteBuf dest, ProtocolVersion version) {
+          CBUtil.writeValue(response.token, dest);
         }
 
-        public int encodedSize(AuthResponse response, ProtocolVersion version)
-        {
-            return CBUtil.sizeOfValue(response.token);
+        public int encodedSize(AuthResponse response, ProtocolVersion version) {
+          return CBUtil.sizeOfValue(response.token);
         }
-    };
+      };
 
-    private final byte[] token;
+  private final byte[] token;
 
-    public AuthResponse(byte[] token)
-    {
-        super(Message.Type.AUTH_RESPONSE);
-        assert token != null;
-        this.token = token;
+  public AuthResponse(byte[] token) {
+    super(Message.Type.AUTH_RESPONSE);
+    assert token != null;
+    this.token = token;
+  }
+
+  @Override
+  protected CompletableFuture<? extends Response> execute(
+      Persistence persistence, QueryState state, long queryStartNanoTime) {
+    try {
+      Authenticator.SaslNegotiator negotiator =
+          ((ServerConnection) connection).getSaslNegotiator(state);
+      byte[] challenge = negotiator.evaluateResponse(token);
+      if (negotiator.isComplete()) {
+        AuthenticatedUser<?> user = negotiator.getAuthenticatedUser();
+        state.getClientState().login(user);
+        ClientMetrics.instance.markAuthSuccess();
+        // authentication is complete, send a ready message to the client
+        return CompletableFuture.completedFuture(new AuthSuccess(challenge));
+      } else {
+        return CompletableFuture.completedFuture(new AuthChallenge(challenge));
+      }
+    } catch (AuthenticationException e) {
+      ClientMetrics.instance.markAuthFailure();
+      return CompletableFuture.completedFuture(ErrorMessage.fromException(e));
     }
-
-    @Override
-    protected CompletableFuture<? extends Response> execute(Persistence persistence, QueryState state, long queryStartNanoTime)
-    {
-        try
-        {
-            Authenticator.SaslNegotiator negotiator = ((ServerConnection) connection).getSaslNegotiator(state);
-            byte[] challenge = negotiator.evaluateResponse(token);
-            if (negotiator.isComplete())
-            {
-                AuthenticatedUser<?> user = negotiator.getAuthenticatedUser();
-                state.getClientState().login(user);
-                ClientMetrics.instance.markAuthSuccess();
-                // authentication is complete, send a ready message to the client
-                return CompletableFuture.completedFuture(new AuthSuccess(challenge));
-            }
-            else
-            {
-                return CompletableFuture.completedFuture(new AuthChallenge(challenge));
-            }
-        }
-        catch (AuthenticationException e)
-        {
-            ClientMetrics.instance.markAuthFailure();
-            return CompletableFuture.completedFuture(ErrorMessage.fromException(e));
-        }
-    }
+  }
 }

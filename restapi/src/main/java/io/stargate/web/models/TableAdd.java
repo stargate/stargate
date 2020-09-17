@@ -16,16 +16,12 @@
 package io.stargate.web.models;
 
 import java.util.List;
-
 import javax.validation.constraints.NotNull;
 
 public class TableAdd {
-  @NotNull
-  String name;
-  @NotNull
-  PrimaryKey primaryKey;
-  @NotNull
-  List<ColumnDefinition> columnDefinitions;
+  @NotNull String name;
+  @NotNull PrimaryKey primaryKey;
+  @NotNull List<ColumnDefinition> columnDefinitions;
 
   boolean ifNotExists = false;
   TableOptions tableOptions = new TableOptions();
@@ -69,5 +65,4 @@ public class TableAdd {
   public void setTableOptions(TableOptions tableOptions) {
     this.tableOptions = tableOptions;
   }
-  
 }

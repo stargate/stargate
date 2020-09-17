@@ -19,23 +19,20 @@ package org.apache.cassandra.stargate.db;
 
 import org.apache.cassandra.stargate.transport.ProtocolException;
 
-public enum WriteType
-{
-    SIMPLE,
-    BATCH,
-    UNLOGGED_BATCH,
-    COUNTER,
-    BATCH_LOG,
-    CAS,
-    VIEW,
-    CDC;
+public enum WriteType {
+  SIMPLE,
+  BATCH,
+  UNLOGGED_BATCH,
+  COUNTER,
+  BATCH_LOG,
+  CAS,
+  VIEW,
+  CDC;
 
-    public static WriteType fromOrdinal(int ordinal)
-    {
-        for (WriteType t : values())
-        {
-            if (t.ordinal() == ordinal) return t;
-        }
-        throw new ProtocolException(String.format("Unknown write type %d", ordinal));
+  public static WriteType fromOrdinal(int ordinal) {
+    for (WriteType t : values()) {
+      if (t.ordinal() == ordinal) return t;
     }
+    throw new ProtocolException(String.format("Unknown write type %d", ordinal));
+  }
 }

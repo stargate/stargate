@@ -17,10 +17,8 @@
  */
 package org.apache.cassandra.stargate.exceptions;
 
-public class InvalidRequestException extends RequestValidationException
-{
-    public InvalidRequestException(String msg)
-    {
-        super(ExceptionCode.INVALID, msg);
-    }
+public class InvalidRequestException extends RequestValidationException {
+  public InvalidRequestException(String msg) {
+    super(ExceptionCode.INVALID, msg);
+  }
 }

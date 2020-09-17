@@ -17,15 +17,12 @@
  */
 package org.apache.cassandra.stargate.exceptions;
 
-public class UnauthorizedException extends RequestValidationException
-{
-    public UnauthorizedException(String msg)
-    {
-        super(ExceptionCode.UNAUTHORIZED, msg);
-    }
+public class UnauthorizedException extends RequestValidationException {
+  public UnauthorizedException(String msg) {
+    super(ExceptionCode.UNAUTHORIZED, msg);
+  }
 
-    public UnauthorizedException(String msg, Throwable e)
-    {
-        super(ExceptionCode.UNAUTHORIZED, msg, e);
-    }
+  public UnauthorizedException(String msg, Throwable e) {
+    super(ExceptionCode.UNAUTHORIZED, msg, e);
+  }
 }

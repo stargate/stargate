@@ -17,81 +17,69 @@
  */
 package org.apache.cassandra.stargate.transport.internal.messages;
 
+import io.netty.buffer.ByteBuf;
+import io.stargate.db.Persistence;
+import io.stargate.db.QueryState;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-
+import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.Message;
-import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.transport.frame.compress.SnappyCompressor;
 import org.apache.cassandra.utils.ChecksumType;
 
-import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
-import io.netty.buffer.ByteBuf;
-
-/**
- * Message to indicate that the server is ready to receive requests.
- */
-public class OptionsMessage extends Message.Request
-{
-    public static final Message.Codec<OptionsMessage> codec = new Message.Codec<OptionsMessage>()
-    {
-        public OptionsMessage decode(ByteBuf body, ProtocolVersion version)
-        {
-            return new OptionsMessage();
+/** Message to indicate that the server is ready to receive requests. */
+public class OptionsMessage extends Message.Request {
+  public static final Message.Codec<OptionsMessage> codec =
+      new Message.Codec<OptionsMessage>() {
+        public OptionsMessage decode(ByteBuf body, ProtocolVersion version) {
+          return new OptionsMessage();
         }
 
-        public void encode(OptionsMessage msg, ByteBuf dest, ProtocolVersion version)
-        {
-        }
+        public void encode(OptionsMessage msg, ByteBuf dest, ProtocolVersion version) {}
 
-        public int encodedSize(OptionsMessage msg, ProtocolVersion version)
-        {
-            return 0;
+        public int encodedSize(OptionsMessage msg, ProtocolVersion version) {
+          return 0;
         }
-    };
+      };
 
-    public OptionsMessage()
-    {
-        super(Message.Type.OPTIONS);
+  public OptionsMessage() {
+    super(Message.Type.OPTIONS);
+  }
+
+  @Override
+  protected CompletableFuture<? extends Response> execute(
+      Persistence persistence, QueryState state, long queryStartNanoTime) {
+    List<String> cqlVersions = new ArrayList<>();
+    cqlVersions.add(QueryProcessor.CQL_VERSION.toString());
+
+    List<String> compressions = new ArrayList<>();
+    if (SnappyCompressor.INSTANCE != null) compressions.add("snappy");
+    // LZ4 is always available since worst case scenario it default to a pure JAVA implem.
+    compressions.add("lz4");
+
+    Map<String, List<String>> supported = new HashMap<>();
+    supported.put(org.apache.cassandra.transport.messages.StartupMessage.CQL_VERSION, cqlVersions);
+    supported.put(org.apache.cassandra.transport.messages.StartupMessage.COMPRESSION, compressions);
+    supported.put(
+        org.apache.cassandra.transport.messages.StartupMessage.PROTOCOL_VERSIONS,
+        org.apache.cassandra.transport.ProtocolVersion.supportedVersions());
+
+    if (connection.getVersion().supportsChecksums()) {
+      ChecksumType[] types = ChecksumType.values();
+      List<String> checksumImpls = new ArrayList<>(types.length);
+      for (ChecksumType type : types) checksumImpls.add(type.toString());
+      supported.put(StartupMessage.CHECKSUM, checksumImpls);
     }
 
-    @Override
-    protected CompletableFuture<? extends Response> execute(Persistence persistence, QueryState state, long queryStartNanoTime)
-    {
-        List<String> cqlVersions = new ArrayList<>();
-        cqlVersions.add(QueryProcessor.CQL_VERSION.toString());
+    return CompletableFuture.completedFuture(new SupportedMessage(supported));
+  }
 
-        List<String> compressions = new ArrayList<>();
-        if (SnappyCompressor.INSTANCE != null)
-            compressions.add("snappy");
-        // LZ4 is always available since worst case scenario it default to a pure JAVA implem.
-        compressions.add("lz4");
-
-        Map<String, List<String>> supported = new HashMap<>();
-        supported.put(org.apache.cassandra.transport.messages.StartupMessage.CQL_VERSION, cqlVersions);
-        supported.put(org.apache.cassandra.transport.messages.StartupMessage.COMPRESSION, compressions);
-        supported.put(org.apache.cassandra.transport.messages.StartupMessage.PROTOCOL_VERSIONS, org.apache.cassandra.transport.ProtocolVersion.supportedVersions());
-
-        if (connection.getVersion().supportsChecksums())
-        {
-            ChecksumType[] types = ChecksumType.values();
-            List<String> checksumImpls = new ArrayList<>(types.length);
-            for (ChecksumType type : types)
-                checksumImpls.add(type.toString());
-            supported.put(StartupMessage.CHECKSUM, checksumImpls);
-        }
-
-        return CompletableFuture.completedFuture(new SupportedMessage(supported));
-    }
-
-    @Override
-    public String toString()
-    {
-        return "OPTIONS";
-    }
+  @Override
+  public String toString() {
+    return "OPTIONS";
+  }
 }

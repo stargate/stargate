@@ -15,29 +15,27 @@
  */
 package io.stargate.db;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 
-public interface ClientState<T>
-{
-    InetSocketAddress getRemoteAddress();
+public interface ClientState<T> {
+  InetSocketAddress getRemoteAddress();
 
-    InetSocketAddress getPublicAddress();
+  InetSocketAddress getPublicAddress();
 
-    String getRawKeyspace();
+  String getRawKeyspace();
 
-    Optional<String> getDriverName();
+  Optional<String> getDriverName();
 
-    void setDriverName(String name);
+  void setDriverName(String name);
 
-    Optional<String> getDriverVersion();
+  Optional<String> getDriverVersion();
 
-    void setDriverVersion(String version);
+  void setDriverVersion(String version);
 
-    void login(AuthenticatedUser<?> user);
+  void login(AuthenticatedUser<?> user);
 
-    AuthenticatedUser<?> getUser();
+  AuthenticatedUser<?> getUser();
 
-    T getWrapped();
+  T getWrapped();
 }

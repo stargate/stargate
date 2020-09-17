@@ -15,9 +15,8 @@
  */
 package io.stargate.db;
 
-public interface AuthenticatedUser<T>
-{
-    String getName();
+public interface AuthenticatedUser<T> {
+  String getName();
 
-    T getWrapped();
+  T getWrapped();
 }

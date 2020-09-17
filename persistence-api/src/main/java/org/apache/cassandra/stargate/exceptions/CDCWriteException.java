@@ -17,10 +17,8 @@
  */
 package org.apache.cassandra.stargate.exceptions;
 
-public class CDCWriteException extends RequestExecutionException
-{
-    public CDCWriteException(String msg)
-    {
-        super(ExceptionCode.CDC_WRITE_FAILURE, msg);
-    }
+public class CDCWriteException extends RequestExecutionException {
+  public CDCWriteException(String msg) {
+    super(ExceptionCode.CDC_WRITE_FAILURE, msg);
+  }
 }

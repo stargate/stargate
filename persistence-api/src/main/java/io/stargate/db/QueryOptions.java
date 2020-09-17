@@ -17,31 +17,29 @@ package io.stargate.db;
 
 import java.nio.ByteBuffer;
 import java.util.List;
-
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 
-public interface QueryOptions<T>
-{
-    ConsistencyLevel getConsistency();
+public interface QueryOptions<T> {
+  ConsistencyLevel getConsistency();
 
-    List<ByteBuffer> getValues();
+  List<ByteBuffer> getValues();
 
-    List<String> getNames();
+  List<String> getNames();
 
-    ProtocolVersion getProtocolVersion();
+  ProtocolVersion getProtocolVersion();
 
-    int getPageSize();
+  int getPageSize();
 
-    ByteBuffer getPagingState();
+  ByteBuffer getPagingState();
 
-    ConsistencyLevel getSerialConsistency();
+  ConsistencyLevel getSerialConsistency();
 
-    long getTimestamp();
+  long getTimestamp();
 
-    int getNowInSeconds();
+  int getNowInSeconds();
 
-    String getKeyspace();
+  String getKeyspace();
 
-    boolean skipMetadata();
+  boolean skipMetadata();
 }

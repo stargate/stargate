@@ -19,52 +19,42 @@
 package org.apache.cassandra.stargate.transport.internal.frame.compress;
 
 import java.io.IOException;
-
 import net.jpountz.lz4.LZ4Factory;
 import net.jpountz.lz4.LZ4SafeDecompressor;
 
-public class LZ4Compressor implements Compressor
-{
-    public static final LZ4Compressor INSTANCE = new LZ4Compressor();
+public class LZ4Compressor implements Compressor {
+  public static final LZ4Compressor INSTANCE = new LZ4Compressor();
 
-    private final net.jpountz.lz4.LZ4Compressor compressor;
-    private final LZ4SafeDecompressor decompressor;
+  private final net.jpountz.lz4.LZ4Compressor compressor;
+  private final LZ4SafeDecompressor decompressor;
 
-    private LZ4Compressor()
-    {
-        final LZ4Factory lz4Factory = LZ4Factory.fastestInstance();
-        compressor = lz4Factory.fastCompressor();
-        decompressor = lz4Factory.safeDecompressor();
+  private LZ4Compressor() {
+    final LZ4Factory lz4Factory = LZ4Factory.fastestInstance();
+    compressor = lz4Factory.fastCompressor();
+    decompressor = lz4Factory.safeDecompressor();
+  }
+
+  public int maxCompressedLength(int length) {
+    return compressor.maxCompressedLength(length);
+  }
+
+  public int compress(byte[] src, int srcOffset, int length, byte[] dest, int destOffset)
+      throws IOException {
+    try {
+      return compressor.compress(src, srcOffset, length, dest, destOffset);
+    } catch (Throwable t) {
+      throw new IOException("Error caught during LZ4 compression", t);
     }
+  }
 
-    public int maxCompressedLength(int length)
-    {
-        return compressor.maxCompressedLength(length);
+  public byte[] decompress(byte[] src, int offset, int length, int expectedDecompressedLength)
+      throws IOException {
+    try {
+      byte[] decompressed = new byte[expectedDecompressedLength];
+      decompressor.decompress(src, offset, length, decompressed, 0, expectedDecompressedLength);
+      return decompressed;
+    } catch (Throwable t) {
+      throw new IOException("Error caught during LZ4 decompression", t);
     }
-
-    public int compress(byte[] src, int srcOffset, int length, byte[] dest, int destOffset) throws IOException
-    {
-        try
-        {
-            return compressor.compress(src, srcOffset, length, dest, destOffset);
-        }
-        catch (Throwable t)
-        {
-            throw new IOException("Error caught during LZ4 compression", t);
-        }
-    }
-
-    public byte[] decompress(byte[] src, int offset, int length, int expectedDecompressedLength) throws IOException
-    {
-        try
-        {
-            byte[] decompressed = new byte[expectedDecompressedLength];
-            decompressor.decompress(src, offset, length, decompressed, 0, expectedDecompressedLength);
-            return decompressed;
-        }
-        catch (Throwable t)
-        {
-            throw new IOException("Error caught during LZ4 decompression", t);
-        }
-    }
+  }
 }
