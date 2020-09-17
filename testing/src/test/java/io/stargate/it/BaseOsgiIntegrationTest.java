@@ -460,39 +460,50 @@ public class BaseOsgiIntegrationTest {
       }
       logger.info("Starting: {} stargate nodes", numberOfStargateNodes);
       for (int i = 0; i < numberOfStargateNodes; i++) {
-        int jmxPort = new ServerSocket(0).getLocalPort();
-        logger.info(
-            "Starting node nr: {} for seedHost:seedPort = {}:{}, address: {} and jmxPort: {}",
-            i,
-            seedHost,
-            seedPort,
-            stargateHosts.get(i),
-            jmxPort);
         // Start stargate and get the persistence object
         try {
-          Starter starter =
-              new Starter(
-                  "Test Cluster",
-                  version,
-                  stargateHosts.get(i),
-                  seedHost,
-                  seedPort,
-                  datacenter,
-                  rack,
-                  isDse,
-                  !isDse,
-                  9043,
-                  jmxPort);
-          starter.start();
-          logger.info("Stargate node nr: {} started successfully", i);
-          // add to starters only if it start() successfully
-          stargateStarters.add(starter);
+          startStargateInstance(seedHost, seedPort, i);
         } catch (Exception ex) {
-          logger.error("Exception when starting stargate node nr: " + i, ex);
+          logger.error(
+              "Exception when starting stargate node nr: " + i + " it will be retried once.", ex);
+          try {
+            startStargateInstance(seedHost, seedPort, i);
+          } catch (Exception ex2) {
+            logger.error("Exception when retrying start of the stargate node nr: " + i, ex2);
+          }
         } finally {
-          logger.error("After starting stargate node nr: {}", i);
+          logger.error("Successful starting stargate node nr: {}", i);
         }
       }
     }
+  }
+
+  private void startStargateInstance(String seedHost, Integer seedPort, int stargateNodeNumber)
+      throws IOException, BundleException {
+    int jmxPort = new ServerSocket(0).getLocalPort();
+    logger.info(
+        "Starting node nr: {} for seedHost:seedPort = {}:{}, address: {} and jmxPort: {}",
+        stargateNodeNumber,
+        seedHost,
+        seedPort,
+        stargateHosts.get(stargateNodeNumber),
+        jmxPort);
+    Starter starter =
+        new Starter(
+            "Test Cluster",
+            version,
+            stargateHosts.get(stargateNodeNumber),
+            seedHost,
+            seedPort,
+            datacenter,
+            rack,
+            isDse,
+            !isDse,
+            9043,
+            jmxPort);
+    starter.start();
+    logger.info("Stargate node nr: {} started successfully", stargateNodeNumber);
+    // add to starters only if it start() successfully
+    stargateStarters.add(starter);
   }
 }
