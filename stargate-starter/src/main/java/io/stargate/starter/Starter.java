@@ -192,7 +192,7 @@ public class Starter {
 
   @Order(value = 16)
   @Option(
-      name = {"-jmx-port"},
+      name = {"--jmx-port"},
       description = "The port on which JMX should start")
   int jmxPort = 7199;
 
