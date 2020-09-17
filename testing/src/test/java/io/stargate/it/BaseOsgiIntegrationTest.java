@@ -20,6 +20,7 @@ import io.stargate.starter.Starter;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.ServerSocket;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -77,16 +78,23 @@ public class BaseOsgiIntegrationTest {
   public static final String OPERATING_SYSTEM = System.getProperty("os.name").toLowerCase();
 
   public static final boolean isWindows = OPERATING_SYSTEM.contains("windows");
+
   public static final boolean isLinux = OPERATING_SYSTEM.contains("linux");
+
   public static final boolean isMacOSX = OPERATING_SYSTEM.contains("mac os x");
 
   public static final String SKIP_HOST_NETWORKING_FLAG = "stargate.test_skip_host_networking";
+
   public static final String SEED_PORT_OVERRIDE_FLAG = "stargate.test_seed_port_override";
 
   static GenericContainer backendContainer;
-  static Starter stargateStarter;
+
+  private static List<Starter> stargateStarters = new ArrayList<>();
+
   static String datacenter;
-  public static String stargateHost;
+
+  private static List<String> stargateHosts = new ArrayList<>();
+
   static String rack;
 
   @Parameterized.Parameter(0)
@@ -98,8 +106,23 @@ public class BaseOsgiIntegrationTest {
   @Parameterized.Parameter(2)
   public String version;
 
-  @Parameterized.Parameters(
-      name = "{index}: {0}") // Always define a name here! (See "known issues" section)
+  @Parameterized.Parameter(3)
+  public Integer numberOfStargateNodes;
+
+  public static String getStargateHost() {
+    return getStargateHost(0);
+  }
+
+  public static String getStargateHost(int stargateInstanceNumber) {
+    return stargateHosts.get(stargateInstanceNumber);
+  }
+
+  public static List<String> getStargateHosts() {
+    return stargateHosts;
+  }
+
+  @Parameterized.Parameters(name = "{index}: {0}")
+  // Always define a name here! (See "known issues" section)
   public static Iterable<Object[]> params() {
     if (ParameterContext.isParameterSet()) {
       return Collections.singletonList(ParameterContext.getParameter(Object[].class));
@@ -131,7 +154,9 @@ public class BaseOsgiIntegrationTest {
   public class ProxyInterceptor {
 
     final Object obj;
+
     final ClassLoader sourceLoader;
+
     final ClassLoader destLoader;
 
     public ProxyInterceptor(Object obj, ClassLoader sourceLoader, ClassLoader destLoader) {
@@ -274,12 +299,26 @@ public class BaseOsgiIntegrationTest {
     return objenesis.newInstance(dynamicType);
   }
 
-  /** Returns a proxy facade for a OSGi service loaded in stargate */
-  public <T> T getOsgiService(String name, Class<T> clazz) throws InvalidSyntaxException {
+  /**
+   * Returns a proxy facade for a OSGi service loaded in stargate for the specific starter instance
+   */
+  public <T> T getOsgiService(String name, Class<T> clazz, int stargateInstanceNumber)
+      throws InvalidSyntaxException {
     Object p =
-        stargateStarter.getService(name).orElseThrow(() -> new AssertionError("Missing " + name));
+        stargateStarters
+            .get(stargateInstanceNumber)
+            .getService(name)
+            .orElseThrow(() -> new AssertionError("Missing " + name));
 
     return (T) proxy(p, p.getClass().getClassLoader(), clazz.getClassLoader(), clazz);
+  }
+
+  /**
+   * Returns a proxy facade for a OSGi service loaded in stargate By default, it retrieves the
+   * facase from the 1st starter node.
+   */
+  public <T> T getOsgiService(String name, Class<T> clazz) throws InvalidSyntaxException {
+    return getOsgiService(name, clazz, 0);
   }
 
   /** Starts a docker backend for the persistance layer */
@@ -338,12 +377,15 @@ public class BaseOsgiIntegrationTest {
     if (backendContainer != null && !backendContainer.getDockerImageName().equals(dockerImage)) {
       logger.info("Docker image changed {} {}", dockerImage, backendContainer.getDockerImageName());
 
-      if (stargateStarter != null) stargateStarter.stop();
+      for (Starter stargateStarter : stargateStarters) {
+        stargateStarter.stop();
+        stargateStarter.stop();
+      }
 
       backendContainer.stop();
 
       backendContainer = null;
-      stargateStarter = null;
+      stargateStarters = new ArrayList<>();
     }
 
     if (backendContainer == null) {
@@ -357,7 +399,9 @@ public class BaseOsgiIntegrationTest {
         rack = "rack1";
       }
 
-      stargateHost = "127.0.0.11";
+      for (int i = 0; i < numberOfStargateNodes; i++) {
+        stargateHosts.add("127.0.0.1" + i);
+      }
       String seedHost = "127.0.0.2";
       Integer seedPort = 7000;
       // This logic only works with C* >= 4.0
@@ -384,26 +428,39 @@ public class BaseOsgiIntegrationTest {
         }
 
         System.setProperty("stargate.40_seed_port_override", "7000");
-        stargateHost = dockerHostIP;
+        if (numberOfStargateNodes > 1) {
+          throw new UnsupportedOperationException(
+              String.format(
+                  "Cassandra > 4.0 with %s set to true AND more that one stargate node is not supported ",
+                  SKIP_HOST_NETWORKING_FLAG));
+        }
+        stargateHosts = new ArrayList<>();
+        stargateHosts.add(dockerHostIP);
         seedHost = "127.0.0.1";
         seedPort = 7001;
       }
-
-      // Start stargate and get the persistance object
-      stargateStarter =
-          new Starter(
-              "Test Cluster",
-              version,
-              stargateHost,
-              seedHost,
-              seedPort,
-              datacenter,
-              rack,
-              isDse,
-              !isDse,
-              9043);
-
-      stargateStarter.start();
+      logger.info("Starting: {} stargate nodes", numberOfStargateNodes);
+      for (int i = 0; i < numberOfStargateNodes; i++) {
+        logger.info("Starting node nr: {}", i);
+        // Start stargate and get the persistence object
+        Starter starter =
+            new Starter(
+                "Test Cluster",
+                version,
+                stargateHosts.get(i),
+                seedHost,
+                seedPort,
+                datacenter,
+                rack,
+                isDse,
+                !isDse,
+                9043,
+                new ServerSocket(0).getLocalPort());
+        starter.start();
+        logger.info("Stargate node nr: {} started successfully", i);
+        // add to starters only if it start() successfully
+        stargateStarters.add(starter);
+      }
     }
   }
 }

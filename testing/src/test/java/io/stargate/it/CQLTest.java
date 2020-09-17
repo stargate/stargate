@@ -96,7 +96,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
                 getDriverConfigLoaderBuilder()
                     .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
                     .build())
-            .addContactPoint(new InetSocketAddress(stargateHost, 9043))
+            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
             .build();
   }
 
@@ -162,7 +162,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     Iterator<Row> rows = rs.iterator();
     assertThat(rows).hasNext();
     assertThat(rows.next().getInetAddress("listen_address"))
-        .isEqualTo(InetAddress.getByName(stargateHost));
+        .isEqualTo(InetAddress.getByName(getStargateHost()));
   }
 
   @Test
@@ -288,7 +288,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
     QueryTrace trace = rs.getExecutionInfo().getQueryTrace();
     assertThat(trace.getCoordinatorAddress().getAddress())
-        .isEqualTo(InetAddress.getByName(stargateHost));
+        .isEqualTo(InetAddress.getByName(getStargateHost()));
     assertThat(trace.getRequestType()).isEqualTo("Execute CQL3 query");
     assertThat(trace.getEvents()).isNotEmpty();
   }
@@ -304,7 +304,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
     QueryTrace trace = rs.getExecutionInfo().getQueryTrace();
     assertThat(trace.getCoordinatorAddress().getAddress())
-        .isEqualTo(InetAddress.getByName(stargateHost));
+        .isEqualTo(InetAddress.getByName(getStargateHost()));
     assertThat(trace.getRequestType()).isEqualTo("Execute CQL3 prepared query");
     assertThat(trace.getEvents()).isNotEmpty();
   }
@@ -328,7 +328,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     ResultSet rs = session.execute(batch);
     QueryTrace trace = rs.getExecutionInfo().getQueryTrace();
     assertThat(trace.getCoordinatorAddress().getAddress())
-        .isEqualTo(InetAddress.getByName(stargateHost));
+        .isEqualTo(InetAddress.getByName(getStargateHost()));
     assertThat(trace.getRequestType()).isEqualTo("Execute batch of CQL3 queries");
     assertThat(trace.getEvents()).isNotEmpty();
   }
@@ -411,7 +411,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
                 getDriverConfigLoaderBuilder()
                     .withString(DefaultDriverOption.PROTOCOL_COMPRESSION, compression)
                     .build())
-            .addContactPoint(new InetSocketAddress(stargateHost, 9043))
+            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
             .build()) {
       ResultSet rs = session.execute("SELECT * FROM system.local");
       assertThat(rs.one().getString("key")).isEqualTo("local");

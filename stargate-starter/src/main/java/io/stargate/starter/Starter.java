@@ -190,6 +190,12 @@ public class Starter {
       description = "When set, it binds web services to listen address only")
   boolean bindToListenAddressOnly = false;
 
+  @Order(value = 16)
+  @Option(
+      name = {"-jmx-port"},
+      description = "The port on which JMX should start")
+  int jmxPort = 7199;
+
   private BundleContext context;
   private Felix framework;
   private List<Bundle> bundleList;
@@ -208,7 +214,8 @@ public class Starter {
       String rack,
       boolean dse,
       boolean isSimpleSnitch,
-      int cqlPort) {
+      int cqlPort,
+      int jmxPort) {
     this.clusterName = clusterName;
     this.version = version;
     this.listenHostStr = listenHostStr;
@@ -220,6 +227,9 @@ public class Starter {
     this.simpleSnitch = isSimpleSnitch;
     this.cqlPort = cqlPort;
     this.watchBundles = false;
+    // bind to listen address only to allow multiple starters to start on the same host
+    this.bindToListenAddressOnly = true;
+    this.jmxPort = jmxPort;
   }
 
   void setStargateProperties() {
@@ -274,6 +284,7 @@ public class Starter {
     System.setProperty("stargate.emulate_dbaas_defaults", emulateDbaasDefaults ? "true" : "false");
     System.setProperty("stargate.developer_mode", String.valueOf(developerMode));
     System.setProperty("stargate.bind_to_listen_address", String.valueOf(bindToListenAddressOnly));
+    System.setProperty("cassandra.jmx.remote.port", String.valueOf(jmxPort));
 
     if (bindToListenAddressOnly) {
       // Restrict the listen address for Jersey endpoints
