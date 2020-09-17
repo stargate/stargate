@@ -78,7 +78,6 @@ public class RowsResource {
       @PathParam("keyspaceName") final String keyspaceName,
       @PathParam("tableName") final String tableName,
       @QueryParam("where") final String where,
-      @QueryParam("pretty") final boolean pretty,
       @QueryParam("fields") final String fields,
       @QueryParam("page-size") final int pageSizeParam,
       @QueryParam("page-state") final String pageStateParam,
@@ -109,7 +108,7 @@ public class RowsResource {
                   tableMetadata,
                   WhereParser.parseWhere(where, tableMetadata));
           return Response.status(Response.Status.OK)
-              .entity(Converters.writeResponse(response, pretty))
+              .entity(Converters.writeResponse(response))
               .build();
         });
   }
@@ -122,7 +121,6 @@ public class RowsResource {
       @PathParam("keyspaceName") final String keyspaceName,
       @PathParam("tableName") final String tableName,
       @PathParam("path") List<PathSegment> path,
-      @QueryParam("pretty") final boolean pretty,
       @QueryParam("fields") final String fields,
       @QueryParam("page-size") final int pageSizeParam,
       @QueryParam("page-state") final String pageStateParam,
@@ -158,7 +156,7 @@ public class RowsResource {
 
           Object response = getRows(fields, raw, sort, localDB, tableMetadata, where);
           return Response.status(Response.Status.OK)
-              .entity(Converters.writeResponse(response, pretty))
+              .entity(Converters.writeResponse(response))
               .build();
         });
   }
@@ -169,7 +167,6 @@ public class RowsResource {
       @HeaderParam("X-Cassandra-Token") String token,
       @PathParam("keyspaceName") final String keyspaceName,
       @PathParam("tableName") final String tableName,
-      @QueryParam("pretty") final boolean pretty,
       String payload) {
     return RequestHandler.handle(
         () -> {
@@ -197,7 +194,7 @@ public class RowsResource {
           }
 
           return Response.status(Response.Status.CREATED)
-              .entity(Converters.writeResponse(keys, pretty))
+              .entity(Converters.writeResponse(keys))
               .build();
         });
   }
@@ -210,11 +207,10 @@ public class RowsResource {
       @PathParam("keyspaceName") final String keyspaceName,
       @PathParam("tableName") final String tableName,
       @PathParam("path") List<PathSegment> path,
-      @QueryParam("pretty") final boolean pretty,
       @QueryParam("raw") final boolean raw,
       String payload) {
     return RequestHandler.handle(
-        () -> modifyRow(token, keyspaceName, tableName, path, pretty, raw, payload));
+        () -> modifyRow(token, keyspaceName, tableName, path, raw, payload));
   }
 
   @Timed
@@ -263,11 +259,10 @@ public class RowsResource {
       @PathParam("keyspaceName") final String keyspaceName,
       @PathParam("tableName") final String tableName,
       @PathParam("path") List<PathSegment> path,
-      @QueryParam("pretty") final boolean pretty,
       @QueryParam("raw") final boolean raw,
       String payload) {
     return RequestHandler.handle(
-        () -> modifyRow(token, keyspaceName, tableName, path, pretty, raw, payload));
+        () -> modifyRow(token, keyspaceName, tableName, path, raw, payload));
   }
 
   private Response modifyRow(
@@ -275,7 +270,6 @@ public class RowsResource {
       String keyspaceName,
       String tableName,
       List<PathSegment> path,
-      boolean pretty,
       boolean raw,
       String payload)
       throws UnauthorizedException, com.fasterxml.jackson.core.JsonProcessingException,
@@ -312,9 +306,7 @@ public class RowsResource {
             .execute();
 
     Object response = raw ? requestBody : new ResponseWrapper(requestBody);
-    return Response.status(Response.Status.OK)
-        .entity(Converters.writeResponse(response, pretty))
-        .build();
+    return Response.status(Response.Status.OK).entity(Converters.writeResponse(response)).build();
   }
 
   private Object getRows(

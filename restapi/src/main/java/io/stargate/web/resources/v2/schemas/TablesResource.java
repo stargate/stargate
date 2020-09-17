@@ -64,7 +64,6 @@ public class TablesResource {
   public Response listAll(
       @HeaderParam("X-Cassandra-Token") String token,
       @PathParam("keyspaceName") final String keyspaceName,
-      @QueryParam("pretty") final boolean pretty,
       @QueryParam("raw") final boolean raw) {
     return RequestHandler.handle(
         () -> {
@@ -76,7 +75,7 @@ public class TablesResource {
 
           Object response = raw ? tableResponses : new ResponseWrapper(tableResponses);
           return Response.status(Response.Status.OK)
-              .entity(Converters.writeResponse(response, pretty))
+              .entity(Converters.writeResponse(response))
               .build();
         });
   }
@@ -88,7 +87,6 @@ public class TablesResource {
       @HeaderParam("X-Cassandra-Token") String token,
       @PathParam("keyspaceName") final String keyspaceName,
       @PathParam("tableName") final String tableName,
-      @QueryParam("pretty") final boolean pretty,
       @QueryParam("raw") final boolean raw) {
     return RequestHandler.handle(
         () -> {
@@ -97,7 +95,7 @@ public class TablesResource {
 
           TableResponse tableResponse = getTable(tableMetadata);
           Object response = raw ? tableResponse : new ResponseWrapper(tableResponse);
-          return Response.ok(Converters.writeResponse(response, pretty)).build();
+          return Response.ok(Converters.writeResponse(response)).build();
         });
   }
 
@@ -147,7 +145,6 @@ public class TablesResource {
   public Response create(
       @HeaderParam("X-Cassandra-Token") String token,
       @PathParam("keyspaceName") final String keyspaceName,
-      @QueryParam("pretty") final boolean pretty,
       @NotNull final TableAdd tableAdd) {
     return RequestHandler.handle(
         () -> {
@@ -232,8 +229,7 @@ public class TablesResource {
 
           return Response.status(Response.Status.CREATED)
               .entity(
-                  Converters.writeResponse(
-                      Collections.singletonMap("name", tableAdd.getName()), pretty))
+                  Converters.writeResponse(Collections.singletonMap("name", tableAdd.getName())))
               .build();
         });
   }
@@ -245,7 +241,6 @@ public class TablesResource {
       @HeaderParam("X-Cassandra-Token") String token,
       @PathParam("keyspaceName") final String keyspaceName,
       @PathParam("tableName") final String tableName,
-      @QueryParam("pretty") final boolean pretty,
       @NotNull final TableAdd tableUpdate) {
     return RequestHandler.handle(
         () -> {
@@ -276,8 +271,7 @@ public class TablesResource {
 
           return Response.status(Response.Status.CREATED)
               .entity(
-                  Converters.writeResponse(
-                      Collections.singletonMap("name", tableUpdate.getName()), pretty))
+                  Converters.writeResponse(Collections.singletonMap("name", tableUpdate.getName())))
               .build();
         });
   }
