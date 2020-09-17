@@ -196,6 +196,10 @@ public class Starter {
       description = "The port on which JMX should start")
   int jmxPort = 7199;
 
+  @Order(value = 17)
+  @Option(name = {"--dynamic_snitch", "Set if the dynamic snitch should wrap the actual snitch."})
+  boolean dynamicSnitch = true;
+
   private BundleContext context;
   private Felix framework;
   private List<Bundle> bundleList;
@@ -230,6 +234,7 @@ public class Starter {
     // bind to listen address only to allow multiple starters to start on the same host
     this.bindToListenAddressOnly = true;
     this.jmxPort = jmxPort;
+    this.dynamicSnitch = false;
   }
 
   void setStargateProperties() {
@@ -285,6 +290,7 @@ public class Starter {
     System.setProperty("stargate.developer_mode", String.valueOf(developerMode));
     System.setProperty("stargate.bind_to_listen_address", String.valueOf(bindToListenAddressOnly));
     System.setProperty("cassandra.jmx.remote.port", String.valueOf(jmxPort));
+    System.setProperty("stargate.dynamic_snitch", String.valueOf(dynamicSnitch));
 
     if (bindToListenAddressOnly) {
       // Restrict the listen address for Jersey endpoints

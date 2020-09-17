@@ -91,6 +91,7 @@ public class CassandraPersistenceActivator implements BundleActivator {
       c.authorizer = CassandraAuthorizer.class.getCanonicalName();
     }
 
+    c.dynamic_snitch = Boolean.getBoolean("stargate.dynamic_snitch");
     c.cluster_name = clusterName;
     c.num_tokens = 8;
     c.commitlog_sync = Config.CommitLogSync.periodic;
