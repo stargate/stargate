@@ -478,7 +478,7 @@ public class BaseOsgiIntegrationTest {
           // add to starters only if it start() successfully
           stargateStarters.add(starter);
         } catch (Exception ex) {
-          logger.error("Exception when starting stargate node nr: {}", i);
+          logger.error("Exception when starting stargate node nr: " + i, ex);
         } finally {
           logger.error("After starting stargate node nr: {}", i);
         }
