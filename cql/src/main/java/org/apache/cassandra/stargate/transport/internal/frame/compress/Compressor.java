@@ -21,42 +21,45 @@ package org.apache.cassandra.stargate.transport.internal.frame.compress;
 import java.io.IOException;
 
 /**
- * Analogous to {@link org.apache.cassandra.io.compress.ICompressor}, but different enough that
- * it's worth specializing:
+ * Analogous to {@link org.apache.cassandra.io.compress.ICompressor}, but different enough that it's
+ * worth specializing:
+ *
  * <ul>
  *   <li>disk IO is mostly oriented around ByteBuffers, whereas with Frames raw byte arrays are
- *   primarily used </li>
- *   <li>our LZ4 compression format is opionated about the endianness of the preceding length
- *   bytes, big for protocol, little for disk</li>
- *   <li>ICompressor doesn't make it easy to pre-allocate the output buffer/array</li>
+ *       primarily used
+ *   <li>our LZ4 compression format is opionated about the endianness of the preceding length bytes,
+ *       big for protocol, little for disk
+ *   <li>ICompressor doesn't make it easy to pre-allocate the output buffer/array
  * </ul>
  *
  * In future it may be worth revisiting to unify the interfaces.
  */
-public interface Compressor
-{
-    /**
-     * @param length the decompressed length being compressed
-     * @return the maximum length output possible for an input of the provided length
-     */
-    int maxCompressedLength(int length);
+public interface Compressor {
+  /**
+   * @param length the decompressed length being compressed
+   * @return the maximum length output possible for an input of the provided length
+   */
+  int maxCompressedLength(int length);
 
-    /**
-     * @param src the input bytes to be compressed
-     * @param srcOffset the offset to start compressing src from
-     * @param length the total number of bytes from srcOffset to pass to the compressor implementation
-     * @param dest the output buffer to write the compressed bytes to
-     * @param destOffset the offset into the dest buffer to start writing the compressed bytes
-     * @return the length of resulting compressed bytes written into the dest buffer
-     * @throws IOException if the compression implementation failed while compressing the input bytes
-     */
-    int compress(byte[] src, int srcOffset, int length, byte[] dest, int destOffset) throws IOException;
+  /**
+   * @param src the input bytes to be compressed
+   * @param srcOffset the offset to start compressing src from
+   * @param length the total number of bytes from srcOffset to pass to the compressor implementation
+   * @param dest the output buffer to write the compressed bytes to
+   * @param destOffset the offset into the dest buffer to start writing the compressed bytes
+   * @return the length of resulting compressed bytes written into the dest buffer
+   * @throws IOException if the compression implementation failed while compressing the input bytes
+   */
+  int compress(byte[] src, int srcOffset, int length, byte[] dest, int destOffset)
+      throws IOException;
 
-    /**
-     * @param src the compressed bytes to be decompressed
-     * @param expectedDecompressedLength the expected length the input bytes will decompress to
-     * @return a byte[] containing the resuling decompressed bytes
-     * @throws IOException thrown if the compression implementation failed to decompress the provided input bytes
-     */
-    byte[] decompress(byte[] src, int srcOffset, int length, int expectedDecompressedLength) throws IOException;
+  /**
+   * @param src the compressed bytes to be decompressed
+   * @param expectedDecompressedLength the expected length the input bytes will decompress to
+   * @return a byte[] containing the resuling decompressed bytes
+   * @throws IOException thrown if the compression implementation failed to decompress the provided
+   *     input bytes
+   */
+  byte[] decompress(byte[] src, int srcOffset, int length, int expectedDecompressedLength)
+      throws IOException;
 }

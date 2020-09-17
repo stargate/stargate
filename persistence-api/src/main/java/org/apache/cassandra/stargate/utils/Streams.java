@@ -25,31 +25,26 @@ import java.util.stream.StreamSupport;
 
 /**
  * Simple helper methods to work with Java 8 Streams.
- * <p>
- * Mainly exists to reduce the verbosity of a few operations.
+ *
+ * <p>Mainly exists to reduce the verbosity of a few operations.
  */
-public abstract class Streams
-{
-    private Streams()
-    {
-    }
+public abstract class Streams {
+  private Streams() {}
 
-    /**
-     * Creates a sequential stream from an iterable.
-     * <p>
-     * This is simply a shortcut for {@code StreamSupport.stream(iterable.splitIterator(), false)}.
-     *
-     * @param iterable the iterable describing the stream elements.
-     * @return a new sequential stream on {@code iterable}.
-     */
-    public static <T> Stream<T> of(Iterable<T> iterable)
-    {
-        return StreamSupport.stream(iterable.spliterator(), false);
-    }
+  /**
+   * Creates a sequential stream from an iterable.
+   *
+   * <p>This is simply a shortcut for {@code StreamSupport.stream(iterable.splitIterator(), false)}.
+   *
+   * @param iterable the iterable describing the stream elements.
+   * @return a new sequential stream on {@code iterable}.
+   */
+  public static <T> Stream<T> of(Iterable<T> iterable) {
+    return StreamSupport.stream(iterable.spliterator(), false);
+  }
 
-    public static <T> Stream<T> of(Iterator<T> iterator)
-    {
-        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED), false);
-    }
+  public static <T> Stream<T> of(Iterator<T> iterator) {
+    return StreamSupport.stream(
+        Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED), false);
+  }
 }
-

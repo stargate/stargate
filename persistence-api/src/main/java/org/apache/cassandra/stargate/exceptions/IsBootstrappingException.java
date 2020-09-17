@@ -17,10 +17,8 @@
  */
 package org.apache.cassandra.stargate.exceptions;
 
-public class IsBootstrappingException extends RequestExecutionException
-{
-    public IsBootstrappingException()
-    {
-        super(ExceptionCode.IS_BOOTSTRAPPING, "Cannot read from a bootstrapping node");
-    }
+public class IsBootstrappingException extends RequestExecutionException {
+  public IsBootstrappingException() {
+    super(ExceptionCode.IS_BOOTSTRAPPING, "Cannot read from a bootstrapping node");
+  }
 }

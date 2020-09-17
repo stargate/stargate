@@ -19,25 +19,24 @@ package org.apache.cassandra.stargate.exceptions;
 
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
-public class RequestTimeoutException extends RequestExecutionException
-{
-    public final ConsistencyLevel consistency;
-    public final int received;
-    public final int blockFor;
+public class RequestTimeoutException extends RequestExecutionException {
+  public final ConsistencyLevel consistency;
+  public final int received;
+  public final int blockFor;
 
-    protected RequestTimeoutException(ExceptionCode code, ConsistencyLevel consistency, int received, int blockFor)
-    {
-        super(code, String.format("Operation timed out - received only %d responses.", received));
-        this.consistency = consistency;
-        this.received = received;
-        this.blockFor = blockFor;
-    }
+  protected RequestTimeoutException(
+      ExceptionCode code, ConsistencyLevel consistency, int received, int blockFor) {
+    super(code, String.format("Operation timed out - received only %d responses.", received));
+    this.consistency = consistency;
+    this.received = received;
+    this.blockFor = blockFor;
+  }
 
-    protected RequestTimeoutException(ExceptionCode code, ConsistencyLevel consistency, int received, int blockFor, String msg)
-    {
-        super(code, msg);
-        this.consistency = consistency;
-        this.received = received;
-        this.blockFor = blockFor;
-    }
+  protected RequestTimeoutException(
+      ExceptionCode code, ConsistencyLevel consistency, int received, int blockFor, String msg) {
+    super(code, msg);
+    this.consistency = consistency;
+    this.received = received;
+    this.blockFor = blockFor;
+  }
 }

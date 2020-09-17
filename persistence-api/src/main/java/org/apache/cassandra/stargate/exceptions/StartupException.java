@@ -18,26 +18,23 @@
 package org.apache.cassandra.stargate.exceptions;
 
 /**
- * An exception thrown during system startup, indicating the environment or system
- * is not in a valid state to startup.
+ * An exception thrown during system startup, indicating the environment or system is not in a valid
+ * state to startup.
  */
-public class StartupException extends Exception
-{
-    public final static int ERR_WRONG_MACHINE_STATE = 1;
-    public final static int ERR_WRONG_DISK_STATE = 3;
-    public final static int ERR_WRONG_CONFIG = 100;
+public class StartupException extends Exception {
+  public static final int ERR_WRONG_MACHINE_STATE = 1;
+  public static final int ERR_WRONG_DISK_STATE = 3;
+  public static final int ERR_WRONG_CONFIG = 100;
 
-    public final int returnCode;
+  public final int returnCode;
 
-    public StartupException(int returnCode, String message)
-    {
-        super(message);
-        this.returnCode = returnCode;
-    }
+  public StartupException(int returnCode, String message) {
+    super(message);
+    this.returnCode = returnCode;
+  }
 
-    public StartupException(int returnCode, String message, Throwable cause)
-    {
-        super(message, cause);
-        this.returnCode = returnCode;
-    }
+  public StartupException(int returnCode, String message, Throwable cause) {
+    super(message, cause);
+    this.returnCode = returnCode;
+  }
 }

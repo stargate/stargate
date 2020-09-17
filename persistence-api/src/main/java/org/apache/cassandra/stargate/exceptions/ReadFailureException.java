@@ -17,20 +17,26 @@
  */
 package org.apache.cassandra.stargate.exceptions;
 
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.util.Map;
-
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+public class ReadFailureException extends RequestFailureException {
+  public final boolean dataPresent;
 
-public class ReadFailureException extends RequestFailureException
-{
-    public final boolean dataPresent;
-
-    public ReadFailureException(ConsistencyLevel consistency, int received, int blockFor, boolean dataPresent, Map<InetAddressAndPort, RequestFailureReason> failureReasonByEndpoint)
-    {
-        super(ExceptionCode.READ_FAILURE, consistency, received, blockFor, ImmutableMap.copyOf(failureReasonByEndpoint));
-        this.dataPresent = dataPresent;
-    }
+  public ReadFailureException(
+      ConsistencyLevel consistency,
+      int received,
+      int blockFor,
+      boolean dataPresent,
+      Map<InetAddressAndPort, RequestFailureReason> failureReasonByEndpoint) {
+    super(
+        ExceptionCode.READ_FAILURE,
+        consistency,
+        received,
+        blockFor,
+        ImmutableMap.copyOf(failureReasonByEndpoint));
+    this.dataPresent = dataPresent;
+  }
 }

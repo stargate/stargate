@@ -20,19 +20,18 @@ package org.apache.cassandra.stargate.exceptions;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.db.WriteType;
 
-public class WriteTimeoutException extends RequestTimeoutException
-{
-    public final WriteType writeType;
+public class WriteTimeoutException extends RequestTimeoutException {
+  public final WriteType writeType;
 
-    public WriteTimeoutException(WriteType writeType, ConsistencyLevel consistency, int received, int blockFor)
-    {
-        super(ExceptionCode.WRITE_TIMEOUT, consistency, received, blockFor);
-        this.writeType = writeType;
-    }
+  public WriteTimeoutException(
+      WriteType writeType, ConsistencyLevel consistency, int received, int blockFor) {
+    super(ExceptionCode.WRITE_TIMEOUT, consistency, received, blockFor);
+    this.writeType = writeType;
+  }
 
-    public WriteTimeoutException(WriteType writeType, ConsistencyLevel consistency, int received, int blockFor, String msg)
-    {
-        super(ExceptionCode.WRITE_TIMEOUT, consistency, received, blockFor, msg);
-        this.writeType = writeType;
-    }
+  public WriteTimeoutException(
+      WriteType writeType, ConsistencyLevel consistency, int received, int blockFor, String msg) {
+    super(ExceptionCode.WRITE_TIMEOUT, consistency, received, blockFor, msg);
+    this.writeType = writeType;
+  }
 }

@@ -25,20 +25,14 @@ import javax.ws.rs.core.Response;
 @Produces(MediaType.APPLICATION_JSON)
 public class HealthResource {
 
-    @GET
-    @Path("/health")
-    public Response health() {
-        return Response
-                .status(Response.Status.OK)
-                .entity("UP")
-                .build();
-    }
+  @GET
+  @Path("/health")
+  public Response health() {
+    return Response.status(Response.Status.OK).entity("UP").build();
+  }
 
-    @GET
-    public Response ping() {
-        return Response
-                .status(Response.Status.OK)
-                .entity("It's Alive")
-                .build();
-    }
+  @GET
+  public Response ping() {
+    return Response.status(Response.Status.OK).entity("It's Alive").build();
+  }
 }

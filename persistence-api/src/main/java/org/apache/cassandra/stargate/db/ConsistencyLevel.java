@@ -20,91 +20,76 @@ package org.apache.cassandra.stargate.db;
 import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 
-public enum ConsistencyLevel
-{
-    ANY(0),
-    ONE(1),
-    TWO(2),
-    THREE(3),
-    QUORUM(4),
-    ALL(5),
-    LOCAL_QUORUM(6, true),
-    EACH_QUORUM(7),
-    SERIAL(8),
-    LOCAL_SERIAL(9),
-    LOCAL_ONE(10, true),
-    NODE_LOCAL(11, true);
+public enum ConsistencyLevel {
+  ANY(0),
+  ONE(1),
+  TWO(2),
+  THREE(3),
+  QUORUM(4),
+  ALL(5),
+  LOCAL_QUORUM(6, true),
+  EACH_QUORUM(7),
+  SERIAL(8),
+  LOCAL_SERIAL(9),
+  LOCAL_ONE(10, true),
+  NODE_LOCAL(11, true);
 
-    // Used by the binary protocol
-    public final int code;
-    private final boolean isDCLocal;
-    private static final ConsistencyLevel[] codeIdx;
+  // Used by the binary protocol
+  public final int code;
+  private final boolean isDCLocal;
+  private static final ConsistencyLevel[] codeIdx;
 
-    static
-    {
-        int maxCode = -1;
-        for (ConsistencyLevel cl : ConsistencyLevel.values())
-        {
-            maxCode = Math.max(maxCode, cl.code);
-        }
-        codeIdx = new ConsistencyLevel[maxCode + 1];
-        for (ConsistencyLevel cl : ConsistencyLevel.values())
-        {
-            if (codeIdx[cl.code] != null)
-            {
-                throw new IllegalStateException("Duplicate code");
-            }
-            codeIdx[cl.code] = cl;
-        }
+  static {
+    int maxCode = -1;
+    for (ConsistencyLevel cl : ConsistencyLevel.values()) {
+      maxCode = Math.max(maxCode, cl.code);
     }
-
-    private ConsistencyLevel(int code)
-    {
-        this(code, false);
+    codeIdx = new ConsistencyLevel[maxCode + 1];
+    for (ConsistencyLevel cl : ConsistencyLevel.values()) {
+      if (codeIdx[cl.code] != null) {
+        throw new IllegalStateException("Duplicate code");
+      }
+      codeIdx[cl.code] = cl;
     }
+  }
 
-    private ConsistencyLevel(int code, boolean isDCLocal)
-    {
-        this.code = code;
-        this.isDCLocal = isDCLocal;
+  private ConsistencyLevel(int code) {
+    this(code, false);
+  }
+
+  private ConsistencyLevel(int code, boolean isDCLocal) {
+    this.code = code;
+    this.isDCLocal = isDCLocal;
+  }
+
+  public static ConsistencyLevel fromCode(int code) throws ProtocolException {
+    if (code < 0 || code >= codeIdx.length) {
+      throw new ProtocolException(String.format("Unknown code %d for a consistency level", code));
     }
+    return codeIdx[code];
+  }
 
-    public static ConsistencyLevel fromCode(int code) throws ProtocolException
-    {
-        if (code < 0 || code >= codeIdx.length)
-        {
-            throw new ProtocolException(String.format("Unknown code %d for a consistency level", code));
-        }
-        return codeIdx[code];
+  public boolean isDatacenterLocal() {
+    return isDCLocal;
+  }
+
+  public void validateForRead(String keyspaceName) throws InvalidRequestException {
+    switch (this) {
+      case ANY:
+        throw new InvalidRequestException("ANY ConsistencyLevel is only supported for writes");
     }
+  }
 
-
-    public boolean isDatacenterLocal()
-    {
-        return isDCLocal;
+  public void validateForWrite(String keyspaceName) throws InvalidRequestException {
+    switch (this) {
+      case SERIAL:
+      case LOCAL_SERIAL:
+        throw new InvalidRequestException(
+            "You must use conditional updates for serializable writes");
     }
+  }
 
-    public void validateForRead(String keyspaceName) throws InvalidRequestException
-    {
-        switch (this)
-        {
-            case ANY:
-                throw new InvalidRequestException("ANY ConsistencyLevel is only supported for writes");
-        }
-    }
-
-    public void validateForWrite(String keyspaceName) throws InvalidRequestException
-    {
-        switch (this)
-        {
-            case SERIAL:
-            case LOCAL_SERIAL:
-                throw new InvalidRequestException("You must use conditional updates for serializable writes");
-        }
-    }
-
-    public boolean isSerialConsistency()
-    {
-        return this == SERIAL || this == LOCAL_SERIAL;
-    }
+  public boolean isSerialConsistency() {
+    return this == SERIAL || this == LOCAL_SERIAL;
+  }
 }

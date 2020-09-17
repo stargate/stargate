@@ -9,25 +9,27 @@ import io.stargate.graphql.graphqlservlet.CassandraUnboxingGraphqlErrorHandler;
 import io.stargate.graphql.graphqlservlet.GraphqlCustomContextBuilder;
 
 public class SchemaGraphQLServlet extends SimpleGraphQLHttpServlet {
-    private final Persistence persistence;
-    private final AuthenticationService authenticationService;
+  private final Persistence persistence;
+  private final AuthenticationService authenticationService;
 
-    public SchemaGraphQLServlet(Persistence persistence, AuthenticationService authenticationService) {
-        this.persistence = persistence;
-        this.authenticationService = authenticationService;
-    }
-    @Override
-    protected GraphQLConfiguration getConfiguration() {
-        return GraphQLConfiguration
-                .with(createSchema())
-                .with(new GraphqlCustomContextBuilder())
-                .with(GraphQLObjectMapper.newBuilder()
-                        .withGraphQLErrorHandler(new CassandraUnboxingGraphqlErrorHandler())
-                        .build())
-                .build();
-    }
+  public SchemaGraphQLServlet(
+      Persistence persistence, AuthenticationService authenticationService) {
+    this.persistence = persistence;
+    this.authenticationService = authenticationService;
+  }
 
-    private GraphQLSchema createSchema() {
-        return new KeyspaceManagementSchema(persistence, authenticationService).build().build();
-    }
+  @Override
+  protected GraphQLConfiguration getConfiguration() {
+    return GraphQLConfiguration.with(createSchema())
+        .with(new GraphqlCustomContextBuilder())
+        .with(
+            GraphQLObjectMapper.newBuilder()
+                .withGraphQLErrorHandler(new CassandraUnboxingGraphqlErrorHandler())
+                .build())
+        .build();
+  }
+
+  private GraphQLSchema createSchema() {
+    return new KeyspaceManagementSchema(persistence, authenticationService).build().build();
+  }
 }
