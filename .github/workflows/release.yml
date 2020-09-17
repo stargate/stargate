@@ -41,34 +41,6 @@ jobs:
         uses: actions/setup-java@v1.4.2
         with:
           java-version: 1.8
-      - name: Setup Github Package Registry
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-        run: |
-          mkdir -p ~/.m2
-          cat <<EOF > ~/.m2/settings.xml
-          <settings>
-            <servers>
-              <server>
-                <id>gh</id>
-                <username>$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $1}')</username>
-                <password>${GITHUB_TOKEN}</password>
-              </server>
-              <server>
-                <id>artifactory-snapshots</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-releases</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-             </server>
-           </servers>
-          </settings>
-          EOF
       - name: Build with Maven
         run: |
           mvn versions:set -DremoveSnapshot versions:commit
@@ -105,41 +77,20 @@ jobs:
       - uses: actions/setup-java@v1.4.2
         with:
           java-version: 1.8
-      - name: Setup Github Package Registry
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          server-id: ossrh
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+      - id: install-secret-key
+        name: Install gpg secret key
         run: |
-          mkdir -p ~/.m2
-          cat <<EOF > ~/.m2/settings.xml
-          <settings>
-            <servers>
-              <server>
-                <id>gh</id>
-                <username>$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $1}')</username>
-                <password>${GITHUB_TOKEN}</password>
-              </server>
-              <server>
-                <id>artifactory-snapshots</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-releases</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-             </server>
-           </servers>
-          </settings>
-          EOF
+          cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
       - name: Publish package
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
         run: |
-          REPO="gh::default::https://maven.pkg.github.com/${GITHUB_REPOSITORY}"
           mvn versions:set -DremoveSnapshot versions:commit
-          mvn -B clean deploy -DskipTests -DaltDeploymentRepository="${REPO}" -DaltSnapshotDeploymentRepository="${REPO}" && \
+          mvn -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy && \
           mvn --batch-mode release:update-versions -DautoVersionSubmodules=true versions:commit
       - name: Rev Version
         if: success()
