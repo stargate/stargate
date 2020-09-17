@@ -39,6 +39,7 @@ import net.bytebuddy.implementation.bind.annotation.AllArguments;
 import net.bytebuddy.implementation.bind.annotation.Origin;
 import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 import net.bytebuddy.matcher.ElementMatchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.runners.Parameterized;
 import org.objenesis.Objenesis;
@@ -379,7 +380,6 @@ public class BaseOsgiIntegrationTest {
 
       for (Starter stargateStarter : stargateStarters) {
         stargateStarter.stop();
-        stargateStarter.stop();
       }
 
       backendContainer.stop();
@@ -462,5 +462,17 @@ public class BaseOsgiIntegrationTest {
         stargateStarters.add(starter);
       }
     }
+  }
+
+  @After
+  public void cleanup() throws BundleException, InterruptedException {
+    for (Starter stargateStarter : stargateStarters) {
+      stargateStarter.stop();
+    }
+    if (backendContainer != null) {
+      backendContainer.stop();
+    }
+    backendContainer = null;
+    stargateStarters = new ArrayList<>();
   }
 }
