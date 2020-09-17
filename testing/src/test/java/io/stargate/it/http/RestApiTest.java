@@ -65,15 +65,14 @@ import org.slf4j.LoggerFactory;
 @RunWith(Parameterized.class)
 @NotThreadSafe
 public class RestApiTest extends BaseOsgiIntegrationTest {
+
   private static final Logger logger = LoggerFactory.getLogger(RestApiTest.class);
-
-  @Rule public TestName name = new TestName();
-
-  private DataStore dataStore;
-  private String keyspace;
+  private static final ObjectMapper objectMapper = new ObjectMapper();
   private static String authToken;
   private static String host = "http://" + stargateHost;
-  private static final ObjectMapper objectMapper = new ObjectMapper();
+  @Rule public TestName name = new TestName();
+  private DataStore dataStore;
+  private String keyspace;
 
   @Before
   public void setup()
@@ -114,6 +113,21 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
     authToken = authTokenResponse.getAuthToken();
     assertThat(authToken).isNotNull();
+  }
+
+  @Test
+  public void createTokenBadCreds() throws IOException {
+    RestUtils.post(
+        "",
+        String.format("%s:8081/v1/auth/token/generate", host),
+        objectMapper.writeValueAsString(new Credentials("bad", "real_bad")),
+        HttpStatus.SC_UNAUTHORIZED);
+  }
+
+  @Test
+  public void createTokenEmptyBody() throws IOException {
+    RestUtils.post(
+        "", String.format("%s:8081/v1/auth/token/generate", host), "", HttpStatus.SC_BAD_REQUEST);
   }
 
   @Test
