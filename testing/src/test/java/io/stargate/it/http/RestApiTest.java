@@ -70,8 +70,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static String authToken;
   private static String host = "http://" + stargateHost;
-  @Rule
-  public TestName name = new TestName();
+  @Rule public TestName name = new TestName();
   private DataStore dataStore;
   private String keyspace;
 
@@ -587,8 +586,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(query),
             HttpStatus.SC_OK);
 
-    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {
-    });
+    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
     assertThat(rows.getCount()).isEqualTo(1);
     assertThat(rows.getRows().get(0).get("date")).isEqualTo("2020-08-10T18:48:31.020Z");
   }
