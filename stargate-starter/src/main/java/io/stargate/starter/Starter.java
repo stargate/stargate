@@ -240,7 +240,7 @@ public class Starter {
     this.bindToListenAddressOnly = true;
     this.jmxPort = jmxPort;
     this.dynamicSnitch = false;
-    disableMBeanRegistration = true;
+    this.disableMBeanRegistration = true;
   }
 
   void setStargateProperties() {
