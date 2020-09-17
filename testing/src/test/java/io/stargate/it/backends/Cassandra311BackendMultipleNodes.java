@@ -21,7 +21,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(ParameterizedSuite.class)
-public class Cassandra311BackendMultipleNodes extends AllBackendSuite {
+public class Cassandra311BackendMultipleNodes extends MultipleNodesBackendSuite {
   @Parameterized.Parameters(name = "{index}: {0}")
   public static Iterable<Object[]> functions() {
     return Collections.singletonList(new Object[] {"cassandra:3.11.6", false, "3.11", 3});
