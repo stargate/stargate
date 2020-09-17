@@ -114,45 +114,11 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void getKeyspacesPretty() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s:8082/v2/schemas/keyspaces?pretty=true", host),
-            HttpStatus.SC_OK);
-
-    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
-    List<Keyspace> keyspaces =
-        objectMapper.convertValue(response.getData(), new TypeReference<List<Keyspace>>() {});
-    assertThat(keyspaces)
-        .anySatisfy(
-            value ->
-                assertThat(value)
-                    .isEqualToComparingFieldByField(new Keyspace("system_schema", null)));
-  }
-
-  @Test
   public void getKeyspacesRaw() throws IOException {
     String body =
         RestUtils.get(
             authToken,
             String.format("%s:8082/v2/schemas/keyspaces?raw=true", host),
-            HttpStatus.SC_OK);
-
-    List<Keyspace> keyspaces = objectMapper.readValue(body, new TypeReference<List<Keyspace>>() {});
-    assertThat(keyspaces)
-        .anySatisfy(
-            value ->
-                assertThat(value)
-                    .isEqualToComparingFieldByField(new Keyspace("system_schema", null)));
-  }
-
-  @Test
-  public void getKeyspacesPrettyAndRaw() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s:8082/v2/schemas/keyspaces?pretty=true&raw=true", host),
             HttpStatus.SC_OK);
 
     List<Keyspace> keyspaces = objectMapper.readValue(body, new TypeReference<List<Keyspace>>() {});
@@ -178,38 +144,11 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void getKeyspacePretty() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/system?pretty=true", host),
-            HttpStatus.SC_OK);
-
-    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
-    Keyspace keyspace = objectMapper.convertValue(response.getData(), Keyspace.class);
-
-    assertThat(keyspace).isEqualToComparingFieldByField(new Keyspace("system", null));
-  }
-
-  @Test
   public void getKeyspaceRaw() throws IOException {
     String body =
         RestUtils.get(
             authToken,
             String.format("%s:8082/v2/schemas/keyspaces/system?raw=true", host),
-            HttpStatus.SC_OK);
-
-    Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
-
-    assertThat(keyspace).isEqualToComparingFieldByField(new Keyspace("system", null));
-  }
-
-  @Test
-  public void getKeyspacePrettyAndRaw() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/system?pretty=true&raw=true", host),
             HttpStatus.SC_OK);
 
     Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
@@ -286,56 +225,11 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void getTablesPretty() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/system/tables?pretty=true", host),
-            HttpStatus.SC_OK);
-
-    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
-    List<TableResponse> tables =
-        objectMapper.convertValue(response.getData(), new TypeReference<List<TableResponse>>() {});
-
-    assertThat(tables.size()).isGreaterThan(5);
-    assertThat(tables)
-        .anySatisfy(
-            value ->
-                assertThat(value)
-                    .isEqualToComparingOnlyGivenFields(
-                        new TableResponse("local", "system", null, null, null),
-                        "name",
-                        "keyspace"));
-  }
-
-  @Test
   public void getTablesRaw() throws IOException {
     String body =
         RestUtils.get(
             authToken,
             String.format("%s:8082/v2/schemas/keyspaces/system/tables?raw=true", host),
-            HttpStatus.SC_OK);
-
-    List<TableResponse> tables =
-        objectMapper.readValue(body, new TypeReference<List<TableResponse>>() {});
-
-    assertThat(tables.size()).isGreaterThan(5);
-    assertThat(tables)
-        .anySatisfy(
-            value ->
-                assertThat(value)
-                    .isEqualToComparingOnlyGivenFields(
-                        new TableResponse("local", "system", null, null, null),
-                        "name",
-                        "keyspace"));
-  }
-
-  @Test
-  public void getTablesPrettyAndRaw() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/system/tables?pretty=true&raw=true", host),
             HttpStatus.SC_OK);
 
     List<TableResponse> tables =
@@ -373,36 +267,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format("%s:8082/v2/schemas/keyspaces/system/tables/local?raw=true", host),
-            HttpStatus.SC_OK);
-
-    TableResponse table = objectMapper.readValue(body, TableResponse.class);
-    assertThat(table.getKeyspace()).isEqualTo("system");
-    assertThat(table.getName()).isEqualTo("local");
-    assertThat(table.getColumnDefinitions()).isNotNull();
-  }
-
-  @Test
-  public void getTablePretty() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/system/tables/local?pretty=true", host),
-            HttpStatus.SC_OK);
-
-    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
-    TableResponse table = objectMapper.convertValue(response.getData(), TableResponse.class);
-    assertThat(table.getKeyspace()).isEqualTo("system");
-    assertThat(table.getName()).isEqualTo("local");
-    assertThat(table.getColumnDefinitions()).isNotNull();
-  }
-
-  @Test
-  public void getTablePrettyAndRaw() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/system/tables/local?pretty=true&raw=true", host),
             HttpStatus.SC_OK);
 
     TableResponse table = objectMapper.readValue(body, TableResponse.class);
@@ -600,39 +464,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void getRowsWithQueryPretty() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String rowIdentifier = UUID.randomUUID().toString();
-    Map<String, String> row = new HashMap<>();
-    row.put("id", rowIdentifier);
-    row.put("firstName", "John");
-
-    RestUtils.post(
-        authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
-        objectMapper.writeValueAsString(row),
-        HttpStatus.SC_CREATED);
-
-    String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", rowIdentifier);
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s&pretty=tru",
-                host, keyspaceName, tableName, whereClause),
-            HttpStatus.SC_OK);
-
-    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
-    List<Map<String, Object>> data =
-        objectMapper.convertValue(
-            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
-    assertThat(data.get(0).get("firstName")).isEqualTo("John");
-  }
-
-  @Test
   public void getRowsWithNotFound() throws IOException {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
@@ -823,37 +654,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void getRowsPretty() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String rowIdentifier = UUID.randomUUID().toString();
-    Map<String, String> row = new HashMap<>();
-    row.put("id", rowIdentifier);
-    row.put("firstName", "John");
-
-    RestUtils.post(
-        authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
-        objectMapper.writeValueAsString(row),
-        HttpStatus.SC_CREATED);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
-            HttpStatus.SC_OK);
-
-    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
-    List<Map<String, Object>> data =
-        objectMapper.convertValue(
-            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
-    assertThat(data.get(0).get("firstName")).isEqualTo("John");
-  }
-
-  @Test
   public void getRowsPartitionKeyOnly() throws IOException {
     String rowIdentifier = setupClusteringTestCase();
 
@@ -918,30 +718,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void addRowPretty() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String rowIdentifier = UUID.randomUUID().toString();
-    Map<String, String> row = new HashMap<>();
-    row.put("id", rowIdentifier);
-    row.put("firstName", "John");
-    row.put("lastName", "Doe");
-    row.put("age", "20");
-
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format("%s:8082/v2/keyspaces/%s/%s?pretty=true", host, keyspaceName, tableName),
-            objectMapper.writeValueAsString(row),
-            HttpStatus.SC_CREATED);
-
-    Map<String, Object> rowResponse =
-        objectMapper.readValue(body, new TypeReference<Map<String, Object>>() {});
-    assertThat(rowResponse.get("id")).isEqualTo(rowIdentifier);
-  }
-
-  @Test
   public void updateRow() throws IOException {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
@@ -976,41 +752,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void updateRowPretty() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String rowIdentifier = UUID.randomUUID().toString();
-    Map<String, String> row = new HashMap<>();
-    row.put("id", rowIdentifier);
-    row.put("firstName", "John");
-
-    RestUtils.post(
-        authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
-        objectMapper.writeValueAsString(row),
-        HttpStatus.SC_CREATED);
-
-    Map<String, String> rowUpdate = new HashMap<>();
-    rowUpdate.put("firstName", "Robert");
-    rowUpdate.put("lastName", "Plant");
-
-    String body =
-        RestUtils.put(
-            authToken,
-            String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?pretty=true",
-                host, keyspaceName, tableName, rowIdentifier),
-            objectMapper.writeValueAsString(rowUpdate),
-            HttpStatus.SC_OK);
-
-    ResponseWrapper responseWrapper = objectMapper.readValue(body, ResponseWrapper.class);
-    Map<String, String> data = objectMapper.convertValue(responseWrapper.getData(), Map.class);
-
-    assertThat(data).containsAllEntriesOf(rowUpdate);
-  }
-
-  @Test
   public void updateRowRaw() throws IOException {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
@@ -1035,40 +776,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             authToken,
             String.format(
                 "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
-                host, keyspaceName, tableName, rowIdentifier),
-            objectMapper.writeValueAsString(rowUpdate),
-            HttpStatus.SC_OK);
-
-    Map<String, String> data = objectMapper.readValue(body, Map.class);
-
-    assertThat(data).containsAllEntriesOf(rowUpdate);
-  }
-
-  @Test
-  public void updateRowPrettyAndRaw() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String rowIdentifier = UUID.randomUUID().toString();
-    Map<String, String> row = new HashMap<>();
-    row.put("id", rowIdentifier);
-    row.put("firstName", "John");
-
-    RestUtils.post(
-        authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
-        objectMapper.writeValueAsString(row),
-        HttpStatus.SC_CREATED);
-
-    Map<String, String> rowUpdate = new HashMap<>();
-    rowUpdate.put("firstName", "Robert");
-    rowUpdate.put("lastName", "Plant");
-
-    String body =
-        RestUtils.put(
-            authToken,
-            String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?pretty=true&raw=true",
                 host, keyspaceName, tableName, rowIdentifier),
             objectMapper.writeValueAsString(rowUpdate),
             HttpStatus.SC_OK);
@@ -1127,55 +834,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void patchRowPretty() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String rowIdentifier = UUID.randomUUID().toString();
-    Map<String, String> row = new HashMap<>();
-    row.put("id", rowIdentifier);
-    row.put("firstName", "John");
-    row.put("lastName", "Doe");
-
-    RestUtils.post(
-        authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
-        objectMapper.writeValueAsString(row),
-        HttpStatus.SC_CREATED);
-
-    Map<String, String> rowUpdate = new HashMap<>();
-    rowUpdate.put("firstName", "Jane");
-
-    String body =
-        RestUtils.patch(
-            authToken,
-            String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?pretty=true",
-                host, keyspaceName, tableName, rowIdentifier),
-            objectMapper.writeValueAsString(rowUpdate),
-            HttpStatus.SC_OK);
-    ResponseWrapper responseWrapper = objectMapper.readValue(body, ResponseWrapper.class);
-    Map<String, String> patchData = objectMapper.convertValue(responseWrapper.getData(), Map.class);
-
-    assertThat(patchData).containsAllEntriesOf(rowUpdate);
-
-    body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
-            HttpStatus.SC_OK);
-
-    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
-    List<Map<String, Object>> data =
-        objectMapper.convertValue(
-            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
-    assertThat(data.get(0).get("firstName")).isEqualTo("Jane");
-    assertThat(data.get(0).get("lastName")).isEqualTo("Doe");
-  }
-
-  @Test
   public void patchRowRaw() throws IOException {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
@@ -1200,54 +858,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             authToken,
             String.format(
                 "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
-                host, keyspaceName, tableName, rowIdentifier),
-            objectMapper.writeValueAsString(rowUpdate),
-            HttpStatus.SC_OK);
-    Map<String, String> patchData = objectMapper.readValue(body, Map.class);
-
-    assertThat(patchData).containsAllEntriesOf(rowUpdate);
-
-    body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
-            HttpStatus.SC_OK);
-
-    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
-    List<Map<String, Object>> data =
-        objectMapper.convertValue(
-            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
-    assertThat(data.get(0).get("firstName")).isEqualTo("Jane");
-    assertThat(data.get(0).get("lastName")).isEqualTo("Doe");
-  }
-
-  @Test
-  public void patchRowPrettyAndRaw() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String rowIdentifier = UUID.randomUUID().toString();
-    Map<String, String> row = new HashMap<>();
-    row.put("id", rowIdentifier);
-    row.put("firstName", "John");
-    row.put("lastName", "Doe");
-
-    RestUtils.post(
-        authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
-        objectMapper.writeValueAsString(row),
-        HttpStatus.SC_CREATED);
-
-    Map<String, String> rowUpdate = new HashMap<>();
-    rowUpdate.put("firstName", "Jane");
-
-    String body =
-        RestUtils.patch(
-            authToken,
-            String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?pretty=true&raw=true",
                 host, keyspaceName, tableName, rowIdentifier),
             objectMapper.writeValueAsString(rowUpdate),
             HttpStatus.SC_OK);
@@ -1338,51 +948,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void getColumnsPretty() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns?pretty=true",
-                host, keyspaceName, tableName),
-            HttpStatus.SC_OK);
-    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
-    List<ColumnDefinition> columns =
-        objectMapper.convertValue(
-            response.getData(), new TypeReference<List<ColumnDefinition>>() {});
-    assertThat(columns)
-        .anySatisfy(
-            value ->
-                assertThat(value)
-                    .isEqualToComparingFieldByField(
-                        new ColumnDefinition("firstName", "Varchar", false)));
-  }
-
-  @Test
-  public void getColumnsPrettyAndRaw() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns?pretty=true&raw=true",
-                host, keyspaceName, tableName),
-            HttpStatus.SC_OK);
-    List<ColumnDefinition> columns =
-        objectMapper.readValue(body, new TypeReference<List<ColumnDefinition>>() {});
-    assertThat(columns)
-        .anySatisfy(
-            value ->
-                assertThat(value)
-                    .isEqualToComparingFieldByField(new ColumnDefinition("age", "Int", false)));
-  }
-
-  @Test
   public void getColumnsBadTable() throws IOException {
     String body =
         RestUtils.get(
@@ -1464,39 +1029,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void getColumnPretty() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?pretty=true",
-                host, keyspaceName, tableName, "age"),
-            HttpStatus.SC_OK);
-    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
-    ColumnDefinition column = objectMapper.convertValue(response.getData(), ColumnDefinition.class);
-    assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "Int", false));
-  }
-
-  @Test
-  public void getColumnPrettyAndRaw() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?pretty=true&raw=true",
-                host, keyspaceName, tableName, "age"),
-            HttpStatus.SC_OK);
-    ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "Int", false));
-  }
-
-  @Test
   public void getColumnBadTable() throws IOException {
     createKeyspace(keyspaceName);
 
@@ -1540,36 +1072,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             authToken,
             String.format(
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
-            objectMapper.writeValueAsString(columnDefinition),
-            HttpStatus.SC_CREATED);
-    Map<String, String> response = objectMapper.readValue(body, Map.class);
-
-    assertThat(response.get("name")).isEqualTo("name");
-
-    body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true",
-                host, keyspaceName, tableName, "name"),
-            HttpStatus.SC_OK);
-    ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column).isEqualToComparingFieldByField(columnDefinition);
-  }
-
-  @Test
-  public void addColumnPretty() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    ColumnDefinition columnDefinition = new ColumnDefinition("name", "Varchar");
-
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns?pretty=true",
-                host, keyspaceName, tableName),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_CREATED);
     Map<String, String> response = objectMapper.readValue(body, Map.class);
@@ -1648,36 +1150,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             authToken,
             String.format(
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, tableName, "id"),
-            objectMapper.writeValueAsString(columnDefinition),
-            HttpStatus.SC_OK);
-    Map<String, String> response = objectMapper.readValue(body, Map.class);
-
-    assertThat(response.get("name")).isEqualTo("identifier");
-
-    body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true",
-                host, keyspaceName, tableName, "identifier"),
-            HttpStatus.SC_OK);
-    ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column).isEqualToComparingFieldByField(columnDefinition);
-  }
-
-  @Test
-  public void updateColumnPretty() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    ColumnDefinition columnDefinition = new ColumnDefinition("identifier", "Uuid");
-
-    String body =
-        RestUtils.put(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?pretty=true",
                 host, keyspaceName, tableName, "id"),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_OK);
