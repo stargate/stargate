@@ -160,8 +160,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     ResultSet rs = session.execute("SELECT * FROM system.local");
     Iterator<Row> rows = rs.iterator();
     assertThat(rows).hasNext();
-    assertThat(rows.next().getInetAddress("listen_address"))
-        .isEqualTo(getStargateInetSocketAddresses());
+    assertThat(rows.next().getInetAddress("listen_address")).isIn(getStargateInetSocketAddresses());
   }
 
   @Test
