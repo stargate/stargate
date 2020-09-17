@@ -200,6 +200,11 @@ public class Starter {
   @Option(name = {"--dynamic_snitch", "Set if the dynamic snitch should wrap the actual snitch."})
   boolean dynamicSnitch = true;
 
+  @Order(value = 18)
+  @Option(
+      name = {"--disable_mbean_registration", "Whether the mbean registration should be disabled"})
+  boolean disableMBeanRegistration = false;
+
   private BundleContext context;
   private Felix framework;
   private List<Bundle> bundleList;
@@ -235,6 +240,7 @@ public class Starter {
     this.bindToListenAddressOnly = true;
     this.jmxPort = jmxPort;
     this.dynamicSnitch = false;
+    disableMBeanRegistration = true;
   }
 
   void setStargateProperties() {
@@ -292,6 +298,9 @@ public class Starter {
     System.setProperty("cassandra.jmx.remote.port", String.valueOf(jmxPort));
     System.setProperty("cassandra.jmx.local.port", String.valueOf(jmxPort));
     System.setProperty("stargate.dynamic_snitch", String.valueOf(dynamicSnitch));
+    System.setProperty(
+        "org.apache.cassandra.disable_mbean_registration",
+        String.valueOf(disableMBeanRegistration));
 
     if (bindToListenAddressOnly) {
       // Restrict the listen address for Jersey endpoints
