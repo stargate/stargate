@@ -31,12 +31,12 @@
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-common</artifactId>
-      <version>0.0.7</version>
+      <version>0.0.9</version>
     </dependency>
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.7</version>
+      <version>0.0.9</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
