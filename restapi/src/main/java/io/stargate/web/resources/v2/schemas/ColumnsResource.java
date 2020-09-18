@@ -61,7 +61,6 @@ public class ColumnsResource {
       @HeaderParam("X-Cassandra-Token") String token,
       @PathParam("keyspaceName") final String keyspaceName,
       @PathParam("tableName") final String tableName,
-      @QueryParam("pretty") final boolean pretty,
       @QueryParam("raw") final boolean raw) {
     return RequestHandler.handle(
         () -> {
@@ -91,7 +90,7 @@ public class ColumnsResource {
 
           Object response = raw ? columnDefinitions : new ResponseWrapper(columnDefinitions);
           return Response.status(Response.Status.OK)
-              .entity(Converters.writeResponse(response, pretty))
+              .entity(Converters.writeResponse(response))
               .build();
         });
   }
@@ -102,7 +101,6 @@ public class ColumnsResource {
       @HeaderParam("X-Cassandra-Token") String token,
       @PathParam("keyspaceName") final String keyspaceName,
       @PathParam("tableName") final String tableName,
-      @QueryParam("pretty") final boolean pretty,
       @NotNull final ColumnDefinition columnDefinition) {
     return RequestHandler.handle(
         () -> {
@@ -132,7 +130,7 @@ public class ColumnsResource {
           return Response.status(Response.Status.CREATED)
               .entity(
                   Converters.writeResponse(
-                      Collections.singletonMap("name", columnDefinition.getName()), pretty))
+                      Collections.singletonMap("name", columnDefinition.getName())))
               .build();
         });
   }
@@ -145,7 +143,6 @@ public class ColumnsResource {
       @PathParam("keyspaceName") final String keyspaceName,
       @PathParam("tableName") final String tableName,
       @PathParam("columnName") final String columnName,
-      @QueryParam("pretty") final boolean pretty,
       @QueryParam("raw") final boolean raw) {
     return RequestHandler.handle(
         () -> {
@@ -178,7 +175,7 @@ public class ColumnsResource {
               new ColumnDefinition(col.name(), type, col.kind() == Column.Kind.Static);
           Object response = raw ? columnDefinition : new ResponseWrapper(columnDefinition);
           return Response.status(Response.Status.OK)
-              .entity(Converters.writeResponse(response, pretty))
+              .entity(Converters.writeResponse(response))
               .build();
         });
   }
@@ -191,7 +188,6 @@ public class ColumnsResource {
       @PathParam("keyspaceName") final String keyspaceName,
       @PathParam("tableName") final String tableName,
       @PathParam("columnName") final String columnName,
-      @QueryParam("pretty") final boolean pretty,
       @NotNull final ColumnDefinition columnUpdate) {
     return RequestHandler.handle(
         () -> {
@@ -216,7 +212,7 @@ public class ColumnsResource {
           return Response.status(Response.Status.OK)
               .entity(
                   Converters.writeResponse(
-                      Collections.singletonMap("name", columnUpdate.getName()), pretty))
+                      Collections.singletonMap("name", columnUpdate.getName())))
               .build();
         });
   }
