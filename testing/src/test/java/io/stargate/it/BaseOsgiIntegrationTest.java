@@ -87,6 +87,7 @@ public class BaseOsgiIntegrationTest {
   static Starter stargateStarter;
   static String datacenter;
   public static String stargateHost;
+  public boolean enableAuth;
   static String rack;
 
   @Parameterized.Parameter(0)
@@ -403,7 +404,7 @@ public class BaseOsgiIntegrationTest {
               !isDse,
               9043);
 
-      stargateStarter.start();
+      stargateStarter.withAuthEnabled(enableAuth).start();
     }
   }
 }
