@@ -45,6 +45,8 @@ public class AuthTableBasedService implements AuthenticationService {
   private static final String AUTH_TABLE = System.getProperty("stargate.auth_table", "token");
   private static final int tokenTTL =
       Integer.parseInt(System.getProperty("stargate.auth_tokenttl", "1800"));
+  private static final boolean shouldInitializeAuthKeyspace =
+      Boolean.parseBoolean(System.getProperty("stargate.auth_tablebased_init", "true"));
 
   public Persistence getPersistence() {
     return persistence;
@@ -54,7 +56,7 @@ public class AuthTableBasedService implements AuthenticationService {
     this.persistence = persistence;
     this.dataStore = persistence.newDataStore(null, null);
 
-    if (Boolean.parseBoolean(System.getProperty("stargate.auth_tablebased_init", "true"))) {
+    if (shouldInitializeAuthKeyspace) {
       initAuthTable(this.dataStore);
     }
   }
