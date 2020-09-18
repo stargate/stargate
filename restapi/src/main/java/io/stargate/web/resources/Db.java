@@ -1,9 +1,19 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.web.resources;
-
-import javax.ws.rs.NotFoundException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.util.Collection;
 
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
@@ -16,6 +26,9 @@ import io.stargate.db.QueryState;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.schema.Keyspace;
 import io.stargate.db.datastore.schema.Table;
+import java.nio.ByteBuffer;
+import java.util.Collection;
+import javax.ws.rs.NotFoundException;
 
 public class Db {
   private final Persistence persistence;
@@ -68,19 +81,20 @@ public class Db {
     return this.persistence.newDataStore(queryState, null);
   }
 
-  public DataStore getDataStoreForToken(String token, int pageSize, ByteBuffer pagingState) throws UnauthorizedException {
+  public DataStore getDataStoreForToken(String token, int pageSize, ByteBuffer pagingState)
+      throws UnauthorizedException {
     StoredCredentials storedCredentials = authenticationService.validateToken(token);
     ClientState clientState = this.persistence.newClientState(storedCredentials.getRoleName());
     QueryState queryState = this.persistence.newQueryState(clientState);
 
-    QueryOptions queryOptions = DefaultQueryOptions.builder()
-                                                   .options(DefaultQueryOptions.SpecificOptions.builder()
-                                                                               .pageSize(pageSize)
-                                                                               .pagingState(pagingState)
-                                                                               .build()
-                                                   )
-                                                   .build();
-
+    QueryOptions queryOptions =
+        DefaultQueryOptions.builder()
+            .options(
+                DefaultQueryOptions.SpecificOptions.builder()
+                    .pageSize(pageSize)
+                    .pagingState(pagingState)
+                    .build())
+            .build();
 
     return this.persistence.newDataStore(queryState, queryOptions);
   }

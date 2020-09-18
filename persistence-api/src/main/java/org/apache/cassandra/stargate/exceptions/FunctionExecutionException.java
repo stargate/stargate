@@ -18,20 +18,20 @@
 package org.apache.cassandra.stargate.exceptions;
 
 import java.util.List;
-
 import org.apache.cassandra.stargate.cql3.functions.FunctionName;
 
-public class FunctionExecutionException extends RequestExecutionException
-{
-    public final FunctionName functionName;
-    public final List<String> argTypes;
-    public final String detail;
+public class FunctionExecutionException extends RequestExecutionException {
+  public final FunctionName functionName;
+  public final List<String> argTypes;
+  public final String detail;
 
-    public FunctionExecutionException(FunctionName functionName, List<String> argTypes, String detail)
-    {
-        super(ExceptionCode.FUNCTION_FAILURE, "execution of '" + functionName + argTypes + "' failed: " + detail);
-        this.functionName = functionName;
-        this.argTypes = argTypes;
-        this.detail = detail;
-    }
+  public FunctionExecutionException(
+      FunctionName functionName, List<String> argTypes, String detail) {
+    super(
+        ExceptionCode.FUNCTION_FAILURE,
+        "execution of '" + functionName + argTypes + "' failed: " + detail);
+    this.functionName = functionName;
+    this.argTypes = argTypes;
+    this.detail = detail;
+  }
 }

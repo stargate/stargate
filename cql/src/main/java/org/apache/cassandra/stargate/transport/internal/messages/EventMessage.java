@@ -17,44 +17,37 @@
  */
 package org.apache.cassandra.stargate.transport.internal.messages;
 
+import io.netty.buffer.ByteBuf;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.Event;
 import org.apache.cassandra.stargate.transport.internal.Message;
 
-import io.netty.buffer.ByteBuf;
-
-public class EventMessage extends Message.Response
-{
-    public static final Message.Codec<EventMessage> codec = new Message.Codec<EventMessage>()
-    {
-        public EventMessage decode(ByteBuf body, ProtocolVersion version)
-        {
-            return new EventMessage(Event.deserialize(body, version));
+public class EventMessage extends Message.Response {
+  public static final Message.Codec<EventMessage> codec =
+      new Message.Codec<EventMessage>() {
+        public EventMessage decode(ByteBuf body, ProtocolVersion version) {
+          return new EventMessage(Event.deserialize(body, version));
         }
 
-        public void encode(EventMessage msg, ByteBuf dest, ProtocolVersion version)
-        {
-            msg.event.serialize(dest, version);
+        public void encode(EventMessage msg, ByteBuf dest, ProtocolVersion version) {
+          msg.event.serialize(dest, version);
         }
 
-        public int encodedSize(EventMessage msg, ProtocolVersion version)
-        {
-            return msg.event.serializedSize(version);
+        public int encodedSize(EventMessage msg, ProtocolVersion version) {
+          return msg.event.serializedSize(version);
         }
-    };
+      };
 
-    public final Event event;
+  public final Event event;
 
-    public EventMessage(Event event)
-    {
-        super(Message.Type.EVENT);
-        this.event = event;
-        this.setStreamId(-1);
-    }
+  public EventMessage(Event event) {
+    super(Message.Type.EVENT);
+    this.event = event;
+    this.setStreamId(-1);
+  }
 
-    @Override
-    public String toString()
-    {
-        return "EVENT " + event;
-    }
+  @Override
+  public String toString() {
+    return "EVENT " + event;
+  }
 }

@@ -17,10 +17,8 @@
  */
 package org.apache.cassandra.stargate.exceptions;
 
-public class OverloadedException extends RequestExecutionException
-{
-    public OverloadedException(String reason)
-    {
-        super(ExceptionCode.OVERLOADED, reason);
-    }
+public class OverloadedException extends RequestExecutionException {
+  public OverloadedException(String reason) {
+    super(ExceptionCode.OVERLOADED, reason);
+  }
 }

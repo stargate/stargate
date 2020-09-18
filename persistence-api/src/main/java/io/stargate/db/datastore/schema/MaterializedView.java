@@ -1,46 +1,52 @@
 /*
- * Copyright DataStax, Inc.
+ * Copyright DataStax, Inc. and/or The Stargate Authors
  *
- * Please see the included license file for details.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.stargate.db.datastore.schema;
 
+import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
 import java.util.List;
-
 import org.immutables.value.Value;
 
-import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
-
 @Value.Immutable(prehash = true)
-public abstract class MaterializedView extends AbstractTable implements Index
-{
-    private static final long serialVersionUID = -2999120284516448661L;
+public abstract class MaterializedView extends AbstractTable implements Index {
+  private static final long serialVersionUID = -2999120284516448661L;
 
-    public static MaterializedView create(String keyspace, String name, List<Column> columns)
-    {
-        columns.forEach(c ->
-        {
-            Preconditions.checkState(c.kind() != null, "Column reference may not be used %s", c.name());
+  public static MaterializedView create(String keyspace, String name, List<Column> columns) {
+    columns.forEach(
+        c -> {
+          Preconditions.checkState(
+              c.kind() != null, "Column reference may not be used %s", c.name());
         });
-        return ImmutableMaterializedView.builder().keyspace(keyspace).name(name)
-                .addAllColumns(columns).build();
-    }
+    return ImmutableMaterializedView.builder()
+        .keyspace(keyspace)
+        .name(name)
+        .addAllColumns(columns)
+        .build();
+  }
 
-    public static MaterializedView reference(String keyspace, String name)
-    {
-        return ImmutableMaterializedView.builder().keyspace(keyspace).name(name)
-                .addColumns().build();
-    }
+  public static MaterializedView reference(String keyspace, String name) {
+    return ImmutableMaterializedView.builder().keyspace(keyspace).name(name).addColumns().build();
+  }
 
-    @Override
-    public int priority()
-    {
-        return 1;
-    }
+  @Override
+  public int priority() {
+    return 1;
+  }
 
-    @Override
-    public String indexTypeName()
-    {
-        return "Materialized view";
-    }
+  @Override
+  public String indexTypeName() {
+    return "Materialized view";
+  }
 }

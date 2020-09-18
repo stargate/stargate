@@ -34,13 +34,16 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
+        with:
+          ref: "master"
       - name: Setup Java JDK
         uses: actions/setup-java@v1.4.2
         with:
           java-version: 1.8
       - name: Build with Maven
         run: |
+          mvn versions:set -DremoveSnapshot versions:commit
           mvn -q -ff clean package -DskipTests
       - name: zip-up
         run: |
@@ -66,43 +69,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: "master"
       - name: Set version
         id: vars
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
       - uses: actions/setup-java@v1.4.2
         with:
           java-version: 1.8
-      - name: Setup Github Package Registry
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          server-id: ossrh
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+      - id: install-secret-key
+        name: Install gpg secret key
         run: |
-          mkdir -p ~/.m2
-          cat <<EOF > ~/.m2/settings.xml
-          <settings>
-            <servers>
-              <server>
-                <id>gh</id>
-                <username>$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $1}')</username>
-                <password>${GITHUB_TOKEN}</password>
-              </server>
-           </servers>
-          </settings>
-          EOF
+          cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
       - name: Publish package
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_VERSION: ${{ steps.vars.outputs.tag }}
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
         run: |
-          RELEASE_VERSION="${RELEASE_VERSION:1}"
-          REPO="gh::default::https://maven.pkg.github.com/${GITHUB_REPOSITORY}"
-          mvn -B clean deploy -Drevision="$RELEASE_VERSION" -DskipTests -DaltDeploymentRepository="${REPO}" -DaltSnapshotDeploymentRepository="${REPO}" && \
-          mvn versions:set-property -Dproperty=revision -DnewVersion=$RELEASE_VERSION -DgenerateBackupPoms=false
+          mvn versions:set -DremoveSnapshot versions:commit
+          mvn -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy && \
+          mvn --batch-mode release:update-versions -DautoVersionSubmodules=true versions:commit
+          mvn xml-format:xml-format fmt:format
       - name: Rev Version
         if: success()
-        uses: EndBug/add-and-commit@v4
+        uses: peter-evans/create-pull-request@v3
         env:
-          RELEASE_VERSION: ${{ steps.vars.outputs.tag }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          message: "Bumping version to ${RELEASE_VERSION:1}"
-          add: "pom.xml"
+          commit-message: "Bumping version for next release"
+          title: "Bumping version for next release"
+          branch-suffix: "short-commit-hash"
+          base: "master"

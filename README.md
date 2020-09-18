@@ -1,114 +1,71 @@
+![Java CI](https://github.com/stargate/stargate/workflows/Java%20CI/badge.svg)
+
 # Stargate
 
-![Java CI](https://github.com/stargate/stargate/workflows/Java%20CI/badge.svg)
+An open source API framework for data.
+
+Stargate is a data gateway deployed between client applications and a database.
+It's built with extensibility as a first-class citizen and makes it easy to use a database for any application workload
+by adding plugin support for new APIs, data types, and access methods.
+
+- For information about how to use Stargate, visit [stargate.io](https://stargate.io/)
+- To learn how to participate in our community, visit our [community page](https://stargate.io/community)
+- To set up and use a Stargate development environment, visit the [dev guide](DEV_GUIDE.md)
+
+![image](assets/stargate-arch-high-level.png#center)
+
+## Contents
+- [Introduction](#introduction)
+- [Repositories](#repositories)
+- [Issue Management](#issue-management)
 
 ## Introduction
 
-An open framework that makes it easy to use Apache Cassandra&reg; for any workload by adding plug-in support for new APIs, data 
-types, and data access methods
+We created Stargate because we got tired of using different databases and different APIs depending on the work that we were trying to get done.
+With "read the manual" fatigue and lengthy selection processes wearing on us every time we started a new project, we thought - *why not create a framework that can serve many APIs for a range of workloads?*
 
-## Building
+This project enables customization of all aspects of data access and has modules for authentication, APIs, request handling / routing, and persistence backends.
+The current form is specific to the Apache Cassandra (C*) backend but there's no bounds to the databases or APIs that this framework can support.
 
-To build locally run the following:
+Stargate contains the following components:
 
-```sh
-./mvnw clean package
-```
+- **API Services**: Responsible for defining the API, handling and converting requests to db queries, dispatching to persistence, returning and serving response
 
-## Running Locally
+    - cql: API implementation for the Cassandra Query Language
+    - restapi: API implementation for exposing Cassandra data over REST
 
-### Prerequisite
+- **Persistence Services**: Responsible for implementing the coordination layer to execute requests passed by API services to underlying data storage instances.
 
-Before starting locally you will need an instance of either Apache Cassandra&reg;. The easiest way to do this is with a 
-docker image. 
+    - persistence-api: Interface for working with persistence services
+    - persistence-common: Utilities shared by the persistence services
+    - persistence-cassandra-3.11: Joins C* ring as coordinator only node (does not store data),
+    mocks C* system tables for native driver integration,
+    executes requests with C* storage nodes using C* QueryHandler/QueryProcessor,
+    converts internal C* objects and ResultSets to Stargate Datastore objects.
 
-*NOTE* due to the way networking works with Docker for Mac, the Docker method only works on Linux. Use CCM (see below) for 
-use with Macs.
+- **Authentication Services**: Responsible for authentication to Stargate
 
-Apache Cassandra&reg;
+    - auth-api: REST service for generating auth tokens
+    - auth-table-based-service: Service to store tokens in the database
+    - authentication: Interface for working with auth providers
 
-```sh
-docker run --name local-cassandra \
---net=host \
--e CASSANDRA_CLUSTER_NAME=stargate \
--d cassandra:3.11.6
-```
+![image](assets/stargate-modules-preview-version.png#center)
 
-or to run locally with [ccm](https://github.com/riptano/ccm)
+## Repositories
 
-```sh
-ccm create -v 3.11.6 -b -n 1:0 -i 127.0.0 stargate && ccm start
-```
+- [stargate/stargate](https://github.com/stargate/stargate): This repository is the primary entry point to the project. It contains the core set of modules for a fully functional starter experience.
+- [stargate/api-extensions](https://github.com/stargate/api-extensions): This repository contains API Extensions and is where new API submissions should live (more coming soon). The REST API is in the stargate/stargate repo as a reference and to ease the starter experience.
+- [stargate/persistence-extensions](https://github.com/stargate/persistence-extensions): This repository contains Persistence Extensions and is where new Persistence submissions should live (more coming soon). The Cassandra 3.11 persistence service is in the stargate/stargate repo as a reference and to ease the starter experience.
+- [stargate/docker-images](https://github.com/stargate/docker-images): This repository contains the Dockerfiles used to create and publish images to https://hub.docker.com/orgs/stargateio
+- [stargate/docs](https://github.com/stargate/docs): This repository contains the user docs hosted on [stargate.io](https://stargate.io)
+- [stargate/website](https://github.com/stargate/website): This repository contains the code for the website hosted on [stargate.io](https://stargate.io)
 
-### Start commands
+## Issue Management
 
-Before starting on OSX you'll need to add an additional loopback
+We're still getting things organized so bear with us if things move around a bit as we get settled.
+You can reference the [CONTRIBUTING.md](CONTRIBUTING.md) for a full description of how to get involved
+but the short of it is below.
 
-```sh
-sudo ifconfig lo0 alias 127.0.0.2
-```
-
-Can run from the command line with
-
-```
-./starctl --cluster-name stargate --cluster-seed 127.0.0.1 --cluster-version 3.11 --listen 127.0.0.2 --simple-snitch
-
-# See all cli options with -h
-```
-
-Or with Docker
-
-```sh
-docker build -t stargate . && docker run -i -t stargate
-```
-
-`starctl` respects the `JAVA_OPTS` environment variable. 
-For example, to set a java system property with spaces in its value one can run `starctl` as follows. 
-Note the double quotes embedded in the env. var value - it is re-evalutated (once) as a `bash` token before being
-passed to the JVM. This is required to break the single value of `JAVA_OPTS` into a sequence of tokens.
-This kind of processing is not required for ordinary command line arguments, therefore they do not need any extra
-quoting.
-
-```shell script
-env JAVA_OPTS='-Dmy_property="some value"' ./starctl --cluster-name 'Some Cluster' ...
-```
-
-### Debugging
-
-If you're an IntelliJ user you can use start the project with
-
-```sh
-java -jar -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005 -Dstargate.libdir=./stargate-lib stargate-lib/stargate-starter-1.0-SNAPSHOT.jar
-```
-
-Alternatively, use the `JAVA_OPTS` environment variable to pass debugging options to the JVM
-
-```shell script
-env JAVA_OPTS='-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005' ./starctl --cluster-name stargate ...
-```
-
-and then follow the steps found [here](https://www.baeldung.com/intellij-remote-debugging)
-
-
-## Connecting
-
-### CQL
-
-Connect to CQL as normal on port 9042
-
-```sh
-$ cqlsh 127.0.0.2 9042
-Connected to stargate at 127.0.0.2:9042.
-[cqlsh 5.0.1 | Cassandra 3.11.6 | CQL spec 3.4.4 | Native protocol v4]
-Use HELP for help.
-```
-
-### REST
-
-Curl over port 8082
-
-```sh
-curl -L -X GET 'localhost:8082/v1/health' \
---header 'accept: application/json' \
---header 'content-type: application/json'
-```
+- If you've found a bug (use the bug label) or want to request a new feature (use the enhancement label), file a GitHub issue
+- If you're not sure about it or want to chat, reach out on our [mailing list](https://groups.google.com/a/lists.stargate.io/g/stargate-users)
+- If you want to write some user docs 🎉 head over to the [stargate/docs](https://github.com/stargate/docs) repo, Pull Requests accepted!

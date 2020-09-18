@@ -19,60 +19,51 @@
 package org.apache.cassandra.stargate.transport.internal.frame.compress;
 
 import java.io.IOException;
-
 import org.xerial.snappy.Snappy;
 import org.xerial.snappy.SnappyError;
 
-public class SnappyCompressor implements Compressor
-{
-    public static final SnappyCompressor INSTANCE;
-    static
-    {
-        SnappyCompressor i;
-        try
-        {
-            i = new SnappyCompressor();
-        }
-        catch (Exception e)
-        {
-            // JVMStabilityInspector.inspectThrowable(e); // TODO
-            i = null;
-        }
-        catch (NoClassDefFoundError | SnappyError | UnsatisfiedLinkError e)
-        {
-            i = null;
-        }
-        INSTANCE = i;
-    }
+public class SnappyCompressor implements Compressor {
+  public static final SnappyCompressor INSTANCE;
 
-    private SnappyCompressor()
-    {
-        // this would throw java.lang.NoClassDefFoundError if Snappy class
-        // wasn't found at runtime which should be processed by the calling method
-        Snappy.getNativeLibraryVersion();
+  static {
+    SnappyCompressor i;
+    try {
+      i = new SnappyCompressor();
+    } catch (Exception e) {
+      // JVMStabilityInspector.inspectThrowable(e); // TODO
+      i = null;
+    } catch (NoClassDefFoundError | SnappyError | UnsatisfiedLinkError e) {
+      i = null;
     }
+    INSTANCE = i;
+  }
 
-    @Override
-    public int maxCompressedLength(int length)
-    {
-        return Snappy.maxCompressedLength(length);
-    }
+  private SnappyCompressor() {
+    // this would throw java.lang.NoClassDefFoundError if Snappy class
+    // wasn't found at runtime which should be processed by the calling method
+    Snappy.getNativeLibraryVersion();
+  }
 
-    @Override
-    public int compress(byte[] src, int srcOffset, int length, byte[] dest, int destOffset) throws IOException
-    {
-        return Snappy.compress(src, 0, src.length, dest, destOffset);
-    }
+  @Override
+  public int maxCompressedLength(int length) {
+    return Snappy.maxCompressedLength(length);
+  }
 
-    @Override
-    public byte[] decompress(byte[] src, int offset, int length, int expectedDecompressedLength) throws IOException
-    {
-        if (!Snappy.isValidCompressedBuffer(src, 0, length))
-            throw new IOException("Provided frame does not appear to be Snappy compressed");
+  @Override
+  public int compress(byte[] src, int srcOffset, int length, byte[] dest, int destOffset)
+      throws IOException {
+    return Snappy.compress(src, 0, src.length, dest, destOffset);
+  }
 
-        int uncompressedLength = Snappy.uncompressedLength(src);
-        byte[] output = new byte[uncompressedLength];
-        Snappy.uncompress(src, offset, length, output, 0);
-        return output;
-    }
+  @Override
+  public byte[] decompress(byte[] src, int offset, int length, int expectedDecompressedLength)
+      throws IOException {
+    if (!Snappy.isValidCompressedBuffer(src, 0, length))
+      throw new IOException("Provided frame does not appear to be Snappy compressed");
+
+    int uncompressedLength = Snappy.uncompressedLength(src);
+    byte[] output = new byte[uncompressedLength];
+    Snappy.uncompress(src, offset, length, output, 0);
+    return output;
+  }
 }

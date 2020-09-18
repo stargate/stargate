@@ -1,3 +1,18 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.web.models;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -6,45 +21,49 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GetResponseWrapper<T> {
-    @JsonProperty("count")
-    int count;
-    @JsonProperty("pageState")
-    String pageState;
-    @JsonProperty("data")
-    T data;
+  @JsonProperty("count")
+  int count;
 
-    public int getCount() {
-        return count;
-    }
+  @JsonProperty("pageState")
+  String pageState;
 
-    public GetResponseWrapper setCount(int count) {
-        this.count = count;
-        return this;
-    }
+  @JsonProperty("data")
+  T data;
 
-    public String getPageState() {
-        return pageState;
-    }
+  public int getCount() {
+    return count;
+  }
 
-    public GetResponseWrapper setPageState(String pageState) {
-        this.pageState = pageState;
-        return this;
-    }
+  public GetResponseWrapper setCount(int count) {
+    this.count = count;
+    return this;
+  }
 
-    public T getData() {
-        return data;
-    }
+  public String getPageState() {
+    return pageState;
+  }
 
-    public GetResponseWrapper setData(T data) {
-        this.data = data;
-        return this;
-    }
+  public GetResponseWrapper setPageState(String pageState) {
+    this.pageState = pageState;
+    return this;
+  }
 
-    @JsonCreator
-    public GetResponseWrapper(@JsonProperty("count") final int count, @JsonProperty("pageState") final String pageState,
-                              @JsonProperty("data") final T data) {
-        this.count = count;
-        this.pageState = pageState;
-        this.data = data;
-    }
+  public T getData() {
+    return data;
+  }
+
+  public GetResponseWrapper setData(T data) {
+    this.data = data;
+    return this;
+  }
+
+  @JsonCreator
+  public GetResponseWrapper(
+      @JsonProperty("count") final int count,
+      @JsonProperty("pageState") final String pageState,
+      @JsonProperty("data") final T data) {
+    this.count = count;
+    this.pageState = pageState;
+    this.data = data;
+  }
 }
