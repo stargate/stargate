@@ -23,4 +23,10 @@ public interface TableMetadata {
 
   /** A collection of static and regular columns. */
   List<ColumnMetadata> getColumns();
+
+  /**
+   * Gets an object that is used as identity for this instance. This object will be used to
+   * represent this version of the table metadata for caching.
+   */
+  Object getIdentity();
 }
