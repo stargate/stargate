@@ -5,12 +5,12 @@
   <artifactId>stargate</artifactId>
   <version>0.0.8-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>${project.groupId}:${project.artifactId}</name>
+      <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
   <url>http://github.com/stargate/stargate</url>
   <modules>
     <module>stargate-starter</module>
-    <module>persistence-api</module>
+         <module>persistence-api</module>
     <module>persistence-common</module>
     <module>persistence-cassandra-3.11</module>
     <module>cql</module>
@@ -21,12 +21,14 @@
     <!-- testing last -->
     <module>testing</module>
   </modules>
+
   <properties>
-    <osgi.bundle.version>${project.version}</osgi.bundle.version>
+       <osgi.bundle.version>${project.version}</osgi.bundle.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
     <driver.version>4.9.0</driver.version>
+    <xml-format.skip>true</xml-format.skip>
   </properties>
   <dependencies>
     <dependency>
