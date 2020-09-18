@@ -21,7 +21,6 @@ import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.auth.model.Credentials;
 import io.stargate.auth.model.Error;
 import io.stargate.auth.model.Secret;
-import javax.validation.Valid;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -45,7 +44,13 @@ public class AuthResource {
   @Path("/auth/token/generate")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-  public Response createToken(@Valid Secret body) {
+  public Response createToken(Secret body) {
+    if (body == null) {
+      return Response.status(Response.Status.BAD_REQUEST)
+          .entity(new Error("Must provide a body to the request"))
+          .build();
+    }
+
     if (body.getKey() == null || body.getKey().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide key in request"))
@@ -82,7 +87,13 @@ public class AuthResource {
   @Path("/auth")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-  public Response createToken(@Valid Credentials body) {
+  public Response createToken(Credentials body) {
+    if (body == null) {
+      return Response.status(Response.Status.BAD_REQUEST)
+          .entity(new Error("Must provide a body to the request"))
+          .build();
+    }
+
     if (body.getUsername() == null || body.getUsername().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide username in request"))
