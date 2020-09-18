@@ -52,10 +52,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 import net.jcip.annotations.NotThreadSafe;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -71,7 +70,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
   private String table;
   private String keyspace;
-  private static CqlSession session;
+  private CqlSession session;
 
   private static final int KEYSPACE_NAME_MAX_LENGTH = 48;
 
@@ -88,8 +87,8 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     table = testName;
   }
 
-  @BeforeClass
-  public static void beforeAll() {
+  @Before
+  public void before() {
     session =
         CqlSession.builder()
             .withConfigLoader(
@@ -100,8 +99,8 @@ public class CQLTest extends BaseOsgiIntegrationTest {
             .build();
   }
 
-  @AfterClass
-  public static void afterAll() {
+  @After
+  public void after() {
     if (session != null) {
       session.close();
     }

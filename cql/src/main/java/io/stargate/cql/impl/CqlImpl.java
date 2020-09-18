@@ -56,7 +56,10 @@ public class CqlImpl {
     int nativePortSSL = TransportDescriptor.getNativeTransportPortSSL();
     InetAddress nativeAddr = TransportDescriptor.getRpcAddress();
 
-    Server.Builder builder = new Server.Builder(persistence, authentication);
+    Server.Builder builder =
+        new Server.Builder(persistence, authentication)
+            .withEventLoopGroup(workerGroup)
+            .withHost(nativeAddr);
 
     if (!TransportDescriptor.getNativeProtocolEncryptionOptions().enabled) {
       servers = Collections.singleton(builder.withSSL(false).withPort(nativePort).build());
