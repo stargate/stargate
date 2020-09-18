@@ -84,9 +84,10 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
   private static final int KEYSPACE_NAME_MAX_LENGTH = 48;
 
-  /** Re-enable authentication for {@Link CQLTest#invalidCredentials()} and
-   * {@Link CQLTest#tokenAuthentication()} whenever authentcation is supported
-   * by our backend C* container and/or we decide to use ccm.
+  /**
+   * Re-enable authentication for {@Link CQLTest#invalidCredentials()} and {@Link
+   * CQLTest#tokenAuthentication()} whenever authentcation is supported by our backend C* container
+   * and/or we decide to use ccm.
    */
   public CQLTest() {
     // enableAuth = true;
