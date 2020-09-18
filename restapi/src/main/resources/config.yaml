@@ -2,4 +2,6 @@ server:
   applicationConnectors:
   - type: http
     port: 8082
-  adminConnectors: []
+  adminConnectors:
+  - type: http
+    port: 8083
