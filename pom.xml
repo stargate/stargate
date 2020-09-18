@@ -27,6 +27,7 @@
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
     <driver.version>4.9.0</driver.version>
+    <xml-format.skip>true</xml-format.skip>
   </properties>
   <dependencies>
     <dependency>
