@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentMap;
  * different prefixes.
  *
  * <p>Implementation note: unfortunately {@link MetricRegistry} is a class, not an interface. So we
+ * need to extend, even though we delegate everything to another instance.
  */
 public class PrefixingMetricRegistry extends MetricRegistry {
 
