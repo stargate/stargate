@@ -57,9 +57,7 @@ public class KeyspacesResource {
   @Timed
   @GET
   public Response listAll(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @QueryParam("pretty") final boolean pretty,
-      @QueryParam("raw") final boolean raw) {
+      @HeaderParam("X-Cassandra-Token") String token, @QueryParam("raw") final boolean raw) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -70,7 +68,7 @@ public class KeyspacesResource {
 
           Object response = raw ? keyspaces : new ResponseWrapper(keyspaces);
           return Response.status(Response.Status.OK)
-              .entity(Converters.writeResponse(response, pretty))
+              .entity(Converters.writeResponse(response))
               .build();
         });
   }
@@ -81,7 +79,6 @@ public class KeyspacesResource {
   public Response getOne(
       @HeaderParam("X-Cassandra-Token") String token,
       @PathParam("keyspaceName") final String keyspaceName,
-      @QueryParam("pretty") final boolean pretty,
       @QueryParam("raw") final boolean raw) {
     return RequestHandler.handle(
         () -> {
@@ -101,17 +98,14 @@ public class KeyspacesResource {
 
           Object response = raw ? keyspaceResponse : new ResponseWrapper(keyspaceResponse);
           return Response.status(Response.Status.OK)
-              .entity(Converters.writeResponse(response, pretty))
+              .entity(Converters.writeResponse(response))
               .build();
         });
   }
 
   @Timed
   @POST
-  public Response create(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @QueryParam("pretty") final boolean pretty,
-      String payload) {
+  public Response create(@HeaderParam("X-Cassandra-Token") String token, String payload) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -152,8 +146,7 @@ public class KeyspacesResource {
               .execute();
 
           return Response.status(Response.Status.CREATED)
-              .entity(
-                  Converters.writeResponse(Collections.singletonMap("name", keyspaceName), pretty))
+              .entity(Converters.writeResponse(Collections.singletonMap("name", keyspaceName)))
               .build();
         });
   }
