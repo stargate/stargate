@@ -411,17 +411,11 @@ public class Converters {
    * Returns a formatted json response based on provided query parameters.
    *
    * @param response the object to be formatted and returned
-   * @param pretty should the json be pretty printed with whitespace
    * @return A formatted json string according to user input
    * @throws JsonProcessingException
    */
-  public static String writeResponse(Object response, boolean pretty)
-      throws JsonProcessingException {
-    if (!pretty) {
-      return mapper.writeValueAsString(response);
-    } else {
-      return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(response);
-    }
+  public static String writeResponse(Object response) throws JsonProcessingException {
+    return mapper.writeValueAsString(response);
   }
 
   public static String getTableOptions(TableAdd tableAdd) throws Exception {
