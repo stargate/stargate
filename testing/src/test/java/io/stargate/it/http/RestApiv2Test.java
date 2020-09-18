@@ -946,7 +946,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 assertThat(value)
                     .isEqualToComparingFieldByField(new ColumnDefinition("id", "uuid", false)));
   }
-  
+
   @Test
   public void getColumnsComplex() throws IOException {
     createKeyspace(keyspaceName);
@@ -961,8 +961,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     List<ColumnDefinition> columns =
         objectMapper.convertValue(
-            response.getData(), new TypeReference<List<ColumnDefinition>>() {
-            });
+            response.getData(), new TypeReference<List<ColumnDefinition>>() {});
     assertThat(columns)
         .anySatisfy(
             value ->
@@ -1064,8 +1063,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "col1"),
             HttpStatus.SC_OK);
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
-    ColumnDefinition column = objectMapper
-        .convertValue(response.getData(), ColumnDefinition.class);
+    ColumnDefinition column = objectMapper.convertValue(response.getData(), ColumnDefinition.class);
     assertThat(column)
         .isEqualToComparingFieldByField(
             new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
