@@ -66,6 +66,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.rules.TestName;
@@ -83,8 +84,12 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
   private static final int KEYSPACE_NAME_MAX_LENGTH = 48;
 
+  /** Re-enable authentication for {@Link CQLTest#invalidCredentials()} and
+   * {@Link CQLTest#tokenAuthentication()} whenever authentcation is supported
+   * by our backend C* container and/or we decide to use ccm.
+   */
   public CQLTest() {
-    enableAuth = true;
+    // enableAuth = true;
   }
 
   @BeforeClass
@@ -510,6 +515,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  @Disabled
   public void invalidCredentials() {
     try {
       try (CqlSession session =
@@ -528,6 +534,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  @Disabled
   public void tokenAuthentication() throws IOException {
     String authToken = getAuthToken();
     assertThat(authToken).isNotEmpty();
