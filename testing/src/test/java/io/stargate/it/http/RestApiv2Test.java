@@ -946,12 +946,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 assertThat(value)
                     .isEqualToComparingFieldByField(new ColumnDefinition("id", "uuid", false)));
   }
-
-  @Test
-                        new ColumnDefinition("firstName", "varchar", false)));
-                    .isEqualToComparingFieldByField(new ColumnDefinition("age", "int", false)));
-  }
-
+  
   @Test
   public void getColumnsComplex() throws IOException {
     createKeyspace(keyspaceName);
@@ -966,13 +961,16 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     List<ColumnDefinition> columns =
         objectMapper.convertValue(
-            response.getData(), new TypeReference<List<ColumnDefinition>>() {});
+            response.getData(), new TypeReference<List<ColumnDefinition>>() {
+            });
     assertThat(columns)
         .anySatisfy(
             value ->
                 assertThat(value)
                     .isEqualToComparingFieldByField(
                         new ColumnDefinition("col2", "frozen<set<boolean>>", false)));
+  }
+
   public void getColumnsBadTable() throws IOException {
     String body =
         RestUtils.get(
@@ -1054,11 +1052,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-    assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "int", false));
-    assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "int", false));
-  }
-
-  @Test
   public void getColumnComplex() throws IOException {
     createKeyspace(keyspaceName);
     createComplexTable(keyspaceName, tableName);
@@ -1071,10 +1064,13 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "col1"),
             HttpStatus.SC_OK);
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
-    ColumnDefinition column = objectMapper.convertValue(response.getData(), ColumnDefinition.class);
+    ColumnDefinition column = objectMapper
+        .convertValue(response.getData(), ColumnDefinition.class);
     assertThat(column)
         .isEqualToComparingFieldByField(
             new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
+  }
+
   public void getColumnBadTable() throws IOException {
     createKeyspace(keyspaceName);
 
@@ -1136,7 +1132,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-    ColumnDefinition columnDefinition = new ColumnDefinition("name", "varchar");
   public void addColumnBadType() throws IOException {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
@@ -1216,7 +1211,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-    ColumnDefinition columnDefinition = new ColumnDefinition("identifier", "uuid");
   public void updateColumnNotFound() throws IOException {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
