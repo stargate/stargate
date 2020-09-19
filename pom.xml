@@ -18,6 +18,7 @@
     <module>auth-api</module>
     <module>authentication</module>
     <module>auth-table-based-service</module>
+    <module>health-checker</module>
     <!-- testing last -->
     <module>testing</module>
   </modules>

@@ -20,6 +20,7 @@ import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.stargate.db.Persistence;
+import io.stargate.health.metrics.api.Metrics;
 import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,6 +36,8 @@ import org.slf4j.LoggerFactory;
 public class CqlImpl {
   private static final Logger logger = LoggerFactory.getLogger(CqlImpl.class);
 
+  private volatile Persistence<?, ?, ?> persistence;
+  private volatile Metrics metrics;
   private Collection<Server> servers = Collections.emptyList();
   private final EventLoopGroup workerGroup;
 
@@ -50,7 +53,23 @@ public class CqlImpl {
     }
   }
 
-  public void start(Persistence persistence) {
+  public Persistence<?, ?, ?> getPersistence() {
+    return persistence;
+  }
+
+  public void setPersistence(Persistence<?, ?, ?> persistence) {
+    this.persistence = persistence;
+  }
+
+  public Metrics getMetrics() {
+    return metrics;
+  }
+
+  public void setMetrics(Metrics metrics) {
+    this.metrics = metrics;
+  }
+
+  public void start() {
     int nativePort = TransportDescriptor.getNativeTransportPort();
     int nativePortSSL = TransportDescriptor.getNativeTransportPortSSL();
     InetAddress nativeAddr = TransportDescriptor.getRpcAddress();
@@ -74,7 +93,7 @@ public class CqlImpl {
       }
     }
 
-    ClientMetrics.instance.init(servers);
+    ClientMetrics.instance.init(servers, metrics.getRegistry("cql"));
     servers.forEach(Server::start);
   }
 

@@ -17,6 +17,7 @@ package io.stargate.web;
 
 import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
+import io.stargate.health.metrics.api.Metrics;
 import io.stargate.web.impl.WebImpl;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -35,6 +36,7 @@ public class RestApiActivator implements BundleActivator, ServiceListener {
   private final WebImpl web = new WebImpl();
   private ServiceReference persistenceReference;
   private ServiceReference authenticationReference;
+  private ServiceReference<?> metricsReference;
 
   static String AUTH_IDENTIFIER = System.getProperty("stargate.auth_id", "AuthTableBasedService");
   static String PERSISTENCE_IDENTIFIER =
@@ -48,7 +50,9 @@ public class RestApiActivator implements BundleActivator, ServiceListener {
       try {
         String authFilter = String.format("(AuthIdentifier=%s)", AUTH_IDENTIFIER);
         String persistenceFilter = String.format("(Identifier=%s)", PERSISTENCE_IDENTIFIER);
-        context.addServiceListener(this, String.format("(|%s%s)", persistenceFilter, authFilter));
+        String metricsFilter = String.format("(objectClass=%s)", Metrics.class.getName());
+        context.addServiceListener(
+            this, String.format("(|%s%s%s)", persistenceFilter, authFilter, metricsFilter));
       } catch (InvalidSyntaxException ise) {
         throw new RuntimeException(ise);
       }
@@ -76,7 +80,15 @@ public class RestApiActivator implements BundleActivator, ServiceListener {
         this.web.setPersistence((Persistence) context.getService(persistenceReference));
       }
 
-      if (this.web.getPersistence() != null && this.web.getAuthenticationService() != null) {
+      metricsReference = context.getServiceReference(Metrics.class.getName());
+      if (metricsReference != null) {
+        log.info("Setting metrics in RestApiActivator");
+        this.web.setMetrics((Metrics) context.getService(metricsReference));
+      }
+
+      if (this.web.getPersistence() != null
+          && this.web.getAuthenticationService() != null
+          && this.web.getMetrics() != null) {
         try {
           this.web.start();
           log.info("Started restapi....");
@@ -119,9 +131,14 @@ public class RestApiActivator implements BundleActivator, ServiceListener {
                   .equals(AUTH_IDENTIFIER)) {
             log.info("Setting authenticationService in RestApiActivator");
             this.web.setAuthenticationService((AuthenticationService) service);
+          } else if (service instanceof Metrics) {
+            log.info("Setting metrics in RestApiActivator");
+            this.web.setMetrics(((Metrics) service));
           }
 
-          if (this.web.getPersistence() != null && this.web.getAuthenticationService() != null) {
+          if (this.web.getPersistence() != null
+              && this.web.getAuthenticationService() != null
+              && this.web.getMetrics() != null) {
             try {
               this.web.start();
               log.info("Started restapi.... (via svc changed)");
