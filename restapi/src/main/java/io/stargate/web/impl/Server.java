@@ -18,11 +18,14 @@ package io.stargate.web.impl;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.dropwizard.Application;
+import io.dropwizard.cli.Cli;
 import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import io.dropwizard.util.JarLocation;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
+import io.stargate.health.metrics.api.Metrics;
 import io.stargate.web.config.ApplicationConfiguration;
 import io.stargate.web.resources.ColumnResource;
 import io.stargate.web.resources.Db;
@@ -47,10 +50,29 @@ public class Server extends Application<ApplicationConfiguration> {
 
   Persistence persistence;
   AuthenticationService authenticationService;
+  private final Metrics metrics;
 
-  public Server(Persistence persistence, AuthenticationService authenticationService) {
+  public Server(
+      Persistence persistence, AuthenticationService authenticationService, Metrics metrics) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
+    this.metrics = metrics;
+  }
+
+  /**
+   * The only reason we override this is to remove the call to {@code bootstrap.registerMetrics()}.
+   *
+   * <p>JVM metrics are registered once at the top level in the health-checker module.
+   */
+  @Override
+  public void run(String... arguments) {
+    final Bootstrap<ApplicationConfiguration> bootstrap = new Bootstrap<>(this);
+    addDefaultCommands(bootstrap);
+    initialize(bootstrap);
+
+    final Cli cli = new Cli(new JarLocation(getClass()), bootstrap, System.out, System.err);
+    // only exit if there's an error running the command
+    cli.run(arguments).ifPresent(this::onFatalError);
   }
 
   @Override
@@ -87,6 +109,7 @@ public class Server extends Application<ApplicationConfiguration> {
   public void initialize(final Bootstrap<ApplicationConfiguration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
+    bootstrap.setMetricRegistry(metrics.getRegistry("restapi"));
   }
 
   private void enableCors(Environment environment) {

@@ -19,6 +19,7 @@ import com.google.common.base.Strings;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.cql.impl.CqlImpl;
 import io.stargate.db.Persistence;
+import io.stargate.health.metrics.api.Metrics;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import org.apache.cassandra.config.Config;
@@ -126,4 +127,5 @@ public class CqlActivator implements BundleActivator {
       throw new RuntimeException(e);
     }
   }
+ssssss
 }

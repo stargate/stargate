@@ -18,6 +18,7 @@
     <module>auth-api</module>
     <module>authentication</module>
     <module>auth-table-based-service</module>
+    <module>health-checker</module>
     <!-- testing last -->
     <module>testing</module>
   </modules>
@@ -27,6 +28,7 @@
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
     <driver.version>4.9.0</driver.version>
+    <xml-format.skip>true</xml-format.skip>
   </properties>
   <dependencies>
     <dependency>
