@@ -13,8 +13,14 @@ public interface TableMetadata {
   /** Gets the table id. */
   UUID getId();
 
+  /**
+   * Gets the case-sensitive name of the keyspace.
+   */
   String getKeyspace();
 
+  /**
+   * Gets the case-sensitive name of the table.
+   */
   String getName();
 
   List<ColumnMetadata> getPartitionKeys();
