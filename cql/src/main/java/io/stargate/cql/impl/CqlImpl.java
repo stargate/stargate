@@ -81,6 +81,10 @@ public class CqlImpl {
     servers.forEach(Server::start);
   }
 
+  public void stop() {
+    servers.forEach(Server::stop);
+  }
+
   public static boolean useEpoll() {
     final boolean enableEpoll =
         Boolean.parseBoolean(System.getProperty("stargate.cql.native.epoll.enabled", "true"));

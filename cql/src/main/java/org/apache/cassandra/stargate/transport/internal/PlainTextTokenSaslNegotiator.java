@@ -1,5 +1,6 @@
 package org.apache.cassandra.stargate.transport.internal;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.db.AuthenticatedUser;
@@ -23,9 +24,7 @@ class PlainTextTokenSaslNegotiator implements Authenticator.SaslNegotiator {
   private final Persistence persistence;
   private final AuthenticationService authentication;
   private final Authenticator.SaslNegotiator wrapped;
-  private StoredCredentials credentials;
-  private String username;
-  private String password;
+  private StoredCredentials storedCredentials;
 
   PlainTextTokenSaslNegotiator(
       Authenticator.SaslNegotiator wrapped,
@@ -44,29 +43,31 @@ class PlainTextTokenSaslNegotiator implements Authenticator.SaslNegotiator {
 
   @Override
   public boolean isComplete() {
-    return credentials != null || wrapped.isComplete();
+    return storedCredentials != null || wrapped.isComplete();
   }
 
   @Override
   public AuthenticatedUser<?> getAuthenticatedUser() throws AuthenticationException {
-    if (credentials != null) return persistence.newAuthenticatedUser(credentials.getRoleName());
+    if (storedCredentials != null)
+      return persistence.newAuthenticatedUser(storedCredentials.getRoleName());
     else return wrapped.getAuthenticatedUser();
   }
 
-  private boolean attemptTokenAuthentication(byte[] clientResponse) {
+  @VisibleForTesting
+  boolean attemptTokenAuthentication(byte[] clientResponse) {
     try {
-      decodeCredentials(clientResponse);
+      Credentials credentials = decodeCredentials(clientResponse);
 
-      if (!username.equals(TOKEN_USERNAME)) return false;
+      if (!credentials.username.equals(TOKEN_USERNAME)) return false;
 
       logger.trace("Attempting to validate token");
-      if (password.length() > TOKEN_MAX_LENGTH) {
-        logger.error("Token was too long ({} characters)", password.length());
+      if (credentials.password.length() > TOKEN_MAX_LENGTH) {
+        logger.error("Token was too long ({} characters)", credentials.password.length());
         return false;
       }
 
-      credentials = authentication.validateToken(password);
-      if (credentials == null) {
+      storedCredentials = authentication.validateToken(credentials.password);
+      if (storedCredentials == null) {
         logger.error("Null credentials returned from authentication service");
         return false;
       }
@@ -84,8 +85,10 @@ class PlainTextTokenSaslNegotiator implements Authenticator.SaslNegotiator {
    *
    * @param bytes encoded credentials string sent by the client
    * @throws AuthenticationException if either the authnId or password is null
+   * @return a pair contain the username and password
    */
-  private void decodeCredentials(byte[] bytes) throws AuthenticationException {
+  @VisibleForTesting
+  static Credentials decodeCredentials(byte[] bytes) throws AuthenticationException {
     logger.trace("Decoding credentials from client token");
     byte[] user = null;
     byte[] pass = null;
@@ -107,7 +110,18 @@ class PlainTextTokenSaslNegotiator implements Authenticator.SaslNegotiator {
     if (user == null || user.length == 0)
       throw new AuthenticationException("Authentication ID must not be null");
 
-    username = new String(user, StandardCharsets.UTF_8);
-    password = new String(pass, StandardCharsets.UTF_8);
+    return new Credentials(
+        new String(user, StandardCharsets.UTF_8), new String(pass, StandardCharsets.UTF_8));
+  }
+
+  @VisibleForTesting
+  static class Credentials {
+    String username;
+    String password;
+
+    Credentials(String username, String password) {
+      this.username = username;
+      this.password = password;
+    }
   }
 }
