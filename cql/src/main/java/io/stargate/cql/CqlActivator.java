@@ -44,7 +44,8 @@ public class CqlActivator implements BundleActivator {
 
   private static final String DEPENDENCIES_FILTER =
       String.format(
-          "(|(AuthIdentifier=%s)(Identifier=%s))", AUTH_IDENTIFIER, PERSISTENCE_IDENTIFIER);
+          "(|(AuthIdentifier=%s)(Identifier=%s)(objectClass=%s))",
+          AUTH_IDENTIFIER, PERSISTENCE_IDENTIFIER, Metrics.class.getName());
 
   @Override
   public void start(BundleContext context) throws InvalidSyntaxException {
@@ -59,13 +60,13 @@ public class CqlActivator implements BundleActivator {
   }
 
   private synchronized void maybeStartService(
-      Persistence persistence, AuthenticationService authentication) {
+      Persistence persistence, Metrics metrics, AuthenticationService authentication) {
     if (cql != null) { // Already started
       return;
     }
 
     cql = new CqlImpl(makeConfig());
-    cql.start(persistence, authentication);
+    cql.start(persistence, metrics, authentication);
     log.info("Starting CQL");
   }
 
@@ -81,6 +82,7 @@ public class CqlActivator implements BundleActivator {
 
   private class Tracker extends ServiceTracker<Object, Object> {
     private Persistence persistence;
+    private Metrics metrics;
     private AuthenticationService authentication;
 
     public Tracker(BundleContext context, Filter filter) {
@@ -93,13 +95,18 @@ public class CqlActivator implements BundleActivator {
       if (persistence == null && service instanceof Persistence) {
         log.info("Using backend persistence: {}", ref.getBundle());
         persistence = (Persistence) service;
+      } else if (metrics == null && service instanceof Metrics) {
+        log.info("Using metrics: {}", ref.getBundle());
+        metrics = (Metrics) service;
       } else if (authentication == null && service instanceof AuthenticationService) {
         log.info("Using authentication service: {}", ref.getBundle());
         authentication = (AuthenticationService) service;
       }
 
-      if (persistence != null && (!requiresAuthentication() || authentication != null)) {
-        maybeStartService(persistence, authentication);
+      if (persistence != null
+          && metrics != null
+          && (!requiresAuthentication() || authentication != null)) {
+        maybeStartService(persistence, metrics, authentication);
       }
 
       return service;
@@ -127,5 +134,4 @@ public class CqlActivator implements BundleActivator {
       throw new RuntimeException(e);
     }
   }
-ssssss
 }
