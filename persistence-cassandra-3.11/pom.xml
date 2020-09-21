@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.8-SNAPSHOT</version>
+    <version>0.0.9-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db.cassandra</groupId>
   <artifactId>persistence-cassandra-3.11</artifactId>
@@ -22,18 +22,18 @@
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.8-SNAPSHOT</version>
+      <version>0.0.9-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-common</artifactId>
-      <version>0.0.8-SNAPSHOT</version>
+      <version>0.0.9-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>io.stargate.health</groupId>
       <artifactId>health-checker</artifactId>
-      <version>0.0.8-SNAPSHOT</version>
+      <version>0.0.9-SNAPSHOT</version>
       <exclusions>
         <exclusion>
           <groupId>com.google.guava</groupId>
@@ -174,12 +174,12 @@
               <tasks>
                 <!-- Remove root package classes -->
                 <delete>
-                  <fileset dir="${project.build.directory}/sjk-core/" includes="*.class"/>
+                  <fileset dir="${project.build.directory}/sjk-core/" includes="*.class" />
                 </delete>
                 <jar destfile="${project.build.directory}/classes/sjk-core-0.14.jar">
-                  <fileset dir="${project.build.directory}/sjk-core"/>
+                  <fileset dir="${project.build.directory}/sjk-core" />
                 </jar>
-                <delete dir="${project.build.directory}/sjk-core"/>
+                <delete dir="${project.build.directory}/sjk-core" />
               </tasks>
             </configuration>
           </execution>
