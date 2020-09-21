@@ -103,6 +103,9 @@ public abstract class AbstractTable implements Index, QualifiedSchemaEntity {
     if (Column.TTL.name().equals(name)) {
       return Column.TTL;
     }
+    if (Column.TIMESTAMP.name().equals(name)) {
+      return Column.TIMESTAMP;
+    }
     return columnMap().get(name);
   }
 
