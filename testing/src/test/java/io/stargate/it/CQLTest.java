@@ -64,9 +64,9 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.rules.TestName;
@@ -515,8 +515,8 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     assertThat(rs.getExecutionInfo().getPagingState()).isNull();
   }
 
+  @Ignore
   @Test
-  @Disabled
   public void invalidCredentials() {
     try {
       try (CqlSession session =
@@ -534,8 +534,8 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     }
   }
 
+  @Ignore
   @Test
-  @Disabled
   public void tokenAuthentication() throws IOException {
     String authToken = getAuthToken();
     assertThat(authToken).isNotEmpty();
