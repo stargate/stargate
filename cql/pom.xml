@@ -36,7 +36,7 @@
     <dependency>
       <groupId>io.stargate.health</groupId>
       <artifactId>health-checker</artifactId>
-      <version>0.0.8-SNAPSHOT</version>
+      <version>0.0.9-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>

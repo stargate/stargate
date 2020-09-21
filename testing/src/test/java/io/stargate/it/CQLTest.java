@@ -515,7 +515,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     assertThat(rs.getExecutionInfo().getPagingState()).isNull();
   }
 
-  @Ignore
+  @Ignore("Enable when persistence backends support auth in tests")
   @Test
   public void invalidCredentials() {
     try {
@@ -534,7 +534,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     }
   }
 
-  @Ignore
+  @Ignore("Enable when persistence backends support auth in tests")
   @Test
   public void tokenAuthentication() throws IOException {
     String authToken = getAuthToken();

@@ -2,12 +2,28 @@ package org.apache.cassandra.stargate.transport.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.StoredCredentials;
+import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.AuthenticatedUser;
+import io.stargate.db.Authenticator.SaslNegotiator;
+import io.stargate.db.Persistence;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
 import org.apache.cassandra.stargate.transport.internal.PlainTextTokenSaslNegotiator.Credentials;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 public class PlainTextTokenSaslNegotiatorTest {
+  private final String TOKEN = "a24b121a-a385-44a6-8ae1-fe7542dbc490";
+  private final String ROLE = "someRole";
+
   @Test
   public void decodeCredentials() {
     Credentials credentials =
@@ -66,5 +82,114 @@ public class PlainTextTokenSaslNegotiatorTest {
   }
 
   @Test
-  public void tokenAuthentication() {}
+  public void useToken() throws IOException, UnauthorizedException {
+    final byte[] clientResponse =
+        createClientResponse(PlainTextTokenSaslNegotiator.TOKEN_USERNAME, TOKEN);
+
+    StoredCredentials credentials = new StoredCredentials();
+    credentials.setRoleName(ROLE);
+    AuthenticationService authentication = mock(AuthenticationService.class);
+    when(authentication.validateToken(TOKEN)).thenReturn(credentials);
+
+    Persistence<?, ?, ?> persistence = mock(Persistence.class);
+    when((AuthenticatedUser) persistence.newAuthenticatedUser(ROLE))
+        .thenReturn(newAuthenticatorUser(ROLE));
+
+    PlainTextTokenSaslNegotiator negotiator =
+        new PlainTextTokenSaslNegotiator(null, persistence, authentication);
+    assertThat(negotiator.evaluateResponse(clientResponse)).isNull();
+    assertThat(negotiator.isComplete()).isTrue();
+    assertThat(negotiator.getAuthenticatedUser().getName()).isEqualTo(ROLE);
+  }
+
+  @Test
+  public void useWrapped() throws IOException {
+    final byte[] clientResponse = createClientResponse("user", "pass");
+
+    SaslNegotiator wrappedNegotiator = mock(SaslNegotiator.class);
+    when(wrappedNegotiator.evaluateResponse(clientResponse)).thenReturn(null);
+    when(wrappedNegotiator.isComplete()).thenReturn(true);
+    doReturn(newAuthenticatorUser(ROLE)).when(wrappedNegotiator).getAuthenticatedUser();
+
+    PlainTextTokenSaslNegotiator negotiator =
+        new PlainTextTokenSaslNegotiator(wrappedNegotiator, null, null);
+    assertThat(negotiator.evaluateResponse(clientResponse)).isNull();
+    assertThat(negotiator.isComplete()).isTrue();
+    assertThat(negotiator.getAuthenticatedUser().getName()).isEqualTo(ROLE);
+  }
+
+  @Test
+  public void tokenGreaterThanMaxLength() throws IOException {
+    final String tooLongToken =
+        StringUtils.repeat("a", PlainTextTokenSaslNegotiator.TOKEN_MAX_LENGTH + 1);
+
+    SaslNegotiator wrappedNegotiator = mock(SaslNegotiator.class);
+    when(wrappedNegotiator.isComplete()).thenReturn(false);
+
+    PlainTextTokenSaslNegotiator negotiator =
+        new PlainTextTokenSaslNegotiator(wrappedNegotiator, null, null);
+    assertThat(
+            negotiator.attemptTokenAuthentication(
+                createClientResponse(PlainTextTokenSaslNegotiator.TOKEN_USERNAME, tooLongToken)))
+        .isFalse();
+    assertThat(negotiator.isComplete()).isFalse();
+  }
+
+  @Test
+  public void authServiceReturnsNullCredentials() throws UnauthorizedException, IOException {
+    AuthenticationService authentication = mock(AuthenticationService.class);
+    when(authentication.validateToken(TOKEN)).thenReturn(null);
+
+    SaslNegotiator wrappedNegotiator = mock(SaslNegotiator.class);
+    when(wrappedNegotiator.isComplete()).thenReturn(false);
+
+    PlainTextTokenSaslNegotiator negotiator =
+        new PlainTextTokenSaslNegotiator(wrappedNegotiator, null, authentication);
+    assertThat(
+            negotiator.attemptTokenAuthentication(
+                createClientResponse(PlainTextTokenSaslNegotiator.TOKEN_USERNAME, TOKEN)))
+        .isFalse();
+    assertThat(negotiator.isComplete()).isFalse();
+  }
+
+  @Test
+  public void authServiceThrowsUnauthorized() throws UnauthorizedException, IOException {
+    AuthenticationService authentication = mock(AuthenticationService.class);
+    when(authentication.validateToken(TOKEN))
+        .thenThrow(new UnauthorizedException("Not authorized"));
+
+    SaslNegotiator wrappedNegotiator = mock(SaslNegotiator.class);
+    when(wrappedNegotiator.isComplete()).thenReturn(false);
+
+    PlainTextTokenSaslNegotiator negotiator =
+        new PlainTextTokenSaslNegotiator(wrappedNegotiator, null, authentication);
+    assertThat(
+            negotiator.attemptTokenAuthentication(
+                createClientResponse(PlainTextTokenSaslNegotiator.TOKEN_USERNAME, TOKEN)))
+        .isFalse();
+    assertThat(negotiator.isComplete()).isFalse();
+  }
+
+  private static byte[] createClientResponse(String username, String password) throws IOException {
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    bytes.write(0);
+    bytes.write(username.getBytes(StandardCharsets.UTF_8));
+    bytes.write(0);
+    bytes.write(password.getBytes(StandardCharsets.UTF_8));
+    return bytes.toByteArray();
+  }
+
+  private static AuthenticatedUser<?> newAuthenticatorUser(String role) {
+    return new AuthenticatedUser<Object>() {
+      @Override
+      public String getName() {
+        return role;
+      }
+
+      @Override
+      public Object getWrapped() {
+        return null;
+      }
+    };
+  }
 }

@@ -21,14 +21,14 @@ class PlainTextTokenSaslNegotiator implements Authenticator.SaslNegotiator {
 
   static final byte NUL = 0;
 
-  private final Persistence persistence;
+  private final Persistence<?, ?, ?> persistence;
   private final AuthenticationService authentication;
   private final Authenticator.SaslNegotiator wrapped;
   private StoredCredentials storedCredentials;
 
   PlainTextTokenSaslNegotiator(
       Authenticator.SaslNegotiator wrapped,
-      Persistence persistence,
+      Persistence<?, ?, ?> persistence,
       AuthenticationService authentication) {
     this.persistence = persistence;
     this.authentication = authentication;
