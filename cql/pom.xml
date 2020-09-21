@@ -28,6 +28,12 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>io.stargate.health</groupId>
+      <artifactId>health-checker</artifactId>
+      <version>0.0.8-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-all</artifactId>
       <version>4.1.42.Final</version>
@@ -110,7 +116,9 @@
                             !org.eclipse.jetty.security,
                             io.stargate.db,
                             org.apache.cassandra.stargate,
-                            org.apache.cassandra.stargate.*
+                            org.apache.cassandra.stargate.*,
+                            io.stargate.health.metrics.api,
+                            com.codahale.metrics,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>

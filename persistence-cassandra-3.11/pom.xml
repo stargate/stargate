@@ -31,6 +31,18 @@
       <version>0.0.8-SNAPSHOT</version>
     </dependency>
     <dependency>
+      <groupId>io.stargate.health</groupId>
+      <artifactId>health-checker</artifactId>
+      <version>0.0.8-SNAPSHOT</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+        </exclusion>
+      </exclusions>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.apache.cassandra</groupId>
       <artifactId>cassandra-all</artifactId>
       <version>${cassandra.version}</version>
@@ -189,7 +201,9 @@
                             io.stargate.db.datastore,
                             io.stargate.db.datastore.*,
                             org.apache.cassandra.stargate,
-                            !com.codahale.metrics.graphite.*
+                            !com.codahale.metrics.graphite.*,
+                            io.stargate.health.metrics.api,
+                            com.codahale.metrics,
                         ]]></Import-Package>
             <Export-Package>io.stargate.db.cassandra</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
