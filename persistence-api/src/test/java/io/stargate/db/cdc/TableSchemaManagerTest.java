@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.stargate.db.cdc.AsyncCDCProducer.TableSchemaManager;
+import io.stargate.db.cdc.SchemaAwareCDCProducer.TableSchemaManager;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.cassandra.stargate.schema.TableMetadata;

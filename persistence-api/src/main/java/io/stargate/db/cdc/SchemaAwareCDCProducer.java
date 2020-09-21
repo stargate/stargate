@@ -37,7 +37,7 @@ import org.apache.cassandra.stargate.schema.TableMetadata;
  *       #createTableSchemaAsync} will be invoked before calling {@link #publish}
  * </ul>
  */
-public abstract class AsyncCDCProducer implements CDCProducer {
+public abstract class SchemaAwareCDCProducer implements CDCProducer {
   private final ConcurrentHashMap<UUID, TableSchemaManager> tableSchemaManager =
       new ConcurrentHashMap<>();
 
@@ -50,8 +50,8 @@ public abstract class AsyncCDCProducer implements CDCProducer {
   /**
    * Asynchronously publishes the partition update.
    *
-   * <p>It will be invoked after {@link AsyncCDCProducer#createTableSchemaAsync} was invoked for a
-   * given table and creation future was completed.
+   * <p>It will be invoked after {@link SchemaAwareCDCProducer#createTableSchemaAsync} was invoked
+   * for a given table and creation future was completed.
    */
   protected abstract CompletableFuture<Void> send(MutationEvent mutation);
 
