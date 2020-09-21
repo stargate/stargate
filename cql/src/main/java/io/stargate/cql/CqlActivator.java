@@ -17,6 +17,7 @@ package io.stargate.cql;
 
 import io.stargate.cql.impl.CqlImpl;
 import io.stargate.db.Persistence;
+import io.stargate.health.metrics.api.Metrics;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import org.apache.cassandra.config.Config;
@@ -34,7 +35,8 @@ public class CqlActivator implements BundleActivator, ServiceListener {
 
   private BundleContext context;
   private final CqlImpl cql = new CqlImpl(makeConfig());
-  private ServiceReference reference;
+  private ServiceReference<?> persistenceReference;
+  private ServiceReference<?> metricsReference;
   static String PERSISTENCE_IDENTIFIER =
       System.getProperty("stargate.persistence_id", "CassandraPersistence");
 
@@ -62,25 +64,37 @@ public class CqlActivator implements BundleActivator, ServiceListener {
     log.info("Starting CQL....");
     synchronized (cql) {
       try {
-        context.addServiceListener(this, String.format("(Identifier=%s)", PERSISTENCE_IDENTIFIER));
+        context.addServiceListener(
+            this,
+            String.format(
+                "(|(Identifier=%s)(objectClass=%s))",
+                PERSISTENCE_IDENTIFIER, Metrics.class.getName()));
       } catch (InvalidSyntaxException ise) {
         throw new RuntimeException(ise);
       }
 
-      reference = context.getServiceReference(Persistence.class.getName());
-      if (reference != null) {
-        Object service = context.getService(reference);
-        if (service != null) {
-          this.cql.start(((Persistence) service));
-          log.info("Started CQL....");
-        }
+      if (persistenceReference != null
+          && persistenceReference.getProperty("Identifier").equals(PERSISTENCE_IDENTIFIER)) {
+        log.info("Setting persistence in CQL");
+        this.cql.setPersistence((Persistence<?, ?, ?>) context.getService(persistenceReference));
+      }
+
+      metricsReference = context.getServiceReference(Metrics.class.getName());
+      if (metricsReference != null) {
+        log.info("Setting metrics in CQL");
+        this.cql.setMetrics((Metrics) context.getService(metricsReference));
+      }
+
+      if (this.cql.getPersistence() != null && this.cql.getMetrics() != null) {
+        this.cql.start();
+        log.info("Started CQL....");
       }
     }
   }
 
   @Override
   public void stop(BundleContext context) {
-    context.ungetService(reference);
+    context.ungetService(persistenceReference);
   }
 
   @Override
@@ -91,12 +105,20 @@ public class CqlActivator implements BundleActivator, ServiceListener {
       switch (type) {
         case (ServiceEvent.REGISTERED):
           log.info("Service of type " + objectClass[0] + " registered.");
-          reference = serviceEvent.getServiceReference();
-          Object service = context.getService(reference);
+          Object service = context.getService(serviceEvent.getServiceReference());
 
-          log.info("Setting persistence in CqlActivator");
-          this.cql.start(((Persistence) service));
-          log.info("Started CQL....");
+          if (service instanceof Persistence) {
+            log.info("Setting persistence in CQL");
+            this.cql.setPersistence((Persistence<?, ?, ?>) service);
+          } else if (service instanceof Metrics) {
+            log.info("Setting metrics in CQL");
+            this.cql.setMetrics(((Metrics) service));
+          }
+
+          if (this.cql.getPersistence() != null && this.cql.getMetrics() != null) {
+            this.cql.start();
+            log.info("Started CQL.... (via svc changed)");
+          }
           break;
         case (ServiceEvent.UNREGISTERING):
           log.info("Service of type " + objectClass[0] + " unregistered.");
