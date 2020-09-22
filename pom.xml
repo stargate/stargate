@@ -8,7 +8,7 @@
   </parent>
   <groupId>io.stargate.persistence</groupId>
   <artifactId>persistence-extensions</artifactId>
-  <version>0.0.3-SNAPSHOT</version>
+  <version>0.0.4-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Modules to extend persistence support of Stargate</description>
