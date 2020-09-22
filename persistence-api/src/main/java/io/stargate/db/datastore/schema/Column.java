@@ -75,6 +75,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
 
   public static final Column STAR = reference("*");
   public static final Column TTL = Column.create("[ttl]", Type.Int);
+  public static final Column TIMESTAMP = Column.create("[timestamp]", Type.Bigint);
 
   public interface ColumnType extends java.io.Serializable {
     AttachmentPoint CUSTOM_ATTACHMENT_POINT =

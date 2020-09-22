@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.6-SNAPSHOT</version>
+    <version>0.0.9-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.web</groupId>
   <artifactId>restapi</artifactId>
@@ -18,7 +18,7 @@
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.6-SNAPSHOT</version>
+      <version>0.0.9-SNAPSHOT</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -30,7 +30,13 @@
     <dependency>
       <groupId>io.stargate.auth</groupId>
       <artifactId>authentication</artifactId>
-      <version>0.0.6-SNAPSHOT</version>
+      <version>0.0.9-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.health</groupId>
+      <artifactId>health-checker</artifactId>
+      <version>0.0.9-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -169,6 +175,8 @@
                             !io.dropwizard.logging,
                             io.stargate.db.datastore,
                             io.stargate.db.datastore.query,
+                            io.stargate.health.metrics.api,
+                            com.codahale.metrics,
                             org.osgi.framework,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>

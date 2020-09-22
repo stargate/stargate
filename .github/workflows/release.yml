@@ -92,6 +92,7 @@ jobs:
           mvn versions:set -DremoveSnapshot versions:commit
           mvn -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy && \
           mvn --batch-mode release:update-versions -DautoVersionSubmodules=true versions:commit
+          mvn xml-format:xml-format fmt:format
       - name: Rev Version
         if: success()
         uses: peter-evans/create-pull-request@v3

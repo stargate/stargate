@@ -18,6 +18,7 @@ package io.stargate.it;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
+import com.datastax.oss.driver.api.core.AllNodesFailedException;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
@@ -41,6 +42,12 @@ import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.TupleType;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.internal.core.loadbalancing.DcInferringLoadBalancingPolicy;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.stargate.auth.model.AuthTokenResponse;
+import io.stargate.it.http.RestUtils;
+import io.stargate.it.http.models.Credentials;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -52,10 +59,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 import net.jcip.annotations.NotThreadSafe;
-import org.junit.AfterClass;
+import org.apache.http.HttpStatus;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -71,9 +80,23 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
   private String table;
   private String keyspace;
-  private static CqlSession session;
+  private CqlSession session;
 
   private static final int KEYSPACE_NAME_MAX_LENGTH = 48;
+
+  /**
+   * Re-enable authentication for {@Link CQLTest#invalidCredentials()} and {@Link
+   * CQLTest#tokenAuthentication()} whenever authentcation is supported by our backend C* container
+   * and/or we decide to use ccm.
+   */
+  public CQLTest() {
+    // enableAuth = true;
+  }
+
+  @BeforeClass
+  public static void beforeAll() {
+    System.setProperty("stargate.cql_use_auth_service", "true");
+  }
 
   @Before
   public void setup() {
@@ -88,20 +111,21 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     table = testName;
   }
 
-  @BeforeClass
-  public static void beforeAll() {
+  @Before
+  public void before() {
     session =
         CqlSession.builder()
             .withConfigLoader(
                 getDriverConfigLoaderBuilder()
                     .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
                     .build())
+            .withAuthCredentials("cassandra", "cassandra")
             .addContactPoint(new InetSocketAddress(stargateHost, 9043))
             .build();
   }
 
-  @AfterClass
-  public static void afterAll() {
+  @After
+  public void after() {
     if (session != null) {
       session.close();
     }
@@ -491,6 +515,44 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     assertThat(rs.getExecutionInfo().getPagingState()).isNull();
   }
 
+  @Ignore("Enable when persistence backends support auth in tests")
+  @Test
+  public void invalidCredentials() {
+    try {
+      try (CqlSession session =
+          CqlSession.builder()
+              .withConfigLoader(getDriverConfigLoaderBuilder().build())
+              .withAuthCredentials("invalid", "invalid")
+              .addContactPoint(new InetSocketAddress(stargateHost, 9043))
+              .build()) {
+        fail("Should have failed with AllNodesFailedException");
+      }
+    } catch (AllNodesFailedException e) {
+      assertThat(e).hasMessageContaining("Provided username invalid and/or password are incorrect");
+    } catch (Exception e) {
+      fail("Failed with invalid exception type", e);
+    }
+  }
+
+  @Ignore("Enable when persistence backends support auth in tests")
+  @Test
+  public void tokenAuthentication() throws IOException {
+    String authToken = getAuthToken();
+    assertThat(authToken).isNotEmpty();
+    try (CqlSession session =
+        CqlSession.builder()
+            .withConfigLoader(getDriverConfigLoaderBuilder().build())
+            .withAuthCredentials("token", authToken)
+            .addContactPoint(new InetSocketAddress(stargateHost, 9043))
+            .build()) {
+      ResultSet rs = session.execute("SELECT * FROM system.local");
+      Iterator<Row> rows = rs.iterator();
+      assertThat(rows).hasNext();
+      assertThat(rows.next().getInetAddress("listen_address"))
+          .isEqualTo(InetAddress.getByName(stargateHost));
+    }
+  }
+
   private static <T> T waitFor(Supplier<Optional<T>> supplier) throws InterruptedException {
     for (int i = 0; i < 100; ++i) {
       Optional<T> v = supplier.get();
@@ -512,5 +574,20 @@ public class CQLTest extends BaseOsgiIntegrationTest {
             DcInferringLoadBalancingPolicy.class.getName())
         .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(5))
         .withDuration(DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(5));
+  }
+
+  private String getAuthToken() throws IOException {
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    String body =
+        RestUtils.post(
+            "",
+            String.format("%s:8081/v1/auth/token/generate", "http://" + stargateHost),
+            objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
+            HttpStatus.SC_CREATED);
+
+    AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
+    return authTokenResponse.getAuthToken();
   }
 }

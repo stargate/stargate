@@ -175,10 +175,23 @@ public class RowResource {
                     .map(Converters::maybeQuote)
                     .collect(Collectors.joining(","));
           }
+
+          if (queryModel.getFilters() == null || queryModel.getFilters().size() == 0) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new Error("filters must be provided"))
+                .build();
+          }
+
           List<Object> values = new ArrayList<>();
           for (Filter filter : queryModel.getFilters()) {
+            if (!validateFilter(filter)) {
+              return Response.status(Response.Status.BAD_REQUEST)
+                  .entity(new Error("filter requires column name, operator, and value"))
+                  .build();
+            }
+
             for (Object obj : filter.getValue()) {
-              values.add(filterToValue(obj, filter.getColumnName().toLowerCase(), tableMetadata));
+              values.add(filterToValue(obj, filter.getColumnName(), tableMetadata));
             }
           }
           String expression = buildExpressionFromOperators(queryModel.getFilters());
@@ -310,6 +323,18 @@ public class RowResource {
 
           return Response.status(Response.Status.OK).entity(new SuccessResponse()).build();
         });
+  }
+
+  private boolean validateFilter(Filter filter) {
+    if (filter.getColumnName() == null) {
+      return false;
+    } else if (filter.getOperator() == null) {
+      return false;
+    } else if (filter.getValue() == null || filter.getValue().size() == 0) {
+      return false;
+    }
+
+    return true;
   }
 
   private String buildExpressionFromOperators(List<Filter> filters) {

@@ -19,7 +19,9 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
+import io.stargate.health.metrics.api.Metrics;
 import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Collection;
@@ -50,13 +52,17 @@ public class CqlImpl {
     }
   }
 
-  public void start(Persistence persistence) {
+  public void start(
+      Persistence<?, ?, ?> persistence, Metrics metrics, AuthenticationService authentication) {
+
     int nativePort = TransportDescriptor.getNativeTransportPort();
     int nativePortSSL = TransportDescriptor.getNativeTransportPortSSL();
     InetAddress nativeAddr = TransportDescriptor.getRpcAddress();
 
     Server.Builder builder =
-        new Server.Builder(persistence).withEventLoopGroup(workerGroup).withHost(nativeAddr);
+        new Server.Builder(persistence, authentication)
+            .withEventLoopGroup(workerGroup)
+            .withHost(nativeAddr);
 
     if (!TransportDescriptor.getNativeProtocolEncryptionOptions().enabled) {
       servers = Collections.singleton(builder.withSSL(false).withPort(nativePort).build());
@@ -74,8 +80,12 @@ public class CqlImpl {
       }
     }
 
-    ClientMetrics.instance.init(servers);
+    ClientMetrics.instance.init(servers, metrics.getRegistry("cql"));
     servers.forEach(Server::start);
+  }
+
+  public void stop() {
+    servers.forEach(Server::stop);
   }
 
   public static boolean useEpoll() {

@@ -4,11 +4,11 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.6-SNAPSHOT</version>
+    <version>0.0.9-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.cql</groupId>
   <artifactId>cql</artifactId>
-  <version>0.0.6-SNAPSHOT</version>
+  <version>0.0.9-SNAPSHOT</version>
   <dependencies>
     <dependency>
       <groupId>org.apache.cassandra</groupId>
@@ -24,7 +24,19 @@
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.6-SNAPSHOT</version>
+      <version>0.0.9-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.auth</groupId>
+      <artifactId>authentication</artifactId>
+      <version>0.0.9-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.health</groupId>
+      <artifactId>health-checker</artifactId>
+      <version>0.0.9-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -66,6 +78,24 @@
       <groupId>org.javatuples</groupId>
       <artifactId>javatuples</artifactId>
       <version>1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>3.14.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>3.5.11</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
   <build>
@@ -110,7 +140,9 @@
                             !org.eclipse.jetty.security,
                             io.stargate.db,
                             org.apache.cassandra.stargate,
-                            org.apache.cassandra.stargate.*
+                            org.apache.cassandra.stargate.*,
+                            io.stargate.health.metrics.api,
+                            com.codahale.metrics,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
