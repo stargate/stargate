@@ -124,14 +124,15 @@ public class ServerConnection extends Connection {
 
   public Authenticator.SaslNegotiator getSaslNegotiator(QueryState queryState) {
     if (saslNegotiator == null) {
-      saslNegotiator =
+      Authenticator.SaslNegotiator negotiator =
           persistence
               .getAuthenticator()
               .newSaslNegotiator(queryState.getClientAddress(), certificates());
 
-      if (authentication != null)
-        saslNegotiator =
-            new PlainTextTokenSaslNegotiator(saslNegotiator, persistence, authentication);
+      saslNegotiator =
+          authentication == null
+              ? negotiator
+              : new PlainTextTokenSaslNegotiator(negotiator, persistence, authentication);
     }
     return saslNegotiator;
   }

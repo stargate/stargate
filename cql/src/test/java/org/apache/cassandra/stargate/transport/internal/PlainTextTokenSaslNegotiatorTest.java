@@ -1,7 +1,7 @@
 package org.apache.cassandra.stargate.transport.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -34,51 +34,40 @@ public class PlainTextTokenSaslNegotiatorTest {
 
   @Test
   public void invalidDecodeCredentials() {
-    try { // Empty
-      PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {});
-      fail("Expected AuthenticationException");
-    } catch (AuthenticationException e) {
-      assertThat(e).hasMessage("Password must not be null");
-    }
+    // Empty
+    assertThatThrownBy(() -> PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {}))
+        .isInstanceOf(AuthenticationException.class)
+        .hasMessage("Password must not be null");
 
-    try { // Empty authzid
-      PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {0});
-      fail("Expected AuthenticationException");
-    } catch (AuthenticationException e) {
-      assertThat(e).hasMessage("Password must not be null");
-    }
+    // Empty authzid
+    assertThatThrownBy(() -> PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {0}))
+        .isInstanceOf(AuthenticationException.class)
+        .hasMessage("Password must not be null");
 
-    try { // Empty authzid and authnid
-      PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {0, 0});
-      fail("Expected AuthenticationException");
-    } catch (AuthenticationException e) {
-      assertThat(e).hasMessage("Password must not be null");
-    }
+    // Empty authzid and authnid
+    assertThatThrownBy(() -> PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {0, 0}))
+        .isInstanceOf(AuthenticationException.class)
+        .hasMessage("Password must not be null");
 
-    try { // Only authzid
-      PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {97, 98, 99, 0, 0});
-      fail("Expected AuthenticationException");
-    } catch (AuthenticationException e) {
-      assertThat(e).hasMessage("Password must not be null");
-    }
+    // Only authzid
+    assertThatThrownBy(
+            () -> PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {97, 98, 99, 0, 0}))
+        .isInstanceOf(AuthenticationException.class)
+        .hasMessage("Password must not be null");
 
-    try { // Empty authzid, but valid authnid and password
-      PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {0, 97, 0, 97, 0});
-      fail("Expected AuthenticationException");
-    } catch (AuthenticationException e) {
-      assertThat(e)
-          .hasMessage(
-              "Credential format error: username or password is empty or contains NUL(\\0) character");
-    }
+    // Empty authzid, but valid authnid and password
+    assertThatThrownBy(
+            () -> PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {0, 97, 0, 97, 0}))
+        .isInstanceOf(AuthenticationException.class)
+        .hasMessage(
+            "Credential format error: username or password is empty or contains NUL(\\0) character");
 
-    try { // Non-empty authzid
-      PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {97, 0, 97, 0, 97, 0});
-      fail("Expected AuthenticationException");
-    } catch (AuthenticationException e) {
-      assertThat(e)
-          .hasMessage(
-              "Credential format error: username or password is empty or contains NUL(\\0) character");
-    }
+    // Non-empty authzid
+    assertThatThrownBy(
+            () -> PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {97, 0, 97, 0, 97, 0}))
+        .isInstanceOf(AuthenticationException.class)
+        .hasMessage(
+            "Credential format error: username or password is empty or contains NUL(\\0) character");
   }
 
   @Test
