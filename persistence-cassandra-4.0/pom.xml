@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate.persistence</groupId>
     <artifactId>persistence-extensions</artifactId>
-    <version>0.0.3-SNAPSHOT</version>
+    <version>0.0.4-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db.cassandra</groupId>
   <artifactId>persistence-cassandra-4.0</artifactId>
