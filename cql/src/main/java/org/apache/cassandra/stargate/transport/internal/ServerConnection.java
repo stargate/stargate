@@ -20,6 +20,7 @@ package org.apache.cassandra.stargate.transport.internal;
 import com.codahale.metrics.Counter;
 import io.netty.channel.Channel;
 import io.netty.handler.ssl.SslHandler;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Authenticator;
 import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
@@ -37,6 +38,7 @@ public class ServerConnection extends Connection {
   private volatile Authenticator.SaslNegotiator saslNegotiator;
   private final ClientState clientState;
   private final Persistence persistence;
+  private final AuthenticationService authentication;
   private volatile ConnectionStage stage;
   public final Counter requests = new Counter();
 
@@ -45,9 +47,11 @@ public class ServerConnection extends Connection {
       ProxyInfo proxyInfo,
       ProtocolVersion version,
       Connection.Tracker tracker,
-      Persistence persistence) {
+      Persistence persistence,
+      AuthenticationService authentication) {
     super(channel, version, tracker);
     this.persistence = persistence;
+    this.authentication = authentication;
     clientState =
         persistence.newClientState(
             channel.remoteAddress(), proxyInfo != null ? proxyInfo.publicAddress : null);
@@ -119,11 +123,17 @@ public class ServerConnection extends Connection {
   }
 
   public Authenticator.SaslNegotiator getSaslNegotiator(QueryState queryState) {
-    if (saslNegotiator == null)
-      saslNegotiator =
+    if (saslNegotiator == null) {
+      Authenticator.SaslNegotiator negotiator =
           persistence
               .getAuthenticator()
               .newSaslNegotiator(queryState.getClientAddress(), certificates());
+
+      saslNegotiator =
+          authentication == null
+              ? negotiator
+              : new PlainTextTokenSaslNegotiator(negotiator, persistence, authentication);
+    }
     return saslNegotiator;
   }
 

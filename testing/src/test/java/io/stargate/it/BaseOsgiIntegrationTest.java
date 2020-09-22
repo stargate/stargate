@@ -87,6 +87,7 @@ public class BaseOsgiIntegrationTest {
   static Starter stargateStarter;
   static String datacenter;
   public static String stargateHost;
+  public boolean enableAuth;
   static String rack;
 
   @Parameterized.Parameter(0)
@@ -404,8 +405,8 @@ public class BaseOsgiIntegrationTest {
               9043);
 
       System.setProperty("stargate.auth_api_enable_username_token", "true");
+      stargateStarter.withAuthEnabled(enableAuth).start();
 
-      stargateStarter.start();
     }
   }
 }
