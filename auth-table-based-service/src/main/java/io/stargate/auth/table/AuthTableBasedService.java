@@ -169,7 +169,7 @@ public class AuthTableBasedService implements AuthenticationService {
     return row.getString("role");
   }
 
-  private String queryHashedPassword(String hashedPassword)
+  private String queryHashedPassword(String key)
       throws ExecutionException, InterruptedException {
     ResultSet resultSet =
         dataStore
@@ -177,18 +177,18 @@ public class AuthTableBasedService implements AuthenticationService {
             .select()
             .column("salted_hash")
             .from("system_auth", "roles")
-            .where("role", WhereCondition.Predicate.Eq, hashedPassword)
+            .where("role", WhereCondition.Predicate.Eq, key)
             .execute();
 
     if (resultSet.isEmpty()) {
       throw new RuntimeException(
-          String.format("Provided username %s and/or password are incorrect", hashedPassword));
+          String.format("Provided username %s and/or password are incorrect", key));
     }
 
     Row row = resultSet.one();
     if (!row.has("salted_hash")) {
       throw new RuntimeException(
-          String.format("Provided username %s and/or password are incorrect", hashedPassword));
+          String.format("Provided username %s and/or password are incorrect", key));
     }
 
     return row.getString("salted_hash");
