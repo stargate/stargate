@@ -39,7 +39,11 @@ public class AuthenticatorWrapper implements Authenticator {
 
     @Override
     public byte[] evaluateResponse(byte[] clientResponse) throws AuthenticationException {
-      return wrapped.evaluateResponse(clientResponse);
+      try {
+        return wrapped.evaluateResponse(clientResponse);
+      } catch (org.apache.cassandra.exceptions.AuthenticationException e) {
+        throw Conversion.toExternal(e);
+      }
     }
 
     @Override
@@ -49,7 +53,11 @@ public class AuthenticatorWrapper implements Authenticator {
 
     @Override
     public AuthenticatedUser<?> getAuthenticatedUser() throws AuthenticationException {
-      return new AuthenticatedUserWrapper(wrapped.getAuthenticatedUser());
+      try {
+        return new AuthenticatedUserWrapper(wrapped.getAuthenticatedUser());
+      } catch (org.apache.cassandra.exceptions.AuthenticationException e) {
+        throw Conversion.toExternal(e);
+      }
     }
   }
 

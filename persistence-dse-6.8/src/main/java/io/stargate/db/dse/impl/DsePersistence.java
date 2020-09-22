@@ -194,6 +194,11 @@ public class DsePersistence
   }
 
   @Override
+  public io.stargate.db.AuthenticatedUser<?> newAuthenticatedUser(String name) {
+    return new AuthenticatorWrapper.AuthenticatedUserWrapper(new AuthenticatedUser(name));
+  }
+
+  @Override
   public Authenticator getAuthenticator() {
     return authenticator;
   }
