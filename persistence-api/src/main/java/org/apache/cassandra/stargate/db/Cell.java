@@ -14,8 +14,6 @@ public interface Cell extends CellValue {
   /** Determines whether it's a tombstone */
   boolean isNull();
 
-  /**
-   * Gets the column information associated with this cell.
-   */
+  /** Gets the column information associated with this cell. */
   ColumnMetadata getColumn();
 }
