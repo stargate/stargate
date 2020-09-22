@@ -144,7 +144,7 @@ public class AuthApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             "",
-            String.format("%s:8081/v1/auth/usernametoken", host),
+            String.format("%s:8081/v1/admin/auth/usernametoken", host),
             objectMapper.writeValueAsString(new UsernameCredentials("cassandra")),
             HttpStatus.SC_CREATED);
 
@@ -157,7 +157,7 @@ public class AuthApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             "",
-            String.format("%s:8081/v1/auth/usernametoken", host),
+            String.format("%s:8081/v1/admin/auth/usernametoken", host),
             objectMapper.writeValueAsString(new UsernameCredentials("bad_user_name")),
             HttpStatus.SC_UNAUTHORIZED);
 
@@ -171,7 +171,7 @@ public class AuthApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             "",
-            String.format("%s:8081/v1/auth/usernametoken", host),
+            String.format("%s:8081/v1/admin/auth/usernametoken", host),
             "",
             HttpStatus.SC_BAD_REQUEST);
 

@@ -406,7 +406,6 @@ public class BaseOsgiIntegrationTest {
 
       System.setProperty("stargate.auth_api_enable_username_token", "true");
       stargateStarter.withAuthEnabled(enableAuth).start();
-
     }
   }
 }

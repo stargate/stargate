@@ -142,7 +142,7 @@ public class AuthResource {
    * @return On success will return a token to be used with later requests to Stargate.
    */
   @POST
-  @Path("/auth/usernametoken")
+  @Path("/admin/auth/usernametoken")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   public Response createTokenFromUsername(UsernameCredentials usernameCredentials) {
