@@ -19,7 +19,6 @@ import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.TupleType;
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -177,44 +176,4 @@ public abstract class Keyspace implements SchemaEntity {
     return table;
   }
 
-  public Column.ColumnType typeOf(Object value) {
-    if (value instanceof String) {
-      return Column.Type.Varchar;
-    } else if (value instanceof UUID) {
-      return Column.Type.Uuid;
-    } else if (value instanceof Date) {
-      return Column.Type.Date;
-    } else if (value instanceof ByteBuffer) {
-      return Column.Type.Blob;
-    } else if (value instanceof InetAddress) {
-      return Column.Type.Inet;
-    } else if (value instanceof TupleValue) {
-      TupleValue tupleValue = (TupleValue) value;
-      TupleType type = tupleValue.getType();
-      List<DataType> componentTypes = type.getComponentTypes();
-      Column.ColumnType[] values = new Column.ColumnType[componentTypes.size()];
-      for (int count = 0; count < componentTypes.size(); count++) {
-        values[count] = typeOf(tupleValue.getObject(count));
-      }
-
-      return Column.Type.Tuple.of(values);
-    } else if (value instanceof UdtValue) {
-      return userDefinedType(((UdtValue) value).getType().getName().asInternal());
-    } else if (value instanceof Set && !((Set) value).isEmpty()) {
-      return Column.Type.Set.of(typeOf(((Set) value).iterator().next()).frozen());
-    } else if (value instanceof List && !((List) value).isEmpty()) {
-      return Column.Type.List.of(typeOf(((List) value).get(0)).frozen());
-    } else if (value instanceof Map && !((Map) value).isEmpty()) {
-      Map.Entry<?, ?> firstEntry = ((Map<?, ?>) value).entrySet().iterator().next();
-      return Column.Type.Map.of(
-          typeOf(firstEntry.getKey()).frozen(), typeOf(firstEntry.getValue()).frozen());
-    } else {
-      Column.Type type = Column.TYPE_MAPPING.get(value.getClass());
-      if (type != null) {
-        return type;
-      }
-    }
-    throw new IllegalArgumentException(
-        "Could not find an appropriate CQL type for value '" + value + "'");
-  }
 }

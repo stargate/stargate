@@ -132,16 +132,26 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
      * try to check if the value can be narrowed/widened to the given column type using the rules
      * described in {@link NumberCoercion#coerceToColumnType(Class, Object)}.
      *
-     * @param value The value to validate
-     * @param location The location of the value e.g. within a complex type, such as a UDT / Tuple.
-     * @throws ValidationException In case validation fails
+     * @param value The value to validate.
+     * @param location The location of the value (e.g. within a complex type, such as a UDT/Tuple).
+     * @return either the {@code value} argument if it is valid for this type without coercion, or,
+     *     if coercion is necessary to make it valid, the coerced value.
+     * @throws ValidationException In case validation fails.
      */
     default Object validate(Object value, String location) throws ValidationException {
-      Object possiblyCoerced = value;
-      if (value != null && !javaType().isInstance(possiblyCoerced)) {
-        throw new ValidationException(value.getClass(), this, location);
+      if (value == null || javaType().isInstance(value)) {
+        return value;
       }
-      return possiblyCoerced;
+
+      try {
+        NumberCoercion.Result result = NumberCoercion.coerceToColumnType(javaType(), value);
+        if (!result.columnTypeAcceptsValue()) {
+          throw new ValidationException(value.getClass(), this, location);
+        }
+        return result.getValidatedValue();
+      } catch (ArithmeticException e) {
+        throw new ValidationException(value.getClass(), this, e.getMessage(), location);
+      }
     }
 
     /** The full CQL definition for this type */
@@ -510,42 +520,27 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
   }
 
   public static class ValidationException extends Exception {
-    private String providedType;
-    private String expectedType;
-    private String expectedCqlType;
-    private String location;
-    private String errorDetails = "";
+    private final String providedType;
+    private final String expectedType;
+    private final String expectedCqlType;
+    private final String location;
+    private final String errorDetails;
 
     public ValidationException(Class<?> providedType, ColumnType expectedType, String location) {
-      super(
-          "Wanted '"
-              + expectedType.cqlDefinition()
-              + "' but got '"
-              + providedType
-              + "' at location '"
-              + location
-              + "'");
-      this.providedType = providedType.getSimpleName();
-      this.expectedType = expectedType.javaType().getSimpleName();
-      this.expectedCqlType = expectedType.cqlDefinition();
-      this.location = location;
+      this(providedType, expectedType, "", location);
     }
 
     public ValidationException(ColumnType expectedType, String location) {
-      super(
-          "Wanted '"
-              + expectedType.cqlDefinition()
-              + "' but got '<invalid>' at location '"
-              + location
-              + "'");
-      this.providedType = "<invalid>";
-      this.expectedType = expectedType.javaType().getSimpleName();
-      this.expectedCqlType = expectedType.cqlDefinition();
-      this.location = location;
+      this("<invalid>", expectedType, "", location);
     }
 
     public ValidationException(
         Class<?> providedType, ColumnType expectedType, String errorMessage, String location) {
+      this(providedType.getSimpleName(), expectedType, errorMessage, location);
+    }
+
+    private ValidationException(
+        String providedType, ColumnType expectedType, String errorMessage, String location) {
       super(
           "Wanted '"
               + expectedType.cqlDefinition()
@@ -554,7 +549,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
               + "' at location '"
               + location
               + "'");
-      this.providedType = providedType.getSimpleName();
+      this.providedType = providedType;
       this.expectedType = expectedType.javaType().getSimpleName();
       this.expectedCqlType = expectedType.cqlDefinition();
       this.location = location;
@@ -582,8 +577,8 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
     }
   }
 
-  // To resolve data type from java types (under gremlin console)
-  public static final Map<Class<?>, Type> TYPE_MAPPING =
+  // To resolve data type from java types
+  private static final Map<Class<?>, Type> TYPE_MAPPING =
       ImmutableMap.<Class<?>, Type>builder()
           .put(Date.class, Type.Date)
           .putAll(
