@@ -20,9 +20,9 @@ import static java.util.stream.Collectors.toList;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.api.core.data.UdtValue;
-import io.stargate.db.datastore.schema.Column;
-import io.stargate.db.datastore.schema.ParameterizedType;
-import io.stargate.db.datastore.schema.UserDefinedType;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.ParameterizedType;
+import io.stargate.db.schema.UserDefinedType;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -429,6 +429,6 @@ public class ColumnUtils {
   }
 
   public static String wrapIfContainsSpace(String s) {
-    return io.stargate.db.datastore.schema.ColumnUtils.containsWhitespace(s) ? "\"" + s + "\"" : s;
+    return io.stargate.db.schema.ColumnUtils.containsWhitespace(s) ? "\"" + s + "\"" : s;
   }
 }

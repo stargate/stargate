@@ -17,9 +17,9 @@ package io.stargate.web.resources.v2.schemas;
 
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.schema.Column;
-import io.stargate.db.datastore.schema.ImmutableColumn;
-import io.stargate.db.datastore.schema.Table;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.ImmutableColumn;
+import io.stargate.db.schema.Table;
 import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.ResponseWrapper;

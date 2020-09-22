@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.datastore.schema;
+package io.stargate.db.schema;
 
-import static io.stargate.db.datastore.schema.Column.Kind.Regular;
-import static io.stargate.db.datastore.schema.Column.Type.Ascii;
-import static io.stargate.db.datastore.schema.Column.Type.Counter;
-import static io.stargate.db.datastore.schema.Column.Type.Timeuuid;
-import static io.stargate.db.datastore.schema.Column.Type.Varchar;
+import static io.stargate.db.schema.Column.Kind.Regular;
+import static io.stargate.db.schema.Column.Type.Ascii;
+import static io.stargate.db.schema.Column.Type.Counter;
+import static io.stargate.db.schema.Column.Type.Timeuuid;
+import static io.stargate.db.schema.Column.Type.Varchar;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.data.CqlDuration;

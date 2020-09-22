@@ -72,7 +72,7 @@
             <Export-Package><![CDATA[
               io.stargate.db,
               io.stargate.db.datastore,
-              io.stargate.db.datastore.schema,
+              io.stargate.db.schema,
               io.stargate.db.datastore.query,
               org.apache.cassandra.stargate,
               org.apache.cassandra.stargate.*,

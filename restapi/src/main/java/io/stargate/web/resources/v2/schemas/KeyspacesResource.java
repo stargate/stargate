@@ -84,8 +84,7 @@ public class KeyspacesResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          io.stargate.db.datastore.schema.Keyspace keyspace =
-              localDB.schema().keyspace(keyspaceName);
+          io.stargate.db.schema.Keyspace keyspace = localDB.schema().keyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(
@@ -172,7 +171,7 @@ public class KeyspacesResource {
         });
   }
 
-  private List<Datacenter> buildDatacenters(io.stargate.db.datastore.schema.Keyspace keyspace) {
+  private List<Datacenter> buildDatacenters(io.stargate.db.schema.Keyspace keyspace) {
     List<Datacenter> dcs = new ArrayList<>();
     for (Map.Entry<String, String> entries : keyspace.replication().entrySet()) {
       if (entries.getKey().equals("class") || entries.getKey().equals("replication_factor")) {

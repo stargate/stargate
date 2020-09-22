@@ -17,8 +17,8 @@ package io.stargate.db.datastore;
 
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptibles;
 import io.stargate.db.datastore.query.QueryBuilder;
-import io.stargate.db.datastore.schema.Index;
-import io.stargate.db.datastore.schema.Schema;
+import io.stargate.db.schema.Index;
+import io.stargate.db.schema.Schema;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
