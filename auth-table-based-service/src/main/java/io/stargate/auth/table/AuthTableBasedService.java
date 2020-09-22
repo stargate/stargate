@@ -157,10 +157,12 @@ public class AuthTableBasedService implements AuthenticationService {
             .where("role", WhereCondition.Predicate.Eq, key)
             .execute();
 
+    if (resultSet.isEmpty()) {
+      throw new RuntimeException(String.format("Provided username %s is incorrect", key));
+    }
+
     Row row = resultSet.one();
-    if (row != null && row.has("role")) {
-      row.getString("role");
-    } else {
+    if (!row.has("role")) {
       throw new RuntimeException(String.format("Provided username %s is incorrect", key));
     }
 
@@ -178,10 +180,13 @@ public class AuthTableBasedService implements AuthenticationService {
             .where("role", WhereCondition.Predicate.Eq, hashedPassword)
             .execute();
 
+    if (resultSet.isEmpty()) {
+      throw new RuntimeException(
+          String.format("Provided username %s and/or password are incorrect", hashedPassword));
+    }
+
     Row row = resultSet.one();
-    if (row != null && row.has("salted_hash")) {
-      row.getString("salted_hash");
-    } else {
+    if (!row.has("salted_hash")) {
       throw new RuntimeException(
           String.format("Provided username %s and/or password are incorrect", hashedPassword));
     }
