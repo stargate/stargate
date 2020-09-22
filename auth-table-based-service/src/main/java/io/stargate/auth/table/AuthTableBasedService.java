@@ -103,6 +103,32 @@ public class AuthTableBasedService implements AuthenticationService {
           String.format("Provided username %s and/or password are incorrect", key));
     }
 
+    saveToken(key, token);
+
+    return token.toString();
+  }
+
+  @Override
+  public String createToken(String key) throws UnauthorizedException {
+    UUID token = UUID.randomUUID();
+
+    String username;
+    try {
+      username = queryUsername(key);
+    } catch (Exception e) {
+      throw new UnauthorizedException(e.getMessage());
+    }
+
+    if (username == null || username.isEmpty()) {
+      throw new UnauthorizedException(String.format("Provided username %s is incorrect", key));
+    }
+
+    saveToken(key, token);
+
+    return token.toString();
+  }
+
+  private void saveToken(String key, UUID token) {
     try {
       Instant instant = Instant.now();
 
@@ -119,8 +145,28 @@ public class AuthTableBasedService implements AuthenticationService {
       logger.error("Failed to add new token", e);
       throw new RuntimeException(e);
     }
+  }
 
-    return token.toString();
+  private String queryUsername(String key) throws ExecutionException, InterruptedException {
+    ResultSet resultSet =
+        dataStore
+            .query()
+            .select()
+            .column("role")
+            .from("system_auth", "roles")
+            .where("role", WhereCondition.Predicate.Eq, key)
+            .execute();
+
+    if (resultSet.isEmpty()) {
+      throw new RuntimeException(String.format("Provided username %s is incorrect", key));
+    }
+
+    Row row = resultSet.one();
+    if (!row.has("role")) {
+      throw new RuntimeException(String.format("Provided username %s is incorrect", key));
+    }
+
+    return row.getString("role");
   }
 
   private String queryHashedPassword(String key) throws ExecutionException, InterruptedException {
