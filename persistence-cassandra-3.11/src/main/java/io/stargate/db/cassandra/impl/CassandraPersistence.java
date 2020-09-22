@@ -115,7 +115,7 @@ public class CassandraPersistence
 
     daemon.start();
 
-    waitForSchema(StorageService.RING_DELAY);
+    waitForSchema(5 * StorageService.RING_DELAY);
 
     root = new InternalDataStore();
     authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
@@ -201,6 +201,11 @@ public class CassandraPersistence
     ClientStateWrapper state = ClientStateWrapper.forExternalCalls(null);
     state.login(new AuthenticatorWrapper.AuthenticatedUserWrapper(new AuthenticatedUser(name)));
     return state;
+  }
+
+  @Override
+  public io.stargate.db.AuthenticatedUser<?> newAuthenticatedUser(String name) {
+    return new AuthenticatorWrapper.AuthenticatedUserWrapper(new AuthenticatedUser(name));
   }
 
   @Override
