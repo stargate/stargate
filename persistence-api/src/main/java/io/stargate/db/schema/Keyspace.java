@@ -37,25 +37,6 @@ import org.javatuples.Pair;
 @Value.Immutable(prehash = true)
 public abstract class Keyspace implements SchemaEntity {
 
-  /**
-   * This list is verified in a test against SystemInfo. We don't want to use this directly though
-   * for ExternalDataStore as it shouldn't have dependencies on Cassandra's internal classes
-   */
-  public static final Set<String> SYSTEM_KEYSPACES =
-      ImmutableSet.of(
-          "system",
-          "system_schema",
-          "system_virtual_schema",
-          "system_auth",
-          "system_traces",
-          "system_distributed",
-          "system_backups",
-          "dse_system",
-          "dse_security",
-          "dse_perf",
-          "dse_insights_local",
-          "dse_insights");
-
   private static final long serialVersionUID = -337891773492616286L;
 
   public abstract Set<Table> tables();

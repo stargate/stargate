@@ -221,25 +221,4 @@ public class DataStoreUtil {
 
     return Column.Type.fromCqlDefinitionOf(type.toString()); // PrimitiveType
   }
-
-  public static String mvIndexNotReadyMessage(String keyspaceName, String mvName) {
-    return String.format(
-        "Materialized view '%s' is not ready to be queried as it still might be being built.\n"
-            + "You can check its progress with: 'nodetool viewbuildstatus %s %s'",
-        mvName, keyspaceName, mvName);
-  }
-
-  public static String secondaryIndexNotReadyMessage(String keyspaceName, String indexName) {
-    String cql =
-        String.format(
-            "SELECT index_name FROM %s.\"%s\" WHERE table_name=%s AND index_name=%s",
-            SchemaConstants.SYSTEM_KEYSPACE_NAME,
-            SystemKeyspace.BUILT_INDEXES,
-            keyspaceName,
-            indexName);
-    return String.format(
-        "Secondary index '%s' is not ready to be queried as it still might be being built.\n"
-            + "You can check its progress with: '%s'",
-        indexName, cql);
-  }
 }

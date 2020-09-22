@@ -100,13 +100,4 @@ public final class ReservedKeywords {
   public static boolean isReserved(String text) {
     return reservedSet.contains(text.toUpperCase());
   }
-
-  /**
-   * Adds the specified reserved keyword.
-   *
-   * <p>Used by DSE, see DB-1637.
-   */
-  public static boolean addReserved(String text) {
-    return reservedSet.add(text.toUpperCase());
-  }
 }
