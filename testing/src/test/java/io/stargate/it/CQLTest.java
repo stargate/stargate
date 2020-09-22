@@ -95,7 +95,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
   @BeforeClass
   public static void beforeAll() {
-    System.setProperty("stargate.cql_auth_id", "AuthTableBasedService");
+    System.setProperty("stargate.cql_use_auth_service", "true");
   }
 
   @Before

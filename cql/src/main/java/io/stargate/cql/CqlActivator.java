@@ -15,7 +15,6 @@
  */
 package io.stargate.cql;
 
-import com.google.common.base.Strings;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.cql.impl.CqlImpl;
 import io.stargate.db.Persistence;
@@ -38,9 +37,12 @@ public class CqlActivator implements BundleActivator {
   private CqlImpl cql;
   private Tracker tracker;
 
-  private static final String AUTH_IDENTIFIER = System.getProperty("stargate.cql_auth_id");
+  private static final String AUTH_IDENTIFIER =
+      System.getProperty("stargate.auth_id", "AuthTableBasedService");
   private static final String PERSISTENCE_IDENTIFIER =
       System.getProperty("stargate.persistence_id", "CassandraPersistence");
+  private static final boolean USE_AUTH_SERVICE =
+      Boolean.parseBoolean(System.getProperty("stargate.cql_use_auth_service", "false"));
 
   private static final String DEPENDENCIES_FILTER =
       String.format(
@@ -98,23 +100,19 @@ public class CqlActivator implements BundleActivator {
       } else if (metrics == null && service instanceof Metrics) {
         log.info("Using metrics: {}", ref.getBundle());
         metrics = (Metrics) service;
-      } else if (authentication == null && service instanceof AuthenticationService) {
+      } else if (USE_AUTH_SERVICE
+          && authentication == null
+          && service instanceof AuthenticationService) {
         log.info("Using authentication service: {}", ref.getBundle());
         authentication = (AuthenticationService) service;
       }
 
-      if (persistence != null
-          && metrics != null
-          && (!requiresAuthentication() || authentication != null)) {
+      if (persistence != null && metrics != null && (!USE_AUTH_SERVICE || authentication != null)) {
         maybeStartService(persistence, metrics, authentication);
       }
 
       return service;
     }
-  }
-
-  private static boolean requiresAuthentication() {
-    return !Strings.isNullOrEmpty(AUTH_IDENTIFIER);
   }
 
   private static Config makeConfig() {
