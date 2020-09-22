@@ -169,8 +169,7 @@ public class AuthTableBasedService implements AuthenticationService {
     return row.getString("role");
   }
 
-  private String queryHashedPassword(String key)
-      throws ExecutionException, InterruptedException {
+  private String queryHashedPassword(String key) throws ExecutionException, InterruptedException {
     ResultSet resultSet =
         dataStore
             .query()
