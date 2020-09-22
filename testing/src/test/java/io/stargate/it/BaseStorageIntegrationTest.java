@@ -17,6 +17,8 @@ package io.stargate.it;
 
 import com.datastax.oss.driver.api.core.Version;
 import com.datastax.oss.driver.api.testinfra.ccm.CcmBridge;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Base class for tests that need a backend database cluster managed by {@code ccm}.
@@ -24,6 +26,7 @@ import com.datastax.oss.driver.api.testinfra.ccm.CcmBridge;
  * <p>Note: the cluster is created on class initialization and is destroyed at JVM exit.
  */
 public class BaseStorageIntegrationTest {
+  private static final Logger LOG = LoggerFactory.getLogger(BaseStorageIntegrationTest.class);
 
   public static final String CLUSTER_NAME = "Test_Stargate_Cluster";
 
@@ -53,7 +56,12 @@ public class BaseStorageIntegrationTest {
               new Thread("ccm-shutdown-hook") {
                 @Override
                 public void run() {
-                  ccm.remove();
+                  try {
+                    ccm.remove();
+                  } catch (Exception e) {
+                    // This should not affect test result validity, hence logging as WARN
+                    LOG.warn("Exception during CCM cluster shutdown: {}", e.toString(), e);
+                  }
                 }
               });
     }
