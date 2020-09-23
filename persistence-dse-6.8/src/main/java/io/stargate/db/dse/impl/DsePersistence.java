@@ -79,10 +79,13 @@ public class DsePersistence
   @Override
   public void initialize(Config config) {
     logger.info("Initializing DSE");
-    System.setProperty("cassandra.join_ring", "false");
+
+    if (!Boolean.parseBoolean(System.getProperty("stargate.developer_mode"))) {
+      System.setProperty("cassandra.join_ring", "false");
+    }
+
     // Need to set this to true otherwise org.apache.cassandra.service.CassandraDaemon#activate0
-    // will close
-    // both System.out and System.err.
+    // will close both System.out and System.err.
     System.setProperty("cassandra-foreground", "true");
     System.setProperty("cassandra.consistent.rangemovement", "false");
 
@@ -111,7 +114,7 @@ public class DsePersistence
     Gossiper.instance.addLocalApplicationState(
         ApplicationState.X10, StorageService.instance.valueFactory.dsefsState("stargate"));
 
-    waitForSchema(StorageService.RING_DELAY);
+    waitForSchema(5 * StorageService.RING_DELAY);
 
     if (USE_PROXY_PROTOCOL) interceptor = new ProxyProtocolQueryInterceptor();
     else interceptor = new DefaultQueryInterceptor();
