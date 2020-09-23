@@ -54,6 +54,10 @@ public class CreateTableDataFetcher
 
     CreateTable table = null;
     List<Map<String, Object>> partitionKeys = dataFetchingEnvironment.getArgument("partitionKeys");
+    if (partitionKeys.isEmpty()) {
+      // TODO see if we can enforce that through the schema instead
+      throw new IllegalArgumentException("partitionKeys must contain at least one element");
+    }
     for (Map<String, Object> key : partitionKeys) {
       if (table != null) {
         table = table.withPartitionKey((String) key.get("name"), decodeType(key.get("type")));
@@ -80,7 +84,7 @@ public class CreateTableDataFetcher
     CreateTableWithOptions options = null;
     if (clusteringKeys != null) {
       for (Map<String, Object> key : clusteringKeys) {
-        if (options != null) {
+        if (options == null) {
           options =
               table.withClusteringOrder(
                   (String) key.get("name"), decodeClusteringOrder((String) key.get("order")));

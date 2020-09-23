@@ -46,6 +46,10 @@ public class AlterTableDropFetcher
             (String) dataFetchingEnvironment.getArgument("tableName"));
 
     List<String> toDrop = dataFetchingEnvironment.getArgument("toDrop");
+    if (toDrop.isEmpty()) {
+      // TODO see if we can enforce that through the schema instead
+      throw new IllegalArgumentException("toDrop must contain at least one element");
+    }
     AlterTableDropColumnEnd table = null;
     for (String column : toDrop) {
       if (table != null) {

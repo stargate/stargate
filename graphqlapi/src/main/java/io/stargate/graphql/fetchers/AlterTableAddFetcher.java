@@ -46,6 +46,10 @@ public class AlterTableAddFetcher
             (String) dataFetchingEnvironment.getArgument("tableName"));
 
     List<Map<String, Object>> toAdd = dataFetchingEnvironment.getArgument("toAdd");
+    if (toAdd.isEmpty()) {
+      // TODO see if we can enforce that through the schema instead
+      throw new IllegalArgumentException("toAdd must contain at least one element");
+    }
     AlterTableAddColumnEnd table = null;
     for (Map<String, Object> column : toAdd) {
       if (table != null) {
