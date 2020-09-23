@@ -20,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.cassandra.stargate.db.MutationEvent;
 
 /** Represents a publisher of mutations events for Change Data Capture (CDC). */
-public interface CDCProducer extends AutoCloseable {
+public interface CDCProducer {
   /**
    * Initializes the {@link CDCProducer}. It will be invoked once in the lifetime of the instance
    * before any calls to send.
@@ -34,4 +34,7 @@ public interface CDCProducer extends AutoCloseable {
    * the CDC.
    */
   CompletableFuture<Void> publish(MutationEvent mutation);
+
+  /** Closes this resource, relinquishing any underlying resources. */
+  CompletableFuture<Void> close();
 }

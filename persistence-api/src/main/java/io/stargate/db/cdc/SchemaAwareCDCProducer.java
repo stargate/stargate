@@ -55,7 +55,8 @@ public abstract class SchemaAwareCDCProducer implements CDCProducer {
    */
   protected abstract CompletableFuture<Void> send(MutationEvent mutation);
 
-  public abstract void close() throws Exception;
+  @Override
+  public abstract CompletableFuture<Void> close();
 
   @Override
   public CompletableFuture<Void> publish(MutationEvent mutation) {

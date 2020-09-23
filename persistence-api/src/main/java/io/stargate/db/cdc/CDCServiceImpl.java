@@ -24,8 +24,15 @@ import io.stargate.db.metrics.CDCMetrics;
 import java.util.concurrent.*;
 import org.apache.cassandra.stargate.db.MutationEvent;
 import org.apache.cassandra.stargate.exceptions.CDCWriteException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class CDCServiceImpl implements CDCService {
+
+  private static final CompletableFuture<Void> completedFuture =
+      CompletableFuture.completedFuture(null);
+  private static final CompletableFuture<Void> unhealthyFuture = new CompletableFuture<>();
+  private static final Logger logger = LoggerFactory.getLogger(CDCService.class);
 
   private final CDCProducer producer;
   private final CDCHealthChecker healthChecker;
@@ -33,10 +40,6 @@ public final class CDCServiceImpl implements CDCService {
   private final ScheduledExecutorService timeoutScheduler =
       Executors.newScheduledThreadPool(
           1, new ThreadFactoryBuilder().setDaemon(true).setNameFormat("failAfter-%d").build());
-
-  private static final CompletableFuture<Void> completedFuture =
-      CompletableFuture.completedFuture(null);
-  private static final CompletableFuture<Void> unhealthyFuture = new CompletableFuture<>();
 
   static {
     unhealthyFuture.completeExceptionally(
@@ -118,8 +121,12 @@ public final class CDCServiceImpl implements CDCService {
   @Override
   public void close() throws Exception {
     healthChecker.close();
-    producer.close();
     timeoutScheduler.shutdownNow();
+    try {
+      producer.close().get();
+    } catch (Exception e) {
+      logger.info("There was an issue releasing resources of CDC Producer", e);
+    }
   }
 
   @VisibleForTesting
