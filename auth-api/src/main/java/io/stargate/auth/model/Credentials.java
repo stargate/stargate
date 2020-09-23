@@ -15,6 +15,7 @@
  */
 package io.stargate.auth.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
@@ -43,10 +44,21 @@ public class Credentials {
     this.password = password;
   }
 
+  @JsonCreator
+  public Credentials(
+      @JsonProperty("username") String username, @JsonProperty("password") String password) {
+    this.username = username;
+    this.password = password;
+  }
+
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
     Credentials that = (Credentials) o;
     return Objects.equals(username, that.username) && Objects.equals(password, that.password);
   }

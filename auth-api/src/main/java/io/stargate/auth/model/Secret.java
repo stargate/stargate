@@ -15,6 +15,7 @@
  */
 package io.stargate.auth.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
@@ -25,11 +26,6 @@ public class Secret {
   private String key = null;
   private String secret = null;
 
-  public Secret key(String key) {
-    this.key = key;
-    return this;
-  }
-
   @JsonProperty("key")
   public String getKey() {
     return key;
@@ -39,17 +35,18 @@ public class Secret {
     this.key = key;
   }
 
-  public Secret secret(String secret) {
-    this.secret = secret;
-    return this;
-  }
-
   @JsonProperty("secret")
   public String getSecret() {
     return secret;
   }
 
   public void setSecret(String secret) {
+    this.secret = secret;
+  }
+
+  @JsonCreator
+  public Secret(@JsonProperty("key") String key, @JsonProperty("secret") String secret) {
+    this.key = key;
     this.secret = secret;
   }
 
