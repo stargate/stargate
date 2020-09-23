@@ -3,7 +3,6 @@ package io.stargate.graphql.fetchers;
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import com.datastax.oss.driver.api.querybuilder.schema.AlterTableAddColumnEnd;
 import com.datastax.oss.driver.api.querybuilder.schema.AlterTableStart;
-import com.datastax.oss.driver.internal.querybuilder.schema.DefaultAlterTable;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
