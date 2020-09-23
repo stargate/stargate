@@ -30,7 +30,7 @@ public final class CDCMetrics {
 
   private static final MetricNameFactory factory = new DefaultNameFactory("Client");
 
-  private volatile boolean initialized = false;
+  private boolean initialized = false;
   private MetricRegistry metricRegistry;
 
   private Counter producerMessagesInFlight;

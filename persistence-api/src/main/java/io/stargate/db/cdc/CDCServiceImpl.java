@@ -15,10 +15,13 @@
  */
 package io.stargate.db.cdc;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
+import com.codahale.metrics.MetricRegistry;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import com.datastax.oss.driver.shaded.guava.common.util.concurrent.ThreadFactoryBuilder;
 import io.stargate.db.metrics.CDCMetrics;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import org.apache.cassandra.stargate.db.MutationEvent;
 import org.apache.cassandra.stargate.exceptions.CDCWriteException;
 
@@ -27,6 +30,10 @@ public final class CDCServiceImpl implements CDCService {
   private final CDCProducer producer;
   private final CDCHealthChecker healthChecker;
   private final CDCConfig config;
+  private final ScheduledExecutorService timeoutScheduler =
+      Executors.newScheduledThreadPool(
+          1, new ThreadFactoryBuilder().setDaemon(true).setNameFormat("failAfter-%d").build());
+
   private static final CompletableFuture<Void> completedFuture =
       CompletableFuture.completedFuture(null);
   private static final CompletableFuture<Void> unhealthyFuture = new CompletableFuture<>();
@@ -37,10 +44,17 @@ public final class CDCServiceImpl implements CDCService {
   }
 
   @VisibleForTesting
-  public CDCServiceImpl(CDCProducer producer, CDCHealthChecker healthChecker, CDCConfig config) {
+  public CDCServiceImpl(
+      CDCProducer producer,
+      CDCHealthChecker healthChecker,
+      CDCConfig config,
+      MetricRegistry registry) {
     this.producer = producer;
     this.healthChecker = healthChecker;
     this.config = config;
+
+    // TODO: Decide how to integrate with metrics
+    CDCMetrics.instance.init(registry);
   }
 
   @Override
@@ -78,8 +92,26 @@ public final class CDCServiceImpl implements CDCService {
             });
   }
 
-  private static <T> CompletableFuture<T> orTimeout(CompletableFuture<T> f, long timeoutMs) {
-    // TODO: Implement equivalent of Java 9+ orTimeout()
+  /** Equivalent of Java 9+ orTimeout() */
+  private <T> CompletableFuture<T> orTimeout(CompletableFuture<T> f, long timeoutMs) {
+    if (timeoutMs <= 0) {
+      return f;
+    }
+
+    try {
+      final ScheduledFuture<Boolean> scheduledTimeout =
+          timeoutScheduler.schedule(
+              () ->
+                  f.completeExceptionally(
+                      new TimeoutException(String.format("Timed out after %sms", timeoutMs))),
+              timeoutMs,
+              MILLISECONDS);
+
+      f.thenAccept(r -> scheduledTimeout.cancel(false));
+    } catch (Exception ex) {
+      // Scheduler was shutdown, nvm
+    }
+
     return f;
   }
 
@@ -87,6 +119,7 @@ public final class CDCServiceImpl implements CDCService {
   public void close() throws Exception {
     healthChecker.close();
     producer.close();
+    timeoutScheduler.shutdownNow();
   }
 
   @VisibleForTesting
