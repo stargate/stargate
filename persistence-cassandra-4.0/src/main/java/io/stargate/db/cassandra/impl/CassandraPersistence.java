@@ -81,7 +81,11 @@ public class CassandraPersistence
   @Override
   public void initialize(Config config) {
     logger.info("Initializing CassandraPersistence");
-    System.setProperty("cassandra.join_ring", "false");
+
+    if (!Boolean.parseBoolean(System.getProperty("stargate.developer_mode"))) {
+      System.setProperty("cassandra.join_ring", "false");
+    }
+
     daemon = new CassandraDaemon(true);
 
     DatabaseDescriptor.daemonInitialization(() -> config);
@@ -97,7 +101,7 @@ public class CassandraPersistence
 
     daemon.start();
 
-    waitForSchema(StorageService.RING_DELAY);
+    waitForSchema(5 * StorageService.RING_DELAY);
 
     root = new InternalDataStore();
     authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
