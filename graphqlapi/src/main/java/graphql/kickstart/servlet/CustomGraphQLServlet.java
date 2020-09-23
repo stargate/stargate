@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.regex.Pattern;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory;
 public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventListener {
 
   private static final Logger LOG = LoggerFactory.getLogger(CustomGraphQLServlet.class);
+  private static final Pattern KEYSPACE_NAME_PATTERN = Pattern.compile("\\w+");
 
   private final Persistence<?, ?, ?> persistence;
   private final AuthenticationService authenticationService;
@@ -49,20 +51,21 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
     persistence.registerEventListener(this);
   }
 
-  protected void doGet(HttpServletRequest request, HttpServletResponse response)
-      throws IOException {
+  protected void doGet(HttpServletRequest request, HttpServletResponse response) {
     handle(request, response);
   }
 
-  protected void doPost(HttpServletRequest request, HttpServletResponse response)
-      throws IOException {
+  protected void doPost(HttpServletRequest request, HttpServletResponse response) {
     handle(request, response);
   }
 
-  private void handle(HttpServletRequest request, HttpServletResponse response) throws IOException {
+  private void handle(HttpServletRequest request, HttpServletResponse response) {
     String keyspaceName = getKeyspaceName(request);
     if (keyspaceName == null) {
       failOnNoDefaultKeyspace(response);
+    } else if (!KEYSPACE_NAME_PATTERN.matcher(keyspaceName).matches()) {
+      // Do not reflect back the value, to avoid XSS attacks
+      response.setStatus(500);
     } else {
       HttpRequestHandler requestHandler = keyspaceHandlers.get(keyspaceName);
       if (requestHandler == null) {
@@ -87,18 +90,23 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
     }
   }
 
-  private void failOnNoDefaultKeyspace(HttpServletResponse response) throws IOException {
-    // TODO wrap this in a GraphQL error response
-    response.setStatus(404);
-    response
-        .getWriter()
-        .println("No keyspace specified, and no default keyspace could be determined");
+  private void failOnNoDefaultKeyspace(HttpServletResponse response) {
+    String message = "No keyspace specified, and no default keyspace could be determined";
+    failWith404(response, message);
   }
 
-  private void failOnUnknownKeyspace(String keyspaceName, HttpServletResponse response)
-      throws IOException {
+  private void failOnUnknownKeyspace(String keyspaceName, HttpServletResponse response) {
+    failWith404(response, "Unknown keyspace " + keyspaceName);
+  }
+
+  private void failWith404(HttpServletResponse response, String message) {
     response.setStatus(404);
-    response.getWriter().println("Unknown keyspace " + keyspaceName);
+    try {
+      // TODO wrap this in a GraphQL error response
+      response.getWriter().println(message);
+    } catch (IOException e) {
+      // ignore
+    }
   }
 
   /** Populate a default keyspace to allow for omitting the keyspace from the path of requests. */
