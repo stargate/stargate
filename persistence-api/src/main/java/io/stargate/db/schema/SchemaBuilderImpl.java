@@ -85,13 +85,7 @@ public class SchemaBuilderImpl {
     if (keyspaceName != null) {
       table(null);
 
-      keyspaces.add(
-          Keyspace.create(
-              keyspaceName,
-              ImmutableSet.copyOf(tables),
-              ImmutableList.copyOf(udts),
-              replication,
-              durableWrites));
+      keyspaces.add(Keyspace.create(keyspaceName, tables, udts, replication, durableWrites));
       tables.clear();
       udts.clear();
 

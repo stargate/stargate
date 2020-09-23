@@ -47,7 +47,7 @@ public abstract class Schema {
     return keyspaces().stream().map(k -> k.name()).sorted().collect(Collectors.toList());
   }
 
-  public static Schema create(Set<Keyspace> keyspaces) {
+  public static Schema create(Iterable<Keyspace> keyspaces) {
     return ImmutableSchema.builder().addAllKeyspaces(keyspaces).build();
   }
 

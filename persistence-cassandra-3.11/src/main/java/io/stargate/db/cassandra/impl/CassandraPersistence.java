@@ -32,8 +32,9 @@ import io.stargate.db.cassandra.datastore.InternalDataStore;
 import io.stargate.db.cassandra.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.common.util.SchemaTool;
+import io.stargate.db.schema.Schema;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
@@ -47,7 +48,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.auth.AuthenticatedUser;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.cql3.Attributes;
 import org.apache.cassandra.cql3.BatchQueryOptions;
 import org.apache.cassandra.cql3.CQLStatement;
@@ -57,10 +57,13 @@ import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.cql3.statements.ModificationStatement;
 import org.apache.cassandra.cql3.statements.ParsedStatement;
+import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.gms.ApplicationState;
+import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.service.ClientWarn;
+import org.apache.cassandra.service.MigrationListener;
 import org.apache.cassandra.service.MigrationManager;
 import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.service.StorageService;
@@ -68,6 +71,7 @@ import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
 import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.utils.MD5Digest;
+import org.apache.cassandra.stargate.utils.Streams;
 import org.apache.cassandra.tracing.Tracing;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.transport.messages.ResultMessage;
@@ -86,6 +90,14 @@ public class CassandraPersistence
   private Authenticator authenticator;
   private QueryHandler handler;
   private QueryInterceptor interceptor;
+
+  // The schema exposed by stargate. It is translated from the internal C* schema during
+  // initialization, and then updated every time the internal schema changes through a schema
+  // listener callback.
+  private volatile Schema schema;
+
+  // C* listener that ensures that our Stargate schema remains up-to-date with the internal C* one.
+  private MigrationListener migrationListener;
 
   @Override
   public String name() {
@@ -117,7 +129,17 @@ public class CassandraPersistence
 
     waitForSchema(5 * StorageService.RING_DELAY);
 
-    root = new InternalDataStore();
+    schema = computeCurrentSchema();
+    migrationListener =
+        new SimpleCallbackMigrationListener() {
+          @Override
+          void onSchemaChange() {
+            schema = computeCurrentSchema();
+          }
+        };
+    MigrationManager.instance.register(migrationListener);
+
+    root = new InternalDataStore(this);
     authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
     handler = org.apache.cassandra.service.ClientState.getCQLQueryHandler();
     interceptor = new DefaultQueryInterceptor();
@@ -132,6 +154,23 @@ public class CassandraPersistence
       daemon.deactivate();
       daemon = null;
     }
+    if (migrationListener != null) {
+      MigrationManager.instance.unregister(migrationListener);
+    }
+  }
+
+  @Override
+  public Schema schema() {
+    if (schema == null) {
+      throw new IllegalStateException(
+          "The schema cannot be accessed until the Cassandra persistence layer is initialized");
+    }
+    return schema;
+  }
+
+  private Schema computeCurrentSchema() {
+    return SchemaConversions.convertCassandraSchema(
+        Streams.of(org.apache.cassandra.db.Keyspace.all()).map(Keyspace::getMetadata));
   }
 
   @Override
@@ -165,7 +204,7 @@ public class CassandraPersistence
       QueryState<org.apache.cassandra.service.QueryState> state,
       QueryOptions<org.apache.cassandra.service.ClientState> queryOptions) {
     return new InternalDataStore(
-        root, Conversion.toInternal(state), Conversion.toInternal(queryOptions));
+        this, root, Conversion.toInternal(state), Conversion.toInternal(queryOptions));
   }
 
   @Override
@@ -461,8 +500,39 @@ public class CassandraPersistence
 
   @Override
   public boolean isInSchemaAgreement() {
-    Map<String, List<String>> schemata = StorageProxy.describeSchemaVersions();
-    return SchemaTool.isSchemaAgreement(schemata);
+    Map<String, List<String>> schemaVersions = StorageProxy.describeSchemaVersions();
+    final int size = schemaVersions.size();
+
+    if (size == 1) {
+      // the map is from schemaversions -> nodes' belief state.  1 schema version -> we are good
+      logger.debug("isSchemaAgreement detected only one version; returning true");
+      return true;
+    } else if (size == 2 && schemaVersions.containsKey(StorageProxy.UNREACHABLE)) {
+      boolean agreed = true;
+      // all reachable nodes agree on the same schema version; the question is whether the
+      // unreachable
+      // nodes are dead/leaving/hibernating/etc or just unreachable
+      for (String ip : schemaVersions.get(StorageProxy.UNREACHABLE)) {
+        final EndpointState es = Gossiper.instance.getEndpointStateForEndpoint(getByName(ip));
+        final boolean isDead = Gossiper.instance.isDeadState(es);
+        agreed &= isDead;
+        logger.debug("Node {}: isDeadState: {}, EndpointState: {}", ip, isDead, es);
+      }
+      logger.debug("isSchemaAgreement returning {}", agreed);
+      return agreed;
+    } else {
+      logger.debug(
+          "isSchemaAgreement returning false; schemaVersions.size(): {}", schemaVersions.size());
+      return false;
+    }
+  }
+
+  private static InetAddress getByName(String str) {
+    try {
+      return InetAddress.getByName(str);
+    } catch (UnknownHostException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -560,7 +630,8 @@ public class CassandraPersistence
   private void waitForSchema(int delay) {
     for (int i = 0; i < delay; i += 1000) {
       if (Gossiper.instance.getLiveTokenOwners().size() > 0 && isInSchemaAgreement()) {
-        logger.debug("current schema version: {}", Schema.instance.getVersion());
+        logger.debug(
+            "current schema version: {}", org.apache.cassandra.config.Schema.instance.getVersion());
         break;
       }
 

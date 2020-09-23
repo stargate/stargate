@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /**
@@ -66,13 +65,6 @@ public interface DataStore {
    * @return The current schema.
    */
   Schema schema();
-
-  /**
-   * Create a listener that will be notified when there is a schema change.
-   *
-   * @param callback The callback to call.
-   */
-  void addSchemaChangeListener(Consumer<Schema> callback);
 
   /** Wait for schema to agree across the cluster */
   default void waitForSchemaAgreement() {

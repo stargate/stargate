@@ -15,19 +15,11 @@
  */
 package io.stargate.db.schema;
 
-import com.datastax.oss.driver.api.core.data.TupleValue;
-import com.datastax.oss.driver.api.core.data.UdtValue;
-import com.datastax.oss.driver.api.core.type.DataType;
-import com.datastax.oss.driver.api.core.type.TupleType;
-import java.net.InetAddress;
-import java.nio.ByteBuffer;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
@@ -137,8 +129,8 @@ public abstract class Keyspace implements SchemaEntity {
 
   public static Keyspace create(
       String name,
-      Set<Table> tables,
-      List<UserDefinedType> userDefinedTypes,
+      Iterable<Table> tables,
+      Iterable<UserDefinedType> userDefinedTypes,
       Map<String, String> replication,
       Optional<Boolean> durableWrites) {
     return ImmutableKeyspace.builder()
@@ -175,5 +167,4 @@ public abstract class Keyspace implements SchemaEntity {
     }
     return table;
   }
-
 }

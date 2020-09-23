@@ -423,12 +423,4 @@ public class ColumnUtils {
 
     return udtValue;
   }
-
-  public static boolean containsWhitespace(String s) {
-    return null != s && WHITESPACE_PATTERN.matcher(s).find();
-  }
-
-  public static String wrapIfContainsSpace(String s) {
-    return io.stargate.db.schema.ColumnUtils.containsWhitespace(s) ? "\"" + s + "\"" : s;
-  }
 }

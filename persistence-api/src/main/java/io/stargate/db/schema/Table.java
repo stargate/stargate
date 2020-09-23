@@ -38,7 +38,7 @@ public abstract class Table extends AbstractTable {
   }
 
   public static Table create(
-      String keyspace, String name, List<Column> columns, List<Index> indexes) {
+      String keyspace, String name, Iterable<Column> columns, Iterable<Index> indexes) {
     return ImmutableTable.builder()
         .keyspace(keyspace)
         .name(name)

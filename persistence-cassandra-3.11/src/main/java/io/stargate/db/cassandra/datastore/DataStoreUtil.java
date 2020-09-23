@@ -23,9 +23,7 @@ import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
 import com.datastax.oss.protocol.internal.ProtocolConstants;
 import com.google.common.collect.ImmutableMap;
 import io.stargate.db.datastore.common.util.ColumnUtils;
-import io.stargate.db.schema.CollectionIndexingType;
 import io.stargate.db.schema.Column;
-import io.stargate.db.schema.ImmutableCollectionIndexingType;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableUserDefinedType;
 import java.util.ArrayList;
@@ -61,46 +59,6 @@ public class DataStoreUtil {
               }
             });
     TYPE_MAPPINGS = ImmutableMap.copyOf(types);
-  }
-
-  /**
-   * Using a secondary index on a column X where X is a map and depending on the type of indexing,
-   * such as KEYS(X) / VALUES(X) / ENTRIES(X), the actual column name will be wrapped, and we're
-   * trying to extract that column name here.
-   *
-   * @param secondaryIndexTargetColumn The target column
-   * @return A {@link Pair} containing the actual target column name as first parameter and the
-   *     {@link CollectionIndexingType} as the second parameter.
-   */
-  public static Pair<String, CollectionIndexingType> extractTargetColumn(
-      String secondaryIndexTargetColumn) {
-    if (null == secondaryIndexTargetColumn) {
-      return new Pair<>(
-          secondaryIndexTargetColumn, ImmutableCollectionIndexingType.builder().build());
-    }
-    if (secondaryIndexTargetColumn.startsWith("values(")) {
-      return new Pair<>(
-          secondaryIndexTargetColumn.replace("values(", "").replace(")", "").replace("\"", ""),
-          ImmutableCollectionIndexingType.builder().indexValues(true).build());
-    }
-    if (secondaryIndexTargetColumn.startsWith("keys(")) {
-      return new Pair<>(
-          secondaryIndexTargetColumn.replace("keys(", "").replace(")", "").replace("\"", ""),
-          ImmutableCollectionIndexingType.builder().indexKeys(true).build());
-    }
-    if (secondaryIndexTargetColumn.startsWith("entries(")) {
-      return new Pair<>(
-          secondaryIndexTargetColumn.replace("entries(", "").replace(")", "").replace("\"", ""),
-          ImmutableCollectionIndexingType.builder().indexEntries(true).build());
-    }
-    if (secondaryIndexTargetColumn.startsWith("full(")) {
-      return new Pair<>(
-          secondaryIndexTargetColumn.replace("full(", "").replace(")", "").replace("\"", ""),
-          ImmutableCollectionIndexingType.builder().indexFull(true).build());
-    }
-    return new Pair<>(
-        secondaryIndexTargetColumn.replaceAll("\"", ""),
-        ImmutableCollectionIndexingType.builder().build());
   }
 
   /**
