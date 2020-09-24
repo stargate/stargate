@@ -12,7 +12,7 @@ import io.stargate.db.datastore.ExecutionInfo;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.datastore.common.InternalRow;
-import io.stargate.db.datastore.schema.AbstractTable;
+import io.stargate.db.schema.AbstractTable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;

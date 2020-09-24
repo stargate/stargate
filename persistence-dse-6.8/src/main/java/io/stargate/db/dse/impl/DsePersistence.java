@@ -1,18 +1,18 @@
 package io.stargate.db.dse.impl;
 
-import com.datastax.bdp.util.SchemaTool;
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
 import io.reactivex.Single;
 import io.stargate.db.Authenticator;
 import io.stargate.db.BatchType;
 import io.stargate.db.EventListener;
-import io.stargate.db.Persistence;
 import io.stargate.db.QueryOptions;
 import io.stargate.db.QueryState;
 import io.stargate.db.Result;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.common.AbstractCassandraPersistence;
 import io.stargate.db.dse.datastore.InternalDataStore;
 import io.stargate.db.dse.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
@@ -28,6 +28,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import org.apache.cassandra.auth.AuthenticatedUser;
 import org.apache.cassandra.concurrent.TPC;
 import org.apache.cassandra.config.Config;
@@ -39,14 +40,21 @@ import org.apache.cassandra.cql3.QueryHandler;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.cql3.statements.ModificationStatement;
+import org.apache.cassandra.db.Keyspace;
+import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.exceptions.InvalidRequestException;
 import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.schema.ColumnMetadata;
+import org.apache.cassandra.schema.IndexMetadata;
+import org.apache.cassandra.schema.KeyspaceMetadata;
+import org.apache.cassandra.schema.SchemaChangeListener;
 import org.apache.cassandra.schema.SchemaManager;
+import org.apache.cassandra.schema.TableMetadata;
+import org.apache.cassandra.schema.ViewTableMetadata;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.ClientWarn;
-import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
@@ -58,32 +66,65 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DsePersistence
-    implements Persistence<
-        Config, org.apache.cassandra.service.ClientState, org.apache.cassandra.service.QueryState> {
+    extends AbstractCassandraPersistence<
+        Config,
+        org.apache.cassandra.service.ClientState,
+        org.apache.cassandra.service.QueryState,
+        KeyspaceMetadata,
+        TableMetadata,
+        ColumnMetadata,
+        UserType,
+        IndexMetadata,
+        ViewTableMetadata> {
   private static final Logger logger = LoggerFactory.getLogger(DsePersistence.class);
 
   public static final Boolean USE_PROXY_PROTOCOL =
       Boolean.parseBoolean(System.getProperty("stargate.use_proxy_protocol", "false"));
 
   private CassandraDaemon cassandraDaemon;
-  private DataStore root;
   private Authenticator authenticator;
   private QueryHandler handler;
   private QueryInterceptor interceptor;
 
-  @Override
-  public String name() {
-    return "DataStax Enterprise";
+  // C* listener that ensures that our Stargate schema remains up-to-date with the internal C* one.
+  private SchemaChangeListener schemaChangeListener;
+
+  public DsePersistence() {
+    super("DataStax Enterprise");
   }
 
   @Override
-  public void initialize(Config config) {
-    logger.info("Initializing DSE");
+  protected SchemaConverter schemaConverter() {
+    return new SchemaConverter();
+  }
 
-    if (!Boolean.parseBoolean(System.getProperty("stargate.developer_mode"))) {
-      System.setProperty("cassandra.join_ring", "false");
+  @Override
+  protected Iterable<KeyspaceMetadata> currentInternalSchema() {
+    return Iterables.transform(org.apache.cassandra.db.Keyspace.all(), Keyspace::getMetadata);
+  }
+
+  @Override
+  protected void registerInternalSchemaListener(Runnable runOnSchemaChange) {
+
+    schemaChangeListener =
+        new SimpleCallbackSchemaChangeListener() {
+          @Override
+          void onSchemaChange() {
+            runOnSchemaChange.run();
+          }
+        };
+    org.apache.cassandra.schema.SchemaManager.instance.registerListener(schemaChangeListener);
+  }
+
+  @Override
+  protected void unregisterInternalSchemaListener() {
+    if (schemaChangeListener != null) {
+      org.apache.cassandra.schema.SchemaManager.instance.unregisterListener(schemaChangeListener);
     }
+  }
 
+  @Override
+  protected void initializePersistence(Config config) {
     // Need to set this to true otherwise org.apache.cassandra.service.CassandraDaemon#activate0
     // will close both System.out and System.err.
     System.setProperty("cassandra-foreground", "true");
@@ -121,15 +162,13 @@ public class DsePersistence
 
     interceptor.initialize();
 
-    root = new InternalDataStore();
     authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
     handler = ClientState.getCQLQueryHandler();
   }
 
   @Override
-  public void destroy() {
+  protected void destroyPersistence() {
     if (cassandraDaemon != null) {
-      root = null;
       cassandraDaemon.deactivate();
       cassandraDaemon = null;
     }
@@ -163,7 +202,7 @@ public class DsePersistence
 
   public DataStore newDataStore(QueryState state, QueryOptions queryOptions) {
     return new InternalDataStore(
-        root, Conversion.toInternal(state), Conversion.toInternal(queryOptions));
+        this, Conversion.toInternal(state), Conversion.toInternal(queryOptions));
   }
 
   @Override
@@ -404,8 +443,16 @@ public class DsePersistence
 
   @Override
   public boolean isInSchemaAgreement() {
-    Map<String, List<String>> schemata = StorageProxy.describeSchemaVersions();
-    return SchemaTool.isSchemaAgreement(schemata);
+    // We only include live nodes because this method is mainly used to wait for schema
+    // agreement, and waiting for failed nodes is not a great idea.
+    // Also note that in theory getSchemaVersion can return null for some nodes, and if it does
+    // the code below will likely return false (the null will be an element on its own), but that's
+    // probably the right answer in that case. In practice, this shouldn't be a problem though.
+    return Gossiper.instance.getLiveTokenOwners().stream()
+            .map(Gossiper.instance::getSchemaVersion)
+            .collect(Collectors.toSet())
+            .size()
+        <= 1;
   }
 
   @Override
