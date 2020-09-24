@@ -402,7 +402,9 @@ public class RowResource {
 
     final List<Column> keys = tableMetadata.primaryKeyColumns();
     if (keys.size() < values.size()) {
-      throw new IllegalArgumentException("not enough keys provided");
+      throw new IllegalArgumentException(String.format(
+          "Invalid number of key values required (%s). All partition key columns values are required plus 0..all clustering columns values in proper order.",
+          keys.size()));
     }
 
     return IntStream.range(0, values.size())
