@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate.persistence</groupId>
     <artifactId>persistence-extensions</artifactId>
-    <version>0.0.4-SNAPSHOT</version>
+    <version>0.0.5-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db.dse</groupId>
   <artifactId>persistence-dse-6.8</artifactId>
