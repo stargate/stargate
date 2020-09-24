@@ -9,6 +9,9 @@
   <groupId>io.stargate.cql</groupId>
   <artifactId>cql</artifactId>
   <version>0.0.10-SNAPSHOT</version>
+  <properties>
+    <junit.version>5.6.2</junit.version>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>org.apache.cassandra</groupId>
@@ -80,9 +83,9 @@
       <version>1.2</version>
     </dependency>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.12</version>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -161,6 +164,17 @@
           </archive>
           <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
         </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.2</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit.version}</version>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
   </build>

@@ -12,9 +12,7 @@ import io.stargate.it.BaseOsgiIntegrationTest;
 import java.io.IOException;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,8 +20,6 @@ import org.slf4j.LoggerFactory;
 public class AuthApiTest extends BaseOsgiIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(RestApiv2Test.class);
-
-  @Rule public TestName name = new TestName();
 
   private static String host = "http://" + stargateHost;
   private static final ObjectMapper objectMapper = new ObjectMapper();
