@@ -45,12 +45,9 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@RunWith(Parameterized.class)
 @NotThreadSafe
 public class RestApiv2Test extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(RestApiv2Test.class);
