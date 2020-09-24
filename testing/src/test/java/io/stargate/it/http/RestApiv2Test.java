@@ -45,12 +45,9 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@RunWith(Parameterized.class)
 @NotThreadSafe
 public class RestApiv2Test extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(RestApiv2Test.class);
@@ -383,7 +380,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(1);
     assertThat(getResponseWrapper.getPageState()).isNotEmpty();
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(1);
   }
@@ -437,7 +434,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         objectMapper.convertValue(
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(2);
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(2);
   }
@@ -458,7 +455,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     List<Map<String, Object>> data =
         objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
     assertThat(data.size()).isEqualTo(2);
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(2);
   }
@@ -543,7 +540,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         objectMapper.convertValue(
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(2);
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(2);
   }
@@ -566,7 +563,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(1);
     assertThat(getResponseWrapper.getPageState()).isNotEmpty();
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(1);
   }
@@ -648,7 +645,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     List<Map<String, Object>> data =
         objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
     assertThat(data.size()).isEqualTo(2);
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(2);
   }
@@ -669,9 +666,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         objectMapper.convertValue(
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(2);
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("expense_id")).isEqualTo(1);
-    assertThat(data.get(1).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(1).get("id")).isEqualTo(1);
     assertThat(data.get(1).get("expense_id")).isEqualTo(2);
   }
 
@@ -691,7 +688,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         objectMapper.convertValue(
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(1);
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(2);
   }
@@ -953,9 +950,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         objectMapper.convertValue(
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(2);
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("expense_id")).isEqualTo(1);
-    assertThat(data.get(1).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(1).get("id")).isEqualTo(1);
     assertThat(data.get(1).get("expense_id")).isEqualTo(2);
 
     RestUtils.delete(
@@ -976,12 +973,12 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         objectMapper.convertValue(
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(1);
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("expense_id")).isEqualTo(2);
   }
 
   @Test
-  public void deleteRowByPartition() throws IOException {
+  public void deleteRowByPartitionKey() throws IOException {
     String rowIdentifier = setupClusteringTestCase();
 
     String body =
@@ -996,9 +993,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         objectMapper.convertValue(
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(2);
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("expense_id")).isEqualTo(1);
-    assertThat(data.get(1).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(1).get("id")).isEqualTo(1);
     assertThat(data.get(1).get("expense_id")).isEqualTo(2);
 
     RestUtils.delete(
@@ -1016,6 +1013,21 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     assertThat(getResponseWrapper.getCount()).isEqualTo(0);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, "2"),
+            HttpStatus.SC_OK);
+
+    objectMapper.readValue(body, GetResponseWrapper.class);
+    getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    data =
+        objectMapper.convertValue(
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(getResponseWrapper.getCount()).isEqualTo(1);
+    assertThat(data.get(0).get("id")).isEqualTo(2);
+    assertThat(data.get(0).get("firstName")).isEqualTo("Jane");
   }
 
   @Test
@@ -1527,7 +1539,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     List<ColumnDefinition> columnDefinitions = new ArrayList<>();
 
-    columnDefinitions.add(new ColumnDefinition("id", "uuid"));
+    columnDefinitions.add(new ColumnDefinition("id", "int"));
     columnDefinitions.add(new ColumnDefinition("lastName", "text"));
     columnDefinitions.add(new ColumnDefinition("firstName", "text"));
     columnDefinitions.add(new ColumnDefinition("age", "int", true));
@@ -1590,7 +1602,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     createKeyspace(keyspaceName);
     createTableWithClustering(keyspaceName, tableName);
 
-    String rowIdentifier = UUID.randomUUID().toString();
+    String rowIdentifier = "1";
     Map<String, String> row = new HashMap<>();
     row.put("id", rowIdentifier);
     row.put("firstName", "John");
@@ -1614,7 +1626,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         HttpStatus.SC_CREATED);
 
     row = new HashMap<>();
-    row.put("id", UUID.randomUUID().toString());
+    row.put("id", "2");
     row.put("firstName", "Jane");
     row.put("expense_id", "1");
 

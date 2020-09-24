@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.9-SNAPSHOT</version>
+    <version>0.0.10-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.it</groupId>
   <artifactId>testing</artifactId>
@@ -14,12 +14,25 @@
     <junit.version>5.6.2</junit.version>
     <airline.version>2.7.0</airline.version>
     <bytebuddy.version>1.10.10</bytebuddy.version>
+    <kotlin.version>1.3.72</kotlin.version>
   </properties>
   <dependencies>
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-core</artifactId>
       <version>${driver.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-test-infra</artifactId>
+      <version>${driver.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-exec</artifactId>
+      <version>1.3</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -48,19 +61,19 @@
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.9-SNAPSHOT</version>
+      <version>0.0.10-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.db.cassandra</groupId>
       <artifactId>persistence-cassandra-3.11</artifactId>
-      <version>0.0.9-SNAPSHOT</version>
+      <version>0.0.10-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.auth.api</groupId>
       <artifactId>auth-api</artifactId>
-      <version>0.0.9-SNAPSHOT</version>
+      <version>0.0.10-SNAPSHOT</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -72,7 +85,7 @@
     <dependency>
       <groupId>io.stargate.web</groupId>
       <artifactId>restapi</artifactId>
-      <version>0.0.9-SNAPSHOT</version>
+      <version>0.0.10-SNAPSHOT</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -80,6 +93,27 @@
           <artifactId>*</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.apollographql.apollo</groupId>
+      <artifactId>apollo-runtime</artifactId>
+      <version>2.2.3</version>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okio</groupId>
+      <artifactId>okio</artifactId>
+      <version>2.5.0</version>
+    </dependency>
+    <!-- Optional, needed only for ANNOTATED nullable type-->
+    <dependency>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
+      <version>19.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-reflect</artifactId>
+      <version>1.3.72</version>
     </dependency>
     <dependency>
       <groupId>net.bytebuddy</groupId>
@@ -91,12 +125,6 @@
       <groupId>net.bytebuddy</groupId>
       <artifactId>byte-buddy-agent</artifactId>
       <version>${bytebuddy.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.github.peterwippermann.junit4</groupId>
-      <artifactId>parameterized-suite</artifactId>
-      <version>1.1.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -132,7 +160,7 @@
     <dependency>
       <groupId>io.stargate.starter</groupId>
       <artifactId>stargate-starter</artifactId>
-      <version>0.0.9-SNAPSHOT</version>
+      <version>0.0.10-SNAPSHOT</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -156,6 +184,38 @@
   </dependencies>
   <build>
     <plugins>
+      <plugin>
+        <groupId>com.github.sparow199</groupId>
+        <artifactId>apollo-client-maven-plugin</artifactId>
+        <version>3.2.2</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <rootPackageName>com.example.graphql.client.schema</rootPackageName>
+              <introspectionFile>${project.basedir}/src/main/graphql/schema/schema.json</introspectionFile>
+              <sourceDirName>${project.basedir}/src/main/graphql/schema</sourceDirName>
+            </configuration>
+          </execution>
+          <execution>
+            <id>betterbotz</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <rootPackageName>com.example.graphql.client.betterbotz</rootPackageName>
+              <introspectionFile>${project.basedir}/src/main/graphql/betterbotz/schema.json</introspectionFile>
+              <sourceDirName>${project.basedir}/src/main/graphql/betterbotz</sourceDirName>
+              <customTypeMap>
+                <Decimal>java.lang.Float</Decimal>
+                <Timestamp>java.time.Instant</Timestamp>
+              </customTypeMap>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>

@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
-  <version>0.0.9-SNAPSHOT</version>
+  <version>0.0.10-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
@@ -14,6 +14,7 @@
     <module>persistence-common</module>
     <module>persistence-cassandra-3.11</module>
     <module>cql</module>
+    <module>graphqlapi</module>
     <module>restapi</module>
     <module>auth-api</module>
     <module>authentication</module>

@@ -48,6 +48,7 @@ import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -60,24 +61,18 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-@RunWith(Parameterized.class)
 @NotThreadSafe
 public class CQLTest extends BaseOsgiIntegrationTest {
-  @Rule public TestName name = new TestName();
-
   private String table;
   private String keyspace;
   private CqlSession session;
@@ -98,10 +93,11 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     System.setProperty("stargate.cql_use_auth_service", "true");
   }
 
-  @Before
-  public void setup() {
-    String testName = name.getMethodName();
-    testName = testName.substring(0, testName.indexOf("["));
+  @BeforeEach
+  public void setup(TestInfo testInfo) {
+    Optional<String> name = testInfo.getTestMethod().map(Method::getName);
+    assertThat(name).isPresent();
+    String testName = name.get();
     keyspace = "ks_" + new Date().getTime() + "_" + testName;
 
     if (keyspace.length() > KEYSPACE_NAME_MAX_LENGTH) {
@@ -111,7 +107,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     table = testName;
   }
 
-  @Before
+  @BeforeEach
   public void before() {
     session =
         CqlSession.builder()
@@ -124,7 +120,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
             .build();
   }
 
-  @After
+  @AfterEach
   public void after() {
     if (session != null) {
       session.close();
@@ -515,7 +511,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     assertThat(rs.getExecutionInfo().getPagingState()).isNull();
   }
 
-  @Ignore("Enable when persistence backends support auth in tests")
+  @Disabled("Enable when persistence backends support auth in tests")
   @Test
   public void invalidCredentials() {
     try {
@@ -534,7 +530,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     }
   }
 
-  @Ignore("Enable when persistence backends support auth in tests")
+  @Disabled("Enable when persistence backends support auth in tests")
   @Test
   public void tokenAuthentication() throws IOException {
     String authToken = getAuthToken();

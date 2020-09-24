@@ -364,7 +364,10 @@ public class RowsResource {
 
   private List<Where<?>> buildWhereForPath(Table tableMetadata, List<PathSegment> path) {
     if (tableMetadata.partitionKeyColumns().size() > path.size()) {
-      throw new IllegalArgumentException(("Not enough partition keys provided"));
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid number of key values required (%s). All partition key columns values are required plus 0..all clustering columns values in proper order.",
+              tableMetadata.partitionKeyColumns().size()));
     }
 
     List<Column> keys = tableMetadata.primaryKeyColumns();

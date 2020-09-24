@@ -1,0 +1,22 @@
+query GetKeyspaces {
+    keyspaces {
+        name
+        dcs {
+            name
+            replicas
+        }
+        tables {
+            name
+            columns {
+                name
+                kind
+                type {
+                    basic
+                    info {
+                        name
+                    }
+                }
+            }
+        }
+    }
+}
