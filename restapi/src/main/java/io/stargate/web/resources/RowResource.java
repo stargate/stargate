@@ -31,7 +31,9 @@ import io.stargate.web.models.RowUpdate;
 import io.stargate.web.models.Rows;
 import io.stargate.web.models.RowsResponse;
 import io.stargate.web.models.SuccessResponse;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -420,7 +422,23 @@ public class RowResource {
   }
 
   private List<String> idFromPath(String path) {
+    // Trim trailing / if it exists
+    if (path.endsWith("/")) {
+      path = path.substring(0, path.length() - 1);
+    }
+
     String id = path.substring(path.lastIndexOf("/") + 1);
-    return Arrays.asList(id.split(";"));
+    List<String> ids = Arrays.asList(id.split(";"));
+
+    for (int i = 0; i < ids.size(); i++) {
+      try {
+        ids.set(i, java.net.URLDecoder.decode(ids.get(i), StandardCharsets.UTF_8.name()));
+      } catch (UnsupportedEncodingException e) {
+        logger.warn("Unable to decode string", e);
+        throw new RuntimeException(e);
+      }
+    }
+
+    return ids;
   }
 }

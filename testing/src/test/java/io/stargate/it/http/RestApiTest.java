@@ -360,7 +360,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void getRowWithMixedClustering() throws IOException {
+  public void getRowWithMixedClusteringKeyTypes() throws IOException {
     String tableName = "tbl_getrow_mixedclustering_" + System.currentTimeMillis();
     createTableWithMixedClustering(tableName);
 
@@ -396,6 +396,72 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
     assertThat(rowResponse.getCount()).isEqualTo(0);
+  }
+
+  @Test
+  public void getRowWithTrailingSlash() throws IOException {
+    String tableName = "tbl_getrow_trailingslash_" + System.currentTimeMillis();
+    createTableWithMixedClustering(tableName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows/1;one;-1/", host, keyspace, tableName),
+            HttpStatus.SC_OK);
+
+    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    assertThat(rowResponse.getCount()).isEqualTo(2);
+    assertThat(rowResponse.getRows().get(0).get("v")).isEqualTo(9);
+    assertThat(rowResponse.getRows().get(1).get("v")).isEqualTo(19);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows/1;one;-1;20/", host, keyspace, tableName),
+            HttpStatus.SC_OK);
+
+    rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    assertThat(rowResponse.getCount()).isEqualTo(1);
+    assertThat(rowResponse.getRows().get(0).get("v")).isEqualTo(19);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows/1;one;-2;10/", host, keyspace, tableName),
+            HttpStatus.SC_OK);
+
+    rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    assertThat(rowResponse.getCount()).isEqualTo(0);
+  }
+
+  @Test
+  public void getRowWithSemicolonInKey() throws IOException {
+    String tableName = "tbl_getrow_semicolonkey_" + System.currentTimeMillis();
+    createTableWithMixedClustering(tableName);
+
+    List<ColumnModel> columns = new ArrayList<>();
+    columns.add(new ColumnModel("pk0", "3"));
+    columns.add(new ColumnModel("pk1", "thr;ee"));
+    columns.add(new ColumnModel("pk2", "-3"));
+    columns.add(new ColumnModel("ck0", "10"));
+    columns.add(new ColumnModel("ck1", "buzz"));
+    columns.add(new ColumnModel("v", "24"));
+    addRow(tableName, columns);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows/3;thr%%3Bee;-3/",
+                host, keyspace, tableName),
+            HttpStatus.SC_OK);
+
+    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    assertThat(rowResponse.getCount()).isEqualTo(1);
+    assertThat(rowResponse.getRows().get(0).get("v")).isEqualTo(24);
   }
 
   @Test
