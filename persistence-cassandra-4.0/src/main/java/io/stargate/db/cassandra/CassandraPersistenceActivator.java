@@ -4,6 +4,7 @@ import io.stargate.db.Persistence;
 import io.stargate.db.cassandra.impl.CassandraPersistence;
 import io.stargate.db.cassandra.impl.StargateConfigSnitch;
 import io.stargate.db.cassandra.impl.StargateSeedProvider;
+import io.stargate.health.metrics.api.Metrics;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
@@ -19,15 +20,22 @@ import org.apache.cassandra.config.ParameterizedClass;
 import org.apache.cassandra.dht.Murmur3Partitioner;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.locator.SimpleSnitch;
+import org.apache.cassandra.metrics.CassandraMetricsRegistry;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceEvent;
+import org.osgi.framework.ServiceListener;
+import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CassandraPersistenceActivator implements BundleActivator {
+public class CassandraPersistenceActivator implements BundleActivator, ServiceListener {
 
   private static final Logger logger = LoggerFactory.getLogger(CassandraPersistenceActivator.class);
+
+  private volatile BundleContext context;
 
   private Config makeConfig() throws IOException {
     Config c = new Config();
@@ -106,6 +114,21 @@ public class CassandraPersistenceActivator implements BundleActivator {
 
   @Override
   public void start(BundleContext context) {
+    this.context = context;
+
+    ServiceReference<?> metricsReference = context.getServiceReference(Metrics.class.getName());
+    if (metricsReference != null) {
+      logger.debug("Setting metrics in start");
+      Metrics metrics = (Metrics) context.getService(metricsReference);
+      setMetrics(metrics);
+    }
+
+    try {
+      context.addServiceListener(this, String.format("(objectClass=%s)", Metrics.class.getName()));
+    } catch (InvalidSyntaxException ise) {
+      throw new RuntimeException(ise);
+    }
+
     Persistence cassandraDB = new CassandraPersistence();
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "CassandraPersistence");
@@ -123,5 +146,24 @@ public class CassandraPersistenceActivator implements BundleActivator {
   @Override
   public void stop(BundleContext context) {
     // Do not need to unregister the service, because the OSGi framework will automatically do so
+  }
+
+  @Override
+  public void serviceChanged(ServiceEvent serviceEvent) {
+    int type = serviceEvent.getType();
+    String[] objectClass = (String[]) serviceEvent.getServiceReference().getProperty("objectClass");
+    if (type == ServiceEvent.REGISTERED) {
+      logger.info("Service of type " + objectClass[0] + " registered.");
+      Object service = context.getService(serviceEvent.getServiceReference());
+      if (service instanceof Metrics) {
+        logger.debug("Setting metrics in serviceChanged");
+        setMetrics((Metrics) service);
+      }
+    }
+  }
+
+  private static void setMetrics(Metrics metrics) {
+    // TODO copy metrics if this gets invoked more than once?
+    CassandraMetricsRegistry.actualRegistry = metrics.getRegistry("persistence-cassandra-40");
   }
 }

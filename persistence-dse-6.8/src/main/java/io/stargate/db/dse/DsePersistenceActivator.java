@@ -4,6 +4,7 @@ import io.stargate.db.Persistence;
 import io.stargate.db.datastore.common.StargateConfigSnitch;
 import io.stargate.db.datastore.common.StargateSeedProvider;
 import io.stargate.db.dse.impl.DsePersistence;
+import io.stargate.health.metrics.api.Metrics;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
@@ -19,17 +20,23 @@ import org.apache.cassandra.config.GuardrailsConfig;
 import org.apache.cassandra.config.ParameterizedClass;
 import org.apache.cassandra.dht.Murmur3Partitioner;
 import org.apache.cassandra.locator.SimpleSnitch;
+import org.apache.cassandra.metrics.CassandraMetricsRegistry;
 import org.apache.commons.io.FileUtils;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceEvent;
+import org.osgi.framework.ServiceListener;
+import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DsePersistenceActivator implements BundleActivator {
+public class DsePersistenceActivator implements BundleActivator, ServiceListener {
   private static final Logger logger = LoggerFactory.getLogger(DsePersistenceActivator.class);
   private Persistence dseDB;
   private File baseDir;
+  private volatile BundleContext context;
 
   private Config makeConfig() throws IOException {
     Config c = new Config();
@@ -118,6 +125,21 @@ public class DsePersistenceActivator implements BundleActivator {
   public void start(BundleContext context) {
     logger.info("Starting DSE Stargate Backend");
     dseDB = new DsePersistence();
+    this.context = context;
+
+    ServiceReference<?> metricsReference = context.getServiceReference(Metrics.class.getName());
+    if (metricsReference != null) {
+      logger.debug("Setting metrics in start");
+      Metrics metrics = (Metrics) context.getService(metricsReference);
+      setMetrics(metrics);
+    }
+
+    try {
+      context.addServiceListener(this, String.format("(objectClass=%s)", Metrics.class.getName()));
+    } catch (InvalidSyntaxException ise) {
+      throw new RuntimeException(ise);
+    }
+
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "DsePersistence");
 
@@ -142,5 +164,24 @@ public class DsePersistenceActivator implements BundleActivator {
         throw new IOError(e);
       }
     }
+  }
+
+  @Override
+  public void serviceChanged(ServiceEvent serviceEvent) {
+    int type = serviceEvent.getType();
+    String[] objectClass = (String[]) serviceEvent.getServiceReference().getProperty("objectClass");
+    if (type == ServiceEvent.REGISTERED) {
+      logger.info("Service of type " + objectClass[0] + " registered.");
+      Object service = context.getService(serviceEvent.getServiceReference());
+      if (service instanceof Metrics) {
+        logger.debug("Setting metrics in serviceChanged");
+        setMetrics((Metrics) service);
+      }
+    }
+  }
+
+  private static void setMetrics(Metrics metrics) {
+    // TODO copy metrics if this gets invoked more than once?
+    CassandraMetricsRegistry.actualRegistry = metrics.getRegistry("persistence-dse-68");
   }
 }
