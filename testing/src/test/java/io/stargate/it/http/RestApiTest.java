@@ -363,6 +363,45 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void getRowWithMixedClustering() throws IOException {
+    String tableName = "tbl_getrow_mixedclustering_" + System.currentTimeMillis();
+    createTableWithMixedClustering(tableName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows/1;one;-1", host, keyspace, tableName),
+            HttpStatus.SC_OK);
+
+    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    assertThat(rowResponse.getCount()).isEqualTo(2);
+    assertThat(rowResponse.getRows().get(0).get("v")).isEqualTo(9);
+    assertThat(rowResponse.getRows().get(1).get("v")).isEqualTo(19);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows/1;one;-1;20", host, keyspace, tableName),
+            HttpStatus.SC_OK);
+
+    rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    assertThat(rowResponse.getCount()).isEqualTo(1);
+    assertThat(rowResponse.getRows().get(0).get("v")).isEqualTo(19);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows/1;one;-2;10", host, keyspace, tableName),
+            HttpStatus.SC_OK);
+
+    rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    assertThat(rowResponse.getCount()).isEqualTo(0);
+  }
+
+  @Test
   public void getAllRows() throws IOException {
     String tableName = "tbl_getallrows_" + System.currentTimeMillis();
     createTable(tableName);
@@ -838,6 +877,29 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void deleteRowWithMixedClustering() throws IOException {
+    String tableName = "tbl_deleterow_mixedclustering_" + System.currentTimeMillis();
+    createTableWithMixedClustering(tableName);
+
+    RestUtils.delete(
+        authToken,
+        String.format(
+            "%s:8082/v1/keyspaces/%s/tables/%s/rows/1;one;-1;10", host, keyspace, tableName),
+        HttpStatus.SC_NO_CONTENT);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows/1;one;-1", host, keyspace, tableName),
+            HttpStatus.SC_OK);
+
+    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    assertThat(rowResponse.getCount()).isEqualTo(1);
+    assertThat(rowResponse.getRows().get(0).get("v")).isEqualTo(19);
+  }
+
+  @Test
   public void deleteRowPartition() throws IOException {
     String tableName = "tbl_deleterows_partition_" + System.currentTimeMillis();
     createTableWithClustering(tableName);
@@ -1028,6 +1090,65 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     SuccessResponse successResponse =
         objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
     assertThat(successResponse.getSuccess()).isTrue();
+  }
+
+  private void createTableWithMixedClustering(String tableName) throws IOException {
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName(tableName);
+
+    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+
+    columnDefinitions.add(new ColumnDefinition("pk0", "int"));
+    columnDefinitions.add(new ColumnDefinition("pk1", "text"));
+    columnDefinitions.add(new ColumnDefinition("pk2", "int"));
+    columnDefinitions.add(new ColumnDefinition("ck0", "int"));
+    columnDefinitions.add(new ColumnDefinition("ck1", "text"));
+    columnDefinitions.add(new ColumnDefinition("v", "int"));
+
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Arrays.asList("pk0", "pk1", "pk2"));
+    primaryKey.setClusteringKey(Arrays.asList("ck0", "ck1"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    String body =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/tables", host, keyspace),
+            objectMapper.writeValueAsString(tableAdd),
+            HttpStatus.SC_CREATED);
+
+    SuccessResponse successResponse =
+        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
+    assertThat(successResponse.getSuccess()).isTrue();
+
+    List<ColumnModel> columns = new ArrayList<>();
+    columns.add(new ColumnModel("pk0", "1"));
+    columns.add(new ColumnModel("pk1", "one"));
+    columns.add(new ColumnModel("pk2", "-1"));
+    columns.add(new ColumnModel("ck0", "10"));
+    columns.add(new ColumnModel("ck1", "foo"));
+    columns.add(new ColumnModel("v", "9"));
+    addRow(tableName, columns);
+
+    columns = new ArrayList<>();
+    columns.add(new ColumnModel("pk0", "1"));
+    columns.add(new ColumnModel("pk1", "one"));
+    columns.add(new ColumnModel("pk2", "-1"));
+    columns.add(new ColumnModel("ck0", "20"));
+    columns.add(new ColumnModel("ck1", "foo"));
+    columns.add(new ColumnModel("v", "19"));
+    addRow(tableName, columns);
+
+    columns = new ArrayList<>();
+    columns.add(new ColumnModel("pk0", "2"));
+    columns.add(new ColumnModel("pk1", "two"));
+    columns.add(new ColumnModel("pk2", "-2"));
+    columns.add(new ColumnModel("ck0", "10"));
+    columns.add(new ColumnModel("ck1", "bar"));
+    columns.add(new ColumnModel("v", "18"));
+    addRow(tableName, columns);
   }
 
   private String getRow(String tableName, String rowIdentifier) throws IOException {

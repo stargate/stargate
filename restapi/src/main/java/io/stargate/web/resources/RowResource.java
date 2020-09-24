@@ -33,6 +33,7 @@ import io.stargate.web.models.RowsResponse;
 import io.stargate.web.models.SuccessResponse;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -42,6 +43,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -52,8 +54,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -71,12 +73,13 @@ public class RowResource {
 
   @Timed
   @GET
-  @Path("/{id}")
+  @Path("/{id : (.+)?}")
   public Response getOne(
       @HeaderParam("X-Cassandra-Token") String token,
       @PathParam("keyspaceName") final String keyspaceName,
       @PathParam("tableName") final String tableName,
-      @PathParam("id") final PathSegment id) {
+      @PathParam("id") final PathSegment id,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -86,7 +89,8 @@ public class RowResource {
                   .query()
                   .select()
                   .from(keyspaceName, tableName)
-                  .where(buildWhereClause(localDB, keyspaceName, tableName, id))
+                  .where(
+                      buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI()))
                   .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                   .execute();
 
@@ -276,7 +280,8 @@ public class RowResource {
       @HeaderParam("X-Cassandra-Token") String token,
       @PathParam("keyspaceName") final String keyspaceName,
       @PathParam("tableName") final String tableName,
-      @PathParam("id") final PathSegment id) {
+      @PathParam("id") final PathSegment id,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -285,7 +290,7 @@ public class RowResource {
               .query()
               .delete()
               .from(keyspaceName, tableName)
-              .where(buildWhereClause(localDB, keyspaceName, tableName, id))
+              .where(buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI()))
               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
               .execute();
 
@@ -301,6 +306,7 @@ public class RowResource {
       @PathParam("keyspaceName") final String keyspaceName,
       @PathParam("tableName") final String tableName,
       @PathParam("id") final PathSegment id,
+      @Context HttpServletRequest request,
       final RowUpdate changeSet) {
     return RequestHandler.handle(
         () -> {
@@ -317,7 +323,7 @@ public class RowResource {
               .query()
               .update(keyspaceName, tableName)
               .value(changes)
-              .where(buildWhereClause(id, tableMetadata))
+              .where(buildWhereClause(request.getRequestURI(), tableMetadata))
               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
               .execute();
 
@@ -393,12 +399,12 @@ public class RowResource {
   }
 
   private List<Where<?>> buildWhereClause(
-      DataStore localDB, String keyspaceName, String tableName, PathSegment id) {
-    return buildWhereClause(id, db.getTable(localDB, keyspaceName, tableName));
+      DataStore localDB, String keyspaceName, String tableName, String path) {
+    return buildWhereClause(path, db.getTable(localDB, keyspaceName, tableName));
   }
 
-  private List<Where<?>> buildWhereClause(PathSegment id, Table tableMetadata) {
-    List<String> values = idFromPath(id);
+  private List<Where<?>> buildWhereClause(String path, Table tableMetadata) {
+    List<String> values = idFromPath(path);
 
     final List<Column> keys = tableMetadata.primaryKeyColumns();
     if (keys.size() < values.size()) {
@@ -410,10 +416,8 @@ public class RowResource {
         .collect(Collectors.toList());
   }
 
-  private List<String> idFromPath(PathSegment id) {
-    MultivaluedMap<String, String> matrixParameters = id.getMatrixParameters();
-    List<String> values = new ArrayList<>(matrixParameters.keySet());
-    values.add(0, id.getPath());
-    return values;
+  private List<String> idFromPath(String path) {
+    String id = path.substring(path.lastIndexOf("/") + 1);
+    return Arrays.asList(id.split(";"));
   }
 }
