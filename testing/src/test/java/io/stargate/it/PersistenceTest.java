@@ -81,13 +81,10 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.osgi.framework.InvalidSyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@RunWith(Parameterized.class)
 @NotThreadSafe
 public class PersistenceTest extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(PersistenceTest.class);
@@ -109,7 +106,6 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
     logger.info("{} {} {}", clientState, queryState, dataStore);
 
     String testName = name.getMethodName();
-    testName = testName.substring(0, testName.indexOf("["));
     keyspace = "ks_" + testName;
     table = testName;
   }
@@ -130,8 +126,8 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
     assertThat(row).isNotNull();
     assertThat(row.columns().get(0).name()).isEqualTo("cluster_name");
     assertThat(row.columns().get(1).name()).isEqualTo("data_center");
-    assertThat(row.getString("cluster_name")).isEqualTo("Test Cluster");
-    assertThat(row.getString("data_center")).isEqualTo(datacenter);
+    assertThat(row.getString("cluster_name")).isEqualTo(CLUSTER_NAME);
+    assertThat(row.getString("data_center")).isEqualTo(datacenter());
 
     rs = dataStore.query().select().column("data_center").from("system", "peers").future();
     row = rs.get().one();

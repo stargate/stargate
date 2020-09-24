@@ -56,13 +56,10 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.osgi.framework.InvalidSyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@RunWith(Parameterized.class)
 @NotThreadSafe
 public class RestApiTest extends BaseOsgiIntegrationTest {
 
@@ -303,7 +300,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
     assertThat(rowResponse.getCount()).isEqualTo(1);
-    assertThat(rowResponse.getRows().get(0).get("cluster_name")).isEqualTo("Test Cluster");
+    assertThat(rowResponse.getRows().get(0).get("cluster_name")).isEqualTo(CLUSTER_NAME);
   }
 
   @Test
