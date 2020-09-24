@@ -90,26 +90,21 @@ public class InternalDataStore implements DataStore {
   // The (?:) construct is just like (), except the former is a non-capturing group
   public static Pattern WRAPPER_CLAUSE_PATTERN = Pattern.compile("^(?:in|key|value)\\((.*)\\)$");
 
-  private QueryState queryState;
-  private QueryOptions queryOptions;
-  private DataStore parent;
+  private final QueryState queryState;
+  private final QueryOptions queryOptions;
 
-  private CassandraPersistence persistence;
+  private final CassandraPersistence persistence;
 
   @Inject
   public InternalDataStore(
-      CassandraPersistence persistence,
-      DataStore parent,
-      QueryState queryState,
-      QueryOptions queryOptions) {
+      CassandraPersistence persistence, QueryState queryState, QueryOptions queryOptions) {
     this.persistence = persistence;
     this.queryState = queryState;
     this.queryOptions = queryOptions;
-    this.parent = parent;
   }
 
   public InternalDataStore(CassandraPersistence persistence) {
-    this(persistence, null, QueryState.forInternalCalls(), QueryOptions.DEFAULT);
+    this(persistence, QueryState.forInternalCalls(), QueryOptions.DEFAULT);
   }
 
   @Override

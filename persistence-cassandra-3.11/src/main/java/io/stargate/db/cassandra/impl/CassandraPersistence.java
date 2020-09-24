@@ -96,7 +96,6 @@ public class CassandraPersistence
         ViewDefinition> {
   private static final Logger logger = LoggerFactory.getLogger(CassandraPersistence.class);
 
-  private DataStore root;
   private CassandraDaemon daemon;
   private Authenticator authenticator;
   private QueryHandler handler;
@@ -157,7 +156,6 @@ public class CassandraPersistence
 
     waitForSchema(5 * StorageService.RING_DELAY);
 
-    root = new InternalDataStore(this);
     authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
     handler = org.apache.cassandra.service.ClientState.getCQLQueryHandler();
     interceptor = new DefaultQueryInterceptor();
@@ -168,7 +166,6 @@ public class CassandraPersistence
   @Override
   protected void destroyPersistence() {
     if (daemon != null) {
-      root = null;
       daemon.deactivate();
       daemon = null;
     }
@@ -205,7 +202,7 @@ public class CassandraPersistence
       QueryState<org.apache.cassandra.service.QueryState> state,
       QueryOptions<org.apache.cassandra.service.ClientState> queryOptions) {
     return new InternalDataStore(
-        this, root, Conversion.toInternal(state), Conversion.toInternal(queryOptions));
+        this, Conversion.toInternal(state), Conversion.toInternal(queryOptions));
   }
 
   @Override
