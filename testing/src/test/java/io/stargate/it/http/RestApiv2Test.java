@@ -992,8 +992,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     data =
         objectMapper.convertValue(
-            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {
-            });
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(1);
     assertThat(data.get(0).get("id")).isEqualTo(2);
     assertThat(data.get(0).get("firstName")).isEqualTo("Jane");
