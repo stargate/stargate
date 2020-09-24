@@ -19,12 +19,12 @@ import static io.stargate.db.cassandra.datastore.InternalDataStore.EXECUTOR;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
 import io.stargate.db.Authenticator;
 import io.stargate.db.BatchType;
 import io.stargate.db.ClientState;
 import io.stargate.db.EventListener;
-import io.stargate.db.Persistence;
 import io.stargate.db.QueryOptions;
 import io.stargate.db.QueryState;
 import io.stargate.db.Result;
@@ -32,7 +32,7 @@ import io.stargate.db.cassandra.datastore.InternalDataStore;
 import io.stargate.db.cassandra.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.schema.Schema;
+import io.stargate.db.datastore.common.AbstractCassandraPersistence;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -46,8 +46,11 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.auth.AuthenticatedUser;
+import org.apache.cassandra.config.CFMetaData;
+import org.apache.cassandra.config.ColumnDefinition;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.config.ViewDefinition;
 import org.apache.cassandra.cql3.Attributes;
 import org.apache.cassandra.cql3.BatchQueryOptions;
 import org.apache.cassandra.cql3.CQLStatement;
@@ -58,9 +61,12 @@ import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.cql3.statements.ModificationStatement;
 import org.apache.cassandra.cql3.statements.ParsedStatement;
 import org.apache.cassandra.db.Keyspace;
+import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.schema.IndexMetadata;
+import org.apache.cassandra.schema.KeyspaceMetadata;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.service.ClientWarn;
 import org.apache.cassandra.service.MigrationListener;
@@ -71,7 +77,6 @@ import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
 import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.utils.MD5Digest;
-import org.apache.cassandra.stargate.utils.Streams;
 import org.apache.cassandra.tracing.Tracing;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.transport.messages.ResultMessage;
@@ -81,8 +86,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CassandraPersistence
-    implements Persistence<
-        Config, org.apache.cassandra.service.ClientState, org.apache.cassandra.service.QueryState> {
+    extends AbstractCassandraPersistence<
+        Config,
+        org.apache.cassandra.service.ClientState,
+        org.apache.cassandra.service.QueryState,
+        KeyspaceMetadata,
+        CFMetaData,
+        ColumnDefinition,
+        UserType,
+        IndexMetadata,
+        ViewDefinition> {
   private static final Logger logger = LoggerFactory.getLogger(CassandraPersistence.class);
 
   private DataStore root;
@@ -91,27 +104,44 @@ public class CassandraPersistence
   private QueryHandler handler;
   private QueryInterceptor interceptor;
 
-  // The schema exposed by stargate. It is translated from the internal C* schema during
-  // initialization, and then updated every time the internal schema changes through a schema
-  // listener callback.
-  private volatile Schema schema;
-
   // C* listener that ensures that our Stargate schema remains up-to-date with the internal C* one.
   private MigrationListener migrationListener;
 
-  @Override
-  public String name() {
-    return "Apache Cassandra";
+  public CassandraPersistence() {
+    super("Apache Cassandra");
   }
 
   @Override
-  public void initialize(Config config) {
-    logger.info("Initializing CassandraPersistence");
+  protected SchemaConverter schemaConverter() {
+    return new SchemaConverter();
+  }
 
-    if (!Boolean.parseBoolean(System.getProperty("stargate.developer_mode"))) {
-      System.setProperty("cassandra.join_ring", "false");
+  @Override
+  protected Iterable<KeyspaceMetadata> currentInternalSchema() {
+    return Iterables.transform(org.apache.cassandra.db.Keyspace.all(), Keyspace::getMetadata);
+  }
+
+  @Override
+  protected void registerInternalSchemaListener(Runnable runOnSchemaChange) {
+    migrationListener =
+        new SimpleCallbackMigrationListener() {
+          @Override
+          void onSchemaChange() {
+            runOnSchemaChange.run();
+          }
+        };
+    MigrationManager.instance.register(migrationListener);
+  }
+
+  @Override
+  protected void unregisterInternalSchemaListener() {
+    if (migrationListener != null) {
+      MigrationManager.instance.unregister(migrationListener);
     }
+  }
 
+  @Override
+  protected void initializePersistence(Config config) {
     daemon = new CassandraDaemon(true);
 
     DatabaseDescriptor.daemonInitialization(() -> config);
@@ -129,16 +159,6 @@ public class CassandraPersistence
 
     waitForSchema(5 * StorageService.RING_DELAY);
 
-    schema = computeCurrentSchema();
-    migrationListener =
-        new SimpleCallbackMigrationListener() {
-          @Override
-          void onSchemaChange() {
-            schema = computeCurrentSchema();
-          }
-        };
-    MigrationManager.instance.register(migrationListener);
-
     root = new InternalDataStore(this);
     authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
     handler = org.apache.cassandra.service.ClientState.getCQLQueryHandler();
@@ -148,29 +168,12 @@ public class CassandraPersistence
   }
 
   @Override
-  public void destroy() {
+  protected void destroyPersistence() {
     if (daemon != null) {
       root = null;
       daemon.deactivate();
       daemon = null;
     }
-    if (migrationListener != null) {
-      MigrationManager.instance.unregister(migrationListener);
-    }
-  }
-
-  @Override
-  public Schema schema() {
-    if (schema == null) {
-      throw new IllegalStateException(
-          "The schema cannot be accessed until the Cassandra persistence layer is initialized");
-    }
-    return schema;
-  }
-
-  private Schema computeCurrentSchema() {
-    return SchemaConversions.convertCassandraSchema(
-        Streams.of(org.apache.cassandra.db.Keyspace.all()).map(Keyspace::getMetadata));
   }
 
   @Override
