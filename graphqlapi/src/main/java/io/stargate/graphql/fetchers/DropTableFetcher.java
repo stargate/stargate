@@ -10,7 +10,9 @@ import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
 import io.stargate.db.QueryState;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.ResultSet;
 import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
+import java.util.concurrent.CompletableFuture;
 
 public class DropTableFetcher implements io.stargate.graphql.fetchers.SchemaFetcher, DataFetcher {
   private final Persistence persistence;
@@ -31,7 +33,9 @@ public class DropTableFetcher implements io.stargate.graphql.fetchers.SchemaFetc
     QueryState queryState = persistence.newQueryState(clientState);
     DataStore dataStore = persistence.newDataStore(queryState, null);
 
-    return dataStore.query(getQuery(environment)).thenApply(result -> true);
+    CompletableFuture<ResultSet> resultSetSingle = dataStore.query(getQuery(environment));
+    resultSetSingle.get();
+    return true;
   }
 
   @Override
