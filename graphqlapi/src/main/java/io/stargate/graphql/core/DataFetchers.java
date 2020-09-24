@@ -41,6 +41,7 @@ import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
 import io.stargate.db.QueryState;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.datastore.schema.Column;
 import io.stargate.db.datastore.schema.Keyspace;
@@ -52,6 +53,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 public class DataFetchers {
@@ -283,16 +285,15 @@ public class DataFetchers {
       QueryState queryState = persistence.newQueryState(clientState);
       DataStore dataStore = persistence.newDataStore(queryState, null);
 
-      return dataStore
-          .query(statement)
-          .thenApply(
-              resultSet -> {
-                List<Map<String, Object>> results = new ArrayList<>();
-                for (Row row : resultSet.rows()) {
-                  results.add(row2Map(row));
-                }
-                return ImmutableMap.of("values", results);
-              });
+      CompletableFuture<ResultSet> rs = dataStore.query(statement);
+      ResultSet resultSet = rs.get();
+
+      List<Map<String, Object>> results = new ArrayList<>();
+      for (Row row : resultSet.rows()) {
+        results.add(row2Map(row));
+      }
+
+      return ImmutableMap.of("values", results);
     }
 
     public Map<String, Object> row2Map(Row row) {
