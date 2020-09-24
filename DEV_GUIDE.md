@@ -11,6 +11,16 @@ To fix formatting issues from the command line, run the following:
 mvn xml-format:xml-format fmt:format
 ```
 
+Similarly, we use [license-maven-plugin](https://github.com/mycila/license-maven-plugin) to ensure
+that Java source files have the proper license headers. The build will fail if some headers are
+missing or incorrect.
+
+To fix headers from the command line, run the following:
+
+```
+mvn license:format
+```
+
 ## Building
 
 To build locally run the following:
