@@ -34,7 +34,6 @@ import net.bytebuddy.implementation.bind.annotation.AllArguments;
 import net.bytebuddy.implementation.bind.annotation.Origin;
 import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 import net.bytebuddy.matcher.ElementMatchers;
-import org.junit.Before;
 import org.junit.jupiter.api.BeforeEach;
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
@@ -242,7 +241,6 @@ public class BaseOsgiIntegrationTest extends BaseStorageIntegrationTest {
     return (T) proxy(p, p.getClass().getClassLoader(), clazz.getClassLoader(), clazz);
   }
 
-  @Before
   @BeforeEach
   public void startOsgi() throws BundleException {
     if (stargateStarter != null) {

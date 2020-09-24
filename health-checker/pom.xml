@@ -12,6 +12,7 @@
   <properties>
     <jettyVersion>9.4.24.v20191120</jettyVersion>
     <dropwizard.version>2.0.10</dropwizard.version>
+    <junit.version>5.6.2</junit.version>
   </properties>
   <dependencies>
     <dependency>
@@ -195,6 +196,17 @@
           </archive>
           <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
         </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.2</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit.version}</version>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
   </build>

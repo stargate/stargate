@@ -61,9 +61,8 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
-import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -88,7 +87,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     // enableAuth = true;
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeAll() {
     System.setProperty("stargate.cql_use_auth_service", "true");
   }
@@ -363,7 +362,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
               .addPositionalValues("abc", "def")
               .build());
 
-      Assert.fail("Should have thrown InvalidQueryException");
+      fail("Should have thrown InvalidQueryException");
     } catch (InvalidQueryException ex) {
       assertThat(ex)
           .hasMessage(
