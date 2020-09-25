@@ -33,18 +33,19 @@ import io.stargate.web.models.TableAdd;
 import io.stargate.web.models.TableOptions;
 import io.stargate.web.models.TableResponse;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,16 +53,14 @@ import org.slf4j.LoggerFactory;
 public class RestApiv2Test extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(RestApiv2Test.class);
 
-  @Rule public TestName name = new TestName();
-
   private String keyspaceName;
   private String tableName;
   private static String authToken;
   private static String host = "http://" + stargateHost;
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
-  @Before
-  public void setup() throws IOException {
+  @BeforeEach
+  public void setup(TestInfo testInfo) throws IOException {
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     String body =
@@ -75,10 +74,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     authToken = authTokenResponse.getAuthToken();
     assertThat(authToken).isNotNull();
 
-    String testName = name.getMethodName();
-    if (testName.contains("[")) {
-      testName = testName.substring(0, testName.indexOf("["));
-    }
+    Optional<String> name = testInfo.getTestMethod().map(Method::getName);
+    assertThat(name).isPresent();
+    String testName = name.get();
     keyspaceName = "ks_" + testName + "_" + System.currentTimeMillis();
     tableName = "tbl_" + testName + "_" + System.currentTimeMillis();
   }

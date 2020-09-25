@@ -52,10 +52,8 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.osgi.framework.InvalidSyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,11 +65,10 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static String authToken;
   private static String host = "http://" + stargateHost;
-  @Rule public TestName name = new TestName();
   private DataStore dataStore;
   private String keyspace;
 
-  @Before
+  @BeforeEach
   public void setup()
       throws InvalidSyntaxException, ExecutionException, InterruptedException, IOException {
     keyspace = "ks_restapitest";
