@@ -9,6 +9,7 @@
   <description>Core modules for Stargate</description>
   <url>http://github.com/stargate/stargate</url>
   <modules>
+    <module>core</module>
     <module>stargate-starter</module>
     <module>persistence-api</module>
     <module>persistence-common</module>

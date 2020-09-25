@@ -18,7 +18,7 @@ import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.dropwizard.DropwizardExports;
-import io.stargate.health.metrics.api.Metrics;
+import io.stargate.core.metrics.api.Metrics;
 import java.lang.management.ManagementFactory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 

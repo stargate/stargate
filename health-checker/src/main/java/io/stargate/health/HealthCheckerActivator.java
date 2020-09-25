@@ -1,11 +1,7 @@
 package io.stargate.health;
 
-import io.stargate.health.metrics.api.Metrics;
-import io.stargate.health.metrics.impl.MetricsImpl;
-import org.osgi.framework.BundleActivator;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceEvent;
-import org.osgi.framework.ServiceListener;
+import io.stargate.core.metrics.api.Metrics;
+import org.osgi.framework.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,8 +15,13 @@ public class HealthCheckerActivator implements BundleActivator, ServiceListener 
     this.context = context;
     log.info("Starting healthchecker....");
 
-    Metrics metrics = new MetricsImpl();
-    context.registerService(Metrics.class, metrics, null);
+    ServiceReference<?> metricsReference = context.getServiceReference(Metrics.class.getName());
+
+    if (metricsReference == null) {
+      throw new RuntimeException("Metrics could not be loaded");
+    }
+
+    Metrics metrics = (Metrics) context.getService(metricsReference);
 
     try {
       WebImpl web = new WebImpl(this.context, metrics);

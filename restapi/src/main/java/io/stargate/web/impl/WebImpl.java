@@ -16,8 +16,8 @@
 package io.stargate.web.impl;
 
 import io.stargate.auth.AuthenticationService;
+import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
-import io.stargate.health.metrics.api.Metrics;
 
 public class WebImpl {
 
