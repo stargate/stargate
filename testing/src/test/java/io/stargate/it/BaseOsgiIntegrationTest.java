@@ -78,26 +78,22 @@ public class BaseOsgiIntegrationTest {
     unFinal();
   }
 
-  private static List<Starter> stargateStarters = new ArrayList<>();
-
-  private static List<String> stargateHosts = new ArrayList<>();
-
   public boolean enableAuth;
 
   protected final ClusterConnectionInfo backend;
 
-  public final Integer numberOfStargateNodes;
+  private static List<Starter> stargateStarters = new ArrayList<>();
+  private static List<String> stargateHosts = new ArrayList<>();
+  public static final Integer numberOfStargateNodes = 3;
 
-  public BaseOsgiIntegrationTest(ClusterConnectionInfo backend) {
-    this(backend, 1);
-  }
-
-  public BaseOsgiIntegrationTest(ClusterConnectionInfo backend, Integer numberOfStargateNodes) {
-    this.backend = backend;
-    this.numberOfStargateNodes = numberOfStargateNodes;
+  static {
     for (int i = 1; i <= numberOfStargateNodes; i++) {
       stargateHosts.add("127.0.0.1" + i);
     }
+  }
+
+  public BaseOsgiIntegrationTest(ClusterConnectionInfo backend) {
+    this.backend = backend;
   }
 
   public static String getStargateHost() {
@@ -307,20 +303,22 @@ public class BaseOsgiIntegrationTest {
 
   @BeforeEach
   public void startOsgi() throws BundleException {
-    logger.info("Starting: {} stargate nodes", numberOfStargateNodes);
-    for (int i = 0; i < numberOfStargateNodes; i++) {
-      try {
-        startStargateInstance(backend.seedAddress(), backend.storagePort(), i);
-      } catch (Exception ex) {
-        logger.error(
-            "Exception when starting stargate node nr: " + i + " it will be retried once.", ex);
+    if (stargateStarters.isEmpty()) {
+      logger.info("Starting: {} stargate nodes", numberOfStargateNodes);
+      for (int i = 0; i < numberOfStargateNodes; i++) {
         try {
           startStargateInstance(backend.seedAddress(), backend.storagePort(), i);
-        } catch (Exception ex2) {
-          logger.error("Exception when retrying start of the stargate node nr: " + i, ex2);
+        } catch (Exception ex) {
+          logger.error(
+              "Exception when starting stargate node nr: " + i + " it will be retried once.", ex);
+          try {
+            startStargateInstance(backend.seedAddress(), backend.storagePort(), i);
+          } catch (Exception ex2) {
+            logger.error("Exception when retrying start of the stargate node nr: " + i, ex2);
+          }
+        } finally {
+          logger.error("Successful starting stargate node nr: {}", i);
         }
-      } finally {
-        logger.error("Successful starting stargate node nr: {}", i);
       }
     }
   }

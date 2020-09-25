@@ -50,7 +50,7 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
   private CqlSession session;
 
   public MultipleStargateInstancesTest(ClusterConnectionInfo backend) {
-    super(backend, 3);
+    super(backend);
   }
 
   @BeforeEach
