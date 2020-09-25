@@ -47,6 +47,7 @@ import io.stargate.db.datastore.schema.Column.Kind;
 import io.stargate.db.datastore.schema.Column.Type;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
+import io.stargate.it.storage.ClusterConnectionInfo;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -61,10 +62,8 @@ import net.jcip.annotations.NotThreadSafe;
 import okhttp3.OkHttpClient;
 import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.osgi.framework.InvalidSyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,15 +72,17 @@ import org.slf4j.LoggerFactory;
 public class GraphqlTest extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
 
-  @Rule public TestName name = new TestName();
-
   private DataStore dataStore;
   private String keyspace;
   private static String authToken;
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static String host = "http://" + stargateHost;
 
-  @Before
+  public GraphqlTest(ClusterConnectionInfo backend) {
+    super(backend);
+  }
+
+  @BeforeEach
   public void setup()
       throws InvalidSyntaxException, ExecutionException, InterruptedException, IOException {
     keyspace = "betterbotz";

@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
+import io.stargate.it.storage.ClusterConnectionInfo;
 import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.GetResponseWrapper;
@@ -33,19 +34,20 @@ import io.stargate.web.models.TableAdd;
 import io.stargate.web.models.TableOptions;
 import io.stargate.web.models.TableResponse;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,16 +55,18 @@ import org.slf4j.LoggerFactory;
 public class RestApiv2Test extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(RestApiv2Test.class);
 
-  @Rule public TestName name = new TestName();
-
   private String keyspaceName;
   private String tableName;
   private static String authToken;
   private static String host = "http://" + stargateHost;
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
-  @Before
-  public void setup() throws IOException {
+  public RestApiv2Test(ClusterConnectionInfo backend) {
+    super(backend);
+  }
+
+  @BeforeEach
+  public void setup(TestInfo testInfo) throws IOException {
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     String body =
@@ -76,10 +80,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     authToken = authTokenResponse.getAuthToken();
     assertThat(authToken).isNotNull();
 
-    String testName = name.getMethodName();
-    if (testName.contains("[")) {
-      testName = testName.substring(0, testName.indexOf("["));
-    }
+    Optional<String> name = testInfo.getTestMethod().map(Method::getName);
+    assertThat(name).isPresent();
+    String testName = name.get();
     keyspaceName = "ks_" + testName + "_" + System.currentTimeMillis();
     tableName = "tbl_" + testName + "_" + System.currentTimeMillis();
   }
@@ -1619,6 +1622,17 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     row.put("id", rowIdentifier);
     row.put("firstName", "John");
     row.put("expense_id", "2");
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
+
+    row = new HashMap<>();
+    row.put("id", "2");
+    row.put("firstName", "Jane");
+    row.put("expense_id", "1");
 
     RestUtils.post(
         authToken,

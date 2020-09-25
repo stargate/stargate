@@ -15,6 +15,11 @@
  */
 package io.stargate.it;
 
+import static io.stargate.it.storage.ClusterScope.SHARED;
+
+import io.stargate.it.storage.ClusterConnectionInfo;
+import io.stargate.it.storage.ClusterSpec;
+import io.stargate.it.storage.ExternalStorage;
 import io.stargate.starter.Starter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -34,8 +39,8 @@ import net.bytebuddy.implementation.bind.annotation.AllArguments;
 import net.bytebuddy.implementation.bind.annotation.Origin;
 import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 import net.bytebuddy.matcher.ElementMatchers;
-import org.junit.Before;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
 import org.osgi.framework.BundleException;
@@ -59,7 +64,9 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Special care is taken to handle collections, futures and enumerations.
  */
-public class BaseOsgiIntegrationTest extends BaseStorageIntegrationTest {
+@ExtendWith(ExternalStorage.class)
+@ClusterSpec(scope = SHARED)
+public class BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(BaseOsgiIntegrationTest.class);
 
   static {
@@ -69,6 +76,11 @@ public class BaseOsgiIntegrationTest extends BaseStorageIntegrationTest {
   static Starter stargateStarter;
   public static String stargateHost = "127.0.0.11";
   public boolean enableAuth;
+  protected final ClusterConnectionInfo backend;
+
+  public BaseOsgiIntegrationTest(ClusterConnectionInfo backend) {
+    this.backend = backend;
+  }
 
   /** Remove final from all internal classes to allow for proxying */
   public static void unFinal() {
@@ -242,7 +254,6 @@ public class BaseOsgiIntegrationTest extends BaseStorageIntegrationTest {
     return (T) proxy(p, p.getClass().getClassLoader(), clazz.getClassLoader(), clazz);
   }
 
-  @Before
   @BeforeEach
   public void startOsgi() throws BundleException {
     if (stargateStarter != null) {
@@ -252,15 +263,15 @@ public class BaseOsgiIntegrationTest extends BaseStorageIntegrationTest {
     // Start stargate and get the persistance object
     stargateStarter =
         new Starter(
-            CLUSTER_NAME,
-            clusterVersion(),
+            backend.clusterName(),
+            backend.clusterVersion(),
             stargateHost,
-            seedAddress(),
-            storagePort(),
-            datacenter(),
-            rack(),
-            isDse(),
-            !isDse(),
+            backend.seedAddress(),
+            backend.storagePort(),
+            backend.datacenter(),
+            backend.rack(),
+            backend.isDse(),
+            !backend.isDse(),
             9043);
 
     System.setProperty("stargate.auth_api_enable_username_token", "true");
