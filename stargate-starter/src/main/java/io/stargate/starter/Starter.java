@@ -321,7 +321,7 @@ public class Starter {
       for (File file : files) {
         String name = file.getName().toLowerCase();
 
-        // Avoid loading the wrong persistance module
+        // Avoid loading the wrong persistence module
         if (!dse
             && (name.contains("persistence-dse")
                 || name.contains("persistence-cassandra")

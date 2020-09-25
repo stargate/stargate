@@ -46,6 +46,11 @@ public final class CDCServiceImpl implements CDCService {
         new CDCWriteException("CDC producer marked as unhealthy"));
   }
 
+  public CDCServiceImpl(CDCProducer producer, MetricRegistry registry) {
+    // TODO: Wrap configuration and use default health checker
+    this(producer, null, null, registry);
+  }
+
   @VisibleForTesting
   public CDCServiceImpl(
       CDCProducer producer,

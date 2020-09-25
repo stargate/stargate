@@ -28,7 +28,7 @@ import org.apache.cassandra.metrics.MetricNameFactory;
 public final class CDCMetrics {
   public static final CDCMetrics instance = new CDCMetrics();
 
-  private static final MetricNameFactory factory = new DefaultNameFactory("Client");
+  private static final MetricNameFactory factory = new DefaultNameFactory("CDC");
 
   private boolean initialized = false;
   private MetricRegistry metricRegistry;

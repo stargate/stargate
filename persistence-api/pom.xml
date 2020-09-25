@@ -97,9 +97,11 @@
             <Bundle-Name>Persistence</Bundle-Name>
             <Bundle-Description>DB component for project</Bundle-Description>
             <Bundle-SymbolicName>io.stargate.db</Bundle-SymbolicName>
+            <Bundle-Activator>io.stargate.db.DbActivator</Bundle-Activator>
             <Import-Package>org.osgi.framework</Import-Package>
             <Export-Package><![CDATA[
               io.stargate.db,
+              io.stargate.db.cdc,
               io.stargate.db.datastore,
               io.stargate.db.datastore.schema,
               io.stargate.db.datastore.query,
