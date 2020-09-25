@@ -82,7 +82,7 @@ public class BaseOsgiIntegrationTest {
 
   protected final ClusterConnectionInfo backend;
 
-  private static List<Starter> stargateStarters = new ArrayList<>();
+  public static List<Starter> stargateStarters = new ArrayList<>();
   private static List<String> stargateHosts = new ArrayList<>();
   public static final Integer numberOfStargateNodes = 3;
 

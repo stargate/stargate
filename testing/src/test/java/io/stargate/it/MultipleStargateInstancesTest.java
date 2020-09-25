@@ -49,6 +49,8 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
 
   private CqlSession session;
 
+  private int runningStargateNodes;
+
   public MultipleStargateInstancesTest(ClusterConnectionInfo backend) {
     super(backend);
   }
@@ -81,13 +83,14 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
     String testName = name.get();
     keyspace = "ks_" + testName;
     table = testName;
+    runningStargateNodes = stargateStarters.size();
   }
 
   @Test
   public void shouldConnectToMultipleStargateNodes() {
     List<Row> all = session.execute("SELECT * FROM system.peers").all();
-    // system.peers should have 2 records (all stargate nodes - 1)
-    assertThat(all.size()).isEqualTo(2);
+    // system.peers should have N records (all stargate nodes - 1)
+    assertThat(all.size()).isEqualTo(runningStargateNodes);
   }
 
   @Test
@@ -95,7 +98,7 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
     // given
     createKeyspaceAndTable();
     long totalNumberOfRequests = 300;
-    long numberOfRequestPerNode = totalNumberOfRequests / numberOfStargateNodes;
+    long numberOfRequestPerNode = totalNumberOfRequests / runningStargateNodes;
     // difference tolerance - every node should have numberOfRequestPerNode +- tolerance
     long tolerance = 5;
 
@@ -111,7 +114,7 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
 
     // then
     Collection<Node> nodes = session.getMetadata().getNodes().values();
-    assertThat(nodes.size()).isEqualTo(numberOfStargateNodes);
+    assertThat(nodes.size()).isEqualTo(runningStargateNodes);
     for (Node n : nodes) {
       long cqlMessages =
           ((Timer)
