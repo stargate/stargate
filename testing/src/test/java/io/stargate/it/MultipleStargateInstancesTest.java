@@ -27,24 +27,21 @@ import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.api.core.metrics.DefaultNodeMetric;
 import com.datastax.oss.driver.internal.core.loadbalancing.DcInferringLoadBalancingPolicy;
+import io.stargate.it.storage.ClusterConnectionInfo;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import net.jcip.annotations.NotThreadSafe;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
-@RunWith(Parameterized.class)
 @NotThreadSafe
 public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
-
-  @Rule public TestName name = new TestName();
 
   private String table;
 
@@ -52,8 +49,12 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
 
   private CqlSession session;
 
-  @Before
-  public void setup() {
+  public MultipleStargateInstancesTest(ClusterConnectionInfo backend) {
+    super(backend, 3);
+  }
+
+  @BeforeEach
+  public void setup(TestInfo testInfo) {
     DriverConfigLoader loader =
         DriverConfigLoader.programmaticBuilder()
             .withBoolean(DefaultDriverOption.METADATA_TOKEN_MAP_ENABLED, false)
@@ -75,10 +76,9 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
     }
     session = cqlSessionBuilder.build();
 
-    String testName = name.getMethodName();
-    if (testName.contains("[")) {
-      testName = testName.substring(0, testName.indexOf("["));
-    }
+    Optional<String> name = testInfo.getTestMethod().map(Method::getName);
+    assertThat(name).isPresent();
+    String testName = name.get();
     keyspace = "ks_" + testName;
     table = testName;
   }

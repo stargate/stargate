@@ -28,6 +28,7 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
+import io.stargate.it.storage.ClusterConnectionInfo;
 import io.stargate.web.models.Changeset;
 import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.models.ColumnModel;
@@ -52,17 +53,12 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.osgi.framework.InvalidSyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@RunWith(Parameterized.class)
 @NotThreadSafe
 public class RestApiTest extends BaseOsgiIntegrationTest {
 
@@ -70,11 +66,14 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static String authToken;
   private static String host = "http://" + getStargateHost();
-  @Rule public TestName name = new TestName();
   private DataStore dataStore;
   private String keyspace;
 
-  @Before
+  public RestApiTest(ClusterConnectionInfo backend) {
+    super(backend);
+  }
+
+  @BeforeEach
   public void setup()
       throws InvalidSyntaxException, ExecutionException, InterruptedException, IOException {
     keyspace = "ks_restapitest";
@@ -303,7 +302,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
     assertThat(rowResponse.getCount()).isEqualTo(1);
-    assertThat(rowResponse.getRows().get(0).get("cluster_name")).isEqualTo("Test Cluster");
+    assertThat(rowResponse.getRows().get(0).get("cluster_name")).isEqualTo(backend.clusterName());
   }
 
   @Test

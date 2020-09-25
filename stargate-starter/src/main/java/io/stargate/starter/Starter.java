@@ -315,6 +315,11 @@ public class Starter {
     }
   }
 
+  public Starter withAuthEnabled(boolean enabled) {
+    enableAuth = enabled;
+    return this;
+  }
+
   public void start() throws BundleException {
     // Setup properties used by Stargate framework
     try {

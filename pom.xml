@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
-  <version>0.0.8-SNAPSHOT</version>
+  <version>0.0.11-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
@@ -14,6 +14,7 @@
     <module>persistence-common</module>
     <module>persistence-cassandra-3.11</module>
     <module>cql</module>
+    <module>graphqlapi</module>
     <module>restapi</module>
     <module>auth-api</module>
     <module>authentication</module>
@@ -25,6 +26,10 @@
   <properties>
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <sonar.projectKey>stargate_stargate</sonar.projectKey>
+        <sonar.organization>stargate</sonar.organization>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        <sonar.moduleKey>${project.groupId}:${project.artifactId}</sonar.moduleKey>
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
     <driver.version>4.9.0</driver.version>

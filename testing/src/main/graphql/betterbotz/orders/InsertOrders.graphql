@@ -1,0 +1,19 @@
+mutation InsertOrders(
+    $value: OrdersInput!
+    $ifNotExists: Boolean
+    $options: MutationOptions
+) {
+    insertOrders(value: $value, ifNotExists: $ifNotExists, options: $options) {
+        applied
+        value {
+            id
+            prodId
+            prodName
+            customerName
+            address
+            description
+            price
+            sellPrice
+        }
+    }
+}

@@ -24,12 +24,32 @@ import static io.stargate.db.datastore.schema.Column.Kind.PartitionKey;
 import static io.stargate.db.datastore.schema.Column.Kind.Static;
 import static io.stargate.db.datastore.schema.Column.Order.Asc;
 import static io.stargate.db.datastore.schema.Column.Order.Desc;
-import static io.stargate.db.datastore.schema.Column.Type.*;
+import static io.stargate.db.datastore.schema.Column.Type.Ascii;
+import static io.stargate.db.datastore.schema.Column.Type.Bigint;
+import static io.stargate.db.datastore.schema.Column.Type.Blob;
 import static io.stargate.db.datastore.schema.Column.Type.Boolean;
+import static io.stargate.db.datastore.schema.Column.Type.Date;
+import static io.stargate.db.datastore.schema.Column.Type.Decimal;
 import static io.stargate.db.datastore.schema.Column.Type.Double;
+import static io.stargate.db.datastore.schema.Column.Type.Duration;
 import static io.stargate.db.datastore.schema.Column.Type.Float;
+import static io.stargate.db.datastore.schema.Column.Type.Inet;
+import static io.stargate.db.datastore.schema.Column.Type.Int;
+import static io.stargate.db.datastore.schema.Column.Type.List;
+import static io.stargate.db.datastore.schema.Column.Type.Map;
+import static io.stargate.db.datastore.schema.Column.Type.Set;
+import static io.stargate.db.datastore.schema.Column.Type.Smallint;
+import static io.stargate.db.datastore.schema.Column.Type.Text;
+import static io.stargate.db.datastore.schema.Column.Type.Time;
+import static io.stargate.db.datastore.schema.Column.Type.Timestamp;
+import static io.stargate.db.datastore.schema.Column.Type.Timeuuid;
+import static io.stargate.db.datastore.schema.Column.Type.Tinyint;
+import static io.stargate.db.datastore.schema.Column.Type.Tuple;
+import static io.stargate.db.datastore.schema.Column.Type.Uuid;
+import static io.stargate.db.datastore.schema.Column.Type.Varchar;
+import static io.stargate.db.datastore.schema.Column.Type.Varint;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Fail.fail;
 
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.api.core.data.TupleValue;
@@ -53,6 +73,8 @@ import io.stargate.db.datastore.schema.ParameterizedType;
 import io.stargate.db.datastore.schema.Schema;
 import io.stargate.db.datastore.schema.Table;
 import io.stargate.db.datastore.schema.UserDefinedType;
+import io.stargate.it.storage.ClusterConnectionInfo;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.Inet4Address;
@@ -68,6 +90,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -76,23 +99,17 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import net.jcip.annotations.NotThreadSafe;
 import org.javatuples.Pair;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.osgi.framework.InvalidSyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@RunWith(Parameterized.class)
 @NotThreadSafe
 public class PersistenceTest extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(PersistenceTest.class);
-
-  @Rule public TestName name = new TestName();
 
   private DataStore dataStore;
   private String table;
@@ -100,16 +117,21 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
 
   private static final int CUSTOM_PAGE_SIZE = 50;
 
-  @Before
-  public void setup() throws InvalidSyntaxException {
+  public PersistenceTest(ClusterConnectionInfo backendConnectionInfo) {
+    super(backendConnectionInfo);
+  }
+
+  @BeforeEach
+  public void setup(TestInfo testInfo) throws InvalidSyntaxException {
     Persistence persistence = getOsgiService("io.stargate.db.Persistence", Persistence.class);
     ClientState clientState = persistence.newClientState("");
     QueryState queryState = persistence.newQueryState(clientState);
     dataStore = persistence.newDataStore(queryState, null);
     logger.info("{} {} {}", clientState, queryState, dataStore);
 
-    String testName = name.getMethodName();
-    testName = testName.substring(0, testName.indexOf("["));
+    Optional<String> name = testInfo.getTestMethod().map(Method::getName);
+    assertThat(name).isPresent();
+    String testName = name.get();
     keyspace = "ks_" + testName;
     table = testName;
   }
@@ -130,8 +152,8 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
     assertThat(row).isNotNull();
     assertThat(row.columns().get(0).name()).isEqualTo("cluster_name");
     assertThat(row.columns().get(1).name()).isEqualTo("data_center");
-    assertThat(row.getString("cluster_name")).isEqualTo("Test Cluster");
-    assertThat(row.getString("data_center")).isEqualTo(datacenter);
+    assertThat(row.getString("cluster_name")).isEqualTo(backend.clusterName());
+    assertThat(row.getString("data_center")).isEqualTo(backend.datacenter());
 
     rs = dataStore.query().select().column("data_center").from("system", "peers").future();
     row = rs.get().one();
@@ -225,7 +247,7 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
                 .table(table));
   }
 
-  @Ignore("Disabling for now since it currently just hangs")
+  @Disabled("Disabling for now since it currently just hangs")
   @Test
   public void testInsertingAndReadingDifferentTypes() throws Exception {
     Keyspace ks = createKeyspace();
@@ -508,7 +530,7 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
                 .toString());
   }
 
-  @Ignore("Disabling for now since it currently just hangs")
+  @Disabled("Disabling for now since it currently just hangs")
   @Test
   public void testTupleWithAllSimpleTypes()
       throws UnknownHostException, ExecutionException, InterruptedException {
@@ -556,7 +578,7 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
     }
   }
 
-  @Ignore("Disabling UDT related tests for now")
+  @Disabled("Disabling UDT related tests for now")
   @Test
   public void testUDTWithAllSimpleTypes()
       throws UnknownHostException, ExecutionException, InterruptedException {
@@ -643,7 +665,7 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
         .build();
   }
 
-  @Ignore("Disabling for now since it currently just hangs")
+  @Disabled("Disabling for now since it currently just hangs")
   @Test
   public void testUDT() throws ExecutionException, InterruptedException {
     Keyspace ks = createKeyspace();
@@ -701,7 +723,7 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
     //        assertThat(udtValue.getTupleValue("mytuple")).isEqualTo(tuple);
   }
 
-  @Ignore("Disabling for now since it currently just hangs")
+  @Disabled("Disabling for now since it currently just hangs")
   @Test
   public void testTupleMismatch() throws ExecutionException, InterruptedException {
     Keyspace ks = createKeyspace();
@@ -760,7 +782,7 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
     }
   }
 
-  @Ignore("Disabling for now since it fails with a strange MV schema generated")
+  @Disabled("Disabling for now since it fails with a strange MV schema generated")
   @Test
   public void testMvIndexes() throws ExecutionException, InterruptedException {
     createKeyspace();

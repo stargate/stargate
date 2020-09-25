@@ -63,6 +63,11 @@ _ip_address() {
 # Keep options in arrays for ease of quoting / cmd. line construction.
 # Default to the env. variable. Use `eval` to reinterpret quotes embedded in the env. var. value.
 eval declare -a JAVA_OPTS=("$JAVA_OPTS")
+
+if [[ ! " ${JAVA_OPTS[@]} " =~ "-Xmx" ]]; then
+    JAVA_OPTS+=("-Xmx64G")
+fi
+
 JAVA_OPTS+=(-Dstargate.libdir="$STARGATE_HOME")
 
 declare -a STARGATE_ARGS=("$@")
@@ -126,12 +131,16 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
         STARGATE_ARGS+=("--developer-mode")
     fi
 
+    if [[ ! -z "$EMULATE_DBAAS_DEFAULTS" ]]; then
+        STARGATE_ARGS+=("--emulate-dbaas-defaults")
+    fi
+
     if [[ ! -z "$BIND_TO_LISTEN_ADDRESS" ]]; then
         STARGATE_ARGS+=("--bind-to-listen-address")
     fi
 fi
 
-declare -a CMD=(java -server -Xmx64G)
+declare -a CMD=(java -server)
 CMD+=("${JAVA_OPTS[@]}")
 CMD+=(-jar "$STARGATE_STARTER")
 CMD+=("${STARGATE_ARGS[@]}")

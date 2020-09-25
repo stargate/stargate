@@ -1,0 +1,11 @@
+mutation AlterTableAdd(
+    $keyspaceName: String!
+    $tableName: String!
+    $toAdd: [ColumnInput]!
+) {
+    alterTableAdd(
+        keyspaceName: $keyspaceName
+        tableName: $tableName
+        toAdd: $toAdd
+    )
+}
