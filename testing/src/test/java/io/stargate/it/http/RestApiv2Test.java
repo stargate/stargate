@@ -1132,7 +1132,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         .anySatisfy(
             value ->
                 assertThat(value)
-                    .isEqualToComparingFieldByField(new ColumnDefinition("id", "Uuid", false)));
+                    .isEqualToComparingFieldByField(new ColumnDefinition("id", "uuid", false)));
   }
 
   @Test
@@ -1153,10 +1153,32 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         .anySatisfy(
             value ->
                 assertThat(value)
-                    .isEqualToComparingFieldByField(new ColumnDefinition("id", "Uuid", false)));
+                    .isEqualToComparingFieldByField(new ColumnDefinition("id", "uuid", false)));
   }
 
   @Test
+  public void getColumnsComplex() throws IOException {
+    createKeyspace(keyspaceName);
+    createComplexTable(keyspaceName, tableName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    List<ColumnDefinition> columns =
+        objectMapper.convertValue(
+            response.getData(), new TypeReference<List<ColumnDefinition>>() {});
+    assertThat(columns)
+        .anySatisfy(
+            value ->
+                assertThat(value)
+                    .isEqualToComparingFieldByField(
+                        new ColumnDefinition("col2", "frozen<set<boolean>>", false)));
+  }
+
   public void getColumnsBadTable() throws IOException {
     String body =
         RestUtils.get(
@@ -1200,7 +1222,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             HttpStatus.SC_OK);
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     ColumnDefinition column = objectMapper.convertValue(response.getData(), ColumnDefinition.class);
-    assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "Int", false));
+    assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "int", false));
   }
 
   @Test
@@ -1234,10 +1256,28 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "age"),
             HttpStatus.SC_OK);
     ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "Int", false));
+    assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "int", false));
   }
 
   @Test
+  public void getColumnComplex() throws IOException {
+    createKeyspace(keyspaceName);
+    createComplexTable(keyspaceName, tableName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
+                host, keyspaceName, tableName, "col1"),
+            HttpStatus.SC_OK);
+    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    ColumnDefinition column = objectMapper.convertValue(response.getData(), ColumnDefinition.class);
+    assertThat(column)
+        .isEqualToComparingFieldByField(
+            new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
+  }
+
   public void getColumnBadTable() throws IOException {
     createKeyspace(keyspaceName);
 
@@ -1274,7 +1314,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
 
-    ColumnDefinition columnDefinition = new ColumnDefinition("name", "Varchar");
+    ColumnDefinition columnDefinition = new ColumnDefinition("name", "varchar");
 
     String body =
         RestUtils.post(
@@ -1323,7 +1363,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     createKeyspace(keyspaceName);
     createTableWithClustering(keyspaceName, tableName);
 
-    ColumnDefinition columnDefinition = new ColumnDefinition("balance", "Float", true);
+    ColumnDefinition columnDefinition = new ColumnDefinition("balance", "float", true);
 
     String body =
         RestUtils.post(
@@ -1352,7 +1392,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
 
-    ColumnDefinition columnDefinition = new ColumnDefinition("identifier", "Uuid");
+    ColumnDefinition columnDefinition = new ColumnDefinition("identifier", "uuid");
 
     String body =
         RestUtils.put(
@@ -1528,6 +1568,30 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     PrimaryKey primaryKey = new PrimaryKey();
     primaryKey.setPartitionKey(Collections.singletonList("id"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+        objectMapper.writeValueAsString(tableAdd),
+        HttpStatus.SC_CREATED);
+  }
+
+  private void createComplexTable(String keyspaceName, String tableName) throws IOException {
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName(tableName);
+
+    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+
+    columnDefinitions.add(new ColumnDefinition("pk0", "uuid"));
+    columnDefinitions.add(new ColumnDefinition("col1", "frozen<map<date, varchar>>"));
+    columnDefinitions.add(new ColumnDefinition("col2", "frozen<set<boolean>>"));
+    columnDefinitions.add(new ColumnDefinition("col3", "frozen<tuple<duration, inet>>"));
+
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Collections.singletonList("pk0"));
     tableAdd.setPrimaryKey(primaryKey);
 
     RestUtils.post(
