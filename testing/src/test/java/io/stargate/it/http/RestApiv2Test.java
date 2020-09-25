@@ -36,6 +36,7 @@ import io.stargate.web.models.TableResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -697,6 +698,38 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void getRowsWithMixedClustering() throws IOException {
+    setupMixedClusteringTestCase();
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1", host, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    List<Map<String, Object>> data =
+        objectMapper.convertValue(
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(getResponseWrapper.getCount()).isEqualTo(2);
+    assertThat(data.get(0).get("v")).isEqualTo(9);
+    assertThat(data.get(1).get("v")).isEqualTo(19);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1/20", host, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    data =
+        objectMapper.convertValue(
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(getResponseWrapper.getCount()).isEqualTo(1);
+    assertThat(data.get(0).get("v")).isEqualTo(19);
+  }
+
+  @Test
   public void addRow() throws IOException {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
@@ -999,6 +1032,85 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     assertThat(getResponseWrapper.getCount()).isEqualTo(1);
     assertThat(data.get(0).get("id")).isEqualTo(2);
     assertThat(data.get(0).get("firstName")).isEqualTo("Jane");
+  }
+
+  @Test
+  public void deleteRowsWithMixedClustering() throws IOException {
+    setupMixedClusteringTestCase();
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1", host, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    List<Map<String, Object>> data =
+        objectMapper.convertValue(
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(getResponseWrapper.getCount()).isEqualTo(2);
+    assertThat(data.get(0).get("v")).isEqualTo(9);
+    assertThat(data.get(1).get("v")).isEqualTo(19);
+
+    RestUtils.delete(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1", host, keyspaceName, tableName),
+        HttpStatus.SC_NO_CONTENT);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1", host, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    assertThat(getResponseWrapper.getCount()).isEqualTo(0);
+  }
+
+  @Test
+  public void deleteRowsMixedClusteringAndCK() throws IOException {
+    setupMixedClusteringTestCase();
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1", host, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    List<Map<String, Object>> data =
+        objectMapper.convertValue(
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(getResponseWrapper.getCount()).isEqualTo(2);
+    assertThat(data.get(0).get("v")).isEqualTo(9);
+    assertThat(data.get(1).get("v")).isEqualTo(19);
+
+    RestUtils.delete(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1/20", host, keyspaceName, tableName),
+        HttpStatus.SC_NO_CONTENT);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1/20", host, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    assertThat(getResponseWrapper.getCount()).isEqualTo(0);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1", host, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    data =
+        objectMapper.convertValue(
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(getResponseWrapper.getCount()).isEqualTo(1);
+    assertThat(data.get(0).get("v")).isEqualTo(9);
   }
 
   @Test
@@ -1515,6 +1627,34 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         HttpStatus.SC_CREATED);
   }
 
+  private void createTableWithMixedClustering(String keyspaceName, String tableName)
+      throws IOException {
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName(tableName);
+
+    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+
+    columnDefinitions.add(new ColumnDefinition("pk0", "int"));
+    columnDefinitions.add(new ColumnDefinition("pk1", "text"));
+    columnDefinitions.add(new ColumnDefinition("pk2", "int"));
+    columnDefinitions.add(new ColumnDefinition("ck0", "int"));
+    columnDefinitions.add(new ColumnDefinition("ck1", "text"));
+    columnDefinitions.add(new ColumnDefinition("v", "int"));
+
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Arrays.asList("pk0", "pk1", "pk2"));
+    primaryKey.setClusteringKey(Arrays.asList("ck0", "ck1"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+        objectMapper.writeValueAsString(tableAdd),
+        HttpStatus.SC_CREATED);
+  }
+
   private void createKeyspace(String keyspaceName) throws IOException {
     String createKeyspaceRequest =
         String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspaceName);
@@ -1564,6 +1704,64 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
+    row = new HashMap<>();
+    row.put("id", "2");
+    row.put("firstName", "Jane");
+    row.put("expense_id", "1");
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
+
     return rowIdentifier;
+  }
+
+  private void setupMixedClusteringTestCase() throws IOException {
+    createKeyspace(keyspaceName);
+    createTableWithMixedClustering(keyspaceName, tableName);
+
+    Map<String, String> row = new HashMap<>();
+    row.put("pk0", "1");
+    row.put("pk1", "one");
+    row.put("pk2", "-1");
+    row.put("ck0", "10");
+    row.put("ck1", "foo");
+    row.put("v", "9");
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
+
+    row = new HashMap<>();
+    row.put("pk0", "1");
+    row.put("pk1", "one");
+    row.put("pk2", "-1");
+    row.put("ck0", "20");
+    row.put("ck1", "foo");
+    row.put("v", "19");
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
+
+    row = new HashMap<>();
+    row.put("pk0", "2");
+    row.put("pk1", "two");
+    row.put("pk2", "-2");
+    row.put("ck0", "10");
+    row.put("ck1", "bar");
+    row.put("v", "18");
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
   }
 }
