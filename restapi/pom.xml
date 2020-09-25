@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.9-SNAPSHOT</version>
+    <version>0.0.11-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.web</groupId>
   <artifactId>restapi</artifactId>
@@ -13,12 +13,13 @@
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
     <jettyVersion>9.4.24.v20191120</jettyVersion>
     <dropwizard.version>2.0.10</dropwizard.version>
+    <junit.version>5.6.2</junit.version>
   </properties>
   <dependencies>
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.9-SNAPSHOT</version>
+      <version>0.0.11-SNAPSHOT</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -30,13 +31,13 @@
     <dependency>
       <groupId>io.stargate.auth</groupId>
       <artifactId>authentication</artifactId>
-      <version>0.0.9-SNAPSHOT</version>
+      <version>0.0.11-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.health</groupId>
       <artifactId>health-checker</artifactId>
-      <version>0.0.9-SNAPSHOT</version>
+      <version>0.0.11-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -116,9 +117,9 @@
       <version>27.0-jre</version>
     </dependency>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.12</version>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -195,6 +196,17 @@
           </archive>
           <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
         </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.2</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit.version}</version>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
   </build>

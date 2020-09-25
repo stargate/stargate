@@ -15,15 +15,11 @@
  */
 package io.stargate.it;
 
-import com.github.peterwippermann.junit4.parameterizedsuite.ParameterContext;
 import io.stargate.starter.Starter;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -38,18 +34,13 @@ import net.bytebuddy.implementation.bind.annotation.AllArguments;
 import net.bytebuddy.implementation.bind.annotation.Origin;
 import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 import net.bytebuddy.matcher.ElementMatchers;
-import org.junit.Before;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.InvalidSyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.FixedHostPortGenericContainer;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
-import org.testcontainers.containers.wait.strategy.Wait;
 
 /**
  * This class does some magic to allow access to OSGi loaded services for testing. The common
@@ -67,49 +58,16 @@ import org.testcontainers.containers.wait.strategy.Wait;
  *
  * <p>Special care is taken to handle collections, futures and enumerations.
  */
-public class BaseOsgiIntegrationTest {
+public class BaseOsgiIntegrationTest extends BaseStorageIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(BaseOsgiIntegrationTest.class);
 
   static {
     unFinal();
   }
 
-  public static final String OPERATING_SYSTEM = System.getProperty("os.name").toLowerCase();
-
-  public static final boolean isWindows = OPERATING_SYSTEM.contains("windows");
-  public static final boolean isLinux = OPERATING_SYSTEM.contains("linux");
-  public static final boolean isMacOSX = OPERATING_SYSTEM.contains("mac os x");
-
-  public static final String SKIP_HOST_NETWORKING_FLAG = "stargate.test_skip_host_networking";
-  public static final String SEED_PORT_OVERRIDE_FLAG = "stargate.test_seed_port_override";
-
-  static GenericContainer backendContainer;
   static Starter stargateStarter;
-  static String datacenter;
-  public static String stargateHost;
+  public static String stargateHost = "127.0.0.11";
   public boolean enableAuth;
-  static String rack;
-
-  @Parameterized.Parameter(0)
-  public String dockerImage;
-
-  @Parameterized.Parameter(1)
-  public Boolean isDse;
-
-  @Parameterized.Parameter(2)
-  public String version;
-
-  @Parameterized.Parameters(
-      name = "{index}: {0}") // Always define a name here! (See "known issues" section)
-  public static Iterable<Object[]> params() {
-    if (ParameterContext.isParameterSet()) {
-      return Collections.singletonList(ParameterContext.getParameter(Object[].class));
-    } else {
-      return Collections.emptyList();
-      // if the test case is not executed as part of a ParameterizedSuite, you can define fallback
-      // parameters
-    }
-  }
 
   /** Remove final from all internal classes to allow for proxying */
   public static void unFinal() {
@@ -283,129 +241,27 @@ public class BaseOsgiIntegrationTest {
     return (T) proxy(p, p.getClass().getClassLoader(), clazz.getClassLoader(), clazz);
   }
 
-  /** Starts a docker backend for the persistance layer */
-  GenericContainer startBackend() throws IOException, InterruptedException {
-    boolean skipHostNetworking = Boolean.getBoolean(SKIP_HOST_NETWORKING_FLAG);
-
-    GenericContainer backend;
-    if (skipHostNetworking) {
-      backend =
-          new FixedHostPortGenericContainer<>(dockerImage)
-              .withFixedExposedPort(7000, 7000)
-              .withEnv("DS_LICENSE", "accept")
-              .waitingFor(
-                  Wait.forLogMessage(".*Starting listening for CQL clients.*", 1)
-                      .withStartupTimeout(java.time.Duration.of(120, ChronoUnit.SECONDS)))
-              .withEnv("BROADCAST_ADDRESS", "127.0.0.1")
-              .withEnv("CASSANDRA_BROADCAST_ADDRESS", "127.0.0.1");
-    } else {
-      backend =
-          new GenericContainer<>(dockerImage)
-              .withEnv("DS_LICENSE", "accept")
-              .waitingFor(
-                  Wait.forLogMessage(".*Starting listening for CQL clients.*", 1)
-                      .withStartupTimeout(java.time.Duration.of(120, ChronoUnit.SECONDS)))
-              .withNetworkMode("host")
-              .withEnv("LISTEN_ADDRESS", "127.0.0.2")
-              .withEnv("CASSANDRA_LISTEN_ADDRESS", "127.0.0.2");
+  @BeforeEach
+  public void startOsgi() throws BundleException {
+    if (stargateStarter != null) {
+      return;
     }
 
-    backend.start();
-    backend.withLogConsumer(
-        new Slf4jLogConsumer(LoggerFactory.getLogger("docker")).withPrefix("docker"));
+    // Start stargate and get the persistance object
+    stargateStarter =
+        new Starter(
+            CLUSTER_NAME,
+            clusterVersion(),
+            stargateHost,
+            seedAddress(),
+            storagePort(),
+            datacenter(),
+            rack(),
+            isDse(),
+            !isDse(),
+            9043);
 
-    logger.info("{} backend started", dockerImage);
-
-    // Setup for graphql test here so that when the graphql service starts up it'll know about the
-    // schema changes
-    backend.execInContainer(
-        "cqlsh",
-        "-e",
-        "CREATE KEYSPACE IF NOT EXISTS betterbotz with replication={'class': 'SimpleStrategy', 'replication_factor':1};");
-    backend.execInContainer(
-        "cqlsh",
-        "-e",
-        "CREATE TABLE IF NOT EXISTS betterbotz.products (id uuid,name text,description text,price decimal,created timestamp,PRIMARY KEY (id, name, price, created)); ");
-    backend.execInContainer(
-        "cqlsh",
-        "-e",
-        "CREATE TABLE IF NOT EXISTS betterbotz.orders (id uuid, prod_id uuid, prod_name text, description text, price decimal, sell_price decimal, customer_name text, address text, PRIMARY KEY (prod_name, customer_name));\n");
-
-    return backend;
-  }
-
-  @Before
-  public void baseSetup() throws BundleException, InterruptedException, IOException {
-    if (backendContainer != null && !backendContainer.getDockerImageName().equals(dockerImage)) {
-      logger.info("Docker image changed {} {}", dockerImage, backendContainer.getDockerImageName());
-
-      if (stargateStarter != null) stargateStarter.stop();
-
-      backendContainer.stop();
-
-      backendContainer = null;
-      stargateStarter = null;
-    }
-
-    if (backendContainer == null) {
-      backendContainer = startBackend();
-
-      if (isDse) {
-        datacenter = "dc1";
-        rack = "rack1";
-      } else {
-        datacenter = "datacenter1";
-        rack = "rack1";
-      }
-
-      stargateHost = "127.0.0.11";
-      String seedHost = "127.0.0.2";
-      Integer seedPort = 7000;
-      // This logic only works with C* >= 4.0
-      if (Boolean.getBoolean(SKIP_HOST_NETWORKING_FLAG)) {
-        String dockerHostIP =
-            backendContainer
-                .execInContainer("bash", "-c", "ip route | awk '/default/ { print $3 }'")
-                .getStdout()
-                .trim();
-
-        if (isMacOSX) {
-          dockerHostIP = "127.0.0.1";
-          String hostIpMac =
-              backendContainer
-                  .execInContainer(
-                      "bash",
-                      "-c",
-                      "getent ahostsv4 host.docker.internal | head -1 | awk '{ print $1 }'")
-                  .getStdout()
-                  .trim();
-
-          // Set the stargate broadcast to be the docker for mac internal host proxy
-          System.setProperty("stargate.broadcast_address", hostIpMac);
-        }
-
-        System.setProperty("stargate.40_seed_port_override", "7000");
-        stargateHost = dockerHostIP;
-        seedHost = "127.0.0.1";
-        seedPort = 7001;
-      }
-
-      // Start stargate and get the persistance object
-      stargateStarter =
-          new Starter(
-              "Test Cluster",
-              version,
-              stargateHost,
-              seedHost,
-              seedPort,
-              datacenter,
-              rack,
-              isDse,
-              !isDse,
-              9043);
-
-      System.setProperty("stargate.auth_api_enable_username_token", "true");
-      stargateStarter.withAuthEnabled(enableAuth).start();
-    }
+    System.setProperty("stargate.auth_api_enable_username_token", "true");
+    stargateStarter.withAuthEnabled(enableAuth).start();
   }
 }

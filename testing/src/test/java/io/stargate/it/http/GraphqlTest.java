@@ -43,6 +43,8 @@ import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
 import io.stargate.db.QueryState;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.schema.Column.Kind;
+import io.stargate.db.datastore.schema.Column.Type;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import java.io.IOException;
@@ -59,22 +61,15 @@ import net.jcip.annotations.NotThreadSafe;
 import okhttp3.OkHttpClient;
 import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.osgi.framework.InvalidSyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@RunWith(Parameterized.class)
 @NotThreadSafe
 public class GraphqlTest extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
-
-  @Rule public TestName name = new TestName();
 
   private DataStore dataStore;
   private String keyspace;
@@ -82,7 +77,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static String host = "http://" + stargateHost;
 
-  @Before
+  @BeforeEach
   public void setup()
       throws InvalidSyntaxException, ExecutionException, InterruptedException, IOException {
     keyspace = "betterbotz";
@@ -92,6 +87,49 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     QueryState queryState = persistence.newQueryState(clientState);
     dataStore = persistence.newDataStore(queryState, null);
     logger.info("{} {} {}", clientState, queryState, dataStore);
+
+    dataStore
+        .query()
+        .create()
+        .keyspace("betterbotz")
+        .ifNotExists()
+        .withReplication("{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }")
+        .execute();
+
+    dataStore.waitForSchemaAgreement();
+
+    dataStore
+        .query()
+        .create()
+        .table("betterbotz", "products")
+        .ifNotExists()
+        .column("id", Type.Uuid, Kind.PartitionKey)
+        .column("name", Type.Text, Kind.Clustering)
+        .column("price", Type.Decimal, Kind.Clustering)
+        .column("created", Type.Timestamp, Kind.Clustering)
+        .column("prod_name", Type.Text)
+        .column("customer_name", Type.Text)
+        .column("description", Type.Text)
+        .execute();
+
+    dataStore.waitForSchemaAgreement();
+
+    dataStore
+        .query()
+        .create()
+        .table("betterbotz", "orders")
+        .ifNotExists()
+        .column("prod_name", Type.Text, Kind.PartitionKey)
+        .column("customer_name", Type.Text, Kind.Clustering)
+        .column("id", Type.Uuid)
+        .column("prod_id", Type.Uuid)
+        .column("address", Type.Text)
+        .column("description", Type.Text)
+        .column("price", Type.Decimal)
+        .column("sell_price", Type.Decimal)
+        .execute();
+
+    dataStore.waitForSchemaAgreement();
 
     dataStore
         .query()
