@@ -25,8 +25,7 @@ import java.util.Map;
 
 public class AllKeyspacesFetcher extends CassandraFetcher<List<Map<String, Object>>> {
 
-  public AllKeyspacesFetcher(
-      Persistence<?, ?, ?> persistence, AuthenticationService authenticationService) {
+  public AllKeyspacesFetcher(Persistence persistence, AuthenticationService authenticationService) {
     super(persistence, authenticationService);
   }
 

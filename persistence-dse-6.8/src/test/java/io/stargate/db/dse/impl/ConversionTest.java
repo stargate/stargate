@@ -3,14 +3,15 @@ package io.stargate.db.dse.impl;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.stargate.db.DefaultQueryOptions;
-import io.stargate.db.QueryOptions;
+import io.stargate.db.ImmutableParameters;
+import io.stargate.db.Parameters;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.ColumnIdentifier;
 import org.apache.cassandra.cql3.ColumnSpecification;
+import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -50,25 +51,20 @@ class ConversionTest {
 
     // Test a case that uses all non-default options (we skip nowInSeconds, which is a protocol v5
     // feature and is not implemented by DSE 6.8 yet).
-    QueryOptions options =
-        DefaultQueryOptions.builder()
-            .consistency(ConsistencyLevel.LOCAL_QUORUM)
-            .skipMetadata(true)
-            .values(values)
-            .names(names)
-            .version(ProtocolVersion.V3)
-            .options(
-                DefaultQueryOptions.SpecificOptions.builder()
-                    .serialConsistency(ConsistencyLevel.LOCAL_SERIAL)
-                    .pageSize(15)
-                    .pagingState(pagingState)
-                    .timestamp(123456)
-                    .nowInSeconds(123)
-                    .keyspace("foobar")
-                    .build())
+    Parameters parameters =
+        ImmutableParameters.builder()
+            .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+            .skipMetadataInResult(true)
+            .protocolVersion(ProtocolVersion.V3)
+            .serialConsistencyLevel(ConsistencyLevel.LOCAL_SERIAL)
+            .pageSize(15)
+            .pagingState(pagingState)
+            .defaultTimestamp(123456)
+            .nowInSeconds(123)
+            .defaultKeyspace("foobar")
             .build();
 
-    org.apache.cassandra.cql3.QueryOptions converted = Conversion.toInternal(options);
+    QueryOptions converted = Conversion.toInternal(values, names, parameters);
 
     // We have to prepare() to check the named parameters are re-ordered properly.
     converted = converted.prepare(asList(spec("v1"), spec("v2")));
@@ -93,8 +89,8 @@ class ConversionTest {
   @Test
   public void testAllDefaultQueryOptionsConversion() {
     // Test a case that uses all non-default options.
-    QueryOptions options = DefaultQueryOptions.builder().build();
-    org.apache.cassandra.cql3.QueryOptions converted = Conversion.toInternal(options);
+    QueryOptions converted =
+        Conversion.toInternal(Collections.emptyList(), null, Parameters.defaults());
 
     QueryState queryState = QueryState.forInternalCalls();
 

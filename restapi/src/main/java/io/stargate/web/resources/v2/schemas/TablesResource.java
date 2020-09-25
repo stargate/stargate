@@ -252,10 +252,7 @@ public class TablesResource {
                   Converters.maybeQuote(tableAdd.getName()),
                   columnDefinitions.toString(),
                   tableOptions);
-          localDB
-              .query(
-                  query.trim(), Optional.of(ConsistencyLevel.LOCAL_QUORUM), Collections.emptyList())
-              .get();
+          localDB.query(query.trim(), Optional.of(ConsistencyLevel.LOCAL_QUORUM)).get();
 
           return Response.status(Response.Status.CREATED)
               .entity(
@@ -317,8 +314,7 @@ public class TablesResource {
                       Converters.maybeQuote(keyspaceName),
                       Converters.maybeQuote(tableName),
                       tableOptions),
-                  Optional.of(ConsistencyLevel.LOCAL_QUORUM),
-                  Collections.emptyList())
+                  Optional.of(ConsistencyLevel.LOCAL_QUORUM))
               .get();
 
           return Response.status(Response.Status.CREATED)

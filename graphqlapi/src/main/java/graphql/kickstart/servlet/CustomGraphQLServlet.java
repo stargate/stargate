@@ -49,17 +49,17 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
   private static final Logger LOG = LoggerFactory.getLogger(CustomGraphQLServlet.class);
   private static final Pattern KEYSPACE_NAME_PATTERN = Pattern.compile("\\w+");
 
-  private final Persistence<?, ?, ?> persistence;
+  private final Persistence persistence;
   private final AuthenticationService authenticationService;
   private final String defaultKeyspace;
 
   private final ConcurrentMap<String, HttpRequestHandler> keyspaceHandlers;
 
   public CustomGraphQLServlet(
-      Persistence<?, ?, ?> persistence, AuthenticationService authenticationService) {
+      Persistence persistence, AuthenticationService authenticationService) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
-    DataStore dataStore = persistence.newDataStore(null, null);
+    DataStore dataStore = DataStore.create(persistence);
     this.defaultKeyspace = findDefaultKeyspace(dataStore);
     this.keyspaceHandlers = initKeyspaceHandlers(persistence, dataStore, authenticationService);
 
@@ -139,8 +139,8 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
       // Grab the oldest, non-system keyspace to use as default.
       Optional<Row> first =
           resultSet.rows().stream()
-              .filter(r -> r.has("wt"))
-              .filter(r -> r.getLong(writetimeColumn) > 0)
+              .filter(r -> !r.isNull("wt"))
+              .filter(r -> r.getLong(writetimeColumn.name()) > 0)
               .filter(
                   r -> {
                     String keyspaceName = r.getString("keyspace_name");
@@ -150,7 +150,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
                         && !keyspaceName.startsWith("system_")
                         && !keyspaceName.startsWith("dse_");
                   })
-              .min(Comparator.comparing(r -> r.getLong(writetimeColumn)));
+              .min(Comparator.comparing(r -> r.getLong(writetimeColumn.name())));
 
       String defaultKeyspace = first.map(row -> row.getString("keyspace_name")).orElse(null);
       LOG.debug("Using default keyspace {}", defaultKeyspace);
@@ -162,9 +162,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
   }
 
   private static ConcurrentMap<String, HttpRequestHandler> initKeyspaceHandlers(
-      Persistence<?, ?, ?> persistence,
-      DataStore dataStore,
-      AuthenticationService authenticationService) {
+      Persistence persistence, DataStore dataStore, AuthenticationService authenticationService) {
 
     ConcurrentMap<String, HttpRequestHandler> map = new ConcurrentHashMap<>();
 
@@ -192,7 +190,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
           String.format(reason, reasonArguments));
     }
     try {
-      DataStore dataStore = persistence.newDataStore(null, null);
+      DataStore dataStore = DataStore.create(persistence);
       Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
       keyspaceHandlers.put(
           keyspaceName, buildKeyspaceHandler(keyspace, persistence, authenticationService));
@@ -203,9 +201,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
   }
 
   private static HttpRequestHandler buildKeyspaceHandler(
-      Keyspace keyspace,
-      Persistence<?, ?, ?> persistence,
-      AuthenticationService authenticationService) {
+      Keyspace keyspace, Persistence persistence, AuthenticationService authenticationService) {
     GraphQLSchema schema = SchemaFactory.newDmlSchema(persistence, authenticationService, keyspace);
     GraphQLConfiguration configuration =
         GraphQLConfiguration.with(schema)

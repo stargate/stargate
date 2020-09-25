@@ -302,8 +302,7 @@ public class ColumnsResource {
                       Converters.maybeQuote(keyspaceName),
                       Converters.maybeQuote(tableName),
                       alterInstructions),
-                  Optional.of(ConsistencyLevel.LOCAL_QUORUM),
-                  Collections.emptyList())
+                  Optional.of(ConsistencyLevel.LOCAL_QUORUM))
               .get();
 
           return Response.status(Response.Status.OK)

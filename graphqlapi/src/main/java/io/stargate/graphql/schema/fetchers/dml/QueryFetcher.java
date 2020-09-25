@@ -40,7 +40,7 @@ public class QueryFetcher extends DmlFetcher {
   public QueryFetcher(
       Table table,
       NameMapping nameMapping,
-      Persistence<?, ?, ?> persistence,
+      Persistence persistence,
       AuthenticationService authenticationService) {
     super(table, nameMapping, persistence, authenticationService);
   }

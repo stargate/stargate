@@ -198,7 +198,7 @@ public class RowResource {
                   .execute();
 
           final List<Map<String, Object>> rows =
-              r.rows().stream().map(Converters::row2Map).collect(Collectors.toList());
+              r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
 
           String newPagingState =
               r.getPagingState() != null
@@ -315,7 +315,7 @@ public class RowResource {
 
           ResultSet r = selectQuery.get();
           final List<Map<String, Object>> rows =
-              r.rows().stream().map(Converters::row2Map).collect(Collectors.toList());
+              r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
 
           String newPagingState =
               r.getPagingState() != null

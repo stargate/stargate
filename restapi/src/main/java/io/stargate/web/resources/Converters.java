@@ -72,7 +72,7 @@ public class Converters {
     final Map<String, Object> map = new HashMap<>(defs.size());
     for (final Column column : defs) {
 
-      map.put(column.name(), transformObjectToJavaObject(row.getValue(column.name())));
+      map.put(column.name(), transformObjectToJavaObject(row.getObject(column.name())));
     }
     return map;
   }

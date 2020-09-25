@@ -56,11 +56,8 @@ import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
-import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.ExecutionInfo;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.datastore.query.Parameter;
@@ -129,11 +126,8 @@ public abstract class PersistenceTest {
   public void setup(TestInfo testInfo, ClusterConnectionInfo backend) {
     this.backend = backend;
 
-    Persistence persistence = persistence();
-    ClientState clientState = persistence.newClientState("");
-    QueryState queryState = persistence.newQueryState(clientState);
-    dataStore = persistence.newDataStore(queryState, null);
-    logger.info("{} {} {}", clientState, queryState, dataStore);
+    dataStore = DataStore.create(persistence());
+    logger.info("{}", dataStore);
 
     Optional<String> name = testInfo.getTestMethod().map(Method::getName);
     assertThat(name).isPresent();
@@ -423,7 +417,7 @@ public abstract class PersistenceTest {
               .execute()
               .one();
 
-      assertThat(row.getValue(columnName(pair.getValue0()))).isEqualTo(pair.getValue1());
+      assertThat(row.getObject(columnName(pair.getValue0()))).isEqualTo(pair.getValue1());
     }
   }
 
@@ -487,7 +481,7 @@ public abstract class PersistenceTest {
                     .execute()
                     .one();
             assertThat(row).isNotNull();
-            assertThat(row.getValue(c)).isEqualTo(v);
+            assertThat(row.getObject(c.name())).isEqualTo(v);
           } catch (Exception e) {
             fail(e.getMessage());
           }
@@ -580,7 +574,7 @@ public abstract class PersistenceTest {
         dataStore.query().select().star().from(ks.name(), table).where("x", Eq, 1).execute().rows();
     assertThat(rows).isNotEmpty();
     Row row = rows.get(0);
-    TupleValue tupleValue = row.getTuple("my_tuple");
+    TupleValue tupleValue = row.getTupleValue("my_tuple");
     assertThat(tupleValue).isNotNull();
     for (int i = 0; i < columns.size(); i++) {
       Column column = columns.get(i);
@@ -891,33 +885,20 @@ public abstract class PersistenceTest {
     ResultSet resultSet = dataStore.query().select().star().from(keyspace, table).execute();
 
     Iterator<Row> it = resultSet.iterator();
-    iterateOverResults(resultSet, it, knownValues, pageSize, totalResultSize); // page 1
-    iterateOverResults(resultSet, it, knownValues, pageSize, totalResultSize - pageSize); // page 2
-    iterateOverResults(resultSet, it, knownValues, 3, totalResultSize - (pageSize * 2)); // page 3
+    iterateOverResults(it, knownValues, pageSize); // page 1
+    iterateOverResults(it, knownValues, pageSize); // page 2
+    iterateOverResults(it, knownValues, 3); // page 3
 
-    if (dataStore.getClass().getSimpleName().equalsIgnoreCase("InternalDataStore")) {
-      // page should be exhausted at the end
-      assertThat(resultSet.size()).isEqualTo(0);
-    }
+    assertThat(it).isExhausted();
 
     // we should have seen all values
     assertThat(knownValues).isEmpty();
   }
 
-  private void iterateOverResults(
-      ResultSet resultSet,
-      Iterator<Row> it,
-      Set<Integer> knownValues,
-      int pageSize,
-      int totalResultSize) {
+  private void iterateOverResults(Iterator<Row> it, Set<Integer> knownValues, int pageSize) {
     for (int i = 1; i <= pageSize; i++) {
       assertThat(knownValues.remove(it.next().getInt("a"))).isTrue();
-      // for internal paging the size is totalSize - elementsAlreadyFetched
-      assertThat(resultSet.size()).isEqualTo(totalResultSize - i);
     }
-
-    // for internal paging it will be totalSize - elementsAlreadyFetched
-    assertThat(resultSet.size()).isEqualTo(totalResultSize - pageSize);
   }
 
   @Test
@@ -997,7 +978,7 @@ public abstract class PersistenceTest {
 
     row = dataStore.query().select().star().from(keyspace, table).execute().one();
     assertThat(row.getBoolean("graph")).isTrue();
-    assertThat(row.has("name")).isEqualTo(false);
+    assertThat(row.isNull("name")).isEqualTo(true);
   }
 
   @Test
@@ -1119,14 +1100,6 @@ public abstract class PersistenceTest {
     java.util.List<Row> rows = resultSet.rows();
     assertThat(rows).isNotEmpty();
     assertThat(rows.size()).isEqualTo(1);
-
-    ExecutionInfo executionInfo = resultSet.getExecutionInfo();
-    assertThat(executionInfo).isNotNull();
-    assertThat(executionInfo.count()).isEqualTo(1);
-    assertThat(executionInfo.durationNanos()).isGreaterThan(1);
-    Table tbl = dataStore.schema().keyspace(ks.name()).table(this.table);
-    assertThat(executionInfo.preparedCQL())
-        .isEqualTo(String.format("SELECT * FROM %s.%s WHERE x = ?", ks.cqlName(), tbl.cqlName()));
   }
 
   @Test
@@ -1148,7 +1121,7 @@ public abstract class PersistenceTest {
     ResultSet select = dataStore.query().select().star().from(keyspace, table).execute();
     assertThat(select.waitedForSchemaAgreement()).isFalse();
 
-    assertThat(select.isEmpty()).isFalse();
+    assertThat(select.hasNoMoreFetchedRows()).isFalse();
     assertThat(select.one().getBoolean("graph")).isTrue();
   }
 

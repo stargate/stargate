@@ -25,42 +25,10 @@ public interface Parameter<T> extends Comparable<Parameter> {
   Optional<Object> value();
 
   Object UNSET =
-      new SpecialTermMarker() {
-        static final String term = "<unset>";
-
+      new Object() {
         @Override
         public String toString() {
-          return term;
-        }
-
-        @Override
-        public int hashCode() {
-          return term.hashCode();
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-          return obj != null && this.toString().equals(obj.toString());
-        }
-      };
-
-  Object NULL =
-      new SpecialTermMarker() {
-        static final String term = "<null>";
-
-        @Override
-        public String toString() {
-          return term;
-        }
-
-        @Override
-        public int hashCode() {
-          return term.hashCode();
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-          return obj != null && this.toString().equals(obj.toString());
+          return "<unset>";
         }
       };
 

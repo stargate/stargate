@@ -27,6 +27,7 @@ import com.github.misberner.duzzt.annotations.DSLAction;
 import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
 import com.github.misberner.duzzt.annotations.SubExpr;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.PreparedStatement;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.CollectionIndexingType;
@@ -106,11 +107,11 @@ public class QueryBuilderImpl {
   private static final String ANONYMOUS_LABEL = "ANONYMOUS_LABEL";
   private final DataStore dataStore;
   private Schema schema;
-  private StringBuilder query = new StringBuilder();
-  private List<Parameter<?>> parameters = new ArrayList<>();
-  private List<Column> columns = new ArrayList<>();
-  private List<Column> addColumns = new ArrayList<>();
-  private List<Column> dropColumns = new ArrayList<>();
+  private final StringBuilder query = new StringBuilder();
+  private final List<Parameter<?>> parameters = new ArrayList<>();
+  private final List<Column> columns = new ArrayList<>();
+  private final List<Column> addColumns = new ArrayList<>();
+  private final List<Column> dropColumns = new ArrayList<>();
   private List<Where<?>> wheres = new ArrayList<>();
   private boolean isCreate;
   private boolean isAlter;
@@ -550,11 +551,7 @@ public class QueryBuilderImpl {
   }
 
   public void value(Column column, Object value) {
-    value(
-        ImmutableValue.builder()
-            .column(column)
-            .value(value == null ? Parameter.NULL : value)
-            .build());
+    value(ImmutableValue.builder().column(column).value(Optional.ofNullable(value)).build());
   }
 
   public void value(Value<?> value) {
@@ -735,12 +732,14 @@ public class QueryBuilderImpl {
   }
 
   public CompletableFuture<ResultSet> future() {
-    return prepare().execute(dataStore);
+    return prepare().thenCompose(PreparedStatement::execute);
   }
 
   @DSLAction
   public ResultSet execute(Object... args) throws ExecutionException, InterruptedException {
-    return prepare().execute(dataStore, Optional.ofNullable(this.consistencyLevel), args).get();
+    return prepare()
+        .thenCompose(p -> p.execute(Optional.ofNullable(this.consistencyLevel), args))
+        .get();
   }
 
   @DSLAction
@@ -760,15 +759,11 @@ public class QueryBuilderImpl {
     parameters.add(this.ttl);
   }
 
-  public MixinPreparedStatement<?> prepare() {
+  CompletableFuture<MixinPreparedStatement> prepare() {
     return createStatement();
   }
 
-  public <T> MixinPreparedStatement<T> prepare(Class<T> bindingClass) {
-    return (MixinPreparedStatement<T>) prepare();
-  }
-
-  protected MixinPreparedStatement createStatement() {
+  protected CompletableFuture<MixinPreparedStatement> createStatement() {
     schema = dataStore.schema();
     if (isKeyspace && isCreate) {
       return createKeyspace();
@@ -830,7 +825,7 @@ public class QueryBuilderImpl {
     throw new AssertionError("Unknown query type");
   }
 
-  private MixinPreparedStatement createType() {
+  private CompletableFuture<MixinPreparedStatement> createType() {
     query.append("CREATE TYPE ");
     if (ifNotExists) {
       query.append("IF NOT EXISTS ");
@@ -846,15 +841,18 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  protected MixinPreparedStatement<?> prepareInternal(String cql, Optional<Index> index) {
-    return new MixinPreparedStatement(dataStore.prepare(cql, index), parameters);
+  protected CompletableFuture<MixinPreparedStatement> prepareInternal(
+      String cql, Optional<Index> index) {
+    return dataStore
+        .prepare(cql, index)
+        .thenApply(prepared -> new MixinPreparedStatement(prepared, parameters));
   }
 
-  protected MixinPreparedStatement<?> prepareInternal(String cql) {
+  protected CompletableFuture<MixinPreparedStatement> prepareInternal(String cql) {
     return prepareInternal(cql, Optional.empty());
   }
 
-  private MixinPreparedStatement dropType() {
+  private CompletableFuture<MixinPreparedStatement> dropType() {
     query.append("DROP TYPE ");
     if (ifExists) {
       query.append("IF EXISTS ");
@@ -885,7 +883,7 @@ public class QueryBuilderImpl {
         type.name());
   }
 
-  private MixinPreparedStatement dropKeyspace() {
+  private CompletableFuture<MixinPreparedStatement> dropKeyspace() {
     query.append("DROP KEYSPACE ");
     if (ifExists) {
       query.append("IF EXISTS ");
@@ -896,7 +894,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private MixinPreparedStatement alterKeyspace() {
+  private CompletableFuture<MixinPreparedStatement> alterKeyspace() {
     checkKeyspace();
     query.append("ALTER KEYSPACE ");
     query.append(keyspace.cqlName());
@@ -916,7 +914,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private MixinPreparedStatement createKeyspace() {
+  private CompletableFuture<MixinPreparedStatement> createKeyspace() {
     query.append("CREATE KEYSPACE ");
     if (ifNotExists) {
       query.append("IF NOT EXISTS ");
@@ -935,7 +933,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private MixinPreparedStatement deleteQuery() {
+  private CompletableFuture<MixinPreparedStatement> deleteQuery() {
     checkTable();
     query.append("DELETE ");
 
@@ -956,7 +954,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private MixinPreparedStatement insertQuery() {
+  private CompletableFuture<MixinPreparedStatement> insertQuery() {
     checkTable();
     query.append("INSERT INTO ");
     qualifiedName(keyspace, table);
@@ -974,7 +972,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private MixinPreparedStatement updateQuery() {
+  private CompletableFuture<MixinPreparedStatement> updateQuery() {
     checkTable();
     query.append("UPDATE ");
     qualifiedName(keyspace, table);
@@ -998,7 +996,7 @@ public class QueryBuilderImpl {
     return Integer.compare(left.priority(), right.priority());
   }
 
-  protected MixinPreparedStatement selectQuery() {
+  protected CompletableFuture<MixinPreparedStatement> selectQuery() {
     checkKeyspace();
     setTableOrMaterializedView();
     AbstractTable queryable = getTableOrMaterializedView();
@@ -1025,7 +1023,8 @@ public class QueryBuilderImpl {
     return ImmutableAndWhere.builder().addAllChildren((List) wheres).build();
   }
 
-  private MixinPreparedStatement createSelectQuery(Table table, Optional<Index> selectedIndex) {
+  private CompletableFuture<MixinPreparedStatement> createSelectQuery(
+      Table table, Optional<Index> selectedIndex) {
     AbstractTable queryable =
         selectedIndex
             .map(i -> i instanceof MaterializedView ? ((AbstractTable) i) : table)
@@ -1274,7 +1273,7 @@ public class QueryBuilderImpl {
         .findFirst();
   }
 
-  private MixinPreparedStatement dropMaterializedView() {
+  private CompletableFuture<MixinPreparedStatement> dropMaterializedView() {
     checkKeyspace();
     query.append("DROP MATERIALIZED VIEW ");
     if (ifExists) {
@@ -1287,7 +1286,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private MixinPreparedStatement createMaterializedView() {
+  private CompletableFuture<MixinPreparedStatement> createMaterializedView() {
     checkColumns();
     checkTable();
     Table sourceTable = schema.keyspace(keyspace.name()).table(this.table.name());
@@ -1435,7 +1434,7 @@ public class QueryBuilderImpl {
     }
   }
 
-  private MixinPreparedStatement dropIndex() {
+  private CompletableFuture<MixinPreparedStatement> dropIndex() {
     checkKeyspace();
     query.append("DROP INDEX ");
     if (ifExists) {
@@ -1447,7 +1446,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private MixinPreparedStatement createIndex() {
+  private CompletableFuture<MixinPreparedStatement> createIndex() {
     checkColumns();
     Column c = columns.get(0);
     checkIndexTypeIfCollection(c);
@@ -1494,7 +1493,7 @@ public class QueryBuilderImpl {
     }
   }
 
-  private MixinPreparedStatement dropTable() {
+  private CompletableFuture<MixinPreparedStatement> dropTable() {
     checkKeyspace();
     query.append("DROP TABLE ");
     if (ifExists) {
@@ -1506,7 +1505,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private MixinPreparedStatement truncateTable() {
+  private CompletableFuture<MixinPreparedStatement> truncateTable() {
     checkKeyspace();
     checkTable();
     query.append("TRUNCATE ");
@@ -1514,7 +1513,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private MixinPreparedStatement alterTable() {
+  private CompletableFuture<MixinPreparedStatement> alterTable() {
     checkTable();
     query.append("ALTER TABLE ");
     qualifiedName(keyspace, table);
@@ -1553,7 +1552,7 @@ public class QueryBuilderImpl {
     return "writetime(" + writeTimeColumnName + ")";
   }
 
-  private MixinPreparedStatement renameGraphLabel() {
+  private CompletableFuture<MixinPreparedStatement> renameGraphLabel() {
     query.append(" RENAME ");
     if (isRenameVertexLabel) {
       query.append("VERTEX LABEL");
@@ -1568,7 +1567,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private MixinPreparedStatement createTable() {
+  private CompletableFuture<MixinPreparedStatement> createTable() {
     checkKeyspace();
     query.append("CREATE TABLE ");
     if (ifNotExists) {

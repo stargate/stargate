@@ -13,9 +13,7 @@ import graphql.GraphQLError;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
-import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
@@ -35,20 +33,12 @@ public abstract class GraphQlTestBase {
 
   protected GraphQL graphQl;
 
-  @Mock protected Persistence<?, ?, ?> persistence;
+  @Mock protected Persistence persistence;
   @Mock protected AuthenticationService authenticationService;
   @Mock protected HTTPAwareContextImpl context;
   @Mock protected DataStore dataStore;
 
   @Mock private StoredCredentials storedCredentials;
-
-  @SuppressWarnings("rawtypes")
-  @Mock
-  private ClientState clientState;
-
-  @SuppressWarnings("rawtypes")
-  @Mock
-  private QueryState queryState;
 
   @Captor protected ArgumentCaptor<String> queryCaptor;
 
@@ -63,9 +53,7 @@ public abstract class GraphQlTestBase {
       when(context.getAuthToken()).thenReturn(token);
       when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
       when(storedCredentials.getRoleName()).thenReturn(roleName);
-      when(persistence.newClientState(roleName)).thenReturn(clientState);
-      when(persistence.newQueryState(clientState)).thenReturn(queryState);
-      when(persistence.newDataStore(queryState, null)).thenReturn(dataStore);
+      when(DataStore.create(persistence, roleName)).thenReturn(dataStore);
     } catch (Exception e) {
       fail("Unexpected exception while mocking authentication", e);
     }

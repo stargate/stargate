@@ -15,14 +15,17 @@
  */
 package io.stargate.db.datastore;
 
-import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptibles;
+import io.stargate.db.AuthenticatedUser;
+import io.stargate.db.Parameters;
+import io.stargate.db.Persistence;
 import io.stargate.db.datastore.query.QueryBuilder;
 import io.stargate.db.schema.Index;
 import io.stargate.db.schema.Schema;
-import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /**
@@ -30,8 +33,28 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
  * methods we have a fighting chance of being able to unit test without starting C*.
  */
 public interface DataStore {
-  /** The fetch size for SELECT statements */
-  int DEFAULT_ROWS_PER_PAGE = 1000;
+
+  static DataStore create(Persistence.Connection connection, @Nonnull Parameters queryParameters) {
+    Objects.requireNonNull(queryParameters);
+    return new PersistenceBackedDataStore(connection, queryParameters);
+  }
+
+  static DataStore create(
+      Persistence persistence, @Nullable String userName, @Nonnull Parameters queryParameters) {
+    Persistence.Connection connection = persistence.newConnection();
+    if (userName != null && !userName.isEmpty()) {
+      connection.login(AuthenticatedUser.of(userName));
+    }
+    return create(connection, queryParameters);
+  }
+
+  static DataStore create(Persistence persistence, @Nullable String userName) {
+    return create(persistence, userName, Parameters.defaults());
+  }
+
+  static DataStore create(Persistence persistence) {
+    return create(persistence, null);
+  }
 
   /** Create a query using the DSL builder. */
   default QueryBuilder query() {
@@ -45,19 +68,11 @@ public interface DataStore {
   CompletableFuture<ResultSet> query(
       String cql, Optional<ConsistencyLevel> consistencyLevel, Object... parameters);
 
-  default PreparedStatement prepare(String cql) {
+  default CompletableFuture<PreparedStatement> prepare(String cql) {
     return prepare(cql, Optional.empty());
   }
 
-  PreparedStatement prepare(String cql, Optional<Index> index);
-
-  default CompletableFuture<ResultSet> processBatch(
-      List<PreparedStatement> statements,
-      List<Object[]> vals,
-      Optional<ConsistencyLevel> consistencyLevel) {
-    throw new UnsupportedOperationException(
-        "Batching not supported on " + getClass().getSimpleName());
-  }
+  CompletableFuture<PreparedStatement> prepare(String cql, Optional<Index> index);
 
   /**
    * Returns the current schema.
@@ -66,17 +81,9 @@ public interface DataStore {
    */
   Schema schema();
 
-  /** Wait for schema to agree across the cluster */
-  default void waitForSchemaAgreement() {
-    for (int count = 0; count < 100; count++) {
-      if (isInSchemaAgreement()) {
-        return;
-      }
-      Uninterruptibles.sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
-    }
-    throw new IllegalStateException("Failed to reach schema agreement after 20 seconds.");
-  }
-
   /** Returns true if in schema agreement */
   boolean isInSchemaAgreement();
+
+  /** Wait for schema to agree across the cluster */
+  void waitForSchemaAgreement();
 }

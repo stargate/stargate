@@ -1,7 +1,6 @@
 package io.stargate.db.cassandra.impl;
 
 import com.google.common.collect.Iterables;
-import io.stargate.db.cassandra.datastore.DataStoreUtil;
 import io.stargate.db.datastore.common.AbstractCassandraSchemaConverter;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
@@ -69,7 +68,7 @@ public class SchemaConverter
 
   @Override
   protected ColumnType columnType(ColumnDefinition column) {
-    return DataStoreUtil.getTypeFromInternal(column.type);
+    return Conversion.getTypeFromInternal(column.type);
   }
 
   @Override
@@ -123,7 +122,7 @@ public class SchemaConverter
 
   @Override
   protected List<Column> userTypeFields(UserType userType) {
-    return DataStoreUtil.getUDTColumns(userType);
+    return Conversion.getUDTColumns(userType);
   }
 
   @Override
