@@ -400,12 +400,15 @@ public class RowResource {
   private List<Where<?>> buildWhereClause(PathSegment id, Table tableMetadata) {
     List<String> values = idFromPath(id);
 
-    final List<Column> keys = tableMetadata.partitionKeyColumns();
-    if (keys.size() != values.size()) {
-      throw new IllegalArgumentException("not enough partition keys provided");
+    final List<Column> keys = tableMetadata.primaryKeyColumns();
+    if (keys.size() < values.size()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid number of key values required (%s). All partition key columns values are required plus 0..all clustering columns values in proper order.",
+              keys.size()));
     }
 
-    return IntStream.range(0, keys.size())
+    return IntStream.range(0, values.size())
         .mapToObj(i -> Converters.idToWhere(values.get(i), keys.get(i).name(), tableMetadata))
         .collect(Collectors.toList());
   }

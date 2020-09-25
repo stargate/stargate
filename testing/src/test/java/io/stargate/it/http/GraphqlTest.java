@@ -47,6 +47,7 @@ import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
+import io.stargate.it.storage.ClusterConnectionInfo;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -76,6 +77,10 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   private static String authToken;
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static String host = "http://" + stargateHost;
+
+  public GraphqlTest(ClusterConnectionInfo backend) {
+    super(backend);
+  }
 
   @BeforeEach
   public void setup()

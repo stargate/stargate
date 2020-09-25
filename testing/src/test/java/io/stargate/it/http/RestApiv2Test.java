@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
+import io.stargate.it.storage.ClusterConnectionInfo;
 import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.GetResponseWrapper;
@@ -58,6 +59,10 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   private static String authToken;
   private static String host = "http://" + stargateHost;
   private static final ObjectMapper objectMapper = new ObjectMapper();
+
+  public RestApiv2Test(ClusterConnectionInfo backend) {
+    super(backend);
+  }
 
   @BeforeEach
   public void setup(TestInfo testInfo) throws IOException {
@@ -378,7 +383,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(1);
     assertThat(getResponseWrapper.getPageState()).isNotEmpty();
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(1);
   }
@@ -432,7 +437,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         objectMapper.convertValue(
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(2);
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(2);
   }
@@ -453,7 +458,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     List<Map<String, Object>> data =
         objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
     assertThat(data.size()).isEqualTo(2);
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(2);
   }
@@ -538,7 +543,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         objectMapper.convertValue(
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(2);
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(2);
   }
@@ -561,7 +566,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(1);
     assertThat(getResponseWrapper.getPageState()).isNotEmpty();
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(1);
   }
@@ -643,7 +648,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     List<Map<String, Object>> data =
         objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
     assertThat(data.size()).isEqualTo(2);
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(2);
   }
@@ -664,9 +669,10 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         objectMapper.convertValue(
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(2);
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
-    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("expense_id")).isEqualTo(1);
+    assertThat(data.get(1).get("id")).isEqualTo(1);
+    assertThat(data.get(1).get("expense_id")).isEqualTo(2);
   }
 
   @Test
@@ -685,7 +691,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         objectMapper.convertValue(
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(1);
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(2);
   }
@@ -900,6 +906,102 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void deleteRowClustering() throws IOException {
+    String rowIdentifier = setupClusteringTestCase();
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+            HttpStatus.SC_OK);
+
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    List<Map<String, Object>> data =
+        objectMapper.convertValue(
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(getResponseWrapper.getCount()).isEqualTo(2);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
+    assertThat(data.get(0).get("expense_id")).isEqualTo(1);
+    assertThat(data.get(1).get("id")).isEqualTo(1);
+    assertThat(data.get(1).get("expense_id")).isEqualTo(2);
+
+    RestUtils.delete(
+        authToken,
+        String.format(
+            "%s:8082/v2/keyspaces/%s/%s/%s/1", host, keyspaceName, tableName, rowIdentifier),
+        HttpStatus.SC_NO_CONTENT);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+            HttpStatus.SC_OK);
+
+    getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    data =
+        objectMapper.convertValue(
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(getResponseWrapper.getCount()).isEqualTo(1);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
+    assertThat(data.get(0).get("expense_id")).isEqualTo(2);
+  }
+
+  @Test
+  public void deleteRowByPartitionKey() throws IOException {
+    String rowIdentifier = setupClusteringTestCase();
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+            HttpStatus.SC_OK);
+
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    List<Map<String, Object>> data =
+        objectMapper.convertValue(
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(getResponseWrapper.getCount()).isEqualTo(2);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
+    assertThat(data.get(0).get("expense_id")).isEqualTo(1);
+    assertThat(data.get(1).get("id")).isEqualTo(1);
+    assertThat(data.get(1).get("expense_id")).isEqualTo(2);
+
+    RestUtils.delete(
+        authToken,
+        String.format(
+            "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+        HttpStatus.SC_NO_CONTENT);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+            HttpStatus.SC_OK);
+
+    getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    assertThat(getResponseWrapper.getCount()).isEqualTo(0);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, "2"),
+            HttpStatus.SC_OK);
+
+    objectMapper.readValue(body, GetResponseWrapper.class);
+    getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    data =
+        objectMapper.convertValue(
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(getResponseWrapper.getCount()).isEqualTo(1);
+    assertThat(data.get(0).get("id")).isEqualTo(2);
+    assertThat(data.get(0).get("firstName")).isEqualTo("Jane");
+  }
+
+  @Test
   public void getColumns() throws IOException {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
@@ -918,7 +1020,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         .anySatisfy(
             value ->
                 assertThat(value)
-                    .isEqualToComparingFieldByField(new ColumnDefinition("id", "Uuid", false)));
+                    .isEqualToComparingFieldByField(new ColumnDefinition("id", "uuid", false)));
   }
 
   @Test
@@ -939,10 +1041,32 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         .anySatisfy(
             value ->
                 assertThat(value)
-                    .isEqualToComparingFieldByField(new ColumnDefinition("id", "Uuid", false)));
+                    .isEqualToComparingFieldByField(new ColumnDefinition("id", "uuid", false)));
   }
 
   @Test
+  public void getColumnsComplex() throws IOException {
+    createKeyspace(keyspaceName);
+    createComplexTable(keyspaceName, tableName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    List<ColumnDefinition> columns =
+        objectMapper.convertValue(
+            response.getData(), new TypeReference<List<ColumnDefinition>>() {});
+    assertThat(columns)
+        .anySatisfy(
+            value ->
+                assertThat(value)
+                    .isEqualToComparingFieldByField(
+                        new ColumnDefinition("col2", "frozen<set<boolean>>", false)));
+  }
+
   public void getColumnsBadTable() throws IOException {
     String body =
         RestUtils.get(
@@ -986,7 +1110,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             HttpStatus.SC_OK);
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     ColumnDefinition column = objectMapper.convertValue(response.getData(), ColumnDefinition.class);
-    assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "Int", false));
+    assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "int", false));
   }
 
   @Test
@@ -1020,10 +1144,28 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "age"),
             HttpStatus.SC_OK);
     ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "Int", false));
+    assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "int", false));
   }
 
   @Test
+  public void getColumnComplex() throws IOException {
+    createKeyspace(keyspaceName);
+    createComplexTable(keyspaceName, tableName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
+                host, keyspaceName, tableName, "col1"),
+            HttpStatus.SC_OK);
+    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    ColumnDefinition column = objectMapper.convertValue(response.getData(), ColumnDefinition.class);
+    assertThat(column)
+        .isEqualToComparingFieldByField(
+            new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
+  }
+
   public void getColumnBadTable() throws IOException {
     createKeyspace(keyspaceName);
 
@@ -1060,7 +1202,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
 
-    ColumnDefinition columnDefinition = new ColumnDefinition("name", "Varchar");
+    ColumnDefinition columnDefinition = new ColumnDefinition("name", "varchar");
 
     String body =
         RestUtils.post(
@@ -1109,7 +1251,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     createKeyspace(keyspaceName);
     createTableWithClustering(keyspaceName, tableName);
 
-    ColumnDefinition columnDefinition = new ColumnDefinition("balance", "Float", true);
+    ColumnDefinition columnDefinition = new ColumnDefinition("balance", "float", true);
 
     String body =
         RestUtils.post(
@@ -1138,7 +1280,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
 
-    ColumnDefinition columnDefinition = new ColumnDefinition("identifier", "Uuid");
+    ColumnDefinition columnDefinition = new ColumnDefinition("identifier", "uuid");
 
     String body =
         RestUtils.put(
@@ -1323,13 +1465,37 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         HttpStatus.SC_CREATED);
   }
 
+  private void createComplexTable(String keyspaceName, String tableName) throws IOException {
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName(tableName);
+
+    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+
+    columnDefinitions.add(new ColumnDefinition("pk0", "uuid"));
+    columnDefinitions.add(new ColumnDefinition("col1", "frozen<map<date, varchar>>"));
+    columnDefinitions.add(new ColumnDefinition("col2", "frozen<set<boolean>>"));
+    columnDefinitions.add(new ColumnDefinition("col3", "frozen<tuple<duration, inet>>"));
+
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Collections.singletonList("pk0"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+        objectMapper.writeValueAsString(tableAdd),
+        HttpStatus.SC_CREATED);
+  }
+
   private void createTableWithClustering(String keyspaceName, String tableName) throws IOException {
     TableAdd tableAdd = new TableAdd();
     tableAdd.setName(tableName);
 
     List<ColumnDefinition> columnDefinitions = new ArrayList<>();
 
-    columnDefinitions.add(new ColumnDefinition("id", "uuid"));
+    columnDefinitions.add(new ColumnDefinition("id", "int"));
     columnDefinitions.add(new ColumnDefinition("lastName", "text"));
     columnDefinitions.add(new ColumnDefinition("firstName", "text"));
     columnDefinitions.add(new ColumnDefinition("age", "int", true));
@@ -1364,7 +1530,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     createKeyspace(keyspaceName);
     createTableWithClustering(keyspaceName, tableName);
 
-    String rowIdentifier = UUID.randomUUID().toString();
+    String rowIdentifier = "1";
     Map<String, String> row = new HashMap<>();
     row.put("id", rowIdentifier);
     row.put("firstName", "John");
@@ -1380,6 +1546,17 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     row.put("id", rowIdentifier);
     row.put("firstName", "John");
     row.put("expense_id", "2");
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
+
+    row = new HashMap<>();
+    row.put("id", "2");
+    row.put("firstName", "Jane");
+    row.put("expense_id", "1");
 
     RestUtils.post(
         authToken,
