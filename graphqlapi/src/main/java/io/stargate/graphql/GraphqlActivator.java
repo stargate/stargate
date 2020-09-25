@@ -17,127 +17,102 @@ package io.stargate.graphql;
 
 import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
+import io.stargate.health.metrics.api.Metrics;
+import net.jcip.annotations.GuardedBy;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.Filter;
 import org.osgi.framework.InvalidSyntaxException;
-import org.osgi.framework.ServiceEvent;
-import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceReference;
+import org.osgi.util.tracker.ServiceTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Activator for the web bundle */
-public class GraphqlActivator implements BundleActivator, ServiceListener {
-  private static final Logger log = LoggerFactory.getLogger(GraphqlActivator.class);
+public class GraphqlActivator implements BundleActivator {
+  private static final Logger LOG = LoggerFactory.getLogger(GraphqlActivator.class);
 
-  private BundleContext context;
-  private ServiceReference persistenceReference;
-  private ServiceReference authenticationReference;
+  private static final String AUTH_IDENTIFIER =
+      System.getProperty("stargate.auth_id", "AuthTableBasedService");
+  private static final String PERSISTENCE_IDENTIFIER =
+      System.getProperty("stargate.persistence_id", "CassandraPersistence");
+  private static final String DEPENDENCIES_FILTER =
+      String.format(
+          "(|(AuthIdentifier=%s)(Identifier=%s)(objectClass=%s))",
+          AUTH_IDENTIFIER, PERSISTENCE_IDENTIFIER, Metrics.class.getName());
+
+  @GuardedBy("this")
+  private Tracker tracker;
+
+  @GuardedBy("this")
   private WebImpl web;
 
-  static String AUTH_IDENTIFIER = System.getProperty("stargate.auth_id", "AuthTableBasedService");
-  static String PERSISTENCE_IDENTIFIER =
-      System.getProperty("stargate.persistence_id", "CassandraPersistence");
+  @Override
+  public synchronized void start(BundleContext context) throws InvalidSyntaxException {
+    tracker = new Tracker(context, context.createFilter(DEPENDENCIES_FILTER));
+    tracker.open();
+  }
 
   @Override
-  public void start(BundleContext context) throws InvalidSyntaxException {
-    web = new WebImpl();
-    this.context = context;
-    log.info("Starting graphql....");
-    try {
-      String authFilter = String.format("(AuthIdentifier=%s)", AUTH_IDENTIFIER);
-      String persistenceFilter = String.format("(Identifier=%s)", PERSISTENCE_IDENTIFIER);
-      context.addServiceListener(this, String.format("(|%s%s)", persistenceFilter, authFilter));
-    } catch (InvalidSyntaxException ise) {
-      throw new RuntimeException(ise);
-    }
+  public synchronized void stop(BundleContext context) {
+    maybeStopService();
+    tracker.close();
+  }
 
-    ServiceReference[] refs =
-        context.getServiceReferences(AuthenticationService.class.getName(), null);
-    if (refs != null) {
-      for (ServiceReference ref : refs) {
-        // Get the service object.
-        Object service = context.getService(ref);
-        if (service instanceof AuthenticationService
-            && ref.getProperty("AuthIdentifier") != null
-            && ref.getProperty("AuthIdentifier").equals(AUTH_IDENTIFIER)) {
-          log.info("Setting authenticationService in GraphqlActivator");
-          this.web.setAuthenticationService((AuthenticationService) service);
-          break;
-        }
-      }
-    }
-
-    persistenceReference = context.getServiceReference(Persistence.class.getName());
-    if (persistenceReference != null
-        && persistenceReference.getProperty("Identifier").equals(PERSISTENCE_IDENTIFIER)) {
-      log.info("Setting persistence in GraphqlActivator");
-      this.web.setPersistence((Persistence) context.getService(persistenceReference));
-    }
-
-    if (this.web.getPersistence() != null && this.web.getAuthenticationService() != null) {
+  private synchronized void maybeStartService(
+      Persistence<?, ?, ?> persistence, Metrics metrics, AuthenticationService authentication) {
+    if (web == null) {
       try {
-        this.web.start();
-        log.info("Started graphql....");
+        web = new WebImpl(persistence, metrics, authentication);
+        LOG.info("Starting GraphQL");
+        web.start();
       } catch (Exception e) {
-        log.error("Failed", e);
+        LOG.error("Unexpected error while stopping GraphQL", e);
       }
     }
   }
 
-  @Override
-  public void stop(BundleContext context) {
-    if (persistenceReference != null) {
-      context.ungetService(persistenceReference);
-    }
-    if (authenticationReference != null) {
-      context.ungetService(authenticationReference);
-    }
-    try {
-      web.stop();
-    } catch (Exception e) {
-      log.error("Failed", e);
+  private synchronized void maybeStopService() {
+    if (web != null) {
+      try {
+        LOG.info("Stopping GraphQL");
+        web.stop();
+      } catch (Exception e) {
+        LOG.error("Unexpected error while stopping GraphQL", e);
+      }
     }
   }
 
-  @Override
-  public void serviceChanged(ServiceEvent serviceEvent) {
-    int type = serviceEvent.getType();
-    String[] objectClass = (String[]) serviceEvent.getServiceReference().getProperty("objectClass");
-    switch (type) {
-      case (ServiceEvent.REGISTERED):
-        log.info("Service of type " + objectClass[0] + " registered.");
-        Object service = context.getService(serviceEvent.getServiceReference());
+  private class Tracker extends ServiceTracker<Object, Object> {
 
-        if (service instanceof Persistence) {
-          log.info("Setting persistence in GraphqlActivator");
-          this.web.setPersistence((Persistence) service);
-        } else if (service instanceof AuthenticationService
-            && serviceEvent.getServiceReference().getProperty("AuthIdentifier") != null
-            && serviceEvent
-                .getServiceReference()
-                .getProperty("AuthIdentifier")
-                .equals(AUTH_IDENTIFIER)) {
-          log.info("Setting authenticationService in GraphqlActivator");
-          this.web.setAuthenticationService((AuthenticationService) service);
-        }
+    private Persistence<?, ?, ?> persistence;
+    private Metrics metrics;
+    private AuthenticationService authentication;
 
-        if (this.web.getPersistence() != null && this.web.getAuthenticationService() != null) {
-          log.info("Started graphql...." + service);
-          try {
-            web.start();
-          } catch (Exception e) {
-            log.error("Failed", e);
-          }
-        }
-        break;
-      case (ServiceEvent.UNREGISTERING):
-        try {
-          web.stop();
-        } catch (Exception e) {
-          log.error("Failed", e);
-        }
-        break;
+    public Tracker(BundleContext context, Filter filter) {
+      super(context, filter, null);
+    }
+
+    @Override
+    @SuppressWarnings("rawtypes")
+    public Object addingService(ServiceReference<Object> ref) {
+      Object service = super.addingService(ref);
+      if (persistence == null && service instanceof Persistence) {
+        LOG.debug("Using backend persistence: {}", ref.getBundle());
+        persistence = (Persistence) service;
+      } else if (metrics == null && service instanceof Metrics) {
+        LOG.debug("Using metrics: {}", ref.getBundle());
+        metrics = (Metrics) service;
+      } else if (authentication == null && service instanceof AuthenticationService) {
+        LOG.debug("Using authentication service: {}", ref.getBundle());
+        authentication = (AuthenticationService) service;
+      }
+
+      if (persistence != null && metrics != null && authentication != null) {
+        maybeStartService(persistence, metrics, authentication);
+      }
+
+      return service;
     }
   }
 }

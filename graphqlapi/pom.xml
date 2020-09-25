@@ -27,6 +27,18 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>io.stargate.health</groupId>
+      <artifactId>health-checker</artifactId>
+      <version>0.0.11-SNAPSHOT</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.eclipse.jetty</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>29.0-jre</version>
@@ -108,35 +120,17 @@
             <Bundle-Activator>io.stargate.graphql.GraphqlActivator</Bundle-Activator>
             <Embed-Transitive>true</Embed-Transitive>
             <Import-Package><![CDATA[
-                            !org.eclipse.jetty.http,
-                            !org.eclipse.jetty.http.pathmap,
+                            !org.eclipse.jetty.*,
                             !com.sun.nio.file,
-                            !org.eclipse.jetty.io,
-                            !org.eclipse.jetty.io.ssl,
-                            !org.eclipse.jetty.jmx,
-                            !org.eclipse.jetty.servlet,
-                            !org.eclipse.jetty.util,
-                            !org.eclipse.jetty.util.annotation,
-                            !org.eclipse.jetty.util.compression,
-                            !org.eclipse.jetty.util.log,
-                            !org.eclipse.jetty.util.resource,
-                            !org.eclipse.jetty.util.ssl,
-                            !org.eclipse.jetty.util.statistic,
-                            !org.eclipse.jetty.util.thread,
-                            !org.eclipse.jetty.websocket.common,
-                            !org.eclipse.jetty.websocket.common.events,
-                            !org.eclipse.jetty.websocket.common.extensions,
-                            !org.eclipse.jetty.websocket.common.io,
-                            !org.eclipse.jetty.websocket.common.scopes,
-                            !org.eclipse.jetty.websocket.servlet,
                             !org.slf4j,
                             !org.slf4j.helpers,
                             !org.slf4j.spi,
                             !sun.misc,
-                            !org.eclipse.jetty.security,
                             io.stargate.db,
                             org.apache.cassandra.stargate,
                             org.apache.cassandra.stargate.*,
+                            io.stargate.health.metrics.api,
+                            com.codahale.metrics,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>

@@ -15,13 +15,13 @@
  */
 package io.stargate.graphql;
 
+import com.codahale.metrics.MetricRegistry;
 import graphql.kickstart.servlet.CustomGraphQLServlet;
 import graphql.kickstart.servlet.SchemaGraphQLServlet;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
+import io.stargate.health.metrics.api.Metrics;
 import java.util.EnumSet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.servlet.DispatcherType;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -31,12 +31,14 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
 
 public class WebImpl {
-  private Server server;
-  private Persistence persistence;
-  private AuthenticationService authenticationService;
 
-  public void start() throws Exception {
+  private final Server server;
+
+  public WebImpl(
+      Persistence<?, ?, ?> persistence, Metrics metrics, AuthenticationService authentication) {
     server = new Server();
+
+    MetricRegistry metricRegistry = metrics.getRegistry("graphql");
 
     ServerConnector connector = new ServerConnector(server);
     connector.setHost(System.getProperty("stargate.listen_address"));
@@ -46,10 +48,9 @@ public class WebImpl {
     ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
     context.setContextPath("/");
     ServletHolder servletHolder =
-        new ServletHolder(new CustomGraphQLServlet(persistence, authenticationService));
+        new ServletHolder(new CustomGraphQLServlet(persistence, metricRegistry, authentication));
     context.addServlet(servletHolder, "/graphql/*");
-    ServletHolder schema =
-        new ServletHolder(new SchemaGraphQLServlet(persistence, authenticationService));
+    ServletHolder schema = new ServletHolder(new SchemaGraphQLServlet(persistence, authentication));
     context.addServlet(schema, "/graphql-schema");
 
     ServletHolder playground = new ServletHolder(new PlaygroundServlet());
@@ -66,40 +67,18 @@ public class WebImpl {
     CrossOriginFilter corsFilter = new CrossOriginFilter();
     filter.setFilter(corsFilter);
 
-    context.addFilter(
-        org.eclipse.jetty.servlets.CrossOriginFilter.class,
-        "/*",
-        EnumSet.allOf(DispatcherType.class));
+    context.addFilter(CrossOriginFilter.class, "/*", EnumSet.allOf(DispatcherType.class));
 
     server.setHandler(context);
+  }
 
-    try {
-      server.start();
-      server.dump(System.err);
-    } catch (Exception ex) {
-      Logger.getLogger(WebImpl.class.getName()).log(Level.SEVERE, null, ex);
-    }
+  public void start() throws Exception {
+    server.start();
   }
 
   public void stop() throws Exception {
     if (server != null) {
       server.stop();
     }
-  }
-
-  public void setPersistence(Persistence persistence) {
-    this.persistence = persistence;
-  }
-
-  public Persistence getPersistence() {
-    return persistence;
-  }
-
-  public AuthenticationService getAuthenticationService() {
-    return authenticationService;
-  }
-
-  public void setAuthenticationService(AuthenticationService authenticationService) {
-    this.authenticationService = authenticationService;
   }
 }
