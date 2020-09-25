@@ -21,49 +21,34 @@ import static org.apache.cassandra.concurrent.SharedExecutorPool.SHARED;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.stargate.db.Result;
+import io.stargate.db.cassandra.impl.CassandraPersistence;
 import io.stargate.db.cassandra.impl.Conversion;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ExecutionInfo;
 import io.stargate.db.datastore.PreparedStatement;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.common.util.ColumnUtils;
-import io.stargate.db.datastore.common.util.SchemaTool;
 import io.stargate.db.datastore.query.Parameter;
-import io.stargate.db.datastore.schema.AbstractTable;
-import io.stargate.db.datastore.schema.CollectionIndexingType;
-import io.stargate.db.datastore.schema.Column;
-import io.stargate.db.datastore.schema.ImmutableColumn;
-import io.stargate.db.datastore.schema.ImmutableUserDefinedType;
-import io.stargate.db.datastore.schema.Index;
-import io.stargate.db.datastore.schema.Keyspace;
-import io.stargate.db.datastore.schema.MaterializedView;
-import io.stargate.db.datastore.schema.Schema;
-import io.stargate.db.datastore.schema.SecondaryIndex;
-import io.stargate.db.datastore.schema.Table;
-import io.stargate.db.datastore.schema.UserDefinedType;
+import io.stargate.db.schema.AbstractTable;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Index;
+import io.stargate.db.schema.Schema;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.inject.Inject;
 import org.apache.cassandra.concurrent.LocalAwareExecutorService;
-import org.apache.cassandra.config.CFMetaData;
-import org.apache.cassandra.config.ColumnDefinition;
 import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.config.ViewDefinition;
 import org.apache.cassandra.cql3.Attributes;
 import org.apache.cassandra.cql3.BatchQueryOptions;
 import org.apache.cassandra.cql3.CQLStatement;
@@ -76,15 +61,9 @@ import org.apache.cassandra.cql3.statements.ModificationStatement;
 import org.apache.cassandra.cql3.statements.ParsedStatement;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.db.marshal.AbstractType;
-import org.apache.cassandra.schema.IndexMetadata;
-import org.apache.cassandra.schema.KeyspaceMetadata;
-import org.apache.cassandra.service.MigrationListener;
-import org.apache.cassandra.service.MigrationManager;
 import org.apache.cassandra.service.QueryState;
-import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.service.pager.PagingState;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
-import org.apache.cassandra.stargate.utils.Streams;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.utils.ByteBufferUtil;
@@ -110,28 +89,22 @@ public class InternalDataStore implements DataStore {
 
   // The (?:) construct is just like (), except the former is a non-capturing group
   public static Pattern WRAPPER_CLAUSE_PATTERN = Pattern.compile("^(?:in|key|value)\\((.*)\\)$");
-  private final List<Consumer<Schema>> schemaChangeListeners = new CopyOnWriteArrayList<>();
 
-  private QueryState queryState;
-  private QueryOptions queryOptions;
-  private volatile Schema schema;
-  private DataStore parent;
+  private final QueryState queryState;
+  private final QueryOptions queryOptions;
+
+  private final CassandraPersistence persistence;
 
   @Inject
-  public InternalDataStore(DataStore parent, QueryState queryState, QueryOptions queryOptions) {
+  public InternalDataStore(
+      CassandraPersistence persistence, QueryState queryState, QueryOptions queryOptions) {
+    this.persistence = persistence;
     this.queryState = queryState;
     this.queryOptions = queryOptions;
-    this.parent = parent;
   }
 
-  public InternalDataStore() {
-    this(null, QueryState.forInternalCalls(), QueryOptions.DEFAULT);
-    schema = createSchema();
-    MigrationManager.instance.register(changeListener);
-    addSchemaChangeListener(
-        s -> {
-          schema = s;
-        });
+  public InternalDataStore(CassandraPersistence persistence) {
+    this(persistence, QueryState.forInternalCalls(), QueryOptions.DEFAULT);
   }
 
   @Override
@@ -526,179 +499,12 @@ public class InternalDataStore implements DataStore {
 
   @Override
   public Schema schema() {
-    if (parent != null) {
-      return parent.schema();
-    }
-    return schema;
-  }
-
-  private Schema createSchema() {
-    List<Keyspace> keyspaces = new ArrayList<>();
-    Streams.of(org.apache.cassandra.db.Keyspace.all())
-        .forEach(
-            keyspace -> {
-              try {
-                final KeyspaceMetadata keyspaceMetadata = keyspace.getMetadata();
-                List<Table> tables = new ArrayList<>();
-                List<UserDefinedType> userDefinedTypes = extractUserDefinedTypes(keyspaceMetadata);
-
-                keyspaceMetadata.tables.forEach(
-                    tableMetadata -> {
-                      List<Column> columns = extractColumns(tableMetadata);
-                      List<Index> indexes = extractSecondaryIndexes(tableMetadata, columns);
-                      indexes.addAll(extractMvIndexes(keyspaceMetadata, tableMetadata));
-                      tables.add(
-                          Table.create(
-                              keyspace.getName(),
-                              tableMetadata.cfName,
-                              ImmutableList.copyOf(columns),
-                              ImmutableList.copyOf(indexes)));
-                    });
-
-                keyspaces.add(
-                    Keyspace.create(
-                        keyspace.getName(),
-                        ImmutableSet.copyOf(tables),
-                        userDefinedTypes,
-                        keyspaceMetadata.params.replication.asMap(),
-                        Optional.of(keyspaceMetadata.params.durableWrites)));
-              } catch (Exception e) {
-                NO_SPAM_LOG.warn(
-                    String.format(
-                        "Excluding Keyspace '%s' from Graph Schema because of: %s",
-                        keyspace.getName(), e.getMessage()),
-                    e);
-              }
-            });
-
-    return Schema.create(ImmutableSet.copyOf(keyspaces));
-  }
-
-  private List<UserDefinedType> extractUserDefinedTypes(KeyspaceMetadata keyspaceMetaData) {
-    List<UserDefinedType> userDefinedTypes = new ArrayList<>();
-    keyspaceMetaData.types.forEach(
-        userType -> {
-          List<Column> columns = DataStoreUtil.getUDTColumns(userType);
-          userDefinedTypes.add(
-              ImmutableUserDefinedType.builder()
-                  .keyspace(keyspaceMetaData.name)
-                  .name(userType.getNameAsString())
-                  .columns(columns)
-                  .build());
-        });
-    return userDefinedTypes;
-  }
-
-  private Column.Kind getKind(ColumnDefinition.Kind kind) {
-    switch (kind) {
-      case REGULAR:
-        return Column.Kind.Regular;
-      case STATIC:
-        return Column.Kind.Static;
-      case PARTITION_KEY:
-        return Column.Kind.PartitionKey;
-      case CLUSTERING:
-        return Column.Kind.Clustering;
-    }
-    throw new IllegalStateException("Unknown column kind");
-  }
-
-  private List<Column> extractColumns(CFMetaData tableMetadata) {
-    List<Column> columns = new ArrayList<>();
-    Streams.of(tableMetadata.allColumnsInSelectOrder())
-        .forEach(
-            c ->
-                columns.add(
-                    ImmutableColumn.builder()
-                        .name(c.name.toString())
-                        .type(DataStoreUtil.getTypeFromInternal(c.type))
-                        .kind(getKind(c.kind))
-                        .order(getOrder(c.clusteringOrder()))
-                        .build()));
-    return columns;
-  }
-
-  private List<Column> extractColumns(ViewDefinition tableMetadata) {
-    return extractColumns(tableMetadata.metadata);
-  }
-
-  private Column.Order getOrder(ColumnDefinition.ClusteringOrder clusteringOrder) {
-    switch (clusteringOrder) {
-      case ASC:
-        return Column.Order.Asc;
-      case DESC:
-        return Column.Order.Desc;
-      case NONE:
-        return null;
-      default:
-        throw new IllegalStateException("Clustering columns should always have an order");
-    }
-  }
-
-  private List<Index> extractSecondaryIndexes(CFMetaData tableMetadata, List<Column> columns) {
-    List<Index> indexes = new ArrayList<>();
-
-    org.apache.cassandra.db.Keyspace.openAndGetStore(tableMetadata).indexManager.listIndexes()
-        .stream()
-        .forEach(
-            index -> {
-              IndexMetadata indexMetadata = index.getIndexMetadata();
-              Pair<String, CollectionIndexingType> result =
-                  DataStoreUtil.extractTargetColumn(indexMetadata.options.get("target"));
-              String targetColumn = result.getValue0();
-              Optional<Column> col =
-                  columns.stream().filter(c -> c.name().equals(targetColumn)).findFirst();
-              Preconditions.checkState(
-                  col.isPresent(),
-                  "Could not find Secondary Index Target Column '%s' in columns: '%s'",
-                  targetColumn,
-                  columns);
-              indexes.add(
-                  SecondaryIndex.create(
-                      tableMetadata.ksName,
-                      indexMetadata.name,
-                      columns.stream().filter(c -> c.name().equals(targetColumn)).findFirst().get(),
-                      result.getValue1()));
-            });
-    return indexes;
-  }
-
-  private List<Index> extractMvIndexes(KeyspaceMetadata metadata, CFMetaData tableMetadata) {
-    List<Index> indexes = new ArrayList<>();
-    metadata.views.forEach(
-        viewMetadata -> {
-          if (viewMetadata.baseTableId.equals(tableMetadata.cfId)) {
-            List<Column> columns = extractColumns(viewMetadata);
-            indexes.add(
-                MaterializedView.create(
-                    metadata.name, viewMetadata.metadata.cfName, ImmutableList.copyOf(columns)));
-          }
-        });
-    return indexes;
-  }
-
-  @Override
-  public void addSchemaChangeListener(Consumer<Schema> callback) {
-    schemaChangeListeners.add(callback);
-  }
-
-  private void notifySchemaChange() {
-    Schema schema = createSchema();
-    schemaChangeListeners.forEach(
-        c -> {
-          try {
-            c.accept(schema);
-          } catch (Exception e) {
-            // We must not let exceptions out to C*
-            LOG.warn("Could not notify schema change", e);
-          }
-        });
+    return persistence.schema();
   }
 
   @Override
   public boolean isInSchemaAgreement() {
-    Map<String, List<String>> schemata = StorageProxy.describeSchemaVersions();
-    return SchemaTool.isSchemaAgreement(schemata);
+    return persistence.isInSchemaAgreement();
   }
 
   public QueryState queryState() {
@@ -900,103 +706,4 @@ public class InternalDataStore implements DataStore {
       }
     }
   }
-
-  private MigrationListener changeListener =
-      new MigrationListener() {
-        @Override
-        public void onCreateKeyspace(String keyspace) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onCreateColumnFamily(String keyspace, String table) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onCreateView(String keyspace, String view) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onCreateUserType(String keyspace, String type) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onCreateFunction(
-            String keyspace, String function, List<AbstractType<?>> argumentTypes) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onCreateAggregate(
-            String keyspace, String aggregate, List<AbstractType<?>> argumentTypes) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onUpdateKeyspace(String keyspace) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onUpdateColumnFamily(String keyspace, String table, boolean affectsStatements) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onUpdateView(String keyspace, String view, boolean affectsStatements) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onUpdateUserType(String keyspace, String type) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onUpdateFunction(
-            String keyspace, String function, List<AbstractType<?>> argumentTypes) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onUpdateAggregate(
-            String keyspace, String aggregate, List<AbstractType<?>> argumentTypes) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onDropKeyspace(String keyspace) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onDropColumnFamily(String keyspace, String table) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onDropView(String keyspace, String view) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onDropUserType(String keyspace, String type) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onDropFunction(
-            String keyspace, String function, List<AbstractType<?>> argumentTypes) {
-          notifySchemaChange();
-        }
-
-        @Override
-        public void onDropAggregate(
-            String keyspace, String aggregate, List<AbstractType<?>> argumentTypes) {
-          notifySchemaChange();
-        }
-      };
 }

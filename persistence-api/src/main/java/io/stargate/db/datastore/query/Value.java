@@ -15,7 +15,7 @@
  */
 package io.stargate.db.datastore.query;
 
-import io.stargate.db.datastore.schema.Column;
+import io.stargate.db.schema.Column;
 
 @org.immutables.value.Value.Immutable
 public abstract class Value<T> implements Parameter<T> {

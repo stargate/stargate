@@ -13,16 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.datastore.schema;
+package io.stargate.db.schema;
 
-import java.io.Serializable;
-import org.immutables.value.Value;
+import io.stargate.db.datastore.query.ColumnOrder;
+import io.stargate.db.datastore.query.WhereCondition;
+import java.util.List;
+import java.util.OptionalLong;
 
-public interface SchemaEntity extends Serializable {
-  String name();
+public interface Index extends SchemaEntity {
+  /** @return true if the query can be supported by the index */
+  boolean supports(
+      List<Column> select,
+      List<WhereCondition<?>> conditions,
+      List<ColumnOrder> orders,
+      OptionalLong limit);
 
-  @Value.Lazy
-  default String cqlName() {
-    return ColumnUtils.maybeQuote(name());
-  }
+  /**
+   * @return The priority of this class of index where a lower value indicates a higher priority.
+   */
+  int priority();
+
+  String indexTypeName();
 }
