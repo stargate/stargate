@@ -917,6 +917,26 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void getColumnsComplex() throws IOException {
+    String tableName = "tbl_getcolumns_" + System.currentTimeMillis();
+    createComplexTable(tableName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/tables/%s/columns", host, keyspace, tableName),
+            HttpStatus.SC_OK);
+
+    List<ColumnDefinition> columnDefinitions =
+        objectMapper.readValue(body, new TypeReference<List<ColumnDefinition>>() {});
+    assertThat(columnDefinitions.size()).isEqualTo(4);
+    columnDefinitions.sort(Comparator.comparing(ColumnDefinition::getName));
+    assertThat(columnDefinitions.get(0).getName()).isEqualTo("col1");
+    assertThat(columnDefinitions.get(0).getTypeDefinition())
+        .isEqualTo("frozen<map<date, varchar>>");
+  }
+
+  @Test
   public void getColumn() throws IOException {
     String tableName = "tbl_getcolumn_" + System.currentTimeMillis();
     createTable(tableName);
@@ -931,7 +951,25 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     ColumnDefinition columnDefinition =
         objectMapper.readValue(body, new TypeReference<ColumnDefinition>() {});
     assertThat(columnDefinition.getName()).isEqualTo("firstName");
-    assertThat(columnDefinition.getTypeDefinition()).isEqualTo("Varchar");
+    assertThat(columnDefinition.getTypeDefinition()).isEqualTo("varchar");
+  }
+
+  @Test
+  public void getColumnComplex() throws IOException {
+    String tableName = "tbl_getcolumn_" + System.currentTimeMillis();
+    createComplexTable(tableName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/columns/col3", host, keyspace, tableName),
+            HttpStatus.SC_OK);
+
+    ColumnDefinition columnDefinition =
+        objectMapper.readValue(body, new TypeReference<ColumnDefinition>() {});
+    assertThat(columnDefinition.getName()).isEqualTo("col3");
+    assertThat(columnDefinition.getTypeDefinition()).isEqualTo("frozen<tuple<duration, inet>>");
   }
 
   @Test
@@ -968,6 +1006,35 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   public void health() throws IOException {
     assertThat(RestUtils.get(authToken, String.format("%s:8082/health", host), HttpStatus.SC_OK))
         .isEqualTo("UP");
+  }
+
+  private void createComplexTable(String tableName) throws IOException {
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName(tableName);
+
+    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+
+    columnDefinitions.add(new ColumnDefinition("pk0", "uuid"));
+    columnDefinitions.add(new ColumnDefinition("col1", "frozen<map<date, varchar>>"));
+    columnDefinitions.add(new ColumnDefinition("col2", "frozen<set<boolean>>"));
+    columnDefinitions.add(new ColumnDefinition("col3", "frozen<tuple<duration, inet>>"));
+
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Collections.singletonList("pk0"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    String body =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/tables", host, keyspace),
+            objectMapper.writeValueAsString(tableAdd),
+            HttpStatus.SC_CREATED);
+
+    SuccessResponse successResponse =
+        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
+    assertThat(successResponse.getSuccess()).isTrue();
   }
 
   private void createTable(String tableName) throws IOException {
