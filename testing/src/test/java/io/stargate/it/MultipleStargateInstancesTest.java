@@ -90,7 +90,7 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
   public void shouldConnectToMultipleStargateNodes() {
     List<Row> all = session.execute("SELECT * FROM system.peers").all();
     // system.peers should have N records (all stargate nodes - 1)
-    assertThat(all.size()).isEqualTo(runningStargateNodes);
+    assertThat(all.size()).isEqualTo(runningStargateNodes - 1);
   }
 
   @Test
