@@ -314,6 +314,54 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void getRowWithClustering() throws IOException {
+    String tableName = "tbl_getallrows_clustering_" + System.currentTimeMillis();
+    createTableWithClustering(tableName);
+
+    String id = UUID.randomUUID().toString();
+    List<ColumnModel> columns = new ArrayList<>();
+    columns.add(new ColumnModel("id", id));
+    columns.add(new ColumnModel("expense_id", "1"));
+    columns.add(new ColumnModel("firstName", "John"));
+    addRow(tableName, columns);
+
+    columns = new ArrayList<>();
+    columns.add(new ColumnModel("id", id));
+    columns.add(new ColumnModel("expense_id", "2"));
+    columns.add(new ColumnModel("firstName", "Jane"));
+    addRow(tableName, columns);
+
+    columns = new ArrayList<>();
+    columns.add(new ColumnModel("id", UUID.randomUUID().toString()));
+    columns.add(new ColumnModel("expense_id", "3"));
+    columns.add(new ColumnModel("firstName", "Alice"));
+    addRow(tableName, columns);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s", host, keyspace, tableName, id),
+            HttpStatus.SC_OK);
+
+    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    assertThat(rowResponse.getCount()).isEqualTo(2);
+    assertThat(rowResponse.getRows().get(0).get("firstName")).isEqualTo("John");
+    assertThat(rowResponse.getRows().get(1).get("firstName")).isEqualTo("Jane");
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s;2", host, keyspace, tableName, id),
+            HttpStatus.SC_OK);
+
+    rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    assertThat(rowResponse.getCount()).isEqualTo(1);
+    assertThat(rowResponse.getRows().get(0).get("firstName")).isEqualTo("Jane");
+  }
+
+  @Test
   public void getAllRows() throws IOException {
     String tableName = "tbl_getallrows_" + System.currentTimeMillis();
     createTable(tableName);
@@ -728,6 +776,129 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void deleteRowWithClustering() throws IOException {
+    String tableName = "tbl_deleterows_clustering_" + System.currentTimeMillis();
+    createTableWithClustering(tableName);
+
+    String id = UUID.randomUUID().toString();
+    List<ColumnModel> columns = new ArrayList<>();
+    columns.add(new ColumnModel("id", id));
+    columns.add(new ColumnModel("expense_id", "1"));
+    columns.add(new ColumnModel("firstName", "John"));
+    addRow(tableName, columns);
+
+    columns = new ArrayList<>();
+    columns.add(new ColumnModel("id", id));
+    columns.add(new ColumnModel("expense_id", "2"));
+    columns.add(new ColumnModel("firstName", "Jane"));
+    addRow(tableName, columns);
+
+    columns = new ArrayList<>();
+    columns.add(new ColumnModel("id", UUID.randomUUID().toString()));
+    columns.add(new ColumnModel("expense_id", "3"));
+    columns.add(new ColumnModel("firstName", "Alice"));
+    addRow(tableName, columns);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s;2", host, keyspace, tableName, id),
+            HttpStatus.SC_OK);
+
+    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    assertThat(rowResponse.getCount()).isEqualTo(1);
+    assertThat(rowResponse.getRows().get(0).get("firstName")).isEqualTo("Jane");
+
+    RestUtils.delete(
+        authToken,
+        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/%s;2", host, keyspace, tableName, id),
+        HttpStatus.SC_NO_CONTENT);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s", host, keyspace, tableName, id),
+            HttpStatus.SC_OK);
+
+    rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    assertThat(rowResponse.getCount()).isEqualTo(1);
+    assertThat(rowResponse.getRows().get(0).get("firstName")).isEqualTo("John");
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            HttpStatus.SC_OK);
+
+    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
+    assertThat(rows.getCount()).isEqualTo(2);
+  }
+
+  @Test
+  public void deleteRowPartition() throws IOException {
+    String tableName = "tbl_deleterows_partition_" + System.currentTimeMillis();
+    createTableWithClustering(tableName);
+
+    String id = UUID.randomUUID().toString();
+    List<ColumnModel> columns = new ArrayList<>();
+    columns.add(new ColumnModel("id", id));
+    columns.add(new ColumnModel("expense_id", "1"));
+    columns.add(new ColumnModel("firstName", "John"));
+    addRow(tableName, columns);
+
+    columns = new ArrayList<>();
+    columns.add(new ColumnModel("id", id));
+    columns.add(new ColumnModel("expense_id", "2"));
+    columns.add(new ColumnModel("firstName", "Jane"));
+    addRow(tableName, columns);
+
+    columns = new ArrayList<>();
+    columns.add(new ColumnModel("id", UUID.randomUUID().toString()));
+    columns.add(new ColumnModel("expense_id", "3"));
+    columns.add(new ColumnModel("firstName", "Alice"));
+    addRow(tableName, columns);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s", host, keyspace, tableName, id),
+            HttpStatus.SC_OK);
+
+    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    assertThat(rowResponse.getCount()).isEqualTo(2);
+    assertThat(rowResponse.getRows().get(0).get("firstName")).isEqualTo("John");
+    assertThat(rowResponse.getRows().get(1).get("firstName")).isEqualTo("Jane");
+
+    RestUtils.delete(
+        authToken,
+        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/%s", host, keyspace, tableName, id),
+        HttpStatus.SC_NO_CONTENT);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s", host, keyspace, tableName, id),
+            HttpStatus.SC_OK);
+
+    rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    assertThat(rowResponse.getCount()).isEqualTo(0);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            HttpStatus.SC_OK);
+
+    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
+    assertThat(rows.getCount()).isEqualTo(1);
+    assertThat(rows.getRows().get(0).get("firstName")).isEqualTo("Alice");
+  }
+
+  @Test
   public void getColumns() throws IOException {
     String tableName = "tbl_getcolumns_" + System.currentTimeMillis();
     createTable(tableName);
@@ -813,6 +984,37 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     PrimaryKey primaryKey = new PrimaryKey();
     primaryKey.setPartitionKey(Collections.singletonList("id"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    String body =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/tables", host, keyspace),
+            objectMapper.writeValueAsString(tableAdd),
+            HttpStatus.SC_CREATED);
+
+    SuccessResponse successResponse =
+        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
+    assertThat(successResponse.getSuccess()).isTrue();
+  }
+
+  private void createTableWithClustering(String tableName) throws IOException {
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName(tableName);
+
+    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+
+    columnDefinitions.add(new ColumnDefinition("id", "uuid"));
+    columnDefinitions.add(new ColumnDefinition("lastName", "text"));
+    columnDefinitions.add(new ColumnDefinition("firstName", "text"));
+    columnDefinitions.add(new ColumnDefinition("age", "int", true));
+    columnDefinitions.add(new ColumnDefinition("expense_id", "int"));
+
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Collections.singletonList("id"));
+    primaryKey.setClusteringKey(Collections.singletonList("expense_id"));
     tableAdd.setPrimaryKey(primaryKey);
 
     String body =

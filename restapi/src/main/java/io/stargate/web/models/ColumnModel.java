@@ -15,7 +15,11 @@
  */
 package io.stargate.web.models;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class ColumnModel {
+
   String name;
   String value;
 
@@ -36,4 +40,10 @@ public class ColumnModel {
   }
 
   public ColumnModel() {}
+
+  @JsonCreator
+  public ColumnModel(@JsonProperty("name") String name, @JsonProperty("value") String value) {
+    this.name = name;
+    this.value = value;
+  }
 }
