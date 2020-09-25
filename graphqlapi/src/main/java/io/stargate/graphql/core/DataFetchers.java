@@ -1,3 +1,18 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.graphql.core;
 
 import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.literal;
@@ -26,6 +41,7 @@ import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
 import io.stargate.db.QueryState;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.datastore.schema.Column;
 import io.stargate.db.datastore.schema.Keyspace;
@@ -37,6 +53,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 public class DataFetchers {
@@ -268,16 +285,15 @@ public class DataFetchers {
       QueryState queryState = persistence.newQueryState(clientState);
       DataStore dataStore = persistence.newDataStore(queryState, null);
 
-      return dataStore
-          .query(statement)
-          .thenApply(
-              resultSet -> {
-                List<Map<String, Object>> results = new ArrayList<>();
-                for (Row row : resultSet.rows()) {
-                  results.add(row2Map(row));
-                }
-                return ImmutableMap.of("values", results);
-              });
+      CompletableFuture<ResultSet> rs = dataStore.query(statement);
+      ResultSet resultSet = rs.get();
+
+      List<Map<String, Object>> results = new ArrayList<>();
+      for (Row row : resultSet.rows()) {
+        results.add(row2Map(row));
+      }
+
+      return ImmutableMap.of("values", results);
     }
 
     public Map<String, Object> row2Map(Row row) {
