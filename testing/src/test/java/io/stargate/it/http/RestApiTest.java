@@ -28,6 +28,7 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
+import io.stargate.it.storage.ClusterConnectionInfo;
 import io.stargate.web.models.Changeset;
 import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.models.ColumnModel;
@@ -67,6 +68,10 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   private static String host = "http://" + stargateHost;
   private DataStore dataStore;
   private String keyspace;
+
+  public RestApiTest(ClusterConnectionInfo backend) {
+    super(backend);
+  }
 
   @BeforeEach
   public void setup()
@@ -297,7 +302,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
     assertThat(rowResponse.getCount()).isEqualTo(1);
-    assertThat(rowResponse.getRows().get(0).get("cluster_name")).isEqualTo(CLUSTER_NAME);
+    assertThat(rowResponse.getRows().get(0).get("cluster_name")).isEqualTo(backend.clusterName());
   }
 
   @Test

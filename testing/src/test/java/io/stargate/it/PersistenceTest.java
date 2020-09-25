@@ -73,6 +73,7 @@ import io.stargate.db.datastore.schema.ParameterizedType;
 import io.stargate.db.datastore.schema.Schema;
 import io.stargate.db.datastore.schema.Table;
 import io.stargate.db.datastore.schema.UserDefinedType;
+import io.stargate.it.storage.ClusterConnectionInfo;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -116,6 +117,10 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
 
   private static final int CUSTOM_PAGE_SIZE = 50;
 
+  public PersistenceTest(ClusterConnectionInfo backendConnectionInfo) {
+    super(backendConnectionInfo);
+  }
+
   @BeforeEach
   public void setup(TestInfo testInfo) throws InvalidSyntaxException {
     Persistence persistence = getOsgiService("io.stargate.db.Persistence", Persistence.class);
@@ -147,8 +152,8 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
     assertThat(row).isNotNull();
     assertThat(row.columns().get(0).name()).isEqualTo("cluster_name");
     assertThat(row.columns().get(1).name()).isEqualTo("data_center");
-    assertThat(row.getString("cluster_name")).isEqualTo(CLUSTER_NAME);
-    assertThat(row.getString("data_center")).isEqualTo(datacenter());
+    assertThat(row.getString("cluster_name")).isEqualTo(backend.clusterName());
+    assertThat(row.getString("data_center")).isEqualTo(backend.datacenter());
 
     rs = dataStore.query().select().column("data_center").from("system", "peers").future();
     row = rs.get().one();
