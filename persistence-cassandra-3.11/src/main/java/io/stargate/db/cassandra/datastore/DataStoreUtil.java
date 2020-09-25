@@ -23,18 +23,14 @@ import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
 import com.datastax.oss.protocol.internal.ProtocolConstants;
 import com.google.common.collect.ImmutableMap;
 import io.stargate.db.datastore.common.util.ColumnUtils;
-import io.stargate.db.datastore.schema.CollectionIndexingType;
-import io.stargate.db.datastore.schema.Column;
-import io.stargate.db.datastore.schema.ImmutableCollectionIndexingType;
-import io.stargate.db.datastore.schema.ImmutableColumn;
-import io.stargate.db.datastore.schema.ImmutableUserDefinedType;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.ImmutableColumn;
+import io.stargate.db.schema.ImmutableUserDefinedType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.cassandra.config.SchemaConstants;
-import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.db.marshal.ListType;
 import org.apache.cassandra.db.marshal.MapType;
@@ -61,46 +57,6 @@ public class DataStoreUtil {
               }
             });
     TYPE_MAPPINGS = ImmutableMap.copyOf(types);
-  }
-
-  /**
-   * Using a secondary index on a column X where X is a map and depending on the type of indexing,
-   * such as KEYS(X) / VALUES(X) / ENTRIES(X), the actual column name will be wrapped, and we're
-   * trying to extract that column name here.
-   *
-   * @param secondaryIndexTargetColumn The target column
-   * @return A {@link Pair} containing the actual target column name as first parameter and the
-   *     {@link CollectionIndexingType} as the second parameter.
-   */
-  public static Pair<String, CollectionIndexingType> extractTargetColumn(
-      String secondaryIndexTargetColumn) {
-    if (null == secondaryIndexTargetColumn) {
-      return new Pair<>(
-          secondaryIndexTargetColumn, ImmutableCollectionIndexingType.builder().build());
-    }
-    if (secondaryIndexTargetColumn.startsWith("values(")) {
-      return new Pair<>(
-          secondaryIndexTargetColumn.replace("values(", "").replace(")", "").replace("\"", ""),
-          ImmutableCollectionIndexingType.builder().indexValues(true).build());
-    }
-    if (secondaryIndexTargetColumn.startsWith("keys(")) {
-      return new Pair<>(
-          secondaryIndexTargetColumn.replace("keys(", "").replace(")", "").replace("\"", ""),
-          ImmutableCollectionIndexingType.builder().indexKeys(true).build());
-    }
-    if (secondaryIndexTargetColumn.startsWith("entries(")) {
-      return new Pair<>(
-          secondaryIndexTargetColumn.replace("entries(", "").replace(")", "").replace("\"", ""),
-          ImmutableCollectionIndexingType.builder().indexEntries(true).build());
-    }
-    if (secondaryIndexTargetColumn.startsWith("full(")) {
-      return new Pair<>(
-          secondaryIndexTargetColumn.replace("full(", "").replace(")", "").replace("\"", ""),
-          ImmutableCollectionIndexingType.builder().indexFull(true).build());
-    }
-    return new Pair<>(
-        secondaryIndexTargetColumn.replaceAll("\"", ""),
-        ImmutableCollectionIndexingType.builder().build());
   }
 
   /**
@@ -220,26 +176,5 @@ public class DataStoreUtil {
     }
 
     return Column.Type.fromCqlDefinitionOf(type.toString()); // PrimitiveType
-  }
-
-  public static String mvIndexNotReadyMessage(String keyspaceName, String mvName) {
-    return String.format(
-        "Materialized view '%s' is not ready to be queried as it still might be being built.\n"
-            + "You can check its progress with: 'nodetool viewbuildstatus %s %s'",
-        mvName, keyspaceName, mvName);
-  }
-
-  public static String secondaryIndexNotReadyMessage(String keyspaceName, String indexName) {
-    String cql =
-        String.format(
-            "SELECT index_name FROM %s.\"%s\" WHERE table_name=%s AND index_name=%s",
-            SchemaConstants.SYSTEM_KEYSPACE_NAME,
-            SystemKeyspace.BUILT_INDEXES,
-            keyspaceName,
-            indexName);
-    return String.format(
-        "Secondary index '%s' is not ready to be queried as it still might be being built.\n"
-            + "You can check its progress with: '%s'",
-        indexName, cql);
   }
 }

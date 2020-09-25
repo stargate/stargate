@@ -16,6 +16,7 @@
 package io.stargate.db;
 
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.schema.Schema;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -31,6 +32,13 @@ public interface Persistence<T, C, Q> {
   void initialize(T config);
 
   void destroy();
+
+  /**
+   * Returns the current schema.
+   *
+   * @return The current schema.
+   */
+  Schema schema();
 
   void registerEventListener(EventListener listener);
 

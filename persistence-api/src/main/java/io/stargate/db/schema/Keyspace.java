@@ -13,22 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.datastore.schema;
+package io.stargate.db.schema;
 
-import com.datastax.oss.driver.api.core.data.TupleValue;
-import com.datastax.oss.driver.api.core.data.UdtValue;
-import com.datastax.oss.driver.api.core.type.DataType;
-import com.datastax.oss.driver.api.core.type.TupleType;
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
-import java.net.InetAddress;
-import java.nio.ByteBuffer;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
@@ -36,25 +27,6 @@ import org.javatuples.Pair;
 
 @Value.Immutable(prehash = true)
 public abstract class Keyspace implements SchemaEntity {
-
-  /**
-   * This list is verified in a test against SystemInfo. We don't want to use this directly though
-   * for ExternalDataStore as it shouldn't have dependencies on Cassandra's internal classes
-   */
-  public static final Set<String> SYSTEM_KEYSPACES =
-      ImmutableSet.of(
-          "system",
-          "system_schema",
-          "system_virtual_schema",
-          "system_auth",
-          "system_traces",
-          "system_distributed",
-          "system_backups",
-          "dse_system",
-          "dse_security",
-          "dse_perf",
-          "dse_insights_local",
-          "dse_insights");
 
   private static final long serialVersionUID = -337891773492616286L;
 
@@ -157,8 +129,8 @@ public abstract class Keyspace implements SchemaEntity {
 
   public static Keyspace create(
       String name,
-      Set<Table> tables,
-      List<UserDefinedType> userDefinedTypes,
+      Iterable<Table> tables,
+      Iterable<UserDefinedType> userDefinedTypes,
       Map<String, String> replication,
       Optional<Boolean> durableWrites) {
     return ImmutableKeyspace.builder()
@@ -194,46 +166,5 @@ public abstract class Keyspace implements SchemaEntity {
       return materializedView(name);
     }
     return table;
-  }
-
-  public Column.ColumnType typeOf(Object value) {
-    if (value instanceof String) {
-      return Column.Type.Varchar;
-    } else if (value instanceof UUID) {
-      return Column.Type.Uuid;
-    } else if (value instanceof Date) {
-      return Column.Type.Date;
-    } else if (value instanceof ByteBuffer) {
-      return Column.Type.Blob;
-    } else if (value instanceof InetAddress) {
-      return Column.Type.Inet;
-    } else if (value instanceof TupleValue) {
-      TupleValue tupleValue = (TupleValue) value;
-      TupleType type = tupleValue.getType();
-      List<DataType> componentTypes = type.getComponentTypes();
-      Column.ColumnType[] values = new Column.ColumnType[componentTypes.size()];
-      for (int count = 0; count < componentTypes.size(); count++) {
-        values[count] = typeOf(tupleValue.getObject(count));
-      }
-
-      return Column.Type.Tuple.of(values);
-    } else if (value instanceof UdtValue) {
-      return userDefinedType(((UdtValue) value).getType().getName().asInternal());
-    } else if (value instanceof Set && !((Set) value).isEmpty()) {
-      return Column.Type.Set.of(typeOf(((Set) value).iterator().next()).frozen());
-    } else if (value instanceof List && !((List) value).isEmpty()) {
-      return Column.Type.List.of(typeOf(((List) value).get(0)).frozen());
-    } else if (value instanceof Map && !((Map) value).isEmpty()) {
-      Map.Entry<?, ?> firstEntry = ((Map<?, ?>) value).entrySet().iterator().next();
-      return Column.Type.Map.of(
-          typeOf(firstEntry.getKey()).frozen(), typeOf(firstEntry.getValue()).frozen());
-    } else {
-      Column.Type type = Column.TYPE_MAPPING.get(value.getClass());
-      if (type != null) {
-        return type;
-      }
-    }
-    throw new IllegalArgumentException(
-        "Could not find an appropriate CQL type for value '" + value + "'");
   }
 }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.datastore.schema;
+package io.stargate.db.schema;
 
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import java.util.Arrays;
@@ -99,14 +99,5 @@ public final class ReservedKeywords {
 
   public static boolean isReserved(String text) {
     return reservedSet.contains(text.toUpperCase());
-  }
-
-  /**
-   * Adds the specified reserved keyword.
-   *
-   * <p>Used by DSE, see DB-1637.
-   */
-  public static boolean addReserved(String text) {
-    return reservedSet.add(text.toUpperCase());
   }
 }

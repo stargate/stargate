@@ -13,17 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.datastore.schema;
+package io.stargate.db.schema;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
-import java.util.List;
 import org.immutables.value.Value;
 
 @Value.Immutable(prehash = true)
 public abstract class MaterializedView extends AbstractTable implements Index {
   private static final long serialVersionUID = -2999120284516448661L;
 
-  public static MaterializedView create(String keyspace, String name, List<Column> columns) {
+  public static MaterializedView create(String keyspace, String name, Iterable<Column> columns) {
     columns.forEach(
         c -> {
           Preconditions.checkState(

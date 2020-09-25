@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.datastore.schema;
+package io.stargate.db.schema;
 
-import static io.stargate.db.datastore.schema.Column.Kind.Clustering;
-import static io.stargate.db.datastore.schema.Column.Kind.PartitionKey;
-import static io.stargate.db.datastore.schema.Column.Kind.Regular;
-import static io.stargate.db.datastore.schema.Column.Kind.Static;
+import static io.stargate.db.schema.Column.Kind.Clustering;
+import static io.stargate.db.schema.Column.Kind.PartitionKey;
+import static io.stargate.db.schema.Column.Kind.Regular;
+import static io.stargate.db.schema.Column.Kind.Static;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;

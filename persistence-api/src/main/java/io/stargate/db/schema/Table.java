@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.datastore.schema;
+package io.stargate.db.schema;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import java.util.List;
@@ -38,7 +38,7 @@ public abstract class Table extends AbstractTable {
   }
 
   public static Table create(
-      String keyspace, String name, List<Column> columns, List<Index> indexes) {
+      String keyspace, String name, Iterable<Column> columns, Iterable<Index> indexes) {
     return ImmutableTable.builder()
         .keyspace(keyspace)
         .name(name)

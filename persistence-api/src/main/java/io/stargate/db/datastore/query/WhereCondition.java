@@ -21,7 +21,7 @@ import static io.stargate.db.datastore.query.WhereCondition.Predicate.ContainsVa
 import static io.stargate.db.datastore.query.WhereCondition.Predicate.EntryEq;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
-import io.stargate.db.datastore.schema.Column;
+import io.stargate.db.schema.Column;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;

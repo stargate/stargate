@@ -15,7 +15,7 @@
  */
 package io.stargate.db.datastore.query;
 
-import io.stargate.db.datastore.schema.Table;
+import io.stargate.db.schema.Table;
 import java.util.List;
 import java.util.Objects;
 

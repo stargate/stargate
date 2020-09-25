@@ -15,7 +15,7 @@
  */
 package io.stargate.db;
 
-import io.stargate.db.datastore.schema.Column;
+import io.stargate.db.schema.Column;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.EnumSet;
