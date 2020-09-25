@@ -4,11 +4,11 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.10-SNAPSHOT</version>
+    <version>0.0.11-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.cql</groupId>
   <artifactId>cql</artifactId>
-  <version>0.0.10-SNAPSHOT</version>
+  <version>0.0.11-SNAPSHOT</version>
   <properties>
     <junit.version>5.6.2</junit.version>
   </properties>
@@ -27,19 +27,19 @@
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.10-SNAPSHOT</version>
+      <version>0.0.11-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.auth</groupId>
       <artifactId>authentication</artifactId>
-      <version>0.0.10-SNAPSHOT</version>
+      <version>0.0.11-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.health</groupId>
       <artifactId>health-checker</artifactId>
-      <version>0.0.10-SNAPSHOT</version>
+      <version>0.0.11-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
