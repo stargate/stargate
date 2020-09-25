@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
+import io.stargate.it.storage.ClusterConnectionInfo;
 import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.GetResponseWrapper;
@@ -58,6 +59,10 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   private static String authToken;
   private static String host = "http://" + stargateHost;
   private static final ObjectMapper objectMapper = new ObjectMapper();
+
+  public RestApiv2Test(ClusterConnectionInfo backend) {
+    super(backend);
+  }
 
   @BeforeEach
   public void setup(TestInfo testInfo) throws IOException {

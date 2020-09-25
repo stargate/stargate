@@ -47,6 +47,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
+import io.stargate.it.storage.ClusterConnectionInfo;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -83,8 +84,9 @@ public class CQLTest extends BaseOsgiIntegrationTest {
    * CQLTest#tokenAuthentication()} whenever authentcation is supported by our backend C* container
    * and/or we decide to use ccm.
    */
-  public CQLTest() {
+  public CQLTest(ClusterConnectionInfo backend) {
     // enableAuth = true;
+    super(backend);
   }
 
   @BeforeAll
