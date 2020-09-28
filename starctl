@@ -138,6 +138,18 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
     if [[ ! -z "$BIND_TO_LISTEN_ADDRESS" ]]; then
         STARGATE_ARGS+=("--bind-to-listen-address")
     fi
+
+    if [[ ! -z "$JMX_PORT" ]]; then
+        STARGATE_ARGS+=("--jmx-port" "$JMX_PORT")
+    fi
+
+    if [[ ! -z "$DYNAMIC_SNITCH" ]]; then
+        STARGATE_ARGS+=("--dynamic_snitch")
+    fi
+
+    if [[ ! -z "$DISABLE_MBEAN_REGISTRATION" ]]; then
+        STARGATE_ARGS+=("--disable_mbean_registration")
+    fi
 fi
 
 declare -a CMD=(java -server)
