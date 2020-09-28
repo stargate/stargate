@@ -31,6 +31,8 @@ public class SchemaDataFetcherFactory {
   public io.stargate.graphql.fetchers.SchemaFetcher createSchemaFetcher(String fetcher) {
 
     switch (fetcher) {
+      case "io.stargate.graphql.fetchers.CreateKeyspaceFetcher":
+        return new CreateKeyspaceFetcher(persistence, authenticationService);
       case "io.stargate.graphql.fetchers.AlterTableAddFetcher":
         return new AlterTableAddFetcher(persistence, authenticationService);
       case "io.stargate.graphql.fetchers.AlterTableDropFetcher":

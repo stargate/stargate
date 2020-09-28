@@ -34,6 +34,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import io.stargate.graphql.fetchers.AlterTableAddFetcher;
 import io.stargate.graphql.fetchers.AlterTableDropFetcher;
+import io.stargate.graphql.fetchers.CreateKeyspaceFetcher;
 import io.stargate.graphql.fetchers.CreateTableDataFetcher;
 import io.stargate.graphql.fetchers.DropTableFetcher;
 import io.stargate.graphql.fetchers.KeyspaceFetcher;
@@ -59,7 +60,11 @@ public class KeyspaceManagementSchema {
     GraphQLSchema.Builder builder = new GraphQLSchema.Builder();
     builder.mutation(
         buildMutation(
-            buildCreateTable(), buildAlterTableAdd(), buildAlterTableDrop(), buildDrop()));
+            buildCreateTable(),
+            buildAlterTableAdd(),
+            buildAlterTableDrop(),
+            buildDrop(),
+            buildCreateKeyspace()));
     builder.query(buildQuery(buildKeyspaceByName(), buildKeyspaces()));
     return builder;
   }
@@ -104,6 +109,22 @@ public class KeyspaceManagementSchema {
         .argument(GraphQLArgument.newArgument().name("ifExists").type(Scalars.GraphQLBoolean))
         .type(Scalars.GraphQLBoolean)
         .dataFetcher(schemaDataFetcherFactory.createSchemaFetcher(DropTableFetcher.class.getName()))
+        .build();
+  }
+
+  private GraphQLFieldDefinition buildCreateKeyspace() {
+    return GraphQLFieldDefinition.newFieldDefinition()
+        .name("createKeyspace")
+        .argument(GraphQLArgument.newArgument().name("name").type(nonNull(Scalars.GraphQLString)))
+        .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("replication")
+                .type(nonNull(list(buildReplicationOptionInput())))
+                .build())
+        .type(Scalars.GraphQLBoolean)
+        .dataFetcher(
+            schemaDataFetcherFactory.createSchemaFetcher(CreateKeyspaceFetcher.class.getName()))
         .build();
   }
 
@@ -328,6 +349,21 @@ public class KeyspaceManagementSchema {
                 GraphQLInputObjectField.newInputObjectField()
                     .name("basic")
                     .type(nonNull(buildBasicType())))
+            .build());
+  }
+
+  private GraphQLInputObjectType buildReplicationOptionInput() {
+    return register(
+        GraphQLInputObjectType.newInputObject()
+            .name("ReplicationOptionInput")
+            .field(
+                GraphQLInputObjectField.newInputObjectField()
+                    .name("key")
+                    .type(nonNull(Scalars.GraphQLString)))
+            .field(
+                GraphQLInputObjectField.newInputObjectField()
+                    .name("value")
+                    .type(nonNull(Scalars.GraphQLString)))
             .build());
   }
 

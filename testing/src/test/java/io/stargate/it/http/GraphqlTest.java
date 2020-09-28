@@ -1,7 +1,15 @@
 package io.stargate.it.http;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import com.apollographql.apollo.ApolloCall;
 import com.apollographql.apollo.ApolloClient;
@@ -27,6 +35,7 @@ import com.example.graphql.client.betterbotz.type.StringFilterInput;
 import com.example.graphql.client.betterbotz.type.UuidFilterInput;
 import com.example.graphql.client.schema.AlterTableAddMutation;
 import com.example.graphql.client.schema.AlterTableDropMutation;
+import com.example.graphql.client.schema.CreateKeyspaceMutation;
 import com.example.graphql.client.schema.CreateTableMutation;
 import com.example.graphql.client.schema.DropTableMutation;
 import com.example.graphql.client.schema.GetKeyspaceQuery;
@@ -36,8 +45,10 @@ import com.example.graphql.client.schema.GetTablesQuery;
 import com.example.graphql.client.schema.type.BasicType;
 import com.example.graphql.client.schema.type.ColumnInput;
 import com.example.graphql.client.schema.type.DataTypeInput;
+import com.example.graphql.client.schema.type.ReplicationOptionInput;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
@@ -48,16 +59,6 @@ import io.stargate.db.schema.Column.Type;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.ClusterConnectionInfo;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.OkHttpClient;
 import org.apache.http.HttpStatus;
@@ -67,6 +68,9 @@ import org.junit.jupiter.api.Test;
 import org.osgi.framework.InvalidSyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @NotThreadSafe
 public class GraphqlTest extends BaseOsgiIntegrationTest {
@@ -230,6 +234,37 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         .filteredOn(c -> c.getName().equals("schema_version"))
         .extracting(GetKeyspaceQuery.Column::getType)
         .anySatisfy(value -> assertThat(value.getBasic()).isEqualTo(BasicType.UUID));
+  }
+
+  @Test
+  public void createKeyspace() throws Exception {
+    String newKeyspaceName = "graphql_create_test";
+
+    dataStore.query().drop().keyspace(newKeyspaceName).execute();
+    dataStore.waitForSchemaAgreement();
+    assertThat(dataStore.schema().keyspaceNames()).doesNotContain(newKeyspaceName);
+
+    ApolloClient client = getApolloClient("/graphql-schema");
+    CreateKeyspaceMutation mutation =
+        CreateKeyspaceMutation.builder()
+            .name(newKeyspaceName)
+            .ifNotExists(true)
+            .replication(
+                ImmutableList.of(
+                    ReplicationOptionInput.builder().key("class").value("SimpleStrategy").build(),
+                    ReplicationOptionInput.builder().key("replication_factor").value("1").build()))
+            .build();
+
+    CompletableFuture<CreateKeyspaceMutation.Data> future = new CompletableFuture<>();
+    ApolloMutationCall<Optional<CreateKeyspaceMutation.Data>> observable = client.mutate(mutation);
+    observable.enqueue(queryCallback(future));
+
+    CreateKeyspaceMutation.Data result = future.get();
+    observable.cancel();
+
+    assertThat(result.getCreateKeyspace()).hasValue(true);
+    dataStore.waitForSchemaAgreement();
+    assertThat(dataStore.schema().keyspaceNames()).contains(newKeyspaceName);
   }
 
   @Test

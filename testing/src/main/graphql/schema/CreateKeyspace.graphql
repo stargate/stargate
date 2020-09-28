@@ -1,0 +1,11 @@
+mutation CreateKeyspace(
+    $name: String!
+    $ifNotExists: Boolean
+    $replication: [ReplicationOptionInput]!
+) {
+    createKeyspace (
+        name: $name,
+        ifNotExists: $ifNotExists,
+        replication: $replication
+    )
+}
