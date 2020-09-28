@@ -357,6 +357,5 @@ public class BaseOsgiIntegrationTest {
     logger.info("Stargate node nr: {} started successfully", stargateNodeNumber);
     // add to starters only if it start() successfully
     stargateStarters.add(starter);
-    throw new BundleException("error!!");
   }
 }
