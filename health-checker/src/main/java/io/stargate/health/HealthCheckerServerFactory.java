@@ -56,7 +56,7 @@ public class HealthCheckerServerFactory extends DefaultServerFactory {
     if (Boolean.parseBoolean(System.getProperty("stargate.bind_to_listen_address"))) {
       connector.setHost(System.getProperty("stargate.listen_address"));
     }
-    connector.setPort(8085);
+    connector.setPort(8086);
     server.addConnector(connector);
     return server;
   }
