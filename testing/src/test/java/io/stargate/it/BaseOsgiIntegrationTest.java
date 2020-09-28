@@ -88,7 +88,7 @@ public class BaseOsgiIntegrationTest {
 
   static {
     for (int i = 1; i <= numberOfStargateNodes; i++) {
-      int portSuffix = 1 + i;
+      int portSuffix = 10 + i;
       stargateHosts.add("127.0.0." + portSuffix);
     }
   }
@@ -357,5 +357,6 @@ public class BaseOsgiIntegrationTest {
     logger.info("Stargate node nr: {} started successfully", stargateNodeNumber);
     // add to starters only if it start() successfully
     stargateStarters.add(starter);
+    throw new BundleException("error!!");
   }
 }
