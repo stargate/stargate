@@ -186,12 +186,6 @@ public class CQLTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void querySystemPeers() {
-    ResultSet rs = session.execute("SELECT * FROM system.peers");
-    assertThat(rs.all()).isEmpty();
-  }
-
-  @Test
   public void querySimple() {
     createTable();
 
