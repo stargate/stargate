@@ -107,7 +107,7 @@ public class DefaultQueryOptions<D> implements QueryOptions {
 
   @Override
   public boolean skipMetadata() {
-    return false;
+    return skipMetadata;
   }
 
   private SpecificOptions getSpecificOptions() {

@@ -276,6 +276,7 @@ public class DsePersistence
                   checkIsLoggedIn(internalState);
 
                   CQLStatement statement = QueryProcessor.parseStatement(cql, internalState);
+                  internalOptions.prepare(statement.getBindVariables());
 
                   return processStatement(
                       statement, state, options, customPayload, queryStartNanoTime, tracingId);
@@ -311,6 +312,13 @@ public class DsePersistence
                   }
 
                   final CQLStatement statement = prepared.statement;
+                  // Please note that this need to happen _before_ the beginTraceExecute, because
+                  // when
+                  // we add bound values to the trace, we rely on the values having been re-ordered
+                  // by
+                  // the following prepare (if named values were used that is).
+                  internalOptions.prepare(statement.getBindVariables());
+
                   final UUID tracingId =
                       beginTraceExecute(
                           statement,

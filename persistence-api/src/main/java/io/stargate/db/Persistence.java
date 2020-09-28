@@ -56,7 +56,7 @@ public interface Persistence<T, C, Q> {
 
   Authenticator getAuthenticator();
 
-  DataStore newDataStore(QueryState<Q> state, QueryOptions<C> queryOptions);
+  DataStore newDataStore(QueryState<Q> state, QueryOptions queryOptions);
 
   CompletableFuture<? extends Result> query(
       String cql,

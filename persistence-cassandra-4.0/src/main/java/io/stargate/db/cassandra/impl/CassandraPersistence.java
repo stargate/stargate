@@ -194,8 +194,7 @@ public class CassandraPersistence
 
   @Override
   public DataStore newDataStore(
-      QueryState<org.apache.cassandra.service.QueryState> state,
-      QueryOptions<org.apache.cassandra.service.ClientState> queryOptions) {
+      QueryState<org.apache.cassandra.service.QueryState> state, QueryOptions queryOptions) {
     return new InternalDataStore(
         this, Conversion.toInternal(state), Conversion.toInternal(queryOptions));
   }
@@ -269,6 +268,7 @@ public class CassandraPersistence
 
             CQLStatement statement =
                 QueryProcessor.parseStatement(cql, Conversion.toInternal(state.getClientState()));
+            internalOptions.prepare(statement.getBindVariables());
 
             Result result =
                 interceptor.interceptQuery(
@@ -322,7 +322,12 @@ public class CassandraPersistence
 
             CQLStatement statement = prepared.statement;
 
-            if (shouldTrace) beginTraceExecute(prepared, state, options, version);
+            // Please note that this need to happen _before_ the beginTraceExecute, because when
+            // we add bound values to the trace, we rely on the values having been re-ordered by
+            // the following prepare (if named values were used that is).
+            internalOptions.prepare(statement.getBindVariables());
+
+            if (shouldTrace) beginTraceExecute(prepared, state, internalOptions, version);
 
             Result result =
                 interceptor.interceptQuery(
@@ -560,7 +565,7 @@ public class CassandraPersistence
   private void beginTraceExecute(
       QueryHandler.Prepared prepared,
       QueryState state,
-      QueryOptions options,
+      org.apache.cassandra.cql3.QueryOptions options,
       ProtocolVersion version) {
     ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
     if (options.getPageSize() > 0)
