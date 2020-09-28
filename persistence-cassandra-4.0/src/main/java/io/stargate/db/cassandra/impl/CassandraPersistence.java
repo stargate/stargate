@@ -4,12 +4,12 @@ import static io.stargate.db.cassandra.datastore.InternalDataStore.EXECUTOR;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
 import io.stargate.db.Authenticator;
 import io.stargate.db.BatchType;
 import io.stargate.db.ClientState;
 import io.stargate.db.EventListener;
-import io.stargate.db.Persistence;
 import io.stargate.db.QueryOptions;
 import io.stargate.db.QueryState;
 import io.stargate.db.Result;
@@ -17,7 +17,7 @@ import io.stargate.db.cassandra.datastore.InternalDataStore;
 import io.stargate.db.cassandra.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.common.util.SchemaTool;
+import io.stargate.db.datastore.common.AbstractCassandraPersistence;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -43,12 +43,19 @@ import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.VariableSpecifications;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.cql3.statements.ModificationStatement;
+import org.apache.cassandra.db.Keyspace;
+import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.schema.ColumnMetadata;
+import org.apache.cassandra.schema.IndexMetadata;
+import org.apache.cassandra.schema.KeyspaceMetadata;
 import org.apache.cassandra.schema.Schema;
+import org.apache.cassandra.schema.SchemaChangeListener;
+import org.apache.cassandra.schema.TableMetadata;
+import org.apache.cassandra.schema.ViewMetadata;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.service.ClientWarn;
-import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
 import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
@@ -63,8 +70,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CassandraPersistence
-    implements Persistence<
-        Config, org.apache.cassandra.service.ClientState, org.apache.cassandra.service.QueryState> {
+    extends AbstractCassandraPersistence<
+        Config,
+        org.apache.cassandra.service.ClientState,
+        org.apache.cassandra.service.QueryState,
+        KeyspaceMetadata,
+        TableMetadata,
+        ColumnMetadata,
+        UserType,
+        IndexMetadata,
+        ViewMetadata> {
   private static final Logger logger = LoggerFactory.getLogger(CassandraPersistence.class);
 
   /*
@@ -76,25 +91,49 @@ public class CassandraPersistence
           "stargate.startup_delay_ms",
           3 * 60000); // MigrationManager.MIGRATION_DELAY_IN_MS is private
 
-  private DataStore root;
   private CassandraDaemon daemon;
   private Authenticator authenticator;
   private QueryHandler handler;
   private QueryInterceptor interceptor;
 
-  @Override
-  public String name() {
-    return "Apache Cassandra";
+  // C* listener that ensures that our Stargate schema remains up-to-date with the internal C* one.
+  private SchemaChangeListener schemaChangeListener;
+
+  public CassandraPersistence() {
+    super("Apache Cassandra");
   }
 
   @Override
-  public void initialize(Config config) {
-    logger.info("Initializing CassandraPersistence");
+  protected SchemaConverter schemaConverter() {
+    return new SchemaConverter();
+  }
 
-    if (!Boolean.parseBoolean(System.getProperty("stargate.developer_mode"))) {
-      System.setProperty("cassandra.join_ring", "false");
+  @Override
+  protected Iterable<KeyspaceMetadata> currentInternalSchema() {
+    return Iterables.transform(org.apache.cassandra.db.Keyspace.all(), Keyspace::getMetadata);
+  }
+
+  @Override
+  protected void registerInternalSchemaListener(Runnable runOnSchemaChange) {
+    schemaChangeListener =
+        new SimpleCallbackMigrationListener() {
+          @Override
+          void onSchemaChange() {
+            runOnSchemaChange.run();
+          }
+        };
+    org.apache.cassandra.schema.Schema.instance.registerListener(schemaChangeListener);
+  }
+
+  @Override
+  protected void unregisterInternalSchemaListener() {
+    if (schemaChangeListener != null) {
+      org.apache.cassandra.schema.Schema.instance.unregisterListener(schemaChangeListener);
     }
+  }
 
+  @Override
+  protected void initializePersistence(Config config) {
     daemon = new CassandraDaemon(true);
 
     DatabaseDescriptor.daemonInitialization(() -> config);
@@ -112,7 +151,6 @@ public class CassandraPersistence
 
     waitForSchema(STARTUP_DELAY_MS);
 
-    root = new InternalDataStore();
     authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
     handler = org.apache.cassandra.service.ClientState.getCQLQueryHandler();
     interceptor = new DefaultQueryInterceptor();
@@ -121,9 +159,8 @@ public class CassandraPersistence
   }
 
   @Override
-  public void destroy() {
+  protected void destroyPersistence() {
     if (daemon != null) {
-      root = null;
       daemon.deactivate();
       daemon = null;
     }
@@ -160,7 +197,7 @@ public class CassandraPersistence
       QueryState<org.apache.cassandra.service.QueryState> state,
       QueryOptions<org.apache.cassandra.service.ClientState> queryOptions) {
     return new InternalDataStore(
-        root, Conversion.toInternal(state), Conversion.toInternal(queryOptions));
+        this, Conversion.toInternal(state), Conversion.toInternal(queryOptions));
   }
 
   @Override
@@ -467,8 +504,16 @@ public class CassandraPersistence
 
   @Override
   public boolean isInSchemaAgreement() {
-    Map<String, List<String>> schemata = StorageProxy.describeSchemaVersions(true);
-    return SchemaTool.isSchemaAgreement(schemata);
+    // We only include live nodes because this method is mainly used to wait for schema
+    // agreement, and waiting for failed nodes is not a great idea.
+    // Also note that in theory getSchemaVersion can return null for some nodes, and if it does
+    // the code below will likely return false (the null will be an element on its own), but that's
+    // probably the right answer in that case. In practice, this shouldn't be a problem though.
+    return Gossiper.instance.getLiveTokenOwners().stream()
+            .map(Gossiper.instance::getSchemaVersion)
+            .collect(Collectors.toSet())
+            .size()
+        <= 1;
   }
 
   @Override
