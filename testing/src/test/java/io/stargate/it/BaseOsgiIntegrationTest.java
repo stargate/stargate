@@ -348,7 +348,6 @@ public class BaseOsgiIntegrationTest {
             jmxPort);
     System.setProperty("stargate.auth_api_enable_username_token", "true");
     starter.withAuthEnabled(enableAuth).start();
-    starter.start();
     logger.info("Stargate node nr: {} started successfully", stargateNodeNumber);
     // add to starters only if it start() successfully
     stargateStarters.add(starter);
