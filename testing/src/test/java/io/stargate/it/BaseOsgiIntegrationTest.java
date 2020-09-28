@@ -28,12 +28,12 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.agent.builder.AgentBuilder;
@@ -109,10 +109,16 @@ public class BaseOsgiIntegrationTest {
   }
 
   public static List<InetAddress> getStargateInetSocketAddresses() throws UnknownHostException {
-    return Arrays.asList(
-        InetAddress.getByName(getStargateHost(0)),
-        InetAddress.getByName(getStargateHost(1)),
-        InetAddress.getByName(getStargateHost(2)));
+    return stargateHosts.stream()
+        .map(
+            h -> {
+              try {
+                return InetAddress.getByName(h);
+              } catch (UnknownHostException e) {
+                throw new RuntimeException(e);
+              }
+            })
+        .collect(Collectors.toList());
   }
 
   /** Remove final from all internal classes to allow for proxying */
