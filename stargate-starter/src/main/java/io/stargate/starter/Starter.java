@@ -319,6 +319,8 @@ public class Starter {
     }
   }
 
+  // build 1
+
   public Starter withAuthEnabled(boolean enabled) {
     enableAuth = enabled;
     return this;
