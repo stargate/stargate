@@ -302,7 +302,6 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
     QueryTrace trace = rs.getExecutionInfo().getQueryTrace();
     assertThat(trace.getCoordinatorAddress().getAddress()).isIn(getStargateInetSocketAddresses());
-    ;
     assertThat(trace.getRequestType()).isEqualTo("Execute CQL3 query");
     assertThat(trace.getEvents()).isNotEmpty();
   }
