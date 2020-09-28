@@ -97,8 +97,8 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
   public void shouldDistributeTrafficUniformly() {
     // given
     createKeyspaceAndTable();
-    long totalNumberOfRequests = 300;
-    long numberOfRequestPerNode = totalNumberOfRequests / runningStargateNodes;
+    int numberOfRequestPerNode = 100;
+    int totalNumberOfRequests = numberOfRequestPerNode * runningStargateNodes;
     // difference tolerance - every node should have numberOfRequestPerNode +- tolerance
     long tolerance = 5;
 
