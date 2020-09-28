@@ -114,7 +114,7 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
 
     // then
     Collection<Node> nodes = session.getMetadata().getNodes().values();
-    assertThat(nodes.size()).isEqualTo(runningStargateNodes);
+    assertThat(nodes).hasSize(runningStargateNodes);
     for (Node n : nodes) {
       long cqlMessages =
           ((Timer)
