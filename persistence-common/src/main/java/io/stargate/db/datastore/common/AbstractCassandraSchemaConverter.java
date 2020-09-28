@@ -1,5 +1,6 @@
 package io.stargate.db.datastore.common;
 
+import com.google.common.collect.Iterables;
 import io.stargate.db.schema.CollectionIndexingType;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableCollectionIndexingType;
@@ -103,7 +104,7 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
   protected abstract boolean isBaseTableOf(T table, V view);
 
   public Schema convertCassandraSchema(Iterable<K> cassandraKeyspaces) {
-    return Schema.create(Streams.of(cassandraKeyspaces).map(this::convertKeyspace)::iterator);
+    return Schema.create(Iterables.transform(cassandraKeyspaces, this::convertKeyspace));
   }
 
   private Keyspace convertKeyspace(K keyspace) {
@@ -112,8 +113,8 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
     Stream<UserDefinedType> userDefinedTypes = convertUserTypes(name, userTypes(keyspace));
     return Keyspace.create(
         name,
-        tables::iterator,
-        userDefinedTypes::iterator,
+        tables.collect(Collectors.toList()),
+        userDefinedTypes.collect(Collectors.toList()),
         replicationOptions(keyspace),
         Optional.of(usesDurableWrites(keyspace)));
   }
@@ -132,7 +133,7 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
         keyspaceName,
         tableName(table),
         columns,
-        Stream.concat(secondaryIndexes, materializedViews)::iterator);
+        Stream.concat(secondaryIndexes, materializedViews).collect(Collectors.toList()));
   }
 
   private Stream<Column> convertColumns(T table) {
@@ -232,8 +233,8 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
 
   private Index convertMVIndex(String keyspaceName, V view) {
     T table = asTable(view);
-    Stream<Column> columns = convertColumns(table);
-    return MaterializedView.create(keyspaceName, tableName(table), columns::iterator);
+    List<Column> columns = convertColumns(table).collect(Collectors.toList());
+    return MaterializedView.create(keyspaceName, tableName(table), columns);
   }
 
   private Stream<UserDefinedType> convertUserTypes(String keyspaceName, Iterable<U> userTypes) {
