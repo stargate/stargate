@@ -16,6 +16,7 @@
 package io.stargate.graphql;
 
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.servlet.InstrumentedFilter;
 import graphql.kickstart.servlet.CustomGraphQLServlet;
 import graphql.kickstart.servlet.SchemaGraphQLServlet;
 import io.stargate.auth.AuthenticationService;
@@ -38,8 +39,6 @@ public class WebImpl {
       Persistence<?, ?, ?> persistence, Metrics metrics, AuthenticationService authentication) {
     server = new Server();
 
-    MetricRegistry metricRegistry = metrics.getRegistry("graphql");
-
     ServerConnector connector = new ServerConnector(server);
     connector.setHost(System.getProperty("stargate.listen_address"));
     connector.setPort(8080);
@@ -48,7 +47,7 @@ public class WebImpl {
     ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
     context.setContextPath("/");
     ServletHolder servletHolder =
-        new ServletHolder(new CustomGraphQLServlet(persistence, metricRegistry, authentication));
+        new ServletHolder(new CustomGraphQLServlet(persistence, authentication));
     context.addServlet(servletHolder, "/graphql/*");
     ServletHolder schema = new ServletHolder(new SchemaGraphQLServlet(persistence, authentication));
     context.addServlet(schema, "/graphql-schema");
@@ -56,18 +55,28 @@ public class WebImpl {
     ServletHolder playground = new ServletHolder(new PlaygroundServlet());
     context.addServlet(playground, "/playground");
 
-    FilterHolder filter = new FilterHolder();
-    filter.setInitParameter(
-        CrossOriginFilter.ALLOWED_METHODS_PARAM, "POST,GET,OPTIONS,PUT,DELETE,PATCH");
-    filter.setInitParameter(CrossOriginFilter.ALLOWED_ORIGINS_PARAM, "*");
-    filter.setInitParameter(CrossOriginFilter.ACCESS_CONTROL_ALLOW_ORIGIN_HEADER, "*");
-    filter.setInitParameter(CrossOriginFilter.ALLOWED_HEADERS_PARAM, "*");
-    filter.setInitParameter(CrossOriginFilter.ALLOW_CREDENTIALS_PARAM, "true");
-    filter.setInitParameter(CrossOriginFilter.EXPOSED_HEADERS_PARAM, "Date");
-    CrossOriginFilter corsFilter = new CrossOriginFilter();
-    filter.setFilter(corsFilter);
+    EnumSet<DispatcherType> allDispatcherTypes = EnumSet.allOf(DispatcherType.class);
 
-    context.addFilter(CrossOriginFilter.class, "/*", EnumSet.allOf(DispatcherType.class));
+    FilterHolder corsFilter = new FilterHolder();
+    corsFilter.setInitParameter(
+        CrossOriginFilter.ALLOWED_METHODS_PARAM, "POST,GET,OPTIONS,PUT,DELETE,PATCH");
+    corsFilter.setInitParameter(CrossOriginFilter.ALLOWED_ORIGINS_PARAM, "*");
+    corsFilter.setInitParameter(CrossOriginFilter.ACCESS_CONTROL_ALLOW_ORIGIN_HEADER, "*");
+    corsFilter.setInitParameter(CrossOriginFilter.ALLOWED_HEADERS_PARAM, "*");
+    corsFilter.setInitParameter(CrossOriginFilter.ALLOW_CREDENTIALS_PARAM, "true");
+    corsFilter.setInitParameter(CrossOriginFilter.EXPOSED_HEADERS_PARAM, "Date");
+    corsFilter.setFilter(new CrossOriginFilter());
+    context.addFilter(corsFilter, "/*", allDispatcherTypes);
+
+    context
+        .addFilter(InstrumentedFilter.class, "/graphql/*", allDispatcherTypes)
+        .setInitParameter("name-prefix", "io.stargate.GraphQL");
+    context
+        .addFilter(InstrumentedFilter.class, "/graphql-schema/*", allDispatcherTypes)
+        .setInitParameter("name-prefix", "io.stargate.GraphQLSchema");
+
+    MetricRegistry metricRegistry = metrics.getRegistry("graphql");
+    context.setAttribute(InstrumentedFilter.REGISTRY_ATTRIBUTE, metricRegistry);
 
     server.setHandler(context);
   }

@@ -15,8 +15,6 @@
  */
 package graphql.kickstart.servlet;
 
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
 import graphql.kickstart.execution.GraphQLObjectMapper;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
@@ -52,18 +50,14 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
   private static final Pattern KEYSPACE_NAME_PATTERN = Pattern.compile("\\w+");
 
   private final Persistence<?, ?, ?> persistence;
-  private final MetricRegistry metricRegistry;
   private final AuthenticationService authenticationService;
   private final String defaultKeyspace;
 
   private final ConcurrentMap<String, HttpRequestHandler> keyspaceHandlers;
 
   public CustomGraphQLServlet(
-      Persistence<?, ?, ?> persistence,
-      MetricRegistry metricRegistry,
-      AuthenticationService authenticationService) {
+      Persistence<?, ?, ?> persistence, AuthenticationService authenticationService) {
     this.persistence = persistence;
-    this.metricRegistry = metricRegistry;
     this.authenticationService = authenticationService;
     DataStore dataStore = persistence.newDataStore(null, null);
     this.defaultKeyspace = findDefaultKeyspace(dataStore);
@@ -92,14 +86,11 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
       if (requestHandler == null) {
         failOnUnknownKeyspace(keyspaceName, response);
       } else {
-        Timer.Context timerContext = metricRegistry.timer(keyspaceName).time();
         try {
           requestHandler.handle(request, response);
         } catch (Exception e) {
           LOG.error("Error processing a GraphQL request", e);
           response.setStatus(500);
-        } finally {
-          timerContext.stop();
         }
       }
     }
