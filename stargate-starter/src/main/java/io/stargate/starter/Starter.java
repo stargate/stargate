@@ -301,7 +301,7 @@ public class Starter {
     System.setProperty("stargate.bind_to_listen_address", String.valueOf(bindToListenAddressOnly));
     System.setProperty("cassandra.jmx.remote.port", String.valueOf(jmxPort));
     System.setProperty("cassandra.jmx.local.port", String.valueOf(jmxPort));
-    System.setProperty("stargate.dynamic_snitch", String.valueOf(!disableMBeanRegistration));
+    System.setProperty("stargate.dynamic_snitch", String.valueOf(!disableDynamicSnitch));
     System.setProperty(
         "org.apache.cassandra.disable_mbean_registration",
         String.valueOf(disableMBeanRegistration));
