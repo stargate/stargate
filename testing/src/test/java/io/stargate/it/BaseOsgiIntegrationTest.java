@@ -326,13 +326,17 @@ public class BaseOsgiIntegrationTest {
   private void startStargateInstance(String seedHost, Integer seedPort, int stargateNodeNumber)
       throws IOException, BundleException {
     int jmxPort = new ServerSocket(0).getLocalPort();
+    int adminPort = new ServerSocket(0).getLocalPort();
+    int applicationPort = new ServerSocket(0).getLocalPort();
     logger.info(
-        "Starting node nr: {} for seedHost:seedPort = {}:{}, address: {} and jmxPort: {}",
+        "Starting node nr: {} for seedHost:seedPort = {}:{}, address: {}, jmxPort: {}, adminPort: {}, applicationPort: {}",
         stargateNodeNumber,
         seedHost,
         seedPort,
         stargateHosts.get(stargateNodeNumber),
-        jmxPort);
+        jmxPort,
+        adminPort,
+        applicationPort);
     Starter starter =
         new Starter(
             backend.clusterName(),
@@ -345,7 +349,9 @@ public class BaseOsgiIntegrationTest {
             backend.isDse(),
             !backend.isDse(),
             9043,
-            jmxPort);
+            jmxPort,
+            applicationPort,
+            adminPort);
     starter.start();
     logger.info("Stargate node nr: {} started successfully", stargateNodeNumber);
     // add to starters only if it start() successfully
