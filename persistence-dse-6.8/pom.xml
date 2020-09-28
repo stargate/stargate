@@ -31,12 +31,24 @@
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-common</artifactId>
-      <version>0.0.10-SNAPSHOT</version>
+      <version>0.0.11</version>
     </dependency>
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.10-SNAPSHOT</version>
+      <version>0.0.11</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.health</groupId>
+      <artifactId>health-checker</artifactId>
+      <version>0.0.9</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+        </exclusion>
+      </exclusions>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -237,7 +249,17 @@
             <Bundle-Description>DSE DB component for project</Bundle-Description>
             <Bundle-SymbolicName>io.stargate.db.dse</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.db.dse.DsePersistenceActivator</Bundle-Activator>
-            <Import-Package>org.osgi.framework, io.stargate.db, io.stargate.db.datastore, io.stargate.db.datastore.schema, io.stargate.db.datastore.query, org.apache.cassandra.stargate, !com.codahale.metrics.graphite.*</Import-Package>
+            <Import-Package><![CDATA[
+              org.osgi.framework,
+              io.stargate.db,
+              io.stargate.db.datastore,
+              io.stargate.db.datastore.schema,
+              io.stargate.db.datastore.query,
+              org.apache.cassandra.stargate,
+              !com.codahale.metrics.graphite.*,
+              io.stargate.health.metrics.api,
+              com.codahale.metrics,
+            ]]></Import-Package>
             <Export-Package>io.stargate.db.dse</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
             <Bundle-ClassPath>.,sjk-core-0.14.jar,{maven-dependencies}</Bundle-ClassPath>

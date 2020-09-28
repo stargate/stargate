@@ -45,6 +45,7 @@ import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.exceptions.InvalidRequestException;
 import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.schema.MigrationManager;
 import org.apache.cassandra.schema.ColumnMetadata;
 import org.apache.cassandra.schema.IndexMetadata;
 import org.apache.cassandra.schema.KeyspaceMetadata;
@@ -80,6 +81,13 @@ public class DsePersistence
 
   public static final Boolean USE_PROXY_PROTOCOL =
       Boolean.parseBoolean(System.getProperty("stargate.use_proxy_protocol", "false"));
+
+  /*
+   * Initial schema migration can take greater than 2 * MigrationManager.MIGRATION_DELAY_IN_MS if a
+   * live token owner doesn't become live within MigrationManager.MIGRATION_DELAY_IN_MS.
+   */
+  private static final int STARTUP_DELAY_MS =
+      Integer.getInteger("stargate.startup_delay_ms", 3 * MigrationManager.MIGRATION_DELAY_IN_MS);
 
   private CassandraDaemon cassandraDaemon;
   private Authenticator authenticator;
@@ -155,7 +163,7 @@ public class DsePersistence
     Gossiper.instance.addLocalApplicationState(
         ApplicationState.X10, StorageService.instance.valueFactory.dsefsState("stargate"));
 
-    waitForSchema(5 * StorageService.RING_DELAY);
+    waitForSchema(STARTUP_DELAY_MS);
 
     if (USE_PROXY_PROTOCOL) interceptor = new ProxyProtocolQueryInterceptor();
     else interceptor = new DefaultQueryInterceptor();
@@ -611,14 +619,22 @@ public class DsePersistence
    * for at least one backend ring member to become available and for their schemas to agree before
    * allowing initialization to continue.
    */
-  private void waitForSchema(int delay) {
-    for (int i = 0; i < delay; i += 1000) {
+  private void waitForSchema(int delayMillis) {
+    boolean isConnectedAndInAgreement = false;
+    for (int i = 0; i < delayMillis; i += 1000) {
       if (Gossiper.instance.getLiveTokenOwners().size() > 0 && isInSchemaAgreement()) {
         logger.debug("current schema version: {}", SchemaManager.instance.getVersion());
+        isConnectedAndInAgreement = true;
         break;
       }
 
       Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+    }
+
+    if (!isConnectedAndInAgreement) {
+      logger.warn(
+          "Unable to connect to live token owner and/or reach schema agreement after {} milliseconds",
+          delayMillis);
     }
   }
 }
