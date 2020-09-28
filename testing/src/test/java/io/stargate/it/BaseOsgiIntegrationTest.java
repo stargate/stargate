@@ -315,13 +315,12 @@ public class BaseOsgiIntegrationTest {
       for (int i = 0; i < numberOfStargateNodes; i++) {
         try {
           startStargateInstance(backend.seedAddress(), backend.storagePort(), i);
-        } catch (IOException | BundleException ex) {
+        } catch (RuntimeException | IOException | BundleException ex) {
           logger.error(
               "Exception when starting stargate node nr: " + i + " it will be retried once.", ex);
-
           try {
             startStargateInstance(backend.seedAddress(), backend.storagePort(), i);
-          } catch (IOException | BundleException ex2) {
+          } catch (RuntimeException | IOException | BundleException ex2) {
             logger.error("Exception when retrying start of the stargate node nr: " + i, ex2);
           }
         }
