@@ -301,7 +301,7 @@ public class BaseOsgiIntegrationTest {
 
   /**
    * Returns a proxy facade for a OSGi service loaded in stargate By default, it retrieves the
-   * facase from the 1st starter node.
+   * facade from the 1st starter node.
    */
   public <T> T getOsgiService(String name, Class<T> clazz) throws InvalidSyntaxException {
     return getOsgiService(name, clazz, 0);
