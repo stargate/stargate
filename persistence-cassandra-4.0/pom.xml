@@ -32,15 +32,9 @@
       <version>0.0.11-SNAPSHOT</version>
     </dependency>
     <dependency>
-      <groupId>io.stargate.health</groupId>
-      <artifactId>health-checker</artifactId>
+      <groupId>io.stargate.core</groupId>
+      <artifactId>core</artifactId>
       <version>0.0.11-SNAPSHOT</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
-        </exclusion>
-      </exclusions>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -208,7 +202,7 @@
               io.stargate.db.datastore.*,
               org.apache.cassandra.stargate,
               !com.codahale.metrics.graphite.*,
-              io.stargate.health.metrics.api,
+              io.stargate.core,
               com.codahale.metrics,
             ]]></Import-Package>
             <Export-Package>io.stargate.db.cassandra</Export-Package>

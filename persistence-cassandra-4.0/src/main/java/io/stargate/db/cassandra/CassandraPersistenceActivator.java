@@ -1,10 +1,10 @@
 package io.stargate.db.cassandra;
 
+import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.cassandra.impl.CassandraPersistence;
 import io.stargate.db.cassandra.impl.StargateConfigSnitch;
 import io.stargate.db.cassandra.impl.StargateSeedProvider;
-import io.stargate.health.metrics.api.Metrics;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
