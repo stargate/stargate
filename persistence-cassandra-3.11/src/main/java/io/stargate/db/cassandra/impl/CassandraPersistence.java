@@ -98,7 +98,8 @@ public class CassandraPersistence
 
   /*
    * Initial schema migration can take greater than 2 * MigrationManager.MIGRATION_DELAY_IN_MS if a
-   * live token owner doesn't become live within MigrationManager.MIGRATION_DELAY_IN_MS.
+   * live token owner doesn't become live within MigrationManager.MIGRATION_DELAY_IN_MS. Because it's
+   * unknown how long a schema migration takes this waits for an extra MIGRATION_DELAY_IN_MS.
    */
   private static final int STARTUP_DELAY_MS =
       Integer.getInteger("stargate.startup_delay_ms", 3 * MigrationManager.MIGRATION_DELAY_IN_MS);
