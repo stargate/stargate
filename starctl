@@ -143,8 +143,8 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
         STARGATE_ARGS+=("--jmx-port" "$JMX_PORT")
     fi
 
-    if [[ ! -z "$DYNAMIC_SNITCH" ]]; then
-        STARGATE_ARGS+=("--dynamic_snitch")
+    if [[ ! -z "$DISABLE_DYNAMIC_SNITCH" ]]; then
+        STARGATE_ARGS+=("--disable_dynamic_snitch")
     fi
 
     if [[ ! -z "$DISABLE_MBEAN_REGISTRATION" ]]; then

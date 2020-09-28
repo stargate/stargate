@@ -197,8 +197,12 @@ public class Starter {
   int jmxPort = 7199;
 
   @Order(value = 17)
-  @Option(name = {"--dynamic_snitch", "Set if the dynamic snitch should wrap the actual snitch."})
-  boolean dynamicSnitch = true;
+  @Option(
+      name = {
+        "--disable_dynamic_snitch",
+        "Whether the dynamic snitch should wrap the actual snitch."
+      })
+  boolean disableDynamicSnitch = false;
 
   @Order(value = 18)
   @Option(
@@ -239,7 +243,7 @@ public class Starter {
     // bind to listen address only to allow multiple starters to start on the same host
     this.bindToListenAddressOnly = true;
     this.jmxPort = jmxPort;
-    this.dynamicSnitch = false;
+    this.disableDynamicSnitch = true;
     this.disableMBeanRegistration = true;
   }
 
@@ -297,7 +301,7 @@ public class Starter {
     System.setProperty("stargate.bind_to_listen_address", String.valueOf(bindToListenAddressOnly));
     System.setProperty("cassandra.jmx.remote.port", String.valueOf(jmxPort));
     System.setProperty("cassandra.jmx.local.port", String.valueOf(jmxPort));
-    System.setProperty("stargate.dynamic_snitch", String.valueOf(dynamicSnitch));
+    System.setProperty("stargate.dynamic_snitch", String.valueOf(!disableMBeanRegistration));
     System.setProperty(
         "org.apache.cassandra.disable_mbean_registration",
         String.valueOf(disableMBeanRegistration));
