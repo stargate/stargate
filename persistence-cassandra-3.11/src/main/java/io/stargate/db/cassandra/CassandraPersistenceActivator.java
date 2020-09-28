@@ -15,6 +15,7 @@
  */
 package io.stargate.db.cassandra;
 
+import io.stargate.core.BundleUtils;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.cassandra.impl.CassandraPersistence;
@@ -166,15 +167,11 @@ public class CassandraPersistenceActivator implements BundleActivator, ServiceLi
 
   @Override
   public void serviceChanged(ServiceEvent serviceEvent) {
-    int type = serviceEvent.getType();
-    String[] objectClass = (String[]) serviceEvent.getServiceReference().getProperty("objectClass");
-    if (type == ServiceEvent.REGISTERED) {
-      logger.info("Service of type " + objectClass[0] + " registered.");
-      Object service = context.getService(serviceEvent.getServiceReference());
-      if (service instanceof Metrics) {
-        logger.debug("Setting metrics in serviceChanged");
-        setMetrics((Metrics) service);
-      }
+    Object service = BundleUtils.getRegisteredService(context, serviceEvent);
+
+    if (service instanceof Metrics) {
+      logger.debug("Setting metrics in serviceChanged");
+      setMetrics((Metrics) service);
     }
   }
 

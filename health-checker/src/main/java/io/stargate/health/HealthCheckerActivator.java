@@ -1,5 +1,6 @@
 package io.stargate.health;
 
+import io.stargate.core.BundleUtils;
 import io.stargate.core.metrics.api.Metrics;
 import org.osgi.framework.*;
 import org.slf4j.Logger;
@@ -9,20 +10,31 @@ public class HealthCheckerActivator implements BundleActivator, ServiceListener 
   private static final Logger log = LoggerFactory.getLogger(HealthCheckerActivator.class);
 
   private BundleContext context;
+  private boolean started;
 
   @Override
-  public void start(BundleContext context) {
+  public void start(BundleContext context) throws InvalidSyntaxException {
     this.context = context;
-    log.info("Starting healthchecker....");
 
     ServiceReference<?> metricsReference = context.getServiceReference(Metrics.class.getName());
 
     if (metricsReference == null) {
-      throw new RuntimeException("Metrics could not be loaded");
+      context.addServiceListener(this, String.format("(objectClass=%s)", Metrics.class.getName()));
+      // Web will be started once the metrics service is registered
+      return;
     }
 
     Metrics metrics = (Metrics) context.getService(metricsReference);
+    startWeb(metrics);
+  }
 
+  private synchronized void startWeb(Metrics metrics) {
+    if (started) {
+      return;
+    }
+
+    started = true;
+    log.info("Starting healthchecker....");
     try {
       WebImpl web = new WebImpl(this.context, metrics);
       web.start();
@@ -37,24 +49,10 @@ public class HealthCheckerActivator implements BundleActivator, ServiceListener 
 
   @Override
   public void serviceChanged(ServiceEvent serviceEvent) {
-    int type = serviceEvent.getType();
-    String[] objectClass = (String[]) serviceEvent.getServiceReference().getProperty("objectClass");
-    switch (type) {
-      case (ServiceEvent.REGISTERED):
-        log.info("Service of type " + objectClass[0] + " registered.");
-        Object service = context.getService(serviceEvent.getServiceReference());
+    Object service = BundleUtils.getRegisteredService(context, serviceEvent);
 
-        break;
-      case (ServiceEvent.UNREGISTERING):
-        log.info("Service of type " + objectClass[0] + " unregistered.");
-        context.ungetService(serviceEvent.getServiceReference());
-        break;
-      case (ServiceEvent.MODIFIED):
-        // TODO: [doug] 2020-06-15, Mon, 12:58 do something here...
-        log.info("Service of type " + objectClass[0] + " modified.");
-        break;
-      default:
-        break;
+    if (service instanceof Metrics) {
+      startWeb((Metrics) service);
     }
   }
 }
