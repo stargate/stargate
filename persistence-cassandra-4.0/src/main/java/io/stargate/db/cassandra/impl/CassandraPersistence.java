@@ -67,6 +67,15 @@ public class CassandraPersistence
         Config, org.apache.cassandra.service.ClientState, org.apache.cassandra.service.QueryState> {
   private static final Logger logger = LoggerFactory.getLogger(CassandraPersistence.class);
 
+  /*
+   * Initial schema migration can take greater than 2 * MigrationManager.MIGRATION_DELAY_IN_MS if a
+   * live token owner doesn't become live within MigrationManager.MIGRATION_DELAY_IN_MS.
+   */
+  private static final int STARTUP_DELAY_MS =
+      Integer.getInteger(
+          "stargate.startup_delay_ms",
+          3 * 60000); // MigrationManager.MIGRATION_DELAY_IN_MS is private
+
   private DataStore root;
   private CassandraDaemon daemon;
   private Authenticator authenticator;
@@ -101,7 +110,7 @@ public class CassandraPersistence
 
     daemon.start();
 
-    waitForSchema(5 * StorageService.RING_DELAY);
+    waitForSchema(STARTUP_DELAY_MS);
 
     root = new InternalDataStore();
     authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
@@ -558,14 +567,22 @@ public class CassandraPersistence
    * for at least one backend ring member to become available and for their schemas to agree before
    * allowing initialization to continue.
    */
-  private void waitForSchema(int delay) {
-    for (int i = 0; i < delay; i += 1000) {
+  private void waitForSchema(int delayMillis) {
+    boolean isConnectedAndInAgreement = false;
+    for (int i = 0; i < delayMillis; i += 1000) {
       if (Gossiper.instance.getLiveTokenOwners().size() > 0 && isInSchemaAgreement()) {
         logger.debug("current schema version: {}", Schema.instance.getVersion());
+        isConnectedAndInAgreement = true;
         break;
       }
 
       Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+    }
+
+    if (!isConnectedAndInAgreement) {
+      logger.warn(
+          "Unable to connect to live token owner and/or reach schema agreement after {} milliseconds",
+          delayMillis);
     }
   }
 }
