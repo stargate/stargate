@@ -1,12 +1,12 @@
 package org.apache.cassandra.stargate.transport.internal;
 
 import io.netty.buffer.ByteBuf;
-import io.stargate.db.datastore.schema.Column;
-import io.stargate.db.datastore.schema.ImmutableColumn;
-import io.stargate.db.datastore.schema.ImmutableTupleType;
-import io.stargate.db.datastore.schema.ImmutableUserDefinedType;
-import io.stargate.db.datastore.schema.ParameterizedType;
-import io.stargate.db.datastore.schema.UserDefinedType;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.ImmutableColumn;
+import io.stargate.db.schema.ImmutableTupleType;
+import io.stargate.db.schema.ImmutableUserDefinedType;
+import io.stargate.db.schema.ParameterizedType;
+import io.stargate.db.schema.UserDefinedType;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.cassandra.stargate.transport.ProtocolException;

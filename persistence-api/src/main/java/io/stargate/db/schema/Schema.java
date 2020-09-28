@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.datastore.schema;
+package io.stargate.db.schema;
 
 import java.util.List;
 import java.util.Map;
@@ -47,7 +47,7 @@ public abstract class Schema {
     return keyspaces().stream().map(k -> k.name()).sorted().collect(Collectors.toList());
   }
 
-  public static Schema create(Set<Keyspace> keyspaces) {
+  public static Schema create(Iterable<Keyspace> keyspaces) {
     return ImmutableSchema.builder().addAllKeyspaces(keyspaces).build();
   }
 

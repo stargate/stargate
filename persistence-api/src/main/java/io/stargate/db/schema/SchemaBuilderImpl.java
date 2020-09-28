@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.datastore.schema;
+package io.stargate.db.schema;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
@@ -85,13 +85,7 @@ public class SchemaBuilderImpl {
     if (keyspaceName != null) {
       table(null);
 
-      keyspaces.add(
-          Keyspace.create(
-              keyspaceName,
-              ImmutableSet.copyOf(tables),
-              ImmutableList.copyOf(udts),
-              replication,
-              durableWrites));
+      keyspaces.add(Keyspace.create(keyspaceName, tables, udts, replication, durableWrites));
       tables.clear();
       udts.clear();
 

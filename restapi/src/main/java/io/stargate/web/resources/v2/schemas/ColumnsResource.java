@@ -17,9 +17,9 @@ package io.stargate.web.resources.v2.schemas;
 
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.schema.Column;
-import io.stargate.db.datastore.schema.ImmutableColumn;
-import io.stargate.db.datastore.schema.Table;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.ImmutableColumn;
+import io.stargate.db.schema.Table;
 import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.ResponseWrapper;
@@ -50,6 +50,7 @@ import org.slf4j.LoggerFactory;
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}/columns")
 @Produces(MediaType.APPLICATION_JSON)
 public class ColumnsResource {
+
   private static final Logger logger = LoggerFactory.getLogger(ColumnsResource.class);
 
   @Inject private Db db;
@@ -80,9 +81,11 @@ public class ColumnsResource {
           List<ColumnDefinition> columnDefinitions =
               tableMetadata.columns().stream()
                   .map(
-                      (col) ->
-                          new ColumnDefinition(
-                              col.name(), col.type().name(), col.kind() == Column.Kind.Static))
+                      (col) -> {
+                        String type = col.type() == null ? null : col.type().cqlDefinition();
+                        return new ColumnDefinition(
+                            col.name(), type, col.kind() == Column.Kind.Static);
+                      })
                   .collect(Collectors.toList());
 
           Object response = raw ? columnDefinitions : new ResponseWrapper(columnDefinitions);
@@ -167,8 +170,9 @@ public class ColumnsResource {
                 .build();
           }
 
+          String type = col.type() == null ? null : col.type().cqlDefinition();
           ColumnDefinition columnDefinition =
-              new ColumnDefinition(col.name(), col.type().name(), col.kind() == Column.Kind.Static);
+              new ColumnDefinition(col.name(), type, col.kind() == Column.Kind.Static);
           Object response = raw ? columnDefinition : new ResponseWrapper(columnDefinition);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))

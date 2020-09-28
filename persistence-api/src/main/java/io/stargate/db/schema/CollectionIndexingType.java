@@ -13,15 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.datastore.schema;
+package io.stargate.db.schema;
 
+import java.io.Serializable;
 import org.immutables.value.Value;
 
-public interface QualifiedSchemaEntity extends SchemaEntity {
-  String keyspace();
+@Value.Immutable(prehash = true)
+public abstract class CollectionIndexingType implements Serializable {
+  @Value.Default
+  public boolean indexKeys() {
+    return false;
+  }
 
-  @Value.Lazy
-  default String cqlKeyspace() {
-    return ColumnUtils.maybeQuote(keyspace());
+  @Value.Default
+  public boolean indexValues() {
+    return false;
+  }
+
+  @Value.Default
+  public boolean indexEntries() {
+    return false;
+  }
+
+  @Value.Default
+  public boolean indexFull() {
+    return false;
   }
 }

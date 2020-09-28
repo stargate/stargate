@@ -17,10 +17,10 @@ package io.stargate.web.resources;
 
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.schema.Column;
-import io.stargate.db.datastore.schema.Column.Kind;
-import io.stargate.db.datastore.schema.ImmutableColumn;
-import io.stargate.db.datastore.schema.Table;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.Kind;
+import io.stargate.db.schema.ImmutableColumn;
+import io.stargate.db.schema.Table;
 import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.models.ColumnUpdate;
 import io.stargate.web.models.Error;
@@ -67,9 +67,11 @@ public class ColumnResource {
           List<ColumnDefinition> collect =
               tableMetadata.columns().stream()
                   .map(
-                      (col) ->
-                          new ColumnDefinition(
-                              col.name(), col.type().name(), col.kind() == Kind.Static))
+                      (col) -> {
+                        String type = col.type() == null ? null : col.type().cqlDefinition();
+                        return new ColumnDefinition(
+                            col.name(), type, col.kind() == Column.Kind.Static);
+                      })
                   .collect(Collectors.toList());
 
           return Response.status(Response.Status.OK).entity(collect).build();
@@ -132,9 +134,9 @@ public class ColumnResource {
                 .build();
           }
 
+          String type = col.type() == null ? null : col.type().cqlDefinition();
           return Response.status(Response.Status.OK)
-              .entity(
-                  new ColumnDefinition(col.name(), col.type().name(), col.kind() == Kind.Static))
+              .entity(new ColumnDefinition(col.name(), type, col.kind() == Kind.Static))
               .build();
         });
   }
