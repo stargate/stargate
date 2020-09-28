@@ -88,7 +88,8 @@ public class BaseOsgiIntegrationTest {
 
   static {
     for (int i = 1; i <= numberOfStargateNodes; i++) {
-      stargateHosts.add("127.0.0.1" + i);
+      int portSuffix = 1 + i;
+      stargateHosts.add("127.0.0." + portSuffix);
     }
   }
 
