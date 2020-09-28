@@ -205,18 +205,6 @@ public class Starter {
       name = {"--disable_mbean_registration", "Whether the mbean registration should be disabled"})
   boolean disableMBeanRegistration = false;
 
-  @Order(value = 19)
-  @Option(
-      name = {"--health-checker.application_connector.port"},
-      description = "The port of health checker application connector")
-  Integer healthCheckerApplicationPort;
-
-  @Order(value = 20)
-  @Option(
-      name = {"--health-checker.admin_connector.port"},
-      description = "The port of health checker admin connector")
-  Integer healthCheckerAdminPort;
-
   private BundleContext context;
   private Felix framework;
   private List<Bundle> bundleList;
@@ -236,9 +224,7 @@ public class Starter {
       boolean dse,
       boolean isSimpleSnitch,
       int cqlPort,
-      int jmxPort,
-      Integer healthCheckerApplicationPort,
-      Integer healthCheckerAdminPort) {
+      int jmxPort) {
     this.clusterName = clusterName;
     this.version = version;
     this.listenHostStr = listenHostStr;
@@ -255,8 +241,6 @@ public class Starter {
     this.jmxPort = jmxPort;
     this.dynamicSnitch = false;
     this.disableMBeanRegistration = true;
-    this.healthCheckerApplicationPort = healthCheckerApplicationPort;
-    this.healthCheckerAdminPort = healthCheckerAdminPort;
   }
 
   void setStargateProperties() {
@@ -322,16 +306,6 @@ public class Starter {
       // Restrict the listen address for Jersey endpoints
       System.setProperty("dw.server.adminConnectors[0].bindHost", listenHostStr);
       System.setProperty("dw.server.applicationConnectors[0].bindHost", listenHostStr);
-    }
-
-    if (healthCheckerApplicationPort != null) {
-      System.setProperty(
-          "dw.server.applicationConnectors[0].port", String.valueOf(healthCheckerApplicationPort));
-    }
-
-    if (healthCheckerAdminPort != null) {
-      System.setProperty(
-          "dw.server.adminConnectors[0].port", String.valueOf(healthCheckerAdminPort));
     }
 
     // Don't step on native logback functionality. If someone wants to use built in logback args

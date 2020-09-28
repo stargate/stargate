@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import javax.servlet.DispatcherType;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 
 /**
  * Custom DropWizard server factory, in order to plug our {@link HealthCheckerAdminServlet}.
@@ -32,6 +33,11 @@ public class HealthCheckerServerFactory extends DefaultServerFactory {
       HealthCheckRegistry healthChecks) {
     configureSessionsAndSecurity(handler, server);
     handler.setServer(server);
+    ServerConnector connector = new ServerConnector(server);
+    connector.setHost(System.getProperty("stargate.listen_address"));
+    connector.setPort(8085);
+    server.addConnector(connector);
+
     handler
         .getServletContext()
         .setAttribute(HealthCheckServlet.HEALTH_CHECK_REGISTRY, healthChecks);
