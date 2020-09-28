@@ -49,10 +49,10 @@ public class HealthCheckerActivator implements BundleActivator, ServiceListener 
 
   @Override
   public void serviceChanged(ServiceEvent serviceEvent) {
-    Object service = BundleUtils.getRegisteredService(context, serviceEvent);
+    Metrics metrics = BundleUtils.getRegisteredService(context, serviceEvent, Metrics.class);
 
-    if (service instanceof Metrics) {
-      startWeb((Metrics) service);
+    if (metrics != null) {
+      startWeb(metrics);
     }
   }
 }

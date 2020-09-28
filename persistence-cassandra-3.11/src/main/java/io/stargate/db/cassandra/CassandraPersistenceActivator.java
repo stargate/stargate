@@ -167,11 +167,11 @@ public class CassandraPersistenceActivator implements BundleActivator, ServiceLi
 
   @Override
   public void serviceChanged(ServiceEvent serviceEvent) {
-    Object service = BundleUtils.getRegisteredService(context, serviceEvent);
+    Metrics metrics = BundleUtils.getRegisteredService(context, serviceEvent, Metrics.class);
 
-    if (service instanceof Metrics) {
+    if (metrics != null) {
       logger.debug("Setting metrics in serviceChanged");
-      setMetrics((Metrics) service);
+      setMetrics(metrics);
     }
   }
 
