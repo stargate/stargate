@@ -319,7 +319,7 @@ public class Starter {
     }
   }
 
-  // build 1
+  // build 2
 
   public Starter withAuthEnabled(boolean enabled) {
     enableAuth = enabled;
