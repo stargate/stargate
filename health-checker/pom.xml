@@ -191,7 +191,7 @@
               com.codahale.metrics,
               io.stargate.core.*
             ]]></Import-Package>
-            <Export-Package>io.stargate.health</Export-Package>
+            <Export-Package>!*</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
           </instructions>
