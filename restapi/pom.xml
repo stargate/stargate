@@ -17,6 +17,12 @@
   </properties>
   <dependencies>
     <dependency>
+      <groupId>io.stargate.core</groupId>
+      <artifactId>core</artifactId>
+      <version>0.0.11-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
       <version>0.0.11-SNAPSHOT</version>
@@ -176,7 +182,7 @@
                             !io.dropwizard.logging,
                             io.stargate.db.datastore,
                             io.stargate.db.datastore.query,
-                            io.stargate.health.metrics.api,
+                            io.stargate.core,
                             com.codahale.metrics,
                             org.osgi.framework,
                         ]]></Import-Package>

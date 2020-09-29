@@ -1,4 +1,4 @@
-package io.stargate.health.metrics.impl;
+package io.stargate.core.metrics.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;

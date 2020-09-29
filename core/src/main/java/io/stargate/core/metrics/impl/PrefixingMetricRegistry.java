@@ -1,4 +1,4 @@
-package io.stargate.health.metrics.impl;
+package io.stargate.core.metrics.impl;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
@@ -198,7 +198,7 @@ public class PrefixingMetricRegistry extends MetricRegistry {
   }
 
   private String addPrefix(String name) {
-    return name(prefix, name);
+    return MetricRegistry.name(prefix, name);
   }
 
   private boolean isPrefixed(String name) {

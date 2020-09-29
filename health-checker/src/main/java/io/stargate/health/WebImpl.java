@@ -1,6 +1,6 @@
 package io.stargate.health;
 
-import io.stargate.health.metrics.api.Metrics;
+import io.stargate.core.metrics.api.Metrics;
 import org.osgi.framework.BundleContext;
 
 public class WebImpl {

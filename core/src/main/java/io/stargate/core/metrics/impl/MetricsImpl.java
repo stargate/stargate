@@ -1,7 +1,7 @@
-package io.stargate.health.metrics.impl;
+package io.stargate.core.metrics.impl;
 
 import com.codahale.metrics.MetricRegistry;
-import io.stargate.health.metrics.api.Metrics;
+import io.stargate.core.metrics.api.Metrics;
 
 public class MetricsImpl implements Metrics {
 
