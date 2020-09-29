@@ -55,7 +55,7 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
     super(backend);
   }
 
-  // 7
+  // 8
   @BeforeEach
   public void setup(TestInfo testInfo) {
     DriverConfigLoader loader =
