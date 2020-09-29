@@ -34,6 +34,11 @@ import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.service.WhereParser;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,9 +67,11 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Api(value = "v2", description = "the v2 API")
 @Path("/v2/keyspaces/{keyspaceName}/{tableName}")
 @Produces(MediaType.APPLICATION_JSON)
 public class RowsResource {
+
   private static final Logger logger = LoggerFactory.getLogger(RowsResource.class);
 
   @Inject private Db db;
@@ -73,8 +80,37 @@ public class RowsResource {
 
   @Timed
   @GET
+  @ApiOperation(
+      value = "Return all keyspaces",
+      nickname = "getWithWhere",
+      notes = "Retrieve all available keyspaces in the specific database.",
+      response = String.class,
+      responseContainer = "List",
+      tags = {
+        "rows",
+      })
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            code = 200,
+            message = "OK",
+            response = Response.class,
+            responseContainer = "List"),
+        @ApiResponse(code = 400, message = "Bad request", response = java.lang.Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = java.lang.Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = java.lang.Error.class),
+        @ApiResponse(
+            code = 500,
+            message = "Internal Server Error",
+            response = java.lang.Error.class)
+      })
   public Response getWithWhere(
-      @HeaderParam("X-Cassandra-Token") String token,
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
       @PathParam("keyspaceName") final String keyspaceName,
       @PathParam("tableName") final String tableName,
       @QueryParam("where") final String where,
@@ -163,11 +199,39 @@ public class RowsResource {
 
   @Timed
   @POST
+  @ApiOperation(
+      value = "Add rows",
+      nickname = "addRows",
+      notes = "",
+      response = String.class,
+      responseContainer = "Map",
+      tags = {
+        "data",
+      })
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            code = 201,
+            message = "resource created",
+            response = Map.class,
+            responseContainer = "Map"),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 409, message = "Conflict", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
   public Response add(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName,
-      @PathParam("tableName") final String tableName,
-      String payload) {
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "keyspace name", required = true) @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "table name", required = true) @PathParam("tableName")
+          final String tableName,
+      @ApiParam(value = "", required = true) String payload) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);

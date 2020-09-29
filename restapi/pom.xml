@@ -12,7 +12,7 @@
   <properties>
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
     <jettyVersion>9.4.24.v20191120</jettyVersion>
-    <dropwizard.version>2.0.10</dropwizard.version>
+    <dropwizard.version>2.0.12</dropwizard.version>
     <junit.version>5.6.2</junit.version>
   </properties>
   <dependencies>
@@ -34,12 +34,7 @@
       <version>0.0.10-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
-    <dependency>
-      <groupId>io.stargate.health</groupId>
-      <artifactId>health-checker</artifactId>
-      <version>0.0.10-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
+
     <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-jersey</artifactId>
@@ -117,6 +112,52 @@
       <version>27.0-jre</version>
     </dependency>
     <dependency>
+      <groupId>org.eclipse.equinox</groupId>
+      <artifactId>org.eclipse.equinox.common</artifactId>
+      <version>3.6.0.v20100503</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.eclipse.osgi</groupId>
+          <artifactId>org.eclipse.osgi</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-jaxrs</artifactId>
+      <version>1.6.2</version>
+      <exclusions>
+        <exclusion>
+          <groupId>javax.ws.rs</groupId>
+          <artifactId>jsr311-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-jersey2-jaxrs</artifactId>
+      <version>1.6.2</version>
+      <!-- Causes runtime issues with jakarta.validation:validation-api in dropwizard-core -->
+      <exclusions>
+        <exclusion>
+          <groupId>javax.validation</groupId>
+          <artifactId>validation-api</artifactId>
+        </exclusion>
+      </exclusions>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.smoketurner</groupId>
+      <artifactId>dropwizard-swagger</artifactId>
+      <version>2.0.12-1</version>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.health</groupId>
+      <artifactId>health-checker</artifactId>
+      <version>0.0.10-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>${junit.version}</version>
@@ -128,6 +169,7 @@
       <version>3.14.0</version>
       <scope>test</scope>
     </dependency>
+
   </dependencies>
   <build>
     <plugins>
@@ -164,21 +206,24 @@
                             !org.eclipse.jetty.websocket.common.io,
                             !org.eclipse.jetty.websocket.common.scopes,
                             !org.eclipse.jetty.websocket.servlet,
+                            !org.eclipse.core.runtime.content,
                             !org.slf4j,
                             !org.slf4j.helpers,
                             !org.slf4j.spi,
                             !org.eclipse.jetty.security,
-                            io.stargate.db,
-                            org.apache.cassandra.stargate,
-                            org.apache.cassandra.stargate.*,
                             !ch.qos.logback.classic.*,
                             !ch.qos.logback.core.*,
                             !io.dropwizard.logging,
+                            org.apache.cassandra.stargate,
+                            org.apache.cassandra.stargate.*,
+                            io.stargate.db,
                             io.stargate.db.datastore,
                             io.stargate.db.datastore.query,
                             io.stargate.health.metrics.api,
                             com.codahale.metrics,
                             org.osgi.framework,
+                            io.swagger.jaxrs.listing.*,
+                            io.dropwizard.jersey.*
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>

@@ -15,6 +15,12 @@
  */
 package io.stargate.web.config;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.dropwizard.Configuration;
+import io.stargate.web.swagger.SwaggerBundleConfiguration;
 
-public class ApplicationConfiguration extends Configuration {}
+public class ApplicationConfiguration extends Configuration {
+
+  @JsonProperty("swagger")
+  public SwaggerBundleConfiguration swaggerBundleConfiguration;
+}

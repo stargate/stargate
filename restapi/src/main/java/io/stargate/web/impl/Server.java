@@ -37,6 +37,9 @@ import io.stargate.web.resources.v2.RowsResource;
 import io.stargate.web.resources.v2.schemas.ColumnsResource;
 import io.stargate.web.resources.v2.schemas.KeyspacesResource;
 import io.stargate.web.resources.v2.schemas.TablesResource;
+import io.stargate.web.swagger.SwaggerBundle;
+import io.stargate.web.swagger.SwaggerBundleConfiguration;
+import io.stargate.web.swagger.SwaggerStaticResource;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
@@ -101,6 +104,7 @@ public class Server extends Application<ApplicationConfiguration> {
     environment.jersey().register(TablesResource.class);
     environment.jersey().register(KeyspacesResource.class);
     environment.jersey().register(ColumnsResource.class);
+    environment.jersey().register(SwaggerStaticResource.class);
 
     enableCors(environment);
   }
@@ -110,6 +114,14 @@ public class Server extends Application<ApplicationConfiguration> {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
     bootstrap.setMetricRegistry(metrics.getRegistry("restapi"));
+    bootstrap.addBundle(
+        new SwaggerBundle<ApplicationConfiguration>() {
+          @Override
+          protected SwaggerBundleConfiguration getSwaggerBundleConfiguration(
+              ApplicationConfiguration configuration) {
+            return configuration.swaggerBundleConfiguration;
+          }
+        });
   }
 
   private void enableCors(Environment environment) {
