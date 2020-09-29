@@ -317,12 +317,10 @@ public class BaseOsgiIntegrationTest {
           startStargateInstance(backend.seedAddress(), backend.storagePort(), i);
         } catch (Exception ex) {
           logger.error(
-              "Exception when starting stargate node nr: " + i + " it will be retried once.", ex);
-          try {
-            startStargateInstance(backend.seedAddress(), backend.storagePort(), i);
-          } catch (Exception ex2) {
-            logger.error("Exception when retrying start of the stargate node nr: " + i, ex2);
-          }
+              "Exception when starting stargate node nr: "
+                  + i
+                  + ". The stargate node will not be started.",
+              ex);
         }
       }
     }
