@@ -117,7 +117,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
                     .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
                     .build())
             .withAuthCredentials("cassandra", "cassandra")
-            .addContactPoint(new InetSocketAddress(stargateHost, 9043))
+            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
             .build();
   }
 
@@ -182,14 +182,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     ResultSet rs = session.execute("SELECT * FROM system.local");
     Iterator<Row> rows = rs.iterator();
     assertThat(rows).hasNext();
-    assertThat(rows.next().getInetAddress("listen_address"))
-        .isEqualTo(InetAddress.getByName(stargateHost));
-  }
-
-  @Test
-  public void querySystemPeers() {
-    ResultSet rs = session.execute("SELECT * FROM system.peers");
-    assertThat(rs.all()).isEmpty();
+    assertThat(rows.next().getInetAddress("listen_address")).isIn(getStargateInetSocketAddresses());
   }
 
   @Test
@@ -308,8 +301,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     assertThat(rs.getExecutionInfo().getTracingId()).isNotNull();
 
     QueryTrace trace = rs.getExecutionInfo().getQueryTrace();
-    assertThat(trace.getCoordinatorAddress().getAddress())
-        .isEqualTo(InetAddress.getByName(stargateHost));
+    assertThat(trace.getCoordinatorAddress().getAddress()).isIn(getStargateInetSocketAddresses());
     assertThat(trace.getRequestType()).isEqualTo("Execute CQL3 query");
     assertThat(trace.getEvents()).isNotEmpty();
   }
@@ -324,8 +316,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     assertThat(rs.getExecutionInfo().getTracingId()).isNotNull();
 
     QueryTrace trace = rs.getExecutionInfo().getQueryTrace();
-    assertThat(trace.getCoordinatorAddress().getAddress())
-        .isEqualTo(InetAddress.getByName(stargateHost));
+    assertThat(trace.getCoordinatorAddress().getAddress()).isIn(getStargateInetSocketAddresses());
     assertThat(trace.getRequestType()).isEqualTo("Execute CQL3 prepared query");
     assertThat(trace.getEvents()).isNotEmpty();
   }
@@ -348,8 +339,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
     ResultSet rs = session.execute(batch);
     QueryTrace trace = rs.getExecutionInfo().getQueryTrace();
-    assertThat(trace.getCoordinatorAddress().getAddress())
-        .isEqualTo(InetAddress.getByName(stargateHost));
+    assertThat(trace.getCoordinatorAddress().getAddress()).isIn(getStargateInetSocketAddresses());
     assertThat(trace.getRequestType()).isEqualTo("Execute batch of CQL3 queries");
     assertThat(trace.getEvents()).isNotEmpty();
   }
@@ -432,7 +422,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
                 getDriverConfigLoaderBuilder()
                     .withString(DefaultDriverOption.PROTOCOL_COMPRESSION, compression)
                     .build())
-            .addContactPoint(new InetSocketAddress(stargateHost, 9043))
+            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
             .build()) {
       ResultSet rs = session.execute("SELECT * FROM system.local");
       assertThat(rs.one().getString("key")).isEqualTo("local");
@@ -520,7 +510,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
           CqlSession.builder()
               .withConfigLoader(getDriverConfigLoaderBuilder().build())
               .withAuthCredentials("invalid", "invalid")
-              .addContactPoint(new InetSocketAddress(stargateHost, 9043))
+              .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
               .build()) {
         fail("Should have failed with AllNodesFailedException");
       }
@@ -540,13 +530,13 @@ public class CQLTest extends BaseOsgiIntegrationTest {
         CqlSession.builder()
             .withConfigLoader(getDriverConfigLoaderBuilder().build())
             .withAuthCredentials("token", authToken)
-            .addContactPoint(new InetSocketAddress(stargateHost, 9043))
+            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
             .build()) {
       ResultSet rs = session.execute("SELECT * FROM system.local");
       Iterator<Row> rows = rs.iterator();
       assertThat(rows).hasNext();
       assertThat(rows.next().getInetAddress("listen_address"))
-          .isEqualTo(InetAddress.getByName(stargateHost));
+          .isEqualTo(InetAddress.getByName(getStargateHost()));
     }
   }
 
@@ -580,7 +570,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             "",
-            String.format("%s:8081/v1/auth/token/generate", "http://" + stargateHost),
+            String.format("%s:8081/v1/auth/token/generate", "http://" + getStargateHost()),
             objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
             HttpStatus.SC_CREATED);
 

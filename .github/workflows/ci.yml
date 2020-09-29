@@ -12,18 +12,34 @@ jobs:
         uses: actions/setup-java@v1.4.2
         with:
           java-version: 1.8
+      - name: Setup Maven
+        env:
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+        run: |
+          mkdir -p ~/.m2
+          cat <<EOF > ~/.m2/settings.xml
+          <settings>
+            <servers>
+              <server>
+                <id>artifactory-snapshots</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+              <server>
+                <id>artifactory-releases</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+             </server>
+           </servers>
+          </settings>
+          EOF
       - name: Cache SonarCloud packages
         uses: actions/cache@v1
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
-      - name: Cache Maven packages
-        uses: actions/cache@v1
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
       - name: Clone CCM
         uses: actions/checkout@v2
         with:
