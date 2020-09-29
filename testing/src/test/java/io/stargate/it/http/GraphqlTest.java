@@ -239,7 +239,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   public void createKeyspace() throws Exception {
     String newKeyspaceName = "graphql_create_test";
 
-    dataStore.query().drop().keyspace(newKeyspaceName).execute();
+    dataStore.query().drop().keyspace(newKeyspaceName).ifExists().execute();
     dataStore.waitForSchemaAgreement();
     assertThat(dataStore.schema().keyspaceNames()).doesNotContain(newKeyspaceName);
 
