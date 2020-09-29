@@ -15,7 +15,7 @@
  */
 package io.stargate.db.datastore;
 
-import io.stargate.db.datastore.schema.Index;
+import io.stargate.db.schema.Index;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.immutables.value.Value;

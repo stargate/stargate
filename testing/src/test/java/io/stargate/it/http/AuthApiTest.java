@@ -9,6 +9,7 @@ import io.stargate.auth.model.Error;
 import io.stargate.auth.model.Secret;
 import io.stargate.auth.model.UsernameCredentials;
 import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.storage.ClusterConnectionInfo;
 import java.io.IOException;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
@@ -21,8 +22,12 @@ public class AuthApiTest extends BaseOsgiIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(RestApiv2Test.class);
 
-  private static String host = "http://" + stargateHost;
+  private static String host = "http://" + getStargateHost();
   private static final ObjectMapper objectMapper = new ObjectMapper();
+
+  public AuthApiTest(ClusterConnectionInfo backend) {
+    super(backend);
+  }
 
   @Test
   public void authTokenGenerate() throws IOException {

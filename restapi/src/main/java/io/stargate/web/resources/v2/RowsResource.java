@@ -25,8 +25,8 @@ import io.stargate.db.datastore.query.ColumnOrder;
 import io.stargate.db.datastore.query.ImmutableColumnOrder;
 import io.stargate.db.datastore.query.Value;
 import io.stargate.db.datastore.query.Where;
-import io.stargate.db.datastore.schema.Column;
-import io.stargate.db.datastore.schema.Table;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Table;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.GetResponseWrapper;
 import io.stargate.web.models.ResponseWrapper;
@@ -428,7 +428,10 @@ public class RowsResource {
 
   private List<Where<?>> buildWhereForPath(Table tableMetadata, List<PathSegment> path) {
     if (tableMetadata.partitionKeyColumns().size() > path.size()) {
-      throw new IllegalArgumentException(("Not enough partition keys provided"));
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid number of key values required (%s). All partition key columns values are required plus 0..all clustering columns values in proper order.",
+              tableMetadata.partitionKeyColumns().size()));
     }
 
     List<Column> keys = tableMetadata.primaryKeyColumns();

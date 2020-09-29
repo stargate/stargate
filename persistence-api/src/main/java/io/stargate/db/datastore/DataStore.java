@@ -17,13 +17,12 @@ package io.stargate.db.datastore;
 
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptibles;
 import io.stargate.db.datastore.query.QueryBuilder;
-import io.stargate.db.datastore.schema.Index;
-import io.stargate.db.datastore.schema.Schema;
+import io.stargate.db.schema.Index;
+import io.stargate.db.schema.Schema;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /**
@@ -67,22 +66,15 @@ public interface DataStore {
    */
   Schema schema();
 
-  /**
-   * Create a listener that will be notified when there is a schema change.
-   *
-   * @param callback The callback to call.
-   */
-  void addSchemaChangeListener(Consumer<Schema> callback);
-
   /** Wait for schema to agree across the cluster */
   default void waitForSchemaAgreement() {
     for (int count = 0; count < 100; count++) {
       if (isInSchemaAgreement()) {
         return;
       }
-      Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      Uninterruptibles.sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
     }
-    throw new IllegalStateException("Failed to reach schema agreement after 10 seconds.");
+    throw new IllegalStateException("Failed to reach schema agreement after 20 seconds.");
   }
 
   /** Returns true if in schema agreement */

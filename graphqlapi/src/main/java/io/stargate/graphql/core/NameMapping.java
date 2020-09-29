@@ -17,8 +17,8 @@ package io.stargate.graphql.core;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import io.stargate.db.datastore.schema.Column;
-import io.stargate.db.datastore.schema.Table;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Table;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;

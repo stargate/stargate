@@ -17,8 +17,8 @@ package io.stargate.db.datastore;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
 import io.stargate.db.datastore.query.WhereCondition;
-import io.stargate.db.datastore.schema.AbstractTable;
-import io.stargate.db.datastore.schema.Column;
+import io.stargate.db.schema.AbstractTable;
+import io.stargate.db.schema.Column;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

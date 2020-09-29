@@ -19,7 +19,7 @@ package org.apache.cassandra.stargate.transport.internal.messages;
 
 import io.netty.buffer.ByteBuf;
 import io.stargate.db.Result;
-import io.stargate.db.datastore.schema.Column;
+import io.stargate.db.schema.Column;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.EnumMap;
