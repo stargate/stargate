@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.11-SNAPSHOT</version>
+    <version>0.0.12-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db.cassandra</groupId>
   <artifactId>persistence-cassandra-4.0</artifactId>
@@ -23,18 +23,18 @@
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.11-SNAPSHOT</version>
+      <version>0.0.12-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-common</artifactId>
-      <version>0.0.11-SNAPSHOT</version>
+      <version>0.0.12-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
-      <version>0.0.11-SNAPSHOT</version>
+      <version>0.0.12-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
