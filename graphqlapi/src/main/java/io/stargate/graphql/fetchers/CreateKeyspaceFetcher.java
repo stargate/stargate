@@ -16,6 +16,7 @@
 package io.stargate.graphql.fetchers;
 
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
+import com.datastax.oss.driver.api.querybuilder.schema.CreateKeyspace;
 import com.datastax.oss.driver.api.querybuilder.schema.CreateKeyspaceStart;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
@@ -50,7 +51,11 @@ public class CreateKeyspaceFetcher implements SchemaFetcher {
       start = start.ifNotExists();
     }
     List<Map<String, String>> replication = dataFetchingEnvironment.getArgument("replication");
-    return start.withReplicationOptions(parseReplication(replication)).asCql();
+    CreateKeyspace createKeyspace = start.withReplicationOptions(parseReplication(replication));
+    boolean durableWrites =
+        dataFetchingEnvironment.getArgumentOrDefault("durableWrites", Boolean.TRUE);
+    createKeyspace = createKeyspace.withDurableWrites(durableWrites);
+    return createKeyspace.asCql();
   }
 
   private Map<String, Object> parseReplication(List<Map<String, String>> graphqlOptions) {

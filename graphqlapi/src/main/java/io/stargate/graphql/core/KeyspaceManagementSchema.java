@@ -117,6 +117,7 @@ public class KeyspaceManagementSchema {
         .name("createKeyspace")
         .argument(GraphQLArgument.newArgument().name("name").type(nonNull(Scalars.GraphQLString)))
         .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
+        .argument(GraphQLArgument.newArgument().name("durableWrites").type(Scalars.GraphQLBoolean))
         .argument(
             GraphQLArgument.newArgument()
                 .name("replication")
