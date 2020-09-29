@@ -199,14 +199,14 @@ public class Starter {
   @Order(value = 17)
   @Option(
       name = {
-        "--disable_dynamic_snitch",
+        "--disable-dynamic-snitch",
         "Whether the dynamic snitch should wrap the actual snitch."
       })
   boolean disableDynamicSnitch = false;
 
   @Order(value = 18)
   @Option(
-      name = {"--disable_mbean_registration", "Whether the mbean registration should be disabled"})
+      name = {"--disable-mbean-registration", "Whether the mbean registration should be disabled"})
   boolean disableMBeanRegistration = false;
 
   private BundleContext context;

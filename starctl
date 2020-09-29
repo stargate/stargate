@@ -144,11 +144,11 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
     fi
 
     if [[ ! -z "$DISABLE_DYNAMIC_SNITCH" ]]; then
-        STARGATE_ARGS+=("--disable_dynamic_snitch")
+        STARGATE_ARGS+=("--disable-dynamic-snitch")
     fi
 
     if [[ ! -z "$DISABLE_MBEAN_REGISTRATION" ]]; then
-        STARGATE_ARGS+=("--disable_mbean_registration")
+        STARGATE_ARGS+=("--disable-mbean-registration")
     fi
 fi
 
