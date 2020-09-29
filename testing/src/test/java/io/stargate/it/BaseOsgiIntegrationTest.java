@@ -323,7 +323,7 @@ public class BaseOsgiIntegrationTest {
               ex);
         }
       }
-      // build 1
+      // build 2
     }
   }
 
