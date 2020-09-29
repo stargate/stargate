@@ -45,7 +45,7 @@
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
-      <version>0.0.11-SNAPSHOT</version>
+      <version>0.0.12-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
