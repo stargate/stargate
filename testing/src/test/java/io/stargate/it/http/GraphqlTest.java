@@ -1,7 +1,15 @@
 package io.stargate.it.http;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import com.apollographql.apollo.ApolloCall;
 import com.apollographql.apollo.ApolloClient;
@@ -51,16 +59,6 @@ import io.stargate.db.schema.Column.Type;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.ClusterConnectionInfo;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.OkHttpClient;
 import org.apache.http.HttpStatus;
@@ -71,6 +69,23 @@ import org.osgi.framework.InvalidSyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+/**
+ * To update these tests:
+ *
+ * <ul>
+ *   <li>If the schema has changed, update the `schema.json` files in `src/main/graphql`. You can
+ *       use the query in `src/main/resources/introspection.graphql` (paste it into the graphql
+ *       playground at ${STARGATE_HOST}:8080/playground).
+ *   <li>If there are new operations, create corresponding descriptors in
+ *       `src/main/graphql/betterbotz` or `src/main/graphql/schema`.
+ *   <li>Run the apollo-client-maven-plugin, which reads the descriptors and generates the
+ *       corresponding Java types: `mvn generate-sources` (an IDE rebuild should also work). You can
+ *       see generated code in `target/generated-sources/graphql-client`.
+ * </ul>
+ */
 @NotThreadSafe
 public class GraphqlTest extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
