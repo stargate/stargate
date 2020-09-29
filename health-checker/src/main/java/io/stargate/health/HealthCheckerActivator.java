@@ -10,7 +10,7 @@ public class HealthCheckerActivator implements BundleActivator, ServiceListener 
   private static final Logger log = LoggerFactory.getLogger(HealthCheckerActivator.class);
 
   private BundleContext context;
-  private volatile boolean started;
+  private boolean started;
 
   @Override
   public synchronized void start(BundleContext context) throws InvalidSyntaxException {
