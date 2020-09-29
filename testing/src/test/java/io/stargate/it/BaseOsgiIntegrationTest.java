@@ -21,14 +21,19 @@ import io.stargate.it.storage.ClusterConnectionInfo;
 import io.stargate.it.storage.ClusterSpec;
 import io.stargate.it.storage.ExternalStorage;
 import io.stargate.starter.Starter;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.agent.builder.AgentBuilder;
@@ -73,13 +78,48 @@ public class BaseOsgiIntegrationTest {
     unFinal();
   }
 
-  static Starter stargateStarter;
-  public static String stargateHost = "127.0.0.11";
   public boolean enableAuth;
+
   protected final ClusterConnectionInfo backend;
+
+  public static List<Starter> stargateStarters = new ArrayList<>();
+  private static List<String> stargateHosts = new ArrayList<>();
+  public static final Integer numberOfStargateNodes = 3;
+
+  static {
+    for (int i = 1; i <= numberOfStargateNodes; i++) {
+      int portSuffix = 10 + i;
+      stargateHosts.add("127.0.0." + portSuffix);
+    }
+  }
 
   public BaseOsgiIntegrationTest(ClusterConnectionInfo backend) {
     this.backend = backend;
+  }
+
+  public static String getStargateHost() {
+    return getStargateHost(0);
+  }
+
+  public static String getStargateHost(int stargateInstanceNumber) {
+    return stargateHosts.get(stargateInstanceNumber);
+  }
+
+  public static List<String> getStargateHosts() {
+    return stargateHosts;
+  }
+
+  public static List<InetAddress> getStargateInetSocketAddresses() throws UnknownHostException {
+    return stargateHosts.stream()
+        .map(
+            h -> {
+              try {
+                return InetAddress.getByName(h);
+              } catch (UnknownHostException e) {
+                throw new RuntimeException(e);
+              }
+            })
+        .collect(Collectors.toList());
   }
 
   /** Remove final from all internal classes to allow for proxying */
@@ -246,35 +286,73 @@ public class BaseOsgiIntegrationTest {
     return objenesis.newInstance(dynamicType);
   }
 
-  /** Returns a proxy facade for a OSGi service loaded in stargate */
-  public <T> T getOsgiService(String name, Class<T> clazz) throws InvalidSyntaxException {
+  /**
+   * Returns a proxy facade for a OSGi service loaded in stargate for the specific starter instance
+   */
+  public <T> T getOsgiService(String name, Class<T> clazz, int stargateInstanceNumber)
+      throws InvalidSyntaxException {
     Object p =
-        stargateStarter.getService(name).orElseThrow(() -> new AssertionError("Missing " + name));
+        stargateStarters
+            .get(stargateInstanceNumber)
+            .getService(name)
+            .orElseThrow(() -> new AssertionError("Missing " + name));
 
     return (T) proxy(p, p.getClass().getClassLoader(), clazz.getClassLoader(), clazz);
   }
 
-  @BeforeEach
-  public void startOsgi() throws BundleException {
-    if (stargateStarter != null) {
-      return;
-    }
+  /**
+   * Returns a proxy facade for a OSGi service loaded in stargate By default, it retrieves the
+   * facade from the 1st starter node.
+   */
+  public <T> T getOsgiService(String name, Class<T> clazz) throws InvalidSyntaxException {
+    return getOsgiService(name, clazz, 0);
+  }
 
-    // Start stargate and get the persistance object
-    stargateStarter =
+  @BeforeEach
+  public void startOsgi() {
+    if (stargateStarters.isEmpty()) {
+      logger.info("Starting: {} stargate nodes", numberOfStargateNodes);
+      for (int i = 0; i < numberOfStargateNodes; i++) {
+        try {
+          startStargateInstance(backend.seedAddress(), backend.storagePort(), i);
+        } catch (Exception ex) {
+          logger.error(
+              "Exception when starting stargate node nr: "
+                  + i
+                  + ". The stargate node will not be started.",
+              ex);
+        }
+      }
+    }
+  }
+
+  private void startStargateInstance(String seedHost, Integer seedPort, int stargateNodeNumber)
+      throws IOException, BundleException {
+    int jmxPort = new ServerSocket(0).getLocalPort();
+    logger.info(
+        "Starting node nr: {} for seedHost:seedPort = {}:{}, address: {}, jmxPort: {}.",
+        stargateNodeNumber,
+        seedHost,
+        seedPort,
+        stargateHosts.get(stargateNodeNumber),
+        jmxPort);
+    Starter starter =
         new Starter(
             backend.clusterName(),
             backend.clusterVersion(),
-            stargateHost,
-            backend.seedAddress(),
-            backend.storagePort(),
+            stargateHosts.get(stargateNodeNumber),
+            seedHost,
+            seedPort,
             backend.datacenter(),
             backend.rack(),
             backend.isDse(),
             !backend.isDse(),
-            9043);
-
+            9043,
+            jmxPort);
     System.setProperty("stargate.auth_api_enable_username_token", "true");
-    stargateStarter.withAuthEnabled(enableAuth).start();
+    starter.withAuthEnabled(enableAuth).start();
+    logger.info("Stargate node nr: {} started successfully", stargateNodeNumber);
+    // add to starters only if it start() successfully
+    stargateStarters.add(starter);
   }
 }

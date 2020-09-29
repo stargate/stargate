@@ -1,11 +1,11 @@
 package io.stargate.health;
 
-import io.stargate.health.metrics.api.Metrics;
+import io.stargate.core.metrics.api.Metrics;
 import org.osgi.framework.BundleContext;
 
 public class WebImpl {
   private BundleContext context;
-  private final Metrics metrics;
+  private Metrics metrics;
 
   public WebImpl(BundleContext context, Metrics metrics) {
     this.context = context;

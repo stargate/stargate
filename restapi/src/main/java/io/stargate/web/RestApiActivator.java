@@ -16,8 +16,8 @@
 package io.stargate.web;
 
 import io.stargate.auth.AuthenticationService;
+import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
-import io.stargate.health.metrics.api.Metrics;
 import io.stargate.web.impl.WebImpl;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;

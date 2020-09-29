@@ -91,7 +91,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   private String keyspace;
   private static String authToken;
   private static final ObjectMapper objectMapper = new ObjectMapper();
-  private static String host = "http://" + stargateHost;
+  private static String host = "http://" + getStargateHost();
 
   public GraphqlTest(ClusterConnectionInfo backend) {
     super(backend);
@@ -810,7 +810,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .build();
 
     return ApolloClient.builder()
-        .serverUrl(String.format("http://%s:8080%s", stargateHost, path))
+        .serverUrl(String.format("http://%s:8080%s", getStargateHost(), path))
         .okHttpClient(okHttpClient)
         .addCustomTypeAdapter(
             CustomType.TIMESTAMP,

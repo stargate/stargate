@@ -72,9 +72,9 @@ public interface DataStore {
       if (isInSchemaAgreement()) {
         return;
       }
-      Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      Uninterruptibles.sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
     }
-    throw new IllegalStateException("Failed to reach schema agreement after 10 seconds.");
+    throw new IllegalStateException("Failed to reach schema agreement after 20 seconds.");
   }
 
   /** Returns true if in schema agreement */
