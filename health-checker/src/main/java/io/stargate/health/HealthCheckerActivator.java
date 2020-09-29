@@ -13,7 +13,7 @@ public class HealthCheckerActivator implements BundleActivator, ServiceListener 
   private boolean started;
 
   @Override
-  public void start(BundleContext context) throws InvalidSyntaxException {
+  public synchronized void start(BundleContext context) throws InvalidSyntaxException {
     this.context = context;
 
     ServiceReference<?> metricsReference = context.getServiceReference(Metrics.class.getName());
@@ -45,10 +45,10 @@ public class HealthCheckerActivator implements BundleActivator, ServiceListener 
   }
 
   @Override
-  public void stop(BundleContext context) {}
+  public synchronized void stop(BundleContext context) {}
 
   @Override
-  public void serviceChanged(ServiceEvent serviceEvent) {
+  public synchronized void serviceChanged(ServiceEvent serviceEvent) {
     Metrics metrics = BundleUtils.getRegisteredService(context, serviceEvent, Metrics.class);
 
     if (metrics != null) {

@@ -5,7 +5,7 @@ import org.osgi.framework.BundleContext;
 
 public class WebImpl {
   private BundleContext context;
-  private final Metrics metrics;
+  private Metrics metrics;
 
   public WebImpl(BundleContext context, Metrics metrics) {
     this.context = context;

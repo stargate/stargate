@@ -32,6 +32,7 @@ public class HealthCheckerServerFactory extends DefaultServerFactory {
       HealthCheckRegistry healthChecks) {
     configureSessionsAndSecurity(handler, server);
     handler.setServer(server);
+
     handler
         .getServletContext()
         .setAttribute(HealthCheckServlet.HEALTH_CHECK_REGISTRY, healthChecks);
