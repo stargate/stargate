@@ -147,7 +147,10 @@ public class RowsResource {
             where = buildWhereForPath(tableMetadata, path);
           } catch (IllegalArgumentException iae) {
             return Response.status(Response.Status.BAD_REQUEST)
-                .entity(new Error(iae.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
+                .entity(
+                    new Error(
+                        "not enough partition keys provided",
+                        Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
 
@@ -229,7 +232,10 @@ public class RowsResource {
             where = buildWhereForPath(tableMetadata, path);
           } catch (IllegalArgumentException iae) {
             return Response.status(Response.Status.BAD_REQUEST)
-                .entity(new Error(iae.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
+                .entity(
+                    new Error(
+                        "not enough partition keys provided",
+                        Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
 
@@ -277,7 +283,10 @@ public class RowsResource {
       where = buildWhereForPath(tableMetadata, path);
     } catch (IllegalArgumentException iae) {
       return Response.status(Response.Status.BAD_REQUEST)
-          .entity(new Error(iae.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
+          .entity(
+              new Error(
+                  "not enough partition keys provided",
+                  Response.Status.BAD_REQUEST.getStatusCode()))
           .build();
     }
 
