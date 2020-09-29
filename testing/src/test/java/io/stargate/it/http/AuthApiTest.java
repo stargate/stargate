@@ -22,7 +22,7 @@ public class AuthApiTest extends BaseOsgiIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(RestApiv2Test.class);
 
-  private static String host = "http://" + stargateHost;
+  private static String host = "http://" + getStargateHost();
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   public AuthApiTest(ClusterConnectionInfo backend) {

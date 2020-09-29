@@ -43,6 +43,12 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>io.stargate.core</groupId>
+      <artifactId>core</artifactId>
+      <version>0.0.11-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.apache.cassandra</groupId>
       <artifactId>cassandra-all</artifactId>
       <version>${cassandra.version}</version>
@@ -186,7 +192,7 @@
                             io.stargate.db.datastore.*,
                             org.apache.cassandra.stargate,
                             !com.codahale.metrics.graphite.*,
-                            io.stargate.health.metrics.api,
+                            io.stargate.core,
                             com.codahale.metrics,
                         ]]></Import-Package>
             <Export-Package>io.stargate.db.cassandra</Export-Package>
