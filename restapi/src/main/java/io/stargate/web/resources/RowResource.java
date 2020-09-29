@@ -414,8 +414,9 @@ public class RowResource {
     if (tooManyValues || notAllPartitionKeys) {
       throw new IllegalArgumentException(
           String.format(
-              "Invalid number of key values required (%s). All partition key columns values are required plus 0..all clustering columns values in proper order.",
-              keys.size()));
+              "Number of key values provided (%s) should be in [%s, %s]. "
+                  + "All partition key columns values are required plus 0..all clustering columns values in proper order.",
+              values.size(), tableMetadata.partitionKeyColumns().size(), keys.size()));
     }
 
     return IntStream.range(0, values.size())
