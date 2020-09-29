@@ -1,4 +1,4 @@
-package io.stargate.health.metrics.api;
+package io.stargate.core.metrics.api;
 
 import com.codahale.metrics.MetricRegistry;
 

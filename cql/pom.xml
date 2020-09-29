@@ -25,6 +25,12 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>io.stargate.core</groupId>
+      <artifactId>core</artifactId>
+      <version>0.0.11-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
       <version>0.0.11-SNAPSHOT</version>
@@ -141,10 +147,10 @@
                             !org.slf4j.spi,
                             !sun.misc,
                             !org.eclipse.jetty.security,
+                            io.stargate.core,
                             io.stargate.db,
                             org.apache.cassandra.stargate,
                             org.apache.cassandra.stargate.*,
-                            io.stargate.health.metrics.api,
                             com.codahale.metrics,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>

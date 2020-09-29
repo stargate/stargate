@@ -16,9 +16,9 @@
 package io.stargate.cql;
 
 import io.stargate.auth.AuthenticationService;
+import io.stargate.core.metrics.api.Metrics;
 import io.stargate.cql.impl.CqlImpl;
 import io.stargate.db.Persistence;
-import io.stargate.health.metrics.api.Metrics;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import org.apache.cassandra.config.Config;
