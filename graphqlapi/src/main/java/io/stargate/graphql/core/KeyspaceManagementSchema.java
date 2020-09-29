@@ -115,13 +115,34 @@ public class KeyspaceManagementSchema {
   private GraphQLFieldDefinition buildCreateKeyspace() {
     return GraphQLFieldDefinition.newFieldDefinition()
         .name("createKeyspace")
-        .argument(GraphQLArgument.newArgument().name("name").type(nonNull(Scalars.GraphQLString)))
-        .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
-        .argument(GraphQLArgument.newArgument().name("durableWrites").type(Scalars.GraphQLBoolean))
+        .description("Creates a new CQL keyspace")
         .argument(
             GraphQLArgument.newArgument()
-                .name("replication")
-                .type(nonNull(list(buildReplicationOptionInput())))
+                .name("name")
+                .type(nonNull(Scalars.GraphQLString))
+                .description("The name of the keyspace"))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("ifNotExists")
+                .type(Scalars.GraphQLBoolean)
+                .description(
+                    "Whether the operation will succeed if the keyspace already exists. "
+                        + "Defaults to false if absent."))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("replicas")
+                .type(Scalars.GraphQLInt)
+                .description(
+                    "Enables SimpleStrategy replication with the given replication factor. "
+                        + "You must specify either this or 'datacenters', but not both."))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("datacenters")
+                .type(list(buildDataCenterInput()))
+                .description(
+                    "Enables NetworkTopologyStrategy with the given replication factors per DC. "
+                        + "(at least one DC must be specified)."
+                        + "You must specify either this or 'replicas', but not both.")
                 .build())
         .type(Scalars.GraphQLBoolean)
         .dataFetcher(
@@ -265,6 +286,24 @@ public class KeyspaceManagementSchema {
             .build());
   }
 
+  private GraphQLInputObjectType buildDataCenterInput() {
+    return register(
+        GraphQLInputObjectType.newInputObject()
+            .name("DataCenterInput")
+            .description("The DC-level replication options passed to 'createKeyspace.datacenters'.")
+            .field(
+                GraphQLInputObjectField.newInputObjectField()
+                    .name("name")
+                    .description("The name of the datacenter.")
+                    .type(nonNull(Scalars.GraphQLString)))
+            .field(
+                GraphQLInputObjectField.newInputObjectField()
+                    .name("replicas")
+                    .description("The replication factor for this datacenter.")
+                    .type(Scalars.GraphQLInt))
+            .build());
+  }
+
   private GraphQLFieldDefinition buildKeyspaces() {
     return GraphQLFieldDefinition.newFieldDefinition()
         .name("keyspaces")
@@ -350,21 +389,6 @@ public class KeyspaceManagementSchema {
                 GraphQLInputObjectField.newInputObjectField()
                     .name("basic")
                     .type(nonNull(buildBasicType())))
-            .build());
-  }
-
-  private GraphQLInputObjectType buildReplicationOptionInput() {
-    return register(
-        GraphQLInputObjectType.newInputObject()
-            .name("ReplicationOptionInput")
-            .field(
-                GraphQLInputObjectField.newInputObjectField()
-                    .name("key")
-                    .type(nonNull(Scalars.GraphQLString)))
-            .field(
-                GraphQLInputObjectField.newInputObjectField()
-                    .name("value")
-                    .type(nonNull(Scalars.GraphQLString)))
             .build());
   }
 

@@ -60,12 +60,8 @@ create a keyspace by executing:
 mutation {
   createKeyspace(
     name:"library", # The name of your keyspace
-    # Controls how your data is replicated (accepts the same key/value options as the
-    # `CREATE KEYSPACE` statement in CQL.
-    replication: [
-      { key: "class", value: "SimpleStrategy" },
-      { key: "replication_factor", value: "1" }
-    ]
+    # Controls how your data is replicated,
+    dcs: { name:"dc1", replicas: 1 }  # Use at least 3 replicas in production
   )
 }
 ```

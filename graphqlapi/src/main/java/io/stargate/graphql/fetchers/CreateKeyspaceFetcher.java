@@ -16,7 +16,6 @@
 package io.stargate.graphql.fetchers;
 
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
-import com.datastax.oss.driver.api.querybuilder.schema.CreateKeyspace;
 import com.datastax.oss.driver.api.querybuilder.schema.CreateKeyspaceStart;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
@@ -50,18 +49,32 @@ public class CreateKeyspaceFetcher implements SchemaFetcher {
     if (ifNotExists) {
       start = start.ifNotExists();
     }
-    List<Map<String, String>> replication = dataFetchingEnvironment.getArgument("replication");
-    CreateKeyspace createKeyspace = start.withReplicationOptions(parseReplication(replication));
-    boolean durableWrites =
-        dataFetchingEnvironment.getArgumentOrDefault("durableWrites", Boolean.TRUE);
-    createKeyspace = createKeyspace.withDurableWrites(durableWrites);
-    return createKeyspace.asCql();
+    Integer replicas = dataFetchingEnvironment.getArgument("replicas");
+    List<Map<String, Object>> datacenters = dataFetchingEnvironment.getArgument("datacenters");
+    if (replicas == null && datacenters == null) {
+      throw new IllegalArgumentException("You must specify either replicas or datacenters");
+    }
+    if (replicas != null && datacenters != null) {
+      throw new IllegalArgumentException("You can't specify both replicas and datacenters");
+    }
+
+    if (replicas != null) {
+      return start.withSimpleStrategy(replicas).asCql();
+    } else { // datacenters != null
+      return start.withNetworkTopologyStrategy(parseDatacenters(datacenters)).asCql();
+    }
   }
 
-  private Map<String, Object> parseReplication(List<Map<String, String>> graphqlOptions) {
-    Map<String, Object> result = new HashMap<>();
-    for (Map<String, String> graphqlOption : graphqlOptions) {
-      result.put(graphqlOption.get("key"), graphqlOption.get("value"));
+  private Map<String, Integer> parseDatacenters(List<Map<String, Object>> datacenters) {
+    assert datacenters != null;
+    if (datacenters.isEmpty()) {
+      throw new IllegalArgumentException("datacenters must contain at least one element");
+    }
+    Map<String, Integer> result = new HashMap<>();
+    for (Map<String, Object> datacenter : datacenters) {
+      String dcName = (String) datacenter.get("name");
+      Integer dcReplicas = (Integer) datacenter.getOrDefault("replicas", 3);
+      result.put(dcName, dcReplicas);
     }
     return result;
   }

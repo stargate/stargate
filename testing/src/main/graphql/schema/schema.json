@@ -946,11 +946,11 @@
             },
             {
               "name": "createKeyspace",
-              "description": null,
+              "description": "Creates a new CQL keyspace",
               "args": [
                 {
                   "name": "name",
-                  "description": null,
+                  "description": "The name of the keyspace",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -964,7 +964,7 @@
                 },
                 {
                   "name": "ifNotExists",
-                  "description": null,
+                  "description": "Whether the operation will succeed if the keyspace already exists. Defaults to false if absent.",
                   "type": {
                     "kind": "SCALAR",
                     "name": "Boolean",
@@ -973,29 +973,25 @@
                   "defaultValue": null
                 },
                 {
-                  "name": "durableWrites",
-                  "description": null,
+                  "name": "replicas",
+                  "description": "Enables SimpleStrategy replication with the given replication factor. You must specify either this or 'datacenters', but not both.",
                   "type": {
                     "kind": "SCALAR",
-                    "name": "Boolean",
+                    "name": "Int",
                     "ofType": null
                   },
                   "defaultValue": null
                 },
                 {
-                  "name": "replication",
-                  "description": null,
+                  "name": "datacenters",
+                  "description": "Enables NetworkTopologyStrategy with the given replication factors per DC. (at least one DC must be specified).You must specify either this or 'replicas', but not both.",
                   "type": {
-                    "kind": "NON_NULL",
+                    "kind": "LIST",
                     "name": null,
                     "ofType": {
-                      "kind": "LIST",
-                      "name": null,
-                      "ofType": {
-                        "kind": "INPUT_OBJECT",
-                        "name": "ReplicationOptionInput",
-                        "ofType": null
-                      }
+                      "kind": "INPUT_OBJECT",
+                      "name": "DataCenterInput",
+                      "ofType": null
                     }
                   },
                   "defaultValue": null
@@ -1071,12 +1067,12 @@
         },
         {
           "kind": "INPUT_OBJECT",
-          "name": "ReplicationOptionInput",
+          "name": "DataCenterInput",
           "description": null,
           "fields": null,
           "inputFields": [
             {
-              "name": "key",
+              "name": "name",
               "description": null,
               "type": {
                 "kind": "NON_NULL",
@@ -1090,16 +1086,12 @@
               "defaultValue": null
             },
             {
-              "name": "value",
+              "name": "replicas",
               "description": null,
               "type": {
-                "kind": "NON_NULL",
-                "name": null,
-                "ofType": {
-                  "kind": "SCALAR",
-                  "name": "String",
-                  "ofType": null
-                }
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
               },
               "defaultValue": null
             }

@@ -1,11 +1,13 @@
 mutation CreateKeyspace(
     $name: String!
     $ifNotExists: Boolean
-    $replication: [ReplicationOptionInput]!
+    $replicas: Int
+    $datacenters: [DataCenterInput]
 ) {
     createKeyspace (
         name: $name,
         ifNotExists: $ifNotExists,
-        replication: $replication
+        replicas: $replicas,
+        datacenters: $datacenters
     )
 }

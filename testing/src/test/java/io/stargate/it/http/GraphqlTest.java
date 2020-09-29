@@ -37,10 +37,8 @@ import com.example.graphql.client.schema.GetTablesQuery;
 import com.example.graphql.client.schema.type.BasicType;
 import com.example.graphql.client.schema.type.ColumnInput;
 import com.example.graphql.client.schema.type.DataTypeInput;
-import com.example.graphql.client.schema.type.ReplicationOptionInput;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
@@ -262,10 +260,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         CreateKeyspaceMutation.builder()
             .name(newKeyspaceName)
             .ifNotExists(true)
-            .replication(
-                ImmutableList.of(
-                    ReplicationOptionInput.builder().key("class").value("SimpleStrategy").build(),
-                    ReplicationOptionInput.builder().key("replication_factor").value("1").build()))
+            .replicas(1)
             .build();
 
     CompletableFuture<CreateKeyspaceMutation.Data> future = new CompletableFuture<>();
