@@ -34,6 +34,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import io.stargate.graphql.fetchers.AlterTableAddFetcher;
 import io.stargate.graphql.fetchers.AlterTableDropFetcher;
+import io.stargate.graphql.fetchers.CreateKeyspaceFetcher;
 import io.stargate.graphql.fetchers.CreateTableDataFetcher;
 import io.stargate.graphql.fetchers.DropTableFetcher;
 import io.stargate.graphql.fetchers.KeyspaceFetcher;
@@ -59,7 +60,11 @@ public class KeyspaceManagementSchema {
     GraphQLSchema.Builder builder = new GraphQLSchema.Builder();
     builder.mutation(
         buildMutation(
-            buildCreateTable(), buildAlterTableAdd(), buildAlterTableDrop(), buildDrop()));
+            buildCreateTable(),
+            buildAlterTableAdd(),
+            buildAlterTableDrop(),
+            buildDrop(),
+            buildCreateKeyspace()));
     builder.query(buildQuery(buildKeyspaceByName(), buildKeyspaces()));
     return builder;
   }
@@ -104,6 +109,44 @@ public class KeyspaceManagementSchema {
         .argument(GraphQLArgument.newArgument().name("ifExists").type(Scalars.GraphQLBoolean))
         .type(Scalars.GraphQLBoolean)
         .dataFetcher(schemaDataFetcherFactory.createSchemaFetcher(DropTableFetcher.class.getName()))
+        .build();
+  }
+
+  private GraphQLFieldDefinition buildCreateKeyspace() {
+    return GraphQLFieldDefinition.newFieldDefinition()
+        .name("createKeyspace")
+        .description("Creates a new CQL keyspace")
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("name")
+                .type(nonNull(Scalars.GraphQLString))
+                .description("The name of the keyspace"))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("ifNotExists")
+                .type(Scalars.GraphQLBoolean)
+                .description(
+                    "Whether the operation will succeed if the keyspace already exists. "
+                        + "Defaults to false if absent."))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("replicas")
+                .type(Scalars.GraphQLInt)
+                .description(
+                    "Enables SimpleStrategy replication with the given replication factor. "
+                        + "You must specify either this or 'datacenters', but not both."))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("datacenters")
+                .type(list(buildDataCenterInput()))
+                .description(
+                    "Enables NetworkTopologyStrategy with the given replication factors per DC. "
+                        + "(at least one DC must be specified)."
+                        + "You must specify either this or 'replicas', but not both.")
+                .build())
+        .type(Scalars.GraphQLBoolean)
+        .dataFetcher(
+            schemaDataFetcherFactory.createSchemaFetcher(CreateKeyspaceFetcher.class.getName()))
         .build();
   }
 
@@ -240,6 +283,24 @@ public class KeyspaceManagementSchema {
                 GraphQLFieldDefinition.newFieldDefinition()
                     .name("replicas")
                     .type(nonNull(Scalars.GraphQLInt)))
+            .build());
+  }
+
+  private GraphQLInputObjectType buildDataCenterInput() {
+    return register(
+        GraphQLInputObjectType.newInputObject()
+            .name("DataCenterInput")
+            .description("The DC-level replication options passed to 'createKeyspace.datacenters'.")
+            .field(
+                GraphQLInputObjectField.newInputObjectField()
+                    .name("name")
+                    .description("The name of the datacenter.")
+                    .type(nonNull(Scalars.GraphQLString)))
+            .field(
+                GraphQLInputObjectField.newInputObjectField()
+                    .name("replicas")
+                    .description("The replication factor for this datacenter.")
+                    .type(Scalars.GraphQLInt))
             .build());
   }
 

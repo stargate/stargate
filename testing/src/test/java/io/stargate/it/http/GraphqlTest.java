@@ -27,6 +27,7 @@ import com.example.graphql.client.betterbotz.type.StringFilterInput;
 import com.example.graphql.client.betterbotz.type.UuidFilterInput;
 import com.example.graphql.client.schema.AlterTableAddMutation;
 import com.example.graphql.client.schema.AlterTableDropMutation;
+import com.example.graphql.client.schema.CreateKeyspaceMutation;
 import com.example.graphql.client.schema.CreateTableMutation;
 import com.example.graphql.client.schema.DropTableMutation;
 import com.example.graphql.client.schema.GetKeyspaceQuery;
@@ -68,6 +69,20 @@ import org.osgi.framework.InvalidSyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * To update these tests:
+ *
+ * <ul>
+ *   <li>If the schema has changed, update the `schema.json` files in `src/main/graphql`. You can
+ *       use the query in `src/main/resources/introspection.graphql` (paste it into the graphql
+ *       playground at ${STARGATE_HOST}:8080/playground).
+ *   <li>If there are new operations, create corresponding descriptors in
+ *       `src/main/graphql/betterbotz` or `src/main/graphql/schema`.
+ *   <li>Run the apollo-client-maven-plugin, which reads the descriptors and generates the
+ *       corresponding Java types: `mvn generate-sources` (an IDE rebuild should also work). You can
+ *       see generated code in `target/generated-sources/graphql-client`.
+ * </ul>
+ */
 @NotThreadSafe
 public class GraphqlTest extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
@@ -230,6 +245,34 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         .filteredOn(c -> c.getName().equals("schema_version"))
         .extracting(GetKeyspaceQuery.Column::getType)
         .anySatisfy(value -> assertThat(value.getBasic()).isEqualTo(BasicType.UUID));
+  }
+
+  @Test
+  public void createKeyspace() throws Exception {
+    String newKeyspaceName = "graphql_create_test";
+
+    dataStore.query().drop().keyspace(newKeyspaceName).ifExists().execute();
+    dataStore.waitForSchemaAgreement();
+    assertThat(dataStore.schema().keyspaceNames()).doesNotContain(newKeyspaceName);
+
+    ApolloClient client = getApolloClient("/graphql-schema");
+    CreateKeyspaceMutation mutation =
+        CreateKeyspaceMutation.builder()
+            .name(newKeyspaceName)
+            .ifNotExists(true)
+            .replicas(1)
+            .build();
+
+    CompletableFuture<CreateKeyspaceMutation.Data> future = new CompletableFuture<>();
+    ApolloMutationCall<Optional<CreateKeyspaceMutation.Data>> observable = client.mutate(mutation);
+    observable.enqueue(queryCallback(future));
+
+    CreateKeyspaceMutation.Data result = future.get();
+    observable.cancel();
+
+    assertThat(result.getCreateKeyspace()).hasValue(true);
+    dataStore.waitForSchemaAgreement();
+    assertThat(dataStore.schema().keyspaceNames()).contains(newKeyspaceName);
   }
 
   @Test
