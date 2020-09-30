@@ -67,7 +67,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Api(value = "v2", description = "the v2 API")
+@Api(produces = MediaType.APPLICATION_JSON, consumes = MediaType.APPLICATION_JSON)
 @Path("/v2/keyspaces/{keyspaceName}/{tableName}")
 @Produces(MediaType.APPLICATION_JSON)
 public class RowsResource {
@@ -81,44 +81,49 @@ public class RowsResource {
   @Timed
   @GET
   @ApiOperation(
-      value = "Return all keyspaces",
-      nickname = "getWithWhere",
-      notes = "Retrieve all available keyspaces in the specific database.",
-      response = String.class,
-      responseContainer = "List",
+      value = "search a table",
+      nickname = "searchTable",
+      notes = "",
+      response = GetResponseWrapper.class,
       tags = {
         "rows",
       })
   @ApiResponses(
       value = {
-        @ApiResponse(
-            code = 200,
-            message = "OK",
-            response = Response.class,
-            responseContainer = "List"),
-        @ApiResponse(code = 400, message = "Bad request", response = java.lang.Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = java.lang.Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = java.lang.Error.class),
-        @ApiResponse(
-            code = 500,
-            message = "Internal Server Error",
-            response = java.lang.Error.class)
+        @ApiResponse(code = 200, message = "", response = GetResponseWrapper.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   public Response getWithWhere(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
+              required = true,
+              type = "string")
           @HeaderParam("X-Cassandra-Token")
           String token,
-      @PathParam("keyspaceName") final String keyspaceName,
-      @PathParam("tableName") final String tableName,
-      @QueryParam("where") final String where,
-      @QueryParam("fields") final String fields,
-      @QueryParam("page-size") final int pageSizeParam,
-      @QueryParam("page-state") final String pageStateParam,
-      @QueryParam("raw") final boolean raw,
-      @QueryParam("sort") final String sort) {
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(
+              value =
+                  "URL escaped JSON query using the following keys: | Key | Operation | |-|-| | $lt | Less Than | | $lte | Less Than Or Equal To | | $gt | Greater Than | | $gte | Greater Than Or Equal To | | $ne | Not Equal To | | $in | Contained In | | $exists | A value is set for the key | ")
+          @QueryParam("where")
+          final String where,
+      @ApiParam(value = "URL escaped, comma delimited list of keys to include")
+          @QueryParam("fields")
+          final String fields,
+      @ApiParam(value = "restrict the number of returned items") @QueryParam("page-size")
+          final int pageSizeParam,
+      @ApiParam(value = "move the cursor to a particular result") @QueryParam("page-state")
+          final String pageStateParam,
+      @ApiParam(value = "unwrap results", defaultValue = "false") @QueryParam("raw")
+          final boolean raw,
+      @ApiParam(value = "keys to sort by") @QueryParam("sort") final String sort) {
     return RequestHandler.handle(
         () -> {
           ByteBuffer pageState = null;
@@ -151,17 +156,52 @@ public class RowsResource {
 
   @Timed
   @GET
-  @Path("/{path: .*}")
+  @ApiOperation(
+      value = "get a row(s)",
+      nickname = "getRows",
+      notes = "",
+      response = GetResponseWrapper.class,
+      tags = {
+        "rows",
+      })
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "", response = GetResponseWrapper.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
+  @Path("/{primaryKey: .*}")
   public Response get(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName,
-      @PathParam("tableName") final String tableName,
-      @PathParam("path") List<PathSegment> path,
-      @QueryParam("fields") final String fields,
-      @QueryParam("page-size") final int pageSizeParam,
-      @QueryParam("page-state") final String pageStateParam,
-      @QueryParam("raw") final boolean raw,
-      @QueryParam("sort") final String sort) {
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true,
+              type = "string")
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(
+              value =
+                  "Value from the primary key column for the table. Define composite keys by separating values with slashes (`val1/val2...`) in the order they were defined. </br> For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)` then the primary key in the path would be `race_year/race_name` ",
+              required = true)
+          @PathParam("primaryKey")
+          List<PathSegment> path,
+      @ApiParam(value = "URL escaped, comma delimited list of keys to include")
+          @QueryParam("fields")
+          final String fields,
+      @ApiParam(value = "restrict the number of returned items") @QueryParam("page-size")
+          final int pageSizeParam,
+      @ApiParam(value = "move the cursor to a particular result") @QueryParam("page-state")
+          final String pageStateParam,
+      @ApiParam(value = "unwrap results", defaultValue = "false") @QueryParam("raw")
+          final boolean raw,
+      @ApiParam(value = "keys to sort by") @QueryParam("sort") final String sort) {
     return RequestHandler.handle(
         () -> {
           ByteBuffer pageState = null;
@@ -206,7 +246,7 @@ public class RowsResource {
       response = String.class,
       responseContainer = "Map",
       tags = {
-        "data",
+        "rows",
       })
   @ApiResponses(
       value = {
@@ -224,12 +264,15 @@ public class RowsResource {
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
+              required = true,
+              type = "string")
           @HeaderParam("X-Cassandra-Token")
           String token,
-      @ApiParam(value = "keyspace name", required = true) @PathParam("keyspaceName")
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
           final String keyspaceName,
-      @ApiParam(value = "table name", required = true) @PathParam("tableName")
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
           final String tableName,
       @ApiParam(value = "", required = true) String payload) {
     return RequestHandler.handle(
@@ -265,26 +308,85 @@ public class RowsResource {
 
   @Timed
   @PUT
-  @Path("/{path: .*}")
+  @ApiOperation(
+      value = "replace a row(s)",
+      nickname = "replaceRows",
+      notes = "",
+      response = Object.class,
+      tags = {
+        "rows",
+      })
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "resource updated", response = Object.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
+  @Path("/{primaryKey: .*}")
   public Response update(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName,
-      @PathParam("tableName") final String tableName,
-      @PathParam("path") List<PathSegment> path,
-      @QueryParam("raw") final boolean raw,
-      String payload) {
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true,
+              type = "string")
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(
+              value =
+                  "Value from the primary key column for the table. Define composite keys by separating values with slashes (`val1/val2...`) in the order they were defined. </br> For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)` then the primary key in the path would be `race_year/race_name` ",
+              required = true)
+          @PathParam("primaryKey")
+          List<PathSegment> path,
+      @ApiParam(value = "unwrap results", defaultValue = "false") @QueryParam("raw")
+          final boolean raw,
+      @ApiParam(value = "", required = true) String payload) {
     return RequestHandler.handle(
         () -> modifyRow(token, keyspaceName, tableName, path, raw, payload));
   }
 
   @Timed
   @DELETE
-  @Path("/{path: .*}")
+  @ApiOperation(
+      value = "delete a row(s)",
+      nickname = "deleteRows",
+      notes = "",
+      tags = {
+        "rows",
+      })
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
+  @Path("/{primaryKey: .*}")
   public Response delete(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName,
-      @PathParam("tableName") final String tableName,
-      @PathParam("path") List<PathSegment> path) {
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true,
+              type = "string")
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(
+              value =
+                  "Value from the primary key column for the table. Define composite keys by separating values with slashes (`val1/val2...`) in the order they were defined. </br> For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)` then the primary key in the path would be `race_year/race_name` ",
+              required = true)
+          @PathParam("primaryKey")
+          List<PathSegment> path) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -317,14 +419,44 @@ public class RowsResource {
 
   @Timed
   @PATCH
-  @Path("/{path: .*}")
+  @ApiOperation(
+      value = "update part of a row(s)",
+      nickname = "updateRows",
+      notes = "",
+      response = ResponseWrapper.class,
+      tags = {
+        "rows",
+      })
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "resource updated", response = ResponseWrapper.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
+  @Path("/{primaryKey: .*}")
   public Response patch(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName,
-      @PathParam("tableName") final String tableName,
-      @PathParam("path") List<PathSegment> path,
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true,
+              type = "string")
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(
+              value =
+                  "Value from the primary key column for the table. Define composite keys by separating values with slashes (`val1/val2...`) in the order they were defined. </br> For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)` then the primary key in the path would be `race_year/race_name` ",
+              required = true)
+          @PathParam("primaryKey")
+          List<PathSegment> path,
       @QueryParam("raw") final boolean raw,
-      String payload) {
+      @ApiParam(value = "document", required = true) String payload) {
     return RequestHandler.handle(
         () -> modifyRow(token, keyspaceName, tableName, path, raw, payload));
   }

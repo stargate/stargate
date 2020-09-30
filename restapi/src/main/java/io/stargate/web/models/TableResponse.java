@@ -18,6 +18,7 @@ package io.stargate.web.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -42,22 +43,27 @@ public class TableResponse {
     this.tableOptions = tableOptions;
   }
 
+  @ApiModelProperty(value = "")
   public String getName() {
     return name;
   }
 
+  @ApiModelProperty(value = "")
   public String getKeyspace() {
     return keyspace;
   }
 
+  @ApiModelProperty(value = "")
   public List<ColumnDefinition> getColumnDefinitions() {
     return columnDefinitions;
   }
 
+  @ApiModelProperty(value = "")
   public PrimaryKey getPrimaryKey() {
     return primaryKey;
   }
 
+  @ApiModelProperty(value = "")
   public TableOptions getTableOptions() {
     return tableOptions;
   }

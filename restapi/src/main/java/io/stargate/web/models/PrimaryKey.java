@@ -15,10 +15,16 @@
  */
 package io.stargate.web.models;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 import java.util.ArrayList;
 import java.util.List;
 
+@ApiModel(
+    description =
+        "Defines a column list for the primary key. Can be either a single column, compound primary key, or composite partition key. Provide multiple columns for the partition key to define a composite partition key.")
 public class PrimaryKey {
+
   List<String> partitionKey = new ArrayList<>();
   List<String> clusteringKey = new ArrayList<>();
 
@@ -29,10 +35,14 @@ public class PrimaryKey {
     this.clusteringKey = clusteringKey;
   }
 
+  @ApiModelProperty(
+      required = true,
+      value = "Name of the column or columns that constitute the partition key.")
   public List<String> getPartitionKey() {
     return partitionKey;
   }
 
+  @ApiModelProperty(value = "Name of the column or columns that constitute the clustering key.")
   public List<String> getClusteringKey() {
     return clusteringKey;
   }

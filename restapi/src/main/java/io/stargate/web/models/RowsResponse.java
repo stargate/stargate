@@ -18,6 +18,7 @@ package io.stargate.web.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModelProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class RowsResponse {
@@ -31,10 +32,12 @@ public class RowsResponse {
     this.rowsModified = rowsModified;
   }
 
+  @ApiModelProperty(value = "")
   public boolean getSuccess() {
     return success;
   }
 
+  @ApiModelProperty(value = "")
   public int getRowsModified() {
     return rowsModified;
   }

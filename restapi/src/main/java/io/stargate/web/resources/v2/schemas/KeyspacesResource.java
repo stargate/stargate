@@ -25,6 +25,11 @@ import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -46,9 +51,11 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Api(produces = MediaType.APPLICATION_JSON, consumes = MediaType.APPLICATION_JSON)
 @Path("/v2/schemas/keyspaces")
 @Produces(MediaType.APPLICATION_JSON)
 public class KeyspacesResource {
+
   private static final Logger logger = LoggerFactory.getLogger(KeyspacesResource.class);
 
   @Inject private Db db;
@@ -56,8 +63,30 @@ public class KeyspacesResource {
 
   @Timed
   @GET
+  @ApiOperation(
+      value = "Return all keyspaces",
+      nickname = "getKeyspaces",
+      notes = "Retrieve all available keyspaces in the specific database.",
+      response = ResponseWrapper.class,
+      tags = {
+        "schemas",
+      })
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "", response = ResponseWrapper.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
   public Response listAll(
-      @HeaderParam("X-Cassandra-Token") String token, @QueryParam("raw") final boolean raw) {
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true,
+              type = "string")
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "unwrap results", defaultValue = "false") @QueryParam("raw")
+          final boolean raw) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -75,11 +104,36 @@ public class KeyspacesResource {
 
   @Timed
   @GET
+  @ApiOperation(
+      value = "get a keyspace",
+      nickname = "getKeyspace",
+      notes = "",
+      response = Keyspace.class,
+      tags = {
+        "schemas",
+      })
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "", response = Keyspace.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
   @Path("/{keyspaceName}")
   public Response getOne(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName,
-      @QueryParam("raw") final boolean raw) {
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true,
+              type = "string")
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "unwrap results", defaultValue = "false") @QueryParam("raw")
+          final boolean raw) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -104,7 +158,31 @@ public class KeyspacesResource {
 
   @Timed
   @POST
-  public Response create(@HeaderParam("X-Cassandra-Token") String token, String payload) {
+  @ApiOperation(
+      value = "create a keyspace",
+      nickname = "createKeyspace",
+      notes = "",
+      response = Map.class,
+      tags = {
+        "schemas",
+      })
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 201, message = "resource created", response = Map.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 409, message = "Conflict", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
+  public Response create(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true,
+              type = "string")
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "format results", defaultValue = "false") String payload) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -152,10 +230,31 @@ public class KeyspacesResource {
 
   @Timed
   @DELETE
+  @ApiOperation(
+      value = "delete a keyspace",
+      nickname = "deleteKeyspace",
+      notes = "",
+      tags = {
+        "schemas",
+      })
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
   @Path("/{keyspaceName}")
   public Response delete(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName) {
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true,
+              type = "string")
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);

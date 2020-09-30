@@ -28,6 +28,11 @@ import io.stargate.web.models.SuccessResponse;
 import io.stargate.web.models.TableAdd;
 import io.stargate.web.models.TableOptions;
 import io.stargate.web.models.TableResponse;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -49,19 +54,50 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Api(produces = MediaType.APPLICATION_JSON, consumes = MediaType.APPLICATION_JSON)
 @Path("/v1/keyspaces/{keyspaceName}/tables")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class TableResource {
+
   private static final Logger logger = LoggerFactory.getLogger(TableResource.class);
 
   @Inject private Db db;
 
   @Timed
   @GET
+  @ApiOperation(
+      value = "Return all tables",
+      nickname = "getTables",
+      notes = "Retrieve all tables in a specific keyspace.",
+      response = String.class,
+      responseContainer = "List",
+      tags = {
+        "tables",
+      })
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            code = 200,
+            message = "OK",
+            response = String.class,
+            responseContainer = "List"),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
   public Response listAll(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName) {
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true,
+              type = "string")
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -77,10 +113,36 @@ public class TableResource {
 
   @Timed
   @POST
+  @ApiOperation(
+      value = "Add a table",
+      nickname = "addTable",
+      notes = "Add a table in a specific keyspace.",
+      response = SuccessResponse.class,
+      tags = {
+        "tables",
+      })
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 201, message = "Created", response = SuccessResponse.class),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
   public Response create(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName,
-      @NotNull final TableAdd tableAdd) {
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true,
+              type = "string")
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Table object that needs to be added to the keyspace", required = true)
+          @NotNull
+          final TableAdd tableAdd) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -160,11 +222,38 @@ public class TableResource {
 
   @Timed
   @GET
+  @ApiOperation(
+      value = "Return a table",
+      nickname = "getTable",
+      notes = "Retrieve data for a single table in a specific keyspace.",
+      response = Table.class,
+      tags = {
+        "tables",
+      })
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = Table.class),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
   @Path("/{tableName}")
   public Response getOne(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName,
-      @PathParam("tableName") final String tableName) {
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true,
+              type = "string")
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -216,11 +305,37 @@ public class TableResource {
 
   @Timed
   @DELETE
+  @ApiOperation(
+      value = "Delete a table",
+      nickname = "deleteTable",
+      notes = "Delete a single table in the specified keyspace.",
+      tags = {
+        "tables",
+      })
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
   @Path("/{tableName}")
   public Response delete(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName,
-      @PathParam("tableName") final String tableName) {
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true,
+              type = "string")
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);

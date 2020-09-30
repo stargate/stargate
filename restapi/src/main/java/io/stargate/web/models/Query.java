@@ -15,6 +15,7 @@
  */
 package io.stargate.web.models;
 
+import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 
 public class Query {
@@ -24,6 +25,9 @@ public class Query {
   Integer pageSize;
   String pageState;
 
+  @ApiModelProperty(
+      value =
+          "A list of column names to return in the result set. An empty array returns all columns.")
   public List<String> getColumnNames() {
     return columnNames;
   }
@@ -32,6 +36,10 @@ public class Query {
     this.columnNames = columnNames;
   }
 
+  @ApiModelProperty(
+      required = true,
+      value =
+          "An array of filters to return results for, separated by `AND`. For example, `a > 1 AND b != 1`.")
   public List<Filter> getFilters() {
     return filters;
   }
@@ -40,6 +48,7 @@ public class Query {
     this.filters = filters;
   }
 
+  @ApiModelProperty(value = "")
   public ClusteringExpression getOrderBy() {
     return orderBy;
   }
@@ -48,6 +57,8 @@ public class Query {
     this.orderBy = orderBy;
   }
 
+  @ApiModelProperty(
+      value = "A string returned from previous query requests representing the paging state.")
   public Integer getPageSize() {
     return pageSize;
   }
@@ -56,6 +67,7 @@ public class Query {
     this.pageSize = pageSize;
   }
 
+  @ApiModelProperty(value = "The size of the page to return in the result set.")
   public String getPageState() {
     return pageState;
   }

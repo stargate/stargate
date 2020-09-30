@@ -15,11 +15,13 @@
  */
 package io.stargate.web.models;
 
+import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 
 public class RowAdd {
   List<ColumnModel> columns;
 
+  @ApiModelProperty(required = true, value = "")
   public List<ColumnModel> getColumns() {
     return columns;
   }

@@ -18,12 +18,14 @@ package io.stargate.web.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModelProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Datacenter {
   String name;
   int replicas;
 
+  @ApiModelProperty(required = true, value = "")
   public String getName() {
     return name;
   }
@@ -33,6 +35,7 @@ public class Datacenter {
     return this;
   }
 
+  @ApiModelProperty(required = true, value = "")
   public int getReplicas() {
     return replicas;
   }

@@ -15,7 +15,13 @@
  */
 package io.stargate.web.models;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+
+@ApiModel(
+    description = "Changes the name of a primary key column and preserves the existing values.")
 public class ColumnUpdate {
+
   String newName;
 
   public ColumnUpdate() {}
@@ -24,6 +30,7 @@ public class ColumnUpdate {
     this.newName = newName;
   }
 
+  @ApiModelProperty(value = "The new name of the column.")
   public String getNewName() {
     return newName;
   }

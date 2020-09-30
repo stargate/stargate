@@ -15,6 +15,7 @@
  */
 package io.stargate.web.models;
 
+import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 
 public class Filter {
@@ -32,6 +33,7 @@ public class Filter {
   Operator operator;
   List<Object> value;
 
+  @ApiModelProperty(value = "The column name to apply the filter to.")
   public String getColumnName() {
     return columnName;
   }
@@ -40,6 +42,7 @@ public class Filter {
     this.columnName = columnName;
   }
 
+  @ApiModelProperty(value = "")
   public Operator getOperator() {
     return operator;
   }
@@ -48,6 +51,9 @@ public class Filter {
     this.operator = operator;
   }
 
+  @ApiModelProperty(
+      value =
+          "An array of values to use in the filter. The full array will only be used for the `in` operation, for all others only the first element will be considered.")
   public List<Object> getValue() {
     return value;
   }

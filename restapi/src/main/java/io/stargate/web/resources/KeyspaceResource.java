@@ -32,7 +32,7 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Api(value = "KeyspaceResource", description = "the api API")
+@Api(produces = MediaType.APPLICATION_JSON, consumes = MediaType.APPLICATION_JSON)
 @Path("/v1/keyspaces")
 @Produces(MediaType.APPLICATION_JSON)
 public class KeyspaceResource {
