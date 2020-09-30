@@ -48,8 +48,19 @@ public final class CDCServiceImpl implements CDCService {
   }
 
   public CDCServiceImpl(CDCProducer producer, Metrics metrics) {
-    // TODO: Wrap configuration and use default health checker
-    this(producer, null, null, metrics.getRegistry("cdc"));
+    // TODO: Use real stargate config store
+    this(producer, CDCConfig.defaultConfig, metrics.getRegistry("cdc"));
+  }
+
+  private CDCServiceImpl(CDCProducer producer, CDCConfig config, MetricRegistry registry) {
+    this(
+        producer,
+        new DefaultCDCHealthChecker(
+            config.getErrorRateThreshold(),
+            config.getMinErrorsPerSecond(),
+            config.getEWMAIntervalMinutes()),
+        config,
+        registry);
   }
 
   @VisibleForTesting
@@ -88,7 +99,7 @@ public final class CDCServiceImpl implements CDCService {
               CDCMetrics.instance.updateLatency(System.nanoTime() - start);
 
               if (e != null) {
-                healthChecker.reportSendError(mutation, e);
+                healthChecker.reportSendError();
                 CDCMetrics.instance.markProducerFailure();
 
                 if (e instanceof TimeoutException) {
@@ -139,5 +150,39 @@ public final class CDCServiceImpl implements CDCService {
     boolean isTrackedByCDC(MutationEvent mutation);
 
     long getProducerTimeoutMs();
+
+    double getErrorRateThreshold();
+
+    int getMinErrorsPerSecond();
+
+    int getEWMAIntervalMinutes();
+
+    CDCConfig defaultConfig =
+        new CDCConfig() {
+          @Override
+          public boolean isTrackedByCDC(MutationEvent mutation) {
+            return true;
+          }
+
+          @Override
+          public long getProducerTimeoutMs() {
+            return 100;
+          }
+
+          @Override
+          public double getErrorRateThreshold() {
+            return 0.5;
+          }
+
+          @Override
+          public int getMinErrorsPerSecond() {
+            return 10;
+          }
+
+          @Override
+          public int getEWMAIntervalMinutes() {
+            return 1;
+          }
+        };
   }
 }
