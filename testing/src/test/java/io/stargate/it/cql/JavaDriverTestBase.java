@@ -1,10 +1,5 @@
 package io.stargate.it.cql;
 
-import java.lang.reflect.Method;
-import java.net.InetSocketAddress;
-import java.time.Duration;
-import java.util.Date;
-
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
@@ -13,10 +8,12 @@ import com.datastax.oss.driver.api.core.config.TypedDriverOption;
 import com.datastax.oss.driver.internal.core.loadbalancing.DcInferringLoadBalancingPolicy;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.storage.ClusterConnectionInfo;
+import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicInteger;
 import net.jcip.annotations.NotThreadSafe;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.TestInfo;
 
 /**
  * Base class for tests that use a dedicated Java driver session (and keyspace) for each method.
@@ -26,17 +23,17 @@ import org.junit.jupiter.api.TestInfo;
 @NotThreadSafe
 public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
 
+  private static final AtomicInteger KEYSPACE_NAME_COUNTER = new AtomicInteger();
+
   protected CqlSession session;
   protected CqlIdentifier keyspaceId;
-
-  private static final int KEYSPACE_NAME_MAX_LENGTH = 48;
 
   public JavaDriverTestBase(ClusterConnectionInfo backend) {
     super(backend);
   }
 
   @BeforeEach
-  public void setup(TestInfo testInfo) {
+  public void before() {
     OptionsMap config = OptionsMap.driverDefaults();
     config.put(TypedDriverOption.METADATA_TOKEN_MAP_ENABLED, false);
     config.put(
@@ -55,13 +52,8 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
             .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
             .build();
 
-    String testMethodName =
-        testInfo.getTestMethod().map(Method::getName).orElseThrow(AssertionError::new);
-    String keyspaceName = "ks_" + new Date().getTime() + "_" + testMethodName;
-    if (keyspaceName.length() > KEYSPACE_NAME_MAX_LENGTH) {
-      keyspaceName = keyspaceName.substring(0, KEYSPACE_NAME_MAX_LENGTH);
-    }
-    keyspaceId = CqlIdentifier.fromInternal(keyspaceName);
+    keyspaceId =
+        CqlIdentifier.fromInternal("JavaDriverTest" + KEYSPACE_NAME_COUNTER.getAndIncrement());
 
     session.execute(
         String.format(

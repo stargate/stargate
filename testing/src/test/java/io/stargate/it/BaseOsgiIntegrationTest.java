@@ -84,7 +84,7 @@ public class BaseOsgiIntegrationTest {
 
   public static List<Starter> stargateStarters = new ArrayList<>();
   private static List<String> stargateHosts = new ArrayList<>();
-  public static final Integer numberOfStargateNodes = 3;
+  public static final Integer numberOfStargateNodes = 1;
 
   static {
     for (int i = 1; i <= numberOfStargateNodes; i++) {

@@ -1,5 +1,8 @@
 package io.stargate.it.cql;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.datastax.oss.driver.api.core.config.OptionsMap;
 import com.datastax.oss.driver.api.core.config.TypedDriverOption;
 import com.datastax.oss.driver.api.core.cql.ExecutionInfo;
@@ -15,9 +18,6 @@ import io.stargate.it.storage.ClusterConnectionInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class SimpleStatementTest extends JavaDriverTestBase {
 
@@ -60,14 +60,17 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  @Disabled("C* 3.11 throws 'InvalidQueryException: Invalid amount of bind variables', Stargate doesn't throw")
+  @Disabled(
+      "C* 3.11 throws 'InvalidQueryException: Invalid amount of bind variables', Stargate doesn't throw")
   public void should_fail_when_too_many_positional_values_provided() {
-    assertThatThrownBy(() -> session.execute("INSERT into test2 (k, v) values (?, ?)", KEY, 1, 2, 3))
+    assertThatThrownBy(
+            () -> session.execute("INSERT into test2 (k, v) values (?, ?)", KEY, 1, 2, 3))
         .isInstanceOf(InvalidQueryException.class);
   }
 
   @Test
-  @Disabled("C* 3.11 returns an InvalidQueryException, Stargate returns a ServerError(IndexOutOfBoundsException)")
+  @Disabled(
+      "C* 3.11 returns an InvalidQueryException, Stargate returns a ServerError(IndexOutOfBoundsException)")
   public void should_fail_when_not_enough_positional_values_provided() {
     // For SELECT queries, all values must be filled
     assertThatThrownBy(() -> session.execute("SELECT * from test where k = ? and v = ?", KEY))
@@ -96,7 +99,8 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  @Disabled("C* 3.11 returns an InvalidQueryException, Stargate returns a ServerError(IndexOutOfBoundsException)")
+  @Disabled(
+      "C* 3.11 returns an InvalidQueryException, Stargate returns a ServerError(IndexOutOfBoundsException)")
   public void should_fail_when_named_value_missing() {
     // For SELECT queries, all values must be filled
     assertThatThrownBy(
@@ -160,7 +164,8 @@ public class SimpleStatementTest extends JavaDriverTestBase {
 
   @Test
   public void should_use_page_size_on_statement() {
-    SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY).setPageSize(10);
+    SimpleStatement statement =
+        SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY).setPageSize(10);
     ResultSet resultSet = session.execute(statement);
     assertThat(resultSet.getAvailableWithoutFetching()).isEqualTo(10);
   }
