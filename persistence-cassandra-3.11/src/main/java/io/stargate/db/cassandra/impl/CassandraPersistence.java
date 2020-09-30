@@ -207,8 +207,7 @@ public class CassandraPersistence
 
   @Override
   public DataStore newDataStore(
-      QueryState<org.apache.cassandra.service.QueryState> state,
-      QueryOptions<org.apache.cassandra.service.ClientState> queryOptions) {
+      QueryState<org.apache.cassandra.service.QueryState> state, QueryOptions queryOptions) {
     return new InternalDataStore(
         this, Conversion.toInternal(state), Conversion.toInternal(queryOptions));
   }
@@ -285,7 +284,9 @@ public class CassandraPersistence
               beginTraceQuery(cql, state, options);
             }
 
-            CQLStatement statement = QueryProcessor.parseStatement(cql, internalState).statement;
+            ParsedStatement.Prepared prepared = QueryProcessor.parseStatement(cql, internalState);
+            internalOptions.prepare(prepared.boundNames);
+            CQLStatement statement = prepared.statement;
 
             Result result =
                 interceptor.interceptQuery(
@@ -337,9 +338,15 @@ public class CassandraPersistence
               throw new PreparedQueryNotFoundException(id);
             }
 
+            // Please note that this needs to happen _before_ the beginTraceExecute, because when
+            // we add bound values to the trace, we rely on the values having been re-ordered by
+            // the following prepare (if named values were used that is).
+            internalOptions.prepare(prepared.boundNames);
+
             if (internalState.traceNextQuery()) {
               internalState.createTracingSession(customPayload);
-              beginTraceExecute(prepared, state, options, internalOptions.getProtocolVersion());
+              beginTraceExecute(
+                  prepared, state, internalOptions, internalOptions.getProtocolVersion());
             }
 
             CQLStatement statement = prepared.statement;
@@ -552,7 +559,7 @@ public class CassandraPersistence
   private void beginTraceExecute(
       ParsedStatement.Prepared prepared,
       QueryState state,
-      QueryOptions options,
+      org.apache.cassandra.cql3.QueryOptions options,
       ProtocolVersion version) {
     ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
     if (options.getPageSize() > 0) {

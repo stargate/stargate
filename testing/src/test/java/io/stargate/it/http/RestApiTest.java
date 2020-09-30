@@ -51,6 +51,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -437,6 +438,34 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
     assertThat(rowResponse.getCount()).isEqualTo(0);
+  }
+
+  private String resourceUrl(String tableName, String resource) {
+    return String.format(
+        "%s:8082/v1/keyspaces/%s/tables/%s/%s", host, keyspace, tableName, resource);
+  }
+
+  @Test
+  public void getRowByCompoundPartitionKey() throws IOException {
+    String tableName = "tbl_getrow_compoundkey" + System.currentTimeMillis();
+    createTestTable(
+        tableName,
+        Arrays.asList(
+            "pk0 smallint",
+            "pk1 smallint",
+            "pk2 varint",
+            "pk3 int",
+            "pk4 tinyint",
+            "ck0 date",
+            "ck1 int",
+            "ck2 float"),
+        Arrays.asList("pk0", "pk1", "pk2", "pk3", "pk4"),
+        Arrays.asList("ck0", "ck1", "ck2"));
+
+    RestUtils.get(
+        authToken,
+        resourceUrl(tableName, "rows/11236;18970;1373651568095940836;77587744;0"),
+        HttpStatus.SC_OK);
   }
 
   @Test
@@ -1224,24 +1253,22 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     assertThat(successResponse.getSuccess()).isTrue();
   }
 
-  private void createTableWithMixedClustering(String tableName) throws IOException {
+  private void createTestTable(
+      String tableName, List<String> columns, List<String> partitionKey, List<String> clusteringKey)
+      throws IOException {
     TableAdd tableAdd = new TableAdd();
     tableAdd.setName(tableName);
 
-    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
-
-    columnDefinitions.add(new ColumnDefinition("pk0", "int"));
-    columnDefinitions.add(new ColumnDefinition("pk1", "text"));
-    columnDefinitions.add(new ColumnDefinition("pk2", "int"));
-    columnDefinitions.add(new ColumnDefinition("ck0", "int"));
-    columnDefinitions.add(new ColumnDefinition("ck1", "text"));
-    columnDefinitions.add(new ColumnDefinition("v", "int"));
-
+    List<ColumnDefinition> columnDefinitions =
+        columns.stream()
+            .map(x -> x.split(" "))
+            .map(y -> new ColumnDefinition(y[0], y[1]))
+            .collect(Collectors.toList());
     tableAdd.setColumnDefinitions(columnDefinitions);
 
     PrimaryKey primaryKey = new PrimaryKey();
-    primaryKey.setPartitionKey(Arrays.asList("pk0", "pk1", "pk2"));
-    primaryKey.setClusteringKey(Arrays.asList("ck0", "ck1"));
+    primaryKey.setPartitionKey(partitionKey);
+    primaryKey.setClusteringKey(clusteringKey);
     tableAdd.setPrimaryKey(primaryKey);
 
     String body =
@@ -1254,6 +1281,14 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     SuccessResponse successResponse =
         objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
     assertThat(successResponse.getSuccess()).isTrue();
+  }
+
+  private void createTableWithMixedClustering(String tableName) throws IOException {
+    List<String> columnsDef =
+        Arrays.asList("pk0 int", "pk1 text", "pk2 int", "ck0 int", "ck1 text", "v int");
+    List<String> partitionKey = Arrays.asList("pk0", "pk1", "pk2");
+    List<String> clusteringKey = Arrays.asList("ck0", "ck1");
+    createTestTable(tableName, columnsDef, partitionKey, clusteringKey);
 
     List<ColumnModel> columns = new ArrayList<>();
     columns.add(new ColumnModel("pk0", "1"));

@@ -363,14 +363,17 @@ public class RowsResource {
   }
 
   private List<Where<?>> buildWhereForPath(Table tableMetadata, List<PathSegment> path) {
-    if (tableMetadata.partitionKeyColumns().size() > path.size()) {
+    List<Column> keys = tableMetadata.primaryKeyColumns();
+    boolean notAllPartitionKeys = path.size() < tableMetadata.partitionKeyColumns().size();
+    boolean tooManyValues = path.size() > keys.size();
+    if (tooManyValues || notAllPartitionKeys) {
       throw new IllegalArgumentException(
           String.format(
-              "Invalid number of key values required (%s). All partition key columns values are required plus 0..all clustering columns values in proper order.",
-              tableMetadata.partitionKeyColumns().size()));
+              "Number of key values provided (%s) should be in [%s, %s]. "
+                  + "All partition key columns values are required plus 0..all clustering columns values in proper order.",
+              path.size(), tableMetadata.partitionKeyColumns().size(), keys.size()));
     }
 
-    List<Column> keys = tableMetadata.primaryKeyColumns();
     return IntStream.range(0, path.size())
         .mapToObj(
             i -> Converters.idToWhere(path.get(i).getPath(), keys.get(i).name(), tableMetadata))
