@@ -22,13 +22,10 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
-import org.apache.cassandra.metrics.DefaultNameFactory;
-import org.apache.cassandra.metrics.MetricNameFactory;
 
 public final class CDCMetrics {
   public static final CDCMetrics instance = new CDCMetrics();
-
-  private static final MetricNameFactory factory = new DefaultNameFactory("CDC");
+  private static final String METRIC_NAME = "cdc";
 
   private boolean initialized = false;
   private MetricRegistry metricRegistry;
@@ -74,14 +71,18 @@ public final class CDCMetrics {
   }
 
   private Meter registerMeter(String name) {
-    return metricRegistry.meter(factory.createMetricName(name).getMetricName());
+    return metricRegistry.meter(getMetricName(name));
   }
 
   private Counter registerCounter(String name) {
-    return metricRegistry.counter(factory.createMetricName(name).getMetricName());
+    return metricRegistry.counter(getMetricName(name));
   }
 
   private Timer registerTimer(String name) {
-    return metricRegistry.timer(factory.createMetricName(name).getMetricName());
+    return metricRegistry.timer(getMetricName(name));
+  }
+
+  private static String getMetricName(String name) {
+    return MetricRegistry.name(METRIC_NAME, name);
   }
 }
