@@ -20,7 +20,7 @@ import java.util.List;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 
-public interface QueryOptions<T> {
+public interface QueryOptions {
   ConsistencyLevel getConsistency();
 
   List<ByteBuffer> getValues();
