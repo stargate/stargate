@@ -322,7 +322,7 @@ public class BaseOsgiIntegrationTest {
                   + ". The stargate node will not be started.",
               ex);
 
-          // If the container fails to star, there's no point running individual test cases.
+          // If the container fails to start, there's no point running individual test cases.
           throw new IllegalStateException(ex);
         }
       }
