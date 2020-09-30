@@ -10,6 +10,7 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.dse.datastore.DataStoreUtil;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
+import java.lang.reflect.Constructor;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -21,10 +22,12 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.cql3.PageSize;
 import org.apache.cassandra.cql3.QueryHandler;
+import org.apache.cassandra.cql3.QueryOptions.PagingOptions;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.exceptions.CassandraException;
+import org.apache.cassandra.service.pager.PagingState;
 import org.apache.cassandra.stargate.cql3.functions.FunctionName;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.db.WriteType;
@@ -56,6 +59,55 @@ import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.utils.Flags;
 
 public class Conversion {
+
+  // A number of constructors for classes related to QueryOptions but that are not accessible in C*
+  // at the moment and need to be accessed through reflection.
+
+  // SpecificOptions(QueryOptions.PagingOptions, ConsistencyLevel serialConsistency, long
+  // timestamp, String keyspace)
+  private static final Constructor<?> specificOptionsCtor;
+  // DefaultQueryOptions(ConsistencyLevel consistency, List<ByteBuffer> values, boolean
+  // skipMetadata, QueryOptions.SpecificOptions options, ProtocolVersion protocolVersion)
+  private static final Constructor<?> defaultOptionsCtor;
+  // OptionsWithNames(QueryOptions.DefaultQueryOptions wrapped, List<String> names)
+  private static final Constructor<?> optionsWithNameCtor;
+
+  static {
+    try {
+      Class<?> defaultOptionsClass =
+          Class.forName("org.apache.cassandra.cql3.QueryOptions$DefaultQueryOptions");
+      Class<?> specificOptionsClass =
+          Class.forName("org.apache.cassandra.cql3.QueryOptions$SpecificOptions");
+      Class<?> withNamesClass =
+          Class.forName("org.apache.cassandra.cql3.QueryOptions$OptionsWithNames");
+
+      specificOptionsCtor =
+          specificOptionsClass.getDeclaredConstructor(
+              PagingOptions.class,
+              org.apache.cassandra.db.ConsistencyLevel.class,
+              long.class,
+              String.class);
+      specificOptionsCtor.setAccessible(true);
+
+      defaultOptionsCtor =
+          defaultOptionsClass.getDeclaredConstructor(
+              org.apache.cassandra.db.ConsistencyLevel.class,
+              List.class,
+              boolean.class,
+              specificOptionsClass,
+              org.apache.cassandra.transport.ProtocolVersion.class);
+      defaultOptionsCtor.setAccessible(true);
+
+      optionsWithNameCtor = withNamesClass.getDeclaredConstructor(defaultOptionsClass, List.class);
+      optionsWithNameCtor.setAccessible(true);
+    } catch (Exception e) {
+      throw new RuntimeException(
+          "Error during initialization of the persistence layer: some "
+              + "reflection-based accesses cannot be setup.",
+          e);
+    }
+  }
+
   public static org.apache.cassandra.service.QueryState toInternal(
       QueryState<org.apache.cassandra.service.QueryState> state) {
     if (state == null) {
@@ -70,25 +122,72 @@ public class Conversion {
     }
     org.apache.cassandra.transport.ProtocolVersion protocolVersion =
         toInternal(options.getProtocolVersion());
-    // TODO(mpenick): timestamp and nowInSeconds?
-    return org.apache.cassandra.cql3.QueryOptions.create(
+    // Note that PagingState.deserialize below modifies its input, so we duplicate to avoid nasty
+    // surprises down the line
+    ByteBuffer pagingState =
+        options.getPagingState() == null ? null : options.getPagingState().duplicate();
+    return createOptions(
         toInternal(options.getConsistency()),
         options.getValues(),
+        options.getNames(),
         options.skipMetadata(),
-        buildPagingOptions(options),
+        options.getPageSize(),
+        PagingState.deserialize(pagingState, protocolVersion),
         toInternal(options.getSerialConsistency()),
         protocolVersion,
+        options.getTimestamp(),
         options.getKeyspace());
   }
 
-  private static org.apache.cassandra.cql3.QueryOptions.PagingOptions buildPagingOptions(
-      QueryOptions options) {
+  private static org.apache.cassandra.cql3.QueryOptions createOptions(
+      org.apache.cassandra.db.ConsistencyLevel consistencyLevel,
+      List<ByteBuffer> values,
+      List<String> boundNames,
+      boolean skipMetadata,
+      int pageSize,
+      PagingState pagingState,
+      org.apache.cassandra.db.ConsistencyLevel serialConsistency,
+      org.apache.cassandra.transport.ProtocolVersion protocolVersion,
+      long timestamp,
+      String keyspace) {
+    org.apache.cassandra.cql3.QueryOptions options;
+    try {
+      PagingOptions pagingOptions = null;
+      if (pageSize > 0) {
+        pagingOptions =
+            new PagingOptions(
+                PageSize.rowsSize(pageSize),
+                PagingOptions.Mechanism.SINGLE,
+                pagingState.serialize(protocolVersion));
+      }
+
+      Object specificOptions =
+          specificOptionsCtor.newInstance(pagingOptions, serialConsistency, timestamp, keyspace);
+      Object defaultOptions =
+          defaultOptionsCtor.newInstance(
+              consistencyLevel, values, skipMetadata, specificOptions, protocolVersion);
+      options = (org.apache.cassandra.cql3.QueryOptions) defaultOptions;
+
+      // Adds names if there is some.
+      if (boundNames != null) {
+        options =
+            (org.apache.cassandra.cql3.QueryOptions)
+                optionsWithNameCtor.newInstance(defaultOptions, boundNames);
+      }
+    } catch (Exception e) {
+      // We can't afford to ignore that: the values wouldn't be in the proper order, and worst
+      // case scenario, this could end up inserting values in the wrong columns, which essentially
+      // boils down to corrupting the use DB.
+      throw new RuntimeException(
+          "Unexpected error while trying to bind the query values by name", e);
+    }
+    return options;
+  }
+
+  private static PagingOptions buildPagingOptions(QueryOptions options) {
     PageSize size =
         options.getPageSize() > 0 ? PageSize.rowsSize(options.getPageSize()) : PageSize.NULL;
-    return new org.apache.cassandra.cql3.QueryOptions.PagingOptions(
-        size,
-        org.apache.cassandra.cql3.QueryOptions.PagingOptions.Mechanism.SINGLE,
-        options.getPagingState());
+    return new PagingOptions(size, PagingOptions.Mechanism.SINGLE, options.getPagingState());
   }
 
   public static org.apache.cassandra.service.ClientState toInternal(
