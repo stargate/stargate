@@ -158,7 +158,7 @@ public class Conversion {
             new PagingOptions(
                 PageSize.rowsSize(pageSize),
                 PagingOptions.Mechanism.SINGLE,
-                pagingState.serialize(protocolVersion));
+                pagingState == null ? null : pagingState.serialize(protocolVersion));
       }
 
       Object specificOptions =
