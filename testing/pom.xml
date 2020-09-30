@@ -24,6 +24,11 @@
     </dependency>
     <dependency>
       <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-query-builder</artifactId>
+      <version>${driver.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-test-infra</artifactId>
       <version>${driver.version}</version>
       <scope>test</scope>
