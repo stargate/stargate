@@ -16,6 +16,9 @@
 package io.stargate.producer.kafka;
 
 import io.stargate.db.cdc.SchemaAwareCDCProducer;
+import io.stargate.producer.kafka.configuration.CDCKafkaConfig;
+import io.stargate.producer.kafka.configuration.DefaultConfigLoader;
+import io.stargate.producer.kafka.mapping.DefaultMappingService;
 import io.stargate.producer.kafka.mapping.MappingService;
 import io.stargate.producer.kafka.producer.CompletableKafkaProducer;
 import io.stargate.producer.kafka.schema.KeyValueConstructor;
@@ -34,20 +37,25 @@ import org.jetbrains.annotations.NotNull;
 
 public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
-  private final MappingService mappingService;
+  private final DefaultConfigLoader configLoader;
+  private MappingService mappingService;
 
   private final KeyValueConstructor keyValueConstructor;
 
   private CompletableFuture<CompletableKafkaProducer<GenericRecord, GenericRecord>> kafkaProducer;
 
-  public KafkaCDCProducer(MappingService mappingService, SchemaProvider schemaProvider) {
-    this.mappingService = mappingService;
+  public KafkaCDCProducer(SchemaProvider schemaProvider) {
     this.keyValueConstructor = new KeyValueConstructor(schemaProvider);
+    this.configLoader = new DefaultConfigLoader();
   }
 
   @Override
   public CompletableFuture<Void> init(Map<String, Object> options) {
-    kafkaProducer = CompletableFuture.supplyAsync(() -> new CompletableKafkaProducer<>(options));
+    CDCKafkaConfig cdcKafkaConfig = configLoader.loadConfig(options);
+    this.mappingService = new DefaultMappingService(cdcKafkaConfig.getTopicPrefixName());
+    kafkaProducer =
+        CompletableFuture.supplyAsync(
+            () -> new CompletableKafkaProducer<>(cdcKafkaConfig.getKafkaProducerSettings()));
     return kafkaProducer.thenAccept(toVoid());
   }
 

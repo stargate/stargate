@@ -15,6 +15,7 @@
  */
 package io.stargate.producer.kafka;
 
+import static io.stargate.producer.kafka.configuration.ConfigLoader.CDC_TOPIC_PREFIX_NAME;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.clusteringKey;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.column;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.createDeleteEvent;
@@ -31,7 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Streams;
-import io.stargate.producer.kafka.mapping.MappingService;
+import io.stargate.producer.kafka.configuration.ConfigLoader;
 import io.stargate.producer.kafka.schema.KeyValueConstructor;
 import io.stargate.producer.kafka.schema.MockKafkaAvroSerializer;
 import io.stargate.producer.kafka.schema.MockKeyKafkaAvroDeserializer;
@@ -69,7 +70,7 @@ class KafkaCDCProducerIntegrationTest {
   private static ToxiproxyContainer toxiproxyContainer;
   private static ContainerProxy kafkaProxy;
 
-  private static final String TOPIC_NAME = "topic_1";
+  private static final String TOPIC_PREFIX = "topicPrefix";
 
   @BeforeAll
   public static void setup() {
@@ -94,16 +95,14 @@ class KafkaCDCProducerIntegrationTest {
     Integer clusteringKeyValue = 1;
     String columnValue = "col_value";
     long timestamp = 1000;
-    MappingService mappingService = mock(MappingService.class);
     SchemaProvider schemaProvider = mock(SchemaProvider.class);
-    TableMetadata tableMetadata = mock(TableMetadata.class);
+    TableMetadata tableMetadata = mockTableMetadata();
+    String topicName = creteTopicName(tableMetadata);
 
-    when(mappingService.getTopicNameFromTableMetadata(tableMetadata)).thenReturn(TOPIC_NAME);
+    when(schemaProvider.getKeySchemaForTopic(topicName)).thenReturn(KEY_SCHEMA);
+    when(schemaProvider.getValueSchemaForTopic(topicName)).thenReturn(VALUE_SCHEMA);
 
-    when(schemaProvider.getKeySchemaForTopic(TOPIC_NAME)).thenReturn(KEY_SCHEMA);
-    when(schemaProvider.getValueSchemaForTopic(TOPIC_NAME)).thenReturn(VALUE_SCHEMA);
-
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(mappingService, schemaProvider);
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(schemaProvider);
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
@@ -125,13 +124,25 @@ class KafkaCDCProducerIntegrationTest {
     expectedKey.put(PARTITION_KEY_NAME, partitionKeyValue);
 
     GenericRecord expectedValue =
-        new KeyValueConstructor(schemaProvider).constructValue(rowMutationEvent, TOPIC_NAME);
+        new KeyValueConstructor(schemaProvider).constructValue(rowMutationEvent, topicName);
 
     try {
-      validateThatWasSendToKafka(expectedKey, expectedValue);
+      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
     } finally {
       kafkaCDCProducer.close().get();
     }
+  }
+
+  private String creteTopicName(TableMetadata tableMetadata) {
+    return String.format(
+        "%s.%s.%s", TOPIC_PREFIX, tableMetadata.getKeyspace(), tableMetadata.getName());
+  }
+
+  private TableMetadata mockTableMetadata() {
+    TableMetadata tableMetadata = mock(TableMetadata.class);
+    when(tableMetadata.getKeyspace()).thenReturn("keyspaceName");
+    when(tableMetadata.getName()).thenReturn("tableName");
+    return tableMetadata;
   }
 
   @Test
@@ -140,16 +151,14 @@ class KafkaCDCProducerIntegrationTest {
     String partitionKeyValue = "pk_value";
     Integer clusteringKeyValue = 1;
     String columnValue = "col_value";
-    MappingService mappingService = mock(MappingService.class);
     SchemaProvider schemaProvider = mock(SchemaProvider.class);
-    TableMetadata tableMetadata = mock(TableMetadata.class);
+    TableMetadata tableMetadata = mockTableMetadata();
+    String topicName = creteTopicName(tableMetadata);
 
-    when(mappingService.getTopicNameFromTableMetadata(tableMetadata)).thenReturn(TOPIC_NAME);
+    when(schemaProvider.getKeySchemaForTopic(topicName)).thenReturn(KEY_SCHEMA);
+    when(schemaProvider.getValueSchemaForTopic(topicName)).thenReturn(VALUE_SCHEMA);
 
-    when(schemaProvider.getKeySchemaForTopic(TOPIC_NAME)).thenReturn(KEY_SCHEMA);
-    when(schemaProvider.getValueSchemaForTopic(TOPIC_NAME)).thenReturn(VALUE_SCHEMA);
-
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(mappingService, schemaProvider);
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(schemaProvider);
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
@@ -172,7 +181,7 @@ class KafkaCDCProducerIntegrationTest {
                     .get();
               })
           .hasRootCauseInstanceOf(TimeoutException.class)
-          .hasMessageContaining(String.format("Topic %s not present in metadata", TOPIC_NAME));
+          .hasMessageContaining(String.format("Topic %s not present in metadata", topicName));
     } finally {
       // resume connections
       kafkaProxy.setConnectionCut(false);
@@ -186,16 +195,14 @@ class KafkaCDCProducerIntegrationTest {
     String partitionKeyValue = "pk_value";
     Integer clusteringKeyValue = 1;
     long timestamp = 1234;
-    MappingService mappingService = mock(MappingService.class);
     SchemaProvider schemaProvider = mock(SchemaProvider.class);
-    TableMetadata tableMetadata = mock(TableMetadata.class);
+    TableMetadata tableMetadata = mockTableMetadata();
+    String topicName = creteTopicName(tableMetadata);
 
-    when(mappingService.getTopicNameFromTableMetadata(tableMetadata)).thenReturn(TOPIC_NAME);
+    when(schemaProvider.getKeySchemaForTopic(topicName)).thenReturn(KEY_SCHEMA);
+    when(schemaProvider.getValueSchemaForTopic(topicName)).thenReturn(VALUE_SCHEMA);
 
-    when(schemaProvider.getKeySchemaForTopic(TOPIC_NAME)).thenReturn(KEY_SCHEMA);
-    when(schemaProvider.getValueSchemaForTopic(TOPIC_NAME)).thenReturn(VALUE_SCHEMA);
-
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(mappingService, schemaProvider);
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(schemaProvider);
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
@@ -215,10 +222,10 @@ class KafkaCDCProducerIntegrationTest {
     expectedKey.put(PARTITION_KEY_NAME, partitionKeyValue);
 
     GenericRecord expectedValue =
-        new KeyValueConstructor(schemaProvider).constructValue(event, TOPIC_NAME);
+        new KeyValueConstructor(schemaProvider).constructValue(event, topicName);
 
     try {
-      validateThatWasSendToKafka(expectedKey, expectedValue);
+      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
     } finally {
       kafkaCDCProducer.close().get();
     }
@@ -227,20 +234,32 @@ class KafkaCDCProducerIntegrationTest {
   @NotNull
   private Map<String, Object> createKafkaProducerSettings() {
     Map<String, Object> properties = new HashMap<>();
-    properties.put(
-        ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
-        String.format("%s:%s", kafkaProxy.getContainerIpAddress(), kafkaProxy.getProxyPort()));
-    properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, MockKafkaAvroSerializer.class);
-    properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, MockKafkaAvroSerializer.class);
-    // lower the max.block to allow faster failure scenario testing
-    properties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, "1000");
+    properties.put(CDC_TOPIC_PREFIX_NAME, TOPIC_PREFIX);
 
-    properties.put("schema.registry.url", "mocked");
+    properties.put(
+        withCDCPrefixPrefix(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG),
+        String.format("%s:%s", kafkaProxy.getContainerIpAddress(), kafkaProxy.getProxyPort()));
+    properties.put(
+        withCDCPrefixPrefix(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG),
+        MockKafkaAvroSerializer.class);
+    properties.put(
+        withCDCPrefixPrefix(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG),
+        MockKafkaAvroSerializer.class);
+    // lower the max.block to allow faster failure scenario testing
+    properties.put(withCDCPrefixPrefix(ProducerConfig.MAX_BLOCK_MS_CONFIG), "1000");
+
+    properties.put(withCDCPrefixPrefix("schema.registry.url"), "mocked");
     return properties;
   }
 
+  @NotNull
+  private String withCDCPrefixPrefix(String settingName) {
+    return String.format("%s.%s", ConfigLoader.CDC_KAFKA_PRODUCER_SETTING_PREFIX, settingName);
+  }
+
   @SuppressWarnings("UnstableApiUsage")
-  private void validateThatWasSendToKafka(GenericRecord expectedKey, GenericRecord expectedValue) {
+  private void validateThatWasSendToKafka(
+      GenericRecord expectedKey, GenericRecord expectedValue, String topicName) {
     Properties props = new Properties();
     props.put(
         ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
@@ -253,7 +272,7 @@ class KafkaCDCProducerIntegrationTest {
     props.put("schema.registry.url", "mocked");
 
     KafkaConsumer<GenericRecord, GenericRecord> consumer = new KafkaConsumer<>(props);
-    consumer.subscribe(Collections.singletonList(TOPIC_NAME));
+    consumer.subscribe(Collections.singletonList(topicName));
 
     try {
       await()
