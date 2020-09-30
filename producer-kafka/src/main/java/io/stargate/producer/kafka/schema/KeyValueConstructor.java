@@ -104,8 +104,7 @@ public class KeyValueConstructor {
   private void fillGenericRecordWithData(
       List<? extends CellValue> cellValues, GenericRecord genericRecord) {
     cellValues.forEach(
-        cellValue -> {
-          genericRecord.put(cellValue.getColumn().getName(), cellValue.getValueObject());
-        });
+        cellValue ->
+            genericRecord.put(cellValue.getColumn().getName(), cellValue.getValueObject()));
   }
 }
