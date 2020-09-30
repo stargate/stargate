@@ -50,7 +50,7 @@ public class DefaultQueryOptions<D> implements QueryOptions {
     this.values = builder.values;
     this.names = builder.names;
     this.skipMetadata = builder.skipMetadata;
-    this.options = builder.options;
+    this.options = builder.options == null ? SpecificOptions.DEFAULT : builder.options;
     this.version = builder.version;
   }
 

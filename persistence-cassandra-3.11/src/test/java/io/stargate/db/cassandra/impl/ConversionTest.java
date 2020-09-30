@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.stargate.db.DefaultQueryOptions;
 import io.stargate.db.QueryOptions;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.List;
 import org.apache.cassandra.cql3.ColumnIdentifier;
 import org.apache.cassandra.cql3.ColumnSpecification;
@@ -27,7 +28,7 @@ class ConversionTest {
   }
 
   @Test
-  public void testQueryOptionsConversion() {
+  public void testAllNonDefaultQueryOptionsConversion() {
 
     List<ByteBuffer> values = asList(bytes("world"), bytes("hello"));
     List<String> names = asList("v2", "v1");
@@ -74,5 +75,26 @@ class ConversionTest {
         .isEqualTo(pagingState);
     // Since we don't use the default, we should we good passing null
     assertThat(converted.getTimestamp(null)).isEqualTo(123456);
+  }
+
+  @Test
+  public void testAllDefaultQueryOptionsConversion() {
+    // Test a case that uses all non-default options.
+    QueryOptions options = DefaultQueryOptions.builder().build();
+    org.apache.cassandra.cql3.QueryOptions converted = Conversion.toInternal(options);
+
+    // Using prepare to emulate real usage.
+    converted = converted.prepare(Collections.emptyList());
+
+    assertThat(converted.getConsistency()).isEqualTo(org.apache.cassandra.db.ConsistencyLevel.ONE);
+    assertThat(converted.skipMetadata()).isFalse();
+    // Again, due to the names, we expect the values to have been re-ordered
+    assertThat(converted.getValues()).isEmpty();
+    assertThat(converted.getProtocolVersion())
+        .isEqualTo(Conversion.toInternal(ProtocolVersion.CURRENT));
+    assertThat(converted.getSerialConsistency())
+        .isEqualTo(org.apache.cassandra.db.ConsistencyLevel.SERIAL);
+    assertThat(converted.getPageSize()).isEqualTo(-1);
+    assertThat(converted.getPagingState()).isNull();
   }
 }

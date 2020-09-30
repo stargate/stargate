@@ -139,15 +139,17 @@ public class Conversion {
 
     org.apache.cassandra.transport.ProtocolVersion protocolVersion =
         toInternal(options.getProtocolVersion());
+    // Note that PagingState.deserialize below modifies its input, so we duplicate to avoid nasty
+    // surprises down the line
+    ByteBuffer pagingState =
+        options.getPagingState() == null ? null : options.getPagingState().duplicate();
     return createOptions(
         toInternal(options.getConsistency()),
         options.getValues(),
         options.getNames(),
         options.skipMetadata(),
         options.getPageSize(),
-        // Note that PagingState.deserialize modify its input, so we duplicate to avoid nasty
-        // surprises down the line
-        PagingState.deserialize(options.getPagingState().duplicate(), protocolVersion),
+        PagingState.deserialize(pagingState, protocolVersion),
         toInternal(options.getSerialConsistency()),
         protocolVersion,
         options.getTimestamp());

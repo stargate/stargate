@@ -6,11 +6,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.stargate.db.DefaultQueryOptions;
 import io.stargate.db.QueryOptions;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.List;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.ColumnIdentifier;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.db.marshal.UTF8Type;
+import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.junit.jupiter.api.BeforeAll;
@@ -37,7 +39,7 @@ class ConversionTest {
   }
 
   @Test
-  public void testQueryOptionsConversion() {
+  public void testAllNonDefaultQueryOptionsConversion() {
 
     List<ByteBuffer> values = asList(bytes("world"), bytes("hello"));
     List<String> names = asList("v2", "v1");
@@ -86,5 +88,31 @@ class ConversionTest {
     assertThat(converted.getPagingOptions().state()).isEqualTo(pagingState);
     assertThat(converted.getTimestamp()).isEqualTo(123456);
     assertThat(converted.getKeyspace()).isEqualTo("foobar");
+  }
+
+  @Test
+  public void testAllDefaultQueryOptionsConversion() {
+    // Test a case that uses all non-default options.
+    QueryOptions options = DefaultQueryOptions.builder().build();
+    org.apache.cassandra.cql3.QueryOptions converted = Conversion.toInternal(options);
+
+    QueryState queryState = QueryState.forInternalCalls();
+
+    // Using prepare to emulate real usage.
+    converted = converted.prepare(Collections.emptyList());
+
+    assertThat(converted.getConsistency()).isEqualTo(org.apache.cassandra.db.ConsistencyLevel.ONE);
+    assertThat(converted.skipMetadata()).isFalse();
+    // Again, due to the names, we expect the values to have been re-ordered
+    assertThat(converted.getValues()).isEmpty();
+    assertThat(converted.getProtocolVersion())
+        .isEqualTo(Conversion.toInternal(ProtocolVersion.CURRENT));
+    assertThat(converted.getSerialConsistency(queryState))
+        .isEqualTo(org.apache.cassandra.db.ConsistencyLevel.SERIAL);
+    assertThat(converted.getPagingOptions()).isNull();
+    // The timestamp is going to be basically the server time. We don't care about the details,
+    // let's just make sure it's not obviously broken
+    assertThat(converted.getTimestamp()).isGreaterThan(0);
+    assertThat(converted.getKeyspace()).isNull();
   }
 }

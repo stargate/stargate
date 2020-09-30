@@ -338,7 +338,7 @@ public class CassandraPersistence
               throw new PreparedQueryNotFoundException(id);
             }
 
-            // Please note that this need to happen _before_ the beginTraceExecute, because when
+            // Please note that this needs to happen _before_ the beginTraceExecute, because when
             // we add bound values to the trace, we rely on the values having been re-ordered by
             // the following prepare (if named values were used that is).
             internalOptions.prepare(prepared.boundNames);
