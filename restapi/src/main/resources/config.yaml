@@ -8,3 +8,6 @@ server:
 
 swagger:
   resourcePackage: io.stargate.web.resources
+  title: "Stargate REST API"
+  version: "2.0.0"
+

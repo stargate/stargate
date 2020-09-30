@@ -35,7 +35,6 @@ import io.dropwizard.views.ViewBundle;
 import io.dropwizard.views.freemarker.FreemarkerViewRenderer;
 import io.federecio.dropwizard.swagger.AuthParamFilter;
 import io.federecio.dropwizard.swagger.ConfigurationHelper;
-import io.federecio.dropwizard.swagger.SwaggerResource;
 import io.federecio.dropwizard.swagger.SwaggerViewConfiguration;
 import io.swagger.config.FilterFactory;
 import io.swagger.converter.ModelConverters;

@@ -49,6 +49,9 @@ public class KeyspaceResource {
       notes = "Retrieve all available keyspaces in the specific database.",
       response = String.class,
       responseContainer = "List",
+      httpMethod = "GET",
+      produces = "application/json",
+      consumes = "application/json",
       tags = {
         "keyspaces",
       })
@@ -68,7 +71,9 @@ public class KeyspaceResource {
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
+              required = true,
+              type = "string",
+              format = "uuid")
           @HeaderParam("X-Cassandra-Token")
           String token) {
     return RequestHandler.handle(

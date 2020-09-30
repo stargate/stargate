@@ -17,9 +17,11 @@ package io.stargate.web.models;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModel;
 import java.util.Objects;
 
 /** A description of an error state */
+@ApiModel(description = "A description of an error state")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Error {
   private String description = null;
