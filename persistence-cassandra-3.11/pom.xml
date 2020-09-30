@@ -31,18 +31,6 @@
       <version>0.0.12-SNAPSHOT</version>
     </dependency>
     <dependency>
-      <groupId>io.stargate.health</groupId>
-      <artifactId>health-checker</artifactId>
-      <version>0.0.12-SNAPSHOT</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
-        </exclusion>
-      </exclusions>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
       <version>0.0.12-SNAPSHOT</version>
