@@ -15,6 +15,7 @@
  */
 package io.stargate.producer.kafka.schema;
 
+import static org.apache.cassandra.stargate.schema.CQLType.Native.INT;
 import static org.apache.cassandra.stargate.schema.CQLType.Native.TEXT;
 
 import org.apache.avro.Schema;
@@ -25,6 +26,8 @@ public class CqlToAvroTypeConverter {
   public static Schema toAvroType(CQLType type) {
     if (type.equals(TEXT)) {
       return Schema.create(Type.STRING);
+    } else if (type.equals(INT)) {
+      return Schema.create(Type.INT);
     } else {
       // todo handle other types
       throw new UnsupportedOperationException(String.format("The type: %s is not supported", type));
