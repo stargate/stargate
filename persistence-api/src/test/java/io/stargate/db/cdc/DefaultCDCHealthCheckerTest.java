@@ -8,17 +8,40 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class DefaultCDCHealthCheckerTest {
-  @Test
-  public void shouldValidateConstructorParameters() {
-    assertThrows(IllegalArgumentException.class, () -> new DefaultCDCHealthChecker(0, 1, 1));
-    assertThrows(IllegalArgumentException.class, () -> new DefaultCDCHealthChecker(1.1, 1, 1));
-    assertThrows(IllegalArgumentException.class, () -> new DefaultCDCHealthChecker(0.5, 1, 0));
-    assertThrows(IllegalArgumentException.class, () -> new DefaultCDCHealthChecker(0.5, 1, 16));
-    assertDoesNotThrow(() -> new DefaultCDCHealthChecker(0.5, 1, 1));
-    assertDoesNotThrow(() -> new DefaultCDCHealthChecker(0.5, 1, 15));
+  @ParameterizedTest
+  @MethodSource("constructorWithInvalidParameters")
+  public void shouldThrowWithInvalidConstructorParameters(Executable executable) {
+    assertThrows(IllegalArgumentException.class, executable);
+  }
+
+  @ParameterizedTest
+  @MethodSource("constructorWithValidParameters")
+  public void shouldNotThrowWithValidConstructorParameters(Executable executable) {
+    assertDoesNotThrow(executable);
+  }
+
+  public static Stream<Executable> constructorWithInvalidParameters() {
+    return Stream.of(
+        () -> new DefaultCDCHealthChecker(0, 1, 1),
+        () -> new DefaultCDCHealthChecker(1.1, 1, 1),
+        () -> new DefaultCDCHealthChecker(0.5, 1, 0),
+        () -> new DefaultCDCHealthChecker(0.5, 1, 16)
+    );
+  }
+
+  public static Stream<Executable> constructorWithValidParameters() {
+    return Stream.of(
+        () -> new DefaultCDCHealthChecker(0.5, 1, 1),
+        () -> new DefaultCDCHealthChecker(0.5, 1, 15)
+    );
   }
 
   @Test
@@ -74,7 +97,7 @@ public class DefaultCDCHealthCheckerTest {
     }
 
     setTimePassed(ticks);
-    // It should be healthy because it doesn't reached the threshold
+    // It should be unhealthy because the amount of errors is greater than errorRateThreshold
     assertThat(checker.isHealthy()).isFalse();
   }
 

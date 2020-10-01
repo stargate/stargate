@@ -56,12 +56,12 @@ class DefaultCDCHealthChecker implements CDCHealthChecker {
   @Override
   public boolean isHealthy() {
     double errorRate = errors.getRate();
-    if (errorRate < minErrorsPerSecond || errorRate == 0.0) {
+    if (errorRate < minErrorsPerSecond) {
       return true;
     }
 
     double successRate = successes.getRate();
-    System.out.println(String.format("Error: %f; Success: %f", errorRate, successRate));
+
     double percentage = errorRate / (successRate + errorRate);
     return percentage < errorRateThreshold;
   }
