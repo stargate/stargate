@@ -1,6 +1,7 @@
 package io.stargate.db;
 
-import com.codahale.metrics.MetricRegistry;
+import io.stargate.core.BundleUtils;
+import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.cdc.CDCProducer;
 import io.stargate.db.cdc.CDCService;
 import io.stargate.db.cdc.CDCServiceImpl;
@@ -13,59 +14,66 @@ public class DbActivator implements BundleActivator, ServiceListener {
   public CDCService cdcService;
   private boolean started;
   private BundleContext context;
+  private CDCProducer producer;
+  private Metrics metrics;
 
   @Override
-  public void start(BundleContext context) throws InvalidSyntaxException {
+  public synchronized void start(BundleContext context) throws InvalidSyntaxException {
     this.context = context;
-    logger.info("Starting DbActivator...");
+    logger.info("Starting io.stargate.db.DbActivator...");
 
     context.addServiceListener(
-        this, String.format("(objectClass=%s)", CDCProducer.class.getName()));
+        this,
+        String.format(
+            "(|(objectClass=%s)(objectClass=%s))",
+            CDCProducer.class.getName(), Metrics.class.getName()));
 
     ServiceReference<CDCProducer> producerReference =
         context.getServiceReference(CDCProducer.class);
+
+    ServiceReference<Metrics> metricsReference = context.getServiceReference(Metrics.class);
+
     if (producerReference != null) {
-      // TODO: Use metrics registry from Metrics service, after metrics circular dependency is
-      // solved
-      start(context.getService(producerReference), new MetricRegistry());
+      producer = context.getService(producerReference);
     }
 
-    // TODO: initialize CDC service
-    // TODO: Do something with CDC Service
+    if (metricsReference != null) {
+      metrics = context.getService(metricsReference);
+    }
+
+    startIfReady();
   }
 
-  private synchronized void start(CDCProducer producer, MetricRegistry metricRegistry) {
-    if (started) {
+  private synchronized void startIfReady() {
+    if (started || producer == null || metrics == null) {
       return;
     }
 
     started = true;
     logger.info("Creating CDC service...");
-    cdcService = new CDCServiceImpl(producer, metricRegistry);
+    cdcService = new CDCServiceImpl(producer, metrics);
+
+    // TODO: initialize CDC service
+    // TODO: Do something with CDC Service
   }
 
   @Override
-  public void stop(BundleContext context) {}
+  public synchronized void stop(BundleContext context) {}
 
   @Override
-  public void serviceChanged(ServiceEvent serviceEvent) {
-    Object service = getRegisteredService(context, serviceEvent);
+  public synchronized void serviceChanged(ServiceEvent serviceEvent) {
+    Metrics metrics = BundleUtils.getRegisteredService(context, serviceEvent, Metrics.class);
+    CDCProducer producer =
+        BundleUtils.getRegisteredService(context, serviceEvent, CDCProducer.class);
 
-    if (service instanceof CDCProducer) {
-      // TODO: Use metrics registry from Metrics service, after metrics circular dependency is
-      // solved
-      start((CDCProducer) service, new MetricRegistry());
-    }
-  }
-
-  // TODO: Replace with core module method
-  public static Object getRegisteredService(BundleContext context, ServiceEvent serviceEvent) {
-    if (serviceEvent.getType() != ServiceEvent.REGISTERED) {
-      return null;
+    if (metrics != null) {
+      this.metrics = metrics;
     }
 
-    String[] objectClass = (String[]) serviceEvent.getServiceReference().getProperty("objectClass");
-    logger.info("Service of type " + objectClass[0] + " registered.");
-    return context.getService(serviceEvent.getServiceReference());
+    if (producer != null) {
+      this.producer = producer;
+    }
+
+    startIfReady();
   }
 }

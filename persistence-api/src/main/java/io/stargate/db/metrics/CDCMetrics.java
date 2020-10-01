@@ -25,7 +25,7 @@ import com.codahale.metrics.Timer;
 
 public final class CDCMetrics {
   public static final CDCMetrics instance = new CDCMetrics();
-  private static final String METRIC_NAME = "cdc";
+  private static final String METRIC_NAME = "cdc-producer";
 
   private boolean initialized = false;
   private MetricRegistry metricRegistry;
