@@ -9,7 +9,7 @@ import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 
-public class Schemas {
+public class SchemasConstants {
   // todo this will be replaced by schema registry calls when the integration with schema registry
   // will be implemented
   public static final String SCHEMA_NAMESPACE = "io.stargate.producer.kafka";

@@ -15,7 +15,8 @@
  */
 package io.stargate.producer.kafka.configuration;
 
-import static io.stargate.producer.kafka.configuration.ConfigLoader.*;
+import static io.stargate.producer.kafka.configuration.ConfigLoader.CDC_KAFKA_PRODUCER_SETTING_PREFIX;
+import static io.stargate.producer.kafka.configuration.ConfigLoader.CDC_TOPIC_PREFIX_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 

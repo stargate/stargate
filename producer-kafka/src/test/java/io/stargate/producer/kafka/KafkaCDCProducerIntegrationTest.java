@@ -21,11 +21,11 @@ import static io.stargate.producer.kafka.helpers.MutationEventHelper.column;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.createDeleteEvent;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.createRowUpdateEvent;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.partitionKey;
-import static io.stargate.producer.kafka.schema.Schemas.CLUSTERING_KEY_NAME;
-import static io.stargate.producer.kafka.schema.Schemas.COLUMN_NAME;
-import static io.stargate.producer.kafka.schema.Schemas.KEY_SCHEMA;
-import static io.stargate.producer.kafka.schema.Schemas.PARTITION_KEY_NAME;
-import static io.stargate.producer.kafka.schema.Schemas.VALUE_SCHEMA;
+import static io.stargate.producer.kafka.schema.SchemasConstants.CLUSTERING_KEY_NAME;
+import static io.stargate.producer.kafka.schema.SchemasConstants.COLUMN_NAME;
+import static io.stargate.producer.kafka.schema.SchemasConstants.KEY_SCHEMA;
+import static io.stargate.producer.kafka.schema.SchemasConstants.PARTITION_KEY_NAME;
+import static io.stargate.producer.kafka.schema.SchemasConstants.VALUE_SCHEMA;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
@@ -246,7 +246,7 @@ class KafkaCDCProducerIntegrationTest {
         withCDCPrefixPrefix(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG),
         MockKafkaAvroSerializer.class);
     // lower the max.block to allow faster failure scenario testing
-    properties.put(withCDCPrefixPrefix(ProducerConfig.MAX_BLOCK_MS_CONFIG), "1000");
+    properties.put(withCDCPrefixPrefix(ProducerConfig.MAX_BLOCK_MS_CONFIG), "2000");
 
     properties.put(withCDCPrefixPrefix("schema.registry.url"), "mocked");
     return properties;

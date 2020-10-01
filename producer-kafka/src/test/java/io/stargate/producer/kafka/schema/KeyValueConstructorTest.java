@@ -29,11 +29,11 @@ import static io.stargate.producer.kafka.schema.KeyValueConstructor.DATA_FIELD_N
 import static io.stargate.producer.kafka.schema.KeyValueConstructor.OPERATION_FIELD_NAME;
 import static io.stargate.producer.kafka.schema.KeyValueConstructor.TIMESTAMP_FIELD_NAME;
 import static io.stargate.producer.kafka.schema.KeyValueConstructor.VALUE_FIELD_NAME;
-import static io.stargate.producer.kafka.schema.Schemas.CLUSTERING_KEY_NAME;
-import static io.stargate.producer.kafka.schema.Schemas.COLUMN_NAME;
-import static io.stargate.producer.kafka.schema.Schemas.KEY_SCHEMA;
-import static io.stargate.producer.kafka.schema.Schemas.PARTITION_KEY_NAME;
-import static io.stargate.producer.kafka.schema.Schemas.VALUE_SCHEMA;
+import static io.stargate.producer.kafka.schema.SchemasConstants.CLUSTERING_KEY_NAME;
+import static io.stargate.producer.kafka.schema.SchemasConstants.COLUMN_NAME;
+import static io.stargate.producer.kafka.schema.SchemasConstants.KEY_SCHEMA;
+import static io.stargate.producer.kafka.schema.SchemasConstants.PARTITION_KEY_NAME;
+import static io.stargate.producer.kafka.schema.SchemasConstants.VALUE_SCHEMA;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -81,7 +81,7 @@ class KeyValueConstructorTest {
             clusteringKeyValue,
             clusteringKey(CLUSTERING_KEY_NAME),
             mock(TableMetadata.class));
-    when(schemaProvider.getKeySchemaForTopic(TOPIC_NAME)).thenReturn(Schemas.KEY_SCHEMA);
+    when(schemaProvider.getKeySchemaForTopic(TOPIC_NAME)).thenReturn(KEY_SCHEMA);
 
     // when
     GenericRecord genericRecord = keyValueConstructor.constructKey(rowMutationEvent, TOPIC_NAME);
@@ -109,7 +109,7 @@ class KeyValueConstructorTest {
             null,
             clusteringKey(CLUSTERING_KEY_NAME),
             mock(TableMetadata.class));
-    when(schemaProvider.getKeySchemaForTopic(TOPIC_NAME)).thenReturn(Schemas.KEY_SCHEMA);
+    when(schemaProvider.getKeySchemaForTopic(TOPIC_NAME)).thenReturn(KEY_SCHEMA);
     // when
     GenericRecord genericRecord = keyValueConstructor.constructKey(rowMutationEvent, TOPIC_NAME);
 
@@ -141,7 +141,7 @@ class KeyValueConstructorTest {
             clusteringKey(CLUSTERING_KEY_NAME),
             mock(TableMetadata.class),
             timestamp);
-    when(schemaProvider.getValueSchemaForTopic(TOPIC_NAME)).thenReturn(Schemas.VALUE_SCHEMA);
+    when(schemaProvider.getValueSchemaForTopic(TOPIC_NAME)).thenReturn(VALUE_SCHEMA);
 
     // when
     GenericRecord genericRecord = keyValueConstructor.constructValue(rowMutationEvent, TOPIC_NAME);
@@ -181,7 +181,7 @@ class KeyValueConstructorTest {
             clusteringKey(CLUSTERING_KEY_NAME),
             mock(TableMetadata.class),
             timestamp);
-    when(schemaProvider.getValueSchemaForTopic(TOPIC_NAME)).thenReturn(Schemas.VALUE_SCHEMA);
+    when(schemaProvider.getValueSchemaForTopic(TOPIC_NAME)).thenReturn(VALUE_SCHEMA);
 
     // when
     GenericRecord genericRecord = keyValueConstructor.constructValue(event, TOPIC_NAME);
@@ -208,7 +208,7 @@ class KeyValueConstructorTest {
     // given
     SchemaProvider schemaProvider = mock(SchemaProvider.class);
     KeyValueConstructor keyValueConstructor = new KeyValueConstructor(schemaProvider);
-    when(schemaProvider.getValueSchemaForTopic(TOPIC_NAME)).thenReturn(Schemas.VALUE_SCHEMA);
+    when(schemaProvider.getValueSchemaForTopic(TOPIC_NAME)).thenReturn(VALUE_SCHEMA);
 
     // when
     GenericRecord genericRecord = keyValueConstructor.constructValue(rowMutationEvent, TOPIC_NAME);
@@ -220,7 +220,7 @@ class KeyValueConstructorTest {
         .doesNotThrowAnyException();
   }
 
-  private static Stream<Arguments> valueProviderOmittedFields() {
+  public static Stream<Arguments> valueProviderOmittedFields() {
     String partitionKeyValue = "pk_value";
     Integer clusteringKeyValue = 100;
     String columnValue = "col_value";
@@ -265,7 +265,7 @@ class KeyValueConstructorTest {
         Arguments.of(deleteEventNoCK, CLUSTERING_KEY_NAME));
   }
 
-  private static Stream<Arguments> updateValueProvider() {
+  public static Stream<Arguments> updateValueProvider() {
     String partitionKeyValue = "pk_value";
     Integer clusteringKeyValue = 100;
     String columnValue = "col_value";
@@ -280,7 +280,7 @@ class KeyValueConstructorTest {
         Arguments.of(null, clusteringKeyValue, columnValue, missingPK)); // null partition key value
   }
 
-  private static Stream<Arguments> deleteValueProvider() {
+  public static Stream<Arguments> deleteValueProvider() {
     String partitionKeyValue = "pk_value";
     Integer clusteringKeyValue = 100;
     Optional<String> noError = Optional.empty();

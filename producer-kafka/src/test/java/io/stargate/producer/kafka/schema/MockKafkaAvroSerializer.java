@@ -11,11 +11,12 @@ public class MockKafkaAvroSerializer extends KafkaAvroSerializer {
     super.schemaRegistry = new MockSchemaRegistryClient();
   }
 
-  public MockKafkaAvroSerializer(SchemaRegistryClient client) {
+  public MockKafkaAvroSerializer(@SuppressWarnings("unused") SchemaRegistryClient client) {
     super(new MockSchemaRegistryClient());
   }
 
-  public MockKafkaAvroSerializer(SchemaRegistryClient client, Map<String, ?> props) {
+  public MockKafkaAvroSerializer(
+      @SuppressWarnings("unused") SchemaRegistryClient client, Map<String, ?> props) {
     super(new MockSchemaRegistryClient(), props);
   }
 }
