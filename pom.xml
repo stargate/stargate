@@ -183,6 +183,7 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <version>0.8.4</version>
         <configuration>
+          <!-- Explicitly include project files otherwise jacoco analyzes all dependencies and fill break if multiple modules use the same jar. -->
           <includes>
             <include>**/io/stargate/**/*</include>
             <include>**/org/apache/cassandra/**/*</include>
