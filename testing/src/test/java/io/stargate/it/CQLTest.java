@@ -193,7 +193,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void querySimpleBidingMarkersByName() {
+  public void querySimpleBindingMarkersByName() {
     querySimple(true);
   }
 
