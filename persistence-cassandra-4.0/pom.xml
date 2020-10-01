@@ -114,6 +114,9 @@
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
         <version>2.22.0</version>
+        <configuration>
+          <argLine>${failsafe.jacoco.args}</argLine>
+        </configuration>
         <dependencies>
           <dependency>
             <groupId>org.junit.platform</groupId>
@@ -130,6 +133,9 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.22.2</version>
+        <configuration>
+          <argLine>${surefire.jacoco.args}</argLine>
+        </configuration>
         <dependencies>
           <dependency>
             <groupId>org.junit.platform</groupId>

@@ -1,4 +1,6 @@
 ![Java CI](https://github.com/stargate/stargate/workflows/Java%20CI/badge.svg)
+[![Coverage Status](https://coveralls.io/repos/github/stargate/stargate/badge.svg?branch=master)](https://coveralls.io/github/stargate/stargate?branch=master)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/303bce0a4cbd48f2959ef790b5c0867b)](https://www.codacy.com/gh/stargate/stargate/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=stargate/stargate&amp;utm_campaign=Badge_Grade)
 
 # Stargate
 

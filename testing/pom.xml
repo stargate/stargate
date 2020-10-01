@@ -215,6 +215,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.0.0-M3</version>
         <configuration>
+          <argLine>${surefire.jacoco.args}</argLine>
           <skipTests>true</skipTests>
         </configuration>
       </plugin>
@@ -247,7 +248,36 @@
           <includes>
             <include>**/*.java</include>
           </includes>
+          <argLine>${failsafe.jacoco.args}</argLine>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <executions>
+          <!--
+          "report" goal can't cross boundaries of modules,
+          while "report-aggregate" can, so let's use it, however
+          by default it will load "jacoco.exec" from this module and from module "jar",
+          so let's also change file name for this module to avoid intersection
+          -->
+          <execution>
+            <configuration>
+              <destFile>${project.build.directory}/jacoco-it.exec</destFile>
+            </configuration>
+          </execution>
+          <execution>
+            <id>it-report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report-aggregate</goal>
+            </goals>
+            <configuration>
+              <dataFileIncludes>**/jacoco-it.exec</dataFileIncludes>
+              <outputDirectory>${project.reporting.outputDirectory}/jacoco</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

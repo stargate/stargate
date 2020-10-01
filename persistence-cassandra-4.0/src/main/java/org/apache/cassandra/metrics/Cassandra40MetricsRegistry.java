@@ -24,14 +24,14 @@ import javax.management.ObjectName;
  *
  * <p>This class must mimic the exact public API of the original one.
  */
-public class CassandraMetricsRegistry extends MetricRegistry {
+public class Cassandra40MetricsRegistry extends MetricRegistry {
 
   public static volatile MetricRegistry actualRegistry = new MetricRegistry();
-  public static final CassandraMetricsRegistry Metrics = new CassandraMetricsRegistry();
+  public static final Cassandra40MetricsRegistry Metrics = new Cassandra40MetricsRegistry();
 
   private final Map<String, ThreadPoolMetrics> threadPoolMetrics = new ConcurrentHashMap<>();
 
-  private CassandraMetricsRegistry() {
+  private Cassandra40MetricsRegistry() {
     super();
   }
 

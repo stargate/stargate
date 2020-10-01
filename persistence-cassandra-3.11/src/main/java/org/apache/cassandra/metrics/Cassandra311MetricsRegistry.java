@@ -19,11 +19,12 @@ import javax.management.ObjectName;
  *
  * <p>This class must mimic the exact public API of the original one.
  */
-public class CassandraMetricsRegistry extends MetricRegistry {
-  public static volatile MetricRegistry actualRegistry = new MetricRegistry();
-  public static final CassandraMetricsRegistry Metrics = new CassandraMetricsRegistry();
+public class Cassandra311MetricsRegistry extends MetricRegistry {
 
-  private CassandraMetricsRegistry() {
+  public static volatile MetricRegistry actualRegistry = new MetricRegistry();
+  public static final Cassandra311MetricsRegistry Metrics = new Cassandra311MetricsRegistry();
+
+  private Cassandra311MetricsRegistry() {
     super();
   }
 

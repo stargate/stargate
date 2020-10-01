@@ -56,5 +56,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           CCM_CLUSTER_START_DEFAULT_TIMEOUT: 600
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar --file pom.xml
-
+        run: mvn -B verify jacoco:report-aggregate --file pom.xml
+      - name: Run codacy-coverage-reporter
+        env:
+          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+        run: |
+          for f in $(find . -type f -name 'jacoco.xml'); do
+            bash <(curl -Ls https://coverage.codacy.com/get.sh) report -l Java -r $f --partial
+          done
+          if [[ -n $(find . -type f -name 'jacoco.xml') ]]
+          then
+            bash <(curl -Ls https://coverage.codacy.com/get.sh) final
+          fi

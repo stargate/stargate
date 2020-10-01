@@ -20,7 +20,7 @@ import org.apache.cassandra.config.ParameterizedClass;
 import org.apache.cassandra.dht.Murmur3Partitioner;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.locator.SimpleSnitch;
-import org.apache.cassandra.metrics.CassandraMetricsRegistry;
+import org.apache.cassandra.metrics.Cassandra40MetricsRegistry;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
@@ -164,6 +164,6 @@ public class CassandraPersistenceActivator implements BundleActivator, ServiceLi
 
   private static void setMetrics(Metrics metrics) {
     // TODO copy metrics if this gets invoked more than once?
-    CassandraMetricsRegistry.actualRegistry = metrics.getRegistry("persistence-cassandra-40");
+    Cassandra40MetricsRegistry.actualRegistry = metrics.getRegistry("persistence-cassandra-40");
   }
 }
