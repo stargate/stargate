@@ -84,8 +84,8 @@ public class SchemaRegistryProvider implements SchemaProvider {
 
   private Schema getSchemaBySubjectAndId(String subjectName, int keySchemaId) {
     try {
-      // todo assert that cast is safe
-      return ((Schema) schemaRegistryClient.getSchemaBySubjectAndId(subjectName, keySchemaId));
+      return ((Schema)
+          schemaRegistryClient.getSchemaBySubjectAndId(subjectName, keySchemaId).rawSchema());
     } catch (IOException | RestClientException e) {
       throw new RuntimeException(
           "Problem when get key schema for subject: "

@@ -88,6 +88,32 @@ class SchemaRegistryProviderTest {
     isNullOrTypeUnion(schema, "col1", Type.UNION);
   }
 
+  @Test
+  public void shouldCreateAndRegisterKeyAndValueSchema() {
+    // given
+    String topicName = "topicName";
+    MappingService mappingService = mock(MappingService.class);
+    SchemaRegistryProvider schemaRegistryProvider =
+        new SchemaRegistryProvider(new MockSchemaRegistryClient(), mappingService);
+    TableMetadata tableMetadata = mock(TableMetadata.class);
+    when(mappingService.getTopicNameFromTableMetadata(tableMetadata)).thenReturn(topicName);
+    when(tableMetadata.getPartitionKeys())
+        .thenReturn(Collections.singletonList(partitionKey("pk1", Native.TEXT)));
+    when(tableMetadata.getClusteringKeys())
+        .thenReturn(Collections.singletonList(clusteringKey("ck1", Native.TEXT)));
+    when(tableMetadata.getColumns())
+        .thenReturn(Collections.singletonList(clusteringKey("col1", Native.TEXT)));
+
+    // when
+    schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
+
+    // then
+    Schema keySchemaForTopic = schemaRegistryProvider.getKeySchemaForTopic(topicName);
+    Schema valueSchemaForTopic = schemaRegistryProvider.getValueSchemaForTopic(topicName);
+    assertThat(keySchemaForTopic).isNotNull();
+    assertThat(valueSchemaForTopic).isNotNull();
+  }
+
   private void isNullOrTypeUnion(Schema schema, String columnName, Type expectedInnerType) {
     Schema dateFieldSchema = schema.getField(DATA_FIELD_NAME).schema();
     Schema columnSchema = dateFieldSchema.getField(columnName).schema();
