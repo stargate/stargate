@@ -1,12 +1,18 @@
 package io.stargate.it.cql;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.oss.driver.api.core.cql.ColumnDefinition;
 import com.datastax.oss.driver.api.core.cql.ColumnDefinitions;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.type.DataTypes;
+import com.datastax.oss.protocol.internal.util.Bytes;
 import io.stargate.it.storage.ClusterConnectionInfo;
+import java.nio.ByteBuffer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -60,6 +66,78 @@ public class PreparedStatementTest extends JavaDriverTestBase {
     assertThat(variable1.getType()).isEqualTo(DataTypes.INT);
     assertThat(prepared.getPartitionKeyIndices()).containsExactly(0);
     assertAllColumns(prepared.getResultSetDefinitions());
+  }
+
+  @Test
+  public void should_fail_to_reprepare_if_query_becomes_invalid() {
+    // Given
+    session.execute("ALTER TABLE prepared_statement_test ADD d int");
+    PreparedStatement ps =
+        session.prepare("SELECT a, b, c, d FROM prepared_statement_test WHERE a = ?");
+    session.execute("ALTER TABLE prepared_statement_test DROP d");
+
+    assertThatThrownBy(() -> session.execute(ps.bind()))
+        .isInstanceOf(InvalidQueryException.class)
+        .hasMessage("Undefined column name d");
+  }
+
+  @Test
+  public void should_not_store_metadata_for_conditional_updates() {
+    // Given
+    PreparedStatement ps =
+        session.prepare(
+            "INSERT INTO prepared_statement_test (a, b, c) VALUES (?, ?, ?) IF NOT EXISTS");
+
+    // Never store metadata in the prepared statement for conditional updates, since the result set
+    // can change
+    // depending on the outcome.
+    assertThat(ps.getResultSetDefinitions()).hasSize(0);
+    ByteBuffer idBefore = ps.getResultMetadataId();
+
+    // When
+    ResultSet rs = session.execute(ps.bind(5, 5, 5));
+
+    // Then
+    // Successful conditional update => only contains the [applied] column
+    assertThat(rs.wasApplied()).isTrue();
+    assertThat(rs.getColumnDefinitions()).hasSize(1);
+    assertThat(rs.getColumnDefinitions().get("[applied]").getType()).isEqualTo(DataTypes.BOOLEAN);
+    // However the prepared statement shouldn't have changed
+    assertThat(ps.getResultSetDefinitions()).hasSize(0);
+    assertThat(Bytes.toHexString(ps.getResultMetadataId())).isEqualTo(Bytes.toHexString(idBefore));
+
+    // When
+    rs = session.execute(ps.bind(5, 5, 5));
+
+    // Then
+    // Failed conditional update => regular metadata
+    assertThat(rs.wasApplied()).isFalse();
+    assertThat(rs.getColumnDefinitions()).hasSize(4);
+    Row row = rs.one();
+    assertThat(row.getBoolean("[applied]")).isFalse();
+    assertThat(row.getInt("a")).isEqualTo(5);
+    assertThat(row.getInt("b")).isEqualTo(5);
+    assertThat(row.getInt("c")).isEqualTo(5);
+    // The prepared statement still shouldn't have changed
+    assertThat(ps.getResultSetDefinitions()).hasSize(0);
+    assertThat(Bytes.toHexString(ps.getResultMetadataId())).isEqualTo(Bytes.toHexString(idBefore));
+
+    // When
+    session.execute("ALTER TABLE prepared_statement_test ADD d int");
+    rs = session.execute(ps.bind(5, 5, 5));
+
+    // Then
+    // Failed conditional update => regular metadata that should also contain the new column
+    assertThat(rs.wasApplied()).isFalse();
+    assertThat(rs.getColumnDefinitions()).hasSize(5);
+    row = rs.one();
+    assertThat(row.getBoolean("[applied]")).isFalse();
+    assertThat(row.getInt("a")).isEqualTo(5);
+    assertThat(row.getInt("b")).isEqualTo(5);
+    assertThat(row.getInt("c")).isEqualTo(5);
+    assertThat(row.isNull("d")).isTrue();
+    assertThat(ps.getResultSetDefinitions()).hasSize(0);
+    assertThat(Bytes.toHexString(ps.getResultMetadataId())).isEqualTo(Bytes.toHexString(idBefore));
   }
 
   private void assertAllColumns(ColumnDefinitions columnDefinitions) {
