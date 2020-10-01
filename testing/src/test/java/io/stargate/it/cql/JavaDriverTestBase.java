@@ -2,10 +2,12 @@ package io.stargate.it.cql;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.Version;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.config.OptionsMap;
 import com.datastax.oss.driver.api.core.config.TypedDriverOption;
+import com.datastax.oss.driver.api.core.session.SessionBuilder;
 import com.datastax.oss.driver.internal.core.loadbalancing.DcInferringLoadBalancingPolicy;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.storage.ClusterConnectionInfo;
@@ -46,12 +48,13 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
     config.put(TypedDriverOption.REQUEST_WARN_IF_SET_KEYSPACE, false);
     customizeConfig(config);
 
-    session =
+    CqlSessionBuilder builder =
         CqlSession.builder()
             .withConfigLoader(DriverConfigLoader.fromMap(config))
             .withAuthCredentials("cassandra", "cassandra")
-            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
-            .build();
+            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043));
+    customizeBuilder(builder);
+    session = builder.build();
 
     keyspaceId =
         CqlIdentifier.fromInternal("JavaDriverTest" + KEYSPACE_NAME_COUNTER.getAndIncrement());
@@ -73,6 +76,14 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
   }
 
   protected void customizeConfig(OptionsMap config) {
+    // nothing by default
+  }
+
+  /**
+   * Do not call {@link SessionBuilder#withConfigLoader} from this method. If you need to change the
+   * config, use {@link #customizeConfig(OptionsMap)}.
+   */
+  protected void customizeBuilder(CqlSessionBuilder builder) {
     // nothing by default
   }
 
