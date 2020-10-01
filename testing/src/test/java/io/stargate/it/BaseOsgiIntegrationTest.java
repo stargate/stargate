@@ -84,7 +84,7 @@ public class BaseOsgiIntegrationTest {
 
   public static List<Starter> stargateStarters = new ArrayList<>();
   private static List<String> stargateHosts = new ArrayList<>();
-  public static final Integer numberOfStargateNodes = 3;
+  public static final Integer numberOfStargateNodes = Integer.getInteger("stargate.test.nodes", 3);
 
   static {
     for (int i = 1; i <= numberOfStargateNodes; i++) {
@@ -321,6 +321,9 @@ public class BaseOsgiIntegrationTest {
                   + i
                   + ". The stargate node will not be started.",
               ex);
+
+          // If the container fails to start, there's no point running individual test cases.
+          throw new IllegalStateException(ex);
         }
       }
     }
@@ -328,7 +331,10 @@ public class BaseOsgiIntegrationTest {
 
   private void startStargateInstance(String seedHost, Integer seedPort, int stargateNodeNumber)
       throws IOException, BundleException {
-    int jmxPort = new ServerSocket(0).getLocalPort();
+    int jmxPort;
+    try (ServerSocket socket = new ServerSocket(0)) {
+      jmxPort = socket.getLocalPort();
+    }
     logger.info(
         "Starting node nr: {} for seedHost:seedPort = {}:{}, address: {}, jmxPort: {}.",
         stargateNodeNumber,
