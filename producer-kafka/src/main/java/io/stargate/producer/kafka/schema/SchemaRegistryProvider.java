@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.avro.Schema;
-import org.apache.avro.Schema.Field;
+import org.apache.avro.Schema.Type;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.cassandra.stargate.schema.ColumnMetadata;
@@ -43,16 +43,24 @@ public class SchemaRegistryProvider implements SchemaProvider {
   private static final Logger logger = LoggerFactory.getLogger(SchemaRegistryProvider.class);
 
   private static final int SCHEMA_REGISTRY_MAX_CAPACITY = 1000;
+
   private final SchemaRegistryClient schemaRegistryClient;
-  public static final String SCHEMA_NAMESPACE = "io.stargate.producer.kafka";
+
   private int keySchemaId;
+
   private int valueSchemaId;
 
   private MappingService mappingService;
 
   public SchemaRegistryProvider(String schemaRegistryUrl, MappingService mappingService) {
-    schemaRegistryClient =
-        new CachedSchemaRegistryClient(schemaRegistryUrl, SCHEMA_REGISTRY_MAX_CAPACITY);
+    this(
+        new CachedSchemaRegistryClient(schemaRegistryUrl, SCHEMA_REGISTRY_MAX_CAPACITY),
+        mappingService);
+  }
+
+  public SchemaRegistryProvider(
+      SchemaRegistryClient schemaRegistryClient, MappingService mappingService) {
+    this.schemaRegistryClient = schemaRegistryClient;
     this.mappingService = mappingService;
   }
 
@@ -120,10 +128,9 @@ public class SchemaRegistryProvider implements SchemaProvider {
     }
   }
 
-  private Schema constructKeySchema(TableMetadata tableMetadata) {
+  Schema constructKeySchema(TableMetadata tableMetadata) {
     String keyRecordName = constructKeyRecordName(tableMetadata);
-    FieldAssembler<Schema> keyBuilder =
-        SchemaBuilder.record(keyRecordName).namespace(SCHEMA_NAMESPACE).fields();
+    FieldAssembler<Schema> keyBuilder = SchemaBuilder.record(keyRecordName).fields();
 
     for (ColumnMetadata columnMetadata : tableMetadata.getPartitionKeys()) {
       Schema avroFieldSchema = CqlToAvroTypeConverter.toAvroType(columnMetadata.getType());
@@ -132,19 +139,17 @@ public class SchemaRegistryProvider implements SchemaProvider {
     return keyBuilder.endRecord();
   }
 
-  private Schema constructValueSchema(TableMetadata tableMetadata) {
+  Schema constructValueSchema(TableMetadata tableMetadata) {
     List<Schema> partitionKeys =
         constructRequiredValueFieldsSchema(tableMetadata.getPartitionKeys());
     List<Schema> clusteringKeys =
         constructRequiredValueFieldsSchema(tableMetadata.getClusteringKeys());
     List<Schema> columns = constructOptionalValueFieldsSchema(tableMetadata.getColumns());
-    ;
     Schema fieldsSchema =
         constructFieldsSchema(partitionKeys, clusteringKeys, columns, tableMetadata);
 
     String valueRecordName = constructValueRecordName(tableMetadata);
     return SchemaBuilder.record(valueRecordName)
-        .namespace(SCHEMA_NAMESPACE)
         .fields()
         .requiredString(OPERATION_FIELD_NAME)
         .name(TIMESTAMP_FIELD_NAME)
@@ -171,18 +176,17 @@ public class SchemaRegistryProvider implements SchemaProvider {
 
   private void addToFields(List<Schema> fieldsToAdd, FieldAssembler<Schema> fields) {
     for (Schema schema : fieldsToAdd) {
-      List<Field> fieldsForSpecificSchema = schema.getFields();
-      if (fieldsForSpecificSchema.size() != 1) {
+      if (!schema.getType().equals(Type.UNION)) {
         throw new IllegalStateException(
-            "The schema: " + schema + " must have one field, but has: " + fieldsForSpecificSchema);
+            String.format("The type for %s should be UNION but is: %s", schema, schema.getType()));
       }
-      Field fieldToAdd = fieldsForSpecificSchema.get(0);
-      fields.name(fieldToAdd.name()).type(fieldToAdd.schema()).noDefault();
+      String fieldName = schema.getTypes().get(1).getName();
+      fields.name(fieldName).type(schema).noDefault();
     }
   }
 
   private List<Schema> constructRequiredValueFieldsSchema(List<ColumnMetadata> tableMetadata) {
-    List<Schema> partitionKeys = new ArrayList<>();
+    List<Schema> fields = new ArrayList<>();
     for (ColumnMetadata columnMetadata : tableMetadata) {
       Schema partitionKey =
           SchemaBuilder.record(columnMetadata.getName())
@@ -191,9 +195,9 @@ public class SchemaRegistryProvider implements SchemaProvider {
               .type(CqlToAvroTypeConverter.toAvroType(columnMetadata.getType()))
               .noDefault()
               .endRecord();
-      partitionKeys.add(SchemaBuilder.unionOf().nullType().and().type(partitionKey).endUnion());
+      fields.add(SchemaBuilder.unionOf().nullType().and().type(partitionKey).endUnion());
     }
-    return partitionKeys;
+    return fields;
   }
 
   private List<Schema> constructOptionalValueFieldsSchema(List<ColumnMetadata> tableMetadata) {
@@ -221,7 +225,7 @@ public class SchemaRegistryProvider implements SchemaProvider {
   }
 
   private String constructValueRecordName(TableMetadata tableMetadata) {
-    return constructKeyRecordName(mappingService.getTopicNameFromTableMetadata(tableMetadata));
+    return constructValueRecordName(mappingService.getTopicNameFromTableMetadata(tableMetadata));
   }
 
   private String constructValueRecordName(String topicName) {

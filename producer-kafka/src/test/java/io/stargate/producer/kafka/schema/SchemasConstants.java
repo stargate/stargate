@@ -13,9 +13,9 @@ public class SchemasConstants {
   // todo this will be replaced by schema registry calls when the integration with schema registry
   // will be implemented
   public static final String SCHEMA_NAMESPACE = "io.stargate.producer.kafka";
-  public static final String KEY_RECORD_NAME = "clusterName.keyspace.table.Key";
-  public static final String VALUE_RECORD_NAME = "clusterName.keyspace.table.Value";
-  public static final String DATA_RECORD_NAME = "clusterName.keyspace.table.Data";
+  public static final String KEY_RECORD_NAME = "topicName.Key";
+  public static final String VALUE_RECORD_NAME = "topicName.Value";
+  public static final String DATA_RECORD_NAME = "topicName.Data";
   public static final String PARTITION_KEY_NAME = "pk_1";
 
   public static final String COLUMN_NAME = "col_1";

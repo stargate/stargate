@@ -269,6 +269,11 @@ public class MutationEventHelper {
 
   @NotNull
   public static ColumnMetadata partitionKey(String partitionKeyName) {
+    return partitionKey(partitionKeyName, Native.TEXT);
+  }
+
+  @NotNull
+  public static ColumnMetadata partitionKey(String partitionKeyName, CQLType cqlType) {
 
     return new ColumnMetadata() {
       @Override
@@ -283,13 +288,13 @@ public class MutationEventHelper {
 
       @Override
       public CQLType getType() {
-        return Native.TEXT;
+        return cqlType;
       }
     };
   }
 
   @NotNull
-  public static ColumnMetadata clusteringKey(String clusteringKeyName) {
+  public static ColumnMetadata clusteringKey(String clusteringKeyName, CQLType cqlType) {
 
     return new ColumnMetadata() {
       @Override
@@ -304,9 +309,14 @@ public class MutationEventHelper {
 
       @Override
       public CQLType getType() {
-        return Native.TEXT;
+        return cqlType;
       }
     };
+  }
+
+  @NotNull
+  public static ColumnMetadata clusteringKey(String clusteringKeyName) {
+    return clusteringKey(clusteringKeyName, Native.TEXT);
   }
 
   public static ColumnMetadata column(String columnName) {
