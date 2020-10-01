@@ -44,6 +44,7 @@ import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.exceptions.InvalidRequestException;
 import org.apache.cassandra.gms.ApplicationState;
+import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.schema.ColumnMetadata;
 import org.apache.cassandra.schema.IndexMetadata;
@@ -137,6 +138,12 @@ public class DsePersistence
     // will close both System.out and System.err.
     System.setProperty("cassandra-foreground", "true");
     System.setProperty("cassandra.consistent.rangemovement", "false");
+
+    if (Boolean.parseBoolean(System.getProperty("stargate.bind_to_listen_address"))) {
+      // Bind JMX server to listen address
+      System.setProperty(
+          "com.sun.management.jmxremote.host", System.getProperty("stargate.listen_address"));
+    }
 
     DatabaseDescriptor.daemonInitialization(true, config);
     cassandraDaemon = new CassandraDaemon(true);
@@ -276,6 +283,7 @@ public class DsePersistence
                   checkIsLoggedIn(internalState);
 
                   CQLStatement statement = QueryProcessor.parseStatement(cql, internalState);
+                  internalOptions.prepare(statement.getBindVariables());
 
                   return processStatement(
                       statement, state, options, customPayload, queryStartNanoTime, tracingId);
@@ -311,6 +319,11 @@ public class DsePersistence
                   }
 
                   final CQLStatement statement = prepared.statement;
+                  // Please note that this needs to happen _before_ the beginTraceExecute, because
+                  // when we add bound values to the trace, we rely on the values having been
+                  // re-ordered by the following prepare (if named values were used that is).
+                  internalOptions.prepare(statement.getBindVariables());
+
                   final UUID tracingId =
                       beginTraceExecute(
                           statement,
@@ -456,7 +469,16 @@ public class DsePersistence
     // Also note that in theory getSchemaVersion can return null for some nodes, and if it does
     // the code below will likely return false (the null will be an element on its own), but that's
     // probably the right answer in that case. In practice, this shouldn't be a problem though.
-    return Gossiper.instance.getLiveTokenOwners().stream()
+
+    // Important: This must include all nodes including fat clients, otherwise we'll get write
+    // errors
+    // with INCOMPATIBLE_SCHEMA.
+    return Gossiper.instance.getLiveMembers().stream()
+            .filter(
+                ep -> {
+                  EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
+                  return epState != null && !Gossiper.instance.isDeadState(epState);
+                })
             .map(Gossiper.instance::getSchemaVersion)
             .collect(Collectors.toSet())
             .size()

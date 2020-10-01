@@ -340,7 +340,8 @@ public class Starter {
         FelixConstants.LOG_LEVEL_PROP,
         System.getProperty("felix.log.level", String.valueOf(Logger.LOG_WARNING)));
     configMap.put(
-        FelixConstants.FRAMEWORK_SYSTEMPACKAGES_EXTRA, "sun.misc,sun.nio.ch,com.sun.management");
+        FelixConstants.FRAMEWORK_SYSTEMPACKAGES_EXTRA,
+        "sun.misc,sun.nio.ch,com.sun.management,sun.rmi.registry");
     framework = new Felix(configMap);
     framework.init();
 

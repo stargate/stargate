@@ -50,7 +50,7 @@ public class DefaultQueryOptions<D> implements QueryOptions {
     this.values = builder.values;
     this.names = builder.names;
     this.skipMetadata = builder.skipMetadata;
-    this.options = builder.options;
+    this.options = builder.options == null ? SpecificOptions.DEFAULT : builder.options;
     this.version = builder.version;
   }
 
@@ -107,7 +107,7 @@ public class DefaultQueryOptions<D> implements QueryOptions {
 
   @Override
   public boolean skipMetadata() {
-    return false;
+    return skipMetadata;
   }
 
   private SpecificOptions getSpecificOptions() {

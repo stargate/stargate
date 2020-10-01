@@ -63,6 +63,7 @@ import org.apache.cassandra.cql3.statements.ParsedStatement;
 import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.gms.ApplicationState;
+import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.schema.IndexMetadata;
 import org.apache.cassandra.schema.KeyspaceMetadata;
@@ -207,8 +208,7 @@ public class CassandraPersistence
 
   @Override
   public DataStore newDataStore(
-      QueryState<org.apache.cassandra.service.QueryState> state,
-      QueryOptions<org.apache.cassandra.service.ClientState> queryOptions) {
+      QueryState<org.apache.cassandra.service.QueryState> state, QueryOptions queryOptions) {
     return new InternalDataStore(
         this, Conversion.toInternal(state), Conversion.toInternal(queryOptions));
   }
@@ -285,7 +285,9 @@ public class CassandraPersistence
               beginTraceQuery(cql, state, options);
             }
 
-            CQLStatement statement = QueryProcessor.parseStatement(cql, internalState).statement;
+            ParsedStatement.Prepared prepared = QueryProcessor.parseStatement(cql, internalState);
+            internalOptions.prepare(prepared.boundNames);
+            CQLStatement statement = prepared.statement;
 
             Result result =
                 interceptor.interceptQuery(
@@ -337,9 +339,15 @@ public class CassandraPersistence
               throw new PreparedQueryNotFoundException(id);
             }
 
+            // Please note that this needs to happen _before_ the beginTraceExecute, because when
+            // we add bound values to the trace, we rely on the values having been re-ordered by
+            // the following prepare (if named values were used that is).
+            internalOptions.prepare(prepared.boundNames);
+
             if (internalState.traceNextQuery()) {
               internalState.createTracingSession(customPayload);
-              beginTraceExecute(prepared, state, options, internalOptions.getProtocolVersion());
+              beginTraceExecute(
+                  prepared, state, internalOptions, internalOptions.getProtocolVersion());
             }
 
             CQLStatement statement = prepared.statement;
@@ -511,7 +519,16 @@ public class CassandraPersistence
     // Also note that in theory getSchemaVersion can return null for some nodes, and if it does
     // the code below will likely return false (the null will be an element on its own), but that's
     // probably the right answer in that case. In practice, this shouldn't be a problem though.
-    return Gossiper.instance.getLiveTokenOwners().stream()
+
+    // Important: This must include all nodes including fat clients, otherwise we'll get write
+    // errors
+    // with INCOMPATIBLE_SCHEMA.
+    return Gossiper.instance.getLiveMembers().stream()
+            .filter(
+                ep -> {
+                  EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
+                  return epState != null && !Gossiper.instance.isDeadState(epState);
+                })
             .map(Gossiper.instance::getSchemaVersion)
             .collect(Collectors.toSet())
             .size()
@@ -552,7 +569,7 @@ public class CassandraPersistence
   private void beginTraceExecute(
       ParsedStatement.Prepared prepared,
       QueryState state,
-      QueryOptions options,
+      org.apache.cassandra.cql3.QueryOptions options,
       ProtocolVersion version) {
     ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
     if (options.getPageSize() > 0) {

@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.11-SNAPSHOT</version>
+    <version>0.0.12-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.graphql</groupId>
   <artifactId>graphqlapi</artifactId>
@@ -17,14 +17,25 @@
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.11-SNAPSHOT</version>
+      <version>0.0.12-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.auth</groupId>
       <artifactId>authentication</artifactId>
-      <version>0.0.11-SNAPSHOT</version>
+      <version>0.0.12-SNAPSHOT</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.core</groupId>
+      <artifactId>core</artifactId>
+      <version>0.0.12-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-servlet</artifactId>
+      <version>4.1.9</version>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -108,35 +119,17 @@
             <Bundle-Activator>io.stargate.graphql.GraphqlActivator</Bundle-Activator>
             <Embed-Transitive>true</Embed-Transitive>
             <Import-Package><![CDATA[
-                            !org.eclipse.jetty.http,
-                            !org.eclipse.jetty.http.pathmap,
+                            !org.eclipse.jetty.*,
                             !com.sun.nio.file,
-                            !org.eclipse.jetty.io,
-                            !org.eclipse.jetty.io.ssl,
-                            !org.eclipse.jetty.jmx,
-                            !org.eclipse.jetty.servlet,
-                            !org.eclipse.jetty.util,
-                            !org.eclipse.jetty.util.annotation,
-                            !org.eclipse.jetty.util.compression,
-                            !org.eclipse.jetty.util.log,
-                            !org.eclipse.jetty.util.resource,
-                            !org.eclipse.jetty.util.ssl,
-                            !org.eclipse.jetty.util.statistic,
-                            !org.eclipse.jetty.util.thread,
-                            !org.eclipse.jetty.websocket.common,
-                            !org.eclipse.jetty.websocket.common.events,
-                            !org.eclipse.jetty.websocket.common.extensions,
-                            !org.eclipse.jetty.websocket.common.io,
-                            !org.eclipse.jetty.websocket.common.scopes,
-                            !org.eclipse.jetty.websocket.servlet,
                             !org.slf4j,
                             !org.slf4j.helpers,
                             !org.slf4j.spi,
                             !sun.misc,
-                            !org.eclipse.jetty.security,
                             io.stargate.db,
                             org.apache.cassandra.stargate,
                             org.apache.cassandra.stargate.*,
+                            io.stargate.core,
+                            com.codahale.metrics,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
