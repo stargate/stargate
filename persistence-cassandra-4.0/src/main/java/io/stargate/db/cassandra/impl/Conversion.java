@@ -9,6 +9,7 @@ import io.stargate.db.cassandra.datastore.DataStoreUtil;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
+import java.lang.reflect.Constructor;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -35,6 +36,31 @@ import org.apache.cassandra.transport.Event;
 import org.apache.cassandra.transport.messages.ResultMessage;
 
 public class Conversion {
+  // Constructor for a needed sub-class of QueryOptions that is not accessible in C* at the moment
+  // and need to be accessed through reflection.
+  // OptionsWithNames(QueryOptions.DefaultQueryOptions wrapped, List<String> names)
+  private static final Constructor<?> optionsWithNameCtor;
+
+  static {
+    try {
+      // Note that the ctor for OptionsWithNames directly takes a DefaultQueryOptions which is not
+      // accessible. That said, we know QueryOptions#create, which we'll use to build the object
+      // passed as that argument, actually does create a DefaultQueryOptions, so we're good.
+      Class<?> defaultOptionsClass =
+          Class.forName("org.apache.cassandra.cql3.QueryOptions$DefaultQueryOptions");
+      Class<?> withNamesClass =
+          Class.forName("org.apache.cassandra.cql3.QueryOptions$OptionsWithNames");
+
+      optionsWithNameCtor = withNamesClass.getDeclaredConstructor(defaultOptionsClass, List.class);
+      optionsWithNameCtor.setAccessible(true);
+    } catch (Exception e) {
+      throw new RuntimeException(
+          "Error during initialization of the persistence layer: some "
+              + "reflection-based accesses cannot be setup.",
+          e);
+    }
+  }
+
   public static org.apache.cassandra.service.QueryState toInternal(
       QueryState<org.apache.cassandra.service.QueryState> state) {
     if (state == null) {
@@ -49,16 +75,38 @@ public class Conversion {
     }
     org.apache.cassandra.transport.ProtocolVersion protocolVersion =
         toInternal(options.getProtocolVersion());
-    // TODO(mpenick): timestamp and nowInSeconds?
-    return org.apache.cassandra.cql3.QueryOptions.create(
-        toInternal(options.getConsistency()),
-        options.getValues(),
-        options.skipMetadata(),
-        options.getPageSize(),
-        PagingState.deserialize(options.getPagingState(), protocolVersion),
-        toInternal(options.getSerialConsistency()),
-        protocolVersion,
-        options.getKeyspace());
+    // Note that PagingState.deserialize below modifies its input, so we duplicate to avoid nasty
+    // surprises down the line
+    ByteBuffer pagingState =
+        options.getPagingState() == null ? null : options.getPagingState().duplicate();
+    org.apache.cassandra.cql3.QueryOptions internalOptions =
+        org.apache.cassandra.cql3.QueryOptions.create(
+            toInternal(options.getConsistency()),
+            options.getValues(),
+            options.skipMetadata(),
+            options.getPageSize(),
+            PagingState.deserialize(pagingState, protocolVersion),
+            toInternal(options.getSerialConsistency()),
+            protocolVersion,
+            options.getKeyspace(),
+            options.getTimestamp(),
+            options.getNowInSeconds());
+
+    // Adds names if there is some.
+    if (options.getNames() != null) {
+      try {
+        internalOptions =
+            (org.apache.cassandra.cql3.QueryOptions)
+                optionsWithNameCtor.newInstance(internalOptions, options.getNames());
+      } catch (Exception e) {
+        // We can't afford to ignore that: the values wouldn't be in the proper order, and worst
+        // case scenario, this could end up inserting values in the wrong columns, which essentially
+        // boils down to corrupting the use DB.
+        throw new RuntimeException(
+            "Unexpected error while trying to bind the query values by name", e);
+      }
+    }
+    return internalOptions;
   }
 
   public static org.apache.cassandra.service.ClientState toInternal(

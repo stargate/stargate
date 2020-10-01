@@ -32,6 +32,7 @@ import com.datastax.oss.driver.api.core.cql.QueryTrace;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.driver.api.core.cql.SimpleStatementBuilder;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.api.core.data.UdtValue;
@@ -161,16 +162,17 @@ public class CQLTest extends BaseOsgiIntegrationTest {
   }
 
   private String insertIntoQuery() {
-    return String.format("INSERT INTO \"%s\".\"%s\" (key, value) values (?, ?)", keyspace, table);
+    return String.format(
+        "INSERT INTO \"%s\".\"%s\" (key, value) values (:key, :value)", keyspace, table);
   }
 
   private String insertIntoQueryNoKeyspace() {
-    return String.format("INSERT INTO \"%s\" (key, value) values (?, ?)", table);
+    return String.format("INSERT INTO \"%s\" (key, value) values (:key, :value)", table);
   }
 
   private String selectFromQuery(boolean withKey) {
     return String.format(
-        "SELECT * FROM \"%s\".\"%s\"%s", keyspace, table, withKey ? " WHERE key = ?" : "");
+        "SELECT * FROM \"%s\".\"%s\"%s", keyspace, table, withKey ? " WHERE key = :key" : "");
   }
 
   private String selectFromQueryNoKeyspace() {
@@ -187,14 +189,32 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void querySimple() {
+    querySimple(false);
+  }
+
+  @Test
+  public void querySimpleBidingMarkersByName() {
+    querySimple(true);
+  }
+
+  private void querySimple(boolean bindMarkersByName) {
     createTable();
 
-    session.execute(
-        SimpleStatement.builder(insertIntoQuery()).addPositionalValues("abc", "def").build());
+    SimpleStatementBuilder insertBuilder = SimpleStatement.builder(insertIntoQuery());
+    if (bindMarkersByName) {
+      insertBuilder.addNamedValue("key", "abc").addNamedValue("value", "def");
+    } else {
+      insertBuilder.addPositionalValues("abc", "def");
+    }
+    session.execute(insertBuilder.build());
 
-    ResultSet rs =
-        session.execute(
-            SimpleStatement.builder(selectFromQuery(true)).addPositionalValue("abc").build());
+    SimpleStatementBuilder selectBuilder = SimpleStatement.builder(selectFromQuery(true));
+    if (bindMarkersByName) {
+      selectBuilder.addNamedValue("key", "abc");
+    } else {
+      selectBuilder.addPositionalValue("abc");
+    }
+    ResultSet rs = session.execute(selectBuilder.build());
 
     Iterator<Row> rows = rs.iterator();
     assertThat(rows).hasNext();

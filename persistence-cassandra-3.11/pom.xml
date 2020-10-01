@@ -31,18 +31,6 @@
       <version>0.0.12-SNAPSHOT</version>
     </dependency>
     <dependency>
-      <groupId>io.stargate.health</groupId>
-      <artifactId>health-checker</artifactId>
-      <version>0.0.12-SNAPSHOT</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
-        </exclusion>
-      </exclusions>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
       <version>0.0.12-SNAPSHOT</version>
@@ -100,6 +88,12 @@
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>3.14.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
