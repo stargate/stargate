@@ -269,26 +269,40 @@ public class DsePersistence
       boolean isTracingRequested,
       long queryStartNanoTime) {
     try {
-      org.apache.cassandra.service.QueryState internalState = Conversion.toInternal(state);
-      org.apache.cassandra.cql3.QueryOptions internalOptions = Conversion.toInternal(options);
-
       return Conversion.toFuture(
           Single.defer(
               () -> {
                 try {
-                  final UUID tracingId =
-                      beginTraceQuery(
-                          cql, internalState, internalOptions, customPayload, isTracingRequested);
+                  org.apache.cassandra.service.QueryState internalState =
+                      Conversion.toInternal(state);
+                  org.apache.cassandra.cql3.QueryOptions internalOptions =
+                      Conversion.toInternal(options);
 
                   checkIsLoggedIn(internalState);
 
                   CQLStatement statement = QueryProcessor.parseStatement(cql, internalState);
+
+                  // Please note that this needs to happen _before_ the beginTraceQuery, because
+                  // when we add bound values to the trace, we rely on the values having been
+                  // re-ordered by the following prepare (if named values were used that is).
                   internalOptions.prepare(statement.getBindVariables());
 
+                  final UUID tracingId =
+                      beginTraceQuery(
+                          cql, internalState, internalOptions, customPayload, isTracingRequested);
                   return processStatement(
-                      statement, state, options, customPayload, queryStartNanoTime, tracingId);
+                      statement,
+                      state,
+                      options,
+                      internalState,
+                      internalOptions,
+                      customPayload,
+                      queryStartNanoTime,
+                      tracingId);
                 } catch (Exception e) {
-                  return Single.error(Conversion.handleException(e));
+                  return Tracing.instance
+                      .stopSessionAsync()
+                      .andThen(Single.error(Conversion.handleException(e)));
                 }
               }));
     } catch (Exception e) {
@@ -306,19 +320,24 @@ public class DsePersistence
       boolean isTracingRequested,
       long queryStartNanoTime) {
     try {
-      org.apache.cassandra.service.QueryState internalState = Conversion.toInternal(state);
-      org.apache.cassandra.cql3.QueryOptions internalOptions = Conversion.toInternal(options);
-
       return Conversion.toFuture(
           Single.defer(
               () -> {
                 try {
+                  org.apache.cassandra.service.QueryState internalState =
+                      Conversion.toInternal(state);
+                  org.apache.cassandra.cql3.QueryOptions internalOptions =
+                      Conversion.toInternal(options);
+
+                  checkIsLoggedIn(internalState);
+
                   QueryHandler.Prepared prepared = handler.getPrepared(Conversion.toInternal(id));
                   if (prepared == null) {
                     return Single.error(new PreparedQueryNotFoundException(id));
                   }
 
-                  final CQLStatement statement = prepared.statement;
+                  CQLStatement statement = prepared.statement;
+
                   // Please note that this needs to happen _before_ the beginTraceExecute, because
                   // when we add bound values to the trace, we rely on the values having been
                   // re-ordered by the following prepare (if named values were used that is).
@@ -331,13 +350,19 @@ public class DsePersistence
                           internalOptions,
                           customPayload,
                           isTracingRequested);
-
-                  checkIsLoggedIn(internalState);
-
                   return processStatement(
-                      statement, state, options, customPayload, queryStartNanoTime, tracingId);
+                      statement,
+                      state,
+                      options,
+                      internalState,
+                      internalOptions,
+                      customPayload,
+                      queryStartNanoTime,
+                      tracingId);
                 } catch (Exception e) {
-                  return Single.error(Conversion.handleException(e));
+                  return Tracing.instance
+                      .stopSessionAsync()
+                      .andThen(Single.error(Conversion.handleException(e)));
                 }
               }));
     } catch (Exception e) {
@@ -612,16 +637,16 @@ public class DsePersistence
       CQLStatement statement,
       QueryState state,
       QueryOptions options,
+      org.apache.cassandra.service.QueryState internalState,
+      org.apache.cassandra.cql3.QueryOptions internalOptions,
       Map<String, ByteBuffer> customPayload,
       long queryStartNanoTime,
       UUID tracingId) {
     Single<Result> resp =
         interceptor.interceptQuery(
             handler, statement, state, options, customPayload, queryStartNanoTime);
-    if (resp == null) {
-      org.apache.cassandra.service.QueryState internalState = Conversion.toInternal(state);
-      org.apache.cassandra.cql3.QueryOptions internalOptions = Conversion.toInternal(options);
 
+    if (resp == null) {
       resp =
           handler
               .processStatement(
