@@ -20,10 +20,13 @@ import java.util.Map;
 
 public class CDCKafkaConfig {
   private final String topicPrefixName;
+  private final String schemaRegistryUrl;
   private final Map<String, Object> kafkaProducerSettings;
 
-  public CDCKafkaConfig(String topicPrefixName, Map<String, Object> kafkaProducerSettings) {
+  public CDCKafkaConfig(
+      String topicPrefixName, String schemaRegistryUrl, Map<String, Object> kafkaProducerSettings) {
     this.topicPrefixName = topicPrefixName;
+    this.schemaRegistryUrl = schemaRegistryUrl;
     this.kafkaProducerSettings = ImmutableMap.copyOf(kafkaProducerSettings);
   }
 
@@ -33,5 +36,9 @@ public class CDCKafkaConfig {
 
   public Map<String, Object> getKafkaProducerSettings() {
     return kafkaProducerSettings;
+  }
+
+  public String getSchemaRegistryUrl() {
+    return schemaRegistryUrl;
   }
 }

@@ -32,10 +32,11 @@ public class DefaultConfigLoader implements ConfigLoader {
   public CDCKafkaConfig loadConfig(Map<String, Object> options) {
     String topicPrefixName = getTopicPrefixName(options);
     Map<String, Object> kafkaProducerSettings = filterKafkaProducerSettings(options);
-    return new CDCKafkaConfig(topicPrefixName, kafkaProducerSettings);
+    String schemaRegistryUrl = getSchemaRegistryUrl(kafkaProducerSettings);
+    return new CDCKafkaConfig(topicPrefixName, schemaRegistryUrl, kafkaProducerSettings);
   }
 
-  private Map<String, Object> filterKafkaProducerSettings(Map<String, Object> options) {
+  Map<String, Object> filterKafkaProducerSettings(Map<String, Object> options) {
     return options.entrySet().stream()
         .filter(this::isKafkaProducerSetting)
         .map(this::toKafkaProducerSetting)
@@ -43,7 +44,7 @@ public class DefaultConfigLoader implements ConfigLoader {
   }
 
   @NotNull
-  private Entry<String, Object> toKafkaProducerSetting(Entry<String, Object> entry) {
+  Entry<String, Object> toKafkaProducerSetting(Entry<String, Object> entry) {
     Matcher matcher = CDC_KAFKA_PRODUCER_SETTING_PATTERN.matcher(entry.getKey());
     if (matcher.matches()) {
       return new SimpleEntry<>(matcher.group(2), entry.getValue());
@@ -59,17 +60,25 @@ public class DefaultConfigLoader implements ConfigLoader {
     return CDC_KAFKA_PRODUCER_SETTING_PATTERN.matcher(entry.getKey()).matches();
   }
 
-  private String getTopicPrefixName(Map<String, Object> options) {
-    Object prefixName = options.get(CDC_TOPIC_PREFIX_NAME);
+  String getTopicPrefixName(Map<String, Object> options) {
+    return getStringSettingValue(options, CDC_TOPIC_PREFIX_NAME);
+  }
+
+  String getSchemaRegistryUrl(Map<String, Object> kafkaProducerSettings) {
+    return getStringSettingValue(kafkaProducerSettings, SCHEMA_REGISTRY_URL_SETTING_NAME);
+  }
+
+  String getStringSettingValue(Map<String, Object> options, String settingName) {
+    Object prefixName = options.get(settingName);
     if (prefixName == null) {
       throw new IllegalArgumentException(
-          String.format("The config value for %s is not present", CDC_TOPIC_PREFIX_NAME));
+          String.format("The config value for %s is not present", settingName));
     }
     if (!(prefixName instanceof String)) {
       throw new IllegalArgumentException(
           String.format(
               "The config value for %s has wrong type: %s. It should be of a String type",
-              CDC_TOPIC_PREFIX_NAME, prefixName.getClass().getName()));
+              settingName, prefixName.getClass().getName()));
     }
     return (String) prefixName;
   }
