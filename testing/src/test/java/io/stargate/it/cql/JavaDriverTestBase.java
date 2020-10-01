@@ -2,6 +2,7 @@ package io.stargate.it.cql;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.Version;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.config.OptionsMap;
 import com.datastax.oss.driver.api.core.config.TypedDriverOption;
@@ -73,5 +74,12 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
 
   protected void customizeConfig(OptionsMap config) {
     // nothing by default
+  }
+
+  // TODO generalize this to an ExecutionCondition that reads custom annotations, like
+  // @CassandraRequirement/@DseRequirement in the Java driver tests
+  public boolean isCassandra4() {
+    return !backend.isDse()
+        && Version.parse(backend.clusterVersion()).compareTo(Version.V4_0_0) >= 0;
   }
 }
