@@ -48,13 +48,14 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
     config.put(TypedDriverOption.REQUEST_WARN_IF_SET_KEYSPACE, false);
     customizeConfig(config);
 
-    CqlSessionBuilder builder =
-        CqlSession.builder()
+    CqlSessionBuilder builder = CqlSession.builder();
+    customizeBuilder(builder);
+    session =
+        builder
             .withConfigLoader(DriverConfigLoader.fromMap(config))
             .withAuthCredentials("cassandra", "cassandra")
-            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043));
-    customizeBuilder(builder);
-    session = builder.build();
+            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
+            .build();
 
     keyspaceId =
         CqlIdentifier.fromInternal("JavaDriverTest" + KEYSPACE_NAME_COUNTER.getAndIncrement());
@@ -80,8 +81,10 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
   }
 
   /**
-   * Do not call {@link SessionBuilder#withConfigLoader} from this method. If you need to change the
-   * config, use {@link #customizeConfig(OptionsMap)}.
+   * Do not invoke {@link SessionBuilder#withAuthCredentials} or {@link
+   * SessionBuilder#withConfigLoader} from this method, those calls will be ignored.
+   *
+   * <p>If you need to customize the config, use {@link #customizeConfig(OptionsMap)}.
    */
   protected void customizeBuilder(CqlSessionBuilder builder) {
     // nothing by default
