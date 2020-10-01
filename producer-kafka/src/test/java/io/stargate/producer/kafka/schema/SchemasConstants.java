@@ -10,8 +10,6 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 
 public class SchemasConstants {
-  // todo this will be replaced by schema registry calls when the integration with schema registry
-  // will be implemented
   public static final String SCHEMA_NAMESPACE = "io.stargate.producer.kafka";
   public static final String KEY_RECORD_NAME = "topicName.Key";
   public static final String VALUE_RECORD_NAME = "topicName.Value";

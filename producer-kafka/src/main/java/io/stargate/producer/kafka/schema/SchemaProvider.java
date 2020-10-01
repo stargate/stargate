@@ -15,8 +15,6 @@
  */
 package io.stargate.producer.kafka.schema;
 
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import java.io.IOException;
 import org.apache.avro.Schema;
 import org.apache.cassandra.stargate.schema.TableMetadata;
 
@@ -29,5 +27,5 @@ public interface SchemaProvider {
   Schema getValueSchemaForTopic(String topicName);
 
   /** Create or update schema for key or/and value if needed */
-  void createOrUpdateSchema(TableMetadata tableMetadata) throws IOException, RestClientException;
+  void createOrUpdateSchema(TableMetadata tableMetadata);
 }

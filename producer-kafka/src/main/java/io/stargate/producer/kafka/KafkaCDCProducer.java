@@ -22,6 +22,7 @@ import io.stargate.producer.kafka.mapping.DefaultMappingService;
 import io.stargate.producer.kafka.mapping.MappingService;
 import io.stargate.producer.kafka.producer.CompletableKafkaProducer;
 import io.stargate.producer.kafka.schema.KeyValueConstructor;
+import io.stargate.producer.kafka.schema.SchemaProvider;
 import io.stargate.producer.kafka.schema.SchemaRegistryProvider;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -43,7 +44,7 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   private KeyValueConstructor keyValueConstructor;
 
-  private SchemaRegistryProvider schemaProvider;
+  private SchemaProvider schemaProvider;
 
   private CompletableFuture<CompletableKafkaProducer<GenericRecord, GenericRecord>> kafkaProducer;
 
