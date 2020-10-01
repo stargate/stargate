@@ -30,8 +30,7 @@ public class KafkaProducerActivator implements BundleActivator, ServiceListener 
   @Override
   public synchronized void start(BundleContext context) {
     logger.info("Registering Kafka producer...");
-    // TODO: Set mapping service and schema provider
-    CDCProducer producer = new KafkaCDCProducer(null);
+    CDCProducer producer = new KafkaCDCProducer();
     context.registerService(CDCProducer.class, producer, null);
   }
 

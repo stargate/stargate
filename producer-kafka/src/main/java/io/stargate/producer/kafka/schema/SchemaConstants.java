@@ -15,19 +15,14 @@
  */
 package io.stargate.producer.kafka.schema;
 
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import java.io.IOException;
+import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
-import org.apache.cassandra.stargate.schema.TableMetadata;
 
-public interface SchemaProvider {
-
-  /** Returns the avro partition key schema for kafka topic name */
-  Schema getKeySchemaForTopic(String topicName);
-
-  /** Returns the avro value schema for kafka topic name */
-  Schema getValueSchemaForTopic(String topicName);
-
-  /** Create or update schema for key or/and value if needed */
-  void createOrUpdateSchema(TableMetadata tableMetadata) throws IOException, RestClientException;
+public class SchemaConstants {
+  public static final Schema TIMESTAMP_MILLIS_TYPE =
+      LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG));
+  public static final String OPERATION_FIELD_NAME = "op";
+  public static final String TIMESTAMP_FIELD_NAME = "ts_ms";
+  public static final String DATA_FIELD_NAME = "data";
+  public static final String VALUE_FIELD_NAME = "value";
 }

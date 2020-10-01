@@ -15,19 +15,19 @@
  */
 package io.stargate.producer.kafka.schema;
 
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import java.io.IOException;
+import static org.apache.cassandra.stargate.schema.CQLType.Native.TEXT;
+
 import org.apache.avro.Schema;
-import org.apache.cassandra.stargate.schema.TableMetadata;
+import org.apache.avro.Schema.Type;
+import org.apache.cassandra.stargate.schema.CQLType;
 
-public interface SchemaProvider {
-
-  /** Returns the avro partition key schema for kafka topic name */
-  Schema getKeySchemaForTopic(String topicName);
-
-  /** Returns the avro value schema for kafka topic name */
-  Schema getValueSchemaForTopic(String topicName);
-
-  /** Create or update schema for key or/and value if needed */
-  void createOrUpdateSchema(TableMetadata tableMetadata) throws IOException, RestClientException;
+public class CqlToAvroTypeConverter {
+  public static Schema toAvroType(CQLType type) {
+    if (type.equals(TEXT)) {
+      return Schema.create(Type.STRING);
+    } else {
+      // todo handle other types
+      throw new UnsupportedOperationException(String.format("The type: %s is not supported", type));
+    }
+  }
 }

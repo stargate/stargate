@@ -102,7 +102,7 @@ class KafkaCDCProducerIntegrationTest {
     when(schemaProvider.getKeySchemaForTopic(topicName)).thenReturn(KEY_SCHEMA);
     when(schemaProvider.getValueSchemaForTopic(topicName)).thenReturn(VALUE_SCHEMA);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(schemaProvider);
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
@@ -158,7 +158,7 @@ class KafkaCDCProducerIntegrationTest {
     when(schemaProvider.getKeySchemaForTopic(topicName)).thenReturn(KEY_SCHEMA);
     when(schemaProvider.getValueSchemaForTopic(topicName)).thenReturn(VALUE_SCHEMA);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(schemaProvider);
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
@@ -202,7 +202,7 @@ class KafkaCDCProducerIntegrationTest {
     when(schemaProvider.getKeySchemaForTopic(topicName)).thenReturn(KEY_SCHEMA);
     when(schemaProvider.getValueSchemaForTopic(topicName)).thenReturn(VALUE_SCHEMA);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(schemaProvider);
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 

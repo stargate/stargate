@@ -22,7 +22,7 @@ import io.stargate.producer.kafka.mapping.DefaultMappingService;
 import io.stargate.producer.kafka.mapping.MappingService;
 import io.stargate.producer.kafka.producer.CompletableKafkaProducer;
 import io.stargate.producer.kafka.schema.KeyValueConstructor;
-import io.stargate.producer.kafka.schema.SchemaProvider;
+import io.stargate.producer.kafka.schema.SchemaRegistryProvider;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -38,21 +38,28 @@ import org.jetbrains.annotations.NotNull;
 public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   private final DefaultConfigLoader configLoader;
+
   private MappingService mappingService;
 
-  private final KeyValueConstructor keyValueConstructor;
+  private KeyValueConstructor keyValueConstructor;
+
+  private SchemaRegistryProvider schemaProvider;
 
   private CompletableFuture<CompletableKafkaProducer<GenericRecord, GenericRecord>> kafkaProducer;
 
-  public KafkaCDCProducer(SchemaProvider schemaProvider) {
-    this.keyValueConstructor = new KeyValueConstructor(schemaProvider);
+  public KafkaCDCProducer() {
     this.configLoader = new DefaultConfigLoader();
   }
 
   @Override
   public CompletableFuture<Void> init(Map<String, Object> options) {
     CDCKafkaConfig cdcKafkaConfig = configLoader.loadConfig(options);
+
     this.mappingService = new DefaultMappingService(cdcKafkaConfig.getTopicPrefixName());
+    this.schemaProvider =
+        new SchemaRegistryProvider(cdcKafkaConfig.getSchemaRegistryUrl(), mappingService);
+    this.keyValueConstructor = new KeyValueConstructor(schemaProvider);
+
     kafkaProducer =
         CompletableFuture.supplyAsync(
             () -> new CompletableKafkaProducer<>(cdcKafkaConfig.getKafkaProducerSettings()));
@@ -65,8 +72,7 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   @Override
   protected CompletableFuture<Void> createTableSchemaAsync(TableMetadata tableMetadata) {
-    // todo
-    return CompletableFuture.completedFuture(null);
+    return CompletableFuture.runAsync(() -> schemaProvider.createOrUpdateSchema(tableMetadata));
   }
 
   @Override

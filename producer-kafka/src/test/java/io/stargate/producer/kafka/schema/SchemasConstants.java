@@ -1,9 +1,9 @@
 package io.stargate.producer.kafka.schema;
 
-import static io.stargate.producer.kafka.schema.KeyValueConstructor.DATA_FIELD_NAME;
-import static io.stargate.producer.kafka.schema.KeyValueConstructor.OPERATION_FIELD_NAME;
-import static io.stargate.producer.kafka.schema.KeyValueConstructor.TIMESTAMP_FIELD_NAME;
-import static io.stargate.producer.kafka.schema.KeyValueConstructor.VALUE_FIELD_NAME;
+import static io.stargate.producer.kafka.schema.SchemaConstants.DATA_FIELD_NAME;
+import static io.stargate.producer.kafka.schema.SchemaConstants.OPERATION_FIELD_NAME;
+import static io.stargate.producer.kafka.schema.SchemaConstants.TIMESTAMP_FIELD_NAME;
+import static io.stargate.producer.kafka.schema.SchemaConstants.VALUE_FIELD_NAME;
 
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
