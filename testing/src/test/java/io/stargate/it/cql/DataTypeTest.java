@@ -1,22 +1,16 @@
 package io.stargate.it.cql;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringJoiner;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
+import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.bindMarker;
+import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.insertInto;
+import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.literal;
+import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.selectFrom;
+import static com.datastax.oss.driver.api.querybuilder.SchemaBuilder.createTable;
+import static io.stargate.it.cql.DataTypeTest.TypeSample.typeSample;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchType;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
@@ -34,17 +28,24 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.stargate.it.storage.ClusterConnectionInfo;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
-
-import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.bindMarker;
-import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.insertInto;
-import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.literal;
-import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.selectFrom;
-import static com.datastax.oss.driver.api.querybuilder.SchemaBuilder.createTable;
-import static io.stargate.it.cql.DataTypeTest.TypeSample.typeSample;
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class DataTypeTest extends JavaDriverTestBase {
 
@@ -98,13 +99,26 @@ public class DataTypeTest extends JavaDriverTestBase {
     String insertQuery =
         insertInto("test").value("k", literal(1)).value(sample.columnName, bindMarker()).asCql();
 
-    session.execute(SimpleStatement.newInstance(insertQuery, sample.value));
+    SimpleStatement simpleStatement = SimpleStatement.newInstance(insertQuery, sample.value);
+    session.execute(simpleStatement);
+    checkValue(sample);
 
+    session.execute(BatchStatement.newInstance(BatchType.LOGGED).add(simpleStatement));
+    checkValue(sample);
+
+    session.execute(session.prepare(insertQuery).bind(sample.value));
+    checkValue(sample);
+  }
+
+  private <JavaTypeT> void checkValue(TypeSample<JavaTypeT> sample) {
     String selectQuery =
         selectFrom("test").column(sample.columnName).whereColumn("k").isEqualTo(literal(1)).asCql();
     Row row = session.execute(selectQuery).one();
     assertThat(row).isNotNull();
     assertThat(row.get(0, sample.javaType)).isEqualTo(sample.value);
+
+    // Clean up for the following tests
+    session.execute("DELETE FROM test WHERE k = 1");
   }
 
   private static List<TypeSample<?>> generateAllTypes(CqlIdentifier keyspaceId) {
