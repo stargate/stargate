@@ -139,6 +139,12 @@ public class DsePersistence
     System.setProperty("cassandra-foreground", "true");
     System.setProperty("cassandra.consistent.rangemovement", "false");
 
+    if (Boolean.parseBoolean(System.getProperty("stargate.bind_to_listen_address"))) {
+      // Bind JMX server to listen address
+      System.setProperty(
+          "com.sun.management.jmxremote.host", System.getProperty("stargate.listen_address"));
+    }
+
     DatabaseDescriptor.daemonInitialization(true, config);
     cassandraDaemon = new CassandraDaemon(true);
 
