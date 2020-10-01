@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,15 +32,13 @@ public class DefaultCDCHealthCheckerTest {
         () -> new DefaultCDCHealthChecker(0, 1, 1),
         () -> new DefaultCDCHealthChecker(1.1, 1, 1),
         () -> new DefaultCDCHealthChecker(0.5, 1, 0),
-        () -> new DefaultCDCHealthChecker(0.5, 1, 16)
-    );
+        () -> new DefaultCDCHealthChecker(0.5, 1, 16));
   }
 
   public static Stream<Executable> constructorWithValidParameters() {
     return Stream.of(
         () -> new DefaultCDCHealthChecker(0.5, 1, 1),
-        () -> new DefaultCDCHealthChecker(0.5, 1, 15)
-    );
+        () -> new DefaultCDCHealthChecker(0.5, 1, 15));
   }
 
   @Test
