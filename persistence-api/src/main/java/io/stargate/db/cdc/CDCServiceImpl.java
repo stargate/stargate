@@ -81,7 +81,7 @@ public final class CDCServiceImpl implements CDCService {
   private CompletableFuture<Void> sendToProducer(MutationEvent mutation) {
     final long start = System.nanoTime();
     CDCMetrics.instance.incrementInFlight();
-    return orTimeout(producer.publish(mutation), config.getLatencyErrorMs())
+    return orTimeout(producer.publish(mutation), config.getProducerTimeoutMs())
         .whenComplete(
             (r, e) -> {
               CDCMetrics.instance.decrementInFlight();
@@ -138,6 +138,6 @@ public final class CDCServiceImpl implements CDCService {
   interface CDCConfig {
     boolean isTrackedByCDC(MutationEvent mutation);
 
-    long getLatencyErrorMs();
+    long getProducerTimeoutMs();
   }
 }

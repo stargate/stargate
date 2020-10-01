@@ -98,7 +98,7 @@ public class CDCServiceTest {
     }
 
     ServiceBuilder withTimeout(int millis) {
-      when(config.getLatencyErrorMs()).thenReturn((long) millis);
+      when(config.getProducerTimeoutMs()).thenReturn((long) millis);
       return this;
     }
 
