@@ -3,6 +3,7 @@ package io.stargate.it.cql;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.ExecutionInfo;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
@@ -168,5 +169,26 @@ public class BoundStatementTest extends JavaDriverTestBase {
     QueryTrace queryTrace = executionInfo.getQueryTrace();
     assertThat(queryTrace).isNotNull();
     assertThat(queryTrace.getEvents()).isNotEmpty();
+  }
+
+  @Test
+  public void should_use_consistency_levels_on_statement() {
+    PreparedStatement prepared = session.prepare("SELECT v FROM test WHERE k=?");
+    BoundStatement statement = prepared.bind(KEY).setTracing(true);
+    QueryTrace queryTrace = session.execute(statement).getExecutionInfo().getQueryTrace();
+    // Driver defaults
+    assertThat(queryTrace.getParameters().get("consistency_level")).isEqualTo("LOCAL_ONE");
+    assertThat(queryTrace.getParameters().get("serial_consistency_level")).isEqualTo("SERIAL");
+
+    statement =
+        statement
+            .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+            // Irrelevant for that query, but we just want to check that it gets reflected in the
+            // trace
+            .setSerialConsistencyLevel(ConsistencyLevel.LOCAL_SERIAL);
+    queryTrace = session.execute(statement).getExecutionInfo().getQueryTrace();
+    assertThat(queryTrace.getParameters().get("consistency_level")).isEqualTo("LOCAL_QUORUM");
+    assertThat(queryTrace.getParameters().get("serial_consistency_level"))
+        .isEqualTo("LOCAL_SERIAL");
   }
 }
