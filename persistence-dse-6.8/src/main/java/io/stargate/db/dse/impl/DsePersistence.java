@@ -44,6 +44,7 @@ import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.exceptions.InvalidRequestException;
 import org.apache.cassandra.gms.ApplicationState;
+import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.schema.ColumnMetadata;
 import org.apache.cassandra.schema.IndexMetadata;
@@ -462,7 +463,16 @@ public class DsePersistence
     // Also note that in theory getSchemaVersion can return null for some nodes, and if it does
     // the code below will likely return false (the null will be an element on its own), but that's
     // probably the right answer in that case. In practice, this shouldn't be a problem though.
-    return Gossiper.instance.getLiveTokenOwners().stream()
+
+    // Important: This must include all nodes including fat clients, otherwise we'll get write
+    // errors
+    // with INCOMPATIBLE_SCHEMA.
+    return Gossiper.instance.getLiveMembers().stream()
+            .filter(
+                ep -> {
+                  EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
+                  return epState != null && !Gossiper.instance.isDeadState(epState);
+                })
             .map(Gossiper.instance::getSchemaVersion)
             .collect(Collectors.toSet())
             .size()
