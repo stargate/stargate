@@ -140,7 +140,8 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     createKeyspace();
     session.execute(
         String.format(
-            "CREATE TABLE \"%s\".\"%s\" (key text PRIMARY KEY, value text)", keyspace, table));
+            "CREATE TABLE \"%s\".\"%s\" (key text PRIMARY KEY, value1 text, value2 text)",
+            keyspace, table));
   }
 
   private void paginationTestSetup() {
@@ -163,7 +164,8 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
   private String insertIntoQuery() {
     return String.format(
-        "INSERT INTO \"%s\".\"%s\" (key, value) values (:key, :value)", keyspace, table);
+        "INSERT INTO \"%s\".\"%s\" (key, value1, value2) values (:key, :value1, :value2)",
+        keyspace, table);
   }
 
   private String insertIntoQueryNoKeyspace() {
@@ -187,59 +189,126 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     assertThat(rows.next().getInetAddress("listen_address")).isIn(getStargateInetSocketAddresses());
   }
 
+  private Statement<?> insertIntoStatement(boolean prepared, boolean bindByName, String... args) {
+    assert args.length > 0 : "Expecting at least the key";
+    assert args.length <= 3 : "Expecting at most the key, value1 and value2";
+
+    if (prepared) {
+      PreparedStatement insertPrepared = session.prepare(insertIntoQuery());
+      BoundStatement statement;
+      if (bindByName) {
+        statement = insertPrepared.bind().setString("key", args[0]);
+        for (int i = 1; i < args.length; i++) {
+          statement = statement.setString("value" + i, args[i]);
+        }
+      } else {
+        statement = insertPrepared.bind((Object[]) args);
+      }
+      return statement;
+    } else {
+      SimpleStatementBuilder insertBuilder = SimpleStatement.builder(insertIntoQuery());
+      if (bindByName) {
+        insertBuilder.addNamedValue("key", args[0]);
+        for (int i = 1; i < args.length; i++) {
+          insertBuilder.addNamedValue("value" + i, args[i]);
+        }
+      } else {
+        insertBuilder.addPositionalValues((Object[]) args);
+      }
+      return insertBuilder.build();
+    }
+  }
+
+  private Statement<?> selectByKeyStatement(boolean prepared, boolean bindByName, String key) {
+    if (prepared) {
+      PreparedStatement selectPrepared = session.prepare(selectFromQuery(true));
+      BoundStatement statement;
+      if (bindByName) {
+        statement = selectPrepared.bind().setString("key", key);
+      } else {
+        statement = selectPrepared.bind(key);
+      }
+      return statement;
+    } else {
+      SimpleStatementBuilder selectBuilder = SimpleStatement.builder(selectFromQuery(true));
+      if (bindByName) {
+        selectBuilder.addNamedValue("key", key);
+      } else {
+        selectBuilder.addPositionalValue(key);
+      }
+      return selectBuilder.build();
+    }
+  }
+
   @Test
   public void querySimple() {
-    querySimple(false);
+    querySimple(false, false);
   }
 
   @Test
-  public void querySimpleBidingMarkersByName() {
-    querySimple(true);
+  public void querySimpleBindingByName() {
+    querySimple(false, true);
   }
 
-  private void querySimple(boolean bindMarkersByName) {
+  private void querySimple(boolean usePrepared, boolean bindByName) {
     createTable();
 
-    SimpleStatementBuilder insertBuilder = SimpleStatement.builder(insertIntoQuery());
-    if (bindMarkersByName) {
-      insertBuilder.addNamedValue("key", "abc").addNamedValue("value", "def");
-    } else {
-      insertBuilder.addPositionalValues("abc", "def");
-    }
-    session.execute(insertBuilder.build());
+    session.execute(insertIntoStatement(usePrepared, bindByName, "abc", "v1", "v2"));
+    ResultSet rs = session.execute(selectByKeyStatement(usePrepared, bindByName, "abc"));
 
-    SimpleStatementBuilder selectBuilder = SimpleStatement.builder(selectFromQuery(true));
-    if (bindMarkersByName) {
-      selectBuilder.addNamedValue("key", "abc");
-    } else {
-      selectBuilder.addPositionalValue("abc");
-    }
-    ResultSet rs = session.execute(selectBuilder.build());
-
-    Iterator<Row> rows = rs.iterator();
-    assertThat(rows).hasNext();
-
-    Row row = rows.next();
-    assertThat(row.getString("key")).isEqualTo("abc");
-    assertThat(row.getString("value")).isEqualTo("def");
+    assertResultSet(rs)
+        .row()
+        .value("key", "abc")
+        .value("value1", "v1")
+        .value("value2", "v2")
+        .done();
   }
 
   @Test
   public void preparedSimple() {
+    querySimple(true, false);
+  }
+
+  @Test
+  public void preparedSimpleBindingByName() {
+    querySimple(true, true);
+  }
+
+  @Test
+  public void unsetValues() {
+    unsetValues(true, false);
+  }
+
+  @Test
+  public void unsetValuesBindingByName() {
+    unsetValues(true, true);
+  }
+
+  // Note: in theory, unset could work with non-prepared statements, but it appears the driver
+  // don't support them (it doesn't set an 'unset' value for missing values like it does with
+  // prepared statements, and so we end up with a "not enough values" error). Anyway, that's why
+  // we only use this with usePrepared=true, but not inlining the argument for documentation sake.
+  private void unsetValues(boolean usePrepared, boolean bindByName) {
     createTable();
 
-    PreparedStatement insertPrepared = session.prepare(insertIntoQuery());
-    session.execute(insertPrepared.bind("abc", "def"));
+    session.execute(insertIntoStatement(usePrepared, bindByName, "k1", "v11", "v21"));
 
-    PreparedStatement selectPrepared = session.prepare(selectFromQuery(true));
-    ResultSet rs = session.execute(selectPrepared.bind("abc"));
+    // Sanity check
+    assertResultSet(session.execute(selectByKeyStatement(usePrepared, bindByName, "k1")))
+        .row()
+        .value("key", "k1")
+        .value("value1", "v11")
+        .value("value2", "v21")
+        .done();
 
-    Iterator<Row> rows = rs.iterator();
-    assertThat(rows).hasNext();
+    session.execute(insertIntoStatement(usePrepared, bindByName, "k1", "v12"));
 
-    Row row = rows.next();
-    assertThat(row.getString("key")).isEqualTo("abc");
-    assertThat(row.getString("value")).isEqualTo("def");
+    assertResultSet(session.execute(selectByKeyStatement(usePrepared, bindByName, "k1")))
+        .row()
+        .value("key", "k1")
+        .value("value1", "v12")
+        .value("value2", "v21")
+        .done();
   }
 
   @Test
@@ -596,5 +665,51 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
     AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
     return authTokenResponse.getAuthToken();
+  }
+
+  private static ResultSetAsserter assertResultSet(ResultSet rs) {
+    return new ResultSetAsserter(rs);
+  }
+
+  static class ResultSetAsserter {
+    private final Iterator<Row> actualRows;
+    private int returnedRows;
+
+    ResultSetAsserter(ResultSet actual) {
+      this.actualRows = actual.iterator();
+    }
+
+    void isEmpty() {
+      assert returnedRows == 0 : "Don't use isEmpty() and row() on the same asserter";
+      assertThat(actualRows).isExhausted();
+    }
+
+    RowAsserter row() {
+      return new RowAsserter();
+    }
+
+    class RowAsserter {
+      private final Row actualRow;
+
+      private RowAsserter() {
+        ResultSetAsserter that = ResultSetAsserter.this;
+        assertThat(that.actualRows).hasNext();
+        that.returnedRows++;
+        this.actualRow = that.actualRows.next();
+      }
+
+      private RowAsserter value(String name, Object expectedValue) {
+        assertThat(actualRow.getObject(name)).isEqualTo(expectedValue);
+        return this;
+      }
+
+      private RowAsserter andRow() {
+        return new RowAsserter();
+      }
+
+      private void done() {
+        assertThat(ResultSetAsserter.this.actualRows).isExhausted();
+      }
+    }
   }
 }
