@@ -94,6 +94,6 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
   // @CassandraRequirement/@DseRequirement in the Java driver tests
   public boolean isCassandra4() {
     return !backend.isDse()
-        && Version.parse(backend.clusterVersion()).compareTo(Version.V4_0_0) >= 0;
+        && Version.parse(backend.clusterVersion()).nextStable().compareTo(Version.V4_0_0) >= 0;
   }
 }
