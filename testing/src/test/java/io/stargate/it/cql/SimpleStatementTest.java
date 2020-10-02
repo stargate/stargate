@@ -125,7 +125,6 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  @Disabled("C* 3.11 returns a ProtocolError, Stargate returns a ServerError")
   public void should_throw_when_using_corrupt_paging_state() {
     SimpleStatement statement =
         SimpleStatement.builder("SELECT v FROM test WHERE k=?")

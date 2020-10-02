@@ -129,7 +129,6 @@ public class BoundStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  @Disabled("C* 3.11 returns a ProtocolError, Stargate returns a ServerError")
   public void should_throw_when_using_corrupt_paging_state() {
     PreparedStatement prepared = session.prepare("SELECT v FROM test WHERE k=?");
     BoundStatement statement =
