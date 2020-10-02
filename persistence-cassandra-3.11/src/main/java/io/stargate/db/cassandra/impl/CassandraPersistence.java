@@ -295,6 +295,13 @@ public class CassandraPersistence
             internalOptions.prepare(prepared.boundNames);
             CQLStatement statement = prepared.statement;
 
+            if (internalOptions.getValues().size() != statement.getBoundTerms()) {
+              throw new org.apache.cassandra.exceptions.InvalidRequestException(
+                  String.format(
+                      "there were %d markers(?) in CQL but %d bound variables",
+                      statement.getBoundTerms(), internalOptions.getValues().size()));
+            }
+
             Result result =
                 interceptor.interceptQuery(
                     handler, statement, state, options, customPayload, queryStartNanoTime);
