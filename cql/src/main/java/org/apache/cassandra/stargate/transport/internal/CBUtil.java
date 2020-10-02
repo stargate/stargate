@@ -390,9 +390,12 @@ public abstract class CBUtil {
       if (protocolVersion.isSmallerThan(
           ProtocolVersion.V4)) // backward compatibility for pre-version 4
       return null;
-      if (length == -1) return null;
-      else if (length == -2) return unsetValue;
-      else throw new ProtocolException("Invalid ByteBuf length " + length);
+      if (length == -1) {
+        return null;
+      } else if (length == -2) {
+        assert unsetValue != null : "The UNSET value should have been set by now";
+        return unsetValue;
+      } else throw new ProtocolException("Invalid ByteBuf length " + length);
     }
     return ByteBuffer.wrap(readRawBytes(cb, length));
   }

@@ -70,6 +70,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @NotThreadSafe
@@ -169,7 +170,8 @@ public class CQLTest extends BaseOsgiIntegrationTest {
   }
 
   private String insertIntoQueryNoKeyspace() {
-    return String.format("INSERT INTO \"%s\" (key, value) values (:key, :value)", table);
+    return String.format(
+        "INSERT INTO \"%s\" (key, value1, value2) values (:key, :value1, :value2)", table);
   }
 
   private String selectFromQuery(boolean withKey) {
@@ -189,14 +191,29 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     assertThat(rows.next().getInetAddress("listen_address")).isIn(getStargateInetSocketAddresses());
   }
 
-  private Statement<?> insertIntoStatement(boolean prepared, boolean bindByName, String... args) {
+  public enum QueryMode {
+    SIMPLE_POSITIONAL,
+    SIMPLE_BY_NAME,
+    PREPARED_POSITIONAL,
+    PREPARED_BY_NAME;
+
+    boolean isPrepared() {
+      return this == PREPARED_POSITIONAL || this == PREPARED_BY_NAME;
+    }
+
+    boolean isBindByName() {
+      return this == SIMPLE_BY_NAME || this == PREPARED_BY_NAME;
+    }
+  }
+
+  private Statement<?> insertIntoStatement(QueryMode mode, String... args) {
     assert args.length > 0 : "Expecting at least the key";
     assert args.length <= 3 : "Expecting at most the key, value1 and value2";
 
-    if (prepared) {
+    if (mode.isPrepared()) {
       PreparedStatement insertPrepared = session.prepare(insertIntoQuery());
       BoundStatement statement;
-      if (bindByName) {
+      if (mode.isBindByName()) {
         statement = insertPrepared.bind().setString("key", args[0]);
         for (int i = 1; i < args.length; i++) {
           statement = statement.setString("value" + i, args[i]);
@@ -207,7 +224,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
       return statement;
     } else {
       SimpleStatementBuilder insertBuilder = SimpleStatement.builder(insertIntoQuery());
-      if (bindByName) {
+      if (mode.isBindByName()) {
         insertBuilder.addNamedValue("key", args[0]);
         for (int i = 1; i < args.length; i++) {
           insertBuilder.addNamedValue("value" + i, args[i]);
@@ -219,11 +236,11 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     }
   }
 
-  private Statement<?> selectByKeyStatement(boolean prepared, boolean bindByName, String key) {
-    if (prepared) {
+  private Statement<?> selectByKeyStatement(QueryMode mode, String key) {
+    if (mode.isPrepared()) {
       PreparedStatement selectPrepared = session.prepare(selectFromQuery(true));
       BoundStatement statement;
-      if (bindByName) {
+      if (mode.isBindByName()) {
         statement = selectPrepared.bind().setString("key", key);
       } else {
         statement = selectPrepared.bind(key);
@@ -231,7 +248,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
       return statement;
     } else {
       SimpleStatementBuilder selectBuilder = SimpleStatement.builder(selectFromQuery(true));
-      if (bindByName) {
+      if (mode.isBindByName()) {
         selectBuilder.addNamedValue("key", key);
       } else {
         selectBuilder.addPositionalValue(key);
@@ -240,21 +257,13 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     }
   }
 
-  @Test
-  public void querySimple() {
-    querySimple(false, false);
-  }
-
-  @Test
-  public void querySimpleBindingByName() {
-    querySimple(false, true);
-  }
-
-  private void querySimple(boolean usePrepared, boolean bindByName) {
+  @ParameterizedTest
+  @EnumSource(QueryMode.class)
+  public void query(QueryMode mode) {
     createTable();
 
-    session.execute(insertIntoStatement(usePrepared, bindByName, "abc", "v1", "v2"));
-    ResultSet rs = session.execute(selectByKeyStatement(usePrepared, bindByName, "abc"));
+    session.execute(insertIntoStatement(mode, "abc", "v1", "v2"));
+    ResultSet rs = session.execute(selectByKeyStatement(mode, "abc"));
 
     assertResultSet(rs)
         .row()
@@ -264,46 +273,29 @@ public class CQLTest extends BaseOsgiIntegrationTest {
         .done();
   }
 
-  @Test
-  public void preparedSimple() {
-    querySimple(true, false);
-  }
-
-  @Test
-  public void preparedSimpleBindingByName() {
-    querySimple(true, true);
-  }
-
-  @Test
-  public void unsetValues() {
-    unsetValues(true, false);
-  }
-
-  @Test
-  public void unsetValuesBindingByName() {
-    unsetValues(true, true);
-  }
-
   // Note: in theory, unset could work with non-prepared statements, but it appears the driver
   // don't support them (it doesn't set an 'unset' value for missing values like it does with
-  // prepared statements, and so we end up with a "not enough values" error). Anyway, that's why
-  // we only use this with usePrepared=true, but not inlining the argument for documentation sake.
-  private void unsetValues(boolean usePrepared, boolean bindByName) {
+  // prepared statements, and so we end up with a "not enough values" error).
+  @ParameterizedTest
+  @EnumSource(
+      value = QueryMode.class,
+      names = {"PREPARED_POSITIONAL", "PREPARED_BY_NAME"})
+  public void unsetValues(QueryMode mode) {
     createTable();
 
-    session.execute(insertIntoStatement(usePrepared, bindByName, "k1", "v11", "v21"));
+    session.execute(insertIntoStatement(mode, "k1", "v11", "v21"));
 
     // Sanity check
-    assertResultSet(session.execute(selectByKeyStatement(usePrepared, bindByName, "k1")))
+    assertResultSet(session.execute(selectByKeyStatement(mode, "k1")))
         .row()
         .value("key", "k1")
         .value("value1", "v11")
         .value("value2", "v21")
         .done();
 
-    session.execute(insertIntoStatement(usePrepared, bindByName, "k1", "v12"));
+    session.execute(insertIntoStatement(mode, "k1", "v12"));
 
-    assertResultSet(session.execute(selectByKeyStatement(usePrepared, bindByName, "k1")))
+    assertResultSet(session.execute(selectByKeyStatement(mode, "k1")))
         .row()
         .value("key", "k1")
         .value("value1", "v12")
@@ -319,10 +311,10 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
     BatchStatement batch =
         BatchStatement.builder(BatchType.UNLOGGED)
-            .addStatement(insertPrepared.bind("abc", "def"))
+            .addStatement(insertPrepared.bind("abc", "def", "ghi"))
             .addStatement(
                 SimpleStatement.builder(insertIntoQuery())
-                    .addPositionalValues("def", "ghi")
+                    .addPositionalValues("def", "ghi", "jkl")
                     .build())
             .build();
 
@@ -334,10 +326,12 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     assertThat(rows).hasSize(2);
 
     assertThat(rows.get(0).getString("key")).isEqualTo("def");
-    assertThat(rows.get(0).getString("value")).isEqualTo("ghi");
+    assertThat(rows.get(0).getString("value1")).isEqualTo("ghi");
+    assertThat(rows.get(0).getString("value2")).isEqualTo("jkl");
 
     assertThat(rows.get(1).getString("key")).isEqualTo("abc");
-    assertThat(rows.get(1).getString("value")).isEqualTo("def");
+    assertThat(rows.get(1).getString("value1")).isEqualTo("def");
+    assertThat(rows.get(1).getString("value2")).isEqualTo("ghi");
   }
 
   @Test
@@ -351,7 +345,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     TableMetadata tableMetadata =
         waitFor(() -> ksMetadata.getTable(CqlIdentifier.fromInternal(table)));
 
-    assertThat(tableMetadata.getColumns()).hasSize(2);
+    assertThat(tableMetadata.getColumns()).hasSize(3);
   }
 
   @Test
@@ -361,16 +355,17 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     // Create a table with an integer value for the `sum()` aggregate
     session.execute(
         String.format(
-            "CREATE TABLE \"%s\".\"%s\" (key text PRIMARY KEY, value int)", keyspace, table));
+            "CREATE TABLE \"%s\".\"%s\" (key text PRIMARY KEY, value1 int, value2 text)",
+            keyspace, table));
 
     session.execute(
         SimpleStatement.builder(insertIntoQuery())
             .setTracing(true)
-            .addPositionalValues("abc", 42)
+            .addPositionalValues("abc", 42, "foo")
             .build());
 
     ResultSet rs =
-        session.execute(String.format("SELECT sum(value) FROM \"%s\".\"%s\"", keyspace, table));
+        session.execute(String.format("SELECT sum(value1) FROM \"%s\".\"%s\"", keyspace, table));
     List<String> warnings = rs.getExecutionInfo().getWarnings();
     assertThat(warnings).hasSize(1);
     assertThat(warnings).contains("Aggregation query used without partition key");
@@ -384,7 +379,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
         session.execute(
             SimpleStatement.builder(insertIntoQuery())
                 .setTracing(true)
-                .addPositionalValues("abc", "def")
+                .addPositionalValues("abc", "def", "ghi")
                 .build());
 
     assertThat(rs.getExecutionInfo().getTracingId()).isNotNull();
@@ -418,10 +413,10 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
     BatchStatement batch =
         BatchStatement.builder(BatchType.UNLOGGED)
-            .addStatement(insertPrepared.bind("abc", "def"))
+            .addStatement(insertPrepared.bind("abc", "def", "ghi"))
             .addStatement(
                 SimpleStatement.builder(insertIntoQuery())
-                    .addPositionalValues("def", "ghi")
+                    .addPositionalValues("def", "ghi", "jkl")
                     .build())
             .setTracing(true)
             .build();
@@ -440,7 +435,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     try {
       session.execute(
           SimpleStatement.builder(insertIntoQueryNoKeyspace())
-              .addPositionalValues("abc", "def")
+              .addPositionalValues("abc", "def", "ghi")
               .build());
 
       fail("Should have thrown InvalidQueryException");
@@ -456,7 +451,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
     session.execute(
         SimpleStatement.builder(insertIntoQueryNoKeyspace())
-            .addPositionalValues("abc", "def")
+            .addPositionalValues("abc", "def", "ghi")
             .build());
 
     ResultSet rs = session.execute(selectFromQueryNoKeyspace());
@@ -466,7 +461,8 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
     Row row = rows.next();
     assertThat(row.getString("key")).isEqualTo("abc");
-    assertThat(row.getString("value")).isEqualTo("def");
+    assertThat(row.getString("value1")).isEqualTo("def");
+    assertThat(row.getString("value2")).isEqualTo("ghi");
   }
 
   @Test
@@ -474,7 +470,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     createKeyspace();
     session.execute(
         String.format(
-            "CREATE TABLE \"%s\".\"%s\" (key text PRIMARY KEY, value tuple<text,int,int> )",
+            "CREATE TABLE \"%s\".\"%s\" (key text PRIMARY KEY, value1 tuple<text,int,int>, value2 text)",
             keyspace, table));
 
     TupleType tupleType = DataTypes.tupleOf(DataTypes.TEXT, DataTypes.INT, DataTypes.INT);
@@ -482,7 +478,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     session.execute(
         SimpleStatement.builder(insertIntoQuery())
             .setTracing(true)
-            .addPositionalValues("abc", tupleValue)
+            .addPositionalValues("abc", tupleValue, "foo")
             .build());
 
     ResultSet rs =
@@ -495,11 +491,13 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     Row row = rows.next();
     assertThat(row.getString("key")).isEqualTo("abc");
 
-    TupleValue tupleReturnValue = row.getTupleValue("value");
+    TupleValue tupleReturnValue = row.getTupleValue("value1");
     assertThat(tupleReturnValue).isNotNull();
     assertThat(tupleReturnValue.getString(0)).isEqualTo("hello");
     assertThat(tupleReturnValue.getInt(1)).isEqualTo(1);
     assertThat(tupleReturnValue.getInt(2)).isEqualTo(2);
+
+    assertThat(row.getString("value2")).isEqualTo("foo");
   }
 
   @ParameterizedTest
