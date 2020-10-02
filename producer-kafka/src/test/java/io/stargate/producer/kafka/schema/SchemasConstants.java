@@ -17,6 +17,7 @@ public class SchemasConstants {
   public static final String PARTITION_KEY_NAME = "pk_1";
 
   public static final String COLUMN_NAME = "col_1";
+  public static final String COLUMN_NAME_2 = "col_2";
 
   public static final String CLUSTERING_KEY_NAME = "ck_1";
 

@@ -16,6 +16,8 @@
 package io.stargate.producer.kafka;
 
 import static io.stargate.producer.kafka.configuration.ConfigLoader.CDC_TOPIC_PREFIX_NAME;
+import static io.stargate.producer.kafka.helpers.MutationEventHelper.cell;
+import static io.stargate.producer.kafka.helpers.MutationEventHelper.cellValue;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.clusteringKey;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.column;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.createDeleteEvent;
@@ -23,6 +25,7 @@ import static io.stargate.producer.kafka.helpers.MutationEventHelper.createRowUp
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.partitionKey;
 import static io.stargate.producer.kafka.schema.SchemasConstants.CLUSTERING_KEY_NAME;
 import static io.stargate.producer.kafka.schema.SchemasConstants.COLUMN_NAME;
+import static io.stargate.producer.kafka.schema.SchemasConstants.COLUMN_NAME_2;
 import static io.stargate.producer.kafka.schema.SchemasConstants.PARTITION_KEY_NAME;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
@@ -36,6 +39,7 @@ import io.stargate.producer.kafka.configuration.ConfigLoader;
 import io.stargate.producer.kafka.schema.EmbeddedSchemaRegistryServer;
 import java.net.ServerSocket;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -192,6 +196,88 @@ class KafkaCDCProducerIntegrationTest {
       validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
     } finally {
       kafkaCDCProducer.close().get();
+    }
+  }
+
+  @Test
+  public void shouldSendUpdateAndSendSecondEventWhenSchemaChanged() throws Exception {
+    // given
+    String partitionKeyValue = "pk_value";
+    Integer clusteringKeyValue = 1;
+    String columnValue = "col_value";
+    long timestamp = 1000;
+    TableMetadata tableMetadata = mockTableMetadata();
+    String topicName = creteTopicName(tableMetadata);
+
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    Map<String, Object> properties = createKafkaProducerSettings();
+    kafkaCDCProducer.init(properties).get();
+
+    // when
+    // schema change event
+    when(tableMetadata.getPartitionKeys())
+        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
+    when(tableMetadata.getClusteringKeys())
+        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
+    when(tableMetadata.getColumns())
+        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
+    kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
+    try {
+      // send actual event
+      RowUpdateEvent rowMutationEvent =
+          createRowUpdateEvent(
+              partitionKeyValue,
+              partitionKey(PARTITION_KEY_NAME, Native.TEXT),
+              columnValue,
+              column(COLUMN_NAME, Native.TEXT),
+              clusteringKeyValue,
+              clusteringKey(CLUSTERING_KEY_NAME, Native.INT),
+              tableMetadata,
+              timestamp);
+      kafkaCDCProducer.send(rowMutationEvent).get();
+
+      // then
+      GenericRecord expectedKey =
+          kafkaCDCProducer.keyValueConstructor.constructKey(rowMutationEvent, topicName);
+      GenericRecord expectedValue =
+          kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
+
+      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+
+      // when change schema
+      when(tableMetadata.getPartitionKeys())
+          .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
+      when(tableMetadata.getClusteringKeys())
+          .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
+      when(tableMetadata.getColumns())
+          .thenReturn(
+              Arrays.asList(column(COLUMN_NAME, Native.TEXT), column(COLUMN_NAME_2, Native.TEXT)));
+      kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
+
+      // and send event with a new column
+      rowMutationEvent =
+          createRowUpdateEvent(
+              Collections.singletonList(
+                  cellValue(partitionKeyValue, partitionKey(PARTITION_KEY_NAME, Native.TEXT))),
+              Arrays.asList(
+                  cell(column(COLUMN_NAME, Native.TEXT), columnValue),
+                  cell(column("col_2", Native.TEXT), columnValue)),
+              Collections.singletonList(
+                  cellValue(clusteringKeyValue, clusteringKey(CLUSTERING_KEY_NAME, Native.INT))),
+              tableMetadata,
+              timestamp);
+
+      kafkaCDCProducer.send(rowMutationEvent).get();
+
+      // then
+      expectedKey = kafkaCDCProducer.keyValueConstructor.constructKey(rowMutationEvent, topicName);
+      expectedValue =
+          kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
+
+      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+
+    } finally {
+      kafkaCDCProducer.close();
     }
   }
 

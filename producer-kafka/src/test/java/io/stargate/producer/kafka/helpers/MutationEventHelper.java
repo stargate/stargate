@@ -217,7 +217,7 @@ public class MutationEventHelper {
   }
 
   @NotNull
-  private static Cell cell(ColumnMetadata columnMetadata, String columnValue) {
+  public static Cell cell(ColumnMetadata columnMetadata, String columnValue) {
 
     return new Cell() {
       @Override
