@@ -150,12 +150,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>toxiproxy</artifactId>
-      <version>1.14.3</version>
-      <scope>test</scope>
-    </dependency>
-	<dependency>
       <groupId>io.confluent</groupId>
       <artifactId>kafka-schema-registry</artifactId>
       <version>${schema-registry.version}</version>

@@ -149,50 +149,6 @@ class KafkaCDCProducerIntegrationTest {
     return tableMetadata;
   }
 
-  //  @Test
-  //  public void shouldPropagateErrorWhenKafkaConnectionWasClosed() throws Exception {
-  //    // given
-  //    String partitionKeyValue = "pk_value";
-  //    Integer clusteringKeyValue = 1;
-  //    String columnValue = "col_value";
-  //    SchemaProvider schemaProvider = mock(SchemaProvider.class);
-  //    TableMetadata tableMetadata = mockTableMetadata();
-  //    String topicName = creteTopicName(tableMetadata);
-  //
-  //    when(schemaProvider.getKeySchemaForTopic(topicName)).thenReturn(KEY_SCHEMA);
-  //    when(schemaProvider.getValueSchemaForTopic(topicName)).thenReturn(VALUE_SCHEMA);
-  //
-  //    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
-  //    Map<String, Object> properties = createKafkaProducerSettings();
-  //    kafkaCDCProducer.init(properties).get();
-  //
-  //    // when
-  //    try {
-  //      // block connections to kafka
-  //      kafkaProxy.setConnectionCut(true);
-  //      assertThatCode(
-  //              () -> {
-  //                kafkaCDCProducer
-  //                    .send(
-  //                        createRowUpdateEvent(
-  //                            partitionKeyValue,
-  //                            partitionKey(PARTITION_KEY_NAME),
-  //                            columnValue,
-  //                            column(COLUMN_NAME),
-  //                            clusteringKeyValue,
-  //                            clusteringKey(CLUSTERING_KEY_NAME),
-  //                            tableMetadata))
-  //                    .get();
-  //              })
-  //          .hasRootCauseInstanceOf(TimeoutException.class)
-  //          .hasMessageContaining(String.format("Topic %s not present in metadata", topicName));
-  //    } finally {
-  //      // resume connections
-  //      kafkaProxy.setConnectionCut(false);
-  //      kafkaCDCProducer.close().get();
-  //    }
-  //  }
-
   @Test
   public void shouldSendDeleteEventForAllPKsAndCK() throws Exception {
     // given
