@@ -135,7 +135,6 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  @Disabled("Looks like the query timestamp is not propagated correctly")
   public void should_use_query_timestamp() {
     long timestamp = 10; // whatever
     session.execute(

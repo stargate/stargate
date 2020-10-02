@@ -140,15 +140,14 @@ public class BoundStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  @Disabled("Looks like the query timestamp is not propagated correctly")
   public void should_use_query_timestamp() {
     long timestamp = 10; // whatever
     session.execute(
-        SimpleStatement.builder("INSERT INTO test2 (k, v) values ('test', 1)")
+        SimpleStatement.builder("INSERT INTO test2 (k, v0) values ('test', 1)")
             .setQueryTimestamp(timestamp)
             .build());
 
-    Row row = session.execute("SELECT writetime(v) FROM test2 WHERE k = 'test'").one();
+    Row row = session.execute("SELECT writetime(v0) FROM test2 WHERE k = 'test'").one();
     assertThat(row).isNotNull();
     assertThat(row.getLong(0)).isEqualTo(timestamp);
   }
