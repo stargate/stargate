@@ -23,6 +23,7 @@ import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.util.concurrent.FastThreadLocal;
+import io.stargate.db.Persistence;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -68,7 +69,30 @@ public abstract class CBUtil {
 
   private static final FastThreadLocal<CharBuffer> TL_CHAR_BUFFER = new FastThreadLocal<>();
 
+  private static volatile ByteBuffer unsetValue;
+
   private CBUtil() {}
+
+  /**
+   * Sets the value to use when deserializing an "unset" bound value.
+   *
+   * <p>Within Cassandra/DSE (so, our persistence extensions), unset values are implemented through
+   * a specific ByteBuffer instance, that is a 'public static final' and whose usage is detected
+   * through reference equality. But we can't access that specific object statically, as it leaves
+   * within the persistence extension. Instead, that object is exposed through the {@link
+   * Persistence#unsetValue()} method, but as this class (which is originally copied from C*) is
+   * full of static, we resort to that ugly ugly hack (please note that using {@link
+   * ByteBufferUtil#UNSET_BYTE_BUFFER} in this class would be wrong: the {@link ByteBufferUtil} we
+   * reference here is _not_ the one of the persistence API).
+   *
+   * <p>TODO: longer term, we should consider refactoring this to not be static.
+   */
+  public static void setUnsetValue(ByteBuffer unset) {
+    if (unsetValue != null) {
+      throw new IllegalStateException("The UNSET value has already be set");
+    }
+    unsetValue = unset;
+  }
 
   // Taken from Netty's ChannelBuffers.decodeString(). We need to use our own decoder to properly
   // handle invalid
@@ -366,9 +390,12 @@ public abstract class CBUtil {
       if (protocolVersion.isSmallerThan(
           ProtocolVersion.V4)) // backward compatibility for pre-version 4
       return null;
-      if (length == -1) return null;
-      else if (length == -2) return ByteBufferUtil.UNSET_BYTE_BUFFER;
-      else throw new ProtocolException("Invalid ByteBuf length " + length);
+      if (length == -1) {
+        return null;
+      } else if (length == -2) {
+        assert unsetValue != null : "The UNSET value should have been set by now";
+        return unsetValue;
+      } else throw new ProtocolException("Invalid ByteBuf length " + length);
     }
     return ByteBuffer.wrap(readRawBytes(cb, length));
   }
