@@ -62,7 +62,6 @@ import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.apache.cassandra.tracing.Tracing;
-import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.slf4j.Logger;
@@ -275,31 +274,48 @@ public class DsePersistence
       boolean isTracingRequested,
       long queryStartNanoTime) {
     try {
-      org.apache.cassandra.service.QueryState internalState = Conversion.toInternal(state);
-      org.apache.cassandra.cql3.QueryOptions internalOptions = Conversion.toInternal(options);
-
       return Conversion.toFuture(
           Single.defer(
-              () -> {
-                try {
-                  final UUID tracingId =
-                      beginTraceQuery(
-                          cql, internalState, internalOptions, customPayload, isTracingRequested);
+                  () -> {
+                    try {
+                      org.apache.cassandra.service.QueryState internalState =
+                          Conversion.toInternal(state);
+                      org.apache.cassandra.cql3.QueryOptions internalOptions =
+                          Conversion.toInternal(options);
 
-                  checkIsLoggedIn(internalState);
+                      checkIsLoggedIn(internalState);
 
-                  CQLStatement statement = QueryProcessor.parseStatement(cql, internalState);
-                  internalOptions.prepare(statement.getBindVariables());
+                      CQLStatement statement = QueryProcessor.parseStatement(cql, internalState);
 
-                  return processStatement(
-                      statement, state, options, customPayload, queryStartNanoTime, tracingId);
-                } catch (Exception e) {
-                  return Single.error(Conversion.handleException(e));
-                }
-              }));
+                      // Please note that this needs to happen _before_ the beginTraceQuery, because
+                      // when we add bound values to the trace, we rely on the values having been
+                      // re-ordered by the following prepare (if named values were used that is).
+                      internalOptions.prepare(statement.getBindVariables());
+
+                      final UUID tracingId =
+                          beginTraceQuery(
+                              cql,
+                              internalState,
+                              internalOptions,
+                              customPayload,
+                              isTracingRequested);
+                      return processStatement(
+                          statement,
+                          state,
+                          options,
+                          internalState,
+                          internalOptions,
+                          customPayload,
+                          queryStartNanoTime,
+                          tracingId);
+                    } catch (Exception e) {
+                      return stopTracingAndError(e);
+                    }
+                  })
+              .subscribeOn(TPC.bestTPCScheduler()));
     } catch (Exception e) {
       JVMStabilityInspector.inspectThrowable(e);
-      return stopTracingWithException(e);
+      return completeExceptionally(e);
     }
   }
 
@@ -312,43 +328,55 @@ public class DsePersistence
       boolean isTracingRequested,
       long queryStartNanoTime) {
     try {
-      org.apache.cassandra.service.QueryState internalState = Conversion.toInternal(state);
-      org.apache.cassandra.cql3.QueryOptions internalOptions = Conversion.toInternal(options);
-
       return Conversion.toFuture(
           Single.defer(
-              () -> {
-                try {
-                  QueryHandler.Prepared prepared = handler.getPrepared(Conversion.toInternal(id));
-                  if (prepared == null) {
-                    return Single.error(new PreparedQueryNotFoundException(id));
-                  }
+                  () -> {
+                    try {
+                      org.apache.cassandra.service.QueryState internalState =
+                          Conversion.toInternal(state);
+                      org.apache.cassandra.cql3.QueryOptions internalOptions =
+                          Conversion.toInternal(options);
 
-                  final CQLStatement statement = prepared.statement;
-                  // Please note that this needs to happen _before_ the beginTraceExecute, because
-                  // when we add bound values to the trace, we rely on the values having been
-                  // re-ordered by the following prepare (if named values were used that is).
-                  internalOptions.prepare(statement.getBindVariables());
+                      checkIsLoggedIn(internalState);
 
-                  final UUID tracingId =
-                      beginTraceExecute(
+                      QueryHandler.Prepared prepared =
+                          handler.getPrepared(Conversion.toInternal(id));
+                      if (prepared == null) {
+                        return Single.error(new PreparedQueryNotFoundException(id));
+                      }
+
+                      CQLStatement statement = prepared.statement;
+
+                      // Please note that this needs to happen _before_ the beginTraceExecute,
+                      // because
+                      // when we add bound values to the trace, we rely on the values having been
+                      // re-ordered by the following prepare (if named values were used that is).
+                      internalOptions.prepare(statement.getBindVariables());
+
+                      final UUID tracingId =
+                          beginTraceExecute(
+                              statement,
+                              internalState,
+                              internalOptions,
+                              customPayload,
+                              isTracingRequested);
+                      return processStatement(
                           statement,
+                          state,
+                          options,
                           internalState,
                           internalOptions,
                           customPayload,
-                          isTracingRequested);
-
-                  checkIsLoggedIn(internalState);
-
-                  return processStatement(
-                      statement, state, options, customPayload, queryStartNanoTime, tracingId);
-                } catch (Exception e) {
-                  return Single.error(Conversion.handleException(e));
-                }
-              }));
+                          queryStartNanoTime,
+                          tracingId);
+                    } catch (Exception e) {
+                      return stopTracingAndError(e);
+                    }
+                  })
+              .subscribeOn(TPC.bestTPCScheduler()));
     } catch (Exception e) {
       JVMStabilityInspector.inspectThrowable(e);
-      return stopTracingWithException(e);
+      return completeExceptionally(e);
     }
   }
 
@@ -359,24 +387,32 @@ public class DsePersistence
       Map<String, ByteBuffer> customPayload,
       boolean isTracingRequested) {
     try {
-      org.apache.cassandra.service.QueryState internalState = Conversion.toInternal(state);
-
-      final UUID tracingId =
-          beginTracePrepare(cql, internalState, customPayload, isTracingRequested);
-
       return Conversion.toFuture(
           Single.defer(
                   () -> {
-                    checkIsLoggedIn(internalState);
-                    return handler.prepare(cql, Conversion.toInternal(state), customPayload);
+                    try {
+                      org.apache.cassandra.service.QueryState internalState =
+                          Conversion.toInternal(state);
+
+                      checkIsLoggedIn(internalState);
+
+                      final UUID tracingId =
+                          beginTracePrepare(cql, internalState, customPayload, isTracingRequested);
+
+                      return handler
+                          .prepare(cql, Conversion.toInternal(state), customPayload)
+                          .map((result) -> Conversion.toPrepared(result).setTracingId(tracingId))
+                          .flatMap(
+                              result -> Tracing.instance.stopSessionAsync().toSingleDefault(result))
+                          .onErrorResumeNext((e) -> Single.error(Conversion.handleException(e)));
+                    } catch (Exception e) {
+                      return stopTracingAndError(e);
+                    }
                   })
-              .map((result) -> Conversion.toPrepared(result).setTracingId(tracingId))
-              .flatMap(result -> Tracing.instance.stopSessionAsync().toSingleDefault(result))
-              .onErrorResumeNext((e) -> Single.error(Conversion.handleException(e)))
               .subscribeOn(TPC.bestTPCScheduler()));
     } catch (Exception e) {
       JVMStabilityInspector.inspectThrowable(e);
-      return stopTracingWithException(e);
+      return completeExceptionally(e);
     }
   }
 
@@ -391,80 +427,89 @@ public class DsePersistence
       boolean isTracingRequested,
       long queryStartNanoTime) {
     try {
-      org.apache.cassandra.cql3.QueryOptions internalOptions = Conversion.toInternal(options);
-      org.apache.cassandra.service.QueryState internalState = Conversion.toInternal(state);
-
-      final UUID tracingId =
-          beginTraceBatch(internalState, internalOptions, customPayload, isTracingRequested);
-
-      QueryHandler handler = ClientState.getCQLQueryHandler();
-
-      Single<ResultMessage> resp =
-          Single.defer(
-              () -> {
-                checkIsLoggedIn(internalState);
-
-                List<Object> queryOrIdList = Conversion.toInternalQueryOrIds(queryOrIds);
-
-                List<QueryHandler.Prepared> prepared = new ArrayList<>(queryOrIdList.size());
-                for (int i = 0; i < queryOrIdList.size(); i++) {
-                  Object query = queryOrIdList.get(i);
-                  QueryHandler.Prepared p;
-                  if (query instanceof String) {
-                    CQLStatement statement =
-                        QueryProcessor.parseStatement(
-                            (String) query,
-                            internalState.cloneWithKeyspaceIfSet(options.getKeyspace()));
-                    p = new QueryHandler.Prepared(statement);
-                  } else {
-                    p = handler.getPrepared((org.apache.cassandra.utils.MD5Digest) query);
-                    if (p == null)
-                      throw new org.apache.cassandra.exceptions.PreparedQueryNotFoundException(
-                          (org.apache.cassandra.utils.MD5Digest) query);
-                  }
-
-                  List<ByteBuffer> queryValues = values.get(i);
-                  if (queryValues.size() != p.statement.getBindVariables().size())
-                    throw new InvalidRequestException(
-                        String.format(
-                            "There were %d markers(?) in CQL but %d bound variables",
-                            p.statement.getBindVariables().size(), queryValues.size()));
-
-                  prepared.add(p);
-                }
-
-                BatchQueryOptions batchOptions =
-                    BatchQueryOptions.withPerStatementVariables(
-                        internalOptions, values, queryOrIdList);
-                List<ModificationStatement> statements = new ArrayList<>(prepared.size());
-                for (int i = 0; i < prepared.size(); i++) {
-                  CQLStatement statement = prepared.get(i).statement;
-                  batchOptions.prepareStatement(i, statement.getBindVariables());
-
-                  if (!(statement instanceof ModificationStatement))
-                    throw new InvalidRequestException(
-                        "Invalid statement in batch: only UPDATE, INSERT and DELETE statements are allowed.");
-
-                  statements.add((ModificationStatement) statement);
-                }
-
-                BatchStatement batch = BatchStatement.of(Conversion.toInternal(type), statements);
-
-                return handler.processBatch(
-                    batch, internalState, batchOptions, null, queryStartNanoTime);
-              });
-
       return Conversion.toFuture(
-          resp.map(
-                  (result) ->
-                      Conversion.toResult(result, internalOptions.getProtocolVersion())
-                          .setTracingId(tracingId))
-              .flatMap(result -> Tracing.instance.stopSessionAsync().toSingleDefault(result))
-              .onErrorResumeNext((e) -> Single.error(Conversion.handleException(e)))
+          Single.defer(
+                  () -> {
+                    try {
+                      QueryHandler handler = ClientState.getCQLQueryHandler();
+
+                      org.apache.cassandra.cql3.QueryOptions internalOptions =
+                          Conversion.toInternal(options);
+                      org.apache.cassandra.service.QueryState internalState =
+                          Conversion.toInternal(state);
+
+                      checkIsLoggedIn(internalState);
+
+                      final UUID tracingId =
+                          beginTraceBatch(
+                              internalState, internalOptions, customPayload, isTracingRequested);
+
+                      List<Object> queryOrIdList = Conversion.toInternalQueryOrIds(queryOrIds);
+
+                      List<QueryHandler.Prepared> prepared = new ArrayList<>(queryOrIdList.size());
+                      for (int i = 0; i < queryOrIdList.size(); i++) {
+                        Object query = queryOrIdList.get(i);
+                        QueryHandler.Prepared p;
+                        if (query instanceof String) {
+                          CQLStatement statement =
+                              QueryProcessor.parseStatement(
+                                  (String) query,
+                                  internalState.cloneWithKeyspaceIfSet(options.getKeyspace()));
+                          p = new QueryHandler.Prepared(statement);
+                        } else {
+                          p = handler.getPrepared((org.apache.cassandra.utils.MD5Digest) query);
+                          if (p == null)
+                            throw new org.apache.cassandra.exceptions
+                                .PreparedQueryNotFoundException(
+                                (org.apache.cassandra.utils.MD5Digest) query);
+                        }
+
+                        List<ByteBuffer> queryValues = values.get(i);
+                        if (queryValues.size() != p.statement.getBindVariables().size())
+                          throw new InvalidRequestException(
+                              String.format(
+                                  "There were %d markers(?) in CQL but %d bound variables",
+                                  p.statement.getBindVariables().size(), queryValues.size()));
+
+                        prepared.add(p);
+                      }
+
+                      BatchQueryOptions batchOptions =
+                          BatchQueryOptions.withPerStatementVariables(
+                              internalOptions, values, queryOrIdList);
+                      List<ModificationStatement> statements = new ArrayList<>(prepared.size());
+                      for (int i = 0; i < prepared.size(); i++) {
+                        CQLStatement statement = prepared.get(i).statement;
+                        batchOptions.prepareStatement(i, statement.getBindVariables());
+
+                        if (!(statement instanceof ModificationStatement))
+                          throw new InvalidRequestException(
+                              "Invalid statement in batch: only UPDATE, INSERT and DELETE statements are allowed.");
+
+                        statements.add((ModificationStatement) statement);
+                      }
+
+                      BatchStatement batch =
+                          BatchStatement.of(Conversion.toInternal(type), statements);
+
+                      return handler
+                          .processBatch(
+                              batch, internalState, batchOptions, null, queryStartNanoTime)
+                          .map(
+                              (result) ->
+                                  Conversion.toResult(result, internalOptions.getProtocolVersion())
+                                      .setTracingId(tracingId))
+                          .flatMap(
+                              result -> Tracing.instance.stopSessionAsync().toSingleDefault(result))
+                          .onErrorResumeNext((e) -> Single.error(Conversion.handleException(e)));
+                    } catch (Exception e) {
+                      return stopTracingAndError(e);
+                    }
+                  })
               .subscribeOn(TPC.bestTPCScheduler()));
     } catch (Exception e) {
       JVMStabilityInspector.inspectThrowable(e);
-      return stopTracingWithException(e);
+      return completeExceptionally(e);
     }
   }
 
@@ -511,10 +556,20 @@ public class DsePersistence
       throw new org.apache.cassandra.exceptions.UnauthorizedException("You have not logged in");
   }
 
-  private CompletableFuture<Result> stopTracingWithException(Exception e) {
+  private static CompletableFuture<Result> completeExceptionally(Exception e) {
     CompletableFuture<Result> future = new CompletableFuture<>();
-    Tracing.instance.stopSessionAsync().subscribe(() -> future.completeExceptionally(e));
+    future.completeExceptionally(e);
     return future;
+  }
+
+  /**
+   * Stop the tracing session (synchronously) in cases where an exception happened before the
+   * request was processed normally, otherwise, in the normal case, {@link
+   * Tracing#stopSessionAsync()} is used to stop tracing.
+   */
+  private static Single<Result> stopTracingAndError(Exception e) {
+    Tracing.instance.stopSession();
+    return Single.error(Conversion.handleException(e));
   }
 
   private UUID beginTraceQuery(
@@ -618,16 +673,16 @@ public class DsePersistence
       CQLStatement statement,
       QueryState state,
       QueryOptions options,
+      org.apache.cassandra.service.QueryState internalState,
+      org.apache.cassandra.cql3.QueryOptions internalOptions,
       Map<String, ByteBuffer> customPayload,
       long queryStartNanoTime,
       UUID tracingId) {
     Single<Result> resp =
         interceptor.interceptQuery(
             handler, statement, state, options, customPayload, queryStartNanoTime);
-    if (resp == null) {
-      org.apache.cassandra.service.QueryState internalState = Conversion.toInternal(state);
-      org.apache.cassandra.cql3.QueryOptions internalOptions = Conversion.toInternal(options);
 
+    if (resp == null) {
       resp =
           handler
               .processStatement(
@@ -637,8 +692,7 @@ public class DsePersistence
 
     return resp.map(r -> r.setTracingId(tracingId))
         .flatMap(result -> Tracing.instance.stopSessionAsync().toSingleDefault(result))
-        .onErrorResumeNext((e) -> Single.error(Conversion.handleException(e)))
-        .subscribeOn(TPC.bestTPCScheduler());
+        .onErrorResumeNext((e) -> Single.error(Conversion.handleException(e)));
   }
 
   /**

@@ -132,7 +132,12 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
     Optional<String> name = testInfo.getTestMethod().map(Method::getName);
     assertThat(name).isPresent();
     String testName = name.get();
-    keyspace = "ks_" + testName;
+
+    keyspace = "ks_persistence_" + System.currentTimeMillis() + "_" + testName;
+    if (keyspace.length() > KEYSPACE_NAME_MAX_LENGTH) {
+      keyspace = keyspace.substring(0, KEYSPACE_NAME_MAX_LENGTH);
+    }
+
     table = testName;
   }
 

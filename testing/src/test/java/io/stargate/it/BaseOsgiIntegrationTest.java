@@ -78,6 +78,8 @@ public class BaseOsgiIntegrationTest {
     unFinal();
   }
 
+  protected static final int KEYSPACE_NAME_MAX_LENGTH = 48;
+
   public boolean enableAuth;
 
   protected final ClusterConnectionInfo backend;
@@ -352,7 +354,7 @@ public class BaseOsgiIntegrationTest {
             backend.datacenter(),
             backend.rack(),
             backend.isDse(),
-            !backend.isDse(),
+            false, // use StargateConfigSnitch to ensure pre-configured test DC name is used
             9043,
             jmxPort);
     System.setProperty("stargate.auth_api_enable_username_token", "true");
