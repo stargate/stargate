@@ -178,7 +178,7 @@ public class SchemaRegistryProvider implements SchemaProvider {
             String.format("The type for %s should be UNION but is: %s", schema, schema.getType()));
       }
       String fieldName = schema.getTypes().get(1).getName();
-      fields.name(fieldName).type(schema).noDefault();
+      fields.name(fieldName).type(schema).withDefault(null);
     }
   }
 

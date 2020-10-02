@@ -59,13 +59,13 @@ public class SchemasConstants {
             .fields()
             .name(PARTITION_KEY_NAME)
             .type(partitionKeyNullable)
-            .noDefault()
+            .withDefault(null)
             .name(CLUSTERING_KEY_NAME)
             .type(clusteringKeyNullable)
-            .noDefault()
+            .withDefault(null)
             .name(COLUMN_NAME)
             .type(columnNullable)
-            .noDefault()
+            .withDefault(null)
             .endRecord();
 
     VALUE_SCHEMA =
