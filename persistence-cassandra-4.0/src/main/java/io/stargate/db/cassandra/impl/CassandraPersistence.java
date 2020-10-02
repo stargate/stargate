@@ -276,6 +276,9 @@ public class CassandraPersistence
             CQLStatement statement =
                 QueryProcessor.parseStatement(cql, Conversion.toInternal(state.getClientState()));
             internalOptions.prepare(statement.getBindVariables());
+            if (statement.getBindVariables().size() != options.getValues().size()) {
+              throw new InvalidRequestException("Invalid amount of bind variables");
+            }
 
             Result result =
                 interceptor.interceptQuery(

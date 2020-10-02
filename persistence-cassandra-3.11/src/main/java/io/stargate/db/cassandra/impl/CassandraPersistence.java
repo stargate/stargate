@@ -294,6 +294,9 @@ public class CassandraPersistence
             ParsedStatement.Prepared prepared = QueryProcessor.parseStatement(cql, internalState);
             internalOptions.prepare(prepared.boundNames);
             CQLStatement statement = prepared.statement;
+            if (statement.getBoundTerms() != options.getValues().size()) {
+              throw new InvalidRequestException("Invalid amount of bind variables");
+            }
 
             Result result =
                 interceptor.interceptQuery(
