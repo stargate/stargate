@@ -62,6 +62,7 @@ import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.apache.cassandra.tracing.Tracing;
+import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -257,6 +258,11 @@ public class DsePersistence
   @Override
   public Authenticator getAuthenticator() {
     return authenticator;
+  }
+
+  @Override
+  public ByteBuffer unsetValue() {
+    return ByteBufferUtil.UNSET_BYTE_BUFFER;
   }
 
   @Override
