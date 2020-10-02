@@ -82,6 +82,12 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>io.stargate.db.dse</groupId>
+      <artifactId>persistence-dse-6.8</artifactId>
+      <version>0.0.5-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>io.stargate.auth.api</groupId>
       <artifactId>auth-api</artifactId>
       <version>0.0.12-SNAPSHOT</version>
@@ -240,9 +246,6 @@
               <goal>integration-test</goal>
             </goals>
             <configuration>
-              <systemPropertyVariables>
-                <stargate.libdir>${basedir}/../stargate-lib</stargate.libdir>
-              </systemPropertyVariables>
               <failIfNoTests>true</failIfNoTests>
               <reportsDirectory>target/failsafe-reports/cassandra-3.11</reportsDirectory>
               <summaryFile>target/failsafe-reports/summary-cassandra-3.11.xml</summaryFile>
@@ -260,11 +263,29 @@
               <systemPropertyVariables>
                 <ccm.version>4.0-beta2</ccm.version>
                 <stargate.test.nodes>1</stargate.test.nodes>
-                <stargate.libdir>${basedir}/../stargate-lib</stargate.libdir>
               </systemPropertyVariables>
               <failIfNoTests>true</failIfNoTests>
               <reportsDirectory>target/failsafe-reports/cassandra-4.0</reportsDirectory>
               <summaryFile>target/failsafe-reports/summary-cassandra-4.0.xml</summaryFile>
+              <includes>
+                <include>**/*.java</include>
+              </includes>
+            </configuration>
+          </execution>
+          <execution>
+            <id>dse-6.8</id>
+            <goals>
+              <goal>integration-test</goal>
+            </goals>
+            <configuration>
+              <systemPropertyVariables>
+                <ccm.dse>true</ccm.dse>
+                <ccm.version>6.8.4</ccm.version>
+                <stargate.test.nodes>1</stargate.test.nodes>
+              </systemPropertyVariables>
+              <failIfNoTests>true</failIfNoTests>
+              <reportsDirectory>target/failsafe-reports/dse-6.8</reportsDirectory>
+              <summaryFile>target/failsafe-reports/summary-dse-6.8.xml</summaryFile>
               <includes>
                 <include>**/*.java</include>
               </includes>
@@ -280,6 +301,7 @@
               <summaryFiles>
                 <summaryFile>target/failsafe-reports/summary-cassandra-3.11.xml</summaryFile>
                 <summaryFile>target/failsafe-reports/summary-cassandra-4.0.xml</summaryFile>
+                <summaryFile>target/failsafe-reports/summary-dse-6.8.xml</summaryFile>
               </summaryFiles>
             </configuration>
           </execution>
