@@ -303,8 +303,7 @@ public class DsePersistence
                           queryStartNanoTime,
                           tracingId);
                     } catch (Exception e) {
-                      Tracing.instance.stopSession();
-                      return Single.error(Conversion.handleException(e));
+                      return stopTracingAndError(e);
                     }
                   })
               .subscribeOn(TPC.bestTPCScheduler()));
@@ -365,8 +364,7 @@ public class DsePersistence
                           queryStartNanoTime,
                           tracingId);
                     } catch (Exception e) {
-                      Tracing.instance.stopSession();
-                      return Single.error(Conversion.handleException(e));
+                      return stopTracingAndError(e);
                     }
                   })
               .subscribeOn(TPC.bestTPCScheduler()));
@@ -402,8 +400,7 @@ public class DsePersistence
                               result -> Tracing.instance.stopSessionAsync().toSingleDefault(result))
                           .onErrorResumeNext((e) -> Single.error(Conversion.handleException(e)));
                     } catch (Exception e) {
-                      Tracing.instance.stopSession();
-                      return Single.error(Conversion.handleException(e));
+                      return stopTracingAndError(e);
                     }
                   })
               .subscribeOn(TPC.bestTPCScheduler()));
@@ -500,8 +497,7 @@ public class DsePersistence
                               result -> Tracing.instance.stopSessionAsync().toSingleDefault(result))
                           .onErrorResumeNext((e) -> Single.error(Conversion.handleException(e)));
                     } catch (Exception e) {
-                      Tracing.instance.stopSession();
-                      return Single.error(Conversion.handleException(e));
+                      return stopTracingAndError(e);
                     }
                   })
               .subscribeOn(TPC.bestTPCScheduler()));
@@ -558,6 +554,16 @@ public class DsePersistence
     CompletableFuture<Result> future = new CompletableFuture<>();
     future.completeExceptionally(e);
     return future;
+  }
+
+  /**
+   * Stop the tracing session (synchronously) in cases where an exception happened before the
+   * request was processed normally, otherwise, in the normal case, {@link
+   * Tracing#stopSessionAsync()} is used to stop tracing.
+   */
+  private static Single<Result> stopTracingAndError(Exception e) {
+    Tracing.instance.stopSession();
+    return Single.error(Conversion.handleException(e));
   }
 
   private UUID beginTraceQuery(
