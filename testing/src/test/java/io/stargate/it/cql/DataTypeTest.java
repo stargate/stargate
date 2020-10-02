@@ -43,7 +43,6 @@ import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
@@ -268,7 +267,6 @@ public class DataTypeTest extends JavaDriverTestBase {
     return typeSample(udtType, GenericType.UDT_VALUE, udtValue, columnName);
   }
 
-  @NotNull
   private static InetAddress sampleInet() {
     InetAddress address;
     try {
