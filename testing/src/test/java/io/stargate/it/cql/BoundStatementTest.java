@@ -89,7 +89,6 @@ public class BoundStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  @Disabled("Doesn't seem to work at the moment")
   public void should_not_write_tombstone_if_value_is_implicitly_unset() {
     PreparedStatement prepared = session.prepare("INSERT INTO test2 (k, v0) values (?, ?)");
     session.execute(prepared.bind(KEY, VALUE));
@@ -103,7 +102,6 @@ public class BoundStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  @Disabled("Doesn't seem to work at the moment")
   public void should_not_write_tombstone_if_value_is_explicitly_unset() {
     PreparedStatement prepared = session.prepare("INSERT INTO test2 (k, v0) values (?, ?)");
     BoundStatement boundStatement = prepared.bind(KEY, VALUE);
