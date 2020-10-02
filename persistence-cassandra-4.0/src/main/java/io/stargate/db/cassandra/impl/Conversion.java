@@ -133,6 +133,11 @@ public class Conversion {
         : org.apache.cassandra.transport.ProtocolVersion.decode(protocolVersion.asInt(), true);
   }
 
+  public static ProtocolVersion toExternal(
+      org.apache.cassandra.transport.ProtocolVersion protocolVersion) {
+    return protocolVersion == null ? null : ProtocolVersion.decode(protocolVersion.asInt(), true);
+  }
+
   public static org.apache.cassandra.stargate.locator.InetAddressAndPort toExternal(
       InetAddressAndPort internal) {
     return org.apache.cassandra.stargate.locator.InetAddressAndPort.getByAddressOverrideDefaults(
@@ -180,8 +185,6 @@ public class Conversion {
     switch (e.code()) {
       case SERVER_ERROR:
         return new ServerError(e.getMessage());
-      case PROTOCOL_ERROR:
-        return new ProtocolException(e.getMessage());
       case BAD_CREDENTIALS:
         return new AuthenticationException(e.getMessage(), e.getCause());
       case UNAVAILABLE:
@@ -358,11 +361,20 @@ public class Conversion {
   }
 
   public static void handleException(CompletableFuture<?> future, Throwable t) {
-    if (t instanceof org.apache.cassandra.exceptions.UnauthorizedException)
-      future.completeExceptionally(DataStore.UnauthorizedException.rbac(t));
-    else if (t instanceof CassandraException)
-      future.completeExceptionally(Conversion.toExternal((CassandraException) t));
-    else future.completeExceptionally(t);
+    Throwable e = t;
+
+    if (t instanceof org.apache.cassandra.exceptions.UnauthorizedException) {
+      e = DataStore.UnauthorizedException.rbac(t);
+    } else if (t instanceof CassandraException) {
+      e = Conversion.toExternal((CassandraException) t);
+    } else if (t instanceof org.apache.cassandra.transport.ProtocolException) {
+      // Note that ProtocolException is not a CassandraException
+      org.apache.cassandra.transport.ProtocolException ex =
+          (org.apache.cassandra.transport.ProtocolException) t;
+      e = new ProtocolException(t.getMessage(), toExternal(ex.getForcedProtocolVersion()));
+    }
+
+    future.completeExceptionally(e);
   }
 
   public static List<Object> toInternalQueryOrIds(List<Object> queryOrIds) {
