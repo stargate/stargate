@@ -17,7 +17,6 @@ import com.datastax.oss.driver.api.core.servererrors.ProtocolError;
 import com.google.common.collect.ImmutableMap;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class SimpleStatementTest extends JavaDriverTestBase {
@@ -61,8 +60,6 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  @Disabled(
-      "C* 3.11 throws 'InvalidQueryException: Invalid amount of bind variables', Stargate doesn't throw")
   public void should_fail_when_too_many_positional_values_provided() {
     assertThatThrownBy(
             () -> session.execute("INSERT into test2 (k, v) values (?, ?)", KEY, 1, 2, 3))
@@ -70,8 +67,6 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  @Disabled(
-      "C* 3.11 returns an InvalidQueryException, Stargate returns a ServerError(IndexOutOfBoundsException)")
   public void should_fail_when_not_enough_positional_values_provided() {
     // For SELECT queries, all values must be filled
     assertThatThrownBy(() -> session.execute("SELECT * from test where k = ? and v = ?", KEY))
@@ -100,8 +95,6 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  @Disabled(
-      "C* 3.11 returns an InvalidQueryException, Stargate returns a ServerError(IndexOutOfBoundsException)")
   public void should_fail_when_named_value_missing() {
     // For SELECT queries, all values must be filled
     assertThatThrownBy(

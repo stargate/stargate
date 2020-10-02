@@ -16,7 +16,6 @@ import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.servererrors.ProtocolError;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -81,7 +80,6 @@ public class BoundStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  @Disabled("Returns an empty result set instead of failing")
   public void should_fail_if_missing_values() {
     PreparedStatement prepared = session.prepare("SELECT v FROM test3 WHERE pk1=? and pk2=?");
     assertThatThrownBy(() -> session.execute(prepared.bind(1)))
