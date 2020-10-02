@@ -13,6 +13,9 @@ import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import java.net.InetSocketAddress;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.jcip.annotations.NotThreadSafe;
 import org.junit.jupiter.api.AfterEach;
@@ -37,25 +40,7 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
 
   @BeforeEach
   public void before() {
-    OptionsMap config = OptionsMap.driverDefaults();
-    config.put(TypedDriverOption.METADATA_TOKEN_MAP_ENABLED, false);
-    config.put(
-        TypedDriverOption.LOAD_BALANCING_POLICY_CLASS,
-        DcInferringLoadBalancingPolicy.class.getName());
-    config.put(TypedDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(5));
-    config.put(TypedDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(5));
-    config.put(TypedDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5));
-    config.put(TypedDriverOption.REQUEST_WARN_IF_SET_KEYSPACE, false);
-    customizeConfig(config);
-
-    CqlSessionBuilder builder = CqlSession.builder();
-    customizeBuilder(builder);
-    session =
-        builder
-            .withConfigLoader(DriverConfigLoader.fromMap(config))
-            .withAuthCredentials("cassandra", "cassandra")
-            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
-            .build();
+    session = buildSession(buildDriverConfigLoader());
 
     keyspaceId =
         CqlIdentifier.fromInternal("JavaDriverTest" + KEYSPACE_NAME_COUNTER.getAndIncrement());
@@ -88,6 +73,43 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
    */
   protected void customizeBuilder(CqlSessionBuilder builder) {
     // nothing by default
+  }
+
+  protected DriverConfigLoader buildDriverConfigLoader() {
+    return buildDriverConfigLoader(Collections.EMPTY_MAP);
+  }
+
+  protected <T> DriverConfigLoader buildDriverConfigLoader(Map<TypedDriverOption<T>, T> options) {
+
+    OptionsMap config = OptionsMap.driverDefaults();
+    config.put(TypedDriverOption.METADATA_TOKEN_MAP_ENABLED, false);
+    config.put(
+        TypedDriverOption.LOAD_BALANCING_POLICY_CLASS,
+        DcInferringLoadBalancingPolicy.class.getName());
+    config.put(TypedDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(5));
+    config.put(TypedDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(5));
+    config.put(TypedDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5));
+    config.put(TypedDriverOption.REQUEST_WARN_IF_SET_KEYSPACE, false);
+    options.forEach((opt, val) -> config.put(opt, val));
+    customizeConfig(config);
+
+    return DriverConfigLoader.fromMap(config);
+  }
+
+  protected CqlSession buildSession(DriverConfigLoader loader) {
+    return buildSession(loader, Optional.empty());
+  }
+
+  protected CqlSession buildSession(DriverConfigLoader loader, Optional<CqlIdentifier> keyspace) {
+
+    CqlSessionBuilder builder =
+        CqlSession.builder()
+            .withConfigLoader(loader)
+            .withAuthCredentials("cassandra", "cassandra")
+            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043));
+    keyspace.ifPresent((ks) -> builder.withKeyspace(ks));
+    customizeBuilder(builder);
+    return builder.build();
   }
 
   // TODO generalize this to an ExecutionCondition that reads custom annotations, like
