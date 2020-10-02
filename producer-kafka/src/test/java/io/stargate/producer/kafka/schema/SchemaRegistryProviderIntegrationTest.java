@@ -208,6 +208,56 @@ public class SchemaRegistryProviderIntegrationTest {
             "Schema being registered is incompatible with an earlier schema; error code: 409");
   }
 
+  @ParameterizedTest
+  @MethodSource("renameColumnsProvider")
+  public void shouldAllowRenamingColumnBecauseChangeIsBackwardCompatible(
+      Consumer<TableMetadata> tableMetadataModification) {
+    // given
+    TableMetadata tableMetadata = mockTableMetadata();
+    DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
+    SchemaRegistryProvider schemaRegistryProvider =
+        new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
+
+    // when
+    schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
+
+    // and when remove a column
+    tableMetadataModification.accept(tableMetadata);
+
+    schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
+
+    // then should retrieve new schema
+    assertThat(
+            schemaRegistryProvider.getKeySchemaForTopic(
+                mappingService.getTopicNameFromTableMetadata(tableMetadata)))
+        .isNotNull();
+    assertThat(
+            schemaRegistryProvider.getValueSchemaForTopic(
+                mappingService.getTopicNameFromTableMetadata(tableMetadata)))
+        .isNotNull();
+  }
+
+  @Test
+  public void shouldNotAllowRenamingPKBecauseChangeIsNotBackwardCompatible() {
+    // given
+    TableMetadata tableMetadata = mockTableMetadata();
+    DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
+    SchemaRegistryProvider schemaRegistryProvider =
+        new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
+
+    // when
+    schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
+
+    // and when rename a PK
+    when(tableMetadata.getPartitionKeys())
+        .thenReturn(
+            Collections.singletonList(partitionKey(PARTITION_KEY_NAME + "_renamed", Native.TEXT)));
+    assertThatThrownBy(() -> schemaRegistryProvider.createOrUpdateSchema(tableMetadata))
+        .hasRootCauseInstanceOf(RestClientException.class)
+        .hasRootCauseMessage(
+            "Schema being registered is incompatible with an earlier schema; error code: 409");
+  }
+
   public static Stream<Arguments> newColumnsProvider() {
     return Stream.of(
         Arguments.of(
@@ -241,6 +291,25 @@ public class SchemaRegistryProviderIntegrationTest {
                 tableMetadata -> {
                   when(tableMetadata.getClusteringKeys()).thenReturn(Collections.emptyList());
                 })); // remove clustering column
+  }
+
+  public static Stream<Arguments> renameColumnsProvider() {
+    return Stream.of(
+        Arguments.of(
+            (Consumer<TableMetadata>)
+                tableMetadata -> {
+                  when(tableMetadata.getColumns())
+                      .thenReturn(
+                          Collections.singletonList(column(COLUMN_NAME + "_renamed", Native.TEXT)));
+                }), // rename column
+        Arguments.of(
+            (Consumer<TableMetadata>)
+                tableMetadata -> {
+                  when(tableMetadata.getClusteringKeys())
+                      .thenReturn(
+                          Collections.singletonList(
+                              clusteringKey(CLUSTERING_KEY_NAME + "_renamed", Native.INT)));
+                })); // rename clustering column
   }
 
   private TableMetadata mockTableMetadata() {
