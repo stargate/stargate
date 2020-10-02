@@ -626,6 +626,47 @@ public class CQLTest extends BaseOsgiIntegrationTest {
         .hasMessageContaining("already exists");
   }
 
+  @Test
+  public void tooFewBindVariables() {
+    createTable();
+
+    assertThatThrownBy(
+            () -> {
+              session.execute(
+                  session
+                      .prepare(selectFromQuery(true))
+                      .bind()); // No variable when one is required
+            })
+        .isInstanceOf(InvalidQueryException.class)
+        .hasMessage("Invalid unset value for column key");
+
+    assertThatThrownBy(
+            () -> {
+              session.execute(
+                  new SimpleStatementBuilder(
+                          selectFromQuery(true)) // No variable when one is required
+                      .build());
+            })
+        .isInstanceOf(InvalidQueryException.class)
+        .hasMessage("there were 1 markers(?) in CQL but 0 bound variables");
+  }
+
+  @Test
+  public void tooManyBindVariables() {
+    createTable();
+
+    assertThatThrownBy(
+            () -> {
+              session.execute(
+                  new SimpleStatementBuilder(selectFromQuery(true))
+                      .addPositionalValue("abc")
+                      .addPositionalValue("def") // Too many variables
+                      .build());
+            })
+        .isInstanceOf(InvalidQueryException.class)
+        .hasMessage("there were 1 markers(?) in CQL but 2 bound variables");
+  }
+
   @Disabled("Enable when persistence backends support auth in tests")
   @Test
   public void invalidCredentials() {
