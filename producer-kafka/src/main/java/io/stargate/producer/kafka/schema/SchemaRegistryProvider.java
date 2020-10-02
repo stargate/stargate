@@ -121,7 +121,7 @@ public class SchemaRegistryProvider implements SchemaProvider {
       return schemaRegistryClient.register(subject, schema);
     } catch (IOException | RestClientException e) {
       throw new RuntimeException(
-          "Problem when create or update key schema for tableMetadata: " + tableMetadata, e);
+          "Problem when create or update key schema for subject: " + subject, e);
     }
   }
 

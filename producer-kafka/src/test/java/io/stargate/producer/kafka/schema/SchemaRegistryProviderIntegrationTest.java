@@ -32,11 +32,18 @@ import io.stargate.producer.kafka.mapping.DefaultMappingService;
 import java.net.ServerSocket;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 import org.apache.cassandra.stargate.schema.CQLType.Native;
 import org.apache.cassandra.stargate.schema.TableMetadata;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 
@@ -70,7 +77,7 @@ public class SchemaRegistryProviderIntegrationTest {
   public void shouldAllowUpdatingTheSameSchema() {
     // given
     TableMetadata tableMetadata = mockTableMetadata();
-    DefaultMappingService mappingService = new DefaultMappingService("prefix");
+    DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
 
@@ -101,11 +108,13 @@ public class SchemaRegistryProviderIntegrationTest {
         .isNotNull();
   }
 
-  @Test
-  public void shouldAllowAddingNewColumnBecauseChangeIsBackwardCompatible() {
+  @ParameterizedTest
+  @MethodSource("newColumnsProvider")
+  public void shouldAllowAddingNewColumnBecauseChangeIsBackwardCompatible(
+      Consumer<TableMetadata> tableMetadataModification) {
     // given
     TableMetadata tableMetadata = mockTableMetadata();
-    DefaultMappingService mappingService = new DefaultMappingService("prefix-2");
+    DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
 
@@ -113,9 +122,7 @@ public class SchemaRegistryProviderIntegrationTest {
     schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
 
     // and when add a new column
-    when(tableMetadata.getColumns())
-        .thenReturn(Arrays.asList(column(COLUMN_NAME, Native.TEXT), column("col_2", Native.TEXT)));
-
+    tableMetadataModification.accept(tableMetadata);
     schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
 
     // then should retrieve new schema
@@ -130,10 +137,36 @@ public class SchemaRegistryProviderIntegrationTest {
   }
 
   @Test
-  public void shouldAllowRemovingColumnBecauseChangeIsBackwardCompatible() {
+  public void shouldNotAllowAddingNewPKBecauseChangeIsNotBackwardCompatible() {
     // given
     TableMetadata tableMetadata = mockTableMetadata();
-    DefaultMappingService mappingService = new DefaultMappingService("prefix-3");
+    DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
+    SchemaRegistryProvider schemaRegistryProvider =
+        new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
+
+    // when
+    schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
+
+    // and when add a new column
+    when(tableMetadata.getPartitionKeys())
+        .thenReturn(
+            Arrays.asList(
+                partitionKey(PARTITION_KEY_NAME, Native.TEXT), partitionKey("pk_2", Native.TEXT)));
+
+    // then
+    assertThatThrownBy(() -> schemaRegistryProvider.createOrUpdateSchema(tableMetadata))
+        .hasRootCauseInstanceOf(RestClientException.class)
+        .hasRootCauseMessage(
+            "Schema being registered is incompatible with an earlier schema; error code: 409");
+  }
+
+  @ParameterizedTest
+  @MethodSource("removeColumnsProvider")
+  public void shouldAllowRemovingColumnBecauseChangeIsBackwardCompatible(
+      Consumer<TableMetadata> tableMetadataModification) {
+    // given
+    TableMetadata tableMetadata = mockTableMetadata();
+    DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
 
@@ -141,7 +174,7 @@ public class SchemaRegistryProviderIntegrationTest {
     schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
 
     // and when remove a column
-    when(tableMetadata.getColumns()).thenReturn(Collections.emptyList());
+    tableMetadataModification.accept(tableMetadata);
 
     schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
 
@@ -157,11 +190,10 @@ public class SchemaRegistryProviderIntegrationTest {
   }
 
   @Test
-  public void shouldNotAllowRemovingPKBecauseChangeIsNotBackwardCompatible()
-      throws InterruptedException {
+  public void shouldNotAllowRemovingPKBecauseChangeIsNotBackwardCompatible() {
     // given
     TableMetadata tableMetadata = mockTableMetadata();
-    DefaultMappingService mappingService = new DefaultMappingService("prefix-4");
+    DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
 
@@ -176,6 +208,41 @@ public class SchemaRegistryProviderIntegrationTest {
             "Schema being registered is incompatible with an earlier schema; error code: 409");
   }
 
+  public static Stream<Arguments> newColumnsProvider() {
+    return Stream.of(
+        Arguments.of(
+            (Consumer<TableMetadata>)
+                tableMetadata -> {
+                  when(tableMetadata.getColumns())
+                      .thenReturn(
+                          Arrays.asList(
+                              column(COLUMN_NAME, Native.TEXT), column("col_2", Native.TEXT)));
+                }), // new column
+        Arguments.of(
+            (Consumer<TableMetadata>)
+                tableMetadata -> {
+                  when(tableMetadata.getClusteringKeys())
+                      .thenReturn(
+                          Arrays.asList(
+                              clusteringKey(CLUSTERING_KEY_NAME, Native.INT),
+                              clusteringKey("CK_2", Native.TEXT)));
+                })); // new clustering column
+  }
+
+  public static Stream<Arguments> removeColumnsProvider() {
+    return Stream.of(
+        Arguments.of(
+            (Consumer<TableMetadata>)
+                tableMetadata -> {
+                  when(tableMetadata.getColumns()).thenReturn(Collections.emptyList());
+                }), // remove column
+        Arguments.of(
+            (Consumer<TableMetadata>)
+                tableMetadata -> {
+                  when(tableMetadata.getClusteringKeys()).thenReturn(Collections.emptyList());
+                })); // remove clustering column
+  }
+
   private TableMetadata mockTableMetadata() {
     TableMetadata tableMetadata = mock(TableMetadata.class);
     when(tableMetadata.getKeyspace()).thenReturn("keyspaceName");
@@ -187,5 +254,10 @@ public class SchemaRegistryProviderIntegrationTest {
     when(tableMetadata.getColumns())
         .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
     return tableMetadata;
+  }
+
+  @NotNull
+  private String generatePrefix() {
+    return "prefix" + UUID.randomUUID().toString();
   }
 }
