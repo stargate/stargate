@@ -46,10 +46,6 @@ public class SchemaRegistryProvider implements SchemaProvider {
 
   private final SchemaRegistryClient schemaRegistryClient;
 
-  private int keySchemaId;
-
-  private int valueSchemaId;
-
   private MappingService mappingService;
 
   public SchemaRegistryProvider(String schemaRegistryUrl, MappingService mappingService) {
@@ -67,13 +63,13 @@ public class SchemaRegistryProvider implements SchemaProvider {
   @Override
   public Schema getKeySchemaForTopic(String topicName) {
     String subjectName = constructKeyRecordName(topicName);
-    return getSchemaBySubjectAndId(subjectName, keySchemaId);
+    return getLatestSchemaBySubject(subjectName);
   }
 
   @Override
   public Schema getValueSchemaForTopic(String topicName) {
     String subjectName = constructValueRecordName(topicName);
-    return getSchemaBySubjectAndId(subjectName, valueSchemaId);
+    return getLatestSchemaBySubject(subjectName);
   }
 
   @Override
@@ -82,16 +78,20 @@ public class SchemaRegistryProvider implements SchemaProvider {
     createOrUpdateValueSchema(tableMetadata);
   }
 
-  private Schema getSchemaBySubjectAndId(String subjectName, int keySchemaId) {
+  private Schema getLatestSchemaBySubject(String subjectName) {
+    int latestSchemaId = -1;
     try {
-      return ((Schema)
-          schemaRegistryClient.getSchemaBySubjectAndId(subjectName, keySchemaId).rawSchema());
+      // be careful - possible race condition, if between getLatestSchemaMetadata and
+      // getSchemaBySubjectAndId the createOrUpdateSchema is called
+      latestSchemaId = schemaRegistryClient.getLatestSchemaMetadata(subjectName).getId();
+      return (Schema)
+          schemaRegistryClient.getSchemaBySubjectAndId(subjectName, latestSchemaId).rawSchema();
     } catch (IOException | RestClientException e) {
       throw new RuntimeException(
           "Problem when get key schema for subject: "
               + subjectName
               + " and schema id: "
-              + keySchemaId,
+              + latestSchemaId,
           e);
     }
   }
@@ -100,28 +100,25 @@ public class SchemaRegistryProvider implements SchemaProvider {
     ParsedSchema valueSchema = new AvroSchema(constructValueSchema(tableMetadata));
     String subject = constructValueRecordName(tableMetadata);
 
-    valueSchemaId = registerSchema(tableMetadata, valueSchema, subject);
+    int schemaId = registerSchema(tableMetadata, valueSchema, subject);
 
     logger.info(
-        "Registered valueSchema: {}, for subject: {} and id: {}",
-        valueSchema,
-        subject,
-        valueSchemaId);
+        "Registered valueSchema: {}, for subject: {} and id: {}", valueSchema, subject, schemaId);
   }
 
   private void createOrUpdateKeySchema(TableMetadata tableMetadata) {
     ParsedSchema keySchema = new AvroSchema(constructKeySchema(tableMetadata));
     String subject = constructKeyRecordName(tableMetadata);
 
-    keySchemaId = registerSchema(tableMetadata, keySchema, subject);
+    int schemaId = registerSchema(tableMetadata, keySchema, subject);
 
     logger.info(
-        "Registered keySchema: {}, for subject: {} and id: {}", keySchema, subject, keySchemaId);
+        "Registered keySchema: {}, for subject: {} and id: {}", keySchema, subject, schemaId);
   }
 
-  private int registerSchema(TableMetadata tableMetadata, ParsedSchema keySchema, String subject) {
+  private int registerSchema(TableMetadata tableMetadata, ParsedSchema schema, String subject) {
     try {
-      return schemaRegistryClient.register(subject, keySchema);
+      return schemaRegistryClient.register(subject, schema);
     } catch (IOException | RestClientException e) {
       throw new RuntimeException(
           "Problem when create or update key schema for tableMetadata: " + tableMetadata, e);
