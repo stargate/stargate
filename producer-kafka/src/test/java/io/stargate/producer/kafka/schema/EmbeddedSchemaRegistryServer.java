@@ -46,6 +46,9 @@ public class EmbeddedSchemaRegistryServer implements Closeable {
     props.put(SchemaRegistryConfig.LISTENERS_CONFIG, schemaRegistryUrl);
     props.put(SchemaRegistryConfig.KAFKASTORE_CONNECTION_URL_CONFIG, kafkaConnectionUrl);
     props.put(SchemaRegistryConfig.KAFKASTORE_BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+    // we should recommend to our clients that they should run the schema-registry with
+    // full_transitive compatibility level.
+    props.put(SchemaRegistryConfig.SCHEMA_COMPATIBILITY_CONFIG, "full_transitive");
 
     SchemaRegistryConfig config = new SchemaRegistryConfig(props);
     SchemaRegistryRestApplication app = new SchemaRegistryRestApplication(config);
@@ -57,7 +60,8 @@ public class EmbeddedSchemaRegistryServer implements Closeable {
       LOGGER.error("Error when starting schema registry", ex);
     }
 
-    LOGGER.info("Schema Registry server started, listening for requests...");
+    LOGGER.info(
+        "Schema Registry server started on: {}, listening for requests...", schemaRegistryUrl);
   }
 
   @Override

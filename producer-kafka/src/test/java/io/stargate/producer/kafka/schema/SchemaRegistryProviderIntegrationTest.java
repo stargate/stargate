@@ -22,10 +22,12 @@ import static io.stargate.producer.kafka.schema.SchemasConstants.CLUSTERING_KEY_
 import static io.stargate.producer.kafka.schema.SchemasConstants.COLUMN_NAME;
 import static io.stargate.producer.kafka.schema.SchemasConstants.PARTITION_KEY_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testcontainers.containers.KafkaContainer.ZOOKEEPER_PORT;
 
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.stargate.producer.kafka.mapping.DefaultMappingService;
 import java.net.ServerSocket;
 import java.util.Arrays;
@@ -71,12 +73,6 @@ public class SchemaRegistryProviderIntegrationTest {
     DefaultMappingService mappingService = new DefaultMappingService("prefix");
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
-    when(tableMetadata.getPartitionKeys())
-        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
-    when(tableMetadata.getClusteringKeys())
-        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
-    when(tableMetadata.getColumns())
-        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
 
     // when
     schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
@@ -112,12 +108,7 @@ public class SchemaRegistryProviderIntegrationTest {
     DefaultMappingService mappingService = new DefaultMappingService("prefix-2");
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
-    when(tableMetadata.getPartitionKeys())
-        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
-    when(tableMetadata.getClusteringKeys())
-        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
-    when(tableMetadata.getColumns())
-        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
+
     // when
     schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
 
@@ -127,7 +118,7 @@ public class SchemaRegistryProviderIntegrationTest {
 
     schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
 
-    // then should not updated ids
+    // then should retrieve new schema
     assertThat(
             schemaRegistryProvider.getKeySchemaForTopic(
                 mappingService.getTopicNameFromTableMetadata(tableMetadata)))
@@ -138,10 +129,63 @@ public class SchemaRegistryProviderIntegrationTest {
         .isNotNull();
   }
 
+  @Test
+  public void shouldAllowRemovingColumnBecauseChangeIsBackwardCompatible() {
+    // given
+    TableMetadata tableMetadata = mockTableMetadata();
+    DefaultMappingService mappingService = new DefaultMappingService("prefix-3");
+    SchemaRegistryProvider schemaRegistryProvider =
+        new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
+
+    // when
+    schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
+
+    // and when remove a column
+    when(tableMetadata.getColumns()).thenReturn(Collections.emptyList());
+
+    schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
+
+    // then should retrieve new schema
+    assertThat(
+            schemaRegistryProvider.getKeySchemaForTopic(
+                mappingService.getTopicNameFromTableMetadata(tableMetadata)))
+        .isNotNull();
+    assertThat(
+            schemaRegistryProvider.getValueSchemaForTopic(
+                mappingService.getTopicNameFromTableMetadata(tableMetadata)))
+        .isNotNull();
+  }
+
+  @Test
+  public void shouldNotAllowRemovingPKBecauseChangeIsNotBackwardCompatible()
+      throws InterruptedException {
+    // given
+    TableMetadata tableMetadata = mockTableMetadata();
+    DefaultMappingService mappingService = new DefaultMappingService("prefix-4");
+    SchemaRegistryProvider schemaRegistryProvider =
+        new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
+
+    // when
+    schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
+
+    // and when remove a column
+    when(tableMetadata.getPartitionKeys()).thenReturn(Collections.emptyList());
+    assertThatThrownBy(() -> schemaRegistryProvider.createOrUpdateSchema(tableMetadata))
+        .hasRootCauseInstanceOf(RestClientException.class)
+        .hasRootCauseMessage(
+            "Schema being registered is incompatible with an earlier schema; error code: 409");
+  }
+
   private TableMetadata mockTableMetadata() {
     TableMetadata tableMetadata = mock(TableMetadata.class);
     when(tableMetadata.getKeyspace()).thenReturn("keyspaceName");
     when(tableMetadata.getName()).thenReturn("tableName");
+    when(tableMetadata.getPartitionKeys())
+        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
+    when(tableMetadata.getClusteringKeys())
+        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
+    when(tableMetadata.getColumns())
+        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
     return tableMetadata;
   }
 }
