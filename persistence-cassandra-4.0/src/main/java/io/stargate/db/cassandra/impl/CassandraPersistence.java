@@ -65,6 +65,7 @@ import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.apache.cassandra.tracing.Tracing;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.transport.messages.ResultMessage;
+import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.apache.cassandra.utils.UUIDGen;
 import org.slf4j.Logger;
@@ -198,6 +199,11 @@ public class CassandraPersistence
       QueryState<org.apache.cassandra.service.QueryState> state, QueryOptions queryOptions) {
     return new InternalDataStore(
         this, Conversion.toInternal(state), Conversion.toInternal(queryOptions));
+  }
+
+  @Override
+  public ByteBuffer unsetValue() {
+    return ByteBufferUtil.UNSET_BYTE_BUFFER;
   }
 
   @Override
