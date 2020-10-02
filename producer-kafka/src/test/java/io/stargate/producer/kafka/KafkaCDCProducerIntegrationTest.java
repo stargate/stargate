@@ -83,7 +83,6 @@ class KafkaCDCProducerIntegrationTest {
   @AfterAll
   public static void cleanup() {
     kafkaContainer.stop();
-    //    toxiproxyContainer.stop();
     schemaRegistry.close();
   }
 
