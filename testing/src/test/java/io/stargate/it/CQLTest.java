@@ -16,6 +16,7 @@
 package io.stargate.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
 import com.datastax.oss.driver.api.core.AllNodesFailedException;
@@ -585,6 +586,47 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     rs = session.execute(selectPs.bind(1).setPageSize(15).setPagingState(pageState));
     assertThat(rs.getAvailableWithoutFetching()).isEqualTo(5);
     assertThat(rs.getExecutionInfo().getPagingState()).isNull();
+  }
+
+  @Test
+  public void tooFewBindVariables() {
+    createTable();
+
+    assertThatThrownBy(
+            () -> {
+              session.execute(
+                  session
+                      .prepare(selectFromQuery(true))
+                      .bind()); // No variable when one is required
+            })
+        .isInstanceOf(InvalidQueryException.class)
+        .hasMessage("Invalid unset value for column key");
+
+    assertThatThrownBy(
+            () -> {
+              session.execute(
+                  new SimpleStatementBuilder(
+                          selectFromQuery(true)) // No variable when one is required
+                      .build());
+            })
+        .isInstanceOf(InvalidQueryException.class)
+        .hasMessage("there were 1 markers(?) in CQL but 0 bound variables");
+  }
+
+  @Test
+  public void tooManyBindVariables() {
+    createTable();
+
+    assertThatThrownBy(
+            () -> {
+              session.execute(
+                  new SimpleStatementBuilder(selectFromQuery(true))
+                      .addPositionalValue("abc")
+                      .addPositionalValue("def") // Too many variables
+                      .build());
+            })
+        .isInstanceOf(InvalidQueryException.class)
+        .hasMessage("there were 1 markers(?) in CQL but 2 bound variables");
   }
 
   @Disabled("Enable when persistence backends support auth in tests")
