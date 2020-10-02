@@ -197,7 +197,9 @@ public class Conversion {
       case IS_BOOTSTRAPPING:
         return new IsBootstrappingException();
       case TRUNCATE_ERROR:
-        return new TruncateException(e.getCause());
+        return e.getCause() == null
+            ? new TruncateException(e.getMessage())
+            : new TruncateException(e.getCause());
       case WRITE_TIMEOUT:
         org.apache.cassandra.exceptions.WriteTimeoutException wte =
             (org.apache.cassandra.exceptions.WriteTimeoutException) e;
