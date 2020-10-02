@@ -594,7 +594,10 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
     assertThatThrownBy(
             () -> {
-              session.execute(session.prepare(selectFromQuery(true)).bind()); // No variable when one is required
+              session.execute(
+                  session
+                      .prepare(selectFromQuery(true))
+                      .bind()); // No variable when one is required
             })
         .isInstanceOf(InvalidQueryException.class)
         .hasMessage("Invalid unset value for column key");
@@ -615,14 +618,13 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     createTable();
 
     assertThatThrownBy(
-        () -> {
-          session.execute(
-              new SimpleStatementBuilder(
-                  selectFromQuery(true))
-                  .addPositionalValue("abc")
-                  .addPositionalValue("def") // Too many variables
-                  .build());
-        })
+            () -> {
+              session.execute(
+                  new SimpleStatementBuilder(selectFromQuery(true))
+                      .addPositionalValue("abc")
+                      .addPositionalValue("def") // Too many variables
+                      .build());
+            })
         .isInstanceOf(InvalidQueryException.class)
         .hasMessage("there were 1 markers(?) in CQL but 2 bound variables");
   }
