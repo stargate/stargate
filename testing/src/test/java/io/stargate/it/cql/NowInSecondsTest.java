@@ -14,6 +14,7 @@ import io.stargate.it.storage.ClusterConnectionInfo;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 
@@ -24,7 +25,7 @@ import org.junit.jupiter.api.condition.EnabledIf;
  *
  * <p>TODO reenable when CASSANDRA-15299 is merged
  */
-@Disabled("See explanations in test class's javadocs")
+@Disabled("Requires CASSANDRA-15299 on the backend")
 public class NowInSecondsTest extends JavaDriverTestBase {
 
   public NowInSecondsTest(ClusterConnectionInfo backend) {
@@ -42,14 +43,16 @@ public class NowInSecondsTest extends JavaDriverTestBase {
   }
 
   @Test
+  @DisplayName("Should use setNowInSeconds() with simple statement")
   @EnabledIf("isCassandra4")
-  public void should_use_now_in_seconds_with_simple_statement() {
+  public void simpleStatementTest() {
     should_use_now_in_seconds(SimpleStatement::newInstance);
   }
 
   @Test
   @EnabledIf("isCassandra4")
-  public void should_use_now_in_seconds_with_bound_statement() {
+  @DisplayName("Should use setNowInSeconds() with bound statement")
+  public void boundStatementTest() {
     should_use_now_in_seconds(
         queryString -> {
           PreparedStatement preparedStatement = session.prepare(queryString);
@@ -58,8 +61,9 @@ public class NowInSecondsTest extends JavaDriverTestBase {
   }
 
   @Test
+  @DisplayName("Should use setNowInSeconds() with batch statement")
   @EnabledIf("isCassandra4")
-  public void should_use_now_in_seconds_with_batch_statement() {
+  public void batchStatementTest() {
     should_use_now_in_seconds(
         queryString ->
             BatchStatement.newInstance(BatchType.LOGGED, SimpleStatement.newInstance(queryString)));

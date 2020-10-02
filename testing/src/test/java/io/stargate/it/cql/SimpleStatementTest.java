@@ -17,6 +17,7 @@ import com.datastax.oss.driver.api.core.servererrors.ProtocolError;
 import com.google.common.collect.ImmutableMap;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class SimpleStatementTest extends JavaDriverTestBase {
@@ -45,14 +46,16 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_use_positional_values() {
+  @DisplayName("Should execute statement with positional values")
+  public void positionalValuesTest() {
     SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
     ResultSet resultSet = session.execute(statement);
     assertThat(resultSet).hasSize(100);
   }
 
   @Test
-  public void should_allow_nulls_in_positional_values() {
+  @DisplayName("Should allow nulls in positional values")
+  public void nullPositionalValuesTest() {
     session.execute("INSERT into test2 (k, v) values (?, ?)", KEY, null);
     Row row = session.execute("select k,v from test2 where k=?", KEY).one();
     assertThat(row).isNotNull();
@@ -60,21 +63,24 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_fail_when_too_many_positional_values_provided() {
+  @DisplayName("Should fail when too many positional values are provided")
+  public void tooManyPositionalValuesTest() {
     assertThatThrownBy(
             () -> session.execute("INSERT into test2 (k, v) values (?, ?)", KEY, 1, 2, 3))
         .isInstanceOf(InvalidQueryException.class);
   }
 
   @Test
-  public void should_fail_when_not_enough_positional_values_provided() {
+  @DisplayName("Should fail when not enough positional values are provided")
+  public void notEnoughPositionalValuesTest() {
     // For SELECT queries, all values must be filled
     assertThatThrownBy(() -> session.execute("SELECT * from test where k = ? and v = ?", KEY))
         .isInstanceOf(InvalidQueryException.class);
   }
 
   @Test
-  public void should_use_named_values() {
+  @DisplayName("Should execute statement with named values")
+  public void namedValuesTest() {
     SimpleStatement statement =
         SimpleStatement.newInstance("SELECT v FROM test WHERE k=:k", ImmutableMap.of("k", KEY));
     ResultSet resultSet = session.execute(statement);
@@ -82,7 +88,8 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_allow_nulls_in_named_values() {
+  @DisplayName("Should allow nulls in names values")
+  public void nullNamedValuesTest() {
     session.execute(
         SimpleStatement.builder("INSERT into test2 (k, v) values (:k, :v)")
             .addNamedValue("k", KEY)
@@ -95,7 +102,8 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_fail_when_named_value_missing() {
+  @DisplayName("Should fail if a named value is missing")
+  public void missingNamedValueTest() {
     // For SELECT queries, all values must be filled
     assertThatThrownBy(
             () ->
@@ -106,7 +114,8 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_use_paging_state() {
+  @DisplayName("Should extract paging state from result and use it on another statement")
+  public void pagingStateTest() {
     SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
     ResultSet resultSet = session.execute(statement);
     assertThat(resultSet.getAvailableWithoutFetching()).isEqualTo(20);
@@ -118,7 +127,8 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_throw_when_using_corrupt_paging_state() {
+  @DisplayName("Should fail if the paging state is corrupted")
+  public void corruptPagingStateTest() {
     SimpleStatement statement =
         SimpleStatement.builder("SELECT v FROM test WHERE k=?")
             .addPositionalValue(KEY)
@@ -128,7 +138,8 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_use_query_timestamp() {
+  @DisplayName("Should execute statement with custom query timestamp")
+  public void queryTimestampTest() {
     long timestamp = 10; // whatever
     session.execute(
         SimpleStatement.builder("INSERT INTO test2 (k, v) values ('test', 1)")
@@ -141,7 +152,8 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_use_tracing() {
+  @DisplayName("Should execute statement with tracing and retrieve trace")
+  public void tracingTest() {
     SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
 
     ExecutionInfo executionInfo = session.execute(statement).getExecutionInfo();
@@ -155,7 +167,8 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_use_page_size_on_statement() {
+  @DisplayName("Should execute statement with custom page size")
+  public void pageSizeTest() {
     SimpleStatement statement =
         SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY).setPageSize(10);
     ResultSet resultSet = session.execute(statement);
@@ -163,7 +176,8 @@ public class SimpleStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_use_consistency_levels_on_statement() {
+  @DisplayName("Should use statement-level consistency levels")
+  public void consistencyLevelsTest() {
     SimpleStatement statement =
         SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY).setTracing(true);
     QueryTrace queryTrace = session.execute(statement).getExecutionInfo().getQueryTrace();

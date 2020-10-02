@@ -12,7 +12,6 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.type.DataTypes;
-import com.datastax.oss.driver.api.testinfra.CassandraRequirement;
 import com.datastax.oss.driver.internal.core.util.concurrent.CompletableFutures;
 import com.datastax.oss.protocol.internal.util.Bytes;
 import com.google.common.collect.ImmutableList;
@@ -21,6 +20,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.CompletionStage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 
@@ -33,7 +33,7 @@ import org.junit.jupiter.api.condition.EnabledIf;
  *
  * <p>TODO reenable when CASSANDRA-15299 is merged
  */
-@Disabled("Doesn't seem to work correctly")
+@Disabled("Requires CASSANDRA-15299 on the backend")
 public class PreparedStatementAlterTableTest extends JavaDriverTestBase {
 
   public PreparedStatementAlterTableTest(ClusterConnectionInfo backend) {
@@ -56,8 +56,10 @@ public class PreparedStatementAlterTableTest extends JavaDriverTestBase {
   }
 
   @Test
+  @DisplayName(
+      "Should update prepared `SELECT *` metadata when table schema changes across executions")
   @EnabledIf("isCassandra4")
-  public void should_update_metadata_when_schema_changed_across_executions() {
+  public void changeBetweenExecutionsTest() {
     // Given
     PreparedStatement ps = session.prepare("SELECT * FROM prepared_statement_test WHERE a = ?");
     ByteBuffer idBefore = ps.getResultMetadataId();
@@ -81,8 +83,9 @@ public class PreparedStatementAlterTableTest extends JavaDriverTestBase {
   }
 
   @Test
-  @CassandraRequirement(min = "4.0")
-  public void should_update_metadata_when_schema_changed_across_pages() {
+  @DisplayName("Should update prepared `SELECT *` metadata when table schema changes across pages")
+  @EnabledIf("isCassandra4")
+  public void changeBetweenPagesTest() {
     // Given
     PreparedStatement ps = session.prepare("SELECT * FROM prepared_statement_test");
     ByteBuffer idBefore = ps.getResultMetadataId();

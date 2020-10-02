@@ -15,7 +15,6 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
-import com.datastax.oss.driver.api.testinfra.CassandraRequirement;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import java.time.Duration;
 import java.util.Iterator;
@@ -55,7 +54,8 @@ public class BatchStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_execute_batch_of_simple_statements_with_variables(TestInfo name) {
+  @DisplayName("Should execute batch of simple statements with variables")
+  public void simpleStatementsVariablesTest(TestInfo name) {
     // Build a batch of batchCount simple statements, each with their own positional variables.
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.UNLOGGED);
     for (int i = 0; i < batchCount; i++) {
@@ -75,7 +75,8 @@ public class BatchStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_execute_batch_of_bound_statements_with_variables(TestInfo name) {
+  @DisplayName("Should execute batch of bound statements with variables")
+  public void boundStatementsVariablesTest(TestInfo name) {
     // Build a batch of batchCount statements with bound statements, each with their own positional
     // variables.
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.UNLOGGED);
@@ -97,8 +98,8 @@ public class BatchStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  @CassandraRequirement(min = "2.2")
-  public void should_execute_batch_of_bound_statements_with_unset_values(TestInfo name) {
+  @DisplayName("Should execute batch of bound statements with unset values")
+  public void boundStatementsUnsetTest(TestInfo name) {
     // Build a batch of batchCount statements with bound statements, each with their own positional
     // variables.
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.UNLOGGED);
@@ -154,7 +155,8 @@ public class BatchStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_execute_batch_of_bound_statements_with_named_variables(TestInfo name) {
+  @DisplayName("Should execute batch of bound statements with named variables")
+  public void boundStatementsNamedVariablesTest(TestInfo name) {
     // Build a batch of batchCount statements with bound statements, each with their own named
     // variable values.
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.UNLOGGED);
@@ -178,7 +180,8 @@ public class BatchStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_execute_batch_of_bound_and_simple_statements_with_variables(TestInfo name) {
+  @DisplayName("Should execute batch of bound and simple statements with variables")
+  public void boundAndSimpleStatementsTest(TestInfo name) {
     // Build a batch of batchCount statements with simple and bound statements alternating.
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.UNLOGGED);
     SimpleStatement insert =
@@ -209,8 +212,8 @@ public class BatchStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_execute_cas_batch(TestInfo name) {
-    // Build a batch with CAS operations on the same partition.
+  @DisplayName("Should execute batch with multiple CAS operations on the same partition")
+  public void casTest(TestInfo name) {
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.UNLOGGED);
     SimpleStatement insert =
         SimpleStatement.builder(
@@ -236,8 +239,8 @@ public class BatchStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_execute_counter_batch(TestInfo name) {
-    // should be able to do counter increments in a counter batch.
+  @DisplayName("Should execute counter batch")
+  public void counterTest(TestInfo name) {
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.COUNTER);
 
     for (int i = 1; i <= 3; i++) {
@@ -285,8 +288,8 @@ public class BatchStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_fail_logged_batch_with_counter_increment(TestInfo name) {
-    // should not be able to do counter inserts in a unlogged batch.
+  @DisplayName("Should fail if unlogged batch contains counter increments")
+  public void unloggedCounterTest(TestInfo name) {
     assertThatThrownBy(() -> doCounterIncrement(name)).isInstanceOf(InvalidQueryException.class);
   }
 
@@ -317,8 +320,8 @@ public class BatchStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_fail_counter_batch_with_non_counter_increment(TestInfo name) {
-    // should not be able to do a counter batch if it contains a non-counter increment statement.
+  @DisplayName("Should fail if counter batch contains non-counter operations")
+  public void counterAndNoCounterTest(TestInfo name) {
     assertThatThrownBy(() -> doCounterAndNonCounterIncrement(name))
         .isInstanceOf(InvalidQueryException.class);
   }

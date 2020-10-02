@@ -16,6 +16,7 @@ import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.servererrors.ProtocolError;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -52,7 +53,8 @@ public class BoundStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_use_positional_values() {
+  @DisplayName("Should execute statement with positional values")
+  public void positionalValuesTest() {
     PreparedStatement prepared = session.prepare("INSERT INTO test2 (k, v0) values (?, ?)");
     session.execute(prepared.bind(KEY, VALUE));
 
@@ -61,7 +63,8 @@ public class BoundStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_use_named_values() {
+  @DisplayName("Should execute statement with named values")
+  public void namedValuesTest() {
     PreparedStatement prepared = session.prepare("INSERT INTO test2 (k, v0) values (:k, :v)");
     session.execute(
         prepared.boundStatementBuilder().setString("k", KEY).setInt("v", VALUE).build());
@@ -71,7 +74,8 @@ public class BoundStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_allow_nulls_values() {
+  @DisplayName("Should allow null values")
+  public void nullValuesTest() {
     PreparedStatement prepared = session.prepare("INSERT INTO test2 (k, v0) values (?, ?)");
     session.execute(prepared.bind(KEY, null));
 
@@ -80,14 +84,16 @@ public class BoundStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_fail_if_missing_values() {
+  @DisplayName("Should fail if a value is missing")
+  public void missingValueTest() {
     PreparedStatement prepared = session.prepare("SELECT v FROM test3 WHERE pk1=? and pk2=?");
     assertThatThrownBy(() -> session.execute(prepared.bind(1)))
         .isInstanceOf(InvalidQueryException.class);
   }
 
   @Test
-  public void should_not_write_tombstone_if_value_is_implicitly_unset() {
+  @DisplayName("Should not write tombstone if value is implicitly unset")
+  public void implicitUnsetTest() {
     PreparedStatement prepared = session.prepare("INSERT INTO test2 (k, v0) values (?, ?)");
     session.execute(prepared.bind(KEY, VALUE));
 
@@ -100,7 +106,8 @@ public class BoundStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_not_write_tombstone_if_value_is_explicitly_unset() {
+  @DisplayName("Should not write tombstone if value is explicitly unset")
+  public void explicitUnsetTest() {
     PreparedStatement prepared = session.prepare("INSERT INTO test2 (k, v0) values (?, ?)");
     BoundStatement boundStatement = prepared.bind(KEY, VALUE);
     session.execute(boundStatement);
@@ -112,7 +119,8 @@ public class BoundStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_use_page_size_on_statement() {
+  @DisplayName("Should execute statement with custom page size")
+  public void pageSizeTest() {
     PreparedStatement prepared =
         session.prepare(
             SimpleStatement.newInstance("SELECT v FROM test WHERE k=?").setPageSize(20));
@@ -127,7 +135,8 @@ public class BoundStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_throw_when_using_corrupt_paging_state() {
+  @DisplayName("Should fail if the paging state is corrupted")
+  public void corruptPagingStateTest() {
     PreparedStatement prepared = session.prepare("SELECT v FROM test WHERE k=?");
     BoundStatement statement =
         prepared
@@ -138,7 +147,8 @@ public class BoundStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_use_query_timestamp() {
+  @DisplayName("Should execute statement with custom query timestamp")
+  public void queryTimestampTest() {
     long timestamp = 10; // whatever
     session.execute(
         SimpleStatement.builder("INSERT INTO test2 (k, v0) values ('test', 1)")
@@ -151,7 +161,8 @@ public class BoundStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_use_tracing() {
+  @DisplayName("Should execute statement with tracing and retrieve trace")
+  public void tracingTest() {
     PreparedStatement prepared = session.prepare("SELECT v FROM test WHERE k=?");
     BoundStatement statement = prepared.bind(KEY);
 
@@ -166,7 +177,8 @@ public class BoundStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_use_consistency_levels_on_statement() {
+  @DisplayName("Should use statement-level consistency levels")
+  public void consistencyLevelsTest() {
     PreparedStatement prepared = session.prepare("SELECT v FROM test WHERE k=?");
     BoundStatement statement = prepared.bind(KEY).setTracing(true);
     QueryTrace queryTrace = session.execute(statement).getExecutionInfo().getQueryTrace();

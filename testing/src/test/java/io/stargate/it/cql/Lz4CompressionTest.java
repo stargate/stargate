@@ -3,6 +3,7 @@ package io.stargate.it.cql;
 import com.datastax.oss.driver.api.core.config.OptionsMap;
 import com.datastax.oss.driver.api.core.config.TypedDriverOption;
 import io.stargate.it.storage.ClusterConnectionInfo;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class Lz4CompressionTest extends AbstractCompressionTest {
@@ -17,7 +18,8 @@ public class Lz4CompressionTest extends AbstractCompressionTest {
   }
 
   @Test
-  public void should_execute_queries_with_lz4_compression() {
+  @DisplayName("Should connect and execute queries with LZ4 compression")
+  public void lz4CompressionTest() {
     compressionTest();
   }
 }

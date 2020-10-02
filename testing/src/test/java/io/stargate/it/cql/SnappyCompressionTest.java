@@ -3,6 +3,7 @@ package io.stargate.it.cql;
 import com.datastax.oss.driver.api.core.config.OptionsMap;
 import com.datastax.oss.driver.api.core.config.TypedDriverOption;
 import io.stargate.it.storage.ClusterConnectionInfo;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class SnappyCompressionTest extends AbstractCompressionTest {
@@ -17,7 +18,8 @@ public class SnappyCompressionTest extends AbstractCompressionTest {
   }
 
   @Test
-  public void should_execute_queries_with_snappy_compression() {
+  @DisplayName("Should connect and execute queries with Snappy compression")
+  public void snappyCompressionTest() {
     compressionTest();
   }
 }

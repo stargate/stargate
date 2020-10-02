@@ -44,6 +44,7 @@ import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 
@@ -54,7 +55,8 @@ public class DataTypeTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_write_and_read_all_types() {
+  @DisplayName("Should write and read all data types")
+  public void readWriteTest() {
 
     List<TypeSample<?>> types = generateAllTypes(keyspaceId);
 

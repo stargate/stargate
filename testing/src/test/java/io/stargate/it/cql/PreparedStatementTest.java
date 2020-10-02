@@ -14,6 +14,7 @@ import com.datastax.oss.protocol.internal.util.Bytes;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import java.nio.ByteBuffer;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class PreparedStatementTest extends JavaDriverTestBase {
@@ -28,7 +29,8 @@ public class PreparedStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_have_empty_result_definitions_for_insert_query_without_bound_variable() {
+  @DisplayName("Should get expected metadata when preparing INSERT with no variables")
+  public void insertWithoutVariablesTest() {
     PreparedStatement prepared =
         session.prepare("INSERT INTO prepared_statement_test (a, b, c) VALUES (1, 1, 1)");
     assertThat(prepared.getVariableDefinitions()).isEmpty();
@@ -37,7 +39,8 @@ public class PreparedStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_have_non_empty_result_definitions_for_insert_query_with_bound_variable() {
+  @DisplayName("Should get expected metadata when preparing INSERT with variables")
+  public void insertWithVariablesTest() {
     PreparedStatement prepared =
         session.prepare("INSERT INTO prepared_statement_test (a, b, c) VALUES (?, ?, ?)");
     assertAllColumns(prepared.getVariableDefinitions());
@@ -46,7 +49,8 @@ public class PreparedStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_have_empty_variable_definitions_for_select_query_without_bound_variable() {
+  @DisplayName("Should get expected metadata when preparing SELECT without variables")
+  public void selectWithoutVariablesTest() {
     PreparedStatement prepared =
         session.prepare("SELECT a,b,c FROM prepared_statement_test WHERE a = 1");
     assertThat(prepared.getVariableDefinitions()).isEmpty();
@@ -55,7 +59,8 @@ public class PreparedStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_have_non_empty_variable_definitions_for_select_query_with_bound_variable() {
+  @DisplayName("Should get expected metadata when preparing SELECT with variables")
+  public void selectWithVariablesTest() {
     PreparedStatement prepared =
         session.prepare("SELECT a,b,c FROM prepared_statement_test WHERE a = ?");
     assertThat(prepared.getVariableDefinitions()).hasSize(1);
@@ -69,7 +74,8 @@ public class PreparedStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_fail_to_reprepare_if_query_becomes_invalid() {
+  @DisplayName("Should fail to reprepare if the query becomes invalid after a schema change")
+  public void failedReprepareTest() {
     // Given
     session.execute("ALTER TABLE prepared_statement_test ADD d int");
     PreparedStatement ps =
@@ -82,7 +88,8 @@ public class PreparedStatementTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_not_store_metadata_for_conditional_updates() {
+  @DisplayName("Should not store metadata for conditional updates")
+  public void conditionalUpdateTest() {
     // Given
     PreparedStatement ps =
         session.prepare(

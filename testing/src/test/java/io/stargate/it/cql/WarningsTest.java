@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import java.util.List;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class WarningsTest extends JavaDriverTestBase {
@@ -14,7 +15,8 @@ public class WarningsTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_surface_query_warnings() {
+  @DisplayName("Should surface query warnings")
+  public void warningsTest() {
     // Avoid using a system table
     session.execute("CREATE TABLE test_warnings (k0 text, k1 int, v int, PRIMARY KEY (k0, k1))");
     ResultSet resultSet = session.execute("SELECT count(*) FROM test_warnings");

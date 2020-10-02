@@ -8,6 +8,7 @@ import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.metadata.schema.SchemaChangeListener;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import io.stargate.it.storage.ClusterConnectionInfo;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -33,7 +34,8 @@ public class SchemaChangesTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void should_notify_of_schema_changes() {
+  @DisplayName("Should notify of schema changes")
+  public void schemaChangesTest() {
     // This is not an extensive coverage of the driver's schema metadata, we just want to check that
     // the schema events on the control connection are wired correctly.
     session.execute("CREATE TABLE foo(k int PRIMARY KEY)");
