@@ -107,7 +107,7 @@ class KafkaCDCProducerIntegrationTest {
     when(tableMetadata.getClusteringKeys())
         .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
     when(tableMetadata.getColumns())
-        .thenReturn(Collections.singletonList(clusteringKey(COLUMN_NAME, Native.TEXT)));
+        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
     kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
 
     // send actual event
@@ -168,7 +168,7 @@ class KafkaCDCProducerIntegrationTest {
     when(tableMetadata.getClusteringKeys())
         .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
     when(tableMetadata.getColumns())
-        .thenReturn(Collections.singletonList(clusteringKey(COLUMN_NAME, Native.TEXT)));
+        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
     kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
     kafkaCDCProducer.createTableSchemaAsync(tableMetadata);
 
