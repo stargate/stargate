@@ -12,7 +12,7 @@
     <junit.version>5.6.2</junit.version>
     <kafka-clients.version>5.5.1-ce</kafka-clients.version>
     <avro.version>1.10.0</avro.version>
-    <kafka-avro-serializer.version>5.5.1</kafka-avro-serializer.version>
+    <schema-registry.version>5.5.1</schema-registry.version>
   </properties>
 	<repositories>
 		<repository>
@@ -57,7 +57,7 @@
     <dependency>
       <groupId>io.confluent</groupId>
       <artifactId>kafka-avro-serializer</artifactId>
-      <version>${kafka-avro-serializer.version}</version>
+      <version>${schema-registry.version}</version>
       <exclusions>
         <exclusion>
           <groupId>org.slf4j</groupId>
@@ -70,6 +70,16 @@
       <artifactId>persistence-api</artifactId>
       <version>0.0.12-SNAPSHOT</version>
       <scope>provided</scope>
+		<exclusions>
+			<exclusion>
+				<groupId>javax.validation</groupId>
+				<artifactId>validation-api</artifactId>
+			</exclusion>
+			<exclusion>
+				<groupId>org.hibernate</groupId>
+				<artifactId>hibernate-validator</artifactId>
+			</exclusion>
+		</exclusions>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -145,6 +155,12 @@
       <version>1.14.3</version>
       <scope>test</scope>
     </dependency>
+	<dependency>
+      <groupId>io.confluent</groupId>
+      <artifactId>kafka-schema-registry</artifactId>
+      <version>${schema-registry.version}</version>
+	  <scope>test</scope>
+	</dependency>
   </dependencies>
   <build>
     <plugins>

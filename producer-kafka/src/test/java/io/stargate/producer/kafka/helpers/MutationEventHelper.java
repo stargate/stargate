@@ -319,7 +319,13 @@ public class MutationEventHelper {
     return clusteringKey(clusteringKeyName, Native.TEXT);
   }
 
+  @NotNull
   public static ColumnMetadata column(String columnName) {
+    return column(columnName, Native.TEXT);
+  }
+
+  @NotNull
+  public static ColumnMetadata column(String columnName, CQLType cqlType) {
     return new ColumnMetadata() {
       @Override
       public Kind getKind() {
@@ -333,7 +339,7 @@ public class MutationEventHelper {
 
       @Override
       public CQLType getType() {
-        return Native.TEXT;
+        return cqlType;
       }
     };
   }
