@@ -33,7 +33,7 @@ import org.apache.cassandra.stargate.schema.CQLType.Native;
 import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.junit.jupiter.api.Test;
 
-public class AvroWriteIntegrationTest {
+public class MappingProviderKeyValueConstructorIntegrationTest {
   @Test
   public void shouldWriteKeyAndValueUsingDynamicallyCreatedSchema() {
     // given
