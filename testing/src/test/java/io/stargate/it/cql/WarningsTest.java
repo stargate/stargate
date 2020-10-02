@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import java.util.List;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class WarningsTest extends JavaDriverTestBase {
@@ -15,10 +14,10 @@ public class WarningsTest extends JavaDriverTestBase {
   }
 
   @Test
-  @Disabled("Not implemented yet")
   public void should_surface_query_warnings() {
-    // That's a silly query but it does generate a warning
-    ResultSet resultSet = session.execute("SELECT count(*) FROM system.local");
+    // Avoid using a system table
+    session.execute("CREATE TABLE test_warnings (k0 text, k1 int, v int, PRIMARY KEY (k0, k1))");
+    ResultSet resultSet = session.execute("SELECT count(*) FROM test_warnings");
     List<String> warnings = resultSet.getExecutionInfo().getWarnings();
 
     assertThat(warnings).containsExactly("Aggregation query used without partition key");
