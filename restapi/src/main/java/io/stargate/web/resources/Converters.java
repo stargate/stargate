@@ -347,7 +347,7 @@ public class Converters {
       case Double:
         return Double.parseDouble(value);
       case Varint:
-        new BigInteger(value);
+        return new BigInteger(value);
       case Boolean:
         return Boolean.valueOf(value);
       case Counter:

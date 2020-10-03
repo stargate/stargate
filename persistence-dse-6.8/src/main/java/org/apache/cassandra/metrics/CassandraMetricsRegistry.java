@@ -99,6 +99,10 @@ public class CassandraMetricsRegistry extends MetricRegistry {
     // Nothing to do, we don't register MBeans
   }
 
+  public void registerAlias(MetricName existingName, MetricName aliasName) {
+    // Nothing to do, we don't require aliases for legacy names
+  }
+
   public interface MetricMBean {
     ObjectName objectName();
   }

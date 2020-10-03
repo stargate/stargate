@@ -25,8 +25,10 @@ import io.stargate.db.cassandra.datastore.DataStoreUtil;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -74,6 +76,54 @@ import org.slf4j.LoggerFactory;
 public class Conversion {
   private static final Logger LOG = LoggerFactory.getLogger(Conversion.class);
 
+  // A number of constructors for classes related to QueryOptions but that are not accessible in C*
+  // at the moment and need to be accessed through reflection.
+
+  // SpecificOptions(int pageSize, PagingState state, ConsistencyLevel serialConsistency, long
+  // timestamp)
+  private static final Constructor<?> specificOptionsCtor;
+  // DefaultQueryOptions(ConsistencyLevel consistency, List<ByteBuffer> values, boolean
+  // skipMetadata, QueryOptions.SpecificOptions options, ProtocolVersion protocolVersion)
+  private static final Constructor<?> defaultOptionsCtor;
+  // OptionsWithNames(QueryOptions.DefaultQueryOptions wrapped, List<String> names)
+  private static final Constructor<?> optionsWithNameCtor;
+
+  static {
+    try {
+      Class<?> defaultOptionsClass =
+          Class.forName("org.apache.cassandra.cql3.QueryOptions$DefaultQueryOptions");
+      Class<?> specificOptionsClass =
+          Class.forName("org.apache.cassandra.cql3.QueryOptions$SpecificOptions");
+      Class<?> withNamesClass =
+          Class.forName("org.apache.cassandra.cql3.QueryOptions$OptionsWithNames");
+
+      specificOptionsCtor =
+          specificOptionsClass.getDeclaredConstructor(
+              int.class,
+              PagingState.class,
+              org.apache.cassandra.db.ConsistencyLevel.class,
+              long.class);
+      specificOptionsCtor.setAccessible(true);
+
+      defaultOptionsCtor =
+          defaultOptionsClass.getDeclaredConstructor(
+              org.apache.cassandra.db.ConsistencyLevel.class,
+              List.class,
+              boolean.class,
+              specificOptionsClass,
+              org.apache.cassandra.transport.ProtocolVersion.class);
+      defaultOptionsCtor.setAccessible(true);
+
+      optionsWithNameCtor = withNamesClass.getDeclaredConstructor(defaultOptionsClass, List.class);
+      optionsWithNameCtor.setAccessible(true);
+    } catch (Exception e) {
+      throw new RuntimeException(
+          "Error during initialization of the persistence layer: some "
+              + "reflection-based accesses cannot be setup.",
+          e);
+    }
+  }
+
   public static org.apache.cassandra.service.QueryState toInternal(
       QueryState<org.apache.cassandra.service.QueryState> state) {
     if (state == null) {
@@ -86,17 +136,59 @@ public class Conversion {
     if (options == null) {
       return org.apache.cassandra.cql3.QueryOptions.DEFAULT;
     }
+
     org.apache.cassandra.transport.ProtocolVersion protocolVersion =
         toInternal(options.getProtocolVersion());
-    // TODO(mpenick): timestamp and nowInSeconds?
-    return org.apache.cassandra.cql3.QueryOptions.create(
+    // Note that PagingState.deserialize below modifies its input, so we duplicate to avoid nasty
+    // surprises down the line
+    ByteBuffer pagingState =
+        options.getPagingState() == null ? null : options.getPagingState().duplicate();
+    return createOptions(
         toInternal(options.getConsistency()),
         options.getValues(),
+        options.getNames(),
         options.skipMetadata(),
         options.getPageSize(),
-        PagingState.deserialize(options.getPagingState(), protocolVersion),
+        PagingState.deserialize(pagingState, protocolVersion),
         toInternal(options.getSerialConsistency()),
-        protocolVersion);
+        protocolVersion,
+        options.getTimestamp());
+  }
+
+  private static org.apache.cassandra.cql3.QueryOptions createOptions(
+      org.apache.cassandra.db.ConsistencyLevel consistencyLevel,
+      List<ByteBuffer> values,
+      List<String> boundNames,
+      boolean skipMetadata,
+      int pageSize,
+      PagingState pagingState,
+      org.apache.cassandra.db.ConsistencyLevel serialConsistency,
+      org.apache.cassandra.transport.ProtocolVersion protocolVersion,
+      long timestamp) {
+
+    org.apache.cassandra.cql3.QueryOptions options;
+    try {
+      Object specificOptions =
+          specificOptionsCtor.newInstance(pageSize, pagingState, serialConsistency, timestamp);
+      Object defaultOptions =
+          defaultOptionsCtor.newInstance(
+              consistencyLevel, values, skipMetadata, specificOptions, protocolVersion);
+      options = (org.apache.cassandra.cql3.QueryOptions) defaultOptions;
+
+      // Adds names if there is some.
+      if (boundNames != null) {
+        options =
+            (org.apache.cassandra.cql3.QueryOptions)
+                optionsWithNameCtor.newInstance(defaultOptions, boundNames);
+      }
+    } catch (Exception e) {
+      // We can't afford to ignore that: the values wouldn't be in the proper order, and worst
+      // case scenario, this could end up inserting values in the wrong columns, which essentially
+      // boils down to corrupting the use DB.
+      throw new RuntimeException(
+          "Unexpected error while trying to bind the query values by name", e);
+    }
+    return options;
   }
 
   public static org.apache.cassandra.service.ClientState toInternal(
@@ -122,6 +214,11 @@ public class Conversion {
         ? null
         : org.apache.cassandra.transport.ProtocolVersion.decode(
             protocolVersion.asInt(), ProtocolVersionLimit.SERVER_DEFAULT);
+  }
+
+  public static ProtocolVersion toExternal(
+      org.apache.cassandra.transport.ProtocolVersion protocolVersion) {
+    return protocolVersion == null ? null : ProtocolVersion.decode(protocolVersion.asInt(), true);
   }
 
   public static InetAddressAndPort toExternal(InetAddress internal) {
@@ -165,8 +262,6 @@ public class Conversion {
     switch (e.code()) {
       case SERVER_ERROR:
         return new ServerError(e.getMessage());
-      case PROTOCOL_ERROR:
-        return new ProtocolException(e.getMessage());
       case BAD_CREDENTIALS:
         return new AuthenticationException(e.getMessage(), e.getCause());
       case UNAVAILABLE:
@@ -335,11 +430,20 @@ public class Conversion {
   }
 
   public static void handleException(CompletableFuture<?> future, Throwable t) {
-    if (t instanceof org.apache.cassandra.exceptions.UnauthorizedException)
-      future.completeExceptionally(DataStore.UnauthorizedException.rbac(t));
-    else if (t instanceof CassandraException)
-      future.completeExceptionally(Conversion.toExternal((CassandraException) t));
-    else future.completeExceptionally(t);
+    Throwable e = t;
+
+    if (t instanceof org.apache.cassandra.exceptions.UnauthorizedException) {
+      e = DataStore.UnauthorizedException.rbac(t);
+    } else if (t instanceof CassandraException) {
+      e = Conversion.toExternal((CassandraException) t);
+    } else if (t instanceof org.apache.cassandra.transport.ProtocolException) {
+      // Note that ProtocolException is not a CassandraException
+      org.apache.cassandra.transport.ProtocolException ex =
+          (org.apache.cassandra.transport.ProtocolException) t;
+      e = new ProtocolException(t.getMessage(), toExternal(ex.getForcedProtocolVersion()));
+    }
+
+    future.completeExceptionally(e);
   }
 
   public static List<Object> toInternalQueryOrIds(List<Object> queryOrIds) {

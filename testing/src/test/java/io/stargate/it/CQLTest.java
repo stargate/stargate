@@ -16,6 +16,7 @@
 package io.stargate.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
 import com.datastax.oss.driver.api.core.AllNodesFailedException;
@@ -32,6 +33,7 @@ import com.datastax.oss.driver.api.core.cql.QueryTrace;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.driver.api.core.cql.SimpleStatementBuilder;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.api.core.data.UdtValue;
@@ -69,6 +71,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @NotThreadSafe
@@ -76,8 +79,6 @@ public class CQLTest extends BaseOsgiIntegrationTest {
   private String table;
   private String keyspace;
   private CqlSession session;
-
-  private static final int KEYSPACE_NAME_MAX_LENGTH = 48;
 
   /**
    * Re-enable authentication for {@Link CQLTest#invalidCredentials()} and {@Link
@@ -139,7 +140,8 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     createKeyspace();
     session.execute(
         String.format(
-            "CREATE TABLE \"%s\".\"%s\" (key text PRIMARY KEY, value text)", keyspace, table));
+            "CREATE TABLE \"%s\".\"%s\" (key text PRIMARY KEY, value1 text, value2 text)",
+            keyspace, table));
   }
 
   private void paginationTestSetup() {
@@ -161,16 +163,19 @@ public class CQLTest extends BaseOsgiIntegrationTest {
   }
 
   private String insertIntoQuery() {
-    return String.format("INSERT INTO \"%s\".\"%s\" (key, value) values (?, ?)", keyspace, table);
+    return String.format(
+        "INSERT INTO \"%s\".\"%s\" (key, value1, value2) values (:key, :value1, :value2)",
+        keyspace, table);
   }
 
   private String insertIntoQueryNoKeyspace() {
-    return String.format("INSERT INTO \"%s\" (key, value) values (?, ?)", table);
+    return String.format(
+        "INSERT INTO \"%s\" (key, value1, value2) values (:key, :value1, :value2)", table);
   }
 
   private String selectFromQuery(boolean withKey) {
     return String.format(
-        "SELECT * FROM \"%s\".\"%s\"%s", keyspace, table, withKey ? " WHERE key = ?" : "");
+        "SELECT * FROM \"%s\".\"%s\"%s", keyspace, table, withKey ? " WHERE key = :key" : "");
   }
 
   private String selectFromQueryNoKeyspace() {
@@ -185,41 +190,116 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     assertThat(rows.next().getInetAddress("listen_address")).isIn(getStargateInetSocketAddresses());
   }
 
-  @Test
-  public void querySimple() {
-    createTable();
+  public enum QueryMode {
+    SIMPLE_POSITIONAL,
+    SIMPLE_BY_NAME,
+    PREPARED_POSITIONAL,
+    PREPARED_BY_NAME;
 
-    session.execute(
-        SimpleStatement.builder(insertIntoQuery()).addPositionalValues("abc", "def").build());
+    boolean isPrepared() {
+      return this == PREPARED_POSITIONAL || this == PREPARED_BY_NAME;
+    }
 
-    ResultSet rs =
-        session.execute(
-            SimpleStatement.builder(selectFromQuery(true)).addPositionalValue("abc").build());
-
-    Iterator<Row> rows = rs.iterator();
-    assertThat(rows).hasNext();
-
-    Row row = rows.next();
-    assertThat(row.getString("key")).isEqualTo("abc");
-    assertThat(row.getString("value")).isEqualTo("def");
+    boolean isBindByName() {
+      return this == SIMPLE_BY_NAME || this == PREPARED_BY_NAME;
+    }
   }
 
-  @Test
-  public void preparedSimple() {
+  private Statement<?> insertIntoStatement(QueryMode mode, String... args) {
+    assert args.length > 0 : "Expecting at least the key";
+    assert args.length <= 3 : "Expecting at most the key, value1 and value2";
+
+    if (mode.isPrepared()) {
+      PreparedStatement insertPrepared = session.prepare(insertIntoQuery());
+      BoundStatement statement;
+      if (mode.isBindByName()) {
+        statement = insertPrepared.bind().setString("key", args[0]);
+        for (int i = 1; i < args.length; i++) {
+          statement = statement.setString("value" + i, args[i]);
+        }
+      } else {
+        statement = insertPrepared.bind((Object[]) args);
+      }
+      return statement;
+    } else {
+      SimpleStatementBuilder insertBuilder = SimpleStatement.builder(insertIntoQuery());
+      if (mode.isBindByName()) {
+        insertBuilder.addNamedValue("key", args[0]);
+        for (int i = 1; i < args.length; i++) {
+          insertBuilder.addNamedValue("value" + i, args[i]);
+        }
+      } else {
+        insertBuilder.addPositionalValues((Object[]) args);
+      }
+      return insertBuilder.build();
+    }
+  }
+
+  private Statement<?> selectByKeyStatement(QueryMode mode, String key) {
+    if (mode.isPrepared()) {
+      PreparedStatement selectPrepared = session.prepare(selectFromQuery(true));
+      BoundStatement statement;
+      if (mode.isBindByName()) {
+        statement = selectPrepared.bind().setString("key", key);
+      } else {
+        statement = selectPrepared.bind(key);
+      }
+      return statement;
+    } else {
+      SimpleStatementBuilder selectBuilder = SimpleStatement.builder(selectFromQuery(true));
+      if (mode.isBindByName()) {
+        selectBuilder.addNamedValue("key", key);
+      } else {
+        selectBuilder.addPositionalValue(key);
+      }
+      return selectBuilder.build();
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(QueryMode.class)
+  public void query(QueryMode mode) {
     createTable();
 
-    PreparedStatement insertPrepared = session.prepare(insertIntoQuery());
-    session.execute(insertPrepared.bind("abc", "def"));
+    session.execute(insertIntoStatement(mode, "abc", "v1", "v2"));
+    ResultSet rs = session.execute(selectByKeyStatement(mode, "abc"));
 
-    PreparedStatement selectPrepared = session.prepare(selectFromQuery(true));
-    ResultSet rs = session.execute(selectPrepared.bind("abc"));
+    assertResultSet(rs)
+        .row()
+        .value("key", "abc")
+        .value("value1", "v1")
+        .value("value2", "v2")
+        .done();
+  }
 
-    Iterator<Row> rows = rs.iterator();
-    assertThat(rows).hasNext();
+  // Note: in theory, unset could work with non-prepared statements, but it appears the driver
+  // don't support them (it doesn't set an 'unset' value for missing values like it does with
+  // prepared statements, and so we end up with a "not enough values" error).
+  @ParameterizedTest
+  @EnumSource(
+      value = QueryMode.class,
+      names = {"PREPARED_POSITIONAL", "PREPARED_BY_NAME"})
+  public void unsetValues(QueryMode mode) {
+    createTable();
 
-    Row row = rows.next();
-    assertThat(row.getString("key")).isEqualTo("abc");
-    assertThat(row.getString("value")).isEqualTo("def");
+    session.execute(insertIntoStatement(mode, "k1", "v11", "v21"));
+
+    // Sanity check
+    assertResultSet(session.execute(selectByKeyStatement(mode, "k1")))
+        .row()
+        .value("key", "k1")
+        .value("value1", "v11")
+        .value("value2", "v21")
+        .done();
+
+    session.execute(insertIntoStatement(mode, "k1", "v12"));
+
+    assertResultSet(session.execute(selectByKeyStatement(mode, "k1")))
+        .row()
+        .value("key", "k1")
+        .value("value1", "v12")
+        .value("value2", "v21")
+        .done();
   }
 
   @Test
@@ -230,10 +310,10 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
     BatchStatement batch =
         BatchStatement.builder(BatchType.UNLOGGED)
-            .addStatement(insertPrepared.bind("abc", "def"))
+            .addStatement(insertPrepared.bind("abc", "def", "ghi"))
             .addStatement(
                 SimpleStatement.builder(insertIntoQuery())
-                    .addPositionalValues("def", "ghi")
+                    .addPositionalValues("def", "ghi", "jkl")
                     .build())
             .build();
 
@@ -245,10 +325,12 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     assertThat(rows).hasSize(2);
 
     assertThat(rows.get(0).getString("key")).isEqualTo("def");
-    assertThat(rows.get(0).getString("value")).isEqualTo("ghi");
+    assertThat(rows.get(0).getString("value1")).isEqualTo("ghi");
+    assertThat(rows.get(0).getString("value2")).isEqualTo("jkl");
 
     assertThat(rows.get(1).getString("key")).isEqualTo("abc");
-    assertThat(rows.get(1).getString("value")).isEqualTo("def");
+    assertThat(rows.get(1).getString("value1")).isEqualTo("def");
+    assertThat(rows.get(1).getString("value2")).isEqualTo("ghi");
   }
 
   @Test
@@ -262,7 +344,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     TableMetadata tableMetadata =
         waitFor(() -> ksMetadata.getTable(CqlIdentifier.fromInternal(table)));
 
-    assertThat(tableMetadata.getColumns()).hasSize(2);
+    assertThat(tableMetadata.getColumns()).hasSize(3);
   }
 
   @Test
@@ -272,16 +354,17 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     // Create a table with an integer value for the `sum()` aggregate
     session.execute(
         String.format(
-            "CREATE TABLE \"%s\".\"%s\" (key text PRIMARY KEY, value int)", keyspace, table));
+            "CREATE TABLE \"%s\".\"%s\" (key text PRIMARY KEY, value1 int, value2 text)",
+            keyspace, table));
 
     session.execute(
         SimpleStatement.builder(insertIntoQuery())
             .setTracing(true)
-            .addPositionalValues("abc", 42)
+            .addPositionalValues("abc", 42, "foo")
             .build());
 
     ResultSet rs =
-        session.execute(String.format("SELECT sum(value) FROM \"%s\".\"%s\"", keyspace, table));
+        session.execute(String.format("SELECT sum(value1) FROM \"%s\".\"%s\"", keyspace, table));
     List<String> warnings = rs.getExecutionInfo().getWarnings();
     assertThat(warnings).hasSize(1);
     assertThat(warnings).contains("Aggregation query used without partition key");
@@ -295,7 +378,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
         session.execute(
             SimpleStatement.builder(insertIntoQuery())
                 .setTracing(true)
-                .addPositionalValues("abc", "def")
+                .addPositionalValues("abc", "def", "ghi")
                 .build());
 
     assertThat(rs.getExecutionInfo().getTracingId()).isNotNull();
@@ -329,10 +412,10 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
     BatchStatement batch =
         BatchStatement.builder(BatchType.UNLOGGED)
-            .addStatement(insertPrepared.bind("abc", "def"))
+            .addStatement(insertPrepared.bind("abc", "def", "ghi"))
             .addStatement(
                 SimpleStatement.builder(insertIntoQuery())
-                    .addPositionalValues("def", "ghi")
+                    .addPositionalValues("def", "ghi", "jkl")
                     .build())
             .setTracing(true)
             .build();
@@ -351,7 +434,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     try {
       session.execute(
           SimpleStatement.builder(insertIntoQueryNoKeyspace())
-              .addPositionalValues("abc", "def")
+              .addPositionalValues("abc", "def", "ghi")
               .build());
 
       fail("Should have thrown InvalidQueryException");
@@ -367,7 +450,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
     session.execute(
         SimpleStatement.builder(insertIntoQueryNoKeyspace())
-            .addPositionalValues("abc", "def")
+            .addPositionalValues("abc", "def", "ghi")
             .build());
 
     ResultSet rs = session.execute(selectFromQueryNoKeyspace());
@@ -377,7 +460,8 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
     Row row = rows.next();
     assertThat(row.getString("key")).isEqualTo("abc");
-    assertThat(row.getString("value")).isEqualTo("def");
+    assertThat(row.getString("value1")).isEqualTo("def");
+    assertThat(row.getString("value2")).isEqualTo("ghi");
   }
 
   @Test
@@ -385,7 +469,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     createKeyspace();
     session.execute(
         String.format(
-            "CREATE TABLE \"%s\".\"%s\" (key text PRIMARY KEY, value tuple<text,int,int> )",
+            "CREATE TABLE \"%s\".\"%s\" (key text PRIMARY KEY, value1 tuple<text,int,int>, value2 text)",
             keyspace, table));
 
     TupleType tupleType = DataTypes.tupleOf(DataTypes.TEXT, DataTypes.INT, DataTypes.INT);
@@ -393,7 +477,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     session.execute(
         SimpleStatement.builder(insertIntoQuery())
             .setTracing(true)
-            .addPositionalValues("abc", tupleValue)
+            .addPositionalValues("abc", tupleValue, "foo")
             .build());
 
     ResultSet rs =
@@ -406,11 +490,13 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     Row row = rows.next();
     assertThat(row.getString("key")).isEqualTo("abc");
 
-    TupleValue tupleReturnValue = row.getTupleValue("value");
+    TupleValue tupleReturnValue = row.getTupleValue("value1");
     assertThat(tupleReturnValue).isNotNull();
     assertThat(tupleReturnValue.getString(0)).isEqualTo("hello");
     assertThat(tupleReturnValue.getInt(1)).isEqualTo(1);
     assertThat(tupleReturnValue.getInt(2)).isEqualTo(2);
+
+    assertThat(row.getString("value2")).isEqualTo("foo");
   }
 
   @ParameterizedTest
@@ -502,6 +588,47 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     assertThat(rs.getExecutionInfo().getPagingState()).isNull();
   }
 
+  @Test
+  public void tooFewBindVariables() {
+    createTable();
+
+    assertThatThrownBy(
+            () -> {
+              session.execute(
+                  session
+                      .prepare(selectFromQuery(true))
+                      .bind()); // No variable when one is required
+            })
+        .isInstanceOf(InvalidQueryException.class)
+        .hasMessage("Invalid unset value for column key");
+
+    assertThatThrownBy(
+            () -> {
+              session.execute(
+                  new SimpleStatementBuilder(
+                          selectFromQuery(true)) // No variable when one is required
+                      .build());
+            })
+        .isInstanceOf(InvalidQueryException.class)
+        .hasMessage("there were 1 markers(?) in CQL but 0 bound variables");
+  }
+
+  @Test
+  public void tooManyBindVariables() {
+    createTable();
+
+    assertThatThrownBy(
+            () -> {
+              session.execute(
+                  new SimpleStatementBuilder(selectFromQuery(true))
+                      .addPositionalValue("abc")
+                      .addPositionalValue("def") // Too many variables
+                      .build());
+            })
+        .isInstanceOf(InvalidQueryException.class)
+        .hasMessage("there were 1 markers(?) in CQL but 2 bound variables");
+  }
+
   @Disabled("Enable when persistence backends support auth in tests")
   @Test
   public void invalidCredentials() {
@@ -576,5 +703,51 @@ public class CQLTest extends BaseOsgiIntegrationTest {
 
     AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
     return authTokenResponse.getAuthToken();
+  }
+
+  private static ResultSetAsserter assertResultSet(ResultSet rs) {
+    return new ResultSetAsserter(rs);
+  }
+
+  static class ResultSetAsserter {
+    private final Iterator<Row> actualRows;
+    private int returnedRows;
+
+    ResultSetAsserter(ResultSet actual) {
+      this.actualRows = actual.iterator();
+    }
+
+    void isEmpty() {
+      assert returnedRows == 0 : "Don't use isEmpty() and row() on the same asserter";
+      assertThat(actualRows).isExhausted();
+    }
+
+    RowAsserter row() {
+      return new RowAsserter();
+    }
+
+    class RowAsserter {
+      private final Row actualRow;
+
+      private RowAsserter() {
+        ResultSetAsserter that = ResultSetAsserter.this;
+        assertThat(that.actualRows).hasNext();
+        that.returnedRows++;
+        this.actualRow = that.actualRows.next();
+      }
+
+      private RowAsserter value(String name, Object expectedValue) {
+        assertThat(actualRow.getObject(name)).isEqualTo(expectedValue);
+        return this;
+      }
+
+      private RowAsserter andRow() {
+        return new RowAsserter();
+      }
+
+      private void done() {
+        assertThat(ResultSetAsserter.this.actualRows).isExhausted();
+      }
+    }
   }
 }
