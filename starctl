@@ -64,10 +64,6 @@ _ip_address() {
 # Default to the env. variable. Use `eval` to reinterpret quotes embedded in the env. var. value.
 eval declare -a JAVA_OPTS=("$JAVA_OPTS")
 
-if [[ ! " ${JAVA_OPTS[@]} " =~ "-Xmx" ]]; then
-    JAVA_OPTS+=("-Xmx64G")
-fi
-
 JAVA_OPTS+=(-Dstargate.libdir="$STARGATE_HOME")
 
 declare -a STARGATE_ARGS=("$@")
@@ -122,9 +118,9 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
     if [[ ! -z "$ENABLE_AUTH" ]]; then
         STARGATE_ARGS+=("--enable-auth")
     fi
-    
+
     if [[ ! -z "$USE_PROXY_PROTOCOL" ]]; then
-        STARGATE_ARGS+=("--use-proxy-protocol" "$USE_PROXY_PROTOCOL")
+        STARGATE_ARGS+=("--use-proxy-protocol")
     fi
 
     if [[ ! -z "$DEVELOPER_MODE" ]]; then

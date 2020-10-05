@@ -1,5 +1,6 @@
 package io.stargate.db.dse.impl;
 
+import com.google.common.base.Strings;
 import io.reactivex.Single;
 import io.stargate.db.BatchType;
 import io.stargate.db.ClientState;
@@ -271,7 +272,9 @@ public class Conversion {
       case IS_BOOTSTRAPPING:
         return new IsBootstrappingException();
       case TRUNCATE_ERROR:
-        return new TruncateException(e.getCause());
+        return e.getCause() == null
+            ? new TruncateException(e.getMessage())
+            : new TruncateException(e.getCause());
       case WRITE_TIMEOUT:
         org.apache.cassandra.exceptions.WriteTimeoutException wte =
             (org.apache.cassandra.exceptions.WriteTimeoutException) e;
@@ -325,7 +328,9 @@ public class Conversion {
       case ALREADY_EXISTS:
         org.apache.cassandra.exceptions.AlreadyExistsException aee =
             (org.apache.cassandra.exceptions.AlreadyExistsException) e;
-        return new AlreadyExistsException(aee.ksName, aee.ksName, aee.getMessage());
+        return Strings.isNullOrEmpty(aee.cfName)
+            ? new AlreadyExistsException(aee.ksName)
+            : new AlreadyExistsException(aee.ksName, aee.cfName);
       case UNPREPARED:
         org.apache.cassandra.exceptions.PreparedQueryNotFoundException pnfe =
             (org.apache.cassandra.exceptions.PreparedQueryNotFoundException) e;
