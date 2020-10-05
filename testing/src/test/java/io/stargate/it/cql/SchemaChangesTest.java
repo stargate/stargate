@@ -1,12 +1,15 @@
 package io.stargate.it.cql;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.metadata.schema.SchemaChangeListener;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
+import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
+import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -65,5 +68,31 @@ public class SchemaChangesTest extends JavaDriverTestBase {
 
     assertThat(session.getMetadata().getKeyspace(keyspaceId))
         .hasValueSatisfying(ks -> assertThat(ks.getTable("foo")).isEmpty());
+  }
+
+  @Test
+  @DisplayName("Should fail when trying to create schema elements that already exist")
+  public void alreadyExistsErrors() {
+    assertThatThrownBy(
+            () ->
+                session.execute(
+                    String.format(
+                        "CREATE KEYSPACE %s WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 }",
+                        keyspaceId.asCql(false))))
+        .isInstanceOf(AlreadyExistsException.class)
+        .hasMessageContaining("Keyspace ")
+        .hasMessageContaining("already exists");
+
+    session.execute("CREATE TABLE foo(k int PRIMARY KEY)");
+    assertThatThrownBy(() -> session.execute("CREATE TABLE foo(k int PRIMARY KEY)"))
+        .isInstanceOf(AlreadyExistsException.class)
+        .hasMessageContaining("Object ")
+        .hasMessageContaining("already exists");
+
+    session.execute("CREATE TYPE t(i int)");
+    assertThatThrownBy(() -> session.execute("CREATE TYPE t(i int)"))
+        .isInstanceOf(InvalidQueryException.class)
+        .hasMessageContaining("A user type ")
+        .hasMessageContaining("already exists");
   }
 }
