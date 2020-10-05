@@ -100,7 +100,7 @@ public class SchemaRegistryProvider implements SchemaProvider {
     ParsedSchema valueSchema = new AvroSchema(constructValueSchema(tableMetadata));
     String subject = constructValueRecordName(tableMetadata);
 
-    int schemaId = registerSchema(tableMetadata, valueSchema, subject);
+    int schemaId = registerSchema(valueSchema, subject);
 
     logger.info(
         "Registered valueSchema: {}, for subject: {} and id: {}", valueSchema, subject, schemaId);
@@ -110,13 +110,13 @@ public class SchemaRegistryProvider implements SchemaProvider {
     ParsedSchema keySchema = new AvroSchema(constructKeySchema(tableMetadata));
     String subject = constructKeyRecordName(tableMetadata);
 
-    int schemaId = registerSchema(tableMetadata, keySchema, subject);
+    int schemaId = registerSchema(keySchema, subject);
 
     logger.info(
         "Registered keySchema: {}, for subject: {} and id: {}", keySchema, subject, schemaId);
   }
 
-  private int registerSchema(TableMetadata tableMetadata, ParsedSchema schema, String subject) {
+  private int registerSchema(ParsedSchema schema, String subject) {
     try {
       return schemaRegistryClient.register(subject, schema);
     } catch (IOException | RestClientException e) {
