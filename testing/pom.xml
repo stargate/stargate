@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.13-SNAPSHOT</version>
+    <version>0.0.14-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.it</groupId>
   <artifactId>testing</artifactId>
@@ -68,25 +68,25 @@
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.13-SNAPSHOT</version>
+      <version>0.0.14-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.db.cassandra</groupId>
       <artifactId>persistence-cassandra-3.11</artifactId>
-      <version>0.0.13-SNAPSHOT</version>
+      <version>0.0.14-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.db.dse</groupId>
       <artifactId>persistence-dse-6.8</artifactId>
-      <version>0.0.6-SNAPSHOT</version>
+      <version>0.0.7-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.auth.api</groupId>
       <artifactId>auth-api</artifactId>
-      <version>0.0.13-SNAPSHOT</version>
+      <version>0.0.14-SNAPSHOT</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -98,7 +98,7 @@
     <dependency>
       <groupId>io.stargate.web</groupId>
       <artifactId>restapi</artifactId>
-      <version>0.0.13-SNAPSHOT</version>
+      <version>0.0.14-SNAPSHOT</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -161,7 +161,7 @@
     <dependency>
       <groupId>io.stargate.starter</groupId>
       <artifactId>stargate-starter</artifactId>
-      <version>0.0.13-SNAPSHOT</version>
+      <version>0.0.14-SNAPSHOT</version>
       <scope>test</scope>
     </dependency>
     <dependency>
