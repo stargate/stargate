@@ -13,10 +13,13 @@ import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Date;
 import net.jcip.annotations.NotThreadSafe;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Base class for tests that use a dedicated Java driver session (and keyspace) for each method.
@@ -26,7 +29,9 @@ import org.junit.jupiter.api.BeforeEach;
 @NotThreadSafe
 public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
 
-  private static final AtomicInteger KEYSPACE_NAME_COUNTER = new AtomicInteger();
+  private static final Logger LOG = LoggerFactory.getLogger(JavaDriverTestBase.class);
+
+  protected static final int KEYSPACE_NAME_MAX_LENGTH = 48;
 
   protected CqlSession session;
   protected CqlIdentifier keyspaceId;
@@ -36,7 +41,7 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
   }
 
   @BeforeEach
-  public void before() {
+  public void before(TestInfo testInfo) {
     OptionsMap config = OptionsMap.driverDefaults();
     config.put(TypedDriverOption.METADATA_TOKEN_MAP_ENABLED, false);
     config.put(
@@ -57,8 +62,8 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
             .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
             .build();
 
-    keyspaceId =
-        CqlIdentifier.fromInternal("JavaDriverTest" + KEYSPACE_NAME_COUNTER.getAndIncrement());
+    keyspaceId = generateKeyspaceId(testInfo);
+    LOG.info("Creating keyspace {}", keyspaceId.asCql(true));
 
     session.execute(
         String.format(
@@ -68,9 +73,24 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
     session.execute(String.format("USE %s", keyspaceId.asCql(false)));
   }
 
+  private CqlIdentifier generateKeyspaceId(TestInfo testInfo) {
+    return testInfo
+        .getTestMethod()
+        .map(
+            method -> {
+              String keyspaceName = "ks_" + new Date().getTime() + "_" + method.getName();
+              if (keyspaceName.length() > KEYSPACE_NAME_MAX_LENGTH) {
+                keyspaceName = keyspaceName.substring(0, KEYSPACE_NAME_MAX_LENGTH);
+              }
+              return CqlIdentifier.fromInternal(keyspaceName);
+            })
+        .orElseThrow(() -> new AssertionError("Could not find test method"));
+  }
+
   @AfterEach
   public void after() {
     if (session != null) {
+      LOG.info("Dropping keyspace {}", keyspaceId.asCql(true));
       session.execute(String.format("DROP KEYSPACE IF EXISTS %s", keyspaceId.asCql(false)));
       session.close();
     }
