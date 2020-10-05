@@ -42,6 +42,20 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
 
   @BeforeEach
   public void before(TestInfo testInfo) {
+    session = newSessionBuilder().build();
+
+    keyspaceId = generateKeyspaceId(testInfo);
+    LOG.info("Creating keyspace {}", keyspaceId.asCql(true));
+
+    session.execute(
+        String.format(
+            "CREATE KEYSPACE IF NOT EXISTS %s "
+                + "WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
+            keyspaceId.asCql(false)));
+    session.execute(String.format("USE %s", keyspaceId.asCql(false)));
+  }
+
+  protected CqlSessionBuilder newSessionBuilder() {
     OptionsMap config = OptionsMap.driverDefaults();
     config.put(TypedDriverOption.METADATA_TOKEN_MAP_ENABLED, false);
     config.put(
@@ -55,22 +69,12 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
 
     CqlSessionBuilder builder = CqlSession.builder();
     customizeBuilder(builder);
-    session =
+    builder =
         builder
             .withConfigLoader(DriverConfigLoader.fromMap(config))
             .withAuthCredentials("cassandra", "cassandra")
-            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
-            .build();
-
-    keyspaceId = generateKeyspaceId(testInfo);
-    LOG.info("Creating keyspace {}", keyspaceId.asCql(true));
-
-    session.execute(
-        String.format(
-            "CREATE KEYSPACE IF NOT EXISTS %s "
-                + "WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
-            keyspaceId.asCql(false)));
-    session.execute(String.format("USE %s", keyspaceId.asCql(false)));
+            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043));
+    return builder;
   }
 
   private CqlIdentifier generateKeyspaceId(TestInfo testInfo) {

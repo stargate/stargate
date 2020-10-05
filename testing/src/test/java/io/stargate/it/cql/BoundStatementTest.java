@@ -173,6 +173,9 @@ public class BoundStatementTest extends JavaDriverTestBase {
     assertThat(executionInfo.getTracingId()).isNotNull();
     QueryTrace queryTrace = executionInfo.getQueryTrace();
     assertThat(queryTrace).isNotNull();
+    assertThat(queryTrace.getCoordinatorAddress().getAddress())
+        .isIn(getStargateInetSocketAddresses());
+    assertThat(queryTrace.getRequestType()).isEqualTo("Execute CQL3 prepared query");
     assertThat(queryTrace.getEvents()).isNotEmpty();
   }
 

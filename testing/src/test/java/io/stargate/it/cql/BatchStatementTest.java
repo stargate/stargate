@@ -10,6 +10,7 @@ import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.QueryTrace;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
@@ -345,5 +346,31 @@ public class BatchStatementTest extends JavaDriverTestBase {
       assertThat(row.getInt("k1")).isEqualTo(i);
       assertThat(row.getInt("v")).isEqualTo(i + 1);
     }
+  }
+
+  @Test
+  @DisplayName("Should execute statement with tracing and retrieve trace")
+  public void tracingTest(TestInfo name) {
+    // Build a batch of batchCount simple statements, each with their own positional variables.
+    BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.UNLOGGED);
+    for (int i = 0; i < batchCount; i++) {
+      SimpleStatement insert =
+          SimpleStatement.builder(
+                  String.format(
+                      "INSERT INTO test (k0, k1, v) values ('%s', ?, ?)", name.getDisplayName()))
+              .addPositionalValues(i, i + 1)
+              .build();
+      builder.addStatement(insert);
+    }
+
+    BatchStatement batchStatement = builder.setTracing().build();
+    ResultSet resultSet = session.execute(batchStatement);
+
+    QueryTrace queryTrace = resultSet.getExecutionInfo().getQueryTrace();
+    assertThat(queryTrace).isNotNull();
+    assertThat(queryTrace.getCoordinatorAddress().getAddress())
+        .isIn(getStargateInetSocketAddresses());
+    assertThat(queryTrace.getRequestType()).isEqualTo("Execute batch of CQL3 queries");
+    assertThat(queryTrace.getEvents()).isNotEmpty();
   }
 }

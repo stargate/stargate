@@ -111,7 +111,7 @@ public class BaseOsgiIntegrationTest {
     return stargateHosts;
   }
 
-  public static List<InetAddress> getStargateInetSocketAddresses() throws UnknownHostException {
+  public static List<InetAddress> getStargateInetSocketAddresses() {
     return stargateHosts.stream()
         .map(
             h -> {
