@@ -4,11 +4,11 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.13-SNAPSHOT</version>
+    <version>0.0.14-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.auth</groupId>
   <artifactId>authentication</artifactId>
-  <version>0.0.13-SNAPSHOT</version>
+  <version>0.0.14-SNAPSHOT</version>
   <build>
     <plugins>
       <plugin>
