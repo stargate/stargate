@@ -186,14 +186,14 @@ public class SchemaRegistryProvider implements SchemaProvider {
       List<ColumnMetadata> tableMetadata) {
     List<Schema> fields = new ArrayList<>();
     for (ColumnMetadata columnMetadata : tableMetadata) {
-      Schema partitionKey =
+      Schema field =
           SchemaBuilder.record(columnMetadata.getName())
               .fields()
               .name(VALUE_FIELD_NAME)
               .type(CqlToAvroTypeConverter.toAvroType(columnMetadata.getType()))
               .noDefault()
               .endRecord();
-      fields.add(SchemaBuilder.unionOf().nullType().and().type(partitionKey).endUnion());
+      fields.add(SchemaBuilder.unionOf().nullType().and().type(field).endUnion());
     }
     return fields;
   }
@@ -202,7 +202,7 @@ public class SchemaRegistryProvider implements SchemaProvider {
       List<ColumnMetadata> tableMetadata) {
     List<Schema> partitionKeys = new ArrayList<>();
     for (ColumnMetadata columnMetadata : tableMetadata) {
-      Schema partitionKey =
+      Schema field =
           SchemaBuilder.record(columnMetadata.getName())
               .fields()
               .name(VALUE_FIELD_NAME)
@@ -210,7 +210,7 @@ public class SchemaRegistryProvider implements SchemaProvider {
               .optional()
               .type(CqlToAvroTypeConverter.toAvroType(columnMetadata.getType()))
               .endRecord();
-      partitionKeys.add(SchemaBuilder.unionOf().nullType().and().type(partitionKey).endUnion());
+      partitionKeys.add(SchemaBuilder.unionOf().nullType().and().type(field).endUnion());
     }
     return partitionKeys;
   }
