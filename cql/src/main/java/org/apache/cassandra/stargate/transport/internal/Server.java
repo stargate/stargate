@@ -116,6 +116,9 @@ public class Server implements CassandraDaemon.Server {
       else workerGroup = new NioEventLoopGroup();
     }
     this.persistence.registerEventListener(new EventNotifier(this));
+
+    // Please see the comment on setUnsetValue().
+    CBUtil.setUnsetValue(persistence.unsetValue());
   }
 
   public void stop() {

@@ -58,6 +58,16 @@ public interface Persistence<T, C, Q> {
 
   DataStore newDataStore(QueryState<Q> state, QueryOptions queryOptions);
 
+  /**
+   * The object that should be used to act as an 'unset' value for this persistence (for use in
+   * {@link QueryOptions#getValues()} or in the {@code values} argument of {@link #batch}).
+   *
+   * <p>Please note that persistence implementations are allowed to use <b>reference equality</b> to
+   * detect this value, so the object returned by this method should be used "as-is" and should
+   * <b>not</b> be copied (through {@link ByteBuffer#duplicate()} or any other method).
+   */
+  ByteBuffer unsetValue();
+
   CompletableFuture<? extends Result> query(
       String cql,
       QueryState state,
