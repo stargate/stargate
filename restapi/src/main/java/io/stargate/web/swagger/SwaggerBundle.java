@@ -94,11 +94,13 @@ public abstract class SwaggerBundle<T extends Configuration> implements Configur
               swaggerBundleConfiguration.getContextRoot(),
               swaggerBundleConfiguration.getCustomJavascript());
 
-      // TODO: [doug] 2020-09-29, Tue, 17:18 is the tccl needed here or can we use default?
       ClassLoader tccl = Thread.currentThread().getContextClassLoader();
-      Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
-      environment.jersey().register(swaggerResource);
-      Thread.currentThread().setContextClassLoader(tccl);
+      try {
+        Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
+        environment.jersey().register(swaggerResource);
+      } finally {
+        Thread.currentThread().setContextClassLoader(tccl);
+      }
     }
   }
 
