@@ -125,6 +125,10 @@ public class CreateTableDataFetcher
   }
 
   private ClusteringOrder decodeClusteringOrder(String order) {
+    if (order == null) {
+      // Use the same default as CQL
+      return ClusteringOrder.ASC;
+    }
     return ClusteringOrder.valueOf(order);
   }
 }
