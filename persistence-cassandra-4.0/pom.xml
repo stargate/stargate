@@ -4,11 +4,11 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.12-SNAPSHOT</version>
+    <version>0.0.13-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db.cassandra</groupId>
   <artifactId>persistence-cassandra-4.0</artifactId>
-  <version>0.0.5-SNAPSHOT</version>
+  <version>0.0.6-SNAPSHOT</version>
   <properties>
     <cassandra.version>4.0-beta1</cassandra.version>
     <junit.version>5.6.2</junit.version>
@@ -23,18 +23,18 @@
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.12-SNAPSHOT</version>
+      <version>0.0.13-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-common</artifactId>
-      <version>0.0.12-SNAPSHOT</version>
+      <version>0.0.13-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
-      <version>0.0.12-SNAPSHOT</version>
+      <version>0.0.13-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -180,12 +180,12 @@
               <tasks>
                 <!-- Remove root package classes -->
                 <delete>
-                  <fileset dir="${project.build.directory}/sjk-core/" includes="*.class"/>
+                  <fileset dir="${project.build.directory}/sjk-core/" includes="*.class" />
                 </delete>
                 <jar destfile="${project.build.directory}/classes/sjk-core-0.14.jar">
-                  <fileset dir="${project.build.directory}/sjk-core"/>
+                  <fileset dir="${project.build.directory}/sjk-core" />
                 </jar>
-                <delete dir="${project.build.directory}/sjk-core"/>
+                <delete dir="${project.build.directory}/sjk-core" />
               </tasks>
             </configuration>
           </execution>
