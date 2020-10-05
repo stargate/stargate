@@ -5,6 +5,9 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        backend: [ "cassandra-3.11", "cassandra-4.0", "dse-6.8" ]
 
     steps:
       - uses: actions/checkout@v2
@@ -34,12 +37,6 @@ jobs:
            </servers>
           </settings>
           EOF
-      - name: Cache SonarCloud packages
-        uses: actions/cache@v1
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
       - name: Clone CCM
         uses: actions/checkout@v2
         with:
@@ -51,10 +48,8 @@ jobs:
         run: |
           cd ccm
           sudo ./setup.py install
-      - name: run tests and analyze
+      - name: run tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           CCM_CLUSTER_START_TIMEOUT_OVERRIDE: 600
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar --file pom.xml
-
+        run: mvn -B verify --file pom.xml -P it-${{ matrix.backend }}
