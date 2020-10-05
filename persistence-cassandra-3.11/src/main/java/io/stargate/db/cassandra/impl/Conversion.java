@@ -15,6 +15,7 @@
  */
 package io.stargate.db.cassandra.impl;
 
+import com.google.common.base.Strings;
 import io.stargate.db.BatchType;
 import io.stargate.db.ClientState;
 import io.stargate.db.QueryOptions;
@@ -216,6 +217,11 @@ public class Conversion {
             protocolVersion.asInt(), ProtocolVersionLimit.SERVER_DEFAULT);
   }
 
+  public static ProtocolVersion toExternal(
+      org.apache.cassandra.transport.ProtocolVersion protocolVersion) {
+    return protocolVersion == null ? null : ProtocolVersion.decode(protocolVersion.asInt(), true);
+  }
+
   public static InetAddressAndPort toExternal(InetAddress internal) {
     return InetAddressAndPort.getByAddressOverrideDefaults(
         internal, DatabaseDescriptor.getStoragePort());
@@ -257,8 +263,6 @@ public class Conversion {
     switch (e.code()) {
       case SERVER_ERROR:
         return new ServerError(e.getMessage());
-      case PROTOCOL_ERROR:
-        return new ProtocolException(e.getMessage());
       case BAD_CREDENTIALS:
         return new AuthenticationException(e.getMessage(), e.getCause());
       case UNAVAILABLE:
@@ -320,7 +324,9 @@ public class Conversion {
       case ALREADY_EXISTS:
         org.apache.cassandra.exceptions.AlreadyExistsException aee =
             (org.apache.cassandra.exceptions.AlreadyExistsException) e;
-        return new AlreadyExistsException(aee.ksName, aee.ksName, aee.getMessage());
+        return Strings.isNullOrEmpty(aee.cfName)
+            ? new AlreadyExistsException(aee.ksName)
+            : new AlreadyExistsException(aee.ksName, aee.cfName);
       case UNPREPARED:
         org.apache.cassandra.exceptions.PreparedQueryNotFoundException pnfe =
             (org.apache.cassandra.exceptions.PreparedQueryNotFoundException) e;
@@ -427,11 +433,20 @@ public class Conversion {
   }
 
   public static void handleException(CompletableFuture<?> future, Throwable t) {
-    if (t instanceof org.apache.cassandra.exceptions.UnauthorizedException)
-      future.completeExceptionally(DataStore.UnauthorizedException.rbac(t));
-    else if (t instanceof CassandraException)
-      future.completeExceptionally(Conversion.toExternal((CassandraException) t));
-    else future.completeExceptionally(t);
+    Throwable e = t;
+
+    if (t instanceof org.apache.cassandra.exceptions.UnauthorizedException) {
+      e = DataStore.UnauthorizedException.rbac(t);
+    } else if (t instanceof CassandraException) {
+      e = Conversion.toExternal((CassandraException) t);
+    } else if (t instanceof org.apache.cassandra.transport.ProtocolException) {
+      // Note that ProtocolException is not a CassandraException
+      org.apache.cassandra.transport.ProtocolException ex =
+          (org.apache.cassandra.transport.ProtocolException) t;
+      e = new ProtocolException(t.getMessage(), toExternal(ex.getForcedProtocolVersion()));
+    }
+
+    future.completeExceptionally(e);
   }
 
   public static List<Object> toInternalQueryOrIds(List<Object> queryOrIds) {
