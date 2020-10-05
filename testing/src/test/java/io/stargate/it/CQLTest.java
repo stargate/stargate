@@ -39,6 +39,7 @@ import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
+import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.TupleType;
@@ -142,6 +143,11 @@ public class CQLTest extends BaseOsgiIntegrationTest {
         String.format(
             "CREATE TABLE \"%s\".\"%s\" (key text PRIMARY KEY, value1 text, value2 text)",
             keyspace, table));
+  }
+
+  private void createType() {
+    session.execute(
+        String.format("CREATE TYPE \"%s\".address (street text, city text, zip int)", keyspace));
   }
 
   private void paginationTestSetup() {
@@ -518,8 +524,7 @@ public class CQLTest extends BaseOsgiIntegrationTest {
   @Test
   public void udtTest() {
     createKeyspace();
-    session.execute(
-        String.format("CREATE TYPE \"%s\".address (street text, city text, zip int)", keyspace));
+    createType();
     String tableName = String.format("\"%s\".\"%s\"", keyspace, table);
     session.execute(
         String.format("CREATE TABLE %s (key int PRIMARY KEY, value address)", tableName));
@@ -586,6 +591,39 @@ public class CQLTest extends BaseOsgiIntegrationTest {
     rs = session.execute(selectPs.bind(1).setPageSize(15).setPagingState(pageState));
     assertThat(rs.getAvailableWithoutFetching()).isEqualTo(5);
     assertThat(rs.getExecutionInfo().getPagingState()).isNull();
+  }
+
+  @Test
+  public void alreadyExistsErrors() {
+    createKeyspace();
+    assertThatThrownBy(
+            () -> {
+              session.execute(
+                  String.format(
+                      "CREATE KEYSPACE \"%s\" WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 }",
+                      keyspace));
+            })
+        .isInstanceOf(AlreadyExistsException.class)
+        .hasMessageContaining("Keyspace ")
+        .hasMessageContaining("already exists");
+
+    createTable();
+    assertThatThrownBy(
+            () -> {
+              createTable();
+            })
+        .isInstanceOf(AlreadyExistsException.class)
+        .hasMessageContaining("Object ")
+        .hasMessageContaining("already exists");
+
+    createType();
+    assertThatThrownBy(
+            () -> {
+              createType();
+            })
+        .isInstanceOf(InvalidQueryException.class)
+        .hasMessageContaining("A user type ")
+        .hasMessageContaining("already exists");
   }
 
   @Test
