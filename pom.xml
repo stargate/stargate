@@ -29,10 +29,6 @@
   <properties>
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <sonar.projectKey>stargate_stargate</sonar.projectKey>
-        <sonar.organization>stargate</sonar.organization>
-        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
-        <sonar.moduleKey>${project.groupId}:${project.artifactId}</sonar.moduleKey>
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
     <driver.version>4.9.0</driver.version>
