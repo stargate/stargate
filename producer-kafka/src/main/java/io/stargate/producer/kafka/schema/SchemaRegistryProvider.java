@@ -138,10 +138,10 @@ public class SchemaRegistryProvider implements SchemaProvider {
 
   Schema constructValueSchema(TableMetadata tableMetadata) {
     List<Schema> partitionKeys =
-        constructRequiredValueFieldsSchema(tableMetadata.getPartitionKeys());
+        constructUnionWithRequiredValueFieldsSchema(tableMetadata.getPartitionKeys());
     List<Schema> clusteringKeys =
-        constructRequiredValueFieldsSchema(tableMetadata.getClusteringKeys());
-    List<Schema> columns = constructOptionalValueFieldsSchema(tableMetadata.getColumns());
+        constructUnionWithRequiredValueFieldsSchema(tableMetadata.getClusteringKeys());
+    List<Schema> columns = constructUnionWithOptionalValueFieldsSchema(tableMetadata.getColumns());
     Schema fieldsSchema =
         constructFieldsSchema(partitionKeys, clusteringKeys, columns, tableMetadata);
 
@@ -182,7 +182,8 @@ public class SchemaRegistryProvider implements SchemaProvider {
     }
   }
 
-  private List<Schema> constructRequiredValueFieldsSchema(List<ColumnMetadata> tableMetadata) {
+  private List<Schema> constructUnionWithRequiredValueFieldsSchema(
+      List<ColumnMetadata> tableMetadata) {
     List<Schema> fields = new ArrayList<>();
     for (ColumnMetadata columnMetadata : tableMetadata) {
       Schema partitionKey =
@@ -197,7 +198,8 @@ public class SchemaRegistryProvider implements SchemaProvider {
     return fields;
   }
 
-  private List<Schema> constructOptionalValueFieldsSchema(List<ColumnMetadata> tableMetadata) {
+  private List<Schema> constructUnionWithOptionalValueFieldsSchema(
+      List<ColumnMetadata> tableMetadata) {
     List<Schema> partitionKeys = new ArrayList<>();
     for (ColumnMetadata columnMetadata : tableMetadata) {
       Schema partitionKey =
