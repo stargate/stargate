@@ -34,10 +34,6 @@ public class FastBeanConfig extends BeanConfig {
                   resourceName(pkg), "*.class", BundleWiring.FINDENTRIES_RECURSE);
 
           for (URL resource : resources) {
-            // TODO: [doug] 2020-09-29, Tue, 17:17 is this tccl needed or can we use the default
-            ClassLoader tccl = Thread.currentThread().getContextClassLoader();
-            Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
-
             try {
               String className = pkgName(resource.getPath());
               className = className.substring(0, className.indexOf(".class"));
@@ -64,8 +60,6 @@ public class FastBeanConfig extends BeanConfig {
             } catch (Exception e) {
               throw new RuntimeException(
                   "Error occurred while finding classes to generate Swagger config for", e);
-            } finally {
-              Thread.currentThread().setContextClassLoader(tccl);
             }
           }
 
