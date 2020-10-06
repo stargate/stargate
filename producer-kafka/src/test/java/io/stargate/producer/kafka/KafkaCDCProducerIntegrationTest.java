@@ -261,7 +261,7 @@ class KafkaCDCProducerIntegrationTest {
                   cellValue(partitionKeyValue, partitionKey(PARTITION_KEY_NAME, Native.TEXT))),
               Arrays.asList(
                   cell(column(COLUMN_NAME, Native.TEXT), columnValue),
-                  cell(column("col_2", Native.TEXT), columnValue)),
+                  cell(column(COLUMN_NAME_2, Native.TEXT), columnValue)),
               Collections.singletonList(
                   cellValue(clusteringKeyValue, clusteringKey(CLUSTERING_KEY_NAME, Native.INT))),
               tableMetadata,
