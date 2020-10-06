@@ -47,7 +47,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @BeforeEach
   public void setup(ClusterConnectionInfo cluster) throws IOException {
-    keyspace = "ks_docsapitest";
+    keyspace = "ks_docs_" + System.currentTimeMillis();
 
     CqlSession session =
         CqlSession.builder()
