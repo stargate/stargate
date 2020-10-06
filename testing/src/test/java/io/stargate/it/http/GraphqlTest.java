@@ -10,6 +10,10 @@ import com.apollographql.apollo.ApolloQueryCall;
 import com.apollographql.apollo.api.CustomTypeAdapter;
 import com.apollographql.apollo.api.CustomTypeValue;
 import com.apollographql.apollo.exception.ApolloException;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.example.graphql.client.betterbotz.orders.GetOrdersByValueQuery;
 import com.example.graphql.client.betterbotz.orders.GetOrdersWithFilterQuery;
 import com.example.graphql.client.betterbotz.products.DeleteProductsMutation;
@@ -42,17 +46,13 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.db.ClientState;
-import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
-import io.stargate.db.datastore.DataStore;
-import io.stargate.db.schema.Column.Kind;
-import io.stargate.db.schema.Column.Type;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -68,9 +68,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.osgi.framework.InvalidSyntaxException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * To update these tests:
@@ -88,9 +85,8 @@ import org.slf4j.LoggerFactory;
  */
 @NotThreadSafe
 public class GraphqlTest extends BaseOsgiIntegrationTest {
-  private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
 
-  private DataStore dataStore;
+  private CqlSession session;
   private String keyspace;
   private static String authToken;
   private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -101,88 +97,106 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   }
 
   @BeforeEach
-  public void setup()
-      throws InvalidSyntaxException, ExecutionException, InterruptedException, IOException {
+  public void setup(ClusterConnectionInfo cluster) throws IOException {
     keyspace = "betterbotz";
 
-    Persistence persistence = getOsgiService("io.stargate.db.Persistence", Persistence.class);
-    ClientState clientState = persistence.newClientState("");
-    QueryState queryState = persistence.newQueryState(clientState);
-    dataStore = persistence.newDataStore(queryState, null);
-    logger.info("{} {} {}", clientState, queryState, dataStore);
+    session =
+        CqlSession.builder()
+            .withConfigLoader(
+                DriverConfigLoader.programmaticBuilder()
+                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
+                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(20))
+                    .build())
+            .withAuthCredentials("cassandra", "cassandra")
+            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
+            .withLocalDatacenter(cluster.datacenter())
+            .build();
 
-    dataStore
-        .query()
-        .create()
-        .keyspace("betterbotz")
-        .ifNotExists()
-        .withReplication("{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }")
-        .execute();
+    assertThat(
+            session
+                .execute(
+                    String.format(
+                        "create keyspace if not exists %s WITH replication = "
+                            + "{'class': 'SimpleStrategy', 'replication_factor': 1 }",
+                        keyspace))
+                .wasApplied())
+        .isTrue();
 
-    dataStore.waitForSchemaAgreement();
+    assertThat(
+            session
+                .execute(
+                    String.format(
+                        "create table if not exists %s.%s "
+                            + " ("
+                            + "id uuid,"
+                            + "name text,"
+                            + "price decimal,"
+                            + "created timestamp,"
+                            + "prod_name text,"
+                            + "customer_name text,"
+                            + "description text,"
+                            + "PRIMARY KEY ((id), name, price, created)"
+                            + ")",
+                        keyspace, "products"))
+                .wasApplied())
+        .isTrue();
 
-    dataStore
-        .query()
-        .create()
-        .table("betterbotz", "products")
-        .ifNotExists()
-        .column("id", Type.Uuid, Kind.PartitionKey)
-        .column("name", Type.Text, Kind.Clustering)
-        .column("price", Type.Decimal, Kind.Clustering)
-        .column("created", Type.Timestamp, Kind.Clustering)
-        .column("prod_name", Type.Text)
-        .column("customer_name", Type.Text)
-        .column("description", Type.Text)
-        .execute();
+    assertThat(
+            session
+                .execute(
+                    String.format(
+                        "create table if not exists %s.%s "
+                            + " ("
+                            + "prod_name text,"
+                            + "customer_name text,"
+                            + "id uuid,"
+                            + "prod_id uuid,"
+                            + "address text,"
+                            + "description text,"
+                            + "price decimal,"
+                            + "sell_price decimal,"
+                            + "PRIMARY KEY ((prod_name), customer_name)"
+                            + ")",
+                        keyspace, "orders"))
+                .wasApplied())
+        .isTrue();
 
-    dataStore.waitForSchemaAgreement();
+    PreparedStatement insert =
+        session.prepare(
+            String.format(
+                "insert into %s.%s (id, prod_id, prod_name, description, price,"
+                    + "sell_price, customer_name, address) values (?, ?, ?, ?, ?, ?, ?, ?)",
+                keyspace, "orders"));
 
-    dataStore
-        .query()
-        .create()
-        .table("betterbotz", "orders")
-        .ifNotExists()
-        .column("prod_name", Type.Text, Kind.PartitionKey)
-        .column("customer_name", Type.Text, Kind.Clustering)
-        .column("id", Type.Uuid)
-        .column("prod_id", Type.Uuid)
-        .column("address", Type.Text)
-        .column("description", Type.Text)
-        .column("price", Type.Decimal)
-        .column("sell_price", Type.Decimal)
-        .execute();
+    assertThat(
+            session
+                .execute(
+                    insert.bind(
+                        UUID.fromString("792d0a56-bb46-4bc2-bc41-5f4a94a83da9"),
+                        UUID.fromString("31047029-2175-43ce-9fdd-b3d568b19bb2"),
+                        "Medium Lift Arms",
+                        "Ordering some more arms for my construction bot.",
+                        BigDecimal.valueOf(3199.99),
+                        BigDecimal.valueOf(3119.99),
+                        "Janice Evernathy",
+                        "2101 Everplace Ave 3116"))
+                .wasApplied())
+        .isTrue();
 
-    dataStore.waitForSchemaAgreement();
-
-    dataStore
-        .query()
-        .insertInto(keyspace, "orders")
-        .value("id", UUID.fromString("792d0a56-bb46-4bc2-bc41-5f4a94a83da9"))
-        .value("prod_id", UUID.fromString("31047029-2175-43ce-9fdd-b3d568b19bb2"))
-        .value("prod_name", "Medium Lift Arms")
-        .value("description", "Ordering some more arms for my construction bot.")
-        .value("price", BigDecimal.valueOf(3199.99))
-        .value("sell_price", BigDecimal.valueOf(3119.99))
-        .value("customer_name", "Janice Evernathy")
-        .value("address", "2101 Everplace Ave 3116")
-        .execute();
-
-    dataStore.waitForSchemaAgreement();
-
-    dataStore
-        .query()
-        .insertInto(keyspace, "orders")
-        .value("id", UUID.fromString("dd73afe2-9841-4ce1-b841-575b8be405c1"))
-        .value("prod_id", UUID.fromString("31047029-2175-43ce-9fdd-b3d568b19bb5"))
-        .value("prod_name", "Basic Task CPU")
-        .value("description", "Ordering replacement CPUs.")
-        .value("price", BigDecimal.valueOf(899.99))
-        .value("sell_price", BigDecimal.valueOf(900.82))
-        .value("customer_name", "John Doe")
-        .value("address", "123 Main St 67890")
-        .execute();
-
-    dataStore.waitForSchemaAgreement();
+    assertThat(
+            session
+                .execute(
+                    insert.bind(
+                        UUID.fromString("dd73afe2-9841-4ce1-b841-575b8be405c1"),
+                        UUID.fromString("31047029-2175-43ce-9fdd-b3d568b19bb5"),
+                        "Basic Task CPU",
+                        "Ordering replacement CPUs.",
+                        BigDecimal.valueOf(899.99),
+                        BigDecimal.valueOf(900.82),
+                        "John Doe",
+                        "123 Main St 67890"))
+                .wasApplied())
+        .isTrue();
 
     initAuth();
   }
@@ -254,9 +268,11 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   public void createKeyspace() throws Exception {
     String newKeyspaceName = "graphql_create_test";
 
-    dataStore.query().drop().keyspace(newKeyspaceName).ifExists().execute();
-    dataStore.waitForSchemaAgreement();
-    assertThat(dataStore.schema().keyspaceNames()).doesNotContain(newKeyspaceName);
+    assertThat(
+            session
+                .execute(String.format("drop keyspace if exists %s", newKeyspaceName))
+                .wasApplied())
+        .isTrue();
 
     ApolloClient client = getApolloClient("/graphql-schema");
     CreateKeyspaceMutation mutation =
@@ -274,8 +290,15 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     observable.cancel();
 
     assertThat(result.getCreateKeyspace()).hasValue(true);
-    dataStore.waitForSchemaAgreement();
-    assertThat(dataStore.schema().keyspaceNames()).contains(newKeyspaceName);
+
+    // Create a table in the new keyspace via CQL to validate that the keyspace is usable
+    assertThat(
+            session
+                .execute(
+                    String.format(
+                        "create table %s.%s (id uuid, primary key (id))", newKeyspaceName, "test"))
+                .wasApplied())
+        .isTrue();
   }
 
   @Test
