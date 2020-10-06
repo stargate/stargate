@@ -42,13 +42,17 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.cassandra.stargate.db.Cell;
 import org.apache.cassandra.stargate.db.DeleteEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
 import org.apache.cassandra.stargate.schema.CQLType.Native;
+import org.apache.cassandra.stargate.schema.ColumnMetadata;
 import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -58,6 +62,9 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 
@@ -199,8 +206,10 @@ class KafkaCDCProducerIntegrationTest {
     }
   }
 
-  @Test
-  public void shouldSendUpdateAndSendSecondEventWhenSchemaChanged() throws Exception {
+  @ParameterizedTest
+  @MethodSource("columnsAfterChange")
+  public void shouldSendUpdateAndSendSecondEventWhenSchemaChanged(
+      List<ColumnMetadata> metadataAfterChange, List<Cell> columnsAfterChange) throws Exception {
     // given
     String partitionKeyValue = "pk_value";
     Integer clusteringKeyValue = 1;
@@ -249,9 +258,7 @@ class KafkaCDCProducerIntegrationTest {
           .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
       when(tableMetadata.getClusteringKeys())
           .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
-      when(tableMetadata.getColumns())
-          .thenReturn(
-              Arrays.asList(column(COLUMN_NAME, Native.TEXT), column(COLUMN_NAME_2, Native.TEXT)));
+      when(tableMetadata.getColumns()).thenReturn(metadataAfterChange);
       kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
 
       // and send event with a new column
@@ -259,9 +266,7 @@ class KafkaCDCProducerIntegrationTest {
           createRowUpdateEvent(
               Collections.singletonList(
                   cellValue(partitionKeyValue, partitionKey(PARTITION_KEY_NAME, Native.TEXT))),
-              Arrays.asList(
-                  cell(column(COLUMN_NAME, Native.TEXT), columnValue),
-                  cell(column(COLUMN_NAME_2, Native.TEXT), columnValue)),
+              columnsAfterChange,
               Collections.singletonList(
                   cellValue(clusteringKeyValue, clusteringKey(CLUSTERING_KEY_NAME, Native.INT))),
               tableMetadata,
@@ -279,6 +284,25 @@ class KafkaCDCProducerIntegrationTest {
     } finally {
       kafkaCDCProducer.close();
     }
+  }
+
+  public static Stream<Arguments> columnsAfterChange() {
+    String columnValue = "value";
+    return Stream.of(
+        Arguments.of(
+            Arrays.asList(column(COLUMN_NAME, Native.TEXT), column(COLUMN_NAME_2, Native.TEXT)),
+            Arrays.asList(
+                cell(column(COLUMN_NAME, Native.TEXT), columnValue),
+                cell(column(COLUMN_NAME_2, Native.TEXT), columnValue)) // add new column
+            ),
+        Arguments.of(
+            Collections.emptyList(), Collections.emptyList() // remove columns
+            ),
+        Arguments.of(
+            Collections.singletonList(column(COLUMN_NAME + "_renamed", Native.TEXT)),
+            Collections.singletonList(
+                cell(column(COLUMN_NAME + "_renamed", Native.TEXT), columnValue))) // rename column
+        );
   }
 
   @NotNull
