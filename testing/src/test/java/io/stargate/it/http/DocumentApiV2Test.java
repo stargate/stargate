@@ -27,7 +27,6 @@ import net.jcip.annotations.NotThreadSafe;
 import okhttp3.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,10 +46,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @BeforeEach
-  public void setup(TestInfo info, ClusterConnectionInfo cluster) throws IOException {
-    String testName = info.getTestMethod().get().getName();
-    if (testName.indexOf('[') >= 0) testName = testName.substring(0, testName.indexOf('['));
-    keyspace = "ks_" + testName;
+  public void setup(ClusterConnectionInfo cluster) throws IOException {
+    keyspace = "ks_docsapitest";
 
     CqlSession session =
         CqlSession.builder()
