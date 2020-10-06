@@ -21,9 +21,11 @@ import static io.stargate.producer.kafka.schema.SchemaConstants.TIMESTAMP_FIELD_
 import static io.stargate.producer.kafka.schema.SchemaConstants.TIMESTAMP_MILLIS_TYPE;
 import static io.stargate.producer.kafka.schema.SchemaConstants.VALUE_FIELD_NAME;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.stargate.producer.kafka.mapping.MappingService;
@@ -31,6 +33,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
@@ -42,14 +45,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SchemaRegistryProvider implements SchemaProvider {
-  private static final Logger logger = LoggerFactory.getLogger(SchemaRegistryProvider.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SchemaRegistryProvider.class);
 
   private static final int SCHEMA_REGISTRY_MAX_CAPACITY = 1000;
 
   private final SchemaRegistryClient schemaRegistryClient;
 
   private MappingService mappingService;
-  private Map<String, Integer> schemaIdPerSubject = new ConcurrentHashMap<>();
+  @VisibleForTesting Map<String, Integer> schemaIdPerSubject = new ConcurrentHashMap<>();
 
   public SchemaRegistryProvider(String schemaRegistryUrl, MappingService mappingService) {
     this(
@@ -66,13 +69,13 @@ public class SchemaRegistryProvider implements SchemaProvider {
   @Override
   public Schema getKeySchemaForTopic(String topicName) {
     String subjectName = constructKeyRecordName(topicName);
-    return getLatestSchemaBySubject(subjectName);
+    return getSchemaBySubject(subjectName);
   }
 
   @Override
   public Schema getValueSchemaForTopic(String topicName) {
     String subjectName = constructValueRecordName(topicName);
-    return getLatestSchemaBySubject(subjectName);
+    return getSchemaBySubject(subjectName);
   }
 
   @Override
@@ -81,23 +84,45 @@ public class SchemaRegistryProvider implements SchemaProvider {
     createOrUpdateValueSchema(tableMetadata);
   }
 
+  private Schema getSchemaBySubject(String subjectName) {
+    Integer schemaId = schemaIdPerSubject.get(subjectName);
+    if (schemaId == null) {
+      return getLatestSchemaBySubject(subjectName);
+    }
+
+    return getSchemaBySubjectAndId(subjectName, schemaId);
+  }
+
   private Schema getLatestSchemaBySubject(String subjectName) {
-    Integer latestSchemaId = schemaIdPerSubject.get(subjectName);
-    if (latestSchemaId == null) {
+    // try to fetch the latest schema
+    Optional<SchemaMetadata> latestSchemaMetadata = getLatestSchemaMetadata(subjectName);
+    if (!latestSchemaMetadata.isPresent()) {
       throw new IllegalStateException(
-          "The getLatestSchemaBySubject was called before createOrUpdateSchema. There is no existing schema created for subject: "
+          "The getSchemaBySubject was called before createOrUpdateSchema and there is no existing schema created for subject: "
               + subjectName);
     }
+    Schema schemaBySubjectAndId =
+        getSchemaBySubjectAndId(subjectName, latestSchemaMetadata.get().getId());
+    schemaIdPerSubject.put(subjectName, latestSchemaMetadata.get().getId());
+    return schemaBySubjectAndId;
+  }
+
+  private Optional<SchemaMetadata> getLatestSchemaMetadata(String subjectName) {
+    try {
+      return Optional.of(schemaRegistryClient.getLatestSchemaMetadata(subjectName));
+    } catch (IOException | RestClientException e) {
+      LOGGER.warn("There is no schema for subject: " + subjectName, e);
+      return Optional.empty();
+    }
+  }
+
+  private Schema getSchemaBySubjectAndId(String subjectName, Integer schemaId) {
     try {
       return (Schema)
-          schemaRegistryClient.getSchemaBySubjectAndId(subjectName, latestSchemaId).rawSchema();
+          schemaRegistryClient.getSchemaBySubjectAndId(subjectName, schemaId).rawSchema();
     } catch (IOException | RestClientException e) {
       throw new RuntimeException(
-          "Problem when get schema for subject: "
-              + subjectName
-              + " and schema id: "
-              + latestSchemaId,
-          e);
+          "Problem when get schema for subject: " + subjectName + " and schema id: " + schemaId, e);
     }
   }
 
@@ -107,7 +132,7 @@ public class SchemaRegistryProvider implements SchemaProvider {
 
     int schemaId = registerSchema(valueSchema, subject);
 
-    logger.info(
+    LOGGER.info(
         "Registered valueSchema: {}, for subject: {} and id: {}", valueSchema, subject, schemaId);
   }
 
@@ -117,7 +142,7 @@ public class SchemaRegistryProvider implements SchemaProvider {
 
     int schemaId = registerSchema(keySchema, subject);
 
-    logger.info(
+    LOGGER.info(
         "Registered keySchema: {}, for subject: {} and id: {}", keySchema, subject, schemaId);
   }
 

@@ -258,6 +258,52 @@ public class SchemaRegistryProviderIntegrationTest {
             "Schema being registered is incompatible with an earlier schema; error code: 409");
   }
 
+  @Test
+  public void shouldFetchTheLatestSchemaWhenThereIsNoTrackedIdButSchemaWasCreatedBefore() {
+    // given
+    TableMetadata tableMetadata = mockTableMetadata();
+    DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
+    SchemaRegistryProvider schemaRegistryProvider =
+        new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
+
+    // when
+    schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
+    // and recreate to clear tracked schema ids
+    schemaRegistryProvider =
+        new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
+    // does not have tracked schema id yet
+    assertThat(schemaRegistryProvider.schemaIdPerSubject).hasSize(0);
+
+    // then retrieve latest and track it's id
+    assertThat(
+            schemaRegistryProvider.getKeySchemaForTopic(
+                mappingService.getTopicNameFromTableMetadata(tableMetadata)))
+        .isNotNull();
+    assertThat(
+            schemaRegistryProvider.getValueSchemaForTopic(
+                mappingService.getTopicNameFromTableMetadata(tableMetadata)))
+        .isNotNull();
+    assertThat(schemaRegistryProvider.schemaIdPerSubject).hasSize(2); // for key and value
+  }
+
+  @Test
+  public void shouldThrowWhenThereIsNoTrackedIdAndSchemaWasNotCreatedBefore() {
+    // given
+    TableMetadata tableMetadata = mockTableMetadata();
+    DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
+    SchemaRegistryProvider schemaRegistryProvider =
+        new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
+
+    // then
+    assertThatThrownBy(
+            () ->
+                schemaRegistryProvider.getKeySchemaForTopic(
+                    mappingService.getTopicNameFromTableMetadata(tableMetadata)))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining(
+            "The getSchemaBySubject was called before createOrUpdateSchema and there is no existing schema created for subject");
+  }
+
   public static Stream<Arguments> newColumnsProvider() {
     return Stream.of(
         Arguments.of(
