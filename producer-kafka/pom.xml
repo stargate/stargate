@@ -70,16 +70,16 @@
       <artifactId>persistence-api</artifactId>
       <version>0.0.12-SNAPSHOT</version>
       <scope>provided</scope>
-		<exclusions>
-			<exclusion>
-				<groupId>javax.validation</groupId>
-				<artifactId>validation-api</artifactId>
-			</exclusion>
-			<exclusion>
-				<groupId>org.hibernate</groupId>
-				<artifactId>hibernate-validator</artifactId>
-			</exclusion>
-		</exclusions>
+        <exclusions>
+          <exclusion>
+            <groupId>javax.validation</groupId>
+            <artifactId>validation-api</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-validator</artifactId>
+		  </exclusion>
+        </exclusions>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -153,7 +153,7 @@
       <groupId>io.confluent</groupId>
       <artifactId>kafka-schema-registry</artifactId>
       <version>${schema-registry.version}</version>
-	  <scope>test</scope>
+      <scope>test</scope>
 	</dependency>
   </dependencies>
   <build>
