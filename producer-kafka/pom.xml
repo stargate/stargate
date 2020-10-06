@@ -78,7 +78,7 @@
           <exclusion>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-validator</artifactId>
-		  </exclusion>
+          </exclusion>
         </exclusions>
     </dependency>
     <dependency>
