@@ -2,6 +2,9 @@ package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,26 +13,21 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.db.ClientState;
-import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
-import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.ResultSet;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.URLEncoder;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.osgi.framework.InvalidSyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,28 +47,33 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @BeforeEach
-  public void setup(TestInfo info)
-      throws InvalidSyntaxException, ExecutionException, InterruptedException, IOException {
+  public void setup(TestInfo info, ClusterConnectionInfo cluster) throws IOException {
     String testName = info.getTestMethod().get().getName();
     if (testName.indexOf('[') >= 0) testName = testName.substring(0, testName.indexOf('['));
     keyspace = "ks_" + testName;
 
-    Persistence persistence = getOsgiService("io.stargate.db.Persistence", Persistence.class);
-    ClientState clientState = persistence.newClientState("");
-    QueryState queryState = persistence.newQueryState(clientState);
-    DataStore dataStore = persistence.newDataStore(queryState, null);
+    CqlSession session =
+        CqlSession.builder()
+            .withConfigLoader(
+                DriverConfigLoader.programmaticBuilder()
+                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
+                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(20))
+                    .build())
+            .withAuthCredentials("cassandra", "cassandra")
+            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
+            .withLocalDatacenter(cluster.datacenter())
+            .build();
 
-    ResultSet result =
-        dataStore
-            .query()
-            .create()
-            .keyspace(keyspace)
-            .ifNotExists()
-            .withReplication("{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }")
-            .andDurableWrites(true)
-            .execute();
+    assertThat(
+            session
+                .execute(
+                    String.format(
+                        "create keyspace if not exists %s WITH replication = "
+                            + "{'class': 'SimpleStrategy', 'replication_factor': 1 }",
+                        keyspace))
+                .wasApplied())
+        .isTrue();
 
-    dataStore.waitForSchemaAgreement();
     initAuth();
   }
 
@@ -672,7 +675,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     String newId = objectMapper.readTree(body).requiredAt("/documentId").asText();
     assertThat(newId).isNotNull();
 
-    resp = get(newLocation.replace(host + ":8090", ""));
+    resp = get(newLocation.replace(host + ":8082", ""));
     assertThat(resp.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(resp.body().string())).isEqualTo(wrapResponse(fullObj, newId));
   }
