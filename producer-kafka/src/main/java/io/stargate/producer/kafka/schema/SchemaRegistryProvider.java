@@ -30,6 +30,8 @@ import io.stargate.producer.kafka.mapping.MappingService;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.SchemaBuilder;
@@ -47,6 +49,7 @@ public class SchemaRegistryProvider implements SchemaProvider {
   private final SchemaRegistryClient schemaRegistryClient;
 
   private MappingService mappingService;
+  private Map<String, Integer> schemaIdPerSubject = new ConcurrentHashMap<>();
 
   public SchemaRegistryProvider(String schemaRegistryUrl, MappingService mappingService) {
     this(
@@ -79,16 +82,18 @@ public class SchemaRegistryProvider implements SchemaProvider {
   }
 
   private Schema getLatestSchemaBySubject(String subjectName) {
-    int latestSchemaId = -1;
+    Integer latestSchemaId = schemaIdPerSubject.get(subjectName);
+    if (latestSchemaId == null) {
+      throw new IllegalStateException(
+          "The getLatestSchemaBySubject was called before createOrUpdateSchema. There is no existing schema created for subject: "
+              + subjectName);
+    }
     try {
-      // be careful - possible race condition, if between getLatestSchemaMetadata and
-      // getSchemaBySubjectAndId the createOrUpdateSchema is called
-      latestSchemaId = schemaRegistryClient.getLatestSchemaMetadata(subjectName).getId();
       return (Schema)
           schemaRegistryClient.getSchemaBySubjectAndId(subjectName, latestSchemaId).rawSchema();
     } catch (IOException | RestClientException e) {
       throw new RuntimeException(
-          "Problem when get key schema for subject: "
+          "Problem when get schema for subject: "
               + subjectName
               + " and schema id: "
               + latestSchemaId,
@@ -118,7 +123,9 @@ public class SchemaRegistryProvider implements SchemaProvider {
 
   private int registerSchema(ParsedSchema schema, String subject) {
     try {
-      return schemaRegistryClient.register(subject, schema);
+      int schemaId = schemaRegistryClient.register(subject, schema);
+      schemaIdPerSubject.put(subject, schemaId);
+      return schemaId;
     } catch (IOException | RestClientException e) {
       throw new RuntimeException(
           "Problem when create or update key schema for subject: " + subject, e);
