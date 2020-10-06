@@ -28,8 +28,8 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.web.RestApiActivator;
 import io.stargate.web.config.ApplicationConfiguration;
-import io.stargate.web.docsapi.resources.SchemalessResource;
-import io.stargate.web.docsapi.resources.SchemalessResourceV2;
+import io.stargate.web.docsapi.resources.DocumentResource;
+import io.stargate.web.docsapi.resources.DocumentResourceV2;
 import io.stargate.web.resources.ColumnResource;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.HealthResource;
@@ -119,8 +119,8 @@ public class Server extends Application<ApplicationConfiguration> {
     environment.jersey().register(ColumnsResource.class);
     
     // Documents API
-    environment.jersey().register(SchemalessResource.class);
-    environment.jersey().register(SchemalessResourceV2.class);
+    environment.jersey().register(DocumentResource.class);
+    environment.jersey().register(DocumentResourceV2.class);
 
     environment.jersey().register(ApiListingResource.class);
     environment.jersey().register(SwaggerSerializers.class);

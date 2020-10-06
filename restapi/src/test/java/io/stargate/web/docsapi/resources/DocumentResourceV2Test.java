@@ -12,7 +12,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.web.docsapi.service.SchemalessService;
+import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.resources.Db;
@@ -36,25 +36,25 @@ import org.powermock.reflect.Whitebox;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest
-public class SchemalessResourceV2Test {
+public class DocumentResourceV2Test {
   private static final ObjectMapper mapper = new ObjectMapper();
-  private SchemalessService schemalessServiceMock = mock(SchemalessService.class);
+  private DocumentService documentServiceMock = mock(DocumentService.class);
   private Db dbFactoryMock = mock(Db.class);
-  private SchemalessResourceV2 schemalessResourceV2;
+  private DocumentResourceV2 documentResourceV2;
   private Method wrapResponseId;
   private Method wrapResponseIdPageState;
 
   @Before
   public void setup() throws NoSuchMethodException {
-    schemalessResourceV2 = new SchemalessResourceV2();
-    Whitebox.setInternalState(schemalessResourceV2, SchemalessService.class, schemalessServiceMock);
-    Whitebox.setInternalState(schemalessResourceV2, Db.class, dbFactoryMock);
+    documentResourceV2 = new DocumentResourceV2();
+    Whitebox.setInternalState(documentResourceV2, DocumentService.class, documentServiceMock);
+    Whitebox.setInternalState(documentResourceV2, Db.class, dbFactoryMock);
 
     wrapResponseId =
-        SchemalessResourceV2.class.getDeclaredMethod("wrapResponse", JsonNode.class, String.class);
+        DocumentResourceV2.class.getDeclaredMethod("wrapResponse", JsonNode.class, String.class);
     wrapResponseId.setAccessible(true);
     wrapResponseIdPageState =
-        SchemalessResourceV2.class.getDeclaredMethod(
+        DocumentResourceV2.class.getDeclaredMethod(
             "wrapResponse", JsonNode.class, String.class, String.class);
     wrapResponseIdPageState.setAccessible(true);
   }
@@ -64,7 +64,7 @@ public class SchemalessResourceV2Test {
       throws IllegalAccessException, InvocationTargetException {
     ObjectNode node = mapper.createObjectNode();
     node.set("name", TextNode.valueOf("Eric"));
-    JsonNode result = (JsonNode) wrapResponseId.invoke(schemalessResourceV2, node, "a");
+    JsonNode result = (JsonNode) wrapResponseId.invoke(documentResourceV2, node, "a");
     ObjectNode expected = mapper.createObjectNode();
     expected.set("documentId", TextNode.valueOf("a"));
     expected.set("data", node);
@@ -75,7 +75,7 @@ public class SchemalessResourceV2Test {
   public void wrapResponse_nodeDefined() throws IllegalAccessException, InvocationTargetException {
     ObjectNode node = mapper.createObjectNode();
     node.set("name", TextNode.valueOf("Eric"));
-    JsonNode result = (JsonNode) wrapResponseId.invoke(schemalessResourceV2, node, null);
+    JsonNode result = (JsonNode) wrapResponseId.invoke(documentResourceV2, node, null);
     ObjectNode expected = mapper.createObjectNode();
     expected.set("data", node);
     assertThat(result).isEqualTo(expected);
@@ -83,7 +83,7 @@ public class SchemalessResourceV2Test {
 
   @Test
   public void wrapResponse_idDefined() throws IllegalAccessException, InvocationTargetException {
-    JsonNode result = (JsonNode) wrapResponseId.invoke(schemalessResourceV2, null, "a");
+    JsonNode result = (JsonNode) wrapResponseId.invoke(documentResourceV2, null, "a");
     ObjectNode expected = mapper.createObjectNode();
     expected.set("documentId", TextNode.valueOf("a"));
     assertThat(result).isEqualTo(expected);
@@ -91,7 +91,7 @@ public class SchemalessResourceV2Test {
 
   @Test
   public void wrapResponse_nulls() throws IllegalAccessException, InvocationTargetException {
-    JsonNode result = (JsonNode) wrapResponseId.invoke(schemalessResourceV2, null, null);
+    JsonNode result = (JsonNode) wrapResponseId.invoke(documentResourceV2, null, null);
     ObjectNode expected = mapper.createObjectNode();
     assertThat(result).isEqualTo(expected);
   }
@@ -102,7 +102,7 @@ public class SchemalessResourceV2Test {
     ObjectNode node = mapper.createObjectNode();
     node.set("name", TextNode.valueOf("Eric"));
     JsonNode result =
-        (JsonNode) wrapResponseIdPageState.invoke(schemalessResourceV2, node, "a", null);
+        (JsonNode) wrapResponseIdPageState.invoke(documentResourceV2, node, "a", null);
     ObjectNode expected = mapper.createObjectNode();
     expected.set("documentId", TextNode.valueOf("a"));
     expected.set("data", node);
@@ -116,7 +116,7 @@ public class SchemalessResourceV2Test {
     ObjectNode node = mapper.createObjectNode();
     node.set("name", TextNode.valueOf("Eric"));
     JsonNode result =
-        (JsonNode) wrapResponseIdPageState.invoke(schemalessResourceV2, node, null, null);
+        (JsonNode) wrapResponseIdPageState.invoke(documentResourceV2, node, null, null);
     ObjectNode expected = mapper.createObjectNode();
     expected.set("data", node);
     expected.set("pageState", NullNode.getInstance());
@@ -127,7 +127,7 @@ public class SchemalessResourceV2Test {
   public void wrapResponse_idDefinedNullPageState()
       throws IllegalAccessException, InvocationTargetException {
     JsonNode result =
-        (JsonNode) wrapResponseIdPageState.invoke(schemalessResourceV2, null, "a", null);
+        (JsonNode) wrapResponseIdPageState.invoke(documentResourceV2, null, "a", null);
     ObjectNode expected = mapper.createObjectNode();
     expected.set("documentId", TextNode.valueOf("a"));
     expected.set("pageState", NullNode.getInstance());
@@ -140,8 +140,7 @@ public class SchemalessResourceV2Test {
     ObjectNode node = mapper.createObjectNode();
     node.set("name", TextNode.valueOf("Eric"));
     JsonNode result =
-        (JsonNode)
-            wrapResponseIdPageState.invoke(schemalessResourceV2, node, "a", "pagestatevalue");
+        (JsonNode) wrapResponseIdPageState.invoke(documentResourceV2, node, "a", "pagestatevalue");
     ObjectNode expected = mapper.createObjectNode();
     expected.set("data", node);
     expected.set("documentId", TextNode.valueOf("a"));
@@ -155,8 +154,7 @@ public class SchemalessResourceV2Test {
     ObjectNode node = mapper.createObjectNode();
     node.set("name", TextNode.valueOf("Eric"));
     JsonNode result =
-        (JsonNode)
-            wrapResponseIdPageState.invoke(schemalessResourceV2, node, null, "pagestatevalue");
+        (JsonNode) wrapResponseIdPageState.invoke(documentResourceV2, node, null, "pagestatevalue");
     ObjectNode expected = mapper.createObjectNode();
     expected.set("data", node);
     expected.set("pageState", TextNode.valueOf("pagestatevalue"));
@@ -167,8 +165,7 @@ public class SchemalessResourceV2Test {
   public void wrapResponse_idPageStateDefined()
       throws IllegalAccessException, InvocationTargetException {
     JsonNode result =
-        (JsonNode)
-            wrapResponseIdPageState.invoke(schemalessResourceV2, null, "a", "pagestatevalue");
+        (JsonNode) wrapResponseIdPageState.invoke(documentResourceV2, null, "a", "pagestatevalue");
     ObjectNode expected = mapper.createObjectNode();
     expected.set("documentId", TextNode.valueOf("a"));
     expected.set("pageState", TextNode.valueOf("pagestatevalue"));
@@ -179,8 +176,7 @@ public class SchemalessResourceV2Test {
   public void wrapResponse_pageStateDefined()
       throws IllegalAccessException, InvocationTargetException {
     JsonNode result =
-        (JsonNode)
-            wrapResponseIdPageState.invoke(schemalessResourceV2, null, null, "pagestatevalue");
+        (JsonNode) wrapResponseIdPageState.invoke(documentResourceV2, null, null, "pagestatevalue");
     ObjectNode expected = mapper.createObjectNode();
     expected.set("pageState", TextNode.valueOf("pagestatevalue"));
     assertThat(result).isEqualTo(expected);
@@ -190,7 +186,7 @@ public class SchemalessResourceV2Test {
   public void wrapResponse_nullsPageState()
       throws IllegalAccessException, InvocationTargetException {
     JsonNode result =
-        (JsonNode) wrapResponseIdPageState.invoke(schemalessResourceV2, null, null, null);
+        (JsonNode) wrapResponseIdPageState.invoke(documentResourceV2, null, null, null);
     ObjectNode expected = mapper.createObjectNode();
     expected.set("pageState", NullNode.getInstance());
     assertThat(result).isEqualTo(expected);
@@ -206,12 +202,11 @@ public class SchemalessResourceV2Test {
     String payload = "{}";
 
     PowerMockito.when(
-            schemalessServiceMock.putAtRoot(
+            documentServiceMock.putAtRoot(
                 anyString(), anyString(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(true);
 
-    Response r =
-        schemalessResourceV2.postDoc(headers, ui, authToken, keyspace, collection, payload);
+    Response r = documentResourceV2.postDoc(headers, ui, authToken, keyspace, collection, payload);
 
     assertThat(r.getStatus()).isEqualTo(201);
     mapper.readTree((String) r.getEntity()).requiredAt("/documentId");
@@ -227,12 +222,11 @@ public class SchemalessResourceV2Test {
     String payload = "{}";
 
     PowerMockito.when(
-            schemalessServiceMock.putAtRoot(
+            documentServiceMock.putAtRoot(
                 anyString(), anyString(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(false);
 
-    Response r =
-        schemalessResourceV2.postDoc(headers, ui, authToken, keyspace, collection, payload);
+    Response r = documentResourceV2.postDoc(headers, ui, authToken, keyspace, collection, payload);
 
     assertThat(r.getStatus()).isEqualTo(500);
     assertThat((String) r.getEntity()).startsWith("Fatal ID collision, try once more: ");
@@ -249,12 +243,12 @@ public class SchemalessResourceV2Test {
     String payload = "{}";
 
     PowerMockito.when(
-            schemalessServiceMock.putAtRoot(
+            documentServiceMock.putAtRoot(
                 anyString(), anyString(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(true);
 
     Response r =
-        schemalessResourceV2.putDoc(headers, ui, authToken, keyspace, collection, id, payload);
+        documentResourceV2.putDoc(headers, ui, authToken, keyspace, collection, id, payload);
 
     assertThat(r.getStatus()).isEqualTo(200);
     mapper.readTree((String) r.getEntity()).requiredAt("/documentId");
@@ -271,12 +265,12 @@ public class SchemalessResourceV2Test {
     String payload = "{}";
 
     PowerMockito.when(
-            schemalessServiceMock.putAtRoot(
+            documentServiceMock.putAtRoot(
                 anyString(), anyString(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(false);
 
     Response r =
-        schemalessResourceV2.putDoc(headers, ui, authToken, keyspace, collection, id, payload);
+        documentResourceV2.putDoc(headers, ui, authToken, keyspace, collection, id, payload);
 
     assertThat(r.getStatus()).isEqualTo(409);
     assertThat((String) r.getEntity())
@@ -295,7 +289,7 @@ public class SchemalessResourceV2Test {
     String payload = "{}";
 
     Response r =
-        schemalessResourceV2.putDocPath(
+        documentResourceV2.putDocPath(
             headers, ui, authToken, keyspace, collection, id, path, payload);
 
     assertThat(r.getStatus()).isEqualTo(200);
@@ -314,7 +308,7 @@ public class SchemalessResourceV2Test {
     String payload = "{}";
 
     Response r =
-        schemalessResourceV2.patchDoc(headers, ui, authToken, keyspace, collection, id, payload);
+        documentResourceV2.patchDoc(headers, ui, authToken, keyspace, collection, id, payload);
 
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity()).requiredAt("/documentId").asText())
@@ -333,7 +327,7 @@ public class SchemalessResourceV2Test {
     String payload = "{}";
 
     Response r =
-        schemalessResourceV2.patchDocPath(
+        documentResourceV2.patchDocPath(
             headers, ui, authToken, keyspace, collection, id, path, payload);
 
     assertThat(r.getStatus()).isEqualTo(200);
@@ -350,7 +344,7 @@ public class SchemalessResourceV2Test {
     String collection = "collection";
     String id = "id";
 
-    Response r = schemalessResourceV2.deleteDoc(headers, ui, authToken, keyspace, collection, id);
+    Response r = documentResourceV2.deleteDoc(headers, ui, authToken, keyspace, collection, id);
 
     assertThat(r.getStatus()).isEqualTo(204);
   }
@@ -366,7 +360,7 @@ public class SchemalessResourceV2Test {
     List<PathSegment> path = new ArrayList<>();
 
     Response r =
-        schemalessResourceV2.deleteDocPath(headers, ui, authToken, keyspace, collection, id, path);
+        documentResourceV2.deleteDocPath(headers, ui, authToken, keyspace, collection, id, path);
 
     assertThat(r.getStatus()).isEqualTo(204);
   }
@@ -388,12 +382,12 @@ public class SchemalessResourceV2Test {
     mockedReturn.set("someData", BooleanNode.valueOf(true));
 
     PowerMockito.when(
-            schemalessServiceMock.getJsonAtPath(
+            documentServiceMock.getJsonAtPath(
                 anyObject(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(mockedReturn);
 
     Response r =
-        schemalessResourceV2.getDoc(
+        documentResourceV2.getDoc(
             headers,
             ui,
             authToken,
@@ -429,12 +423,12 @@ public class SchemalessResourceV2Test {
     mockedReturn.set("someData", BooleanNode.valueOf(true));
 
     PowerMockito.when(
-            schemalessServiceMock.getJsonAtPath(
+            documentServiceMock.getJsonAtPath(
                 anyObject(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(mockedReturn);
 
     Response r =
-        schemalessResourceV2.getDocPath(
+        documentResourceV2.getDocPath(
             headers,
             ui,
             authToken,
@@ -471,18 +465,17 @@ public class SchemalessResourceV2Test {
     mockedReturn.set("someData", BooleanNode.valueOf(true));
 
     PowerMockito.when(
-            schemalessServiceMock.searchDocumentsV2(
+            documentServiceMock.searchDocumentsV2(
                 anyObject(), anyString(), anyString(), anyList(), anyList(), anyString()))
         .thenReturn(ImmutablePair.of(mockedReturn, null));
 
-    PowerMockito.when(schemalessServiceMock.convertToFilterOps(anyList(), anyObject()))
+    PowerMockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
         .thenCallRealMethod();
 
-    PowerMockito.when(schemalessServiceMock.convertToSelectionList(anyObject()))
-        .thenCallRealMethod();
+    PowerMockito.when(documentServiceMock.convertToSelectionList(anyObject())).thenCallRealMethod();
 
     Response r =
-        schemalessResourceV2.getDocPath(
+        documentResourceV2.getDocPath(
             headers,
             ui,
             authToken,
@@ -519,12 +512,12 @@ public class SchemalessResourceV2Test {
     mockedReturn.set("someData", BooleanNode.valueOf(true));
 
     PowerMockito.when(
-            schemalessServiceMock.getJsonAtPath(
+            documentServiceMock.getJsonAtPath(
                 anyObject(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(mockedReturn);
 
     Response r =
-        schemalessResourceV2.getDocPath(
+        documentResourceV2.getDocPath(
             headers,
             ui,
             authToken,
@@ -560,12 +553,12 @@ public class SchemalessResourceV2Test {
     List<PathSegment> path = new ArrayList<>();
 
     PowerMockito.when(
-            schemalessServiceMock.getJsonAtPath(
+            documentServiceMock.getJsonAtPath(
                 anyObject(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(null);
 
     Response r =
-        schemalessResourceV2.getDocPath(
+        documentResourceV2.getDocPath(
             headers,
             ui,
             authToken,
@@ -580,7 +573,7 @@ public class SchemalessResourceV2Test {
             false);
     assertThat(r.getStatus()).isEqualTo(204);
     r =
-        schemalessResourceV2.getDocPath(
+        documentResourceV2.getDocPath(
             headers,
             ui,
             authToken,
@@ -619,11 +612,11 @@ public class SchemalessResourceV2Test {
     searchResult.set("id1", mapper.createArrayNode());
     searchResult.set("id2", mapper.createArrayNode());
 
-    PowerMockito.when(schemalessServiceMock.convertToFilterOps(anyList(), anyObject()))
+    PowerMockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
         .thenReturn(conditions);
 
     PowerMockito.when(
-            schemalessServiceMock.getFullDocumentsFiltered(
+            documentServiceMock.getFullDocumentsFiltered(
                 anyObject(),
                 anyObject(),
                 anyString(),
@@ -637,7 +630,7 @@ public class SchemalessResourceV2Test {
         .thenReturn(ImmutablePair.of(searchResult, null));
 
     Response r =
-        schemalessResourceV2.searchDoc(
+        documentResourceV2.searchDoc(
             headers,
             ui,
             authToken,
@@ -679,11 +672,11 @@ public class SchemalessResourceV2Test {
     searchResult.set("id1", mapper.createArrayNode());
     searchResult.set("id2", mapper.createArrayNode());
 
-    PowerMockito.when(schemalessServiceMock.convertToFilterOps(anyList(), anyObject()))
+    PowerMockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
         .thenReturn(conditions);
 
     PowerMockito.when(
-            schemalessServiceMock.getFullDocumentsFiltered(
+            documentServiceMock.getFullDocumentsFiltered(
                 anyObject(),
                 anyObject(),
                 anyString(),
@@ -697,7 +690,7 @@ public class SchemalessResourceV2Test {
         .thenReturn(ImmutablePair.of(searchResult, null));
 
     Response r =
-        schemalessResourceV2.searchDoc(
+        documentResourceV2.searchDoc(
             headers,
             ui,
             authToken,
@@ -735,14 +728,14 @@ public class SchemalessResourceV2Test {
     searchResult.set("id1", mapper.createArrayNode());
     searchResult.set("id2", mapper.createArrayNode());
 
-    PowerMockito.when(schemalessServiceMock.convertToFilterOps(anyList(), anyObject()))
+    PowerMockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
         .thenReturn(conditions);
 
-    PowerMockito.when(schemalessServiceMock.convertToSelectionList(anyObject()))
+    PowerMockito.when(documentServiceMock.convertToSelectionList(anyObject()))
         .thenReturn(ImmutableList.of("field1"));
 
     PowerMockito.when(
-            schemalessServiceMock.getFullDocumentsFiltered(
+            documentServiceMock.getFullDocumentsFiltered(
                 anyObject(),
                 anyObject(),
                 anyString(),
@@ -756,7 +749,7 @@ public class SchemalessResourceV2Test {
         .thenReturn(ImmutablePair.of(searchResult, null));
 
     Response r =
-        schemalessResourceV2.searchDoc(
+        documentResourceV2.searchDoc(
             headers,
             ui,
             authToken,
@@ -788,13 +781,13 @@ public class SchemalessResourceV2Test {
     conditions.add(
         new SingleFilterCondition(ImmutableList.of("a", "b", "c", "field1"), "$eq", "value"));
 
-    PowerMockito.when(schemalessServiceMock.convertToFilterOps(anyList(), anyObject()))
+    PowerMockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
         .thenReturn(conditions);
-    PowerMockito.when(schemalessServiceMock.convertToSelectionList(anyObject()))
+    PowerMockito.when(documentServiceMock.convertToSelectionList(anyObject()))
         .thenReturn(ImmutableList.of("field1"));
 
     Response r =
-        schemalessResourceV2.searchDoc(
+        documentResourceV2.searchDoc(
             headers,
             ui,
             authToken,
@@ -827,11 +820,11 @@ public class SchemalessResourceV2Test {
     conditions.add(
         new SingleFilterCondition(ImmutableList.of("a", "b", "c", "field2"), "$eq", "value"));
 
-    PowerMockito.when(schemalessServiceMock.convertToFilterOps(anyList(), anyObject()))
+    PowerMockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
         .thenReturn(conditions);
 
     Response r =
-        schemalessResourceV2.searchDoc(
+        documentResourceV2.searchDoc(
             headers,
             ui,
             authToken,
@@ -864,14 +857,14 @@ public class SchemalessResourceV2Test {
     conditions.add(
         new SingleFilterCondition(ImmutableList.of("a", "b", "c", "field1"), "$eq", "value"));
 
-    PowerMockito.when(schemalessServiceMock.convertToFilterOps(anyList(), anyObject()))
+    PowerMockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
         .thenReturn(conditions);
 
-    PowerMockito.when(schemalessServiceMock.convertToSelectionList(anyObject()))
+    PowerMockito.when(documentServiceMock.convertToSelectionList(anyObject()))
         .thenReturn(ImmutableList.of("field1"));
 
     Response r =
-        schemalessResourceV2.searchDoc(
+        documentResourceV2.searchDoc(
             headers,
             ui,
             authToken,
@@ -906,7 +899,7 @@ public class SchemalessResourceV2Test {
     searchResult.set("id2", mapper.createArrayNode());
 
     PowerMockito.when(
-            schemalessServiceMock.getFullDocuments(
+            documentServiceMock.getFullDocuments(
                 anyObject(),
                 anyObject(),
                 anyString(),
@@ -919,7 +912,7 @@ public class SchemalessResourceV2Test {
         .thenReturn(ImmutablePair.of(searchResult, null));
 
     Response r =
-        schemalessResourceV2.searchDoc(
+        documentResourceV2.searchDoc(
             headers,
             ui,
             authToken,
@@ -948,7 +941,7 @@ public class SchemalessResourceV2Test {
     boolean raw = true;
 
     Response r =
-        schemalessResourceV2.searchDoc(
+        documentResourceV2.searchDoc(
             headers,
             ui,
             authToken,

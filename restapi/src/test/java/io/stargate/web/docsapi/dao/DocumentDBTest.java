@@ -20,7 +20,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SchemalessDBTest {
+public class DocumentDBTest {
   private DocumentDB documentDB;
   private TestDataStore ds;
   private static final ObjectMapper mapper = new ObjectMapper();

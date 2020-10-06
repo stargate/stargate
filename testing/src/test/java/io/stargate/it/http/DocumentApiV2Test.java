@@ -34,8 +34,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @NotThreadSafe
-public class SchemalessV2Test extends BaseOsgiIntegrationTest {
-  private static Logger logger = LoggerFactory.getLogger(SchemalessV2Test.class);
+public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
+  private static Logger logger = LoggerFactory.getLogger(DocumentApiV2Test.class);
 
   private String keyspace;
 
@@ -44,7 +44,7 @@ public class SchemalessV2Test extends BaseOsgiIntegrationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final OkHttpClient client = new OkHttpClient().newBuilder().build();
 
-  public SchemalessV2Test(ClusterConnectionInfo backend) {
+  public DocumentApiV2Test(ClusterConnectionInfo backend) {
     super(backend);
   }
 

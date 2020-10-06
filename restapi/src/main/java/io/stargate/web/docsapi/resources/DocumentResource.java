@@ -8,8 +8,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.dao.DocumentDB;
-import io.stargate.web.docsapi.exception.SchemalessRequestException;
-import io.stargate.web.docsapi.service.SchemalessService;
+import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.resources.Db;
 import java.net.URI;
@@ -27,12 +27,12 @@ import org.slf4j.LoggerFactory;
 
 @Path("/v1/")
 @Produces(MediaType.APPLICATION_JSON)
-public class SchemalessResource {
+public class DocumentResource {
 
   @Inject private Db dbFactory;
-  private static final Logger logger = LoggerFactory.getLogger(SchemalessResource.class);
+  private static final Logger logger = LoggerFactory.getLogger(DocumentResource.class);
   private static final ObjectMapper mapper = new ObjectMapper();
-  private final SchemalessService schemalessService = new SchemalessService();
+  private final DocumentService documentService = new DocumentService();
 
   @POST
   @Path("{keyspace: [a-zA-Z_0-9]+}/{collection: [a-zA-Z_0-9]+}")
@@ -51,7 +51,7 @@ public class SchemalessResource {
     String newId = UUID.randomUUID().toString();
     return handle(
         () -> {
-          schemalessService.putAtPath(
+          documentService.putAtPath(
               authToken, keyspace, collection, newId, payload, new ArrayList<>(), false, dbFactory);
           ObjectNode node = mapper.createObjectNode();
           node.set("id", TextNode.valueOf(newId));
@@ -78,7 +78,7 @@ public class SchemalessResource {
 
     return handle(
         () -> {
-          schemalessService.putAtPath(
+          documentService.putAtPath(
               authToken, keyspace, collection, id, payload, new ArrayList<>(), false, dbFactory);
           return Response.ok().build();
         });
@@ -101,7 +101,7 @@ public class SchemalessResource {
 
     return handle(
         () -> {
-          schemalessService.putAtPath(
+          documentService.putAtPath(
               authToken, keyspace, collection, id, payload, path, false, dbFactory);
           return Response.ok().build();
         });
@@ -123,7 +123,7 @@ public class SchemalessResource {
 
     return handle(
         () -> {
-          schemalessService.putAtPath(
+          documentService.putAtPath(
               authToken, keyspace, collection, id, payload, new ArrayList<>(), true, dbFactory);
           return Response.ok().build();
         });
@@ -146,7 +146,7 @@ public class SchemalessResource {
 
     return handle(
         () -> {
-          schemalessService.putAtPath(
+          documentService.putAtPath(
               authToken, keyspace, collection, id, payload, path, true, dbFactory);
           return Response.ok().build();
         });
@@ -167,7 +167,7 @@ public class SchemalessResource {
     return handle(
         () -> {
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
-          schemalessService.deleteAtPath(db, keyspace, collection, id, new ArrayList<>());
+          documentService.deleteAtPath(db, keyspace, collection, id, new ArrayList<>());
           return Response.noContent().build();
         });
   }
@@ -189,7 +189,7 @@ public class SchemalessResource {
     return handle(
         () -> {
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
-          schemalessService.deleteAtPath(db, keyspace, collection, id, path);
+          documentService.deleteAtPath(db, keyspace, collection, id, path);
           return Response.noContent().build();
         });
   }
@@ -234,13 +234,13 @@ public class SchemalessResource {
         () -> {
           JsonNode filterJson = mapper.readTree(where);
           List<FilterCondition> filters =
-              schemalessService.convertToFilterOps(new ArrayList<>(), filterJson);
+              documentService.convertToFilterOps(new ArrayList<>(), filterJson);
 
           if (filters.size() > 1) {
             Set<String> distinctFields =
                 filters.stream().map(FilterCondition::getField).collect(Collectors.toSet());
             if (distinctFields.size() > 1) {
-              throw new SchemalessRequestException(
+              throw new DocumentAPIRequestException(
                   String.format(
                       "Conditions across multiple fields are not yet supported (found: %s)",
                       distinctFields));
@@ -248,16 +248,16 @@ public class SchemalessResource {
           }
 
           if (filters.isEmpty()) {
-            throw new SchemalessRequestException("No filters supplied in `where` parameter");
+            throw new DocumentAPIRequestException("No filters supplied in `where` parameter");
           }
 
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
           if (path.size() > db.MAX_DEPTH) {
-            throw new SchemalessRequestException("Invalid request, maximum depth exceeded");
+            throw new DocumentAPIRequestException("Invalid request, maximum depth exceeded");
           }
 
           JsonNode docsResult =
-              schemalessService.searchDocuments(
+              documentService.searchDocuments(
                   db, keyspace, collection, documentKey, filters, path, recurse);
 
           if (docsResult == null) {
@@ -300,7 +300,7 @@ public class SchemalessResource {
     return handle(
         () -> {
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
-          JsonNode node = schemalessService.getJsonAtPath(db, keyspace, collection, id, path);
+          JsonNode node = documentService.getJsonAtPath(db, keyspace, collection, id, path);
 
           if (node == null) {
             return Response.noContent().build();
@@ -318,7 +318,7 @@ public class SchemalessResource {
       return action.call();
     } catch (UnauthorizedException ue) {
       return Response.status(Response.Status.UNAUTHORIZED).build();
-    } catch (SchemalessRequestException sre) {
+    } catch (DocumentAPIRequestException sre) {
       return Response.status(Response.Status.BAD_REQUEST).entity(sre.getLocalizedMessage()).build();
     } catch (NoNodeAvailableException e) {
       return Response.status(Response.Status.SERVICE_UNAVAILABLE)

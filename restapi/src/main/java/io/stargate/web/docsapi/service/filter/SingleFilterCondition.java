@@ -1,6 +1,6 @@
 package io.stargate.web.docsapi.service.filter;
 
-import io.stargate.web.docsapi.exception.SchemalessRequestException;
+import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import java.util.List;
 
 public class SingleFilterCondition implements FilterCondition {
@@ -17,7 +17,7 @@ public class SingleFilterCondition implements FilterCondition {
     try {
       this.op = FilterOp.valueOf(opStr.toUpperCase().substring(1));
     } catch (IllegalArgumentException e) {
-      throw new SchemalessRequestException(
+      throw new DocumentAPIRequestException(
           String.format(
               "Invalid operator: %s, valid operators are: %s", opStr, FilterOp.allRawValues()));
     }
@@ -32,7 +32,7 @@ public class SingleFilterCondition implements FilterCondition {
     try {
       this.op = FilterOp.valueOf(opStr.toUpperCase().substring(1));
     } catch (IllegalArgumentException e) {
-      throw new SchemalessRequestException(
+      throw new DocumentAPIRequestException(
           String.format(
               "Invalid operator: %s, valid operators are: %s", opStr, FilterOp.allRawValues()));
     }
@@ -47,7 +47,7 @@ public class SingleFilterCondition implements FilterCondition {
     try {
       this.op = FilterOp.valueOf(opStr.toUpperCase().substring(1));
     } catch (IllegalArgumentException e) {
-      throw new SchemalessRequestException(
+      throw new DocumentAPIRequestException(
           String.format(
               "Invalid operator: %s, valid operators are: %s", opStr, FilterOp.allRawValues()));
     }
