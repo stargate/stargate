@@ -25,7 +25,7 @@ import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
 import io.stargate.web.docsapi.dao.DocumentDB;
-import io.stargate.web.docsapi.exception.SchemalessRequestException;
+import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
@@ -55,9 +55,9 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest(SchemalessService.class)
-public class SchemalessServiceTest {
-  private SchemalessService service;
+@PrepareForTest(DocumentService.class)
+public class DocumentServiceTest {
+  private DocumentService service;
   private Method convertToBracketedPath;
   private Method leftPadTo6;
   private Method convertArrayPath;
@@ -79,21 +79,21 @@ public class SchemalessServiceTest {
 
   @Before
   public void setup() throws NoSuchMethodException {
-    service = new SchemalessService();
+    service = new DocumentService();
 
     convertToBracketedPath =
-        SchemalessService.class.getDeclaredMethod("convertToBracketedPath", String.class);
+        DocumentService.class.getDeclaredMethod("convertToBracketedPath", String.class);
     convertToBracketedPath.setAccessible(true);
-    leftPadTo6 = SchemalessService.class.getDeclaredMethod("leftPadTo6", String.class);
+    leftPadTo6 = DocumentService.class.getDeclaredMethod("leftPadTo6", String.class);
     leftPadTo6.setAccessible(true);
-    convertArrayPath = SchemalessService.class.getDeclaredMethod("convertArrayPath", String.class);
+    convertArrayPath = DocumentService.class.getDeclaredMethod("convertArrayPath", String.class);
     convertArrayPath.setAccessible(true);
-    isEmptyObject = SchemalessService.class.getDeclaredMethod("isEmptyObject", Object.class);
+    isEmptyObject = DocumentService.class.getDeclaredMethod("isEmptyObject", Object.class);
     isEmptyObject.setAccessible(true);
-    isEmptyArray = SchemalessService.class.getDeclaredMethod("isEmptyArray", Object.class);
+    isEmptyArray = DocumentService.class.getDeclaredMethod("isEmptyArray", Object.class);
     isEmptyArray.setAccessible(true);
     shredPayload =
-        SchemalessService.class.getDeclaredMethod(
+        DocumentService.class.getDeclaredMethod(
             "shredPayload",
             JsonSurfer.class,
             DocumentDB.class,
@@ -104,28 +104,28 @@ public class SchemalessServiceTest {
             boolean.class);
     shredPayload.setAccessible(true);
     validateOpAndValue =
-        SchemalessService.class.getDeclaredMethod(
+        DocumentService.class.getDeclaredMethod(
             "validateOpAndValue", String.class, JsonNode.class, String.class);
     validateOpAndValue.setAccessible(true);
-    addRowsToMap = SchemalessService.class.getDeclaredMethod("addRowsToMap", Map.class, List.class);
+    addRowsToMap = DocumentService.class.getDeclaredMethod("addRowsToMap", Map.class, List.class);
     addRowsToMap.setAccessible(true);
     updateExistenceForMap =
-        SchemalessService.class.getDeclaredMethod(
+        DocumentService.class.getDeclaredMethod(
             "updateExistenceForMap", Map.class, Map.class, List.class, List.class);
     updateExistenceForMap.setAccessible(true);
     getParentPathFromRow =
-        SchemalessService.class.getDeclaredMethod("getParentPathFromRow", Row.class);
+        DocumentService.class.getDeclaredMethod("getParentPathFromRow", Row.class);
     getParentPathFromRow.setAccessible(true);
     filterToSelectionSet =
-        SchemalessService.class.getDeclaredMethod(
+        DocumentService.class.getDeclaredMethod(
             "filterToSelectionSet", List.class, List.class, List.class);
     filterToSelectionSet.setAccessible(true);
     applyInMemoryFilters =
-        SchemalessService.class.getDeclaredMethod(
+        DocumentService.class.getDeclaredMethod(
             "applyInMemoryFilters", List.class, List.class, int.class);
     applyInMemoryFilters.setAccessible(true);
     checkEqualsOp =
-        SchemalessService.class.getDeclaredMethod(
+        DocumentService.class.getDeclaredMethod(
             "checkEqualsOp",
             SingleFilterCondition.class,
             String.class,
@@ -133,20 +133,20 @@ public class SchemalessServiceTest {
             Double.class);
     checkEqualsOp.setAccessible(true);
     checkInOp =
-        SchemalessService.class.getDeclaredMethod(
+        DocumentService.class.getDeclaredMethod(
             "checkInOp", ListFilterCondition.class, String.class, Boolean.class, Double.class);
     checkInOp.setAccessible(true);
     checkGtOp =
-        SchemalessService.class.getDeclaredMethod(
+        DocumentService.class.getDeclaredMethod(
             "checkGtOp", SingleFilterCondition.class, String.class, Boolean.class, Double.class);
     checkGtOp.setAccessible(true);
 
     checkLtOp =
-        SchemalessService.class.getDeclaredMethod(
+        DocumentService.class.getDeclaredMethod(
             "checkLtOp", SingleFilterCondition.class, String.class, Boolean.class, Double.class);
     checkLtOp.setAccessible(true);
     searchRows =
-        SchemalessService.class.getDeclaredMethod(
+        DocumentService.class.getDeclaredMethod(
             "searchRows",
             String.class,
             String.class,
@@ -251,7 +251,7 @@ public class SchemalessServiceTest {
 
     thrown = catchThrowable(() -> convertArrayPath.invoke(service, "[1000000]"));
     assertThat(thrown.getCause())
-        .isInstanceOf(SchemalessRequestException.class)
+        .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessage("Max array length of 1000000 exceeded.");
   }
 
@@ -883,7 +883,7 @@ public class SchemalessServiceTest {
                 shredPayload.invoke(
                     service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, 111L, false));
     assertThat(thrown.getCause())
-        .isInstanceOf(SchemalessRequestException.class)
+        .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessageContaining("are not permitted in JSON field names, invalid field coo]");
     ;
   }
@@ -902,7 +902,7 @@ public class SchemalessServiceTest {
                 shredPayload.invoke(
                     service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, 111L, true));
     assertThat(thrown.getCause())
-        .isInstanceOf(SchemalessRequestException.class)
+        .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessageContaining("A patch operation must be done with a JSON object, not an array.");
     ;
   }
@@ -937,7 +937,7 @@ public class SchemalessServiceTest {
             () -> service.putAtRoot("authToken", "ks", "collection", "id", "1", dbFactoryMock));
 
     assertThat(thrown)
-        .isInstanceOf(SchemalessRequestException.class)
+        .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessageContaining(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed.");
   }
@@ -1025,7 +1025,7 @@ public class SchemalessServiceTest {
                     dbFactoryMock));
 
     assertThat(thrown)
-        .isInstanceOf(SchemalessRequestException.class)
+        .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessageContaining(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed.");
   }
@@ -1047,7 +1047,7 @@ public class SchemalessServiceTest {
   public void getJsonAtPath_withRowsEmptyJson() throws ExecutionException, InterruptedException {
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
-    SchemalessService serviceMock = mock(SchemalessService.class, CALLS_REAL_METHODS);
+    DocumentService serviceMock = mock(DocumentService.class, CALLS_REAL_METHODS);
     when(dbMock.executeSelect(anyString(), anyString(), anyList())).thenReturn(rsMock);
 
     List<Row> rows = makeInitialRowData();
@@ -1068,7 +1068,7 @@ public class SchemalessServiceTest {
       throws ExecutionException, InterruptedException, JsonProcessingException {
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
-    SchemalessService serviceMock = mock(SchemalessService.class, CALLS_REAL_METHODS);
+    DocumentService serviceMock = mock(DocumentService.class, CALLS_REAL_METHODS);
     when(dbMock.executeSelect(anyString(), anyString(), anyList())).thenReturn(rsMock);
 
     List<Row> rows = makeInitialRowData();
@@ -1092,7 +1092,7 @@ public class SchemalessServiceTest {
       throws ExecutionException, InterruptedException, JsonProcessingException {
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
-    SchemalessService serviceMock = mock(SchemalessService.class, CALLS_REAL_METHODS);
+    DocumentService serviceMock = mock(DocumentService.class, CALLS_REAL_METHODS);
     when(dbMock.executeSelect(anyString(), anyString(), anyList())).thenReturn(rsMock);
 
     List<Row> rows = makeInitialRowData();
@@ -1123,28 +1123,28 @@ public class SchemalessServiceTest {
     Throwable thrown =
         catchThrowable(() -> validateOpAndValue.invoke(service, "$ne", value, "field"));
     assertThat(thrown.getCause())
-        .isInstanceOf(SchemalessRequestException.class)
+        .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessageContaining("was expecting a value or `null`");
 
     thrown = catchThrowable(() -> validateOpAndValue.invoke(service, "$exists", value, "field"));
     assertThat(thrown.getCause())
-        .isInstanceOf(SchemalessRequestException.class)
+        .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessageContaining("only supports the value `true`");
 
     final JsonNode value2 = mapper.readTree("false");
     thrown = catchThrowable(() -> validateOpAndValue.invoke(service, "$exists", value2, "field"));
     assertThat(thrown.getCause())
-        .isInstanceOf(SchemalessRequestException.class)
+        .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessageContaining("only supports the value `true`");
 
     thrown = catchThrowable(() -> validateOpAndValue.invoke(service, "$gt", value, "field"));
     assertThat(thrown.getCause())
-        .isInstanceOf(SchemalessRequestException.class)
+        .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessageContaining("was expecting a non-null value");
 
     thrown = catchThrowable(() -> validateOpAndValue.invoke(service, "$in", value, "field"));
     assertThat(thrown.getCause())
-        .isInstanceOf(SchemalessRequestException.class)
+        .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessageContaining("was expecting an array");
   }
 
@@ -1163,13 +1163,13 @@ public class SchemalessServiceTest {
     final JsonNode input = mapper.readTree("{}");
     Throwable thrown = catchThrowable(() -> service.convertToSelectionList(input));
     assertThat(thrown)
-        .isInstanceOf(SchemalessRequestException.class)
+        .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessageContaining("`fields` must be a JSON array, found ");
 
     final JsonNode input2 = mapper.readTree("[\"A\", 0]");
     thrown = catchThrowable(() -> service.convertToSelectionList(input2));
     assertThat(thrown)
-        .isInstanceOf(SchemalessRequestException.class)
+        .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessageContaining("Each field must be a string, found ");
   }
 
@@ -1196,19 +1196,19 @@ public class SchemalessServiceTest {
     final JsonNode input = mapper.readTree("[]");
     Throwable thrown = catchThrowable(() -> service.convertToFilterOps(new ArrayList<>(), input));
     assertThat(thrown)
-        .isInstanceOf(SchemalessRequestException.class)
+        .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessage("Search was expecting a JSON object as input.");
 
     final JsonNode input2 = mapper.readTree("{\"\": {}}");
     thrown = catchThrowable(() -> service.convertToFilterOps(new ArrayList<>(), input2));
     assertThat(thrown)
-        .isInstanceOf(SchemalessRequestException.class)
+        .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessage("The field(s) you are searching for can't be the empty string!");
 
     final JsonNode input3 = mapper.readTree("{\"a\": []}}");
     thrown = catchThrowable(() -> service.convertToFilterOps(new ArrayList<>(), input3));
     assertThat(thrown)
-        .isInstanceOf(SchemalessRequestException.class)
+        .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessage("Search entry for field a was expecting a JSON object as input.");
   }
 
@@ -1224,7 +1224,7 @@ public class SchemalessServiceTest {
   @Test
   public void searchDocumentsV2_emptyResult() throws Exception {
     DocumentDB dbMock = PowerMockito.mock(DocumentDB.class);
-    SchemalessService serviceMock = PowerMockito.mock(SchemalessService.class);
+    DocumentService serviceMock = PowerMockito.mock(DocumentService.class);
     PowerMockito.when(
             serviceMock.searchDocumentsV2(
                 anyObject(), anyString(), anyString(), anyList(), anyList(), anyString()))
@@ -1254,7 +1254,7 @@ public class SchemalessServiceTest {
   @Test
   public void searchDocumentsV2_existingResult() throws Exception {
     DocumentDB dbMock = PowerMockito.mock(DocumentDB.class);
-    SchemalessService serviceMock = PowerMockito.mock(SchemalessService.class);
+    DocumentService serviceMock = PowerMockito.mock(DocumentService.class);
     PowerMockito.when(
             serviceMock.searchDocumentsV2(
                 anyObject(), anyString(), anyString(), anyList(), anyList(), anyString()))
@@ -1287,7 +1287,7 @@ public class SchemalessServiceTest {
   @Test
   public void searchDocumentsV2_existingResultWithFields() throws Exception {
     DocumentDB dbMock = PowerMockito.mock(DocumentDB.class);
-    SchemalessService serviceMock = PowerMockito.mock(SchemalessService.class);
+    DocumentService serviceMock = PowerMockito.mock(DocumentService.class);
     PowerMockito.when(
             serviceMock.searchDocumentsV2(
                 anyObject(), anyString(), anyString(), anyList(), anyList(), anyString()))
@@ -1339,7 +1339,7 @@ public class SchemalessServiceTest {
   public void getFullDocuments_lessThanLimit() throws Exception {
     Db dbFactoryMock = PowerMockito.mock(Db.class);
     DocumentDB dbMock = PowerMockito.mock(DocumentDB.class);
-    SchemalessService serviceMock = PowerMockito.mock(SchemalessService.class);
+    DocumentService serviceMock = PowerMockito.mock(DocumentService.class);
     PowerMockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), anyInt(), anyObject()))
         .thenReturn(dbMock);
     PowerMockito.when(
@@ -1389,7 +1389,7 @@ public class SchemalessServiceTest {
   public void getFullDocuments_greaterThanLimit() throws Exception {
     Db dbFactoryMock = PowerMockito.mock(Db.class);
     DocumentDB dbMock = PowerMockito.mock(DocumentDB.class);
-    SchemalessService serviceMock = PowerMockito.mock(SchemalessService.class);
+    DocumentService serviceMock = PowerMockito.mock(DocumentService.class);
     List<Row> twoDocsRows = makeInitialRowData();
     twoDocsRows.addAll(makeRowDataForSecondDoc());
     PowerMockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), anyInt(), anyObject()))
@@ -1514,7 +1514,7 @@ public class SchemalessServiceTest {
                     null));
 
     assertThat(thrown.getCause())
-        .isInstanceOf(SchemalessRequestException.class)
+        .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessage(
             "The results as requested must fit in one page, try increasing the `page-size` parameter.");
   }

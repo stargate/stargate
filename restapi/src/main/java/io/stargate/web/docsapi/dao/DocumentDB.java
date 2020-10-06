@@ -12,7 +12,7 @@ import io.stargate.db.datastore.query.QueryBuilder;
 import io.stargate.db.datastore.query.Where;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
-import io.stargate.web.docsapi.exception.SchemalessRequestException;
+import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -87,13 +87,13 @@ public class DocumentDB {
     Keyspace ks = dataStore.schema().keyspace(keyspaceName);
 
     if (ks == null)
-      throw new SchemalessRequestException(
+      throw new DocumentAPIRequestException(
           String.format(
               "Unknown namespace %s, you must create it first by creating a keyspace with the same name.",
               keyspaceName));
 
     if (!tableName.matches("^[a-zA-Z0-9_]+$")) {
-      throw new SchemalessRequestException(
+      throw new DocumentAPIRequestException(
           String.format(
               "Could not create collection %s, it has invalid characters. Valid characters are alphanumeric and underscores.",
               tableName));
