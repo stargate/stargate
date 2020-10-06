@@ -26,6 +26,7 @@ import io.stargate.db.QueryState;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
+import io.stargate.web.docsapi.dao.DocumentDB;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import javax.ws.rs.NotFoundException;
@@ -97,5 +98,30 @@ public class Db {
             .build();
 
     return this.persistence.newDataStore(queryState, queryOptions);
+  }
+
+  public DocumentDB getDocDataStoreForToken(String token) throws UnauthorizedException {
+    StoredCredentials storedCredentials = authenticationService.validateToken(token);
+    ClientState clientState = persistence.newClientState(storedCredentials.getRoleName());
+    QueryState queryState = persistence.newQueryState(clientState);
+
+    return new DocumentDB(persistence.newDataStore(queryState, null));
+  }
+
+  public DocumentDB getDocDataStoreForToken(String token, int pageSize, ByteBuffer pageState)
+      throws UnauthorizedException {
+    StoredCredentials storedCredentials = authenticationService.validateToken(token);
+    ClientState clientState = persistence.newClientState(storedCredentials.getRoleName());
+    QueryState queryState = persistence.newQueryState(clientState);
+    QueryOptions queryOptions =
+        DefaultQueryOptions.builder()
+            .options(
+                DefaultQueryOptions.SpecificOptions.builder()
+                    .pageSize(pageSize)
+                    .pagingState(pageState)
+                    .build())
+            .build();
+
+    return new DocumentDB(persistence.newDataStore(queryState, queryOptions));
   }
 }
