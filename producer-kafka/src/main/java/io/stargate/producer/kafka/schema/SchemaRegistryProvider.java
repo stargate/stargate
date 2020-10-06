@@ -101,10 +101,7 @@ public class SchemaRegistryProvider implements SchemaProvider {
           "The getSchemaBySubject was called before createOrUpdateSchema and there is no existing schema created for subject: "
               + subjectName);
     }
-    Schema schemaBySubjectAndId =
-        getSchemaBySubjectAndId(subjectName, latestSchemaMetadata.get().getId());
-    schemaIdPerSubject.put(subjectName, latestSchemaMetadata.get().getId());
-    return schemaBySubjectAndId;
+    return getSchemaBySubjectAndId(subjectName, latestSchemaMetadata.get().getId());
   }
 
   private Optional<SchemaMetadata> getLatestSchemaMetadata(String subjectName) {

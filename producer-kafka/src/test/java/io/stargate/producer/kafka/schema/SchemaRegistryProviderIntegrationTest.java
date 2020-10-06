@@ -274,7 +274,7 @@ public class SchemaRegistryProviderIntegrationTest {
     // does not have tracked schema id yet
     assertThat(schemaRegistryProvider.schemaIdPerSubject).hasSize(0);
 
-    // then retrieve latest and track it's id
+    // then retrieve latest and don't track it's id
     assertThat(
             schemaRegistryProvider.getKeySchemaForTopic(
                 mappingService.getTopicNameFromTableMetadata(tableMetadata)))
@@ -283,7 +283,7 @@ public class SchemaRegistryProviderIntegrationTest {
             schemaRegistryProvider.getValueSchemaForTopic(
                 mappingService.getTopicNameFromTableMetadata(tableMetadata)))
         .isNotNull();
-    assertThat(schemaRegistryProvider.schemaIdPerSubject).hasSize(2); // for key and value
+    assertThat(schemaRegistryProvider.schemaIdPerSubject).hasSize(0);
   }
 
   @Test
