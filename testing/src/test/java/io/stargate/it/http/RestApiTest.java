@@ -17,15 +17,13 @@ package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.db.ClientState;
-import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
-import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.ResultSet;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.ClusterConnectionInfo;
@@ -44,30 +42,26 @@ import io.stargate.web.models.SuccessResponse;
 import io.stargate.web.models.TableAdd;
 import io.stargate.web.models.TableResponse;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.osgi.framework.InvalidSyntaxException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @NotThreadSafe
 public class RestApiTest extends BaseOsgiIntegrationTest {
 
-  private static final Logger logger = LoggerFactory.getLogger(RestApiTest.class);
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static String authToken;
   private static String host = "http://" + getStargateHost();
-  private DataStore dataStore;
   private String keyspace;
 
   public RestApiTest(ClusterConnectionInfo backend) {
@@ -75,27 +69,30 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   }
 
   @BeforeEach
-  public void setup()
-      throws InvalidSyntaxException, ExecutionException, InterruptedException, IOException {
+  public void setup(ClusterConnectionInfo cluster) throws IOException {
     keyspace = "ks_restapitest";
 
-    Persistence persistence = getOsgiService("io.stargate.db.Persistence", Persistence.class);
-    ClientState clientState = persistence.newClientState("");
-    QueryState queryState = persistence.newQueryState(clientState);
-    dataStore = persistence.newDataStore(queryState, null);
-    logger.info("{} {} {}", clientState, queryState, dataStore);
+    CqlSession session =
+        CqlSession.builder()
+            .withConfigLoader(
+                DriverConfigLoader.programmaticBuilder()
+                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
+                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(20))
+                    .build())
+            .withAuthCredentials("cassandra", "cassandra")
+            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
+            .withLocalDatacenter(cluster.datacenter())
+            .build();
 
-    ResultSet result =
-        dataStore
-            .query()
-            .create()
-            .keyspace(keyspace)
-            .ifNotExists()
-            .withReplication("{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }")
-            .andDurableWrites(true)
-            .execute();
-
-    dataStore.waitForSchemaAgreement();
+    assertThat(
+            session
+                .execute(
+                    String.format(
+                        "create keyspace if not exists %s WITH replication = "
+                            + "{'class': 'SimpleStrategy', 'replication_factor': 1 }",
+                        keyspace))
+                .wasApplied())
+        .isTrue();
 
     initAuth();
   }
