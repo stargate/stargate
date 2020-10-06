@@ -54,8 +54,17 @@ jobs:
           CCM_CLUSTER_START_TIMEOUT_OVERRIDE: 600
           MATRIX_BACKEND: ${{ matrix.backend }}
         run: |
-          if [[ "$MATRIX_BACKEND" == "dse-6.8" ]]; then
-            mvn -B verify --file pom.xml -P it-$MATRIX_BACKEND,dse
-          else
-            mvn -B verify --file pom.xml -P it-$MATRIX_BACKEND
-          fi
+          C3="!"
+          C4="!"
+          DSE="!"
+          case "$MATRIX_BACKEND" in
+            "cassandra-3.11") C3=""  ;;
+            "cassandra-4.0")  C4=""  ;;
+            "dse-6.8")        DSE="" ;;
+          esac
+
+          set -x
+          mvn -B verify --file pom.xml \
+            -P ${C3}it-cassandra-3.11 \
+            -P ${C4}it-cassandra-4.0 \
+            -P ${DSE}dse -P ${DSE}it-dse-6.8
