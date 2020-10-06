@@ -14,6 +14,7 @@
     <jettyVersion>9.4.24.v20191120</jettyVersion>
     <dropwizard.version>2.0.12</dropwizard.version>
     <junit.version>5.6.2</junit.version>
+    <swagger-ui.version>3.35.0</swagger-ui.version>
   </properties>
   <dependencies>
     <dependency>
@@ -142,6 +143,75 @@
   </dependencies>
   <build>
     <plugins>
+      <plugin>
+        <!-- Download swagger-ui resources jar -->
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.1.1</version>
+        <executions>
+          <execution>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.webjars</groupId>
+                  <artifactId>swagger-ui</artifactId>
+                  <version>${swagger-ui.version}</version>
+                </artifactItem>
+              </artifactItems>
+              <outputDirectory>${project.build.directory}/swagger-ui</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Replace swagger.json URL in index.html -->
+      <plugin>
+        <groupId>com.google.code.maven-replacer-plugin</groupId>
+        <artifactId>replacer</artifactId>
+        <version>1.5.3</version>
+        <executions>
+          <execution>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>replace</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <file>${project.build.directory}/swagger-ui/META-INF/resources/webjars/swagger-ui/${swagger-ui.version}/index.html</file>
+          <replacements>
+            <replacement>
+              <token>https://petstore.swagger.io/v2/swagger.json</token>
+              <value>/swagger.json</value>
+            </replacement>
+          </replacements>
+        </configuration>
+      </plugin>
+      <!-- Copy swagger-ui resources to target resources -->
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>copy-resources</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/classes/swagger-ui</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.build.directory}/swagger-ui/META-INF/resources/webjars/swagger-ui/${swagger-ui.version}</directory>
+                  <filtering>true</filtering>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
