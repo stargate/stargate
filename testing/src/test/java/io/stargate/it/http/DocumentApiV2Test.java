@@ -100,7 +100,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testIt() throws IOException {
-    JsonNode obj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode obj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
@@ -128,7 +129,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidKeyspaceAndTable() throws IOException {
-    JsonNode obj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode obj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r = put("/v2/namespaces/unknown_keyspace_1337/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
@@ -266,7 +268,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidDepthAndLength() throws IOException {
-    JsonNode obj = objectMapper.readTree(this.getClass().getResource("tooDeep.json"));
+    JsonNode obj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/tooDeep.json"));
     Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string()).isEqualTo("Max depth of 64 exceeded");
@@ -279,7 +282,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testArrayGet() throws IOException {
-    JsonNode obj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode obj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
     assertThat(r.code()).isEqualTo(200);
@@ -310,7 +314,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidPathGet() throws IOException {
-    JsonNode obj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode obj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
     assertThat(r.code()).isEqualTo(200);
@@ -440,7 +445,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testPutReplacingObject() throws IOException {
-    JsonNode fullObj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode fullObj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
     assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
     assertThat(r.code()).isEqualTo(200);
@@ -472,7 +478,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testPutReplacingArrayElement() throws IOException {
-    JsonNode fullObj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode fullObj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
     assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
     assertThat(r.code()).isEqualTo(200);
@@ -507,7 +514,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testPutReplacingWithArray() throws IOException {
-    JsonNode fullObj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode fullObj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
     assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
     assertThat(r.code()).isEqualTo(200);
@@ -566,7 +574,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidPuts() throws IOException {
-    JsonNode fullObj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode fullObj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
     assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
     assertThat(r.code()).isEqualTo(200);
@@ -607,7 +616,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testDelete() throws IOException {
-    JsonNode fullObj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode fullObj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
     assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
     assertThat(r.code()).isEqualTo(200);
@@ -652,7 +662,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testPost() throws IOException {
-    JsonNode fullObj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode fullObj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response resp = post("/v2/namespaces/" + keyspace + "/collections/collection", fullObj);
     assertThat(resp.code()).isEqualTo(201);
 
@@ -844,7 +855,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidPatches() throws IOException {
-    JsonNode fullObj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode fullObj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
     assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
     assertThat(r.code()).isEqualTo(200);
@@ -897,7 +909,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testBasicSearch() throws IOException {
-    JsonNode fullObj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode fullObj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r =
         put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
     assertThat(r.code()).isEqualTo(200);
@@ -995,7 +1008,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testBasicSearchSelectionSet() throws IOException {
-    JsonNode fullObj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode fullObj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r =
         put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
     assertThat(r.code()).isEqualTo(200);
@@ -1085,7 +1099,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testSearchNotEquals() throws IOException {
-    JsonNode fullObj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode fullObj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r =
         put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
     assertThat(r.code()).isEqualTo(200);
@@ -1152,7 +1167,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testSearchIn() throws IOException {
-    JsonNode fullObj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode fullObj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r =
         put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
     assertThat(r.code()).isEqualTo(200);
@@ -1212,7 +1228,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testSearchNotIn() throws IOException {
-    JsonNode fullObj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode fullObj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r =
         put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
     assertThat(r.code()).isEqualTo(200);
@@ -1272,7 +1289,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testFilterCombos() throws IOException {
-    JsonNode fullObj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode fullObj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r =
         put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
     assertThat(r.code()).isEqualTo(200);
@@ -1411,7 +1429,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testMultiSearch() throws IOException {
-    JsonNode fullObj = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode fullObj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
     Response r =
         put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
     assertThat(r.code()).isEqualTo(200);
@@ -1482,7 +1501,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testPaginationSingleDocSearch() throws IOException {
-    JsonNode fullObj = objectMapper.readTree(this.getClass().getResource("longSearch.json"));
+    JsonNode fullObj =
+        objectMapper.readTree(this.getClass().getResource("test/resources/longSearch.json"));
     Response r =
         put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
     assertThat(r.code()).isEqualTo(200);
@@ -1567,9 +1587,11 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testPaginationGetFullDoc() throws IOException {
-    JsonNode doc1 = objectMapper.readTree(this.getClass().getResource("longSearch.json"));
+    JsonNode doc1 =
+        objectMapper.readTree(this.getClass().getResource("test/resources/longSearch.json"));
     JsonNode doc2 = objectMapper.readTree("{\"a\": \"b\"}");
-    JsonNode doc3 = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode doc3 =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
 
     ObjectNode docsByKey = objectMapper.createObjectNode();
     docsByKey.set("1", doc1);
@@ -1704,9 +1726,11 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testPaginationGetFullDocWithFields() throws IOException {
-    JsonNode doc1 = objectMapper.readTree(this.getClass().getResource("longSearch.json"));
+    JsonNode doc1 =
+        objectMapper.readTree(this.getClass().getResource("test/resources/longSearch.json"));
     JsonNode doc2 = objectMapper.readTree("{\"a\": \"b\"}");
-    JsonNode doc3 = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode doc3 =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
 
     ObjectNode docsByKey = objectMapper.createObjectNode();
     docsByKey.set("1", doc1);
@@ -1890,11 +1914,13 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testPaginationFilterDocWithFields() throws IOException {
-    JsonNode doc1 = objectMapper.readTree(this.getClass().getResource("longSearch.json"));
+    JsonNode doc1 =
+        objectMapper.readTree(this.getClass().getResource("test/resources/longSearch.json"));
     JsonNode doc2 =
         objectMapper.readTree(
             "{\"a\": \"b\", \"quiz\": {\"sport\": {\"q1\": {\"question\": \"hello?\"}}}}");
-    JsonNode doc3 = objectMapper.readTree(this.getClass().getResource("example.json"));
+    JsonNode doc3 =
+        objectMapper.readTree(this.getClass().getResource("test/resources/example.json"));
 
     ObjectNode docsByKey = objectMapper.createObjectNode();
     docsByKey.set("1", doc1);
@@ -1992,7 +2018,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testPaginationDisallowedLimitedSupport() throws IOException {
-    JsonNode doc1 = objectMapper.readTree(this.getClass().getResource("longSearch.json"));
+    JsonNode doc1 =
+        objectMapper.readTree(this.getClass().getResource("test/resources/longSearch.json"));
     Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", doc1);
     assertThat(r.code()).isEqualTo(200);
     r.close();
@@ -2011,7 +2038,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   private Response get(String path) throws IOException {
     Request request =
         new Request.Builder()
-            .url(String.format("%s:8080%s%s", host, path.startsWith("/") ? "" : "/", path))
+            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
             .get()
             .addHeader("X-Cassandra-Token", authToken)
             .build();
@@ -2022,7 +2049,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   private Response post(String path, Object arg) throws IOException {
     Request request =
         new Request.Builder()
-            .url(String.format("%s:8080%s%s", host, path.startsWith("/") ? "" : "/", path))
+            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
             .post(
                 RequestBody.create(
                     MediaType.parse("application/json"), objectMapper.writeValueAsString(arg)))
@@ -2035,7 +2062,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   private Response put(String path, Object arg) throws IOException {
     Request request =
         new Request.Builder()
-            .url(String.format("%s:8080%s%s", host, path.startsWith("/") ? "" : "/", path))
+            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
             .put(
                 RequestBody.create(
                     MediaType.parse("application/json"), objectMapper.writeValueAsString(arg)))
@@ -2048,7 +2075,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   private Response patch(String path, Object arg) throws IOException {
     Request request =
         new Request.Builder()
-            .url(String.format("%s:8080%s%s", host, path.startsWith("/") ? "" : "/", path))
+            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
             .patch(
                 RequestBody.create(
                     MediaType.parse("application/json"), objectMapper.writeValueAsString(arg)))
@@ -2061,7 +2088,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   private Response delete(String path) throws IOException {
     Request request =
         new Request.Builder()
-            .url(String.format("%s:8080%s%s", host, path.startsWith("/") ? "" : "/", path))
+            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
             .delete()
             .addHeader("X-Cassandra-Token", authToken)
             .build();
