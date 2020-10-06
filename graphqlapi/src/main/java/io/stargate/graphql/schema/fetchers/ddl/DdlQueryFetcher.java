@@ -22,6 +22,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -49,6 +50,7 @@ public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
     String basic = (String) type.get("basic");
     @SuppressWarnings("unchecked")
     Map<String, Object> info = (Map<String, Object>) type.get("info");
+    List<?> subTypes;
 
     switch (basic) {
       case "INT":
@@ -92,15 +94,26 @@ public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
       case "FLOAT":
         return DataTypes.FLOAT;
       case "LIST":
-        return DataTypes.listOf(decodeType(info.get("subTypes")));
+        subTypes = (List<?>) info.get("subTypes");
+        if (subTypes == null || subTypes.size() != 1) {
+          throw new IllegalArgumentException("List sub types should contain 1 item");
+        }
+        return DataTypes.listOf(decodeType(subTypes.get(0)));
       case "SET":
-        return DataTypes.setOf(decodeType(info.get("subTypes")));
-      case "CUSTOM":
+        subTypes = (List<?>) info.get("subTypes");
+        if (subTypes == null || subTypes.size() != 1) {
+          throw new IllegalArgumentException("Set sub types should contain 1 item");
+        }
+        subTypes = (List<?>) info.get("subTypes");
+        return DataTypes.setOf(decodeType(subTypes.get(0)));
       case "MAP":
-      case "TUPLE":
-      case "UDT":
-        return null;
+        subTypes = (List<?>) info.get("subTypes");
+        if (subTypes == null || subTypes.size() != 2) {
+          throw new IllegalArgumentException("Map sub types should contain 2 items");
+        }
+        return DataTypes.mapOf(decodeType(subTypes.get(0)), decodeType(subTypes.get(1)));
     }
-    return null;
+
+    throw new RuntimeException(String.format("Data type %s is not supported", basic));
   }
 }
