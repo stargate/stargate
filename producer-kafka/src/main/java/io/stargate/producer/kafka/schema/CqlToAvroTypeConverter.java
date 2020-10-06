@@ -23,6 +23,8 @@ import org.apache.avro.Schema.Type;
 import org.apache.cassandra.stargate.schema.CQLType;
 
 public class CqlToAvroTypeConverter {
+  private CqlToAvroTypeConverter() {}
+
   public static Schema toAvroType(CQLType type) {
     if (type.equals(TEXT)) {
       return Schema.create(Type.STRING);
