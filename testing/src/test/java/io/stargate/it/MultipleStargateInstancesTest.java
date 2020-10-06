@@ -63,9 +63,9 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
             .withString(
                 DefaultDriverOption.LOAD_BALANCING_POLICY_CLASS,
                 DcInferringLoadBalancingPolicy.class.getName())
-            .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(5))
-            .withDuration(DefaultDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(5))
-            .withDuration(DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(5))
+            .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(30))
+            .withDuration(DefaultDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(30))
+            .withDuration(DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(30))
             .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
             .withStringList(
                 DefaultDriverOption.METRICS_NODE_ENABLED,
