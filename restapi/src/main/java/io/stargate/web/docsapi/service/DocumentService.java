@@ -14,8 +14,8 @@ import io.stargate.db.datastore.query.Where;
 import io.stargate.db.datastore.query.WhereCondition;
 import io.stargate.db.schema.Column;
 import io.stargate.web.docsapi.dao.DocumentDB;
-import io.stargate.web.docsapi.exception.SchemalessErrorHandlingStrategy;
-import io.stargate.web.docsapi.exception.SchemalessRequestException;
+import io.stargate.web.docsapi.exception.DocumentAPIErrorHandlingStrategy;
+import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
@@ -38,8 +38,8 @@ import org.jsfr.json.path.PathOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SchemalessService {
-  private static final Logger logger = LoggerFactory.getLogger(SchemalessService.class);
+public class DocumentService {
+  private static final Logger logger = LoggerFactory.getLogger(DocumentService.class);
   private static final ObjectMapper mapper = new ObjectMapper();
 
   /*
@@ -81,7 +81,7 @@ public class SchemalessService {
       String innerPath = path.substring(1, path.length() - 1);
       int idx = Integer.parseInt(innerPath);
       if (idx > DocumentDB.MAX_ARRAY_LENGTH - 1) {
-        throw new SchemalessRequestException(
+        throw new DocumentAPIRequestException(
             String.format("Max array length of %s exceeded.", DocumentDB.MAX_ARRAY_LENGTH));
       }
       return "[" + leftPadTo6(innerPath) + "]";
@@ -133,7 +133,7 @@ public class SchemalessService {
             (v, parsingContext) -> {
               String fieldName = parsingContext.getCurrentFieldName();
               if (fieldName != null && (DocumentDB.containsIllegalChars(fieldName))) {
-                throw new SchemalessRequestException(
+                throw new DocumentAPIRequestException(
                     String.format(
                         "The characters %s are not permitted in JSON field names, invalid field %s",
                         DocumentDB.getForbiddenCharactersMessage(), fieldName));
@@ -154,7 +154,7 @@ public class SchemalessService {
                 String leaf = null;
                 while (it.hasNext()) {
                   if (i >= DocumentDB.MAX_DEPTH) {
-                    throw new SchemalessRequestException(
+                    throw new DocumentAPIRequestException(
                         String.format("Max depth of %s exceeded", DocumentDB.MAX_DEPTH));
                   }
 
@@ -168,13 +168,13 @@ public class SchemalessService {
                   boolean isArrayElement = op.getType() == PathOperator.Type.ARRAY;
                   if (isArrayElement) {
                     if (i == path.size() && patching) {
-                      throw new SchemalessRequestException(
+                      throw new DocumentAPIRequestException(
                           "A patch operation must be done with a JSON object, not an array.");
                     }
 
                     int idx = Integer.parseInt(innerPath);
                     if (idx > DocumentDB.MAX_ARRAY_LENGTH - 1) {
-                      throw new SchemalessRequestException(
+                      throw new DocumentAPIRequestException(
                           String.format(
                               "Max array length of %s exceeded.", DocumentDB.MAX_ARRAY_LENGTH));
                     }
@@ -228,7 +228,7 @@ public class SchemalessService {
                 bindVariableList.add(bindMap.values().toArray());
               }
             })
-        .withErrorStrategy(new SchemalessErrorHandlingStrategy())
+        .withErrorStrategy(new DocumentAPIErrorHandlingStrategy())
         .buildAndSurf(payload);
     return ImmutablePair.of(bindVariableList, firstLevelKeys);
   }
@@ -253,7 +253,7 @@ public class SchemalessService {
         shredPayload(surfer, db, new ArrayList<>(), id, payload, now, false).left;
 
     if (bindVariableList.size() == 0) {
-      throw new SchemalessRequestException(
+      throw new DocumentAPIRequestException(
           "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: "
               + payload
               + "\nHint: update the parent path with a defined object instead.");
@@ -294,7 +294,7 @@ public class SchemalessService {
     List<String> firstLevelKeys = shreddingResults.right;
 
     if (bindVariableList.size() == 0) {
-      throw new SchemalessRequestException(
+      throw new DocumentAPIRequestException(
           "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: "
               + payload
               + "\nHint: update the parent path with a defined object instead.");
@@ -364,14 +364,14 @@ public class SchemalessService {
 
     if (filterOp == FilterOp.NE) {
       if (value.isArray() || value.isObject()) {
-        throw new SchemalessRequestException(
+        throw new DocumentAPIRequestException(
             String.format(
                 "Value entry for field %s, operation %s was expecting a value or `null`",
                 fieldName, op));
       }
     } else if (filterOp == FilterOp.EXISTS) {
       if (!value.isBoolean() || !value.asBoolean()) {
-        throw new SchemalessRequestException(
+        throw new DocumentAPIRequestException(
             String.format("%s only supports the value `true`", op));
       }
     } else if (filterOp == FilterOp.GT
@@ -380,14 +380,14 @@ public class SchemalessService {
         || filterOp == FilterOp.LTE
         || filterOp == FilterOp.EQ) {
       if (value.isArray() || value.isObject() || value.isNull()) {
-        throw new SchemalessRequestException(
+        throw new DocumentAPIRequestException(
             String.format(
                 "Value entry for field %s, operation %s was expecting a non-null value",
                 fieldName, op));
       }
     } else if (filterOp == FilterOp.IN || filterOp == FilterOp.NIN) {
       if (!value.isArray()) {
-        throw new SchemalessRequestException(
+        throw new DocumentAPIRequestException(
             String.format(
                 "Value entry for field %s, operation %s was expecting an array", fieldName, op));
       }
@@ -398,7 +398,7 @@ public class SchemalessService {
 
   public List<String> convertToSelectionList(JsonNode fieldsJson) {
     if (!fieldsJson.isArray()) {
-      throw new SchemalessRequestException(
+      throw new DocumentAPIRequestException(
           String.format("`fields` must be a JSON array, found %s", fieldsJson));
     }
 
@@ -406,7 +406,7 @@ public class SchemalessService {
     for (int i = 0; i < fieldsJson.size(); i++) {
       JsonNode value = fieldsJson.get(i);
       if (!value.isTextual()) {
-        throw new SchemalessRequestException(
+        throw new DocumentAPIRequestException(
             String.format("Each field must be a string, found %s", value));
       }
       res.add(value.asText());
@@ -420,14 +420,14 @@ public class SchemalessService {
     List<FilterCondition> conditions = new ArrayList<>();
 
     if (!filterJson.isObject()) {
-      throw new SchemalessRequestException("Search was expecting a JSON object as input.");
+      throw new DocumentAPIRequestException("Search was expecting a JSON object as input.");
     }
     ObjectNode input = (ObjectNode) filterJson;
     Iterator<String> fields = input.fieldNames();
     while (fields.hasNext()) {
       String fieldName = fields.next();
       if (fieldName.isEmpty()) {
-        throw new SchemalessRequestException(
+        throw new DocumentAPIRequestException(
             "The field(s) you are searching for can't be the empty string!");
       }
       String[] fieldNamePath = fieldName.split("\\.");
@@ -449,7 +449,7 @@ public class SchemalessService {
       }
       JsonNode fieldConditions = input.get(fieldName);
       if (!fieldConditions.isObject()) {
-        throw new SchemalessRequestException(
+        throw new DocumentAPIRequestException(
             String.format(
                 "Search entry for field %s was expecting a JSON object as input.", fieldName));
       }
@@ -983,7 +983,7 @@ public class SchemalessService {
     }
 
     if (!inMemoryFilters.isEmpty() && newState != null) {
-      throw new SchemalessRequestException(
+      throw new DocumentAPIRequestException(
           "The results as requested must fit in one page, try increasing the `page-size` parameter.");
     }
     rows = filterToSelectionSet(rows, fields, path);

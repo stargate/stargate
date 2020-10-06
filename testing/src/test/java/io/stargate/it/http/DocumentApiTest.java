@@ -32,8 +32,8 @@ import org.slf4j.LoggerFactory;
 
 @NotThreadSafe
 @Disabled
-public class SchemalessTest extends BaseOsgiIntegrationTest {
-  private static Logger logger = LoggerFactory.getLogger(SchemalessTest.class);
+public class DocumentApiTest extends BaseOsgiIntegrationTest {
+  private static Logger logger = LoggerFactory.getLogger(DocumentApiTest.class);
 
   private String keyspace;
 
@@ -42,7 +42,7 @@ public class SchemalessTest extends BaseOsgiIntegrationTest {
   private static final OkHttpClient client = new OkHttpClient().newBuilder().build();
   private static final String host = "http://" + getStargateHost();
 
-  public SchemalessTest(ClusterConnectionInfo backend) {
+  public DocumentApiTest(ClusterConnectionInfo backend) {
     super(backend);
   }
 

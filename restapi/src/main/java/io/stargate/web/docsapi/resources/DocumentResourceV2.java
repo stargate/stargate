@@ -7,8 +7,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.dao.DocumentDB;
-import io.stargate.web.docsapi.exception.SchemalessRequestException;
-import io.stargate.web.docsapi.service.SchemalessService;
+import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.resources.Db;
 import java.net.URI;
@@ -25,11 +25,11 @@ import org.slf4j.LoggerFactory;
 
 @Path("/v2/")
 @Produces(MediaType.APPLICATION_JSON)
-public class SchemalessResourceV2 {
+public class DocumentResourceV2 {
   @Inject private Db dbFactory;
-  private static final Logger logger = LoggerFactory.getLogger(SchemalessResourceV2.class);
+  private static final Logger logger = LoggerFactory.getLogger(DocumentResourceV2.class);
   private static final ObjectMapper mapper = new ObjectMapper();
-  private final SchemalessService schemalessService = new SchemalessService();
+  private final DocumentService documentService = new DocumentService();
   private final int DEFAULT_PAGE_SIZE = 100;
 
   private JsonNode wrapResponse(JsonNode node, String id) {
@@ -75,8 +75,7 @@ public class SchemalessResourceV2 {
     return handle(
         () -> {
           boolean success =
-              schemalessService.putAtRoot(
-                  authToken, keyspace, collection, newId, payload, dbFactory);
+              documentService.putAtRoot(authToken, keyspace, collection, newId, payload, dbFactory);
 
           if (success) {
             return Response.created(
@@ -111,7 +110,7 @@ public class SchemalessResourceV2 {
     return handle(
         () -> {
           boolean success =
-              schemalessService.putAtRoot(authToken, keyspace, collection, id, payload, dbFactory);
+              documentService.putAtRoot(authToken, keyspace, collection, id, payload, dbFactory);
 
           if (success) {
             return Response.ok().entity(mapper.writeValueAsString(wrapResponse(null, id))).build();
@@ -141,7 +140,7 @@ public class SchemalessResourceV2 {
 
     return handle(
         () -> {
-          schemalessService.putAtPath(
+          documentService.putAtPath(
               authToken, keyspace, collection, id, payload, path, false, dbFactory);
           return Response.ok().entity(mapper.writeValueAsString(wrapResponse(null, id))).build();
         });
@@ -163,7 +162,7 @@ public class SchemalessResourceV2 {
 
     return handle(
         () -> {
-          schemalessService.putAtPath(
+          documentService.putAtPath(
               authToken, keyspace, collection, id, payload, new ArrayList<>(), true, dbFactory);
           return Response.ok().entity(mapper.writeValueAsString(wrapResponse(null, id))).build();
         });
@@ -186,7 +185,7 @@ public class SchemalessResourceV2 {
 
     return handle(
         () -> {
-          schemalessService.putAtPath(
+          documentService.putAtPath(
               authToken, keyspace, collection, id, payload, path, true, dbFactory);
           return Response.ok().entity(mapper.writeValueAsString(wrapResponse(null, id))).build();
         });
@@ -207,7 +206,7 @@ public class SchemalessResourceV2 {
     return handle(
         () -> {
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
-          schemalessService.deleteAtPath(db, keyspace, collection, id, new ArrayList<>());
+          documentService.deleteAtPath(db, keyspace, collection, id, new ArrayList<>());
           return Response.noContent().build();
         });
   }
@@ -230,7 +229,7 @@ public class SchemalessResourceV2 {
     return handle(
         () -> {
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
-          schemalessService.deleteAtPath(db, keyspace, collection, id, path);
+          documentService.deleteAtPath(db, keyspace, collection, id, path);
           return Response.noContent().build();
         });
   }
@@ -290,27 +289,28 @@ public class SchemalessResourceV2 {
           List<String> selectionList = new ArrayList<>();
           if (where != null) {
             JsonNode filterJson = mapper.readTree(where);
-            filters = schemalessService.convertToFilterOps(path, filterJson);
+            filters = documentService.convertToFilterOps(path, filterJson);
             if (fields != null) {
               JsonNode fieldsJson = mapper.readTree(fields);
-              selectionList = schemalessService.convertToSelectionList(fieldsJson);
+              selectionList = documentService.convertToSelectionList(fieldsJson);
             }
           } else if (fields != null) {
-            throw new SchemalessRequestException("Selecting fields is not allowed without `where`");
+            throw new DocumentAPIRequestException(
+                "Selecting fields is not allowed without `where`");
           }
 
           if (!filters.isEmpty()) {
             Set<String> distinctFields =
                 filters.stream().map(FilterCondition::getFullFieldPath).collect(Collectors.toSet());
             if (distinctFields.size() > 1) {
-              throw new SchemalessRequestException(
+              throw new DocumentAPIRequestException(
                   String.format(
                       "Conditions across multiple fields are not yet supported (found: %s)",
                       distinctFields));
             }
             String fieldName = filters.get(0).getField();
             if (!selectionList.isEmpty() && !selectionList.contains(fieldName)) {
-              throw new SchemalessRequestException(
+              throw new DocumentAPIRequestException(
                   "When selecting `fields`, the field referenced by `where` must be in the selection.");
             }
           }
@@ -318,7 +318,7 @@ public class SchemalessResourceV2 {
           JsonNode node;
           if (filters.isEmpty()) {
             DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
-            node = schemalessService.getJsonAtPath(db, keyspace, collection, id, path);
+            node = documentService.getJsonAtPath(db, keyspace, collection, id, path);
             if (node == null) {
               return Response.noContent().build();
             }
@@ -341,7 +341,7 @@ public class SchemalessResourceV2 {
                 dbFactory.getDocDataStoreForToken(
                     authToken, pageSizeParam > 0 ? pageSizeParam : DEFAULT_PAGE_SIZE, pageState);
             ImmutablePair<JsonNode, ByteBuffer> result =
-                schemalessService.searchDocumentsV2(
+                documentService.searchDocumentsV2(
                     db, keyspace, collection, filters, selectionList, id);
 
             if (result == null) {
@@ -388,19 +388,19 @@ public class SchemalessResourceV2 {
           List<String> selectionList = new ArrayList<>();
           if (where != null) {
             JsonNode filterJson = mapper.readTree(where);
-            filters = schemalessService.convertToFilterOps(new ArrayList<>(), filterJson);
+            filters = documentService.convertToFilterOps(new ArrayList<>(), filterJson);
           }
 
           if (fields != null) {
             JsonNode fieldsJson = mapper.readTree(fields);
-            selectionList = schemalessService.convertToSelectionList(fieldsJson);
+            selectionList = documentService.convertToSelectionList(fieldsJson);
           }
 
           if (!filters.isEmpty()) {
             Set<String> distinctFields =
                 filters.stream().map(FilterCondition::getFullFieldPath).collect(Collectors.toSet());
             if (distinctFields.size() > 1) {
-              throw new SchemalessRequestException(
+              throw new DocumentAPIRequestException(
                   String.format(
                       "Conditions across multiple fields are not yet supported (found: %s)",
                       distinctFields));
@@ -421,11 +421,11 @@ public class SchemalessResourceV2 {
           ImmutablePair<JsonNode, ByteBuffer> results;
 
           if (pageSizeParam > 20) {
-            throw new SchemalessRequestException("The parameter `page-size` is limited to 20.");
+            throw new DocumentAPIRequestException("The parameter `page-size` is limited to 20.");
           }
           if (filters.isEmpty()) {
             results =
-                schemalessService.getFullDocuments(
+                documentService.getFullDocuments(
                     dbFactory,
                     db,
                     authToken,
@@ -437,7 +437,7 @@ public class SchemalessResourceV2 {
                     Math.max(1, pageSizeParam));
           } else {
             results =
-                schemalessService.getFullDocumentsFiltered(
+                documentService.getFullDocumentsFiltered(
                     dbFactory,
                     db,
                     authToken,
@@ -476,7 +476,7 @@ public class SchemalessResourceV2 {
       return action.call();
     } catch (UnauthorizedException ue) {
       return Response.status(Response.Status.UNAUTHORIZED).build();
-    } catch (SchemalessRequestException sre) {
+    } catch (DocumentAPIRequestException sre) {
       return Response.status(Response.Status.BAD_REQUEST).entity(sre.getLocalizedMessage()).build();
     } catch (NoNodeAvailableException e) {
       return Response.status(Response.Status.SERVICE_UNAVAILABLE)
