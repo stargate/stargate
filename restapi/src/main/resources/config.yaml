@@ -5,9 +5,3 @@ server:
   adminConnectors:
     - type: http
       port: 8083
-
-swagger:
-  resourcePackage: io.stargate.web.resources
-  title: "Stargate REST API"
-  version: "2.0.0"
-

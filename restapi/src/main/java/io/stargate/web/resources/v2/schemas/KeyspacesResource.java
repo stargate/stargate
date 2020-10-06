@@ -81,8 +81,7 @@ public class KeyspacesResource {
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true,
-              type = "string")
+              required = true)
           @HeaderParam("X-Cassandra-Token")
           String token,
       @ApiParam(value = "unwrap results", defaultValue = "false") @QueryParam("raw")
@@ -125,8 +124,7 @@ public class KeyspacesResource {
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true,
-              type = "string")
+              required = true)
           @HeaderParam("X-Cassandra-Token")
           String token,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
@@ -178,8 +176,7 @@ public class KeyspacesResource {
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true,
-              type = "string")
+              required = true)
           @HeaderParam("X-Cassandra-Token")
           String token,
       @ApiParam(value = "format results", defaultValue = "false") String payload) {
@@ -248,8 +245,7 @@ public class KeyspacesResource {
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true,
-              type = "string")
+              required = true)
           @HeaderParam("X-Cassandra-Token")
           String token,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)

@@ -117,39 +117,9 @@
       <version>27.0-jre</version>
     </dependency>
     <dependency>
-      <groupId>org.eclipse.equinox</groupId>
-      <artifactId>org.eclipse.equinox.common</artifactId>
-      <version>3.6.0.v20100503</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.eclipse.osgi</groupId>
-          <artifactId>org.eclipse.osgi</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>io.swagger</groupId>
-      <artifactId>swagger-jaxrs</artifactId>
-      <version>1.6.2</version>
-      <exclusions>
-        <exclusion>
-          <groupId>javax.ws.rs</groupId>
-          <artifactId>jsr311-api</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
       <groupId>io.swagger</groupId>
       <artifactId>swagger-jersey2-jaxrs</artifactId>
-      <version>1.6.2</version>
-      <!-- Causes runtime issues with jakarta.validation:validation-api in dropwizard-core -->
-      <exclusions>
-        <exclusion>
-          <groupId>javax.validation</groupId>
-          <artifactId>validation-api</artifactId>
-        </exclusion>
-      </exclusions>
-      <scope>provided</scope>
+      <version>1.5.0</version>
     </dependency>
     <dependency>
       <groupId>com.smoketurner</groupId>
@@ -220,9 +190,7 @@
                             io.stargate.db.datastore.query,
                             io.stargate.core,
                             com.codahale.metrics,
-                            org.osgi.framework,
-                            io.swagger.jaxrs.listing.*,
-                            io.dropwizard.jersey.*
+                            org.osgi.framework
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
