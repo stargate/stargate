@@ -26,6 +26,7 @@ import io.dropwizard.util.JarLocation;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
+import io.stargate.web.RestApiActivator;
 import io.stargate.web.config.ApplicationConfiguration;
 import io.stargate.web.resources.ColumnResource;
 import io.stargate.web.resources.Db;
@@ -37,14 +38,19 @@ import io.stargate.web.resources.v2.RowsResource;
 import io.stargate.web.resources.v2.schemas.ColumnsResource;
 import io.stargate.web.resources.v2.schemas.KeyspacesResource;
 import io.stargate.web.resources.v2.schemas.TablesResource;
-import io.stargate.web.swagger.SwaggerBundle;
-import io.stargate.web.swagger.SwaggerBundleConfiguration;
-import io.stargate.web.swagger.SwaggerStaticResource;
+import io.stargate.web.swagger.SwaggerUIResource;
+import io.swagger.config.ScannerFactory;
+import io.swagger.jaxrs.config.BeanConfig;
+import io.swagger.jaxrs.config.DefaultJaxrsScanner;
+import io.swagger.jaxrs.listing.ApiListingResource;
+import io.swagger.jaxrs.listing.SwaggerSerializers;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.FrameworkUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +66,12 @@ public class Server extends Application<ApplicationConfiguration> {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
     this.metrics = metrics;
+
+    BeanConfig beanConfig = new BeanConfig();
+    beanConfig.setVersion("0.0.1");
+    beanConfig.setSchemes(new String[] {"http"});
+    beanConfig.setBasePath("/");
+    ScannerFactory.setScanner(new DefaultJaxrsScanner());
   }
 
   /**
@@ -104,7 +116,21 @@ public class Server extends Application<ApplicationConfiguration> {
     environment.jersey().register(TablesResource.class);
     environment.jersey().register(KeyspacesResource.class);
     environment.jersey().register(ColumnsResource.class);
-    environment.jersey().register(SwaggerStaticResource.class);
+
+    environment.jersey().register(ApiListingResource.class);
+    environment.jersey().register(SwaggerSerializers.class);
+
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(FrameworkUtil.getBundle(RestApiActivator.class)).to(Bundle.class);
+              }
+            });
+
+    environment.jersey().register(SwaggerUIResource.class);
 
     enableCors(environment);
   }
@@ -114,14 +140,6 @@ public class Server extends Application<ApplicationConfiguration> {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
     bootstrap.setMetricRegistry(metrics.getRegistry("restapi"));
-    bootstrap.addBundle(
-        new SwaggerBundle<ApplicationConfiguration>() {
-          @Override
-          protected SwaggerBundleConfiguration getSwaggerBundleConfiguration(
-              ApplicationConfiguration configuration) {
-            return configuration.swaggerBundleConfiguration;
-          }
-        });
   }
 
   private void enableCors(Environment environment) {

@@ -71,9 +71,7 @@ public class KeyspaceResource {
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true,
-              type = "string",
-              format = "uuid")
+              required = true)
           @HeaderParam("X-Cassandra-Token")
           String token) {
     return RequestHandler.handle(
