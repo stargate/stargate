@@ -154,7 +154,7 @@
       <artifactId>kafka-schema-registry</artifactId>
       <version>${schema-registry.version}</version>
       <scope>test</scope>
-	</dependency>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
