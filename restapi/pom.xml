@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.14-SNAPSHOT</version>
+    <version>0.0.15-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.web</groupId>
   <artifactId>restapi</artifactId>
@@ -19,13 +19,13 @@
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
-      <version>0.0.14-SNAPSHOT</version>
+      <version>0.0.15-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.14-SNAPSHOT</version>
+      <version>0.0.15-SNAPSHOT</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -37,7 +37,7 @@
     <dependency>
       <groupId>io.stargate.auth</groupId>
       <artifactId>authentication</artifactId>
-      <version>0.0.14-SNAPSHOT</version>
+      <version>0.0.15-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>

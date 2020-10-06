@@ -35,10 +35,12 @@ import com.example.graphql.client.schema.GetKeyspacesQuery;
 import com.example.graphql.client.schema.GetTableQuery;
 import com.example.graphql.client.schema.GetTablesQuery;
 import com.example.graphql.client.schema.type.BasicType;
+import com.example.graphql.client.schema.type.ClusteringKeyInput;
 import com.example.graphql.client.schema.type.ColumnInput;
 import com.example.graphql.client.schema.type.DataTypeInput;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
@@ -64,6 +66,7 @@ import okhttp3.OkHttpClient;
 import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.osgi.framework.InvalidSyntaxException;
 import org.slf4j.Logger;
@@ -377,6 +380,52 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         .anySatisfy(value -> assertThat(value.getBasic()).isEqualTo(BasicType.UUID));
   }
 
+  @Test
+  @DisplayName("Should create table with clustering keys")
+  public void createTableWithClusteringKey() throws ExecutionException, InterruptedException {
+    ApolloClient client = getApolloClient("/graphql-schema");
+    String tableName = "tbl_createtable_with_ck_" + System.currentTimeMillis();
+
+    CreateTableMutation.Builder builder =
+        CreateTableMutation.builder()
+            .partitionKeys(
+                ImmutableList.of(
+                    ColumnInput.builder()
+                        .name("pk1")
+                        .type(DataTypeInput.builder().basic(BasicType.INT).build())
+                        .build()))
+            .clusteringKeys(
+                ImmutableList.of(
+                    ClusteringKeyInput.builder()
+                        .name("ck1")
+                        .type(DataTypeInput.builder().basic(BasicType.TIMEUUID).build())
+                        .order(null)
+                        .build(),
+                    ClusteringKeyInput.builder()
+                        .name("ck2")
+                        .type(DataTypeInput.builder().basic(BasicType.BIGINT).build())
+                        .order("DESC")
+                        .build()))
+            .values(
+                ImmutableList.of(
+                    ColumnInput.builder()
+                        .name("value1")
+                        .type(DataTypeInput.builder().basic(BasicType.TEXT).build())
+                        .build()));
+
+    createTable(client, tableName, builder);
+
+    GetTableQuery.Table table = getTable(client, keyspace, tableName);
+    assertThat(table.getName()).isEqualTo(tableName);
+
+    assertThat(table.getColumns()).isPresent();
+    List<GetTableQuery.Column> columns = table.getColumns().get();
+    assertThat(columns).filteredOn(c -> c.getName().equals("pk1")).hasSize(1);
+    assertThat(columns)
+        .filteredOn(c -> c.getName().equals("ck1") || c.getName().equals("ck2"))
+        .hasSize(2);
+  }
+
   private GetTableQuery.Table createTable(
       ApolloClient client,
       String keyspaceName,
@@ -384,14 +433,21 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
       List<ColumnInput> partitionKeys,
       List<ColumnInput> values)
       throws ExecutionException, InterruptedException {
-    CreateTableMutation mutation =
+    return createTable(
+        client,
+        tableName,
         CreateTableMutation.builder()
             .keyspaceName(keyspaceName)
-            .tableName(tableName)
             .partitionKeys(partitionKeys)
-            .values(values)
-            .build();
+            .values(values));
+  }
 
+  private GetTableQuery.Table createTable(
+      ApolloClient client, String tableName, CreateTableMutation.Builder mutationBuilder)
+      throws ExecutionException, InterruptedException {
+
+    CreateTableMutation mutation =
+        mutationBuilder.keyspaceName(keyspace).tableName(tableName).build();
     CompletableFuture<CreateTableMutation.Data> future = new CompletableFuture<>();
     ApolloMutationCall<Optional<CreateTableMutation.Data>> observable = client.mutate(mutation);
     observable.enqueue(queryCallback(future));
