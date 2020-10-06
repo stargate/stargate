@@ -118,7 +118,7 @@ public class SchemaRegistryProvider implements SchemaProvider {
       return (Schema)
           schemaRegistryClient.getSchemaBySubjectAndId(subjectName, schemaId).rawSchema();
     } catch (IOException | RestClientException e) {
-      throw new RuntimeException(
+      throw new SchemaRegistryException(
           "Problem when get schema for subject: " + subjectName + " and schema id: " + schemaId, e);
     }
   }
@@ -149,8 +149,8 @@ public class SchemaRegistryProvider implements SchemaProvider {
       schemaIdPerSubject.put(subject, schemaId);
       return schemaId;
     } catch (IOException | RestClientException e) {
-      throw new RuntimeException(
-          "Problem when create or update key schema for subject: " + subject, e);
+      throw new SchemaRegistryException(
+          "Problem when create or update schema for subject: " + subject, e);
     }
   }
 

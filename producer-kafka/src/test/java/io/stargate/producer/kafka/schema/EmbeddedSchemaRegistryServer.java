@@ -27,8 +27,6 @@ public class EmbeddedSchemaRegistryServer implements Closeable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EmbeddedSchemaRegistryServer.class);
 
-  private static final String DEFAULT_KAFKA_CONNECTION_URL = "localhost:2181";
-
   private Server server;
   private final String schemaRegistryUrl;
   private final String kafkaConnectionUrl;
@@ -74,7 +72,7 @@ public class EmbeddedSchemaRegistryServer implements Closeable {
     }
   }
 
-  void stopServer() throws Exception {
+  public void stopServer() throws Exception {
     if (server != null) {
       server.stop();
     }
