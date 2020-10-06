@@ -2,6 +2,9 @@ package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,24 +12,18 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.db.ClientState;
-import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
-import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.ResultSet;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
+import java.net.InetSocketAddress;
+import java.time.Duration;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.*;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.osgi.framework.InvalidSyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,8 +43,38 @@ public class DocumentApiTest extends BaseOsgiIntegrationTest {
     super(backend);
   }
 
-  @BeforeAll
-  public static void init() throws IOException {
+  @BeforeEach
+  public void setup(TestInfo info, ClusterConnectionInfo cluster) throws IOException {
+    String testName = info.getTestMethod().get().getName();
+    if (testName.indexOf('[') >= 0) testName = testName.substring(0, testName.indexOf('['));
+    keyspace = "ks_" + testName;
+
+    CqlSession session =
+        CqlSession.builder()
+            .withConfigLoader(
+                DriverConfigLoader.programmaticBuilder()
+                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
+                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(20))
+                    .build())
+            .withAuthCredentials("cassandra", "cassandra")
+            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
+            .withLocalDatacenter(cluster.datacenter())
+            .build();
+
+    assertThat(
+            session
+                .execute(
+                    String.format(
+                        "create keyspace if not exists %s WITH replication = "
+                            + "{'class': 'SimpleStrategy', 'replication_factor': 1 }",
+                        keyspace))
+                .wasApplied())
+        .isTrue();
+
+    initAuth();
+  }
+
+  private void initAuth() throws IOException {
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     RequestBody requestBody =
@@ -57,7 +84,7 @@ public class DocumentApiTest extends BaseOsgiIntegrationTest {
 
     Request request =
         new Request.Builder()
-            .url(String.format("http://%s:8081/v1/auth/token/generate", getStargateHost()))
+            .url(String.format("%s:8081/v1/auth/token/generate", host))
             .post(requestBody)
             .addHeader("X-Cassandra-Request-Id", "foo")
             .build();
@@ -69,31 +96,6 @@ public class DocumentApiTest extends BaseOsgiIntegrationTest {
         objectMapper.readValue(body.string(), AuthTokenResponse.class);
     authToken = authTokenResponse.getAuthToken();
     assertThat(authToken).isNotNull();
-  }
-
-  @BeforeEach
-  public void setup(TestInfo info)
-      throws InvalidSyntaxException, ExecutionException, InterruptedException {
-    String testName = info.getTestMethod().get().getName();
-    if (testName.indexOf('[') >= 0) testName = testName.substring(0, testName.indexOf('['));
-    keyspace = "ks_" + testName;
-
-    Persistence persistence = getOsgiService("io.stargate.db.Persistence", Persistence.class);
-    ClientState clientState = persistence.newClientState("");
-    QueryState queryState = persistence.newQueryState(clientState);
-    DataStore dataStore = persistence.newDataStore(queryState, null);
-
-    ResultSet result =
-        dataStore
-            .query()
-            .create()
-            .keyspace(keyspace)
-            .ifNotExists()
-            .withReplication("{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }")
-            .andDurableWrites(true)
-            .execute();
-
-    dataStore.waitForSchemaAgreement();
   }
 
   @Test
