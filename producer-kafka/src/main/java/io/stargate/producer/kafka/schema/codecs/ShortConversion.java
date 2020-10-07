@@ -33,12 +33,12 @@ public class ShortConversion extends Conversion<Short> {
 
   @Override
   public Short fromInt(Integer value, Schema schema, LogicalType type) {
-    return value.shortValue();
+    return (value == null) ? null : value.shortValue();
   }
 
   @Override
   public Integer toInt(Short value, Schema schema, LogicalType type) {
-    return value.intValue();
+    return (value == null) ? null : value.intValue();
   }
 
   @Override

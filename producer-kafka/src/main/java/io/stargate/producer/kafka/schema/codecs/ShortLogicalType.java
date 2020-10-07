@@ -30,7 +30,8 @@ public class ShortLogicalType extends LogicalType {
   public void validate(Schema schema) {
     super.validate(schema);
     if (schema.getType() != Schema.Type.INT) {
-      throw new IllegalArgumentException("Logical type 'short' must be backed by int");
+      throw new IllegalArgumentException(
+          String.format("Logical type '%s' must be backed by int", SHORT_LOGICAL_TYPE_NAME));
     }
   }
 

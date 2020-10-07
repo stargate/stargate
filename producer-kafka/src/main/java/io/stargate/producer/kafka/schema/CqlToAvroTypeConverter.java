@@ -15,6 +15,9 @@
  */
 package io.stargate.producer.kafka.schema;
 
+import io.stargate.producer.kafka.schema.codecs.BigIntegerConversion;
+import io.stargate.producer.kafka.schema.codecs.BigIntegerLogicalType;
+import io.stargate.producer.kafka.schema.codecs.BigIntegerLogicalType.BigIntegerTypeFactory;
 import io.stargate.producer.kafka.schema.codecs.ByteConversion;
 import io.stargate.producer.kafka.schema.codecs.ByteLogicalType;
 import io.stargate.producer.kafka.schema.codecs.ByteLogicalType.ByteTypeFactory;
@@ -46,6 +49,8 @@ public class CqlToAvroTypeConverter {
     // register custom logical types
     LogicalTypes.register(ShortLogicalType.SHORT_LOGICAL_TYPE_NAME, new ShortTypeFactory());
     LogicalTypes.register(ByteLogicalType.BYTE_LOGICAL_TYPE_NAME, new ByteTypeFactory());
+    LogicalTypes.register(
+        BigIntegerLogicalType.BIG_INTEGER_LOGICAL_TYPE_NAME, new BigIntegerTypeFactory());
 
     SCHEMA_PER_NATIVE_TYPE.put(Native.ASCII, Schema.create(Type.STRING));
     SCHEMA_PER_NATIVE_TYPE.put(Native.BIGINT, Schema.create(Type.LONG));
@@ -79,7 +84,8 @@ public class CqlToAvroTypeConverter {
     SCHEMA_PER_NATIVE_TYPE.put(
         Native.UUID, LogicalTypes.uuid().addToSchema(Schema.create(Type.STRING)));
     SCHEMA_PER_NATIVE_TYPE.put(Native.VARCHAR, Schema.create(Type.STRING));
-    SCHEMA_PER_NATIVE_TYPE.put(Native.VARINT, Schema.create(Type.LONG)); // bit integer
+    SCHEMA_PER_NATIVE_TYPE.put(
+        Native.VARINT, new BigIntegerLogicalType().addToSchema(Schema.create(Type.BYTES)));
 
     GenericData.get().addLogicalTypeConversion(new Conversions.DecimalConversion());
     GenericData.get().addLogicalTypeConversion(new Conversions.UUIDConversion());
@@ -88,6 +94,7 @@ public class CqlToAvroTypeConverter {
     GenericData.get().addLogicalTypeConversion(new TimeConversions.TimestampMillisConversion());
     GenericData.get().addLogicalTypeConversion(new ShortConversion());
     GenericData.get().addLogicalTypeConversion(new ByteConversion());
+    GenericData.get().addLogicalTypeConversion(new BigIntegerConversion());
   }
 
   public static Schema toAvroType(CQLType type) {
@@ -102,14 +109,13 @@ public class CqlToAvroTypeConverter {
     } else if (type instanceof Custom) {
       return createCustomSchema((Custom) type);
     } else if (type instanceof Native) {
-      return createNativeType((Native) type);
+      return createNativeSchema((Native) type);
     } else {
-      // todo handle other types
       throw new UnsupportedOperationException(String.format("The type: %s is not supported", type));
     }
   }
 
-  private static Schema createNativeType(Native type) {
+  private static Schema createNativeSchema(Native type) {
     return SCHEMA_PER_NATIVE_TYPE.get(type);
   }
 

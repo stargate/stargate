@@ -15,30 +15,31 @@
  */
 package io.stargate.producer.kafka.schema.codecs;
 
+import com.datastax.oss.protocol.internal.util.Bytes;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import org.apache.avro.Conversion;
 import org.apache.avro.LogicalType;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
 
-public class ByteConversion extends Conversion<Byte> {
+public class BigIntegerConversion extends Conversion<BigInteger> {
   @Override
-  public Class<Byte> getConvertedType() {
-    return Byte.class;
+  public Class<BigInteger> getConvertedType() {
+    return BigInteger.class;
   }
 
   @Override
   public String getLogicalTypeName() {
-    return ByteLogicalType.BYTE_LOGICAL_TYPE_NAME;
+    return BigIntegerLogicalType.BIG_INTEGER_LOGICAL_TYPE_NAME;
   }
 
-  @Override
-  public Byte fromInt(Integer value, Schema schema, LogicalType type) {
-    return (value == null) ? null : value.byteValue();
+  public BigInteger fromBytes(ByteBuffer bytes, Schema schema, LogicalType type) {
+    return (bytes == null) || bytes.remaining() == 0 ? null : new BigInteger(Bytes.getArray(bytes));
   }
 
-  @Override
-  public Integer toInt(Byte value, Schema schema, LogicalType type) {
-    return (value == null) ? null : value.intValue();
+  public ByteBuffer toBytes(BigInteger value, Schema schema, LogicalType type) {
+    return (value == null) ? null : ByteBuffer.wrap(value.toByteArray());
   }
 
   @Override

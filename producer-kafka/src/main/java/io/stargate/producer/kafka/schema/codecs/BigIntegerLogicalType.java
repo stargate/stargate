@@ -18,34 +18,36 @@ package io.stargate.producer.kafka.schema.codecs;
 import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes.LogicalTypeFactory;
 import org.apache.avro.Schema;
+import org.apache.avro.Schema.Type;
 
-public class ByteLogicalType extends LogicalType {
-  public static final String BYTE_LOGICAL_TYPE_NAME = "byte";
+public class BigIntegerLogicalType extends LogicalType {
+  public static final String BIG_INTEGER_LOGICAL_TYPE_NAME = "bigInteger";
 
-  public ByteLogicalType() {
-    super(BYTE_LOGICAL_TYPE_NAME);
+  public BigIntegerLogicalType() {
+    super(BIG_INTEGER_LOGICAL_TYPE_NAME);
   }
 
   @Override
   public void validate(Schema schema) {
     super.validate(schema);
-    if (schema.getType() != Schema.Type.INT) {
+    if (schema.getType() != Type.BYTES) {
       throw new IllegalArgumentException(
-          String.format("Logical type '%s' must be backed by int", BYTE_LOGICAL_TYPE_NAME));
+          String.format(
+              "Logical type '%s' must be backed by byte buffer", BIG_INTEGER_LOGICAL_TYPE_NAME));
     }
   }
 
-  public static class ByteTypeFactory implements LogicalTypeFactory {
-    private static LogicalType BYTE_LOGICAL_TYPE = new ByteLogicalType();
+  public static class BigIntegerTypeFactory implements LogicalTypeFactory {
+    private static LogicalType BIG_INTEGER_LOGICAL_TYPE = new BigIntegerLogicalType();
 
     @Override
     public LogicalType fromSchema(Schema schema) {
-      return BYTE_LOGICAL_TYPE;
+      return BIG_INTEGER_LOGICAL_TYPE;
     }
 
     @Override
     public String getTypeName() {
-      return ByteLogicalType.BYTE_LOGICAL_TYPE_NAME;
+      return BigIntegerLogicalType.BIG_INTEGER_LOGICAL_TYPE_NAME;
     }
   }
 }

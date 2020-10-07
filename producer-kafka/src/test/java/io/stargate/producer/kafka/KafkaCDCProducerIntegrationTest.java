@@ -40,6 +40,7 @@ import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.stargate.producer.kafka.configuration.ConfigLoader;
 import io.stargate.producer.kafka.schema.EmbeddedSchemaRegistryServer;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
@@ -433,8 +434,14 @@ class KafkaCDCProducerIntegrationTest {
             Collections.singletonList(column(Native.UUID)),
             Collections.singletonList(
                 cell(
-                    column(Native.UUID),
-                    UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff00")))));
+                    column(Native.UUID), UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff00")))),
+        Arguments.of(
+            Collections.singletonList(column(Native.VARCHAR)),
+            Collections.singletonList(cell(column(Native.VARCHAR), "varchar"))),
+        Arguments.of(
+            Collections.singletonList(column(Native.VARINT)),
+            Collections.singletonList(
+                cell(column(Native.VARINT), new BigInteger(Integer.MAX_VALUE + "000")))));
   }
 
   @NotNull
