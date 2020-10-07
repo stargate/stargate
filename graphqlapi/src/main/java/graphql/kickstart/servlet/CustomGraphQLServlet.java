@@ -25,9 +25,9 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
-import io.stargate.graphql.core.GqlKeyspaceSchema;
 import io.stargate.graphql.graphqlservlet.CassandraUnboxingGraphqlErrorHandler;
 import io.stargate.graphql.graphqlservlet.GraphqlCustomContextBuilder;
+import io.stargate.graphql.schema.SchemaFactory;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
@@ -206,8 +206,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
       Keyspace keyspace,
       Persistence<?, ?, ?> persistence,
       AuthenticationService authenticationService) {
-    GraphQLSchema schema =
-        new GqlKeyspaceSchema(persistence, authenticationService, keyspace).build().build();
+    GraphQLSchema schema = SchemaFactory.newDmlSchema(persistence, authenticationService, keyspace);
     GraphQLConfiguration configuration =
         GraphQLConfiguration.with(schema)
             .with(new GraphqlCustomContextBuilder())

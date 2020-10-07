@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.graphql.core;
+package io.stargate.graphql.schema;
 
 import static graphql.schema.GraphQLList.list;
 import static graphql.schema.GraphQLNonNull.nonNull;
@@ -32,41 +32,37 @@ import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeReference;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
-import io.stargate.graphql.fetchers.AlterTableAddFetcher;
-import io.stargate.graphql.fetchers.AlterTableDropFetcher;
-import io.stargate.graphql.fetchers.CreateKeyspaceFetcher;
-import io.stargate.graphql.fetchers.CreateTableDataFetcher;
-import io.stargate.graphql.fetchers.DropTableFetcher;
-import io.stargate.graphql.fetchers.KeyspaceFetcher;
-import io.stargate.graphql.fetchers.SchemaDataFetcherFactory;
+import io.stargate.graphql.schema.fetchers.ddl.AllKeyspacesFetcher;
+import io.stargate.graphql.schema.fetchers.ddl.AlterTableAddFetcher;
+import io.stargate.graphql.schema.fetchers.ddl.AlterTableDropFetcher;
+import io.stargate.graphql.schema.fetchers.ddl.CreateKeyspaceFetcher;
+import io.stargate.graphql.schema.fetchers.ddl.CreateTableFetcher;
+import io.stargate.graphql.schema.fetchers.ddl.DropTableFetcher;
+import io.stargate.graphql.schema.fetchers.ddl.SingleKeyspaceFetcher;
 import java.util.HashMap;
 
-public class KeyspaceManagementSchema {
+class DdlSchemaBuilder {
   private final HashMap<String, GraphQLType> objects;
-  private final Persistence persistence;
+  private final Persistence<?, ?, ?> persistence;
   private AuthenticationService authenticationService;
-  private SchemaDataFetcherFactory schemaDataFetcherFactory;
 
-  public KeyspaceManagementSchema(
-      Persistence persistence, AuthenticationService authenticationService) {
+  DdlSchemaBuilder(Persistence<?, ?, ?> persistence, AuthenticationService authenticationService) {
     this.persistence = persistence;
     this.objects = new HashMap<>();
     this.authenticationService = authenticationService;
-    this.schemaDataFetcherFactory =
-        new SchemaDataFetcherFactory(persistence, authenticationService);
   }
 
-  public GraphQLSchema.Builder build() {
-    GraphQLSchema.Builder builder = new GraphQLSchema.Builder();
-    builder.mutation(
-        buildMutation(
-            buildCreateTable(),
-            buildAlterTableAdd(),
-            buildAlterTableDrop(),
-            buildDrop(),
-            buildCreateKeyspace()));
-    builder.query(buildQuery(buildKeyspaceByName(), buildKeyspaces()));
-    return builder;
+  GraphQLSchema build() {
+    return new GraphQLSchema.Builder()
+        .mutation(
+            buildMutation(
+                buildCreateTable(),
+                buildAlterTableAdd(),
+                buildAlterTableDrop(),
+                buildDrop(),
+                buildCreateKeyspace()))
+        .query(buildQuery(buildKeyspaceByName(), buildKeyspaces()))
+        .build();
   }
 
   private GraphQLFieldDefinition buildAlterTableAdd() {
@@ -79,8 +75,7 @@ public class KeyspaceManagementSchema {
         .argument(
             GraphQLArgument.newArgument().name("toAdd").type(nonNull(list(buildColumnInput()))))
         .type(Scalars.GraphQLBoolean)
-        .dataFetcher(
-            schemaDataFetcherFactory.createSchemaFetcher(AlterTableAddFetcher.class.getName()))
+        .dataFetcher(new AlterTableAddFetcher(persistence, authenticationService))
         .build();
   }
 
@@ -94,8 +89,7 @@ public class KeyspaceManagementSchema {
         .argument(
             GraphQLArgument.newArgument().name("toDrop").type(nonNull(list(Scalars.GraphQLString))))
         .type(Scalars.GraphQLBoolean)
-        .dataFetcher(
-            schemaDataFetcherFactory.createSchemaFetcher(AlterTableDropFetcher.class.getName()))
+        .dataFetcher(new AlterTableDropFetcher(persistence, authenticationService))
         .build();
   }
 
@@ -108,7 +102,7 @@ public class KeyspaceManagementSchema {
             GraphQLArgument.newArgument().name("tableName").type(nonNull(Scalars.GraphQLString)))
         .argument(GraphQLArgument.newArgument().name("ifExists").type(Scalars.GraphQLBoolean))
         .type(Scalars.GraphQLBoolean)
-        .dataFetcher(schemaDataFetcherFactory.createSchemaFetcher(DropTableFetcher.class.getName()))
+        .dataFetcher(new DropTableFetcher(persistence, authenticationService))
         .build();
   }
 
@@ -145,8 +139,7 @@ public class KeyspaceManagementSchema {
                         + "You must specify either this or 'replicas', but not both.")
                 .build())
         .type(Scalars.GraphQLBoolean)
-        .dataFetcher(
-            schemaDataFetcherFactory.createSchemaFetcher(CreateKeyspaceFetcher.class.getName()))
+        .dataFetcher(new CreateKeyspaceFetcher(persistence, authenticationService))
         .build();
   }
 
@@ -163,8 +156,7 @@ public class KeyspaceManagementSchema {
         .name("keyspace")
         .argument(GraphQLArgument.newArgument().name("name").type(nonNull(Scalars.GraphQLString)))
         .type(buildKeyspace())
-        .dataFetcher(
-            new KeyspaceFetcher(persistence, authenticationService).new KeyspaceByNameFetcher())
+        .dataFetcher(new SingleKeyspaceFetcher(persistence, authenticationService))
         .build();
   }
 
@@ -308,7 +300,7 @@ public class KeyspaceManagementSchema {
     return GraphQLFieldDefinition.newFieldDefinition()
         .name("keyspaces")
         .type(list(buildKeyspace()))
-        .dataFetcher(new KeyspaceFetcher(persistence, authenticationService).new KeyspacesFetcher())
+        .dataFetcher(new AllKeyspacesFetcher(persistence, authenticationService))
         .build();
   }
 
@@ -338,8 +330,7 @@ public class KeyspaceManagementSchema {
         .argument(GraphQLArgument.newArgument().name("values").type(list(buildColumnInput())))
         .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
         .type(Scalars.GraphQLBoolean)
-        .dataFetcher(
-            schemaDataFetcherFactory.createSchemaFetcher(CreateTableDataFetcher.class.getName()))
+        .dataFetcher(new CreateTableFetcher(persistence, authenticationService))
         .build();
   }
 

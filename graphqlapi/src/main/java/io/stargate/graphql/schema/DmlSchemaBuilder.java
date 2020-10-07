@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.graphql.core;
+package io.stargate.graphql.schema;
 
 import static graphql.Scalars.GraphQLString;
 
@@ -41,6 +41,11 @@ import io.stargate.db.Persistence;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
+import io.stargate.graphql.schema.fetchers.dml.DeleteMutationFetcher;
+import io.stargate.graphql.schema.fetchers.dml.InsertMutationFetcher;
+import io.stargate.graphql.schema.fetchers.dml.QueryFetcher;
+import io.stargate.graphql.schema.fetchers.dml.UpdateMutationFetcher;
+import io.stargate.graphql.util.CaseUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,10 +56,11 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GqlKeyspaceSchema {
-  private static final Logger log = LoggerFactory.getLogger(GqlKeyspaceSchema.class);
+class DmlSchemaBuilder {
+  private static final Logger log = LoggerFactory.getLogger(DmlSchemaBuilder.class);
 
-  private final DataFetchers fetcherFactory;
+  private final Persistence<?, ?, ?> persistence;
+  private final AuthenticationService authenticationService;
   private final Map<Column.ColumnType, GraphQLInputObjectType> filterInputTypes;
   private final Map<Table, GraphQLOutputType> entityResultMap = new HashMap<>();
   private final NameMapping nameMapping;
@@ -92,17 +98,19 @@ public class GqlKeyspaceSchema {
                   .build())
           .build();
 
-  public GqlKeyspaceSchema(
-      Persistence persistence, AuthenticationService authenticationService, Keyspace keyspace) {
+  DmlSchemaBuilder(
+      Persistence<?, ?, ?> persistence,
+      AuthenticationService authenticationService,
+      Keyspace keyspace) {
+    this.persistence = persistence;
+    this.authenticationService = authenticationService;
     this.tables = keyspace.tables();
 
     this.nameMapping = new NameMapping(tables);
-    this.fetcherFactory =
-        new DataFetchers(persistence, keyspace, nameMapping, authenticationService);
     this.filterInputTypes = buildFilterInputTypes();
   }
 
-  public GraphQLSchema.Builder build() {
+  GraphQLSchema build() {
     GraphQLSchema.Builder builder = new GraphQLSchema.Builder();
 
     List<GraphQLFieldDefinition> queryFields = new ArrayList<>();
@@ -153,7 +161,7 @@ public class GqlKeyspaceSchema {
     builder.additionalType(buildQueryOptionsInputType());
     builder.query(buildQueries(queryFields));
     builder.mutation(buildMutationRoot(mutationFields));
-    return builder;
+    return builder.build();
   }
 
   private GraphQLObjectType buildMutationRoot(List<GraphQLFieldDefinition> mutationFields) {
@@ -202,7 +210,7 @@ public class GqlKeyspaceSchema {
                     .name("options")
                     .type(new GraphQLTypeReference("QueryOptions")))
             .type(buildEntityResultOutput(table))
-            .dataFetcher(fetcherFactory.new QueryDataFetcher(table))
+            .dataFetcher(new QueryFetcher(table, nameMapping, persistence, authenticationService))
             .build();
 
     GraphQLFieldDefinition filterQuery =
@@ -227,7 +235,7 @@ public class GqlKeyspaceSchema {
                     .name("options")
                     .type(new GraphQLTypeReference("QueryOptions")))
             .type(buildEntityResultOutput(table))
-            .dataFetcher(fetcherFactory.new QueryDataFetcher(table))
+            .dataFetcher(new QueryFetcher(table, nameMapping, persistence, authenticationService))
             .build();
 
     return ImmutableList.of(query, filterQuery);
@@ -279,7 +287,8 @@ public class GqlKeyspaceSchema {
                         nameMapping.getEntityName().get(table) + "FilterInput")))
         .argument(GraphQLArgument.newArgument().name("options").type(mutationOptions))
         .type(new GraphQLTypeReference(nameMapping.getEntityName().get(table) + "MutationResult"))
-        .dataFetcher(fetcherFactory.new UpdateMutationDataFetcher(table))
+        .dataFetcher(
+            new UpdateMutationFetcher(table, nameMapping, persistence, authenticationService))
         .build();
   }
 
@@ -296,7 +305,8 @@ public class GqlKeyspaceSchema {
         .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
         .argument(GraphQLArgument.newArgument().name("options").type(mutationOptions))
         .type(new GraphQLTypeReference(nameMapping.getEntityName().get(table) + "MutationResult"))
-        .dataFetcher(fetcherFactory.new InsertMutationDataFetcher(table))
+        .dataFetcher(
+            new InsertMutationFetcher(table, nameMapping, persistence, authenticationService))
         .build();
   }
 
@@ -319,7 +329,8 @@ public class GqlKeyspaceSchema {
                         nameMapping.getEntityName().get(table) + "FilterInput")))
         .argument(GraphQLArgument.newArgument().name("options").type(mutationOptions))
         .type(new GraphQLTypeReference(nameMapping.getEntityName().get(table) + "MutationResult"))
-        .dataFetcher(fetcherFactory.new DeleteMutationDataFetcher(table))
+        .dataFetcher(
+            new DeleteMutationFetcher(table, nameMapping, persistence, authenticationService))
         .build();
   }
 
