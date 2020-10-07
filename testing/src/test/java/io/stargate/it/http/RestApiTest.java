@@ -76,8 +76,13 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         CqlSession.builder()
             .withConfigLoader(
                 DriverConfigLoader.programmaticBuilder()
-                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
-                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(20))
+                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5))
+                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(180))
+                    .withDuration(
+                        DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT,
+                        Duration.ofSeconds(180))
+                    .withDuration(
+                        DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
                     .build())
             .withAuthCredentials("cassandra", "cassandra")
             .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
