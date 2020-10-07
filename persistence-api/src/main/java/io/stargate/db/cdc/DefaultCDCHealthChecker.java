@@ -25,7 +25,7 @@ class DefaultCDCHealthChecker implements CDCHealthChecker {
    *     producer as unhealthy when there's low traffic and few errors.
    * @param ewmaIntervalMinutes The interval to determine the coefficient for the degree of
    *     weighting decrease in the exponentially weighted moving average (EWMA). The health checker
-   *     will use this value to set a soothing factor equivalent to UNIX load average.
+   *     will use this value to set a smoothing factor equivalent to UNIX load average.
    */
   DefaultCDCHealthChecker(
       double errorRateThreshold, int minErrorsPerSecond, int ewmaIntervalMinutes) {
