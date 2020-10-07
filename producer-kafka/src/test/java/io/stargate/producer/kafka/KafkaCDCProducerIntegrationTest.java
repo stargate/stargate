@@ -44,6 +44,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Arrays;
@@ -414,7 +415,11 @@ class KafkaCDCProducerIntegrationTest {
         Arguments.of(
             Collections.singletonList(column(Native.TIME)),
             Collections.singletonList(
-                cell(column(Native.TIME), LocalTime.ofNanoOfDay(54012123450000L)))));
+                cell(column(Native.TIME), LocalTime.ofNanoOfDay(54012123450000L)))),
+        Arguments.of(
+            Collections.singletonList(column(Native.TIMESTAMP)),
+            Collections.singletonList(
+                cell(column(Native.TIMESTAMP), Instant.ofEpochMilli(872835240000L)))));
   }
 
   @NotNull

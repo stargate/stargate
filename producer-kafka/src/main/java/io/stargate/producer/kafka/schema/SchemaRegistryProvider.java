@@ -18,7 +18,6 @@ package io.stargate.producer.kafka.schema;
 import static io.stargate.producer.kafka.schema.SchemaConstants.DATA_FIELD_NAME;
 import static io.stargate.producer.kafka.schema.SchemaConstants.OPERATION_FIELD_NAME;
 import static io.stargate.producer.kafka.schema.SchemaConstants.TIMESTAMP_FIELD_NAME;
-import static io.stargate.producer.kafka.schema.SchemaConstants.TIMESTAMP_MILLIS_TYPE;
 import static io.stargate.producer.kafka.schema.SchemaConstants.VALUE_FIELD_NAME;
 
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
@@ -178,9 +177,7 @@ public class SchemaRegistryProvider implements SchemaProvider {
     return SchemaBuilder.record(valueRecordName)
         .fields()
         .requiredString(OPERATION_FIELD_NAME)
-        .name(TIMESTAMP_FIELD_NAME)
-        .type(TIMESTAMP_MILLIS_TYPE)
-        .noDefault()
+        .requiredLong(TIMESTAMP_FIELD_NAME)
         .name(DATA_FIELD_NAME)
         .type(fieldsSchema)
         .noDefault()

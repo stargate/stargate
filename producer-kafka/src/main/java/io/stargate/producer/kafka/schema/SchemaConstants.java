@@ -15,12 +15,8 @@
  */
 package io.stargate.producer.kafka.schema;
 
-import org.apache.avro.LogicalTypes;
-import org.apache.avro.Schema;
 
 public class SchemaConstants {
-  public static final Schema TIMESTAMP_MILLIS_TYPE =
-      LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG));
   public static final String OPERATION_FIELD_NAME = "op";
   public static final String TIMESTAMP_FIELD_NAME = "ts_ms";
   public static final String DATA_FIELD_NAME = "data";
