@@ -32,7 +32,10 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Api(produces = MediaType.APPLICATION_JSON, consumes = MediaType.APPLICATION_JSON)
+@Api(
+    produces = MediaType.APPLICATION_JSON,
+    consumes = MediaType.APPLICATION_JSON,
+    tags = {"schemas"})
 @Path("/v1/keyspaces")
 @Produces(MediaType.APPLICATION_JSON)
 public class KeyspaceResource {
@@ -45,16 +48,9 @@ public class KeyspaceResource {
   @GET
   @ApiOperation(
       value = "Return all keyspaces",
-      nickname = "getKeyspaces",
       notes = "Retrieve all available keyspaces in the specific database.",
       response = String.class,
-      responseContainer = "List",
-      httpMethod = "GET",
-      produces = "application/json",
-      consumes = "application/json",
-      tags = {
-        "keyspaces",
-      })
+      responseContainer = "List")
   @ApiResponses(
       value = {
         @ApiResponse(

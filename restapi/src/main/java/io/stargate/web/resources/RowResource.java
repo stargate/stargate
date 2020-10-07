@@ -69,7 +69,10 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Api(produces = MediaType.APPLICATION_JSON, consumes = MediaType.APPLICATION_JSON)
+@Api(
+    produces = MediaType.APPLICATION_JSON,
+    consumes = MediaType.APPLICATION_JSON,
+    tags = {"data"})
 @Path("/v1/keyspaces/{keyspaceName}/tables/{tableName}/rows")
 @Produces(MediaType.APPLICATION_JSON)
 public class RowResource {
@@ -84,12 +87,8 @@ public class RowResource {
   @GET
   @ApiOperation(
       value = "Retrieve rows",
-      nickname = "getRows",
       notes = "Get rows from a table based on the primary key.",
-      response = Rows.class,
-      tags = {
-        "rows",
-      })
+      response = Rows.class)
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Rows.class),
@@ -147,12 +146,8 @@ public class RowResource {
   @GET
   @ApiOperation(
       value = "Retrieve all rows",
-      nickname = "getAllRows",
       notes = "Get all rows from a table.",
-      response = Rows.class,
-      tags = {
-        "rows",
-      })
+      response = Rows.class)
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Rows.class),
@@ -177,7 +172,7 @@ public class RowResource {
           final String tableName,
       @ApiParam(value = "Restrict the number of returned items") @QueryParam("pageSize")
           final int pageSizeParam,
-      @ApiParam(value = "move the cursor to a particular result") @QueryParam("pageState")
+      @ApiParam(value = "Move the cursor to a particular result") @QueryParam("pageState")
           final String pageStateParam) {
     return RequestHandler.handle(
         () -> {
@@ -219,12 +214,8 @@ public class RowResource {
   @POST
   @ApiOperation(
       value = "Submit queries",
-      nickname = "query",
       notes = "Submit queries to retrieve data from a table.",
-      response = Rows.class,
-      tags = {
-        "rows",
-      })
+      response = Rows.class)
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Rows.class),
@@ -338,14 +329,10 @@ public class RowResource {
   @Timed
   @POST
   @ApiOperation(
-      value = "Add rows",
-      nickname = "addRow",
+      value = "Add row",
       notes =
-          "Add rows to a table in your database. If the new row has the same primary key as that of an existing row, the database processes it as an update to the existing row.",
-      response = RowsResponse.class,
-      tags = {
-        "rows",
-      })
+          "Add a row to a table in your database. If the new row has the same primary key as that of an existing row, the database processes it as an update to the existing row.",
+      response = RowsResponse.class)
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = RowsResponse.class),
@@ -395,13 +382,7 @@ public class RowResource {
 
   @Timed
   @DELETE
-  @ApiOperation(
-      value = "Delete rows",
-      nickname = "deleteRow",
-      notes = "Delete individual rows from a table.",
-      tags = {
-        "rows",
-      })
+  @ApiOperation(value = "Delete rows", notes = "Delete individual rows from a table.")
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
@@ -451,12 +432,8 @@ public class RowResource {
   @PUT
   @ApiOperation(
       value = "Update rows",
-      nickname = "updateRow",
       notes = "Update existing rows in a table.",
-      response = RowsResponse.class,
-      tags = {
-        "rows",
-      })
+      response = RowsResponse.class)
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = RowsResponse.class),

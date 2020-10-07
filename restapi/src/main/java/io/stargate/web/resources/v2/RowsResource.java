@@ -67,7 +67,10 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Api(produces = MediaType.APPLICATION_JSON, consumes = MediaType.APPLICATION_JSON)
+@Api(
+    produces = MediaType.APPLICATION_JSON,
+    consumes = MediaType.APPLICATION_JSON,
+    tags = {"data"})
 @Path("/v2/keyspaces/{keyspaceName}/{tableName}")
 @Produces(MediaType.APPLICATION_JSON)
 public class RowsResource {
@@ -81,16 +84,13 @@ public class RowsResource {
   @Timed
   @GET
   @ApiOperation(
-      value = "search a table",
-      nickname = "searchTable",
-      notes = "",
+      value = "Search a table",
+      notes = "Search a table using a json query as defined in the `where` query parameter",
       response = GetResponseWrapper.class,
-      tags = {
-        "rows",
-      })
+      responseContainer = "List")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "", response = GetResponseWrapper.class),
+        @ApiResponse(code = 200, message = "OK", response = GetResponseWrapper.class),
         @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
@@ -110,21 +110,33 @@ public class RowsResource {
           final String tableName,
       @ApiParam(
               value =
-                  "URL escaped JSON query using the following keys: | Key | Operation | |-|-| | $lt | Less Than | | $lte | Less Than Or Equal To | | $gt | Greater Than | | $gte | Greater Than Or Equal To | | $ne | Not Equal To | | $in | Contained In | | $exists | A value is set for the key | ")
+                  "URL escaped JSON query using the following keys: \n | Key | Operation | \n "
+                      + "|-|-| \n | $lt | Less Than | \n | $lte | Less Than Or Equal To | \n "
+                      + "| $gt | Greater Than | \n | $gte | Greater Than Or Equal To | \n "
+                      + "| $ne | Not Equal To | \n | $in | Contained In | \n | $exists | A value is set for the key | ",
+              required = true)
           @QueryParam("where")
           final String where,
       @ApiParam(value = "URL escaped, comma delimited list of keys to include")
           @QueryParam("fields")
           final String fields,
-      @ApiParam(value = "restrict the number of returned items") @QueryParam("page-size")
+      @ApiParam(value = "Restrict the number of returned items") @QueryParam("page-size")
           final int pageSizeParam,
-      @ApiParam(value = "move the cursor to a particular result") @QueryParam("page-state")
+      @ApiParam(value = "Move the cursor to a particular result") @QueryParam("page-state")
           final String pageStateParam,
-      @ApiParam(value = "unwrap results", defaultValue = "false") @QueryParam("raw")
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
-      @ApiParam(value = "keys to sort by") @QueryParam("sort") final String sort) {
+      @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort) {
     return RequestHandler.handle(
         () -> {
+          if (Strings.isNullOrEmpty(where)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        "where parameter is required", Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
+
           ByteBuffer pageState = null;
           if (pageStateParam != null) {
             byte[] decodedBytes = Base64.getDecoder().decode(pageStateParam);
@@ -156,16 +168,13 @@ public class RowsResource {
   @Timed
   @GET
   @ApiOperation(
-      value = "get a row(s)",
-      nickname = "getRows",
-      notes = "",
+      value = "Get row(s)",
+      notes = "Get rows from a table based on the primary key.",
       response = GetResponseWrapper.class,
-      tags = {
-        "rows",
-      })
+      responseContainer = "List")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "", response = GetResponseWrapper.class),
+        @ApiResponse(code = 200, message = "OK", response = GetResponseWrapper.class),
         @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
@@ -193,13 +202,13 @@ public class RowsResource {
       @ApiParam(value = "URL escaped, comma delimited list of keys to include")
           @QueryParam("fields")
           final String fields,
-      @ApiParam(value = "restrict the number of returned items") @QueryParam("page-size")
+      @ApiParam(value = "Restrict the number of returned items") @QueryParam("page-size")
           final int pageSizeParam,
-      @ApiParam(value = "move the cursor to a particular result") @QueryParam("page-state")
+      @ApiParam(value = "Move the cursor to a particular result") @QueryParam("page-state")
           final String pageStateParam,
-      @ApiParam(value = "unwrap results", defaultValue = "false") @QueryParam("raw")
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
-      @ApiParam(value = "keys to sort by") @QueryParam("sort") final String sort) {
+      @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort) {
     return RequestHandler.handle(
         () -> {
           ByteBuffer pageState = null;
@@ -238,14 +247,11 @@ public class RowsResource {
   @Timed
   @POST
   @ApiOperation(
-      value = "Add rows",
-      nickname = "addRows",
-      notes = "",
+      value = "Add row",
+      notes =
+          "Add a row to a table in your database. If the new row has the same primary key as that of an existing row, the database processes it as an update to the existing row.",
       response = String.class,
-      responseContainer = "Map",
-      tags = {
-        "rows",
-      })
+      responseContainer = "Map")
   @ApiResponses(
       value = {
         @ApiResponse(
@@ -306,13 +312,9 @@ public class RowsResource {
   @Timed
   @PUT
   @ApiOperation(
-      value = "replace a row(s)",
-      nickname = "replaceRows",
-      notes = "",
-      response = Object.class,
-      tags = {
-        "rows",
-      })
+      value = "Replace row(s)",
+      notes = "Update existing rows in a table.",
+      response = Object.class)
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "resource updated", response = Object.class),
@@ -340,7 +342,7 @@ public class RowsResource {
               required = true)
           @PathParam("primaryKey")
           List<PathSegment> path,
-      @ApiParam(value = "unwrap results", defaultValue = "false") @QueryParam("raw")
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
       @ApiParam(value = "", required = true) String payload) {
     return RequestHandler.handle(
@@ -349,13 +351,7 @@ public class RowsResource {
 
   @Timed
   @DELETE
-  @ApiOperation(
-      value = "delete a row(s)",
-      nickname = "deleteRows",
-      notes = "",
-      tags = {
-        "rows",
-      })
+  @ApiOperation(value = "Delete row(s)", notes = "Delete one or more rows in a table")
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
@@ -415,13 +411,9 @@ public class RowsResource {
   @Timed
   @PATCH
   @ApiOperation(
-      value = "update part of a row(s)",
-      nickname = "updateRows",
-      notes = "",
-      response = ResponseWrapper.class,
-      tags = {
-        "rows",
-      })
+      value = "Update part of a row(s)",
+      notes = "Perform a partial update of one or more rows in a table",
+      response = ResponseWrapper.class)
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "resource updated", response = ResponseWrapper.class),

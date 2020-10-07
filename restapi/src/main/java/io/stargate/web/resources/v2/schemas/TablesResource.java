@@ -58,7 +58,10 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Api(produces = MediaType.APPLICATION_JSON, consumes = MediaType.APPLICATION_JSON)
+@Api(
+    produces = MediaType.APPLICATION_JSON,
+    consumes = MediaType.APPLICATION_JSON,
+    tags = {"schemas"})
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables")
 @Produces(MediaType.APPLICATION_JSON)
 public class TablesResource {
@@ -70,16 +73,13 @@ public class TablesResource {
   @Timed
   @GET
   @ApiOperation(
-      value = "list tables",
-      nickname = "getTables",
-      notes = "",
+      value = "List tables",
+      notes = "Retrieve all tables in a specific keyspace.",
       response = ResponseWrapper.class,
-      tags = {
-        "schemas",
-      })
+      responseContainer = "List")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "", response = ResponseWrapper.class),
+        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 404, message = "Not Found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
@@ -94,7 +94,7 @@ public class TablesResource {
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @ApiParam(value = "unwrap results", defaultValue = "false") @QueryParam("raw")
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw) {
     return RequestHandler.handle(
         () -> {
@@ -114,16 +114,12 @@ public class TablesResource {
   @Timed
   @GET
   @ApiOperation(
-      value = "get a table",
-      nickname = "getTable",
-      notes = "",
-      response = Table.class,
-      tags = {
-        "schemas",
-      })
+      value = "Get a table",
+      notes = "Retrieve data for a single table in a specific keyspace.",
+      response = Table.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "", response = Table.class),
+        @ApiResponse(code = 200, message = "OK", response = Table.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 404, message = "Not Found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
@@ -142,7 +138,7 @@ public class TablesResource {
       @ApiParam(value = "Name of the table to use for the request.", required = true)
           @PathParam("tableName")
           final String tableName,
-      @ApiParam(value = "unwrap results", defaultValue = "false") @QueryParam("raw")
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw) {
     return RequestHandler.handle(
         () -> {
@@ -155,60 +151,15 @@ public class TablesResource {
         });
   }
 
-  private TableResponse getTable(Table tableMetadata) {
-    final List<ColumnDefinition> columnDefinitions =
-        tableMetadata.columns().stream()
-            .map(
-                (col) ->
-                    new ColumnDefinition(
-                        col.name(),
-                        Objects.requireNonNull(col.type()).isParameterized()
-                            ? null
-                            : Objects.requireNonNull(col.type()).name(),
-                        col.kind() == Column.Kind.Static))
-            .collect(Collectors.toList());
-
-    final List<String> partitionKey =
-        tableMetadata.partitionKeyColumns().stream().map(Column::name).collect(Collectors.toList());
-    final List<String> clusteringKey =
-        tableMetadata.clusteringKeyColumns().stream()
-            .map(Column::name)
-            .collect(Collectors.toList());
-    final List<ClusteringExpression> clusteringExpression =
-        tableMetadata.clusteringKeyColumns().stream()
-            .map(
-                (col) ->
-                    new ClusteringExpression(
-                        col.name(), Objects.requireNonNull(col.order()).name()))
-            .collect(Collectors.toList());
-
-    final PrimaryKey primaryKey = new PrimaryKey(partitionKey, clusteringKey);
-    final int ttl =
-        0; // TODO: [doug] 2020-09-1, Tue, 0:08 get this from schema (select default_time_to_live
-    // from tables;)
-    final TableOptions tableOptions = new TableOptions(ttl, clusteringExpression);
-
-    return new TableResponse(
-        tableMetadata.name(),
-        tableMetadata.keyspace(),
-        columnDefinitions,
-        primaryKey,
-        tableOptions);
-  }
-
   @Timed
   @POST
   @ApiOperation(
-      value = "create a table",
-      nickname = "createTable",
-      notes = "",
-      response = Map.class,
-      tags = {
-        "schemas",
-      })
+      value = "Create a table",
+      notes = "Add a table in a specific keyspace.",
+      response = Map.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 201, message = "resource created", response = Map.class),
+        @ApiResponse(code = 201, message = "Created", response = Map.class),
         @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 409, message = "Conflict", response = Error.class),
@@ -316,13 +267,9 @@ public class TablesResource {
   @Timed
   @PUT
   @ApiOperation(
-      value = "replace a table definition, except for columns",
-      nickname = "replaceTable",
-      notes = "",
-      response = Map.class,
-      tags = {
-        "schemas",
-      })
+      value = "Replace a table definition",
+      notes = "Update a single table definition, except for columns, in a keyspace.",
+      response = Map.class)
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "resource updated", response = Map.class),
@@ -384,12 +331,8 @@ public class TablesResource {
   @Timed
   @DELETE
   @ApiOperation(
-      value = "delete a table",
-      nickname = "deleteTable",
-      notes = "",
-      tags = {
-        "schemas",
-      })
+      value = "Delete a table",
+      notes = "Delete a single table in the specified keyspace.")
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
@@ -423,5 +366,46 @@ public class TablesResource {
 
           return Response.status(Response.Status.NO_CONTENT).build();
         });
+  }
+
+  private TableResponse getTable(Table tableMetadata) {
+    final List<ColumnDefinition> columnDefinitions =
+        tableMetadata.columns().stream()
+            .map(
+                (col) ->
+                    new ColumnDefinition(
+                        col.name(),
+                        Objects.requireNonNull(col.type()).isParameterized()
+                            ? null
+                            : Objects.requireNonNull(col.type()).name(),
+                        col.kind() == Column.Kind.Static))
+            .collect(Collectors.toList());
+
+    final List<String> partitionKey =
+        tableMetadata.partitionKeyColumns().stream().map(Column::name).collect(Collectors.toList());
+    final List<String> clusteringKey =
+        tableMetadata.clusteringKeyColumns().stream()
+            .map(Column::name)
+            .collect(Collectors.toList());
+    final List<ClusteringExpression> clusteringExpression =
+        tableMetadata.clusteringKeyColumns().stream()
+            .map(
+                (col) ->
+                    new ClusteringExpression(
+                        col.name(), Objects.requireNonNull(col.order()).name()))
+            .collect(Collectors.toList());
+
+    final PrimaryKey primaryKey = new PrimaryKey(partitionKey, clusteringKey);
+    final int ttl =
+        0; // TODO: [doug] 2020-09-1, Tue, 0:08 get this from schema (select default_time_to_live
+    // from tables;)
+    final TableOptions tableOptions = new TableOptions(ttl, clusteringExpression);
+
+    return new TableResponse(
+        tableMetadata.name(),
+        tableMetadata.keyspace(),
+        columnDefinitions,
+        primaryKey,
+        tableOptions);
   }
 }

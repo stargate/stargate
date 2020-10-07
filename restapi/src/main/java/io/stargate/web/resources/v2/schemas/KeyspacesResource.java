@@ -51,7 +51,10 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Api(produces = MediaType.APPLICATION_JSON, consumes = MediaType.APPLICATION_JSON)
+@Api(
+    produces = MediaType.APPLICATION_JSON,
+    consumes = MediaType.APPLICATION_JSON,
+    tags = {"schemas"})
 @Path("/v2/schemas/keyspaces")
 @Produces(MediaType.APPLICATION_JSON)
 public class KeyspacesResource {
@@ -65,15 +68,12 @@ public class KeyspacesResource {
   @GET
   @ApiOperation(
       value = "Return all keyspaces",
-      nickname = "getKeyspaces",
-      notes = "Retrieve all available keyspaces in the specific database.",
+      notes = "Retrieve all available keyspaces.",
       response = ResponseWrapper.class,
-      tags = {
-        "schemas",
-      })
+      responseContainer = "List")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "", response = ResponseWrapper.class),
+        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
@@ -84,7 +84,7 @@ public class KeyspacesResource {
               required = true)
           @HeaderParam("X-Cassandra-Token")
           String token,
-      @ApiParam(value = "unwrap results", defaultValue = "false") @QueryParam("raw")
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw) {
     return RequestHandler.handle(
         () -> {
@@ -104,16 +104,12 @@ public class KeyspacesResource {
   @Timed
   @GET
   @ApiOperation(
-      value = "get a keyspace",
-      nickname = "getKeyspace",
-      notes = "",
-      response = Keyspace.class,
-      tags = {
-        "schemas",
-      })
+      value = "Get a keyspace",
+      notes = "Return a single keyspace specification.",
+      response = Keyspace.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "", response = Keyspace.class),
+        @ApiResponse(code = 200, message = "OK", response = Keyspace.class),
         @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 404, message = "Not Found", response = Error.class),
@@ -130,7 +126,7 @@ public class KeyspacesResource {
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @ApiParam(value = "unwrap results", defaultValue = "false") @QueryParam("raw")
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw) {
     return RequestHandler.handle(
         () -> {
@@ -156,17 +152,10 @@ public class KeyspacesResource {
 
   @Timed
   @POST
-  @ApiOperation(
-      value = "create a keyspace",
-      nickname = "createKeyspace",
-      notes = "",
-      response = Map.class,
-      tags = {
-        "schemas",
-      })
+  @ApiOperation(value = "Create a keyspace", notes = "Create a new keyspace.", response = Map.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 201, message = "resource created", response = Map.class),
+        @ApiResponse(code = 201, message = "Created", response = Map.class),
         @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 409, message = "Conflict", response = Error.class),
@@ -227,13 +216,7 @@ public class KeyspacesResource {
 
   @Timed
   @DELETE
-  @ApiOperation(
-      value = "delete a keyspace",
-      nickname = "deleteKeyspace",
-      notes = "",
-      tags = {
-        "schemas",
-      })
+  @ApiOperation(value = "Delete a keyspace", notes = "Delete a single keyspace.")
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),

@@ -50,7 +50,10 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Api(produces = MediaType.APPLICATION_JSON, consumes = MediaType.APPLICATION_JSON)
+@Api(
+    produces = MediaType.APPLICATION_JSON,
+    consumes = MediaType.APPLICATION_JSON,
+    tags = {"schemas"})
 @Path("/v1/keyspaces/{keyspaceName}/tables/{tableName}/columns")
 @Produces(MediaType.APPLICATION_JSON)
 public class ColumnResource {
@@ -63,13 +66,9 @@ public class ColumnResource {
   @GET
   @ApiOperation(
       value = "Retrieve all columns",
-      nickname = "getColumns",
       notes = "Return all columns for a specified table.",
       response = ColumnDefinition.class,
-      responseContainer = "List",
-      tags = {
-        "columns",
-      })
+      responseContainer = "List")
   @ApiResponses(
       value = {
         @ApiResponse(
@@ -119,15 +118,11 @@ public class ColumnResource {
   @POST
   @ApiOperation(
       value = "Add a column",
-      nickname = "addColumn",
       notes = "Add a single column to a table.",
-      response = SuccessResponse.class,
-      tags = {
-        "columns",
-      })
+      response = SuccessResponse.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 201, message = "OK", response = SuccessResponse.class),
+        @ApiResponse(code = 201, message = "Created", response = SuccessResponse.class),
         @ApiResponse(code = 400, message = "Bad request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
@@ -181,11 +176,7 @@ public class ColumnResource {
   @GET
   @ApiOperation(
       value = "Retrieve a column",
-      nickname = "getColumn",
-      notes = "Return a single column specification in a specific table.",
-      tags = {
-        "columns",
-      })
+      notes = "Return a single column specification in a specific table.")
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK"),
@@ -233,13 +224,7 @@ public class ColumnResource {
 
   @Timed
   @DELETE
-  @ApiOperation(
-      value = "Delete a column",
-      nickname = "deleteColumn",
-      notes = "Delete a single column in a specific table.",
-      tags = {
-        "columns",
-      })
+  @ApiOperation(value = "Delete a column", notes = "Delete a single column in a specific table.")
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
@@ -285,12 +270,8 @@ public class ColumnResource {
   @PUT
   @ApiOperation(
       value = "Update a column",
-      nickname = "updateColumn",
       notes = "Update a single column in a specific table.",
-      response = SuccessResponse.class,
-      tags = {
-        "columns",
-      })
+      response = SuccessResponse.class)
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = SuccessResponse.class),

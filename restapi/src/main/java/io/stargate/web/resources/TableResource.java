@@ -54,7 +54,10 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Api(produces = MediaType.APPLICATION_JSON, consumes = MediaType.APPLICATION_JSON)
+@Api(
+    produces = MediaType.APPLICATION_JSON,
+    consumes = MediaType.APPLICATION_JSON,
+    tags = {"schemas"})
 @Path("/v1/keyspaces/{keyspaceName}/tables")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
@@ -68,13 +71,9 @@ public class TableResource {
   @GET
   @ApiOperation(
       value = "Return all tables",
-      nickname = "getTables",
       notes = "Retrieve all tables in a specific keyspace.",
       response = String.class,
-      responseContainer = "List",
-      tags = {
-        "tables",
-      })
+      responseContainer = "List")
   @ApiResponses(
       value = {
         @ApiResponse(
@@ -114,12 +113,8 @@ public class TableResource {
   @POST
   @ApiOperation(
       value = "Add a table",
-      nickname = "addTable",
       notes = "Add a table in a specific keyspace.",
-      response = SuccessResponse.class,
-      tags = {
-        "tables",
-      })
+      response = SuccessResponse.class)
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = SuccessResponse.class),
@@ -222,12 +217,8 @@ public class TableResource {
   @GET
   @ApiOperation(
       value = "Return a table",
-      nickname = "getTable",
       notes = "Retrieve data for a single table in a specific keyspace.",
-      response = Table.class,
-      tags = {
-        "tables",
-      })
+      response = Table.class)
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Table.class),
@@ -304,11 +295,7 @@ public class TableResource {
   @DELETE
   @ApiOperation(
       value = "Delete a table",
-      nickname = "deleteTable",
-      notes = "Delete a single table in the specified keyspace.",
-      tags = {
-        "tables",
-      })
+      notes = "Delete a single table in the specified keyspace.")
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
