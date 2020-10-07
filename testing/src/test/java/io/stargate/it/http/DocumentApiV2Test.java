@@ -48,13 +48,17 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   @BeforeEach
   public void setup(ClusterConnectionInfo cluster) throws IOException {
     keyspace = "ks_docs_" + System.currentTimeMillis();
-
     CqlSession session =
         CqlSession.builder()
             .withConfigLoader(
                 DriverConfigLoader.programmaticBuilder()
                     .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5))
                     .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(180))
+                    .withDuration(
+                        DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT,
+                        Duration.ofSeconds(180))
+                    .withDuration(
+                        DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
                     .build())
             .withAuthCredentials("cassandra", "cassandra")
             .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
