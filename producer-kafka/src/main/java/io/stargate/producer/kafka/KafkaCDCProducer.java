@@ -15,6 +15,7 @@
  */
 package io.stargate.producer.kafka;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.cdc.SchemaAwareCDCProducer;
 import io.stargate.producer.kafka.configuration.CDCKafkaConfig;
 import io.stargate.producer.kafka.configuration.DefaultConfigLoader;
@@ -34,7 +35,6 @@ import org.apache.cassandra.stargate.db.MutationEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
 import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.jetbrains.annotations.NotNull;
 
 public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
@@ -90,14 +90,14 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
         });
   }
 
-  @NotNull
+  @NonNull
   private CompletionStage<Void> handleDeleteEvent(
       DeleteEvent mutationEvent, CompletableKafkaProducer<GenericRecord, GenericRecord> producer) {
     ProducerRecord<GenericRecord, GenericRecord> producerRecord = toProducerRecord(mutationEvent);
     return producer.sendAsync(producerRecord).thenAccept(toVoid());
   }
 
-  @NotNull
+  @NonNull
   private CompletionStage<Void> handleRowUpdateEvent(
       RowUpdateEvent mutationEvent,
       CompletableKafkaProducer<GenericRecord, GenericRecord> producer) {
@@ -105,7 +105,7 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
     return producer.sendAsync(producerRecord).thenAccept(toVoid());
   }
 
-  @NotNull
+  @NonNull
   private CompletionStage<Void> handleNotSupportedEventType(MutationEvent mutationEvent) {
     CompletableFuture<Void> result = new CompletableFuture<>();
     result.completeExceptionally(

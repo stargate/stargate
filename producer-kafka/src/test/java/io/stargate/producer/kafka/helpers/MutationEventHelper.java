@@ -16,6 +16,7 @@
 
 package io.stargate.producer.kafka.helpers;
 
+import com.datastax.oss.driver.shaded.guava.common.base.Charsets;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
@@ -27,7 +28,6 @@ import org.apache.cassandra.stargate.schema.CQLType;
 import org.apache.cassandra.stargate.schema.CQLType.Native;
 import org.apache.cassandra.stargate.schema.ColumnMetadata;
 import org.apache.cassandra.stargate.schema.TableMetadata;
-import org.apache.commons.codec.Charsets;
 import org.jetbrains.annotations.NotNull;
 
 public class MutationEventHelper {

@@ -20,6 +20,7 @@ import static io.stargate.producer.kafka.schema.SchemaConstants.OPERATION_FIELD_
 import static io.stargate.producer.kafka.schema.SchemaConstants.TIMESTAMP_FIELD_NAME;
 import static io.stargate.producer.kafka.schema.SchemaConstants.VALUE_FIELD_NAME;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.List;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
@@ -30,7 +31,6 @@ import org.apache.cassandra.stargate.db.CellValue;
 import org.apache.cassandra.stargate.db.DeleteEvent;
 import org.apache.cassandra.stargate.db.MutationEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
-import org.jetbrains.annotations.NotNull;
 
 public class KeyValueConstructor {
 
@@ -40,7 +40,7 @@ public class KeyValueConstructor {
     this.schemaProvider = schemaProvider;
   }
 
-  @NotNull
+  @NonNull
   public GenericRecord constructValue(MutationEvent mutationEvent, String topicName) {
     Schema schema = schemaProvider.getValueSchemaForTopic(topicName);
     GenericRecord value = new GenericData.Record(schema);
@@ -75,7 +75,7 @@ public class KeyValueConstructor {
   }
 
   /** All Partition Keys must be included in the kafka.key */
-  @NotNull
+  @NonNull
   public GenericRecord constructKey(MutationEvent mutationEvent, String topicName) {
     GenericRecord key = new GenericData.Record(schemaProvider.getKeySchemaForTopic(topicName));
     fillGenericRecordWithData(mutationEvent.getPartitionKeys(), key);

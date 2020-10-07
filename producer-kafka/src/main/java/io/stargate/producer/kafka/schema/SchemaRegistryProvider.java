@@ -21,7 +21,7 @@ import static io.stargate.producer.kafka.schema.SchemaConstants.TIMESTAMP_FIELD_
 import static io.stargate.producer.kafka.schema.SchemaConstants.TIMESTAMP_MILLIS_TYPE;
 import static io.stargate.producer.kafka.schema.SchemaConstants.VALUE_FIELD_NAME;
 
-import com.google.common.annotations.VisibleForTesting;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;

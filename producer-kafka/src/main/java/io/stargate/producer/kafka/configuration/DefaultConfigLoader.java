@@ -15,13 +15,13 @@
  */
 package io.stargate.producer.kafka.configuration;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.jetbrains.annotations.NotNull;
 
 public class DefaultConfigLoader implements ConfigLoader {
 
@@ -43,7 +43,7 @@ public class DefaultConfigLoader implements ConfigLoader {
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
-  @NotNull
+  @NonNull
   Entry<String, Object> toKafkaProducerSetting(Entry<String, Object> entry) {
     Matcher matcher = CDC_KAFKA_PRODUCER_SETTING_PATTERN.matcher(entry.getKey());
     if (matcher.matches()) {

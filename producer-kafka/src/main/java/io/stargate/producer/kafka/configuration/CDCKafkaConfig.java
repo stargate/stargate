@@ -15,7 +15,7 @@
  */
 package io.stargate.producer.kafka.configuration;
 
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.util.Map;
 
 public class CDCKafkaConfig {

@@ -32,7 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testcontainers.containers.KafkaContainer.ZOOKEEPER_PORT;
 
-import com.google.common.collect.Streams;
+import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.stargate.producer.kafka.configuration.ConfigLoader;
