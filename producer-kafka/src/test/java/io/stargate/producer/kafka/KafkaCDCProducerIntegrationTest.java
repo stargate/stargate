@@ -16,6 +16,8 @@
 package io.stargate.producer.kafka;
 
 import static io.stargate.producer.kafka.configuration.ConfigLoader.CDC_TOPIC_PREFIX_NAME;
+import static io.stargate.producer.kafka.helpers.MutationEventHelper.cell;
+import static io.stargate.producer.kafka.helpers.MutationEventHelper.cellValue;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.clusteringKey;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.column;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.createDeleteEvent;
@@ -23,69 +25,76 @@ import static io.stargate.producer.kafka.helpers.MutationEventHelper.createRowUp
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.partitionKey;
 import static io.stargate.producer.kafka.schema.SchemasConstants.CLUSTERING_KEY_NAME;
 import static io.stargate.producer.kafka.schema.SchemasConstants.COLUMN_NAME;
-import static io.stargate.producer.kafka.schema.SchemasConstants.KEY_SCHEMA;
+import static io.stargate.producer.kafka.schema.SchemasConstants.COLUMN_NAME_2;
 import static io.stargate.producer.kafka.schema.SchemasConstants.PARTITION_KEY_NAME;
-import static io.stargate.producer.kafka.schema.SchemasConstants.VALUE_SCHEMA;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.testcontainers.containers.KafkaContainer.ZOOKEEPER_PORT;
 
 import com.google.common.collect.Streams;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.stargate.producer.kafka.configuration.ConfigLoader;
-import io.stargate.producer.kafka.schema.KeyValueConstructor;
-import io.stargate.producer.kafka.schema.MockKafkaAvroSerializer;
-import io.stargate.producer.kafka.schema.MockKeyKafkaAvroDeserializer;
-import io.stargate.producer.kafka.schema.MockValueKafkaAvroDeserializer;
-import io.stargate.producer.kafka.schema.SchemaProvider;
+import io.stargate.producer.kafka.schema.EmbeddedSchemaRegistryServer;
+import java.net.ServerSocket;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
-import org.apache.avro.generic.GenericData;
+import java.util.stream.Stream;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.cassandra.stargate.db.Cell;
 import org.apache.cassandra.stargate.db.DeleteEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
+import org.apache.cassandra.stargate.schema.CQLType.Native;
+import org.apache.cassandra.stargate.schema.ColumnMetadata;
 import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.errors.TimeoutException;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.containers.ToxiproxyContainer;
-import org.testcontainers.containers.ToxiproxyContainer.ContainerProxy;
 
 class KafkaCDCProducerIntegrationTest {
 
-  private static int PORT = 9093;
   private static KafkaContainer kafkaContainer;
-  private static ToxiproxyContainer toxiproxyContainer;
-  private static ContainerProxy kafkaProxy;
+  private static EmbeddedSchemaRegistryServer schemaRegistry;
 
   private static final String TOPIC_PREFIX = "topicPrefix";
 
   @BeforeAll
-  public static void setup() {
+  public static void setup() throws Exception {
     Network network = Network.newNetwork();
-    kafkaContainer = new KafkaContainer().withNetwork(network);
-    toxiproxyContainer = new ToxiproxyContainer().withNetwork(network);
-    toxiproxyContainer.start();
-    kafkaProxy = toxiproxyContainer.getProxy(kafkaContainer, PORT);
+    kafkaContainer = new KafkaContainer().withNetwork(network).withEmbeddedZookeeper();
     kafkaContainer.start();
+    try (ServerSocket serverSocket = new ServerSocket(0)) {
+
+      schemaRegistry =
+          new EmbeddedSchemaRegistryServer(
+              String.format("http://localhost:%s", serverSocket.getLocalPort()),
+              String.format("localhost:%s", ZOOKEEPER_PORT),
+              kafkaContainer.getBootstrapServers());
+    }
+    schemaRegistry.startSchemaRegistry();
   }
 
   @AfterAll
   public static void cleanup() {
     kafkaContainer.stop();
-    toxiproxyContainer.stop();
+    schemaRegistry.close();
   }
 
   @Test
@@ -95,36 +104,41 @@ class KafkaCDCProducerIntegrationTest {
     Integer clusteringKeyValue = 1;
     String columnValue = "col_value";
     long timestamp = 1000;
-    SchemaProvider schemaProvider = mock(SchemaProvider.class);
     TableMetadata tableMetadata = mockTableMetadata();
     String topicName = creteTopicName(tableMetadata);
 
-    when(schemaProvider.getKeySchemaForTopic(topicName)).thenReturn(KEY_SCHEMA);
-    when(schemaProvider.getValueSchemaForTopic(topicName)).thenReturn(VALUE_SCHEMA);
-
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(schemaProvider);
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
     // when
+    // schema change event
+    when(tableMetadata.getPartitionKeys())
+        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
+    when(tableMetadata.getClusteringKeys())
+        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
+    when(tableMetadata.getColumns())
+        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
+    kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
+
+    // send actual event
     RowUpdateEvent rowMutationEvent =
         createRowUpdateEvent(
             partitionKeyValue,
-            partitionKey(PARTITION_KEY_NAME),
+            partitionKey(PARTITION_KEY_NAME, Native.TEXT),
             columnValue,
-            column(COLUMN_NAME),
+            column(COLUMN_NAME, Native.TEXT),
             clusteringKeyValue,
-            clusteringKey(CLUSTERING_KEY_NAME),
+            clusteringKey(CLUSTERING_KEY_NAME, Native.INT),
             tableMetadata,
             timestamp);
     kafkaCDCProducer.send(rowMutationEvent).get();
 
     // then
-    GenericRecord expectedKey = new GenericData.Record(KEY_SCHEMA);
-    expectedKey.put(PARTITION_KEY_NAME, partitionKeyValue);
-
+    GenericRecord expectedKey =
+        kafkaCDCProducer.keyValueConstructor.constructKey(rowMutationEvent, topicName);
     GenericRecord expectedValue =
-        new KeyValueConstructor(schemaProvider).constructValue(rowMutationEvent, topicName);
+        kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
 
     try {
       validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
@@ -146,67 +160,30 @@ class KafkaCDCProducerIntegrationTest {
   }
 
   @Test
-  public void shouldPropagateErrorWhenKafkaConnectionWasClosed() throws Exception {
-    // given
-    String partitionKeyValue = "pk_value";
-    Integer clusteringKeyValue = 1;
-    String columnValue = "col_value";
-    SchemaProvider schemaProvider = mock(SchemaProvider.class);
-    TableMetadata tableMetadata = mockTableMetadata();
-    String topicName = creteTopicName(tableMetadata);
-
-    when(schemaProvider.getKeySchemaForTopic(topicName)).thenReturn(KEY_SCHEMA);
-    when(schemaProvider.getValueSchemaForTopic(topicName)).thenReturn(VALUE_SCHEMA);
-
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(schemaProvider);
-    Map<String, Object> properties = createKafkaProducerSettings();
-    kafkaCDCProducer.init(properties).get();
-
-    // when
-    try {
-      // block connections to kafka
-      kafkaProxy.setConnectionCut(true);
-      assertThatCode(
-              () -> {
-                kafkaCDCProducer
-                    .send(
-                        createRowUpdateEvent(
-                            partitionKeyValue,
-                            partitionKey(PARTITION_KEY_NAME),
-                            columnValue,
-                            column(COLUMN_NAME),
-                            clusteringKeyValue,
-                            clusteringKey(CLUSTERING_KEY_NAME),
-                            tableMetadata))
-                    .get();
-              })
-          .hasRootCauseInstanceOf(TimeoutException.class)
-          .hasMessageContaining(String.format("Topic %s not present in metadata", topicName));
-    } finally {
-      // resume connections
-      kafkaProxy.setConnectionCut(false);
-      kafkaCDCProducer.close().get();
-    }
-  }
-
-  @Test
   public void shouldSendDeleteEventForAllPKsAndCK() throws Exception {
     // given
     String partitionKeyValue = "pk_value";
     Integer clusteringKeyValue = 1;
     long timestamp = 1234;
-    SchemaProvider schemaProvider = mock(SchemaProvider.class);
     TableMetadata tableMetadata = mockTableMetadata();
     String topicName = creteTopicName(tableMetadata);
 
-    when(schemaProvider.getKeySchemaForTopic(topicName)).thenReturn(KEY_SCHEMA);
-    when(schemaProvider.getValueSchemaForTopic(topicName)).thenReturn(VALUE_SCHEMA);
-
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(schemaProvider);
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
     // when
+    // schema change event
+    when(tableMetadata.getPartitionKeys())
+        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
+    when(tableMetadata.getClusteringKeys())
+        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
+    when(tableMetadata.getColumns())
+        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
+    kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
+    kafkaCDCProducer.createTableSchemaAsync(tableMetadata);
+
+    // end delete event
     DeleteEvent event =
         createDeleteEvent(
             partitionKeyValue,
@@ -218,17 +195,114 @@ class KafkaCDCProducerIntegrationTest {
     kafkaCDCProducer.send(event).get();
 
     // then
-    GenericRecord expectedKey = new GenericData.Record(KEY_SCHEMA);
-    expectedKey.put(PARTITION_KEY_NAME, partitionKeyValue);
-
+    GenericRecord expectedKey = kafkaCDCProducer.keyValueConstructor.constructKey(event, topicName);
     GenericRecord expectedValue =
-        new KeyValueConstructor(schemaProvider).constructValue(event, topicName);
+        kafkaCDCProducer.keyValueConstructor.constructValue(event, topicName);
 
     try {
       validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
     } finally {
       kafkaCDCProducer.close().get();
     }
+  }
+
+  @ParameterizedTest
+  @MethodSource("columnsAfterChange")
+  public void shouldSendUpdateAndSendSecondEventWhenSchemaChanged(
+      List<ColumnMetadata> metadataAfterChange, List<Cell> columnsAfterChange) throws Exception {
+    // given
+    String partitionKeyValue = "pk_value";
+    Integer clusteringKeyValue = 1;
+    String columnValue = "col_value";
+    long timestamp = 1000;
+    TableMetadata tableMetadata = mockTableMetadata();
+    String topicName = creteTopicName(tableMetadata);
+
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    Map<String, Object> properties = createKafkaProducerSettings();
+    kafkaCDCProducer.init(properties).get();
+
+    // when
+    // schema change event
+    when(tableMetadata.getPartitionKeys())
+        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
+    when(tableMetadata.getClusteringKeys())
+        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
+    when(tableMetadata.getColumns())
+        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
+    kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
+    try {
+      // send actual event
+      RowUpdateEvent rowMutationEvent =
+          createRowUpdateEvent(
+              partitionKeyValue,
+              partitionKey(PARTITION_KEY_NAME, Native.TEXT),
+              columnValue,
+              column(COLUMN_NAME, Native.TEXT),
+              clusteringKeyValue,
+              clusteringKey(CLUSTERING_KEY_NAME, Native.INT),
+              tableMetadata,
+              timestamp);
+      kafkaCDCProducer.send(rowMutationEvent).get();
+
+      // then
+      GenericRecord expectedKey =
+          kafkaCDCProducer.keyValueConstructor.constructKey(rowMutationEvent, topicName);
+      GenericRecord expectedValue =
+          kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
+
+      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+
+      // when change schema
+      when(tableMetadata.getPartitionKeys())
+          .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
+      when(tableMetadata.getClusteringKeys())
+          .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
+      when(tableMetadata.getColumns()).thenReturn(metadataAfterChange);
+      kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
+
+      // and send event with a new column
+      rowMutationEvent =
+          createRowUpdateEvent(
+              Collections.singletonList(
+                  cellValue(partitionKeyValue, partitionKey(PARTITION_KEY_NAME, Native.TEXT))),
+              columnsAfterChange,
+              Collections.singletonList(
+                  cellValue(clusteringKeyValue, clusteringKey(CLUSTERING_KEY_NAME, Native.INT))),
+              tableMetadata,
+              timestamp);
+
+      kafkaCDCProducer.send(rowMutationEvent).get();
+
+      // then
+      expectedKey = kafkaCDCProducer.keyValueConstructor.constructKey(rowMutationEvent, topicName);
+      expectedValue =
+          kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
+
+      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+
+    } finally {
+      kafkaCDCProducer.close();
+    }
+  }
+
+  public static Stream<Arguments> columnsAfterChange() {
+    String columnValue = "value";
+    return Stream.of(
+        Arguments.of(
+            Arrays.asList(column(COLUMN_NAME, Native.TEXT), column(COLUMN_NAME_2, Native.TEXT)),
+            Arrays.asList(
+                cell(column(COLUMN_NAME, Native.TEXT), columnValue),
+                cell(column(COLUMN_NAME_2, Native.TEXT), columnValue)) // add new column
+            ),
+        Arguments.of(
+            Collections.emptyList(), Collections.emptyList() // remove columns
+            ),
+        Arguments.of(
+            Collections.singletonList(column(COLUMN_NAME + "_renamed", Native.TEXT)),
+            Collections.singletonList(
+                cell(column(COLUMN_NAME + "_renamed", Native.TEXT), columnValue))) // rename column
+        );
   }
 
   @NotNull
@@ -238,17 +312,17 @@ class KafkaCDCProducerIntegrationTest {
 
     properties.put(
         withCDCPrefixPrefix(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG),
-        String.format("%s:%s", kafkaProxy.getContainerIpAddress(), kafkaProxy.getProxyPort()));
+        kafkaContainer.getBootstrapServers());
     properties.put(
-        withCDCPrefixPrefix(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG),
-        MockKafkaAvroSerializer.class);
+        withCDCPrefixPrefix(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG), KafkaAvroSerializer.class);
     properties.put(
         withCDCPrefixPrefix(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG),
-        MockKafkaAvroSerializer.class);
+        KafkaAvroSerializer.class);
     // lower the max.block to allow faster failure scenario testing
     properties.put(withCDCPrefixPrefix(ProducerConfig.MAX_BLOCK_MS_CONFIG), "2000");
 
-    properties.put(withCDCPrefixPrefix("schema.registry.url"), "mocked");
+    properties.put(
+        withCDCPrefixPrefix("schema.registry.url"), schemaRegistry.getSchemaRegistryUrl());
     return properties;
   }
 
@@ -261,15 +335,13 @@ class KafkaCDCProducerIntegrationTest {
   private void validateThatWasSendToKafka(
       GenericRecord expectedKey, GenericRecord expectedValue, String topicName) {
     Properties props = new Properties();
-    props.put(
-        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-        String.format("%s:%s", kafkaProxy.getContainerIpAddress(), kafkaProxy.getProxyPort()));
-    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, MockKeyKafkaAvroDeserializer.class);
-    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, MockValueKafkaAvroDeserializer.class);
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers());
+    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
+    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
     props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
     props.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
     props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-    props.put("schema.registry.url", "mocked");
+    props.put("schema.registry.url", schemaRegistry.getSchemaRegistryUrl());
 
     KafkaConsumer<GenericRecord, GenericRecord> consumer = new KafkaConsumer<>(props);
     consumer.subscribe(Collections.singletonList(topicName));

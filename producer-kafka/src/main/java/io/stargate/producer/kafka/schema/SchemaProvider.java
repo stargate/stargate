@@ -16,12 +16,27 @@
 package io.stargate.producer.kafka.schema;
 
 import org.apache.avro.Schema;
+import org.apache.cassandra.stargate.schema.TableMetadata;
 
 public interface SchemaProvider {
 
-  /** Returns the avro partition key schema for kafka topic name */
+  /**
+   * Returns the avro partition key schema for kafka topic name. It must be called only after the
+   * createOrUpdateSchema returned successfully.
+   */
   Schema getKeySchemaForTopic(String topicName);
 
-  /** Returns the avro value schema for kafka topic name */
+  /**
+   * Returns the avro value schema for kafka topic name It must be called only after the
+   * createOrUpdateSchema returned successfully.
+   */
   Schema getValueSchemaForTopic(String topicName);
+
+  /**
+   * Creates or updates schema for key or/and value if needed. The caller of this method should
+   * assert that there is a happens-before relation between calling createOrUpdateSchema and
+   * getKeySchemaForTopic or getValueSchemaForTopic. In other words, the createOrUpdateSchema must
+   * return successfully before calling both get methods.
+   */
+  void createOrUpdateSchema(TableMetadata tableMetadata);
 }

@@ -25,10 +25,10 @@ import static io.stargate.producer.kafka.helpers.MutationEventHelper.createRowUp
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.createRowUpdateEventNoColumns;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.createRowUpdateEventNoPk;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.partitionKey;
-import static io.stargate.producer.kafka.schema.KeyValueConstructor.DATA_FIELD_NAME;
-import static io.stargate.producer.kafka.schema.KeyValueConstructor.OPERATION_FIELD_NAME;
-import static io.stargate.producer.kafka.schema.KeyValueConstructor.TIMESTAMP_FIELD_NAME;
-import static io.stargate.producer.kafka.schema.KeyValueConstructor.VALUE_FIELD_NAME;
+import static io.stargate.producer.kafka.schema.SchemaConstants.DATA_FIELD_NAME;
+import static io.stargate.producer.kafka.schema.SchemaConstants.OPERATION_FIELD_NAME;
+import static io.stargate.producer.kafka.schema.SchemaConstants.TIMESTAMP_FIELD_NAME;
+import static io.stargate.producer.kafka.schema.SchemaConstants.VALUE_FIELD_NAME;
 import static io.stargate.producer.kafka.schema.SchemasConstants.CLUSTERING_KEY_NAME;
 import static io.stargate.producer.kafka.schema.SchemasConstants.COLUMN_NAME;
 import static io.stargate.producer.kafka.schema.SchemasConstants.KEY_SCHEMA;

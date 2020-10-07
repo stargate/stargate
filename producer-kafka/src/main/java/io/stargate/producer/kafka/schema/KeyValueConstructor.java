@@ -15,6 +15,11 @@
  */
 package io.stargate.producer.kafka.schema;
 
+import static io.stargate.producer.kafka.schema.SchemaConstants.DATA_FIELD_NAME;
+import static io.stargate.producer.kafka.schema.SchemaConstants.OPERATION_FIELD_NAME;
+import static io.stargate.producer.kafka.schema.SchemaConstants.TIMESTAMP_FIELD_NAME;
+import static io.stargate.producer.kafka.schema.SchemaConstants.VALUE_FIELD_NAME;
+
 import java.util.List;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
@@ -30,10 +35,6 @@ import org.jetbrains.annotations.NotNull;
 public class KeyValueConstructor {
 
   private SchemaProvider schemaProvider;
-  public static final String OPERATION_FIELD_NAME = "op";
-  public static final String TIMESTAMP_FIELD_NAME = "ts_ms";
-  public static final String DATA_FIELD_NAME = "data";
-  public static final String VALUE_FIELD_NAME = "value";
 
   public KeyValueConstructor(SchemaProvider schemaProvider) {
     this.schemaProvider = schemaProvider;

@@ -1,24 +1,23 @@
 package io.stargate.producer.kafka.schema;
 
-import static io.stargate.producer.kafka.schema.KeyValueConstructor.DATA_FIELD_NAME;
-import static io.stargate.producer.kafka.schema.KeyValueConstructor.OPERATION_FIELD_NAME;
-import static io.stargate.producer.kafka.schema.KeyValueConstructor.TIMESTAMP_FIELD_NAME;
-import static io.stargate.producer.kafka.schema.KeyValueConstructor.VALUE_FIELD_NAME;
+import static io.stargate.producer.kafka.schema.SchemaConstants.DATA_FIELD_NAME;
+import static io.stargate.producer.kafka.schema.SchemaConstants.OPERATION_FIELD_NAME;
+import static io.stargate.producer.kafka.schema.SchemaConstants.TIMESTAMP_FIELD_NAME;
+import static io.stargate.producer.kafka.schema.SchemaConstants.VALUE_FIELD_NAME;
 
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 
 public class SchemasConstants {
-  // todo this will be replaced by schema registry calls when the integration with schema registry
-  // will be implemented
   public static final String SCHEMA_NAMESPACE = "io.stargate.producer.kafka";
-  public static final String KEY_RECORD_NAME = "clusterName.keyspace.table.Key";
-  public static final String VALUE_RECORD_NAME = "clusterName.keyspace.table.Value";
-  public static final String DATA_RECORD_NAME = "clusterName.keyspace.table.Data";
+  public static final String KEY_RECORD_NAME = "topicName.Key";
+  public static final String VALUE_RECORD_NAME = "topicName.Value";
+  public static final String DATA_RECORD_NAME = "topicName.Data";
   public static final String PARTITION_KEY_NAME = "pk_1";
 
   public static final String COLUMN_NAME = "col_1";
+  public static final String COLUMN_NAME_2 = "col_2";
 
   public static final String CLUSTERING_KEY_NAME = "ck_1";
 
@@ -61,13 +60,13 @@ public class SchemasConstants {
             .fields()
             .name(PARTITION_KEY_NAME)
             .type(partitionKeyNullable)
-            .noDefault()
+            .withDefault(null)
             .name(CLUSTERING_KEY_NAME)
             .type(clusteringKeyNullable)
-            .noDefault()
+            .withDefault(null)
             .name(COLUMN_NAME)
             .type(columnNullable)
-            .noDefault()
+            .withDefault(null)
             .endRecord();
 
     VALUE_SCHEMA =
