@@ -54,11 +54,9 @@ import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @NotThreadSafe
-@Disabled
 public class RestApiTest extends BaseOsgiIntegrationTest {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
