@@ -15,6 +15,9 @@
  */
 package io.stargate.producer.kafka.schema;
 
+import io.stargate.producer.kafka.schema.codecs.ByteConversion;
+import io.stargate.producer.kafka.schema.codecs.ByteLogicalType;
+import io.stargate.producer.kafka.schema.codecs.ByteLogicalType.ByteTypeFactory;
 import io.stargate.producer.kafka.schema.codecs.ShortConversion;
 import io.stargate.producer.kafka.schema.codecs.ShortLogicalType;
 import io.stargate.producer.kafka.schema.codecs.ShortLogicalType.ShortTypeFactory;
@@ -40,8 +43,9 @@ public class CqlToAvroTypeConverter {
   private static final Map<Native, Schema> SCHEMA_PER_NATIVE_TYPE = new HashMap<>();
 
   static {
-    LogicalTypes.register(
-        ShortLogicalType.SHORT_DURATION_LOGICAL_TYPE_NAME, new ShortTypeFactory());
+    // register custom logical types
+    LogicalTypes.register(ShortLogicalType.SHORT_LOGICAL_TYPE_NAME, new ShortTypeFactory());
+    LogicalTypes.register(ByteLogicalType.BYTE_LOGICAL_TYPE_NAME, new ByteTypeFactory());
 
     SCHEMA_PER_NATIVE_TYPE.put(Native.ASCII, Schema.create(Type.STRING));
     SCHEMA_PER_NATIVE_TYPE.put(Native.BIGINT, Schema.create(Type.LONG));
@@ -69,9 +73,9 @@ public class CqlToAvroTypeConverter {
     SCHEMA_PER_NATIVE_TYPE.put(
         Native.TIMESTAMP, LogicalTypes.timestampMillis().addToSchema(Schema.create(Type.LONG)));
     SCHEMA_PER_NATIVE_TYPE.put(
-        Native.TIMEUUID,
-        LogicalTypes.uuid().addToSchema(Schema.create(Type.STRING))); // todo validate
-    SCHEMA_PER_NATIVE_TYPE.put(Native.TINYINT, Schema.create(Type.BYTES));
+        Native.TIMEUUID, LogicalTypes.uuid().addToSchema(Schema.create(Type.STRING)));
+    SCHEMA_PER_NATIVE_TYPE.put(
+        Native.TINYINT, new ByteLogicalType().addToSchema(Schema.create(Type.INT)));
     SCHEMA_PER_NATIVE_TYPE.put(
         Native.UUID, LogicalTypes.uuid().addToSchema(Schema.create(Type.STRING)));
     SCHEMA_PER_NATIVE_TYPE.put(Native.VARCHAR, Schema.create(Type.STRING));
@@ -83,6 +87,7 @@ public class CqlToAvroTypeConverter {
     GenericData.get().addLogicalTypeConversion(new TimeConversions.TimeMicrosConversion());
     GenericData.get().addLogicalTypeConversion(new TimeConversions.TimestampMillisConversion());
     GenericData.get().addLogicalTypeConversion(new ShortConversion());
+    GenericData.get().addLogicalTypeConversion(new ByteConversion());
   }
 
   public static Schema toAvroType(CQLType type) {

@@ -427,6 +427,9 @@ class KafkaCDCProducerIntegrationTest {
                     column(Native.TIMEUUID),
                     UUID.fromString("FE2B4360-28C6-11E2-81C1-0800200C9A66")))),
         Arguments.of(
+            Collections.singletonList(column(Native.TINYINT)),
+            Collections.singletonList(cell(column(Native.TINYINT), Byte.MAX_VALUE))),
+        Arguments.of(
             Collections.singletonList(column(Native.UUID)),
             Collections.singletonList(
                 cell(

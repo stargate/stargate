@@ -20,24 +20,24 @@ import org.apache.avro.LogicalType;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
 
-public class ShortConversion extends Conversion<Short> {
+public class ByteConversion extends Conversion<Byte> {
   @Override
-  public Class<Short> getConvertedType() {
-    return Short.class;
+  public Class<Byte> getConvertedType() {
+    return Byte.class;
   }
 
   @Override
   public String getLogicalTypeName() {
-    return ShortLogicalType.SHORT_LOGICAL_TYPE_NAME;
+    return ByteLogicalType.BYTE_LOGICAL_TYPE_NAME;
   }
 
   @Override
-  public Short fromInt(Integer value, Schema schema, LogicalType type) {
-    return value.shortValue();
+  public Byte fromInt(Integer value, Schema schema, LogicalType type) {
+    return value.byteValue();
   }
 
   @Override
-  public Integer toInt(Short value, Schema schema, LogicalType type) {
+  public Integer toInt(Byte value, Schema schema, LogicalType type) {
     return value.intValue();
   }
 

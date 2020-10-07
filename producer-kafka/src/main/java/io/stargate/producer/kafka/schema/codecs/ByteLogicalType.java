@@ -19,32 +19,32 @@ import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes.LogicalTypeFactory;
 import org.apache.avro.Schema;
 
-public class ShortLogicalType extends LogicalType {
-  public static final String SHORT_LOGICAL_TYPE_NAME = "short";
+public class ByteLogicalType extends LogicalType {
+  public static final String BYTE_LOGICAL_TYPE_NAME = "byte";
 
-  public ShortLogicalType() {
-    super(SHORT_LOGICAL_TYPE_NAME);
+  public ByteLogicalType() {
+    super(BYTE_LOGICAL_TYPE_NAME);
   }
 
   @Override
   public void validate(Schema schema) {
     super.validate(schema);
     if (schema.getType() != Schema.Type.INT) {
-      throw new IllegalArgumentException("Logical type 'short' must be backed by int");
+      throw new IllegalArgumentException("Logical type 'byte' must be backed by int");
     }
   }
 
-  public static class ShortTypeFactory implements LogicalTypeFactory {
-    private static LogicalType SHORT_LOGICAL_TYPE = new ShortLogicalType();
+  public static class ByteTypeFactory implements LogicalTypeFactory {
+    private static LogicalType BYTE_LOGICAL_TYPE = new ByteLogicalType();
 
     @Override
     public LogicalType fromSchema(Schema schema) {
-      return SHORT_LOGICAL_TYPE;
+      return BYTE_LOGICAL_TYPE;
     }
 
     @Override
     public String getTypeName() {
-      return ShortLogicalType.SHORT_LOGICAL_TYPE_NAME;
+      return ByteLogicalType.BYTE_LOGICAL_TYPE_NAME;
     }
   }
 }
