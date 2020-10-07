@@ -13,13 +13,11 @@ import io.stargate.it.storage.ClusterConnectionInfo;
 import java.io.IOException;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @NotThreadSafe
-@Disabled
 public class AuthApiTest extends BaseOsgiIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(RestApiv2Test.class);
