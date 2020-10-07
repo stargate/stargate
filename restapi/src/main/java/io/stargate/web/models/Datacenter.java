@@ -25,7 +25,7 @@ public class Datacenter {
   String name;
   int replicas;
 
-  @ApiModelProperty(required = true, value = "")
+  @ApiModelProperty(required = true, value = "The name of the datacenter.")
   public String getName() {
     return name;
   }
@@ -35,7 +35,10 @@ public class Datacenter {
     return this;
   }
 
-  @ApiModelProperty(required = true, value = "")
+  @ApiModelProperty(
+      required = true,
+      value =
+          "The number of replicas in the datacenter. In other words, the number of copies of each row in the datacenter.")
   public int getReplicas() {
     return replicas;
   }

@@ -42,7 +42,9 @@ public class TableOptions {
     return defaultTimeToLive;
   }
 
-  @ApiModelProperty(value = "")
+  @ApiModelProperty(
+      value =
+          "Order rows storage to make use of the on-disk sorting of columns. Specifying order can make query results more efficient.")
   public List<ClusteringExpression> getClusteringExpression() {
     return clusteringExpression;
   }

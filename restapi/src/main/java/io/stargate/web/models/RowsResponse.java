@@ -32,12 +32,12 @@ public class RowsResponse {
     this.rowsModified = rowsModified;
   }
 
-  @ApiModelProperty(value = "")
+  @ApiModelProperty(value = "Whether the request was successful.")
   public boolean getSuccess() {
     return success;
   }
 
-  @ApiModelProperty(value = "")
+  @ApiModelProperty(value = "Number of rows modified/added by the request.")
   public int getRowsModified() {
     return rowsModified;
   }

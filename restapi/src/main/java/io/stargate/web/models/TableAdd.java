@@ -27,7 +27,7 @@ public class TableAdd {
   boolean ifNotExists = false;
   TableOptions tableOptions = new TableOptions();
 
-  @ApiModelProperty(required = true, value = "")
+  @ApiModelProperty(required = true, value = "The name of the table to add.")
   public String getName() {
     return name;
   }
@@ -47,7 +47,10 @@ public class TableAdd {
     this.ifNotExists = ifNotExists;
   }
 
-  @ApiModelProperty(required = true, value = "")
+  @ApiModelProperty(
+      required = true,
+      value =
+          "The primary key definition of the table, consisting of partition and clustering keys.")
   public PrimaryKey getPrimaryKey() {
     return primaryKey;
   }
@@ -56,7 +59,9 @@ public class TableAdd {
     this.primaryKey = primaryKey;
   }
 
-  @ApiModelProperty(required = true, value = "")
+  @ApiModelProperty(
+      required = true,
+      value = "Definition of columns that belong to the table to be added.")
   public List<ColumnDefinition> getColumnDefinitions() {
     return columnDefinitions;
   }
@@ -65,7 +70,7 @@ public class TableAdd {
     this.columnDefinitions = columnDefinitions;
   }
 
-  @ApiModelProperty(value = "")
+  @ApiModelProperty(value = "The set of table options to apply to the table when creating.")
   public TableOptions getTableOptions() {
     return tableOptions;
   }

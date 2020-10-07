@@ -81,7 +81,7 @@ public class ColumnResource {
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  public Response getAll(
+  public Response listAllColumns(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -187,7 +187,7 @@ public class ColumnResource {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("/{columnName}")
-  public Response getOne(
+  public Response getOneColumn(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -234,7 +234,7 @@ public class ColumnResource {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("/{columnName}")
-  public Response delete(
+  public Response deleteColumn(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -282,7 +282,7 @@ public class ColumnResource {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("/{columnName}")
-  public Response update(
+  public Response updateColumn(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",

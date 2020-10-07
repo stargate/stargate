@@ -15,10 +15,13 @@
  */
 package io.stargate.web.models;
 
+import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 
 public class Filter {
+
+  @ApiModel(description = "Comparison operator to be used when filtering")
   public enum Operator {
     eq,
     notEq,
@@ -42,7 +45,7 @@ public class Filter {
     this.columnName = columnName;
   }
 
-  @ApiModelProperty(value = "")
+  @ApiModelProperty(value = "The comparison operator to use in the filter.")
   public Operator getOperator() {
     return operator;
   }

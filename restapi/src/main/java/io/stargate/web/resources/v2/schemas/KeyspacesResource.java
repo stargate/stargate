@@ -67,7 +67,7 @@ public class KeyspacesResource {
   @Timed
   @GET
   @ApiOperation(
-      value = "Return all keyspaces",
+      value = "Get all keyspaces",
       notes = "Retrieve all available keyspaces.",
       response = ResponseWrapper.class,
       responseContainer = "List")
@@ -77,7 +77,7 @@ public class KeyspacesResource {
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  public Response listAll(
+  public Response getAllKeyspaces(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -116,7 +116,7 @@ public class KeyspacesResource {
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{keyspaceName}")
-  public Response getOne(
+  public Response getOneKeyspace(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -161,14 +161,33 @@ public class KeyspacesResource {
         @ApiResponse(code = 409, message = "Conflict", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  public Response create(
+  public Response createKeyspace(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
               required = true)
           @HeaderParam("X-Cassandra-Token")
           String token,
-      @ApiParam(value = "format results", defaultValue = "false") String payload) {
+      @ApiParam(
+              value =
+                  "A map representing a keyspace with SimpleStrategy or NetworkTopologyStrategy \n"
+                      + "Simple:\n"
+                      + "```json\n"
+                      + "{ \"name\": \"killrvideo\", \"replicas\": 1}\n"
+                      + "````\n"
+                      + "Network Topology:\n"
+                      + "```json\n"
+                      + "{\n"
+                      + "  \"name\": \"killrvideo\",\n"
+                      + "   \"datacenters\":\n"
+                      + "      [\n"
+                      + "         { \"name\": \"dc1\", \"replicas\": 3 },\n"
+                      + "         { \"name\": \"dc2\", \"replicas\": 3 },\n"
+                      + "      ],\n"
+                      + "}\n"
+                      + "```",
+              defaultValue = "false")
+          String payload) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -224,7 +243,7 @@ public class KeyspacesResource {
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{keyspaceName}")
-  public Response delete(
+  public Response deleteKeyspace(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",

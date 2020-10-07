@@ -17,12 +17,8 @@ package io.stargate.web.models;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
-@ApiModel(
-    description =
-        "Order rows storage to make use of the on-disk sorting of columns. Specifying order can make query results more efficient.")
 public class ClusteringExpression {
 
   final String column;
@@ -35,12 +31,12 @@ public class ClusteringExpression {
     this.order = order;
   }
 
-  @ApiModelProperty(required = true, value = "")
+  @ApiModelProperty(required = true, value = "The name of the column to order by")
   public String getColumn() {
     return column;
   }
 
-  @ApiModelProperty(required = true, value = "")
+  @ApiModelProperty(required = true, value = "The clustering order", allowableValues = "asc,desc")
   public String getOrder() {
     return order;
   }

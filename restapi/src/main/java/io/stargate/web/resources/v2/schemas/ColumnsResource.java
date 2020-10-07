@@ -68,7 +68,7 @@ public class ColumnsResource {
   @Timed
   @GET
   @ApiOperation(
-      value = "List columns",
+      value = "Get all columns",
       notes = "Return all columns for a specified table.",
       response = ResponseWrapper.class,
       responseContainer = "List")
@@ -79,7 +79,7 @@ public class ColumnsResource {
         @ApiResponse(code = 404, message = "Not Found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  public Response getAll(
+  public Response getAllColumns(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -141,7 +141,7 @@ public class ColumnsResource {
         @ApiResponse(code = 409, message = "Conflict", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  public Response addColumn(
+  public Response createColumn(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -202,7 +202,7 @@ public class ColumnsResource {
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{columnName}")
-  public Response getOne(
+  public Response getOneColumn(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -271,7 +271,7 @@ public class ColumnsResource {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("/{columnName}")
-  public Response update(
+  public Response updateColumn(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -324,7 +324,7 @@ public class ColumnsResource {
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{columnName}")
-  public Response delete(
+  public Response deleteColumn(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",

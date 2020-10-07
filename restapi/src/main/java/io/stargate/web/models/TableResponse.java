@@ -43,27 +43,28 @@ public class TableResponse {
     this.tableOptions = tableOptions;
   }
 
-  @ApiModelProperty(value = "")
+  @ApiModelProperty(value = "The name of the table.")
   public String getName() {
     return name;
   }
 
-  @ApiModelProperty(value = "")
+  @ApiModelProperty(value = "Name of the keyspace the table belongs.")
   public String getKeyspace() {
     return keyspace;
   }
 
-  @ApiModelProperty(value = "")
+  @ApiModelProperty(value = "Definition of columns within the table.")
   public List<ColumnDefinition> getColumnDefinitions() {
     return columnDefinitions;
   }
 
-  @ApiModelProperty(value = "")
+  @ApiModelProperty(
+      value = "The definition of the partition and clustering keys that make up the primary key.")
   public PrimaryKey getPrimaryKey() {
     return primaryKey;
   }
 
-  @ApiModelProperty(value = "")
+  @ApiModelProperty(value = "Table options that are applied to the table.")
   public TableOptions getTableOptions() {
     return tableOptions;
   }

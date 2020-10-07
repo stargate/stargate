@@ -48,7 +48,7 @@ public class Query {
     this.filters = filters;
   }
 
-  @ApiModelProperty(value = "")
+  @ApiModelProperty(value = "The clustering order for rows returned.")
   public ClusteringExpression getOrderBy() {
     return orderBy;
   }
@@ -57,8 +57,7 @@ public class Query {
     this.orderBy = orderBy;
   }
 
-  @ApiModelProperty(
-      value = "A string returned from previous query requests representing the paging state.")
+  @ApiModelProperty(value = "The size of the page to return in the result set.")
   public Integer getPageSize() {
     return pageSize;
   }
@@ -67,7 +66,8 @@ public class Query {
     this.pageSize = pageSize;
   }
 
-  @ApiModelProperty(value = "The size of the page to return in the result set.")
+  @ApiModelProperty(
+      value = "A string returned from previous query requests representing the paging state.")
   public String getPageState() {
     return pageState;
   }

@@ -99,7 +99,7 @@ public class RowResource {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("/{primaryKey : (.+)?}")
-  public Response getOne(
+  public Response getRows(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -157,7 +157,7 @@ public class RowResource {
         @ApiResponse(code = 404, message = "Not Found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  public Response getAll(
+  public Response getAllRows(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -225,7 +225,7 @@ public class RowResource {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("/query")
-  public Response query(
+  public Response queryRows(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -238,7 +238,8 @@ public class RowResource {
       @ApiParam(value = "Name of the table to use for the request.", required = true)
           @PathParam("tableName")
           final String tableName,
-      @ApiParam(value = "", required = true) @NotNull final Query queryModel) {
+      @ApiParam(value = "The query to be used for retrieving rows.", required = true) @NotNull
+          final Query queryModel) {
     return RequestHandler.handle(
         () -> {
           ByteBuffer pageState = null;

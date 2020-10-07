@@ -95,7 +95,7 @@ public class RowsResource {
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  public Response getWithWhere(
+  public Response getRowWithWhere(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -180,7 +180,7 @@ public class RowsResource {
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{primaryKey: .*}")
-  public Response get(
+  public Response getRows(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -264,7 +264,7 @@ public class RowsResource {
         @ApiResponse(code = 409, message = "Conflict", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  public Response add(
+  public Response createRow(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -323,7 +323,7 @@ public class RowsResource {
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{primaryKey: .*}")
-  public Response update(
+  public Response updateRows(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -359,7 +359,7 @@ public class RowsResource {
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{primaryKey: .*}")
-  public Response delete(
+  public Response deleteRows(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -422,7 +422,7 @@ public class RowsResource {
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{primaryKey: .*}")
-  public Response patch(
+  public Response patchRows(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",

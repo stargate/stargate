@@ -73,7 +73,7 @@ public class TablesResource {
   @Timed
   @GET
   @ApiOperation(
-      value = "List tables",
+      value = "Get all tables",
       notes = "Retrieve all tables in a specific keyspace.",
       response = ResponseWrapper.class,
       responseContainer = "List")
@@ -84,7 +84,7 @@ public class TablesResource {
         @ApiResponse(code = 404, message = "Not Found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  public Response listAll(
+  public Response getAllTables(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -125,7 +125,7 @@ public class TablesResource {
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{tableName}")
-  public Response getOne(
+  public Response getOneTable(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -165,7 +165,7 @@ public class TablesResource {
         @ApiResponse(code = 409, message = "Conflict", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  public Response create(
+  public Response createTable(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -280,7 +280,7 @@ public class TablesResource {
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{tableName}")
-  public Response update(
+  public Response updateTable(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -340,7 +340,7 @@ public class TablesResource {
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{tableName}")
-  public Response delete(
+  public Response deleteTable(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",

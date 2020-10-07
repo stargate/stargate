@@ -63,7 +63,7 @@ public class KeyspaceResource {
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  public Response listAll(
+  public Response listAllKeyspaces(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",

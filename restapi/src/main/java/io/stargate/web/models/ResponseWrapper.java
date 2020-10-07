@@ -25,7 +25,7 @@ public class ResponseWrapper<T> {
   @JsonProperty("data")
   T data;
 
-  @ApiModelProperty(value = "")
+  @ApiModelProperty(value = "Response data returned by the request.")
   public T getData() {
     return data;
   }

@@ -31,7 +31,7 @@ public class GetResponseWrapper<T> {
   @JsonProperty("data")
   T data;
 
-  @ApiModelProperty(value = "")
+  @ApiModelProperty(value = "The count of records returned")
   public int getCount() {
     return count;
   }
@@ -52,6 +52,7 @@ public class GetResponseWrapper<T> {
     return this;
   }
 
+  @ApiModelProperty(value = "The data returned by the request")
   public T getData() {
     return data;
   }

@@ -27,12 +27,12 @@ public class RowResponse {
   int count;
   List<Map<String, Object>> rows;
 
-  @ApiModelProperty(value = "")
+  @ApiModelProperty(value = "Number of records being returned by the request.")
   public int getCount() {
     return count;
   }
 
-  @ApiModelProperty(value = "")
+  @ApiModelProperty(value = "The rows returned by the request.")
   public List<Map<String, Object>> getRows() {
     return rows;
   }

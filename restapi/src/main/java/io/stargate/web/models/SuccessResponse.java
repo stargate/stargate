@@ -22,7 +22,7 @@ import io.swagger.annotations.ApiModelProperty;
 public class SuccessResponse {
   final boolean success = true;
 
-  @ApiModelProperty(required = true, value = "")
+  @ApiModelProperty(required = true, value = "Whether the request was successful.")
   public boolean getSuccess() {
     return success;
   }

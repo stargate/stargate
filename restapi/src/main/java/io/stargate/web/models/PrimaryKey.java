@@ -37,7 +37,7 @@ public class PrimaryKey {
 
   @ApiModelProperty(
       required = true,
-      value = "Name of the column or columns that constitute the partition key.")
+      value = "Name of the column(s) that constitute the partition key.")
   public List<String> getPartitionKey() {
     return partitionKey;
   }

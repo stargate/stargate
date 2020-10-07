@@ -29,7 +29,9 @@ public class Keyspace {
   @JsonProperty("datacenters")
   List<Datacenter> datacenters;
 
-  @ApiModelProperty(value = "")
+  @ApiModelProperty(
+      value =
+          "The datacenters within a keyspace. Only applies for those keyspaces created with NetworkTopologyStrategy.")
   public List<Datacenter> getDatacenters() {
     return datacenters;
   }
@@ -38,7 +40,7 @@ public class Keyspace {
     this.datacenters = datacenters;
   }
 
-  @ApiModelProperty(required = true, value = "")
+  @ApiModelProperty(required = true, value = "The name of the keyspace.")
   @JsonProperty("name")
   public String getName() {
     return name;

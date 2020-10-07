@@ -86,7 +86,7 @@ public class TableResource {
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  public Response listAll(
+  public Response listAllTables(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -123,7 +123,7 @@ public class TableResource {
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  public Response create(
+  public Response addTable(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -229,7 +229,7 @@ public class TableResource {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("/{tableName}")
-  public Response getOne(
+  public Response getOneTable(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -306,7 +306,7 @@ public class TableResource {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("/{tableName}")
-  public Response delete(
+  public Response deleteTable(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
