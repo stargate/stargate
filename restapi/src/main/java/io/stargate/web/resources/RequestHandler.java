@@ -16,7 +16,6 @@
 package io.stargate.web.resources;
 
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.web.models.Error;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -66,7 +65,7 @@ public class RequestHandler {
                   Response.Status.UNAUTHORIZED.getStatusCode()))
           .build();
     } catch (ExecutionException ee) {
-      if (ee.getCause() instanceof DataStore.UnauthorizedException) {
+      if (ee.getCause() instanceof UnauthorizedException) {
         logger.info("Role unauthorized for operation", ee);
         return Response.status(Response.Status.UNAUTHORIZED)
             .entity(
