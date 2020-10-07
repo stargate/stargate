@@ -17,9 +17,12 @@ package io.stargate.producer.kafka.schema;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.avro.Conversions;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
+import org.apache.avro.data.TimeConversions;
+import org.apache.avro.generic.GenericData;
 import org.apache.cassandra.stargate.schema.CQLType;
 import org.apache.cassandra.stargate.schema.CQLType.Collection;
 import org.apache.cassandra.stargate.schema.CQLType.Custom;
@@ -61,6 +64,9 @@ public class CqlToAvroTypeConverter {
         Native.UUID, LogicalTypes.uuid().addToSchema(Schema.create(Type.STRING)));
     SCHEMA_PER_NATIVE_TYPE.put(Native.VARCHAR, Schema.create(Type.STRING));
     SCHEMA_PER_NATIVE_TYPE.put(Native.VARINT, Schema.create(Type.LONG)); // bit integer
+
+    GenericData.get().addLogicalTypeConversion(new Conversions.DecimalConversion());
+    GenericData.get().addLogicalTypeConversion(new TimeConversions.DateConversion());
   }
 
   public static Schema toAvroType(CQLType type) {
