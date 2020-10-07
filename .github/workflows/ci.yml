@@ -52,4 +52,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           CCM_CLUSTER_START_TIMEOUT_OVERRIDE: 600
-        run: mvn -B verify --file pom.xml -P it-${{ matrix.backend }}
+          MATRIX_BACKEND: ${{ matrix.backend }}
+        run: |
+          if [[ "$MATRIX_BACKEND" == "dse-6.8" ]]; then
+            mvn -B verify --file pom.xml -P it-$MATRIX_BACKEND,dse
+          else
+            mvn -B verify --file pom.xml -P it-$MATRIX_BACKEND
+          fi
