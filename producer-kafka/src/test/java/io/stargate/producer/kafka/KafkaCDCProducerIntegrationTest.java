@@ -33,12 +33,15 @@ import static org.mockito.Mockito.when;
 import static org.testcontainers.containers.KafkaContainer.ZOOKEEPER_PORT;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
+import com.datastax.oss.protocol.internal.util.Bytes;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.stargate.producer.kafka.configuration.ConfigLoader;
 import io.stargate.producer.kafka.schema.EmbeddedSchemaRegistryServer;
+import java.math.BigDecimal;
 import java.net.ServerSocket;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -155,7 +158,7 @@ class KafkaCDCProducerIntegrationTest {
   private TableMetadata mockTableMetadata() {
     TableMetadata tableMetadata = mock(TableMetadata.class);
     when(tableMetadata.getKeyspace()).thenReturn("keyspaceName");
-    when(tableMetadata.getName()).thenReturn("tableName");
+    when(tableMetadata.getName()).thenReturn("tableName" + UUID.randomUUID().toString());
     return tableMetadata;
   }
 
@@ -282,7 +285,56 @@ class KafkaCDCProducerIntegrationTest {
       validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
 
     } finally {
-      kafkaCDCProducer.close();
+      kafkaCDCProducer.close().get();
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("nativeTypesProvider")
+  public void shouldSendEventsWithAllNativeTypes(
+      List<ColumnMetadata> columnMetadata, List<Cell> columnValues) throws Exception {
+    // given
+    String partitionKeyValue = "pk_value";
+    Integer clusteringKeyValue = 1;
+    String columnValue = "col_value";
+    long timestamp = 1000;
+    TableMetadata tableMetadata = mockTableMetadata();
+    String topicName = creteTopicName(tableMetadata);
+
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    Map<String, Object> properties = createKafkaProducerSettings();
+    kafkaCDCProducer.init(properties).get();
+
+    // when
+    // schema change event
+    when(tableMetadata.getPartitionKeys())
+        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
+    when(tableMetadata.getClusteringKeys())
+        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
+    when(tableMetadata.getColumns()).thenReturn(columnMetadata);
+    kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
+    try {
+      // send actual event
+      RowUpdateEvent rowMutationEvent =
+          createRowUpdateEvent(
+              Collections.singletonList(
+                  cellValue(partitionKeyValue, partitionKey(PARTITION_KEY_NAME, Native.TEXT))),
+              columnValues,
+              Collections.singletonList(
+                  cellValue(clusteringKeyValue, clusteringKey(CLUSTERING_KEY_NAME, Native.INT))),
+              tableMetadata,
+              timestamp);
+      kafkaCDCProducer.send(rowMutationEvent).get();
+
+      // then
+      GenericRecord expectedKey =
+          kafkaCDCProducer.keyValueConstructor.constructKey(rowMutationEvent, topicName);
+      GenericRecord expectedValue =
+          kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
+
+      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+    } finally {
+      kafkaCDCProducer.close().get();
     }
   }
 
@@ -303,6 +355,31 @@ class KafkaCDCProducerIntegrationTest {
             Collections.singletonList(
                 cell(column(COLUMN_NAME + "_renamed", Native.TEXT), columnValue))) // rename column
         );
+  }
+
+  public static Stream<Arguments> nativeTypesProvider() {
+    return Stream.of(
+        Arguments.of(
+            Collections.singletonList(column(Native.ASCII)),
+            Collections.singletonList(cell(column(Native.ASCII), "ascii"))),
+        Arguments.of(
+            Collections.singletonList(column(Native.BIGINT)),
+            Collections.singletonList(cell(column(Native.ASCII), Long.MAX_VALUE))),
+        Arguments.of(
+            Collections.singletonList(column(Native.BLOB)),
+            Collections.singletonList(cell(column(Native.BLOB), Bytes.fromHexString("0xCAFE")))),
+        Arguments.of(
+            Collections.singletonList(column(Native.BOOLEAN)),
+            Collections.singletonList(cell(column(Native.BOOLEAN), true))),
+        Arguments.of(
+            Collections.singletonList(column(Native.COUNTER)),
+            Collections.singletonList(cell(column(Native.COUNTER), 1L))),
+        Arguments.of(
+            Collections.singletonList(column(Native.DATE)),
+            Collections.singletonList(cell(column(Native.DATE), LocalDate.ofEpochDay(16071)))),
+        Arguments.of(
+            Collections.singletonList(column(Native.DECIMAL)),
+            Collections.singletonList(cell(column(Native.DECIMAL), new BigDecimal("12.3E+7")))));
   }
 
   @NotNull

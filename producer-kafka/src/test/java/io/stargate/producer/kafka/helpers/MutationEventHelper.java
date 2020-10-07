@@ -16,7 +16,8 @@
 
 package io.stargate.producer.kafka.helpers;
 
-import com.datastax.oss.driver.shaded.guava.common.base.Charsets;
+import static io.stargate.producer.kafka.schema.SchemasConstants.COLUMN_NAME;
+
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
@@ -217,7 +218,7 @@ public class MutationEventHelper {
   }
 
   @NotNull
-  public static Cell cell(ColumnMetadata columnMetadata, String columnValue) {
+  public static Cell cell(ColumnMetadata columnMetadata, Object columnValue) {
 
     return new Cell() {
       @Override
@@ -237,7 +238,7 @@ public class MutationEventHelper {
 
       @Override
       public ByteBuffer getValue() {
-        return ByteBuffer.wrap(columnValue.getBytes(Charsets.UTF_8));
+        return null;
       }
 
       @Override
@@ -322,6 +323,11 @@ public class MutationEventHelper {
   @NotNull
   public static ColumnMetadata column(String columnName) {
     return column(columnName, Native.TEXT);
+  }
+
+  @NotNull
+  public static ColumnMetadata column(CQLType cqlType) {
+    return column(COLUMN_NAME, cqlType);
   }
 
   @NotNull

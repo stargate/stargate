@@ -22,8 +22,10 @@ import static io.stargate.producer.kafka.schema.SchemaConstants.VALUE_FIELD_NAME
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.List;
+import org.apache.avro.Conversions;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
+import org.apache.avro.data.TimeConversions;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericRecord;
@@ -38,6 +40,8 @@ public class KeyValueConstructor {
 
   public KeyValueConstructor(SchemaProvider schemaProvider) {
     this.schemaProvider = schemaProvider;
+    GenericData.get().addLogicalTypeConversion(new Conversions.DecimalConversion());
+    GenericData.get().addLogicalTypeConversion(new TimeConversions.DateConversion());
   }
 
   @NonNull
