@@ -200,6 +200,28 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void getTableComplex() throws IOException {
+    String tableName = "tbl_gettable_" + System.currentTimeMillis();
+    createComplexTable(tableName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/tables/%s", host, keyspace, tableName),
+            HttpStatus.SC_OK);
+
+    TableResponse table = objectMapper.readValue(body, new TypeReference<TableResponse>() {});
+    assertThat(table.getName()).isEqualTo(tableName);
+
+    List<ColumnDefinition> columnDefinitions = table.getColumnDefinitions();
+    assertThat(columnDefinitions.size()).isEqualTo(4);
+    columnDefinitions.sort(Comparator.comparing(ColumnDefinition::getName));
+    assertThat(columnDefinitions.get(0).getName()).isEqualTo("col1");
+    assertThat(columnDefinitions.get(0).getTypeDefinition())
+        .isEqualTo("frozen<map<date, varchar>>");
+  }
+
+  @Test
   public void deleteTable() throws IOException {
     String tableName = "tbl_deletetable_" + System.currentTimeMillis();
     createTable(tableName);

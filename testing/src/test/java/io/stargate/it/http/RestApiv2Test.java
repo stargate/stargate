@@ -277,6 +277,33 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void getTableComplex() throws IOException {
+    createKeyspace(keyspaceName);
+    createComplexTable(keyspaceName, tableName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/schemas/keyspaces/%s/tables/%s", host, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    TableResponse table = objectMapper.convertValue(response.getData(), TableResponse.class);
+    assertThat(table.getKeyspace()).isEqualTo(keyspaceName);
+    assertThat(table.getName()).isEqualTo(tableName);
+    assertThat(table.getColumnDefinitions()).isNotNull();
+    ColumnDefinition columnDefinition =
+        table.getColumnDefinitions().stream()
+            .filter(c -> c.getName().equals("col1"))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("Column not found"));
+    assertThat(columnDefinition)
+        .isEqualToComparingFieldByField(
+            new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
+  }
+
+  @Test
   public void getTableNotFound() throws IOException {
     RestUtils.get(
         authToken,

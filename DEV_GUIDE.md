@@ -19,6 +19,12 @@ To build locally run the following:
 ./mvnw clean package
 ```
 
+You can also build a single module with
+
+```sh
+./mvnw package -pl restapi -am
+```
+
 * If you get a `Could not find or load main class org.apache.maven.wrapper.MavenWrapperMain` exception, upgrade your local `wget`
 ## Running Locally
 
@@ -132,4 +138,20 @@ curl -L -X GET 'localhost:8082/v1/keyspaces' \
 --header 'accept: application/json' \
 --header 'content-type: application/json' \
 --header 'X-Cassandra-Token: <AUTH_TOKEN>'
+```
+
+## Running Tests
+
+Stargate includes a full suite of integration tests that can be ran in various ways. Some examples are
+
+Run only Cassandra 3.11 and Cassandra 4.0 
+
+```sh
+./mvnw clean verify -P it-cassandra-3.11,it-cassandra-4.0
+```
+
+Run only Cassandra 3.11 with an existing cluster
+
+```sh
+./mvnw clean verify -P it-cassandra-3.11 -D stargate.test.backend.use.external=true
 ```
