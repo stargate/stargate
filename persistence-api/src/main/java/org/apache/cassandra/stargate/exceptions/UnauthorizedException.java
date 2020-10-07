@@ -25,4 +25,10 @@ public class UnauthorizedException extends RequestValidationException {
   public UnauthorizedException(String msg, Throwable e) {
     super(ExceptionCode.UNAUTHORIZED, msg, e);
   }
+
+  /** Information may be leaked via stack trace, so we don't fill in the stack trace. */
+  @Override
+  public synchronized Throwable fillInStackTrace() {
+    return this;
+  }
 }
