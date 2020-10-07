@@ -46,14 +46,12 @@ import java.util.UUID;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @NotThreadSafe
-@Disabled
 public class RestApiv2Test extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(RestApiv2Test.class);
 
