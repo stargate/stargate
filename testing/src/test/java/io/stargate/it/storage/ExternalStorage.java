@@ -24,6 +24,7 @@ import java.lang.reflect.AnnotatedElement;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.BeforeTestExecutionCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
@@ -32,13 +33,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** JUnit 5 extension for tests that need a backend database cluster managed by {@code ccm}. */
-public class ExternalStorage implements BeforeAllCallback, AfterAllCallback, ParameterResolver {
+public class ExternalStorage
+    implements BeforeAllCallback, AfterAllCallback, ParameterResolver, BeforeTestExecutionCallback {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalStorage.class);
 
   private static final String CCM_VERSION = "ccm.version";
   private static final boolean EXTERNAL_BACKEND =
       Boolean.getBoolean("stargate.test.backend.use.external");
+  private static final String DATACENTER = System.getProperty("stargate.test.backend.dc", "dc1");
 
   private static final AtomicBoolean executing = new AtomicBoolean();
 
@@ -145,6 +148,24 @@ public class ExternalStorage implements BeforeAllCallback, AfterAllCallback, Par
     return cluster();
   }
 
+  private String getFullTestPath(ExtensionContext context) {
+    StringBuilder sb = new StringBuilder();
+    while (context != null) {
+      sb.insert(0, context.getDisplayName());
+      sb.insert(0, '/');
+      context = context.getParent().orElse(null);
+    }
+    return sb.toString();
+  }
+
+  @Override
+  public void beforeTestExecution(ExtensionContext context) {
+    LOG.info(
+        "About to run {} with storage cluster version {}",
+        getFullTestPath(context),
+        cluster().clusterVersion());
+  }
+
   @ClusterSpec
   private static class DefaultClusterSpecHolder {}
 
@@ -190,7 +211,10 @@ public class ExternalStorage implements BeforeAllCallback, AfterAllCallback, Par
         try {
           if (removed.compareAndSet(false, true)) {
             ccm.remove();
-            LOG.info("Storage cluster that was requested by {} has been removed.", initSite);
+            LOG.info(
+                "Storage cluster (version {}) that was requested by {} has been removed.",
+                clusterVersion(),
+                initSite);
           }
         } catch (Exception e) {
           // This should not affect test result validity, hence logging as WARN
@@ -232,7 +256,7 @@ public class ExternalStorage implements BeforeAllCallback, AfterAllCallback, Par
 
     @Override
     public String datacenter() {
-      return isDse() ? "dc1" : "datacenter1";
+      return DATACENTER;
     }
 
     @Override

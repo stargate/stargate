@@ -17,16 +17,31 @@
   </repositories>
   <dependencies>
     <dependency>
-      <!-- For MetricNameFactory, it should be removed after fixing metrics -->
-      <groupId>org.apache.cassandra</groupId>
-      <artifactId>cassandra-all</artifactId>
-      <version>4.0-alpha4</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.gridkit.jvmtool</groupId>
-          <artifactId>sjk-core</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>io.stargate.core</groupId>
+      <artifactId>core</artifactId>
+      <version>0.0.12-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.7.30</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.2.3</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+      <version>1.2.3</version>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
+      <version>4.1.9</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.immutables</groupId>
@@ -119,7 +134,11 @@
             <Bundle-Description>DB component for project</Bundle-Description>
             <Bundle-SymbolicName>io.stargate.db</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.db.DbActivator</Bundle-Activator>
-            <Import-Package>org.osgi.framework</Import-Package>
+            <Import-Package><![CDATA[
+              org.osgi.framework,
+              com.codahale.metrics,
+              io.stargate.core
+            ]]></Import-Package>
             <Export-Package><![CDATA[
               io.stargate.db,
               io.stargate.db.cdc,

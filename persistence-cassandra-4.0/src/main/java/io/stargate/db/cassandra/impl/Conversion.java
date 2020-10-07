@@ -1,5 +1,6 @@
 package io.stargate.db.cassandra.impl;
 
+import com.google.common.base.Strings;
 import io.stargate.db.BatchType;
 import io.stargate.db.ClientState;
 import io.stargate.db.QueryOptions;
@@ -9,6 +10,7 @@ import io.stargate.db.cassandra.datastore.DataStoreUtil;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
+import java.lang.reflect.Constructor;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -35,6 +37,31 @@ import org.apache.cassandra.transport.Event;
 import org.apache.cassandra.transport.messages.ResultMessage;
 
 public class Conversion {
+  // Constructor for a needed sub-class of QueryOptions that is not accessible in C* at the moment
+  // and need to be accessed through reflection.
+  // OptionsWithNames(QueryOptions.DefaultQueryOptions wrapped, List<String> names)
+  private static final Constructor<?> optionsWithNameCtor;
+
+  static {
+    try {
+      // Note that the ctor for OptionsWithNames directly takes a DefaultQueryOptions which is not
+      // accessible. That said, we know QueryOptions#create, which we'll use to build the object
+      // passed as that argument, actually does create a DefaultQueryOptions, so we're good.
+      Class<?> defaultOptionsClass =
+          Class.forName("org.apache.cassandra.cql3.QueryOptions$DefaultQueryOptions");
+      Class<?> withNamesClass =
+          Class.forName("org.apache.cassandra.cql3.QueryOptions$OptionsWithNames");
+
+      optionsWithNameCtor = withNamesClass.getDeclaredConstructor(defaultOptionsClass, List.class);
+      optionsWithNameCtor.setAccessible(true);
+    } catch (Exception e) {
+      throw new RuntimeException(
+          "Error during initialization of the persistence layer: some "
+              + "reflection-based accesses cannot be setup.",
+          e);
+    }
+  }
+
   public static org.apache.cassandra.service.QueryState toInternal(
       QueryState<org.apache.cassandra.service.QueryState> state) {
     if (state == null) {
@@ -49,16 +76,38 @@ public class Conversion {
     }
     org.apache.cassandra.transport.ProtocolVersion protocolVersion =
         toInternal(options.getProtocolVersion());
-    // TODO(mpenick): timestamp and nowInSeconds?
-    return org.apache.cassandra.cql3.QueryOptions.create(
-        toInternal(options.getConsistency()),
-        options.getValues(),
-        options.skipMetadata(),
-        options.getPageSize(),
-        PagingState.deserialize(options.getPagingState(), protocolVersion),
-        toInternal(options.getSerialConsistency()),
-        protocolVersion,
-        options.getKeyspace());
+    // Note that PagingState.deserialize below modifies its input, so we duplicate to avoid nasty
+    // surprises down the line
+    ByteBuffer pagingState =
+        options.getPagingState() == null ? null : options.getPagingState().duplicate();
+    org.apache.cassandra.cql3.QueryOptions internalOptions =
+        org.apache.cassandra.cql3.QueryOptions.create(
+            toInternal(options.getConsistency()),
+            options.getValues(),
+            options.skipMetadata(),
+            options.getPageSize(),
+            PagingState.deserialize(pagingState, protocolVersion),
+            toInternal(options.getSerialConsistency()),
+            protocolVersion,
+            options.getKeyspace(),
+            options.getTimestamp(),
+            options.getNowInSeconds());
+
+    // Adds names if there is some.
+    if (options.getNames() != null) {
+      try {
+        internalOptions =
+            (org.apache.cassandra.cql3.QueryOptions)
+                optionsWithNameCtor.newInstance(internalOptions, options.getNames());
+      } catch (Exception e) {
+        // We can't afford to ignore that: the values wouldn't be in the proper order, and worst
+        // case scenario, this could end up inserting values in the wrong columns, which essentially
+        // boils down to corrupting the use DB.
+        throw new RuntimeException(
+            "Unexpected error while trying to bind the query values by name", e);
+      }
+    }
+    return internalOptions;
   }
 
   public static org.apache.cassandra.service.ClientState toInternal(
@@ -83,6 +132,11 @@ public class Conversion {
     return protocolVersion == null
         ? null
         : org.apache.cassandra.transport.ProtocolVersion.decode(protocolVersion.asInt(), true);
+  }
+
+  public static ProtocolVersion toExternal(
+      org.apache.cassandra.transport.ProtocolVersion protocolVersion) {
+    return protocolVersion == null ? null : ProtocolVersion.decode(protocolVersion.asInt(), true);
   }
 
   public static org.apache.cassandra.stargate.locator.InetAddressAndPort toExternal(
@@ -132,8 +186,6 @@ public class Conversion {
     switch (e.code()) {
       case SERVER_ERROR:
         return new ServerError(e.getMessage());
-      case PROTOCOL_ERROR:
-        return new ProtocolException(e.getMessage());
       case BAD_CREDENTIALS:
         return new AuthenticationException(e.getMessage(), e.getCause());
       case UNAVAILABLE:
@@ -207,7 +259,9 @@ public class Conversion {
       case ALREADY_EXISTS:
         org.apache.cassandra.exceptions.AlreadyExistsException aee =
             (org.apache.cassandra.exceptions.AlreadyExistsException) e;
-        return new AlreadyExistsException(aee.ksName, aee.ksName, aee.getMessage());
+        return Strings.isNullOrEmpty(aee.cfName)
+            ? new AlreadyExistsException(aee.ksName)
+            : new AlreadyExistsException(aee.ksName, aee.cfName);
       case UNPREPARED:
         org.apache.cassandra.exceptions.PreparedQueryNotFoundException pnfe =
             (org.apache.cassandra.exceptions.PreparedQueryNotFoundException) e;
@@ -310,11 +364,20 @@ public class Conversion {
   }
 
   public static void handleException(CompletableFuture<?> future, Throwable t) {
-    if (t instanceof org.apache.cassandra.exceptions.UnauthorizedException)
-      future.completeExceptionally(DataStore.UnauthorizedException.rbac(t));
-    else if (t instanceof CassandraException)
-      future.completeExceptionally(Conversion.toExternal((CassandraException) t));
-    else future.completeExceptionally(t);
+    Throwable e = t;
+
+    if (t instanceof org.apache.cassandra.exceptions.UnauthorizedException) {
+      e = DataStore.UnauthorizedException.rbac(t);
+    } else if (t instanceof CassandraException) {
+      e = Conversion.toExternal((CassandraException) t);
+    } else if (t instanceof org.apache.cassandra.transport.ProtocolException) {
+      // Note that ProtocolException is not a CassandraException
+      org.apache.cassandra.transport.ProtocolException ex =
+          (org.apache.cassandra.transport.ProtocolException) t;
+      e = new ProtocolException(t.getMessage(), toExternal(ex.getForcedProtocolVersion()));
+    }
+
+    future.completeExceptionally(e);
   }
 
   public static List<Object> toInternalQueryOrIds(List<Object> queryOrIds) {

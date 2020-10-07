@@ -20,6 +20,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.ThreadFactoryBuilder;
+import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.metrics.CDCMetrics;
 import java.util.concurrent.*;
 import org.apache.cassandra.stargate.db.MutationEvent;
@@ -46,9 +47,9 @@ public final class CDCServiceImpl implements CDCService {
         new CDCWriteException("CDC producer marked as unhealthy"));
   }
 
-  public CDCServiceImpl(CDCProducer producer, MetricRegistry registry) {
+  public CDCServiceImpl(CDCProducer producer, Metrics metrics) {
     // TODO: Wrap configuration and use default health checker
-    this(producer, null, null, registry);
+    this(producer, null, null, metrics.getRegistry("cdc"));
   }
 
   @VisibleForTesting
@@ -80,7 +81,7 @@ public final class CDCServiceImpl implements CDCService {
   private CompletableFuture<Void> sendToProducer(MutationEvent mutation) {
     final long start = System.nanoTime();
     CDCMetrics.instance.incrementInFlight();
-    return orTimeout(producer.publish(mutation), config.getLatencyErrorMs())
+    return orTimeout(producer.publish(mutation), config.getProducerTimeoutMs())
         .whenComplete(
             (r, e) -> {
               CDCMetrics.instance.decrementInFlight();
@@ -137,6 +138,6 @@ public final class CDCServiceImpl implements CDCService {
   interface CDCConfig {
     boolean isTrackedByCDC(MutationEvent mutation);
 
-    long getLatencyErrorMs();
+    long getProducerTimeoutMs();
   }
 }

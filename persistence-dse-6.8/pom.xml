@@ -39,13 +39,6 @@
       <artifactId>persistence-api</artifactId>
       <version>0.0.12-SNAPSHOT</version>
       <scope>provided</scope>
-      <exclusions>
-        <exclusion>
-          <!-- Until we find a solution for MetricNameFactory -->
-          <groupId>org.apache.cassandra</groupId>
-          <artifactId>cassandra-all</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.stargate.core</groupId>
@@ -255,8 +248,7 @@
               org.osgi.framework,
               io.stargate.db,
               io.stargate.db.datastore,
-              io.stargate.db.datastore.schema,
-              io.stargate.db.datastore.query,
+              io.stargate.db.datastore.*,
               org.apache.cassandra.stargate,
               !com.codahale.metrics.graphite.*,
               io.stargate.core,

@@ -46,6 +46,7 @@ import org.apache.cassandra.cql3.statements.ModificationStatement;
 import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.gms.ApplicationState;
+import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.schema.ColumnMetadata;
 import org.apache.cassandra.schema.IndexMetadata;
@@ -64,6 +65,7 @@ import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.apache.cassandra.tracing.Tracing;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.transport.messages.ResultMessage;
+import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.apache.cassandra.utils.UUIDGen;
 import org.slf4j.Logger;
@@ -194,10 +196,14 @@ public class CassandraPersistence
 
   @Override
   public DataStore newDataStore(
-      QueryState<org.apache.cassandra.service.QueryState> state,
-      QueryOptions<org.apache.cassandra.service.ClientState> queryOptions) {
+      QueryState<org.apache.cassandra.service.QueryState> state, QueryOptions queryOptions) {
     return new InternalDataStore(
         this, Conversion.toInternal(state), Conversion.toInternal(queryOptions));
+  }
+
+  @Override
+  public ByteBuffer unsetValue() {
+    return ByteBufferUtil.UNSET_BYTE_BUFFER;
   }
 
   @Override
@@ -269,6 +275,14 @@ public class CassandraPersistence
 
             CQLStatement statement =
                 QueryProcessor.parseStatement(cql, Conversion.toInternal(state.getClientState()));
+            internalOptions.prepare(statement.getBindVariables());
+
+            if (internalOptions.getValues().size() != statement.getBindVariables().size()) {
+              throw new org.apache.cassandra.exceptions.InvalidRequestException(
+                  String.format(
+                      "there were %d markers(?) in CQL but %d bound variables",
+                      statement.getBindVariables().size(), internalOptions.getValues().size()));
+            }
 
             Result result =
                 interceptor.interceptQuery(
@@ -322,7 +336,12 @@ public class CassandraPersistence
 
             CQLStatement statement = prepared.statement;
 
-            if (shouldTrace) beginTraceExecute(prepared, state, options, version);
+            // Please note that this needs to happen _before_ the beginTraceExecute, because when
+            // we add bound values to the trace, we rely on the values having been re-ordered by
+            // the following prepare (if named values were used that is).
+            internalOptions.prepare(statement.getBindVariables());
+
+            if (shouldTrace) beginTraceExecute(prepared, state, internalOptions, version);
 
             Result result =
                 interceptor.interceptQuery(
@@ -509,7 +528,16 @@ public class CassandraPersistence
     // Also note that in theory getSchemaVersion can return null for some nodes, and if it does
     // the code below will likely return false (the null will be an element on its own), but that's
     // probably the right answer in that case. In practice, this shouldn't be a problem though.
-    return Gossiper.instance.getLiveTokenOwners().stream()
+
+    // Important: This must include all nodes including fat clients, otherwise we'll get write
+    // errors
+    // with INCOMPATIBLE_SCHEMA.
+    return Gossiper.instance.getLiveMembers().stream()
+            .filter(
+                ep -> {
+                  EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
+                  return epState != null && !Gossiper.instance.isDeadState(epState);
+                })
             .map(Gossiper.instance::getSchemaVersion)
             .collect(Collectors.toSet())
             .size()
@@ -560,7 +588,7 @@ public class CassandraPersistence
   private void beginTraceExecute(
       QueryHandler.Prepared prepared,
       QueryState state,
-      QueryOptions options,
+      org.apache.cassandra.cql3.QueryOptions options,
       ProtocolVersion version) {
     ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
     if (options.getPageSize() > 0)

@@ -44,7 +44,9 @@ public abstract class StargateNodeView extends AbstractVirtualTable {
         // + "jmx_port int,"
         .addColumn("jmx_port", info::getJmxPort)
         // + "dse_version text,"
-        .addColumn("dse_version", () -> safeToString(info.getDseVersion()))
+        // This is set to null, otherwise the java-driver, and maybe other drivers, will attempt to
+        // connect using the DSE_V1 and DSE_V2 protocols.
+        .addColumn("dse_version", () -> null)
         // + "graph boolean,"
         .addColumn("graph", () -> false)
         // + "server_id text,"
