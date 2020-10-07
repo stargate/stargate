@@ -18,6 +18,11 @@ package io.stargate.producer.kafka.helpers;
 
 import static io.stargate.producer.kafka.schema.SchemasConstants.COLUMN_NAME;
 
+import com.datastax.oss.driver.api.core.ProtocolVersion;
+import com.datastax.oss.driver.api.core.data.CqlDuration;
+import com.datastax.oss.driver.internal.core.type.codec.CqlDurationCodec;
+import com.datastax.oss.driver.internal.core.type.codec.InetCodec;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
@@ -219,7 +224,8 @@ public class MutationEventHelper {
 
   @NotNull
   public static Cell cell(ColumnMetadata columnMetadata, Object columnValue) {
-
+    final InetCodec INET_CODEC = new InetCodec();
+    final CqlDurationCodec CQL_DURATION_CODEC = new CqlDurationCodec();
     return new Cell() {
       @Override
       public int getTTL() {
@@ -238,6 +244,11 @@ public class MutationEventHelper {
 
       @Override
       public ByteBuffer getValue() {
+        if (columnValue instanceof InetAddress) {
+          return INET_CODEC.encode((InetAddress) columnValue, ProtocolVersion.DEFAULT);
+        } else if (columnValue instanceof CqlDuration) {
+          return CQL_DURATION_CODEC.encode((CqlDuration) columnValue, ProtocolVersion.DEFAULT);
+        }
         return null;
       }
 

@@ -15,6 +15,9 @@
  */
 package io.stargate.producer.kafka.schema;
 
+import io.stargate.producer.kafka.schema.codecs.ShortConversion;
+import io.stargate.producer.kafka.schema.codecs.ShortLogicalType;
+import io.stargate.producer.kafka.schema.codecs.ShortLogicalType.ShortTypeFactory;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.avro.Conversions;
@@ -37,6 +40,9 @@ public class CqlToAvroTypeConverter {
   private static final Map<Native, Schema> SCHEMA_PER_NATIVE_TYPE = new HashMap<>();
 
   static {
+    LogicalTypes.register(
+        ShortLogicalType.SHORT_DURATION_LOGICAL_TYPE_NAME, new ShortTypeFactory());
+
     SCHEMA_PER_NATIVE_TYPE.put(Native.ASCII, Schema.create(Type.STRING));
     SCHEMA_PER_NATIVE_TYPE.put(Native.BIGINT, Schema.create(Type.LONG));
     SCHEMA_PER_NATIVE_TYPE.put(Native.BLOB, Schema.create(Type.BYTES));
@@ -47,11 +53,16 @@ public class CqlToAvroTypeConverter {
     SCHEMA_PER_NATIVE_TYPE.put(
         Native.DECIMAL, LogicalTypes.decimal(10).addToSchema(Schema.create(Type.BYTES)));
     SCHEMA_PER_NATIVE_TYPE.put(Native.DOUBLE, Schema.create(Type.DOUBLE));
-    SCHEMA_PER_NATIVE_TYPE.put(Native.DURATION, Schema.create(Type.DOUBLE)); // todo custom codec
+    SCHEMA_PER_NATIVE_TYPE.put(
+        Native.DURATION,
+        Schema.create(Type.BYTES)); // there is no avro codec for this type, write as raw byte
     SCHEMA_PER_NATIVE_TYPE.put(Native.FLOAT, Schema.create(Type.FLOAT));
-    SCHEMA_PER_NATIVE_TYPE.put(Native.INET, Schema.create(Type.STRING));
+    SCHEMA_PER_NATIVE_TYPE.put(
+        Native.INET,
+        Schema.create(Type.BYTES)); // there is no avro codec for this type, write as raw byte
     SCHEMA_PER_NATIVE_TYPE.put(Native.INT, Schema.create(Type.INT));
-    SCHEMA_PER_NATIVE_TYPE.put(Native.SMALLINT, Schema.create(Type.INT));
+    SCHEMA_PER_NATIVE_TYPE.put(
+        Native.SMALLINT, new ShortLogicalType().addToSchema(Schema.create(Type.INT)));
     SCHEMA_PER_NATIVE_TYPE.put(Native.TEXT, Schema.create(Type.STRING));
     SCHEMA_PER_NATIVE_TYPE.put(Native.TIME, Schema.create(Type.STRING)); // todo custom codec
     SCHEMA_PER_NATIVE_TYPE.put(
@@ -67,6 +78,7 @@ public class CqlToAvroTypeConverter {
 
     GenericData.get().addLogicalTypeConversion(new Conversions.DecimalConversion());
     GenericData.get().addLogicalTypeConversion(new TimeConversions.DateConversion());
+    GenericData.get().addLogicalTypeConversion(new ShortConversion());
   }
 
   public static Schema toAvroType(CQLType type) {

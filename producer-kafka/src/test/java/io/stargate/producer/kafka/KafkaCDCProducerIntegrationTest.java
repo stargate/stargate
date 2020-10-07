@@ -32,6 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testcontainers.containers.KafkaContainer.ZOOKEEPER_PORT;
 
+import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
 import com.datastax.oss.protocol.internal.util.Bytes;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
@@ -39,7 +40,9 @@ import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.stargate.producer.kafka.configuration.ConfigLoader;
 import io.stargate.producer.kafka.schema.EmbeddedSchemaRegistryServer;
 import java.math.BigDecimal;
+import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -296,7 +299,6 @@ class KafkaCDCProducerIntegrationTest {
     // given
     String partitionKeyValue = "pk_value";
     Integer clusteringKeyValue = 1;
-    String columnValue = "col_value";
     long timestamp = 1000;
     TableMetadata tableMetadata = mockTableMetadata();
     String topicName = creteTopicName(tableMetadata);
@@ -358,6 +360,13 @@ class KafkaCDCProducerIntegrationTest {
   }
 
   public static Stream<Arguments> nativeTypesProvider() {
+    InetAddress address;
+    try {
+      address = InetAddress.getByAddress(new byte[] {127, 0, 0, 1});
+    } catch (UnknownHostException ex) {
+      throw new AssertionError("Could not get address from 127.0.0.1", ex);
+    }
+
     return Stream.of(
         Arguments.of(
             Collections.singletonList(column(Native.ASCII)),
@@ -379,7 +388,28 @@ class KafkaCDCProducerIntegrationTest {
             Collections.singletonList(cell(column(Native.DATE), LocalDate.ofEpochDay(16071)))),
         Arguments.of(
             Collections.singletonList(column(Native.DECIMAL)),
-            Collections.singletonList(cell(column(Native.DECIMAL), new BigDecimal("12.3E+7")))));
+            Collections.singletonList(cell(column(Native.DECIMAL), new BigDecimal("12.3E+7")))),
+        Arguments.of(
+            Collections.singletonList(column(Native.DOUBLE)),
+            Collections.singletonList(cell(column(Native.DOUBLE), Double.MAX_VALUE))),
+        Arguments.of(
+            Collections.singletonList(column(Native.DURATION)),
+            Collections.singletonList(cell(column(Native.DURATION), CqlDuration.from("PT30H20M")))),
+        Arguments.of(
+            Collections.singletonList(column(Native.FLOAT)),
+            Collections.singletonList(cell(column(Native.FLOAT), Float.MAX_VALUE))),
+        Arguments.of(
+            Collections.singletonList(column(Native.INET)),
+            Collections.singletonList(cell(column(Native.INET), address))),
+        Arguments.of(
+            Collections.singletonList(column(Native.INT)),
+            Collections.singletonList(cell(column(Native.INT), Integer.MAX_VALUE))),
+        Arguments.of(
+            Collections.singletonList(column(Native.SMALLINT)),
+            Collections.singletonList(cell(column(Native.SMALLINT), Short.MAX_VALUE)),
+            Arguments.of(
+                Collections.singletonList(column(Native.TEXT)),
+                Collections.singletonList(cell(column(Native.TEXT), "text")))));
   }
 
   @NotNull

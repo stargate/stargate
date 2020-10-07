@@ -20,7 +20,10 @@ import static io.stargate.producer.kafka.schema.SchemaConstants.OPERATION_FIELD_
 import static io.stargate.producer.kafka.schema.SchemaConstants.TIMESTAMP_FIELD_NAME;
 import static io.stargate.producer.kafka.schema.SchemaConstants.VALUE_FIELD_NAME;
 
+import com.datastax.oss.driver.api.core.data.CqlDuration;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.List;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
@@ -97,7 +100,8 @@ public class KeyValueConstructor {
           GenericRecord record =
               new Record(
                   unionSchema.getTypes().get(1)); // 0 - is null type, 1 - is an actual union type
-          record.put(VALUE_FIELD_NAME, pk.getValueObject());
+
+          record.put(VALUE_FIELD_NAME, getValueObjectOrByteBuffer(pk));
           data.put(columnName, record);
         });
   }
@@ -106,6 +110,23 @@ public class KeyValueConstructor {
       List<? extends CellValue> cellValues, GenericRecord genericRecord) {
     cellValues.forEach(
         cellValue ->
-            genericRecord.put(cellValue.getColumn().getName(), cellValue.getValueObject()));
+            genericRecord.put(
+                cellValue.getColumn().getName(), getValueObjectOrByteBuffer(cellValue)));
+  }
+
+  private static final List<Class<?>> AVRO_UNSUPPORTED_TYPES =
+      Arrays.asList(CqlDuration.class, InetAddress.class);
+
+  private Object getValueObjectOrByteBuffer(CellValue valueObject) {
+    if (valueObject.getValueObject() == null) {
+      return null;
+    }
+
+    for (Class<?> avroUnsupportedType : AVRO_UNSUPPORTED_TYPES) {
+      if (avroUnsupportedType.isAssignableFrom(valueObject.getValueObject().getClass())) {
+        return valueObject.getValue();
+      }
+    }
+    return valueObject.getValueObject();
   }
 }
