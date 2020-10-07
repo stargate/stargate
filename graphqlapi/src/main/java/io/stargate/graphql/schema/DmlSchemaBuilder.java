@@ -44,7 +44,6 @@ import io.stargate.graphql.schema.fetchers.dml.DeleteMutationFetcher;
 import io.stargate.graphql.schema.fetchers.dml.InsertMutationFetcher;
 import io.stargate.graphql.schema.fetchers.dml.QueryFetcher;
 import io.stargate.graphql.schema.fetchers.dml.UpdateMutationFetcher;
-import io.stargate.graphql.util.CaseUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -169,25 +168,22 @@ class DmlSchemaBuilder {
   }
 
   private List<GraphQLFieldDefinition> buildQuery(Table table) {
+    String graphqlName = nameMapping.getGraphqlName(table);
     GraphQLFieldDefinition query =
         GraphQLFieldDefinition.newFieldDefinition()
-            .name(CaseUtil.toLowerCamel(table.name()))
+            .name(graphqlName)
             .argument(
                 GraphQLArgument.newArgument()
                     .name("value")
-                    .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "Input")))
+                    .type(new GraphQLTypeReference(graphqlName + "Input")))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("filter")
-                    .type(
-                        new GraphQLTypeReference(
-                            nameMapping.getGraphqlName(table) + "FilterInput")))
+                    .type(new GraphQLTypeReference(graphqlName + "FilterInput")))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("orderBy")
-                    .type(
-                        new GraphQLList(
-                            new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "Order"))))
+                    .type(new GraphQLList(new GraphQLTypeReference(graphqlName + "Order"))))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("options")
@@ -198,20 +194,16 @@ class DmlSchemaBuilder {
 
     GraphQLFieldDefinition filterQuery =
         GraphQLFieldDefinition.newFieldDefinition()
-            .name(CaseUtil.toLowerCamel(table.name()) + "Filter")
+            .name(graphqlName + "Filter")
             .deprecate("No longer supported. Use root type instead.")
             .argument(
                 GraphQLArgument.newArgument()
                     .name("filter")
-                    .type(
-                        new GraphQLTypeReference(
-                            nameMapping.getGraphqlName(table) + "FilterInput")))
+                    .type(new GraphQLTypeReference(graphqlName + "FilterInput")))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("orderBy")
-                    .type(
-                        new GraphQLList(
-                            new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "Order"))))
+                    .type(new GraphQLList(new GraphQLTypeReference(graphqlName + "Order"))))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("options")

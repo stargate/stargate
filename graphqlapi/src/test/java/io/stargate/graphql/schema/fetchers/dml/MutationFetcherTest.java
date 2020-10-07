@@ -23,7 +23,7 @@ public class MutationFetcherTest extends DmlTestBase {
   @DisplayName("Atomic mutations with single selection should use normal execution")
   public void mutationAtomicSingleSelectionTest() {
     assertSuccess(
-        "mutation @atomic { m1: insertBooks(value: { title: \"a\" } ) { applied } }",
+        "mutation @atomic { m1: insertbooks(value: { title: \"a\" } ) { applied } }",
         "INSERT INTO library.books (title) VALUES ('a')");
   }
 
@@ -33,9 +33,9 @@ public class MutationFetcherTest extends DmlTestBase {
     ExecutionResult result =
         executeGraphQl(
             "mutation @atomic { "
-                + "m1: updateBooks(value: { title: \"1984\", author: \"G.O.\" } ) { applied },"
-                + "m2: insertAuthors(value: { author: \"G.O.\", title: \"1984\" } ) { applied },"
-                + "m3: deleteBooks(value: { title: \"Animal Farm\" } ) { applied }"
+                + "m1: updatebooks(value: { title: \"1984\", author: \"G.O.\" } ) { applied },"
+                + "m2: insertauthors(value: { author: \"G.O.\", title: \"1984\" } ) { applied },"
+                + "m3: deletebooks(value: { title: \"Animal Farm\" } ) { applied }"
                 + "}");
     assertThat(result.getErrors()).isEmpty();
     String[] queries = {
@@ -55,10 +55,10 @@ public class MutationFetcherTest extends DmlTestBase {
         executeGraphQl(
             String.format(
                 "mutation @atomic { "
-                    + "m1: insertBooks("
+                    + "m1: insertbooks("
                     + "  value: { title: \"1984\", author: \"G.O.\" },"
                     + "  options: { consistency: %s }) { applied },"
-                    + "m2: insertAuthors(value: { author: \"G.O.\", title: \"1984\" } ) { applied }"
+                    + "m2: insertauthors(value: { author: \"G.O.\", title: \"1984\" } ) { applied }"
                     + "}",
                 cl));
     assertThat(result.getErrors()).isEmpty();
@@ -79,8 +79,8 @@ public class MutationFetcherTest extends DmlTestBase {
         executeGraphQl(
             String.format(
                 "mutation @atomic { "
-                    + "m1: insertBooks(value: { title: \"1984\", author: \"G.O.\" }) { applied },"
-                    + "m2: insertAuthors("
+                    + "m1: insertbooks(value: { title: \"1984\", author: \"G.O.\" }) { applied },"
+                    + "m2: insertauthors("
                     + "  value: { author: \"G.O.\", title: \"1984\" },"
                     + "  options: { consistency: %s, serialConsistency: LOCAL_SERIAL }) { applied }"
                     + "}",
@@ -98,10 +98,10 @@ public class MutationFetcherTest extends DmlTestBase {
     ExecutionResult result =
         executeGraphQl(
             "mutation @atomic { "
-                + "m1: insertBooks("
+                + "m1: insertbooks("
                 + "  value: { title: \"1984\", author: \"G.O.\" },"
                 + "  options: { consistency: ALL }) { applied },"
-                + "m2: insertAuthors("
+                + "m2: insertauthors("
                 + "  value: { author: \"G.O.\", title: \"1984\" },"
                 + "  options: { consistency: ALL }) { applied }"
                 + "}");

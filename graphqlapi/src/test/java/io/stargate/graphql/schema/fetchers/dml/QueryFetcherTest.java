@@ -78,7 +78,7 @@ public class QueryFetcherTest extends DmlTestBase {
               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
               .build()),
       arguments(
-          "mutation { insertBooks(value: {title:\"a\", author:\"b\"}, options: { consistency: LOCAL_ONE, serialConsistency: SERIAL}) { applied } }",
+          "mutation { insertbooks(value: {title:\"a\", author:\"b\"}, options: { consistency: LOCAL_ONE, serialConsistency: SERIAL}) { applied } }",
           ImmutableParameters.builder()
               .consistencyLevel(ConsistencyLevel.LOCAL_ONE)
               .serialConsistencyLevel(ConsistencyLevel.SERIAL)
