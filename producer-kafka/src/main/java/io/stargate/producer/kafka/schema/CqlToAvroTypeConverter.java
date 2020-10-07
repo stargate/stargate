@@ -77,10 +77,11 @@ public class CqlToAvroTypeConverter {
     SCHEMA_PER_NATIVE_TYPE.put(Native.VARCHAR, Schema.create(Type.STRING));
     SCHEMA_PER_NATIVE_TYPE.put(Native.VARINT, Schema.create(Type.LONG)); // bit integer
 
-    GenericData.get().addLogicalTypeConversion(new TimeConversions.TimestampMillisConversion());
     GenericData.get().addLogicalTypeConversion(new Conversions.DecimalConversion());
+    GenericData.get().addLogicalTypeConversion(new Conversions.UUIDConversion());
     GenericData.get().addLogicalTypeConversion(new TimeConversions.DateConversion());
     GenericData.get().addLogicalTypeConversion(new TimeConversions.TimeMicrosConversion());
+    GenericData.get().addLogicalTypeConversion(new TimeConversions.TimestampMillisConversion());
     GenericData.get().addLogicalTypeConversion(new ShortConversion());
   }
 

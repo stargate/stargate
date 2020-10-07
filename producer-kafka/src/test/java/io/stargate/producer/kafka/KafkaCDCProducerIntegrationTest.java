@@ -419,7 +419,19 @@ class KafkaCDCProducerIntegrationTest {
         Arguments.of(
             Collections.singletonList(column(Native.TIMESTAMP)),
             Collections.singletonList(
-                cell(column(Native.TIMESTAMP), Instant.ofEpochMilli(872835240000L)))));
+                cell(column(Native.TIMESTAMP), Instant.ofEpochMilli(872835240000L)))),
+        Arguments.of(
+            Collections.singletonList(column(Native.TIMEUUID)),
+            Collections.singletonList(
+                cell(
+                    column(Native.TIMEUUID),
+                    UUID.fromString("FE2B4360-28C6-11E2-81C1-0800200C9A66")))),
+        Arguments.of(
+            Collections.singletonList(column(Native.UUID)),
+            Collections.singletonList(
+                cell(
+                    column(Native.UUID),
+                    UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff00")))));
   }
 
   @NotNull

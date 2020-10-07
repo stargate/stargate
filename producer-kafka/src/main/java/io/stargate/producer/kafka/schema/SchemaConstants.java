@@ -15,7 +15,6 @@
  */
 package io.stargate.producer.kafka.schema;
 
-
 public class SchemaConstants {
   public static final String OPERATION_FIELD_NAME = "op";
   public static final String TIMESTAMP_FIELD_NAME = "ts_ms";
