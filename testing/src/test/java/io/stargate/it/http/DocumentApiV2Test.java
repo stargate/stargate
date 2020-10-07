@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,7 +40,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   private static String authToken;
   private static String host = "http://" + getStargateHost();
   private static final ObjectMapper objectMapper = new ObjectMapper();
-  private static final OkHttpClient client = new OkHttpClient().newBuilder().build();
+  private static final OkHttpClient client =
+      new OkHttpClient().newBuilder().callTimeout(3, TimeUnit.MINUTES).build();
 
   public DocumentApiV2Test(ClusterConnectionInfo backend) {
     super(backend);
