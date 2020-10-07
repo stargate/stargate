@@ -45,16 +45,16 @@ public class SwaggerUIResource {
     if (!matcher.matches()) {
       return Response.status(Status.NOT_FOUND).build();
     }
-    return serveResource(fileName);
+    return serveFile(fileName);
   }
 
   @GET
   @Path("/")
   public Response get() {
-    return serveResource("index.html");
+    return serveFile("index.html");
   }
 
-  private Response serveResource(String fileName) {
+  private Response serveFile(String fileName) {
     InputStream is;
     String type = MediaType.TEXT_HTML;
     try {
