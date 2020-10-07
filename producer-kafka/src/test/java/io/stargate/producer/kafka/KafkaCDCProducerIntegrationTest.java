@@ -406,10 +406,10 @@ class KafkaCDCProducerIntegrationTest {
             Collections.singletonList(cell(column(Native.INT), Integer.MAX_VALUE))),
         Arguments.of(
             Collections.singletonList(column(Native.SMALLINT)),
-            Collections.singletonList(cell(column(Native.SMALLINT), Short.MAX_VALUE)),
-            Arguments.of(
-                Collections.singletonList(column(Native.TEXT)),
-                Collections.singletonList(cell(column(Native.TEXT), "text")))));
+            Collections.singletonList(cell(column(Native.SMALLINT), Short.MAX_VALUE))),
+        Arguments.of(
+            Collections.singletonList(column(Native.TEXT)),
+            Collections.singletonList(cell(column(Native.TEXT), "text"))));
   }
 
   @NotNull
