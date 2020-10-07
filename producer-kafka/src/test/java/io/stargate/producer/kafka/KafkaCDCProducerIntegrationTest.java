@@ -45,6 +45,7 @@ import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -409,7 +410,11 @@ class KafkaCDCProducerIntegrationTest {
             Collections.singletonList(cell(column(Native.SMALLINT), Short.MAX_VALUE))),
         Arguments.of(
             Collections.singletonList(column(Native.TEXT)),
-            Collections.singletonList(cell(column(Native.TEXT), "text"))));
+            Collections.singletonList(cell(column(Native.TEXT), "text"))),
+        Arguments.of(
+            Collections.singletonList(column(Native.TIME)),
+            Collections.singletonList(
+                cell(column(Native.TIME), LocalTime.ofNanoOfDay(54012123450000L)))));
   }
 
   @NotNull
