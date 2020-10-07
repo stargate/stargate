@@ -41,7 +41,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   private static String host = "http://" + getStargateHost();
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final OkHttpClient client =
-      new OkHttpClient().newBuilder().callTimeout(3, TimeUnit.MINUTES).build();
+      new OkHttpClient().newBuilder().readTimeout(3, TimeUnit.MINUTES).build();
 
   public DocumentApiV2Test(ClusterConnectionInfo backend) {
     super(backend);
