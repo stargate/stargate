@@ -52,4 +52,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           CCM_CLUSTER_START_TIMEOUT_OVERRIDE: 600
-        run: mvn -B verify --file pom.xml -P it-${{ matrix.backend }}
+        run: mvn -B verify --file pom.xml -P it-${{ matrix.backend }},dse
