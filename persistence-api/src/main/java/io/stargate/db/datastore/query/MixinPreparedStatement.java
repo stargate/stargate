@@ -30,7 +30,7 @@ class MixinPreparedStatement implements PreparedStatement {
   private final PreparedStatement prepared;
   private final List<Parameter<?>> parameters;
 
-  public MixinPreparedStatement(PreparedStatement prepared, List<Parameter<?>> parameters) {
+  MixinPreparedStatement(PreparedStatement prepared, List<Parameter<?>> parameters) {
     Preconditions.checkNotNull(prepared);
     this.prepared = prepared;
     this.parameters = parameters;
@@ -64,11 +64,10 @@ class MixinPreparedStatement implements PreparedStatement {
         }
         continue;
       }
-      if (parameter.value().isPresent()) {
-        mergedParameters.add(parameter.value().get());
-      } else {
-        mergedParameters.add(parameters[mergeCount++]);
-      }
+      Object value =
+          parameter.value().isPresent() ? parameter.value().get() : parameters[mergeCount++];
+      if (value == Value.NULL) value = null;
+      mergedParameters.add(value);
     }
     return prepared.execute(consistencyLevel, mergedParameters.toArray());
   }

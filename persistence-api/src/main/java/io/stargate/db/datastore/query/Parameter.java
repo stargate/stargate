@@ -22,15 +22,11 @@ import java.util.function.Function;
 public interface Parameter<T> extends Comparable<Parameter> {
   Column column();
 
+  /**
+   * The value set to the parameter in the built query, if one is. If this return an empty optional,
+   * it means the corresponding parameter is an unbound parameter (that must be bound at execution).
+   */
   Optional<Object> value();
-
-  Object UNSET =
-      new Object() {
-        @Override
-        public String toString() {
-          return "<unset>";
-        }
-      };
 
   Optional<Function<T, Object>> bindingFunction();
 
@@ -45,6 +41,4 @@ public interface Parameter<T> extends Comparable<Parameter> {
   default Parameter<T> ignore() {
     return this;
   }
-
-  interface SpecialTermMarker {}
 }

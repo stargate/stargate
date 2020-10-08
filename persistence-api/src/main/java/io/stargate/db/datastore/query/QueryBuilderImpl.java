@@ -105,6 +105,7 @@ import org.slf4j.LoggerFactory;
 public class QueryBuilderImpl {
   private static final Logger LOGGER = LoggerFactory.getLogger(QueryBuilderImpl.class);
   private static final String ANONYMOUS_LABEL = "ANONYMOUS_LABEL";
+
   private final DataStore dataStore;
   private Schema schema;
   private final StringBuilder query = new StringBuilder();
@@ -547,11 +548,11 @@ public class QueryBuilderImpl {
   }
 
   public void value(Column column) {
-    value(ImmutableValue.builder().column(column).build());
+    value(Value.createUnbound(column));
   }
 
   public void value(Column column, Object value) {
-    value(ImmutableValue.builder().column(column).value(Optional.ofNullable(value)).build());
+    value(Value.create(column, value));
   }
 
   public void value(Value<?> value) {
@@ -749,13 +750,13 @@ public class QueryBuilderImpl {
 
   @DSLAction
   public void ttl() {
-    ttl = ImmutableValue.<Integer>builder().column(Column.TTL).build();
+    ttl = Value.createUnbound(Column.TTL);
     parameters.add(this.ttl);
   }
 
   @DSLAction
   public void ttl(int ttl) {
-    this.ttl = ImmutableValue.<Integer>builder().column(Column.TTL).value(ttl).build();
+    this.ttl = Value.create(Column.TTL, ttl);
     parameters.add(this.ttl);
   }
 
@@ -1733,10 +1734,6 @@ public class QueryBuilderImpl {
     } else {
       query.append(" AND");
     }
-  }
-
-  public List<Parameter<?>> getParameters() {
-    return parameters;
   }
 
   public List<Column> getColumns() {

@@ -1,11 +1,14 @@
 package io.stargate.db.datastore;
 
+import static java.lang.String.format;
+
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import io.stargate.db.schema.Column;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -31,8 +34,7 @@ public class ArrayListBackedRow implements Row {
   private void checkIndex(int index) {
     if (index < 0 || index >= columns.size()) {
       throw new IndexOutOfBoundsException(
-          String.format(
-              "Index %d is out of bounds: the row has %d columns", index, columns.size()));
+          format("Index %d is out of bounds: the row has %d columns", index, columns.size()));
     }
   }
 
@@ -44,7 +46,7 @@ public class ArrayListBackedRow implements Row {
       }
     }
     throw new IllegalArgumentException(
-        String.format("Column '%s' is not defined in the Row's metadata.", column));
+        format("Column '%s' is not defined in the Row's metadata.", column));
   }
 
   @Nonnull
@@ -82,5 +84,12 @@ public class ArrayListBackedRow implements Row {
   @Override
   public ProtocolVersion protocolVersion() {
     return protocolVersion;
+  }
+
+  @Override
+  public String toString() {
+    return columns().stream()
+        .map(c -> format("%s=%s", c.name(), getObject(c.name())))
+        .collect(Collectors.joining(", ", "{", "}"));
   }
 }

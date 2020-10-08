@@ -7,7 +7,6 @@ import io.stargate.db.BoundStatement;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Result;
-import io.stargate.db.datastore.query.Parameter;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import java.nio.ByteBuffer;
@@ -21,7 +20,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
-import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
 import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.utils.MD5Digest;
@@ -37,6 +35,7 @@ class PersistenceBackedPreparedStatement implements PreparedStatement {
   private volatile PreparedInfo info;
   private final ProtocolVersion driverProtocolVersion;
   private final String queryString;
+  private final ByteBuffer unset;
 
   PersistenceBackedPreparedStatement(
       Persistence.Connection connection,
@@ -47,6 +46,7 @@ class PersistenceBackedPreparedStatement implements PreparedStatement {
     this.parameters = parameters;
     this.info = info;
     this.queryString = queryString;
+    this.unset = connection.persistence().unsetValue();
     this.driverProtocolVersion = toDriverVersion(parameters.protocolVersion());
   }
 
@@ -167,8 +167,8 @@ class PersistenceBackedPreparedStatement implements PreparedStatement {
     }
   }
 
-  private static InvalidRequestException invalid(String format, Object... args) {
-    return new InvalidRequestException(format(format, args));
+  private static RuntimeException invalid(String format, Object... args) {
+    return new IllegalArgumentException(format(format, args));
   }
 
   private List<ByteBuffer> serializeBoundValues(Object[] values, PreparedInfo info) {
@@ -187,8 +187,8 @@ class PersistenceBackedPreparedStatement implements PreparedStatement {
       ByteBuffer serialized;
       if (value == null) {
         serialized = null;
-      } else if (value.equals(Parameter.UNSET)) {
-        serialized = connection.persistence().unsetValue();
+      } else if (value.equals(DataStore.UNSET) || value.equals(unset)) {
+        serialized = unset;
       } else {
         value = validateValue(marker.name(), marker.type(), value, i);
         ColumnType type = marker.type();
@@ -254,7 +254,7 @@ class PersistenceBackedPreparedStatement implements PreparedStatement {
       return type.validate(value, name);
     } catch (Column.ValidationException e) {
       throw invalid(
-          "Wrong value provided for %s. Provided type '%s' is not compatible with "
+          "Wrong value provided for column '%s'. Provided type '%s' is not compatible with "
               + "expected CQL type '%s'.%s",
           e.location(), e.providedType(), e.expectedCqlType(), e.errorDetails());
     }

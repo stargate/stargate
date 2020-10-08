@@ -34,6 +34,21 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
  */
 public interface DataStore {
 
+  /**
+   * Placeholder value that can used to represent an UNSET value in methods of the DataStore.
+   *
+   * <p>Note that using this value is equivalent to using the underlying persistence unset value
+   * ({@link Persistence#unsetValue()}) <em>in the DataStore methods</em>, but is a tad more
+   * convenient in practice.
+   */
+  Object UNSET =
+      new Object() {
+        @Override
+        public String toString() {
+          return "<unset>";
+        }
+      };
+
   static DataStore create(Persistence.Connection connection, @Nonnull Parameters queryParameters) {
     Objects.requireNonNull(queryParameters);
     return new PersistenceBackedDataStore(connection, queryParameters);

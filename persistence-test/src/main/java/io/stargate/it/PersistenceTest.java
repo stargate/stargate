@@ -60,7 +60,6 @@ import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
-import io.stargate.db.datastore.query.Parameter;
 import io.stargate.db.datastore.query.Value;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableTupleType;
@@ -161,11 +160,9 @@ public abstract class PersistenceTest {
     assertThat(row.getString("data_center")).isEqualTo(backend.datacenter());
 
     rs = dataStore.query().select().column("data_center").from("system", "peers").future();
-    row = rs.get().one();
-
-    logger.info(String.valueOf(row));
-    assertThat(row).isNotNull();
-    assertThat(row.columns().get(0).name()).isEqualTo("data_center");
+    // As our modified local/peers table only include stargate nodes, we shouldn't have anyone
+    // in peers.
+    assertThat(rs.get().hasNoMoreFetchedRows()).isTrue();
   }
 
   @Test
@@ -787,7 +784,7 @@ public abstract class PersistenceTest {
         .isInstanceOf(ExecutionException.class)
         .hasCauseExactlyInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(
-            "Wrong value type provided for column 'name'. "
+            "Wrong value provided for column 'name'. "
                 + "Provided type 'Integer' is not compatible with expected CQL type 'varchar'.");
   }
 
@@ -940,7 +937,7 @@ public abstract class PersistenceTest {
         .query(
             String.format("insert into %s.%s (a,b) values (?,?)", tbl.cqlKeyspace(), tbl.cqlName()),
             23,
-            Parameter.UNSET)
+            DataStore.UNSET)
         .get();
 
     ResultSet resultSet =
