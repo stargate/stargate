@@ -26,17 +26,14 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.Row;
-import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class QueryFetcher extends DmlFetcher {
 
@@ -55,34 +52,11 @@ public class QueryFetcher extends DmlFetcher {
     CompletableFuture<ResultSet> rs = dataStore.query(statement);
     ResultSet resultSet = rs.get();
 
-    List<Map<String, Object>> results = new ArrayList<>();
-    for (Row row : resultSet.rows()) {
-      results.add(row2Map(row));
-    }
-
-    return ImmutableMap.of("values", results);
-  }
-
-  public Map<String, Object> row2Map(Row row) {
-    List<Column> defs = row.columns();
-    Map<String, Object> map = new HashMap<>(defs.size());
-    for (Column column : defs) {
-      if (row.has(column)) {
-        Column columnMetadata = table.column(column.name());
-        map.put(
-            nameMapping.getColumnName(table).get(columnMetadata),
-            transformObjectToJavaObject(row.getValue(column.name())));
-      }
-    }
-    return map;
-  }
-
-  private Object transformObjectToJavaObject(Object o) {
-    if (o instanceof Object[]) {
-      return Arrays.asList((Object[]) o);
-    } else {
-      return o;
-    }
+    return ImmutableMap.of(
+        "values",
+        resultSet.rows().stream()
+            .map(row -> DataTypeMapping.toGraphQLValue(nameMapping, table, row))
+            .collect(Collectors.toList()));
   }
 
   private String buildQuery(DataFetchingEnvironment environment) {
@@ -140,7 +114,7 @@ public class QueryFetcher extends DmlFetcher {
         }
 
         String column = getDBColumnName(table, selectedField.getName());
-        if (table.column(column) != null) {
+        if (column != null) {
           fields.add(column);
         }
       }

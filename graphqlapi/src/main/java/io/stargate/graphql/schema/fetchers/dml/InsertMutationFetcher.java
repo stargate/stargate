@@ -15,8 +15,6 @@
  */
 package io.stargate.graphql.schema.fetchers.dml;
 
-import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.literal;
-
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.insert.Insert;
 import com.datastax.oss.driver.api.querybuilder.term.Term;
@@ -25,6 +23,7 @@ import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
 import java.util.LinkedHashMap;
@@ -75,7 +74,8 @@ public class InsertMutationFetcher extends MutationFetcher {
 
     Map<String, Term> insertMap = new LinkedHashMap<>();
     for (Map.Entry<String, Object> entry : value.entrySet()) {
-      insertMap.put(getDBColumnName(table, entry.getKey()), literal(entry.getValue()));
+      Column column = getColumn(table, entry.getKey());
+      insertMap.put(column.name(), toDbLiteral(column, entry.getValue()));
     }
     return insertMap;
   }

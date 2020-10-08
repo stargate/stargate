@@ -17,6 +17,7 @@ package io.stargate.graphql.schema;
 
 import static graphql.Scalars.GraphQLString;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -35,19 +36,18 @@ import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeReference;
-import graphql.schema.idl.SchemaPrinter;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.fetchers.dml.DeleteMutationFetcher;
+import io.stargate.graphql.schema.fetchers.dml.GqlMapBuilder;
 import io.stargate.graphql.schema.fetchers.dml.InsertMutationFetcher;
 import io.stargate.graphql.schema.fetchers.dml.QueryFetcher;
 import io.stargate.graphql.schema.fetchers.dml.UpdateMutationFetcher;
 import io.stargate.graphql.util.CaseUtil;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -63,6 +63,7 @@ class DmlSchemaBuilder {
   private final AuthenticationService authenticationService;
   private final Map<Column.ColumnType, GraphQLInputObjectType> filterInputTypes;
   private final Map<Table, GraphQLOutputType> entityResultMap = new HashMap<>();
+  private final Map<String, GraphQLType> typeCache = new HashMap<>();
   private final NameMapping nameMapping;
   private Set<Table> tables;
 
@@ -474,11 +475,12 @@ class DmlSchemaBuilder {
         GraphQLInputObjectField field =
             GraphQLInputObjectField.newInputObjectField()
                 .name(nameMapping.getColumnName(table).get(columnMetadata))
-                .type((GraphQLInputType) getGraphQLType(columnMetadata.type()))
+                .type((GraphQLInputType) getGraphQLType(columnMetadata.type(), true))
                 .build();
         input.field(field);
       } catch (Exception e) {
-
+        log.error(
+            String.format("Input type for %s could not be created", columnMetadata.name()), e);
       }
     }
     return input.build();
@@ -516,7 +518,7 @@ class DmlSchemaBuilder {
         GraphQLFieldDefinition.Builder fieldBuilder = buildOutputField(table, columnMetadata);
         builder.field(fieldBuilder.build());
       } catch (Exception e) {
-
+        log.error(String.format("Type for %s could not be created", columnMetadata.name()), e);
       }
     }
 
@@ -526,13 +528,17 @@ class DmlSchemaBuilder {
   private GraphQLFieldDefinition.Builder buildOutputField(Table table, Column columnMetadata) {
     return new GraphQLFieldDefinition.Builder()
         .name(nameMapping.getColumnName(table).get(columnMetadata))
-        .type(getGraphQLType(columnMetadata.type()));
+        .type((GraphQLOutputType) getGraphQLType(columnMetadata.type(), false));
   }
 
-  private GraphQLOutputType getGraphQLType(Column.ColumnType type) {
+  private GraphQLType getGraphQLType(Column.ColumnType type, boolean isInput) {
+    return getGraphQLType(type, isInput, typeCache);
+  }
+
+  @VisibleForTesting
+  static GraphQLType getGraphQLType(
+      Column.ColumnType type, boolean isInput, Map<String, GraphQLType> typeCache) {
     switch (type.rawType()) {
-        //            case CUSTOM:
-        //                throw new RuntimeException("unknown data type");
       case Ascii:
         return CustomScalar.ASCII.getGraphQLScalar();
       case Bigint:
@@ -546,10 +552,14 @@ class DmlSchemaBuilder {
       case Decimal:
         return CustomScalar.DECIMAL.getGraphQLScalar();
       case Double:
-        return Scalars.GraphQLBigDecimal;
+        // GraphQL's Float is a signed double‐precision fractional value
+        return Scalars.GraphQLFloat;
       case Float:
+        // Use a custom scalar named "Float32"
         return CustomScalar.FLOAT.getGraphQLScalar();
       case Int:
+      case Smallint:
+      case Tinyint:
         return Scalars.GraphQLInt;
       case Text:
         return Scalars.GraphQLString;
@@ -569,39 +579,17 @@ class DmlSchemaBuilder {
         return CustomScalar.DATE.getGraphQLScalar();
       case Time:
         return CustomScalar.TIME.getGraphQLScalar();
-      case Smallint:
-        return Scalars.GraphQLInt;
-      case Tinyint:
-        return Scalars.GraphQLInt;
-        //            case Duration:
-        //                return CustomScalar.DURATION.getGraphQLScalar();
       case List:
-        return new GraphQLList(getGraphQLType(type.parameters().get(0)));
-      case Map:
-        break;
       case Set:
-        return new GraphQLList(getGraphQLType(type.parameters().get(0)));
-      case UDT:
-        break;
-      case Tuple:
+        return new GraphQLList(getGraphQLType(type.parameters().get(0), isInput, typeCache));
+      case Map:
+        GraphQLType keyType = getGraphQLType(type.parameters().get(0), isInput, typeCache);
+        GraphQLType valueType = getGraphQLType(type.parameters().get(1), isInput, typeCache);
+        return new GqlMapBuilder(keyType, valueType, isInput, typeCache).build();
+      default:
         break;
     }
 
     throw new RuntimeException("Unsupported data type " + type.name());
-  }
-
-  public static String schema2String(GraphQLSchema schema) {
-    SchemaPrinter printer = new SchemaPrinter();
-    StringBuilder result = new StringBuilder();
-    // Print out scalars specifically, they may be unordered so reorder them
-    List<String> scalars = new ArrayList<>();
-
-    Collections.sort(scalars);
-    scalars.forEach(result::append);
-
-    result.append("\n");
-    result.append(printer.print(schema));
-
-    return result.toString();
   }
 }

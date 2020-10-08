@@ -9,18 +9,25 @@ import com.apollographql.apollo.ApolloMutationCall;
 import com.apollographql.apollo.ApolloQueryCall;
 import com.apollographql.apollo.api.CustomTypeAdapter;
 import com.apollographql.apollo.api.CustomTypeValue;
+import com.apollographql.apollo.api.Mutation;
+import com.apollographql.apollo.api.Operation;
 import com.apollographql.apollo.exception.ApolloException;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.example.graphql.client.betterbotz.collections.GetCollectionsSimpleQuery;
+import com.example.graphql.client.betterbotz.collections.InsertCollectionsSimpleMutation;
+import com.example.graphql.client.betterbotz.collections.UpdateCollectionsSimpleMutation;
 import com.example.graphql.client.betterbotz.orders.GetOrdersByValueQuery;
 import com.example.graphql.client.betterbotz.orders.GetOrdersWithFilterQuery;
 import com.example.graphql.client.betterbotz.products.DeleteProductsMutation;
 import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery;
 import com.example.graphql.client.betterbotz.products.InsertProductsMutation;
 import com.example.graphql.client.betterbotz.products.UpdateProductsMutation;
+import com.example.graphql.client.betterbotz.type.CollectionsSimpleInput;
 import com.example.graphql.client.betterbotz.type.CustomType;
+import com.example.graphql.client.betterbotz.type.InputKeyIntValueString;
 import com.example.graphql.client.betterbotz.type.OrdersFilterInput;
 import com.example.graphql.client.betterbotz.type.OrdersInput;
 import com.example.graphql.client.betterbotz.type.ProductsFilterInput;
@@ -45,6 +52,7 @@ import com.example.graphql.client.schema.type.DataTypeInput;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
@@ -54,13 +62,10 @@ import java.math.BigDecimal;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.OkHttpClient;
 import org.apache.http.HttpStatus;
@@ -77,7 +82,8 @@ import org.junit.jupiter.api.Test;
  *       use the query in `src/main/resources/introspection.graphql` (paste it into the graphql
  *       playground at ${STARGATE_HOST}:8080/playground).
  *   <li>If there are new operations, create corresponding descriptors in
- *       `src/main/graphql/betterbotz` or `src/main/graphql/schema`.
+ *       `src/main/graphql/betterbotz` or `src/main/graphql/schema`. For betterbotz, there's a cql
+ *       schema file at src/main/resources/betterbotz.cql
  *   <li>Run the apollo-client-maven-plugin, which reads the descriptors and generates the
  *       corresponding Java types: `mvn generate-sources` (an IDE rebuild should also work). You can
  *       see generated code in `target/generated-sources/graphql-client`.
@@ -160,6 +166,17 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                         keyspace, "orders"))
                 .wasApplied())
         .isTrue();
+
+    session.execute(
+        String.format(
+            "CREATE TABLE IF NOT EXISTS %s.%s ("
+                + "id uuid PRIMARY KEY,\n"
+                + "list_value1 frozen<list<int>>,\n"
+                + "list_value2 frozen<list<timeuuid>>,\n"
+                + "set_value1 frozen<set<text>>,\n"
+                + "map_value1 frozen<map<int, text>>,\n"
+                + "map_value2 frozen<map<uuid, bigint>>,)",
+            keyspace, "collections_simple"));
 
     PreparedStatement insert =
         session.prepare(
@@ -873,6 +890,127 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             })
         .isInstanceOf(IndexOutOfBoundsException.class)
         .hasMessageContaining("Index: 0, Size: 0");
+  }
+
+  @Test
+  public void shouldInsertAndUpdateSimpleListSetsAndMaps() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    UUID id = UUID.randomUUID();
+
+    List<Integer> list = Arrays.asList(1, 2, 3);
+    List<String> set = Arrays.asList("a", "b", "c");
+    List<Map<Integer, String>> map =
+        Arrays.asList(
+            ImmutableMap.<Integer, String>builder().put(1, "one").build(),
+            ImmutableMap.<Integer, String>builder().put(2, "two").build());
+
+    InsertCollectionsSimpleMutation insertMutation =
+        InsertCollectionsSimpleMutation.builder()
+            .value(
+                CollectionsSimpleInput.builder()
+                    .id(id)
+                    .listValue1(list)
+                    .setValue1(set)
+                    .mapValue1(
+                        map.stream()
+                            .map(m -> m.entrySet().stream().findFirst().get())
+                            .map(
+                                e ->
+                                    InputKeyIntValueString.builder()
+                                        .key(e.getKey())
+                                        .value(e.getValue())
+                                        .build())
+                            .collect(Collectors.toList()))
+                    .build())
+            .build();
+
+    InsertCollectionsSimpleMutation.Data insertResult = mutateAndGet(client, insertMutation);
+    assertThat(insertResult.getInsertCollectionsSimple()).isPresent();
+    assertCollectionsSimple(client, id, list, set, map);
+
+    list = Arrays.asList(4, 5);
+    set = Collections.singletonList("d");
+    map =
+        Collections.singletonList(ImmutableMap.<Integer, String>builder().put(3, "three").build());
+
+    UpdateCollectionsSimpleMutation updateMutation =
+        UpdateCollectionsSimpleMutation.builder()
+            .value(
+                CollectionsSimpleInput.builder()
+                    .id(id)
+                    .listValue1(list)
+                    .setValue1(set)
+                    .mapValue1(
+                        map.stream()
+                            .map(m -> m.entrySet().stream().findFirst().get())
+                            .map(
+                                e ->
+                                    InputKeyIntValueString.builder()
+                                        .key(e.getKey())
+                                        .value(e.getValue())
+                                        .build())
+                            .collect(Collectors.toList()))
+                    .build())
+            .build();
+
+    UpdateCollectionsSimpleMutation.Data updateResult = mutateAndGet(client, updateMutation);
+    assertThat(updateResult.getUpdateCollectionsSimple()).isPresent();
+    assertCollectionsSimple(client, id, list, set, map);
+  }
+
+  private void assertCollectionsSimple(
+      ApolloClient client,
+      UUID id,
+      List<Integer> list,
+      List<String> set,
+      List<Map<Integer, String>> map) {
+    GetCollectionsSimpleQuery.Value item = getCollectionSimple(client, id);
+    assertThat(item.getListValue1()).isPresent();
+    assertThat(item.getListValue1().get()).isEqualTo(list);
+    assertThat(item.getSetValue1()).isPresent();
+    assertThat(item.getSetValue1().get()).isEqualTo(set);
+    assertThat(item.getMapValue1()).isPresent();
+    assertThat(
+            item.getMapValue1().get().stream()
+                .map(
+                    m ->
+                        ImmutableMap.<Integer, String>builder()
+                            .put(m.getKey(), m.getValue().get())
+                            .build())
+                .collect(Collectors.toList()))
+        .isEqualTo(map);
+  }
+
+  private GetCollectionsSimpleQuery.Value getCollectionSimple(ApolloClient client, UUID id) {
+    GetCollectionsSimpleQuery getQuery =
+        GetCollectionsSimpleQuery.builder()
+            .value(CollectionsSimpleInput.builder().id(id).build())
+            .build();
+
+    GetCollectionsSimpleQuery.Data getResult = getObservable(client.query(getQuery));
+    assertThat(getResult.getCollectionsSimple()).isPresent();
+    assertThat(getResult.getCollectionsSimple().get().getValues()).isPresent();
+    assertThat(getResult.getCollectionsSimple().get().getValues().get()).hasSize(1);
+    return getResult.getCollectionsSimple().get().getValues().get().get(0);
+  }
+
+  private static <T> T getObservable(ApolloCall<Optional<T>> observable) {
+    CompletableFuture<T> future = new CompletableFuture<>();
+    observable.enqueue(queryCallback(future));
+
+    try {
+      return future.get();
+    } catch (Exception e) {
+      throw new RuntimeException("Operation could not be completed", e);
+    } finally {
+      observable.cancel();
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <D extends Operation.Data, T, V extends Operation.Variables> D mutateAndGet(
+      ApolloClient client, Mutation<D, T, V> mutation) {
+    return getObservable((ApolloMutationCall<Optional<D>>) client.mutate(mutation));
   }
 
   private ApolloClient getApolloClient(String path) {
