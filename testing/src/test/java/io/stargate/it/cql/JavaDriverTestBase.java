@@ -61,8 +61,9 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
     config.put(
         TypedDriverOption.LOAD_BALANCING_POLICY_CLASS,
         DcInferringLoadBalancingPolicy.class.getName());
-    config.put(TypedDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(60));
-    config.put(TypedDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(30));
+    config.put(TypedDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(180));
+    config.put(TypedDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT, Duration.ofSeconds(180));
+    config.put(TypedDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180));
     config.put(TypedDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5));
     config.put(TypedDriverOption.REQUEST_WARN_IF_SET_KEYSPACE, false);
     customizeConfig(config);

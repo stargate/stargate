@@ -8,24 +8,6 @@
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
   <url>http://github.com/stargate/stargate</url>
-  <modules>
-    <module>core</module>
-    <module>stargate-starter</module>
-    <module>persistence-api</module>
-    <module>persistence-common</module>
-    <module>persistence-cassandra-3.11</module>
-    <module>persistence-cassandra-4.0</module>
-    <module>persistence-dse-6.8</module>
-    <module>cql</module>
-    <module>graphqlapi</module>
-    <module>restapi</module>
-    <module>auth-api</module>
-    <module>authentication</module>
-    <module>auth-table-based-service</module>
-    <module>health-checker</module>
-    <!-- testing last -->
-    <module>testing</module>
-  </modules>
   <properties>
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -114,6 +96,55 @@
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <id>dse</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <modules>
+        <module>core</module>
+        <module>stargate-starter</module>
+        <module>persistence-api</module>
+        <module>persistence-common</module>
+        <module>persistence-test</module>
+        <module>persistence-cassandra-3.11</module>
+        <module>persistence-cassandra-4.0</module>
+        <module>persistence-dse-6.8</module>
+        <module>cql</module>
+        <module>graphqlapi</module>
+        <module>restapi</module>
+        <module>auth-api</module>
+        <module>authentication</module>
+        <module>auth-table-based-service</module>
+        <module>health-checker</module>
+        <!-- testing last -->
+        <module>testing</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>default</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <modules>
+        <module>core</module>
+        <module>stargate-starter</module>
+        <module>persistence-api</module>
+        <module>persistence-common</module>
+        <module>persistence-test</module>
+        <module>persistence-cassandra-3.11</module>
+        <module>persistence-cassandra-4.0</module>
+        <module>cql</module>
+        <module>graphqlapi</module>
+        <module>restapi</module>
+        <module>auth-api</module>
+        <module>authentication</module>
+        <module>auth-table-based-service</module>
+        <module>health-checker</module>
+        <!-- testing last -->
+        <module>testing</module>
+      </modules>
     </profile>
   </profiles>
   <build>

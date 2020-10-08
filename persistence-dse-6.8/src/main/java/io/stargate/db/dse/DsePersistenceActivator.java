@@ -1,5 +1,6 @@
 package io.stargate.db.dse;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.common.StargateConfigSnitch;
@@ -38,11 +39,9 @@ public class DsePersistenceActivator implements BundleActivator, ServiceListener
   private File baseDir;
   private volatile BundleContext context;
 
-  private Config makeConfig() throws IOException {
+  @VisibleForTesting
+  public static Config makeConfig(File baseDir) throws IOException {
     Config c = new Config();
-
-    // Throw away data directory since stargate is ephemeral anyway
-    baseDir = Files.createTempDirectory("stargate-dse").toFile();
 
     File commitLogDir = Paths.get(baseDir.getPath(), "commitlog").toFile();
     commitLogDir.mkdirs();
@@ -144,7 +143,10 @@ public class DsePersistenceActivator implements BundleActivator, ServiceListener
     props.put("Identifier", "DsePersistence");
 
     try {
-      dseDB.initialize(makeConfig());
+      // Throw away data directory since stargate is ephemeral anyway
+      baseDir = Files.createTempDirectory("stargate-dse").toFile();
+
+      dseDB.initialize(makeConfig(baseDir));
     } catch (IOException e) {
       throw new IOError(e);
     }
