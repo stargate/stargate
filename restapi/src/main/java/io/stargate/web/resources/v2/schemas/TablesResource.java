@@ -32,8 +32,14 @@ import io.stargate.web.models.TableResponse;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -54,19 +60,42 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Api(
+    produces = MediaType.APPLICATION_JSON,
+    consumes = MediaType.APPLICATION_JSON,
+    tags = {"schemas"})
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables")
 @Produces(MediaType.APPLICATION_JSON)
 public class TablesResource {
+
   private static final Logger logger = LoggerFactory.getLogger(TablesResource.class);
 
   @Inject private Db db;
 
   @Timed
   @GET
-  public Response listAll(
-      @HeaderParam("X-Cassandra-Token") String token,
+  @ApiOperation(
+      value = "Get all tables",
+      notes = "Retrieve all tables in a specific keyspace.",
+      response = ResponseWrapper.class,
+      responseContainer = "List")
+  @ApiResponses(
+      value = {
+          @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
+          @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+          @ApiResponse(code = 404, message = "Not Found", response = Error.class),
+          @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
+  public Response getAllTables(
+      @ApiParam(
+          value =
+              "The token returned from the authorization endpoint. Use this token in each request.",
+          required = true)
+      @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
       @PathParam("keyspaceName") final String keyspaceName,
-      @QueryParam("raw") final boolean raw) {
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") final boolean raw) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -84,12 +113,30 @@ public class TablesResource {
 
   @Timed
   @GET
+  @ApiOperation(
+      value = "Get a table",
+      notes = "Retrieve data for a single table in a specific keyspace.",
+      response = Table.class)
+  @ApiResponses(
+      value = {
+          @ApiResponse(code = 200, message = "OK", response = Table.class),
+          @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+          @ApiResponse(code = 404, message = "Not Found", response = Error.class),
+          @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
   @Path("/{tableName}")
-  public Response getOne(
-      @HeaderParam("X-Cassandra-Token") String token,
+  public Response getOneTable(
+      @ApiParam(
+          value =
+              "The token returned from the authorization endpoint. Use this token in each request.",
+          required = true)
+      @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
       @PathParam("keyspaceName") final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
       @PathParam("tableName") final String tableName,
-      @QueryParam("raw") final boolean raw) {
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") final boolean raw) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -101,53 +148,31 @@ public class TablesResource {
         });
   }
 
-  private TableResponse getTable(Table tableMetadata) {
-    final List<ColumnDefinition> columnDefinitions =
-        tableMetadata.columns().stream()
-            .map(
-                (col) -> {
-                  ColumnType type = col.type();
-                  return new ColumnDefinition(
-                      col.name(),
-                      type == null ? null : type.cqlDefinition(),
-                      col.kind() == Kind.Static);
-                })
-            .collect(Collectors.toList());
-
-    final List<String> partitionKey =
-        tableMetadata.partitionKeyColumns().stream().map(Column::name).collect(Collectors.toList());
-    final List<String> clusteringKey =
-        tableMetadata.clusteringKeyColumns().stream()
-            .map(Column::name)
-            .collect(Collectors.toList());
-    final List<ClusteringExpression> clusteringExpression =
-        tableMetadata.clusteringKeyColumns().stream()
-            .map(
-                (col) ->
-                    new ClusteringExpression(
-                        col.name(), Objects.requireNonNull(col.order()).name()))
-            .collect(Collectors.toList());
-
-    final PrimaryKey primaryKey = new PrimaryKey(partitionKey, clusteringKey);
-    final int ttl =
-        0; // TODO: [doug] 2020-09-1, Tue, 0:08 get this from schema (select default_time_to_live
-    // from tables;)
-    final TableOptions tableOptions = new TableOptions(ttl, clusteringExpression);
-
-    return new TableResponse(
-        tableMetadata.name(),
-        tableMetadata.keyspace(),
-        columnDefinitions,
-        primaryKey,
-        tableOptions);
-  }
 
   @Timed
   @POST
-  public Response create(
-      @HeaderParam("X-Cassandra-Token") String token,
+  @ApiOperation(
+      value = "Create a table",
+      notes = "Add a table in a specific keyspace.",
+      response = Map.class)
+  @ApiResponses(
+      value = {
+          @ApiResponse(code = 201, message = "Created", response = Map.class),
+          @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+          @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+          @ApiResponse(code = 409, message = "Conflict", response = Error.class),
+          @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
+  public Response createTable(
+      @ApiParam(
+          value =
+              "The token returned from the authorization endpoint. Use this token in each request.",
+          required = true)
+      @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
       @PathParam("keyspaceName") final String keyspaceName,
-      @NotNull final TableAdd tableAdd) {
+      @ApiParam(value = "", required = true) @NotNull final TableAdd tableAdd) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -238,12 +263,32 @@ public class TablesResource {
 
   @Timed
   @PUT
+  @ApiOperation(
+      value = "Replace a table definition",
+      notes = "Update a single table definition, except for columns, in a keyspace.",
+      response = Map.class)
+  @ApiResponses(
+      value = {
+          @ApiResponse(code = 200, message = "resource updated", response = Map.class),
+          @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+          @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+          @ApiResponse(code = 404, message = "Not Found", response = Error.class),
+          @ApiResponse(code = 409, message = "Conflict", response = Error.class),
+          @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
   @Path("/{tableName}")
-  public Response update(
-      @HeaderParam("X-Cassandra-Token") String token,
+  public Response updateTable(
+      @ApiParam(
+          value =
+              "The token returned from the authorization endpoint. Use this token in each request.",
+          required = true)
+      @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
       @PathParam("keyspaceName") final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
       @PathParam("tableName") final String tableName,
-      @NotNull final TableAdd tableUpdate) {
+      @ApiParam(value = "table name", required = true) @NotNull final TableAdd tableUpdate) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -280,10 +325,26 @@ public class TablesResource {
 
   @Timed
   @DELETE
+  @ApiOperation(
+      value = "Delete a table",
+      notes = "Delete a single table in the specified keyspace.")
+  @ApiResponses(
+      value = {
+          @ApiResponse(code = 204, message = "No Content"),
+          @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+          @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
   @Path("/{tableName}")
-  public Response delete(
-      @HeaderParam("X-Cassandra-Token") String token,
+  public Response deleteTable(
+      @ApiParam(
+          value =
+              "The token returned from the authorization endpoint. Use this token in each request.",
+          required = true)
+      @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
       @PathParam("keyspaceName") final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
       @PathParam("tableName") final String tableName) {
     return RequestHandler.handle(
         () -> {
@@ -298,5 +359,46 @@ public class TablesResource {
 
           return Response.status(Response.Status.NO_CONTENT).build();
         });
+  }
+
+  private TableResponse getTable(Table tableMetadata) {
+    final List<ColumnDefinition> columnDefinitions =
+        tableMetadata.columns().stream()
+            .map(
+                (col) -> {
+                  ColumnType type = col.type();
+                  return new ColumnDefinition(
+                      col.name(),
+                      type == null ? null : type.cqlDefinition(),
+                      col.kind() == Kind.Static);
+                })
+            .collect(Collectors.toList());
+
+    final List<String> partitionKey =
+        tableMetadata.partitionKeyColumns().stream().map(Column::name).collect(Collectors.toList());
+    final List<String> clusteringKey =
+        tableMetadata.clusteringKeyColumns().stream()
+            .map(Column::name)
+            .collect(Collectors.toList());
+    final List<ClusteringExpression> clusteringExpression =
+        tableMetadata.clusteringKeyColumns().stream()
+            .map(
+                (col) ->
+                    new ClusteringExpression(
+                        col.name(), Objects.requireNonNull(col.order()).name()))
+            .collect(Collectors.toList());
+
+    final PrimaryKey primaryKey = new PrimaryKey(partitionKey, clusteringKey);
+    final int ttl =
+        0; // TODO: [doug] 2020-09-1, Tue, 0:08 get this from schema (select default_time_to_live
+    // from tables;)
+    final TableOptions tableOptions = new TableOptions(ttl, clusteringExpression);
+
+    return new TableResponse(
+        tableMetadata.name(),
+        tableMetadata.keyspace(),
+        columnDefinitions,
+        primaryKey,
+        tableOptions);
   }
 }

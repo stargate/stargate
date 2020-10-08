@@ -15,10 +15,14 @@
  */
 package io.stargate.web.models;
 
+import io.swagger.annotations.ApiModelProperty;
+
 public class Changeset {
+
   String column;
   String value;
 
+  @ApiModelProperty(example = "firstName", required = true, value = "Name of the column to update.")
   public String getColumn() {
     return column;
   }
@@ -28,6 +32,10 @@ public class Changeset {
     return this;
   }
 
+  @ApiModelProperty(
+      example = "Joe",
+      required = true,
+      value = "The value to update in the column for all matching rows.")
   public String getValue() {
     return value;
   }

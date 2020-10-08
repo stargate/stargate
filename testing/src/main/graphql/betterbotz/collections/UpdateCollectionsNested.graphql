@@ -1,0 +1,15 @@
+mutation UpdateCollectionsNested(
+    $value: CollectionsNestedInput!
+    $ifExists: Boolean
+    $ifCondition: CollectionsNestedFilterInput
+    $options: MutationOptions
+) {
+    updateCollectionsNested(
+        value: $value
+        ifExists: $ifExists
+        ifCondition: $ifCondition
+        options: $options
+    ) {
+        applied
+    }
+}

@@ -17,12 +17,17 @@ package io.stargate.web.models;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModelProperty;
 
 public class ColumnModel {
 
   String name;
   String value;
 
+  @ApiModelProperty(
+      example = "emailaddress",
+      required = true,
+      value = "Name for the column, which must be unique.")
   public String getName() {
     return name;
   }
@@ -31,6 +36,10 @@ public class ColumnModel {
     this.name = name;
   }
 
+  @ApiModelProperty(
+      example = "text",
+      required = true,
+      value = "The type of data allowed in the column.")
   public String getValue() {
     return value;
   }
