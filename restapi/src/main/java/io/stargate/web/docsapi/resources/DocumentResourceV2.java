@@ -23,7 +23,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Path("/v2/")
+@Path("/v2/namespaces")
 @Produces(MediaType.APPLICATION_JSON)
 public class DocumentResourceV2 {
   @Inject private Db dbFactory;
@@ -58,15 +58,15 @@ public class DocumentResourceV2 {
   }
 
   @POST
-  @Path("namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection}")
+  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response postDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace") String namespace,
-      @PathParam("collection") String collection,
+      @PathParam("namespace-id") String namespace,
+      @PathParam("collection-id") String collection,
       String payload) {
     // This route does nearly the same thing as PUT, except that it assigns an ID for the requester
     // And returns it as a Location header/in JSON body
@@ -95,16 +95,16 @@ public class DocumentResourceV2 {
   }
 
   @PUT
-  @Path("namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection}/{id}")
+  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response putDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace") String namespace,
-      @PathParam("collection") String collection,
-      @PathParam("id") String id,
+      @PathParam("namespace-id") String namespace,
+      @PathParam("collection-id") String collection,
+      @PathParam("document-id") String id,
       String payload) {
     logger.debug("Put: Collection = {}, id = {}", collection, id);
 
@@ -125,17 +125,18 @@ public class DocumentResourceV2 {
   }
 
   @PUT
-  @Path("namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection}/{id}/{path: .*}")
+  @Path(
+      "{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}/{document-path: .*}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response putDocPath(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace") String namespace,
-      @PathParam("collection") String collection,
-      @PathParam("id") String id,
-      @PathParam("path") List<PathSegment> path,
+      @PathParam("namespace-id") String namespace,
+      @PathParam("collection-id") String collection,
+      @PathParam("document-id") String id,
+      @PathParam("document-path") List<PathSegment> path,
       String payload) {
     logger.debug("Put: Collection = {}, id = {}, path = {}", collection, id, path);
 
@@ -148,16 +149,16 @@ public class DocumentResourceV2 {
   }
 
   @PATCH
-  @Path("namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection}/{id}")
+  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response patchDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace") String namespace,
-      @PathParam("collection") String collection,
-      @PathParam("id") String id,
+      @PathParam("namespace-id") String namespace,
+      @PathParam("collection-id") String collection,
+      @PathParam("document-id") String id,
       String payload) {
     logger.debug("Patch: Collection = {}, id = {}", collection, id);
 
@@ -170,17 +171,18 @@ public class DocumentResourceV2 {
   }
 
   @PATCH
-  @Path("namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection}/{id}/{path: .*}")
+  @Path(
+      "{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}/{document-path: .*}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response patchDocPath(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace") String namespace,
-      @PathParam("collection") String collection,
-      @PathParam("id") String id,
-      @PathParam("path") List<PathSegment> path,
+      @PathParam("namespace-id") String namespace,
+      @PathParam("collection-id") String collection,
+      @PathParam("document-id") String id,
+      @PathParam("document-path") List<PathSegment> path,
       String payload) {
     logger.debug("Patch: Collection = {}, id = {}, path = {}", collection, id, path);
 
@@ -193,16 +195,16 @@ public class DocumentResourceV2 {
   }
 
   @DELETE
-  @Path("namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection: [a-zA-Z_0-9]+}/{id}")
+  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response deleteDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace") String namespace,
-      @PathParam("collection") String collection,
-      @PathParam("id") String id) {
+      @PathParam("namespace-id") String namespace,
+      @PathParam("collection-id") String collection,
+      @PathParam("document-id") String id) {
     logger.debug("Delete: Collection = {}, id = {}, path = {}", collection, id, new ArrayList<>());
     return handle(
         () -> {
@@ -214,17 +216,17 @@ public class DocumentResourceV2 {
 
   @DELETE
   @Path(
-      "namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection: [a-zA-Z_0-9]+}/{id}/{path: .*}")
+      "{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response deleteDocPath(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace") String namespace,
-      @PathParam("collection") String collection,
-      @PathParam("id") String id,
-      @PathParam("path") List<PathSegment> path) {
+      @PathParam("namespace-id") String namespace,
+      @PathParam("collection-id") String collection,
+      @PathParam("document-id") String id,
+      @PathParam("document-path") List<PathSegment> path) {
     logger.debug("Delete: Collection = {}, id = {}, path = {}", collection, id, path);
 
     return handle(
@@ -236,16 +238,16 @@ public class DocumentResourceV2 {
   }
 
   @GET
-  @Path("namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection: [a-zA-Z_0-9]+}/{id}")
+  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response getDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace") String namespace,
-      @PathParam("collection") String collection,
-      @PathParam("id") String id,
+      @PathParam("namespace-id") String namespace,
+      @PathParam("collection-id") String collection,
+      @PathParam("document-id") String id,
       @QueryParam("where") String where,
       @QueryParam("fields") String fields,
       @QueryParam("page-size") int pageSizeParam,
@@ -268,17 +270,17 @@ public class DocumentResourceV2 {
 
   @GET
   @Path(
-      "namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection: [a-zA-Z_0-9]+}/{id}/{path: .*}")
+      "{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response getDocPath(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace") String namespace,
-      @PathParam("collection") String collection,
-      @PathParam("id") String id,
-      @PathParam("path") List<PathSegment> path,
+      @PathParam("namespace-id") String namespace,
+      @PathParam("collection-id") String collection,
+      @PathParam("document-id") String id,
+      @PathParam("document-path") List<PathSegment> path,
       @QueryParam("where") String where,
       @QueryParam("fields") String fields,
       @QueryParam("page-size") int pageSizeParam,
@@ -368,14 +370,14 @@ public class DocumentResourceV2 {
   }
 
   @GET
-  @Path("namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection: [a-zA-Z_0-9]+}")
+  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}")
   @Produces("application/json")
   public Response searchDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace") String namespace,
-      @PathParam("collection") String collection,
+      @PathParam("namespace-id") String namespace,
+      @PathParam("collection-id") String collection,
       @QueryParam("where") String where,
       @QueryParam("fields") String fields,
       @QueryParam("page-size") int pageSizeParam,

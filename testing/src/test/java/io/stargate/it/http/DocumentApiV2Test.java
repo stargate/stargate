@@ -147,8 +147,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     Response r = put("/v2/namespaces/unknown_keyspace_1337/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
-        .isEqualTo(
-            "Unknown namespace unknown_keyspace_1337, you must create it first by creating a keyspace with the same name.");
+        .isEqualTo("Unknown namespace unknown_keyspace_1337, you must create it first.");
 
     r = put("/v2/namespaces/" + keyspace + "/collections/invalid-character/1", obj);
     assertThat(r.code()).isEqualTo(400);
