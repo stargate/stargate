@@ -116,7 +116,7 @@ public class Server extends Application<ApplicationConfiguration> {
     environment.jersey().register(TablesResource.class);
     environment.jersey().register(KeyspacesResource.class);
     environment.jersey().register(ColumnsResource.class);
-    
+
     // Documents API
     environment.jersey().register(DocumentResourceV2.class);
 
@@ -133,7 +133,7 @@ public class Server extends Application<ApplicationConfiguration> {
               }
             });
 
-    environment.jersey().register(SwaggerUIResource.class)
+    environment.jersey().register(SwaggerUIResource.class);
 
     enableCors(environment);
   }

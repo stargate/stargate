@@ -60,6 +60,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                         DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT,
                         Duration.ofSeconds(180))
                     .withDuration(
+                        DefaultDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(180))
+                    .withDuration(
                         DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
                     .build())
             .withAuthCredentials("cassandra", "cassandra")
