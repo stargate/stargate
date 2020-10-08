@@ -696,8 +696,9 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     assertThat(rowsResponse.getSuccess()).isTrue();
 
     String emails = getRow(tableName, "alice");
-    assertThat(emails).isEqualTo(
-        "{\"count\":1,\"rows\":[{\"name\":\"alice\",\"email\":[\"foo@example.com\",\"bar@example.com\"]}]}");
+    assertThat(emails)
+        .isEqualTo(
+            "{\"count\":1,\"rows\":[{\"name\":\"alice\",\"email\":[\"foo@example.com\",\"bar@example.com\"]}]}");
   }
 
   @Test
