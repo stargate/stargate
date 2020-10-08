@@ -1,7 +1,5 @@
 package io.stargate.graphql.schema.fetchers.dml;
 
-import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.literal;
-
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.relation.Relation;
 import com.datastax.oss.driver.api.querybuilder.update.Assignment;
@@ -71,12 +69,11 @@ public class UpdateMutationFetcher extends MutationFetcher {
     List<Relation> relations = new ArrayList<>();
 
     for (Map.Entry<String, Object> entry : value.entrySet()) {
-      Column columnMetadata = table.column(getDBColumnName(table, entry.getKey()));
-      if (table.partitionKeyColumns().contains(columnMetadata)
-          || table.clusteringKeyColumns().contains(columnMetadata)) {
+      Column column = getColumn(table, entry.getKey());
+      if (table.partitionKeyColumns().contains(column)
+          || table.clusteringKeyColumns().contains(column)) {
         relations.add(
-            Relation.column(getDBColumnName(table, entry.getKey()))
-                .isEqualTo(literal(entry.getValue())));
+            Relation.column(column.name()).isEqualTo(toDbLiteral(column, entry.getValue())));
       }
     }
     return relations;
@@ -86,12 +83,10 @@ public class UpdateMutationFetcher extends MutationFetcher {
     Map<String, Object> value = environment.getArgument("value");
     List<Assignment> assignments = new ArrayList<>();
     for (Map.Entry<String, Object> entry : value.entrySet()) {
-      Column columnMetadata = table.column(getDBColumnName(table, entry.getKey()));
-      if (!(table.partitionKeyColumns().contains(columnMetadata)
-          || table.clusteringKeyColumns().contains(columnMetadata))) {
-        assignments.add(
-            Assignment.setColumn(
-                getDBColumnName(table, entry.getKey()), literal(entry.getValue())));
+      Column column = getColumn(table, entry.getKey());
+      if (!(table.partitionKeyColumns().contains(column)
+          || table.clusteringKeyColumns().contains(column))) {
+        assignments.add(Assignment.setColumn(column.name(), toDbLiteral(column, entry.getValue())));
       }
     }
     return assignments;

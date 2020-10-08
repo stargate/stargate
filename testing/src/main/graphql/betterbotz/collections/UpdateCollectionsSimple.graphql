@@ -1,0 +1,15 @@
+mutation UpdateCollectionsSimple(
+    $value: CollectionsSimpleInput!
+    $ifExists: Boolean
+    $ifCondition: CollectionsSimpleFilterInput
+    $options: MutationOptions
+) {
+    updateCollectionsSimple(
+        value: $value
+        ifExists: $ifExists
+        ifCondition: $ifCondition
+        options: $options
+    ) {
+        applied
+    }
+}
