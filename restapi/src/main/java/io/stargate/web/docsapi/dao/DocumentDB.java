@@ -88,9 +88,7 @@ public class DocumentDB {
 
     if (ks == null)
       throw new DocumentAPIRequestException(
-          String.format(
-              "Unknown namespace %s, you must create it first by creating a keyspace with the same name.",
-              keyspaceName));
+          String.format("Unknown namespace %s, you must create it first.", keyspaceName));
 
     if (!tableName.matches("^[a-zA-Z0-9_]+$")) {
       throw new DocumentAPIRequestException(

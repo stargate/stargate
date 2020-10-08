@@ -119,8 +119,8 @@ public class Server extends Application<ApplicationConfiguration> {
     environment.jersey().register(ColumnsResource.class);
 
     // Documents API
-    environment.jersey().register(NamespacesResource.class);
     environment.jersey().register(DocumentResourceV2.class);
+    environment.jersey().register(NamespacesResource.class);
 
     environment.jersey().register(ApiListingResource.class);
     environment.jersey().register(SwaggerSerializers.class);
