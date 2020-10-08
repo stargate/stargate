@@ -10,7 +10,9 @@ import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
+import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.resources.Db;
+import io.swagger.annotations.*;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -24,6 +26,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Path("/v2/namespaces")
+@Api(
+    produces = MediaType.APPLICATION_JSON,
+    consumes = MediaType.APPLICATION_JSON,
+    tags = {"documents"})
 @Produces(MediaType.APPLICATION_JSON)
 public class DocumentResourceV2 {
   @Inject private Db dbFactory;
@@ -58,15 +64,37 @@ public class DocumentResourceV2 {
   }
 
   @POST
+  @ApiOperation(
+      value = "Create a new document",
+      notes = "Auto-generates an ID for the newly created document")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            code = 201,
+            message = "Created",
+            responseHeaders = @ResponseHeader(name = "Location")),
+        @ApiResponse(code = 400, message = "Bad request"),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
   @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response postDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
-      @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace-id") String namespace,
-      @PathParam("collection-id") String collection,
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
       String payload) {
     // This route does nearly the same thing as PUT, except that it assigns an ID for the requester
     // And returns it as a Location header/in JSON body
@@ -95,16 +123,37 @@ public class DocumentResourceV2 {
   }
 
   @PUT
+  @ApiOperation(
+      value = "Create a new document with a provided document-id",
+      notes = "Rejects the request if a document with that document-id already exists.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK"),
+        @ApiResponse(code = 400, message = "Bad request"),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 409, message = "Conflict: document already exists"),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
   @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response putDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
-      @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace-id") String namespace,
-      @PathParam("collection-id") String collection,
-      @PathParam("document-id") String id,
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
+          String id,
       String payload) {
     logger.debug("Put: Collection = {}, id = {}", collection, id);
 
@@ -125,6 +174,17 @@ public class DocumentResourceV2 {
   }
 
   @PUT
+  @ApiOperation(
+      value = "Replace data at a path in a document",
+      notes = "Removes whatever was previously present at the path")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK"),
+        @ApiResponse(code = 400, message = "Bad request"),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
   @Path(
       "{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}/{document-path: .*}")
   @Consumes("application/json")
@@ -132,11 +192,22 @@ public class DocumentResourceV2 {
   public Response putDocPath(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
-      @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace-id") String namespace,
-      @PathParam("collection-id") String collection,
-      @PathParam("document-id") String id,
-      @PathParam("document-path") List<PathSegment> path,
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
+          String id,
+      @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
+          @PathParam("document-path")
+          List<PathSegment> path,
       String payload) {
     logger.debug("Put: Collection = {}, id = {}, path = {}", collection, id, path);
 
@@ -149,16 +220,36 @@ public class DocumentResourceV2 {
   }
 
   @PATCH
+  @ApiOperation(
+      value = "Update data at the root of a document",
+      notes = "Merges data at the root with requested data.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK"),
+        @ApiResponse(code = 400, message = "Bad request"),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
   @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response patchDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
-      @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace-id") String namespace,
-      @PathParam("collection-id") String collection,
-      @PathParam("document-id") String id,
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
+          String id,
       String payload) {
     logger.debug("Patch: Collection = {}, id = {}", collection, id);
 
@@ -171,6 +262,18 @@ public class DocumentResourceV2 {
   }
 
   @PATCH
+  @ApiOperation(
+      value = "Update data at a path in a document",
+      notes =
+          "Merges data at the path with requested data, assumes that the data at the path is already an object.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK"),
+        @ApiResponse(code = 400, message = "Bad request"),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
   @Path(
       "{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}/{document-path: .*}")
   @Consumes("application/json")
@@ -178,11 +281,22 @@ public class DocumentResourceV2 {
   public Response patchDocPath(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
-      @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace-id") String namespace,
-      @PathParam("collection-id") String collection,
-      @PathParam("document-id") String id,
-      @PathParam("document-path") List<PathSegment> path,
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
+          String id,
+      @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
+          @PathParam("document-path")
+          List<PathSegment> path,
       String payload) {
     logger.debug("Patch: Collection = {}, id = {}, path = {}", collection, id, path);
 
@@ -195,16 +309,33 @@ public class DocumentResourceV2 {
   }
 
   @DELETE
+  @ApiOperation(value = "Delete a document", notes = "Delete a document")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
   @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response deleteDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
-      @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace-id") String namespace,
-      @PathParam("collection-id") String collection,
-      @PathParam("document-id") String id) {
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
+          String id) {
     logger.debug("Delete: Collection = {}, id = {}, path = {}", collection, id, new ArrayList<>());
     return handle(
         () -> {
@@ -215,6 +346,14 @@ public class DocumentResourceV2 {
   }
 
   @DELETE
+  @ApiOperation(value = "Delete a path in a document", notes = "Delete a path in a document")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
   @Path(
       "{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
   @Consumes("application/json")
@@ -222,11 +361,22 @@ public class DocumentResourceV2 {
   public Response deleteDocPath(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
-      @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace-id") String namespace,
-      @PathParam("collection-id") String collection,
-      @PathParam("document-id") String id,
-      @PathParam("document-path") List<PathSegment> path) {
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
+          String id,
+      @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
+          @PathParam("document-path")
+          List<PathSegment> path) {
     logger.debug("Delete: Collection = {}, id = {}, path = {}", collection, id, path);
 
     return handle(
@@ -238,21 +388,57 @@ public class DocumentResourceV2 {
   }
 
   @GET
+  @ApiOperation(
+      value = "Get a document",
+      notes = "Retrieve the JSON representation of the document",
+      response = ResponseWrapper.class)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 400, message = "Bad Request"),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
   @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response getDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
-      @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace-id") String namespace,
-      @PathParam("collection-id") String collection,
-      @PathParam("document-id") String id,
-      @QueryParam("where") String where,
-      @QueryParam("fields") String fields,
-      @QueryParam("page-size") int pageSizeParam,
-      @QueryParam("page-state") String pageStateParam,
-      @QueryParam("raw") Boolean raw) {
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
+          String id,
+      @ApiParam(value = "a JSON blob with the search filters", required = false)
+          @QueryParam("where")
+          String where,
+      @ApiParam(
+              value = "the field names that you want to restrict the results to",
+              required = false)
+          @QueryParam("fields")
+          String fields,
+      @ApiParam(
+              value = "the max number of results to return, if `where` is defined.",
+              defaultValue = "100")
+          @QueryParam("page-size")
+          int pageSizeParam,
+      @ApiParam(
+              value = "Cassandra page state, used for pagination on consecutive requests",
+              required = false)
+          @QueryParam("page-state")
+          String pageStateParam,
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw) {
     return getDocPath(
         headers,
         ui,
@@ -269,6 +455,20 @@ public class DocumentResourceV2 {
   }
 
   @GET
+  @ApiOperation(
+      value = "Get a path in a document",
+      notes =
+          "Retrieve the JSON representation of the document at a provided path, with optional search parameters.",
+      response = ResponseWrapper.class)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 400, message = "Bad Request"),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
   @Path(
       "{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
   @Consumes("application/json")
@@ -276,16 +476,41 @@ public class DocumentResourceV2 {
   public Response getDocPath(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
-      @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace-id") String namespace,
-      @PathParam("collection-id") String collection,
-      @PathParam("document-id") String id,
-      @PathParam("document-path") List<PathSegment> path,
-      @QueryParam("where") String where,
-      @QueryParam("fields") String fields,
-      @QueryParam("page-size") int pageSizeParam,
-      @QueryParam("page-state") String pageStateParam,
-      @QueryParam("raw") Boolean raw) {
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
+          String id,
+      @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
+          @PathParam("document-path")
+          List<PathSegment> path,
+      @ApiParam(value = "a JSON blob with the search filters", required = false)
+          @QueryParam("where")
+          String where,
+      @ApiParam(
+              value = "the field names that you want to restrict the results to",
+              required = false)
+          @QueryParam("fields")
+          String fields,
+      @ApiParam(
+              value = "the max number of results to return, if `where` is defined",
+              defaultValue = "100")
+          @QueryParam("page-size")
+          int pageSizeParam,
+      @ApiParam(
+              value = "Cassandra page state, used for pagination on consecutive requests",
+              required = false)
+          @QueryParam("page-state")
+          String pageStateParam,
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw) {
     return handle(
         () -> {
           List<FilterCondition> filters = new ArrayList<>();
@@ -370,21 +595,53 @@ public class DocumentResourceV2 {
   }
 
   @GET
+  @ApiOperation(
+      value = "Search documents in a collection",
+      notes =
+          "Page over documents in a collection, with optional search parameters. Does not perform well for large documents.",
+      response = ResponseWrapper.class)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 400, message = "Bad Request"),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
   @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}")
   @Produces("application/json")
   public Response searchDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
-      @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("namespace-id") String namespace,
-      @PathParam("collection-id") String collection,
-      @QueryParam("where") String where,
-      @QueryParam("fields") String fields,
-      @QueryParam("page-size") int pageSizeParam,
-      @QueryParam("page-state") String pageStateParam,
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "a JSON blob with the search filters") @QueryParam("where") String where,
+      @ApiParam(
+              value = "the field names that you want to restrict the results to",
+              required = false)
+          @QueryParam("fields")
+          String fields,
+      @ApiParam(value = "the max number of documents to return, max 20", defaultValue = "1")
+          @QueryParam("page-size")
+          int pageSizeParam,
+      @ApiParam(
+              value = "Cassandra page state, used for pagination on consecutive requests",
+              required = false)
+          @QueryParam("page-state")
+          String pageStateParam,
       // TODO: Someday, support this in a non-restrictive way
       // @QueryParam("sort") String sort,
-      @QueryParam("raw") Boolean raw) {
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw) {
     return handle(
         () -> {
           List<FilterCondition> filters = new ArrayList<>();
