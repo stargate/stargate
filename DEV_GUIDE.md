@@ -133,3 +133,57 @@ curl -L -X GET 'localhost:8082/v1/keyspaces' \
 --header 'content-type: application/json' \
 --header 'X-Cassandra-Token: <AUTH_TOKEN>'
 ```
+
+## Running Integration Tests
+
+Integration tests require the Cassandra Cluster Manager ((ccm)[https://github.com/riptano/ccm])
+to be installed and accessible via the OS `PATH`.
+
+Note: Integration tests use `ccm` to start transient storage nodes, that are normally destroyed at 
+the end of the test run. However, if the test JVM is killed during execution, the external storage
+node may continue running and may interfere with subsequent test executions. In this case the
+transient storage process needs to be stopped manually (e.g. by using the `kill` command).
+
+### Ordinary Execution
+
+To run integration tests in the default configuration, run:
+
+```shell
+./mvnw verify
+```
+
+This will run integration tests for Cassandra 3.11 and 4.0. 
+On a reasonably powerful laptop it takes about 40 minutes.
+
+Note: support for DSE is not turned on by default.
+To build and test Stargate with the DSE 6.8 persistence module, run:
+
+```shell
+./mvnw verify -P dse -P it-dse-6.8
+```
+
+To run integration tests with all Cassandra and DSE persistence modules, run:
+
+```shell
+./mvnw verify -P it-cassandra-3.11 -P it-cassandra-4.0 -P dse -P it-dse-6.8
+```
+
+Note: enabling only one of the `it-*` profiles will automatically disable the others.
+
+### Debugging Integration Tests
+
+When debugging integration tests, it may be preferable to manually control the storage node.
+It does not matter how exactly the storage node is started (docker, ccm or manual run) as
+long as port `7000` is properly forwarded from `127.0.0.1` to the storage node. If the storage
+is managed manually, use the following options to convey connection information to the test JVM:
+* `-Dstargate.test.backend.use.external=true`
+* `-Dstargate.test.backend.cluster_name=<CLUSTER_NAME>`
+* `-Dstargate.test.backend.dc=<DATA_CENTER_NAME>`
+* `-Dstargate.test.backend.nodes=<NUMBER_OR_STORAGE_NODES>`
+
+### Running / Debugging Integration Tests in an IDE
+
+Integration tests can be started / debugged individually in an IDE.
+
+If `ccm` is used to mange storage nodes during tests, it should be accessible from the IDE's
+execution environment (`PATH`).
