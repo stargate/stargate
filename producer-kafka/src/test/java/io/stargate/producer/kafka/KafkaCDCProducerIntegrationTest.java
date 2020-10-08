@@ -88,12 +88,15 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 
 class KafkaCDCProducerIntegrationTest {
+
   private static final Logger LOG = LoggerFactory.getLogger(KafkaCDCProducerIntegrationTest.class);
 
   private static KafkaContainer kafkaContainer;
   private static EmbeddedSchemaRegistryServer schemaRegistry;
 
   private static final String TOPIC_PREFIX = "topicPrefix";
+  private static final String PARTITION_KEY_VALUE = "pk_value";
+  private static final Integer CLUSTERING_KEY_VALUE = 1;
 
   @BeforeAll
   public static void setup() throws Exception {
@@ -120,10 +123,7 @@ class KafkaCDCProducerIntegrationTest {
   @Test
   public void shouldSendUpdateEventWithOnePartitionKeyAndOneValue() throws Exception {
     // given
-    String partitionKeyValue = "pk_value";
-    Integer clusteringKeyValue = 1;
     String columnValue = "col_value";
-    long timestamp = 1000;
     TableMetadata tableMetadata = mockTableMetadata();
     String topicName = creteTopicName(tableMetadata);
 
@@ -144,14 +144,14 @@ class KafkaCDCProducerIntegrationTest {
     // send actual event
     RowUpdateEvent rowMutationEvent =
         createRowUpdateEvent(
-            partitionKeyValue,
+            PARTITION_KEY_VALUE,
             partitionKey(PARTITION_KEY_NAME, Native.TEXT),
             columnValue,
             column(COLUMN_NAME, Native.TEXT),
-            clusteringKeyValue,
+            CLUSTERING_KEY_VALUE,
             clusteringKey(CLUSTERING_KEY_NAME, Native.INT),
             tableMetadata,
-            timestamp);
+            1000);
     kafkaCDCProducer.send(rowMutationEvent).get();
 
     // then
@@ -182,9 +182,6 @@ class KafkaCDCProducerIntegrationTest {
   @Test
   public void shouldSendDeleteEventForAllPKsAndCK() throws Exception {
     // given
-    String partitionKeyValue = "pk_value";
-    Integer clusteringKeyValue = 1;
-    long timestamp = 1234;
     TableMetadata tableMetadata = mockTableMetadata();
     String topicName = creteTopicName(tableMetadata);
 
@@ -206,12 +203,11 @@ class KafkaCDCProducerIntegrationTest {
     // end delete event
     DeleteEvent event =
         createDeleteEvent(
-            partitionKeyValue,
+            PARTITION_KEY_VALUE,
             partitionKey(PARTITION_KEY_NAME),
-            clusteringKeyValue,
+            CLUSTERING_KEY_VALUE,
             clusteringKey(CLUSTERING_KEY_NAME),
-            tableMetadata,
-            timestamp);
+            tableMetadata);
     kafkaCDCProducer.send(event).get();
 
     // then
@@ -231,10 +227,7 @@ class KafkaCDCProducerIntegrationTest {
   public void shouldSendUpdateAndSendSecondEventWhenSchemaChanged(
       List<ColumnMetadata> metadataAfterChange, List<Cell> columnsAfterChange) throws Exception {
     // given
-    String partitionKeyValue = "pk_value";
-    Integer clusteringKeyValue = 1;
     String columnValue = "col_value";
-    long timestamp = 1000;
     TableMetadata tableMetadata = mockTableMetadata();
     String topicName = creteTopicName(tableMetadata);
 
@@ -255,14 +248,13 @@ class KafkaCDCProducerIntegrationTest {
       // send actual event
       RowUpdateEvent rowMutationEvent =
           createRowUpdateEvent(
-              partitionKeyValue,
+              PARTITION_KEY_VALUE,
               partitionKey(PARTITION_KEY_NAME, Native.TEXT),
               columnValue,
               column(COLUMN_NAME, Native.TEXT),
-              clusteringKeyValue,
+              CLUSTERING_KEY_VALUE,
               clusteringKey(CLUSTERING_KEY_NAME, Native.INT),
-              tableMetadata,
-              timestamp);
+              tableMetadata);
       kafkaCDCProducer.send(rowMutationEvent).get();
 
       // then
@@ -285,12 +277,11 @@ class KafkaCDCProducerIntegrationTest {
       rowMutationEvent =
           createRowUpdateEvent(
               Collections.singletonList(
-                  cellValue(partitionKeyValue, partitionKey(PARTITION_KEY_NAME, Native.TEXT))),
+                  cellValue(PARTITION_KEY_VALUE, partitionKey(PARTITION_KEY_NAME, Native.TEXT))),
               columnsAfterChange,
               Collections.singletonList(
-                  cellValue(clusteringKeyValue, clusteringKey(CLUSTERING_KEY_NAME, Native.INT))),
-              tableMetadata,
-              timestamp);
+                  cellValue(CLUSTERING_KEY_VALUE, clusteringKey(CLUSTERING_KEY_NAME, Native.INT))),
+              tableMetadata);
 
       kafkaCDCProducer.send(rowMutationEvent).get();
 
@@ -311,9 +302,6 @@ class KafkaCDCProducerIntegrationTest {
   public void shouldSendEventsWithAllNativeTypes(
       List<ColumnMetadata> columnMetadata, List<Cell> columnValues) throws Exception {
     // given
-    String partitionKeyValue = "pk_value";
-    Integer clusteringKeyValue = 1;
-    long timestamp = 1000;
     TableMetadata tableMetadata = mockTableMetadata();
     String topicName = creteTopicName(tableMetadata);
 
@@ -334,12 +322,11 @@ class KafkaCDCProducerIntegrationTest {
       RowUpdateEvent rowMutationEvent =
           createRowUpdateEvent(
               Collections.singletonList(
-                  cellValue(partitionKeyValue, partitionKey(PARTITION_KEY_NAME, Native.TEXT))),
+                  cellValue(PARTITION_KEY_VALUE, partitionKey(PARTITION_KEY_NAME, Native.TEXT))),
               columnValues,
               Collections.singletonList(
-                  cellValue(clusteringKeyValue, clusteringKey(CLUSTERING_KEY_NAME, Native.INT))),
-              tableMetadata,
-              timestamp);
+                  cellValue(CLUSTERING_KEY_VALUE, clusteringKey(CLUSTERING_KEY_NAME, Native.INT))),
+              tableMetadata);
       kafkaCDCProducer.send(rowMutationEvent).get();
 
       // then
@@ -460,9 +447,6 @@ class KafkaCDCProducerIntegrationTest {
   public void shouldSendEventsWithAllComplexTypes(
       List<ColumnMetadata> columnMetadata, List<Cell> columnValues) throws Exception {
     // given
-    String partitionKeyValue = "pk_value";
-    Integer clusteringKeyValue = 1;
-    long timestamp = 1000;
     TableMetadata tableMetadata = mockTableMetadata();
     String topicName = creteTopicName(tableMetadata);
 
@@ -483,12 +467,11 @@ class KafkaCDCProducerIntegrationTest {
       RowUpdateEvent rowMutationEvent =
           createRowUpdateEvent(
               Collections.singletonList(
-                  cellValue(partitionKeyValue, partitionKey(PARTITION_KEY_NAME, Native.TEXT))),
+                  cellValue(PARTITION_KEY_VALUE, partitionKey(PARTITION_KEY_NAME, Native.TEXT))),
               columnValues,
               Collections.singletonList(
-                  cellValue(clusteringKeyValue, clusteringKey(CLUSTERING_KEY_NAME, Native.INT))),
-              tableMetadata,
-              timestamp);
+                  cellValue(CLUSTERING_KEY_VALUE, clusteringKey(CLUSTERING_KEY_NAME, Native.INT))),
+              tableMetadata);
       kafkaCDCProducer.send(rowMutationEvent).get();
 
       // then
@@ -506,9 +489,6 @@ class KafkaCDCProducerIntegrationTest {
   @Test
   public void shouldSendEventsWithMapAndNestedMap() throws Exception {
     // given
-    String partitionKeyValue = "pk_value";
-    Integer clusteringKeyValue = 1;
-    long timestamp = 1000;
     TableMetadata tableMetadata = mockTableMetadata();
     String topicName = creteTopicName(tableMetadata);
 
@@ -545,14 +525,13 @@ class KafkaCDCProducerIntegrationTest {
       RowUpdateEvent rowMutationEvent =
           createRowUpdateEvent(
               Collections.singletonList(
-                  cellValue(partitionKeyValue, partitionKey(PARTITION_KEY_NAME, Native.TEXT))),
+                  cellValue(PARTITION_KEY_VALUE, partitionKey(PARTITION_KEY_NAME, Native.TEXT))),
               Arrays.asList(
                   cell(column(COLUMN_NAME, mapType), mapValues),
                   cell(column(COLUMN_NAME_2, mapOfMapType), mapOfMapValues)),
               Collections.singletonList(
-                  cellValue(clusteringKeyValue, clusteringKey(CLUSTERING_KEY_NAME, Native.INT))),
-              tableMetadata,
-              timestamp);
+                  cellValue(CLUSTERING_KEY_VALUE, clusteringKey(CLUSTERING_KEY_NAME, Native.INT))),
+              tableMetadata);
       kafkaCDCProducer.send(rowMutationEvent).get();
 
       // then

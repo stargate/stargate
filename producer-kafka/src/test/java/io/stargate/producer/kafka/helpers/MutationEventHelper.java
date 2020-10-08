@@ -126,6 +126,15 @@ public class MutationEventHelper {
       List<CellValue> partitionKeys,
       List<Cell> cells,
       List<CellValue> clusteringKeys,
+      TableMetadata tableMetadata) {
+    return createRowUpdateEvent(partitionKeys, cells, clusteringKeys, tableMetadata, 0);
+  }
+
+  @NotNull
+  public static RowUpdateEvent createRowUpdateEvent(
+      List<CellValue> partitionKeys,
+      List<Cell> cells,
+      List<CellValue> clusteringKeys,
       TableMetadata tableMetadata,
       long timestamp) {
     return new RowUpdateEvent() {
@@ -154,6 +163,22 @@ public class MutationEventHelper {
         return cells;
       }
     };
+  }
+
+  @NotNull
+  public static DeleteEvent createDeleteEvent(
+      String partitionKeyValue,
+      ColumnMetadata partitionKeyMetadata,
+      Integer clusteringKeyValue,
+      ColumnMetadata clusteringKeyMetadata,
+      TableMetadata tableMetadata) {
+    return createDeleteEvent(
+        partitionKeyValue,
+        partitionKeyMetadata,
+        clusteringKeyValue,
+        clusteringKeyMetadata,
+        tableMetadata,
+        0);
   }
 
   @NotNull
