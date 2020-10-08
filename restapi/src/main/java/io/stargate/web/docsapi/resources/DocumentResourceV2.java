@@ -58,14 +58,14 @@ public class DocumentResourceV2 {
   }
 
   @POST
-  @Path("namespaces/{keyspace: [a-zA-Z_0-9]+}/collections/{collection}")
+  @Path("namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response postDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("keyspace") String keyspace,
+      @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       String payload) {
     // This route does nearly the same thing as PUT, except that it assigns an ID for the requester
@@ -75,13 +75,14 @@ public class DocumentResourceV2 {
     return handle(
         () -> {
           boolean success =
-              documentService.putAtRoot(authToken, keyspace, collection, newId, payload, dbFactory);
+              documentService.putAtRoot(
+                  authToken, namespace, collection, newId, payload, dbFactory);
 
           if (success) {
             return Response.created(
                     URI.create(
                         String.format(
-                            "/v2/namespaces/%s/collections/%s/%s", keyspace, collection, newId)))
+                            "/v2/namespaces/%s/collections/%s/%s", namespace, collection, newId)))
                 .entity(mapper.writeValueAsString(wrapResponse(null, newId)))
                 .build();
           } else {
@@ -94,14 +95,14 @@ public class DocumentResourceV2 {
   }
 
   @PUT
-  @Path("namespaces/{keyspace: [a-zA-Z_0-9]+}/collections/{collection}/{id}")
+  @Path("namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection}/{id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response putDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("keyspace") String keyspace,
+      @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       @PathParam("id") String id,
       String payload) {
@@ -110,7 +111,7 @@ public class DocumentResourceV2 {
     return handle(
         () -> {
           boolean success =
-              documentService.putAtRoot(authToken, keyspace, collection, id, payload, dbFactory);
+              documentService.putAtRoot(authToken, namespace, collection, id, payload, dbFactory);
 
           if (success) {
             return Response.ok().entity(mapper.writeValueAsString(wrapResponse(null, id))).build();
@@ -124,14 +125,14 @@ public class DocumentResourceV2 {
   }
 
   @PUT
-  @Path("namespaces/{keyspace: [a-zA-Z_0-9]+}/collections/{collection}/{id}/{path: .*}")
+  @Path("namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection}/{id}/{path: .*}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response putDocPath(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("keyspace") String keyspace,
+      @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       @PathParam("id") String id,
       @PathParam("path") List<PathSegment> path,
@@ -141,20 +142,20 @@ public class DocumentResourceV2 {
     return handle(
         () -> {
           documentService.putAtPath(
-              authToken, keyspace, collection, id, payload, path, false, dbFactory);
+              authToken, namespace, collection, id, payload, path, false, dbFactory);
           return Response.ok().entity(mapper.writeValueAsString(wrapResponse(null, id))).build();
         });
   }
 
   @PATCH
-  @Path("namespaces/{keyspace: [a-zA-Z_0-9]+}/collections/{collection}/{id}")
+  @Path("namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection}/{id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response patchDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("keyspace") String keyspace,
+      @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       @PathParam("id") String id,
       String payload) {
@@ -163,20 +164,20 @@ public class DocumentResourceV2 {
     return handle(
         () -> {
           documentService.putAtPath(
-              authToken, keyspace, collection, id, payload, new ArrayList<>(), true, dbFactory);
+              authToken, namespace, collection, id, payload, new ArrayList<>(), true, dbFactory);
           return Response.ok().entity(mapper.writeValueAsString(wrapResponse(null, id))).build();
         });
   }
 
   @PATCH
-  @Path("namespaces/{keyspace: [a-zA-Z_0-9]+}/collections/{collection}/{id}/{path: .*}")
+  @Path("namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection}/{id}/{path: .*}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response patchDocPath(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("keyspace") String keyspace,
+      @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       @PathParam("id") String id,
       @PathParam("path") List<PathSegment> path,
@@ -186,41 +187,41 @@ public class DocumentResourceV2 {
     return handle(
         () -> {
           documentService.putAtPath(
-              authToken, keyspace, collection, id, payload, path, true, dbFactory);
+              authToken, namespace, collection, id, payload, path, true, dbFactory);
           return Response.ok().entity(mapper.writeValueAsString(wrapResponse(null, id))).build();
         });
   }
 
   @DELETE
-  @Path("namespaces/{keyspace: [a-zA-Z_0-9]+}/collections/{collection: [a-zA-Z_0-9]+}/{id}")
+  @Path("namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection: [a-zA-Z_0-9]+}/{id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response deleteDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("keyspace") String keyspace,
+      @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       @PathParam("id") String id) {
     logger.debug("Delete: Collection = {}, id = {}, path = {}", collection, id, new ArrayList<>());
     return handle(
         () -> {
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
-          documentService.deleteAtPath(db, keyspace, collection, id, new ArrayList<>());
+          documentService.deleteAtPath(db, namespace, collection, id, new ArrayList<>());
           return Response.noContent().build();
         });
   }
 
   @DELETE
   @Path(
-      "namespaces/{keyspace: [a-zA-Z_0-9]+}/collections/{collection: [a-zA-Z_0-9]+}/{id}/{path: .*}")
+      "namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection: [a-zA-Z_0-9]+}/{id}/{path: .*}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response deleteDocPath(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("keyspace") String keyspace,
+      @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       @PathParam("id") String id,
       @PathParam("path") List<PathSegment> path) {
@@ -229,20 +230,20 @@ public class DocumentResourceV2 {
     return handle(
         () -> {
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
-          documentService.deleteAtPath(db, keyspace, collection, id, path);
+          documentService.deleteAtPath(db, namespace, collection, id, path);
           return Response.noContent().build();
         });
   }
 
   @GET
-  @Path("namespaces/{keyspace: [a-zA-Z_0-9]+}/collections/{collection: [a-zA-Z_0-9]+}/{id}")
+  @Path("namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection: [a-zA-Z_0-9]+}/{id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response getDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("keyspace") String keyspace,
+      @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       @PathParam("id") String id,
       @QueryParam("where") String where,
@@ -254,7 +255,7 @@ public class DocumentResourceV2 {
         headers,
         ui,
         authToken,
-        keyspace,
+        namespace,
         collection,
         id,
         new ArrayList<>(),
@@ -267,14 +268,14 @@ public class DocumentResourceV2 {
 
   @GET
   @Path(
-      "namespaces/{keyspace: [a-zA-Z_0-9]+}/collections/{collection: [a-zA-Z_0-9]+}/{id}/{path: .*}")
+      "namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection: [a-zA-Z_0-9]+}/{id}/{path: .*}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response getDocPath(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("keyspace") String keyspace,
+      @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       @PathParam("id") String id,
       @PathParam("path") List<PathSegment> path,
@@ -318,7 +319,7 @@ public class DocumentResourceV2 {
           JsonNode node;
           if (filters.isEmpty()) {
             DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
-            node = documentService.getJsonAtPath(db, keyspace, collection, id, path);
+            node = documentService.getJsonAtPath(db, namespace, collection, id, path);
             if (node == null) {
               return Response.noContent().build();
             }
@@ -342,7 +343,7 @@ public class DocumentResourceV2 {
                     authToken, pageSizeParam > 0 ? pageSizeParam : DEFAULT_PAGE_SIZE, pageState);
             ImmutablePair<JsonNode, ByteBuffer> result =
                 documentService.searchDocumentsV2(
-                    db, keyspace, collection, filters, selectionList, id);
+                    db, namespace, collection, filters, selectionList, id);
 
             if (result == null) {
               return Response.noContent().build();
@@ -367,13 +368,13 @@ public class DocumentResourceV2 {
   }
 
   @GET
-  @Path("namespaces/{keyspace: [a-zA-Z_0-9]+}/collections/{collection: [a-zA-Z_0-9]+}")
+  @Path("namespaces/{namespace: [a-zA-Z_0-9]+}/collections/{collection: [a-zA-Z_0-9]+}")
   @Produces("application/json")
   public Response searchDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
       @HeaderParam("X-Cassandra-Token") String authToken,
-      @PathParam("keyspace") String keyspace,
+      @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       @QueryParam("where") String where,
       @QueryParam("fields") String fields,
@@ -429,7 +430,7 @@ public class DocumentResourceV2 {
                     dbFactory,
                     db,
                     authToken,
-                    keyspace,
+                    namespace,
                     collection,
                     selectionList,
                     cloneState,
@@ -441,7 +442,7 @@ public class DocumentResourceV2 {
                     dbFactory,
                     db,
                     authToken,
-                    keyspace,
+                    namespace,
                     collection,
                     filters,
                     selectionList,
