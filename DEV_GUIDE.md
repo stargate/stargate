@@ -138,7 +138,6 @@ curl -L -X GET 'localhost:8082/v1/keyspaces' \
 
 Integration tests require that Cassandra Cluster Manager ([ccm](https://github.com/riptano/ccm))
 be installed and accessible via the OS `PATH`.
-to be installed and accessible via the OS `PATH`.
 
 Note: Integration tests use `ccm` to start transient storage nodes that are normally destroyed at 
 the end of the test run. However, if the test JVM is killed during execution, the external storage
