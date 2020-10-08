@@ -11,9 +11,11 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriInfo;
 import org.osgi.framework.Bundle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +52,12 @@ public class SwaggerUIResource {
 
   @GET
   @Path("/")
-  public Response get() {
+  public Response get(@Context UriInfo uriInfo) {
+    // Redirect ".../swagger-ui" to ".../swagger-ui/" so that relative resources e.g. "./XXXX.css"
+    // in "index.html" work correctly.
+    if (!uriInfo.getAbsolutePath().getPath().endsWith("/")) {
+      return Response.temporaryRedirect(uriInfo.getAbsolutePathBuilder().path("/").build()).build();
+    }
     return serveFile("index.html");
   }
 
