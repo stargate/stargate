@@ -169,7 +169,7 @@ To run integration tests with all Cassandra and DSE persistence modules, run:
 ./mvnw verify -P it-cassandra-3.11 -P it-cassandra-4.0 -P dse -P it-dse-6.8
 ```
 
-Note: enabling only one of the `it-*` profiles will automatically disable the others.
+Note: Enabling only one of the `it-*` profiles will automatically disable the others.
 
 ### Debugging Integration Tests
 
