@@ -94,11 +94,6 @@ public class CassandraPersistence
         UserType,
         IndexMetadata,
         ViewDefinition> {
-  static {
-    System.setProperty(
-        "cassandra.custom_query_handler_class", StargateQueryHandler.class.getName());
-  }
-
   private static final Logger logger = LoggerFactory.getLogger(CassandraPersistence.class);
 
   /*
@@ -127,7 +122,7 @@ public class CassandraPersistence
   }
 
   @Override
-  protected SchemaConverter schemaConverter() {
+  protected SchemaConverter newSchemaConverter() {
     return new SchemaConverter();
   }
 
@@ -157,6 +152,11 @@ public class CassandraPersistence
 
   @Override
   protected void initializePersistence(Config config) {
+    // C* picks this property during the static loading of the ClientState class. So we set it
+    // early, to make sure that class i not loaded before we've set it.
+    System.setProperty(
+        "cassandra.custom_query_handler_class", StargateQueryHandler.class.getName());
+
     daemon = new CassandraDaemon(true);
 
     DatabaseDescriptor.daemonInitialization(() -> config);
@@ -364,9 +364,13 @@ public class CassandraPersistence
             if (response instanceof ErrorMessage) {
               throw new UncheckedExecutionException((Throwable) ((ErrorMessage) response).error);
             }
-            return (T)
-                Conversion.toResult(
-                    (ResultMessage) response, Conversion.toInternal(parameters.protocolVersion()));
+            @SuppressWarnings("unchecked")
+            T result =
+                (T)
+                    Conversion.toResult(
+                        (ResultMessage) response,
+                        Conversion.toInternal(parameters.protocolVersion()));
+            return result;
           });
     }
 

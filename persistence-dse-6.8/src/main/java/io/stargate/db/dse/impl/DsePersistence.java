@@ -79,11 +79,6 @@ public class DsePersistence
         ViewTableMetadata> {
   private static final Logger logger = LoggerFactory.getLogger(DsePersistence.class);
 
-  static {
-    System.setProperty(
-        "cassandra.custom_query_handler_class", StargateQueryHandler.class.getName());
-  }
-
   public static final Boolean USE_PROXY_PROTOCOL =
       Boolean.parseBoolean(System.getProperty("stargate.use_proxy_protocol", "false"));
 
@@ -110,7 +105,7 @@ public class DsePersistence
   }
 
   @Override
-  protected SchemaConverter schemaConverter() {
+  protected SchemaConverter newSchemaConverter() {
     return new SchemaConverter();
   }
 
@@ -141,6 +136,11 @@ public class DsePersistence
 
   @Override
   protected void initializePersistence(Config config) {
+    // DSE picks this property during the static loading of the ClientState class. So we set it
+    // early, to make sure that class i not loaded before we've set it.
+    System.setProperty(
+        "cassandra.custom_query_handler_class", StargateQueryHandler.class.getName());
+
     // Need to set this to true otherwise org.apache.cassandra.service.CassandraDaemon#activate0
     // will close both System.out and System.err.
     System.setProperty("cassandra-foreground", "true");
@@ -374,10 +374,13 @@ public class DsePersistence
                                 (Throwable) ((ErrorMessage) response).error));
                       }
 
-                      return (T)
-                          Conversion.toResult(
-                              (ResultMessage) response,
-                              Conversion.toInternal(parameters.protocolVersion()));
+                      @SuppressWarnings("unchecked")
+                      T result =
+                          (T)
+                              Conversion.toResult(
+                                  (ResultMessage) response,
+                                  Conversion.toInternal(parameters.protocolVersion()));
+                      return result;
                     }));
       } catch (Exception e) {
         CompletableFuture<T> exceptionalFuture = new CompletableFuture<>();

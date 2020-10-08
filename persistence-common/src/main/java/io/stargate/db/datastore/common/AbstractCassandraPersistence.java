@@ -43,11 +43,11 @@ public abstract class AbstractCassandraPersistence<Config, K, T, C, U, I, V>
 
   protected AbstractCassandraPersistence(String name) {
     this.name = name;
-    this.schemaConverter = schemaConverter();
+    this.schemaConverter = newSchemaConverter();
   }
 
   /** Creates a new, stateless, converter for the schema of the concrete persistence layer. */
-  protected abstract AbstractCassandraSchemaConverter<K, T, C, U, I, V> schemaConverter();
+  protected abstract AbstractCassandraSchemaConverter<K, T, C, U, I, V> newSchemaConverter();
 
   /** The current schema of the concrete persistence layer. */
   protected abstract Iterable<K> currentInternalSchema();
