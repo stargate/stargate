@@ -2051,7 +2051,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   @Test
   public void getNamespaces() throws IOException {
     String body =
-        RestUtils.get(authToken, String.format("%s:8082/v2/namespaces", host), HttpStatus.SC_OK);
+        RestUtils.get(
+            authToken, String.format("%s:8082/v2/schemas/namespaces", host), HttpStatus.SC_OK);
 
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     List<Keyspace> keyspaces =
@@ -2064,19 +2065,23 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void getNamespacesMissingToken() throws IOException {
-    RestUtils.get("", String.format("%s:8082/v2/namespaces", host), HttpStatus.SC_UNAUTHORIZED);
+    RestUtils.get(
+        "", String.format("%s:8082/v2/schemas/namespaces", host), HttpStatus.SC_UNAUTHORIZED);
   }
 
   @Test
   public void getNamespacesBadToken() throws IOException {
-    RestUtils.get("foo", String.format("%s:8082/v2/namespaces", host), HttpStatus.SC_UNAUTHORIZED);
+    RestUtils.get(
+        "foo", String.format("%s:8082/v2/schemas/namespaces", host), HttpStatus.SC_UNAUTHORIZED);
   }
 
   @Test
   public void getNamespacesRaw() throws IOException {
     String body =
         RestUtils.get(
-            authToken, String.format("%s:8082/v2/namespaces?raw=true", host), HttpStatus.SC_OK);
+            authToken,
+            String.format("%s:8082/v2/schemas/namespaces?raw=true", host),
+            HttpStatus.SC_OK);
 
     List<Keyspace> keyspaces = objectMapper.readValue(body, new TypeReference<List<Keyspace>>() {});
     assertThat(keyspaces)
@@ -2090,7 +2095,9 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void getNamespace() throws IOException {
     String body =
         RestUtils.get(
-            authToken, String.format("%s:8082/v2/namespaces/system", host), HttpStatus.SC_OK);
+            authToken,
+            String.format("%s:8082/v2/schemas/namespaces/system", host),
+            HttpStatus.SC_OK);
 
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     Keyspace keyspace = objectMapper.convertValue(response.getData(), Keyspace.class);
@@ -2103,7 +2110,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/namespaces/system?raw=true", host),
+            String.format("%s:8082/v2/schemas/namespaces/system?raw=true", host),
             HttpStatus.SC_OK);
 
     Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
@@ -2115,7 +2122,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void getNamespaceNotFound() throws IOException {
     RestUtils.get(
         authToken,
-        String.format("%s:8082/v2/namespaces/ks_not_found", host),
+        String.format("%s:8082/v2/schemas/namespaces/ks_not_found", host),
         HttpStatus.SC_NOT_FOUND);
   }
 
@@ -2127,7 +2134,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/namespaces/%s?raw=true", host, keyspaceName),
+            String.format("%s:8082/v2/schemas/namespaces/%s?raw=true", host, keyspaceName),
             HttpStatus.SC_OK);
 
     Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
@@ -2141,16 +2148,18 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     createKeyspace(keyspaceName);
 
     RestUtils.get(
-        authToken, String.format("%s:8082/v2/namespaces/%s", host, keyspaceName), HttpStatus.SC_OK);
+        authToken,
+        String.format("%s:8082/v2/schemas/namespaces/%s", host, keyspaceName),
+        HttpStatus.SC_OK);
 
     RestUtils.delete(
         authToken,
-        String.format("%s:8082/v2/namespaces/%s", host, keyspaceName),
+        String.format("%s:8082/v2/schemas/namespaces/%s", host, keyspaceName),
         HttpStatus.SC_NO_CONTENT);
 
     RestUtils.get(
         authToken,
-        String.format("%s:8082/v2/namespaces/%s", host, keyspaceName),
+        String.format("%s:8082/v2/schemas/namespaces/%s", host, keyspaceName),
         HttpStatus.SC_NOT_FOUND);
   }
 
