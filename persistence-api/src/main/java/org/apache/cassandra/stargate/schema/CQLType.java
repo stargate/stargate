@@ -59,6 +59,10 @@ public interface CQLType {
       return this.className.equals(that.className);
     }
 
+    public String getClassName() {
+      return className;
+    }
+
     @Override
     public final int hashCode() {
       return className.hashCode();
@@ -87,6 +91,14 @@ public interface CQLType {
 
     public boolean isCollection() {
       return true;
+    }
+
+    public Kind getKind() {
+      return kind;
+    }
+
+    public CQLType getSubType() {
+      return subType;
     }
 
     @Override
@@ -126,6 +138,14 @@ public interface CQLType {
       this.valueType = valueType;
     }
 
+    public CQLType getKeyType() {
+      return keyType;
+    }
+
+    public CQLType getValueType() {
+      return valueType;
+    }
+
     @Override
     public boolean equals(Object o) {
       if (this == o) {
@@ -158,6 +178,18 @@ public interface CQLType {
       this.keyspace = keyspace;
       this.name = name;
       this.fields = fields;
+    }
+
+    public String getKeyspace() {
+      return keyspace;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public LinkedHashMap<String, CQLType> getFields() {
+      return fields;
     }
 
     @Override
@@ -197,6 +229,10 @@ public interface CQLType {
       if (subTypes == null || subTypes.length == 0) {
         throw new IllegalArgumentException("subTypes should contain at least an item");
       }
+    }
+
+    public CQLType[] getSubTypes() {
+      return subTypes;
     }
 
     @Override
