@@ -142,7 +142,7 @@ curl -L -X GET 'localhost:8082/v1/keyspaces' \
 
 ## Running Tests
 
-Stargate includes a full suite of integration tests that can be ran in various ways. Some examples are
+Stargate includes a full suite of integration tests that can be ran in various ways. Some examples are:
 
 Run only Cassandra 3.11 and Cassandra 4.0 
 
