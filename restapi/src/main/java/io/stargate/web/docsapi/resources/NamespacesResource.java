@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
 @Api(
     produces = MediaType.APPLICATION_JSON,
     consumes = MediaType.APPLICATION_JSON,
-    tags = {"schemas"})
+    tags = {"documents"})
 @Path("/v2/namespaces")
 @Produces(MediaType.APPLICATION_JSON)
 public class NamespacesResource {
