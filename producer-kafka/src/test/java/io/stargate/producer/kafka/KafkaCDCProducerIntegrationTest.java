@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 import static org.testcontainers.containers.KafkaContainer.ZOOKEEPER_PORT;
 
 import com.datastax.oss.driver.api.core.data.CqlDuration;
+import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
 import com.datastax.oss.protocol.internal.util.Bytes;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
@@ -60,9 +61,12 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.cassandra.stargate.db.Cell;
 import org.apache.cassandra.stargate.db.DeleteEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
+import org.apache.cassandra.stargate.schema.CQLType.Collection;
+import org.apache.cassandra.stargate.schema.CQLType.Collection.Kind;
 import org.apache.cassandra.stargate.schema.CQLType.Native;
 import org.apache.cassandra.stargate.schema.ColumnMetadata;
 import org.apache.cassandra.stargate.schema.TableMetadata;
+import org.apache.commons.collections.IteratorUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -74,10 +78,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 
 class KafkaCDCProducerIntegrationTest {
+  private static final Logger LOG = LoggerFactory.getLogger(KafkaCDCProducerIntegrationTest.class);
 
   private static KafkaContainer kafkaContainer;
   private static EmbeddedSchemaRegistryServer schemaRegistry;
@@ -444,6 +451,79 @@ class KafkaCDCProducerIntegrationTest {
                 cell(column(Native.VARINT), new BigInteger(Integer.MAX_VALUE + "000")))));
   }
 
+  @ParameterizedTest
+  @MethodSource("complexTypesProvider")
+  public void shouldSendEventsWithAllComplexTypes(
+      List<ColumnMetadata> columnMetadata, List<Cell> columnValues) throws Exception {
+    // given
+    String partitionKeyValue = "pk_value";
+    Integer clusteringKeyValue = 1;
+    long timestamp = 1000;
+    TableMetadata tableMetadata = mockTableMetadata();
+    String topicName = creteTopicName(tableMetadata);
+
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    Map<String, Object> properties = createKafkaProducerSettings();
+    kafkaCDCProducer.init(properties).get();
+
+    // when
+    // schema change event
+    when(tableMetadata.getPartitionKeys())
+        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
+    when(tableMetadata.getClusteringKeys())
+        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
+    when(tableMetadata.getColumns()).thenReturn(columnMetadata);
+    kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
+    try {
+      // send actual event
+      RowUpdateEvent rowMutationEvent =
+          createRowUpdateEvent(
+              Collections.singletonList(
+                  cellValue(partitionKeyValue, partitionKey(PARTITION_KEY_NAME, Native.TEXT))),
+              columnValues,
+              Collections.singletonList(
+                  cellValue(clusteringKeyValue, clusteringKey(CLUSTERING_KEY_NAME, Native.INT))),
+              tableMetadata,
+              timestamp);
+      kafkaCDCProducer.send(rowMutationEvent).get();
+
+      // then
+      GenericRecord expectedKey =
+          kafkaCDCProducer.keyValueConstructor.constructKey(rowMutationEvent, topicName);
+      GenericRecord expectedValue =
+          kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
+
+      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+    } finally {
+      kafkaCDCProducer.close().get();
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  public static Stream<Arguments> complexTypesProvider() {
+    Collection listType = new Collection(Kind.LIST, Native.INT);
+    Collection listOfSet = new Collection(Kind.LIST, new Collection(Kind.SET, Native.INT));
+    Collection setType = new Collection(Kind.SET, Native.INT);
+    Collection setOfList = new Collection(Kind.SET, new Collection(Kind.LIST, Native.INT));
+    return Stream.of(
+        Arguments.of(
+            Collections.singletonList(column(listType)),
+            Collections.singletonList(cell(column(listType), Arrays.asList(1, 2)))),
+        Arguments.of(
+            Collections.singletonList(column(listOfSet)),
+            Collections.singletonList(
+                cell(column(listOfSet), Arrays.asList(Sets.newHashSet(1), Sets.newHashSet(2))))),
+        Arguments.of(
+            Collections.singletonList(column(setType)),
+            Collections.singletonList(cell(column(setType), Sets.newHashSet(1)))),
+        Arguments.of(
+            Collections.singletonList(column(setOfList)),
+            Collections.singletonList(
+                cell(
+                    column(setOfList),
+                    Sets.newHashSet(Collections.singletonList(1), Collections.singletonList(2))))));
+  }
+
   @NotNull
   private Map<String, Object> createKafkaProducerSettings() {
     Map<String, Object> properties = new HashMap<>();
@@ -492,6 +572,12 @@ class KafkaCDCProducerIntegrationTest {
               () -> {
                 ConsumerRecords<GenericRecord, GenericRecord> records =
                     consumer.poll(Duration.ofMillis(100));
+                if (records.count() > 0) {
+                  LOG.info(
+                      "Retrieved {} records: {}",
+                      records.count(),
+                      IteratorUtils.toList(records.iterator()));
+                }
                 return Streams.stream(records)
                     .anyMatch(r -> r.key().equals(expectedKey) && r.value().equals(expectedValue));
               });

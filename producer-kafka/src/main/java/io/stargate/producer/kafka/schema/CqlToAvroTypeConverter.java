@@ -30,6 +30,7 @@ import org.apache.avro.Conversions;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
+import org.apache.avro.SchemaBuilder;
 import org.apache.avro.data.TimeConversions;
 import org.apache.avro.generic.GenericData;
 import org.apache.cassandra.stargate.schema.CQLType;
@@ -136,6 +137,6 @@ public class CqlToAvroTypeConverter {
   }
 
   private static Schema createCollectionSchema(Collection type) {
-    return null;
+    return SchemaBuilder.array().items(toAvroType(type.getSubType()));
   }
 }
