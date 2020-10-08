@@ -156,7 +156,7 @@ To run integration tests in the default configuration, run:
 This will run integration tests for Cassandra 3.11 and 4.0. 
 On a reasonably powerful laptop it takes about 40 minutes.
 
-Note: support for DSE is not turned on by default.
+Note: Support for DSE is not turned on by default.
 To build and test Stargate with the DSE 6.8 persistence module, run:
 
 ```shell
