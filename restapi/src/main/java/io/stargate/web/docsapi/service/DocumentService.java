@@ -322,6 +322,7 @@ public class DocumentService {
             .build());
 
     StringBuilder pathStr = new StringBuilder();
+
     for (int i = 0; i < path.size(); i++) {
       String pathSegment = path.get(i).getPath();
       String convertedPath = convertArrayPath(pathSegment);
@@ -1248,9 +1249,9 @@ public class DocumentService {
 
       String parentPath = "$";
 
-      for (int i = 0; i < DocumentDB.MAX_DEPTH - 1; i++) {
+      for (int i = 0; i < DocumentDB.MAX_DEPTH; i++) {
         String p = row.getString("p" + i);
-        String nextP = row.getString("p" + (i + 1));
+        String nextP = i < DocumentDB.MAX_DEPTH - 1 ? row.getString("p" + (i + 1)) : "";
         boolean endOfPath = nextP.equals("");
         boolean isArray = p.startsWith("[");
         boolean nextIsArray = nextP.startsWith("[");
