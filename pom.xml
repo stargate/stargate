@@ -103,6 +103,7 @@
         <module>stargate-starter</module>
         <module>persistence-api</module>
         <module>persistence-common</module>
+        <module>persistence-test</module>
         <module>persistence-cassandra-3.11</module>
         <module>persistence-cassandra-4.0</module>
         <module>persistence-dse-6.8</module>
@@ -127,6 +128,7 @@
         <module>stargate-starter</module>
         <module>persistence-api</module>
         <module>persistence-common</module>
+        <module>persistence-test</module>
         <module>persistence-cassandra-3.11</module>
         <module>persistence-cassandra-4.0</module>
         <module>cql</module>

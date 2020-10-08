@@ -118,13 +118,7 @@ public class InternalDataStore implements DataStore {
     return Conversion.toFuture(
         new Executor(this, ipsList, vals, consistencyLevel)
             .execute(executionTimer)
-            .onErrorResumeNext(
-                e -> {
-                  if (e instanceof org.apache.cassandra.stargate.exceptions.UnauthorizedException) {
-                    return Single.error(UnauthorizedException.rbac(e));
-                  }
-                  return Single.error(Conversion.handleException(e));
-                })
+            .onErrorResumeNext(e -> Single.error(Conversion.handleException(e)))
             .doFinally(
                 () ->
                     LOG.trace(
@@ -530,13 +524,7 @@ public class InternalDataStore implements DataStore {
 
       return new Executor(dataStore, cql, index, consistencyLevel)
           .execute(executionTimer)
-          .onErrorResumeNext(
-              e -> {
-                if (e instanceof org.apache.cassandra.stargate.exceptions.UnauthorizedException) {
-                  return Single.error(UnauthorizedException.rbac(e));
-                }
-                return Single.error(Conversion.handleException(e));
-              })
+          .onErrorResumeNext(e -> Single.error(Conversion.handleException(e)))
           .doFinally(
               () ->
                   LOG.trace(
@@ -560,15 +548,7 @@ public class InternalDataStore implements DataStore {
                 return new Executor(
                         dataStore, prepared.qhPrepared, boundValues, index, consistencyLevel)
                     .execute(executionTimer)
-                    .onErrorResumeNext(
-                        e -> {
-                          if (e
-                              instanceof
-                              org.apache.cassandra.stargate.exceptions.UnauthorizedException) {
-                            return Single.error(UnauthorizedException.rbac(e));
-                          }
-                          return Single.error(Conversion.handleException(e));
-                        });
+                    .onErrorResumeNext(e -> Single.error(Conversion.handleException(e)));
               })
           .doFinally(
               () ->
