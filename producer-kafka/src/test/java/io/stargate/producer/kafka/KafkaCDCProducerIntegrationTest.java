@@ -23,6 +23,7 @@ import static io.stargate.producer.kafka.helpers.MutationEventHelper.column;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.createDeleteEvent;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.createRowUpdateEvent;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.partitionKey;
+import static io.stargate.producer.kafka.schema.SchemaConstants.DATA_FIELD_NAME;
 import static io.stargate.producer.kafka.schema.SchemasConstants.CLUSTERING_KEY_NAME;
 import static io.stargate.producer.kafka.schema.SchemasConstants.COLUMN_NAME;
 import static io.stargate.producer.kafka.schema.SchemasConstants.COLUMN_NAME_2;
@@ -33,6 +34,7 @@ import static org.mockito.Mockito.when;
 import static org.testcontainers.containers.KafkaContainer.ZOOKEEPER_PORT;
 
 import com.datastax.oss.driver.api.core.data.CqlDuration;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
 import com.datastax.oss.protocol.internal.util.Bytes;
@@ -58,11 +60,13 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.util.Utf8;
 import org.apache.cassandra.stargate.db.Cell;
 import org.apache.cassandra.stargate.db.DeleteEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
 import org.apache.cassandra.stargate.schema.CQLType.Collection;
 import org.apache.cassandra.stargate.schema.CQLType.Collection.Kind;
+import org.apache.cassandra.stargate.schema.CQLType.MapDataType;
 import org.apache.cassandra.stargate.schema.CQLType.Native;
 import org.apache.cassandra.stargate.schema.ColumnMetadata;
 import org.apache.cassandra.stargate.schema.TableMetadata;
@@ -499,12 +503,82 @@ class KafkaCDCProducerIntegrationTest {
     }
   }
 
+  @Test
+  public void shouldSendEventsWithMapAndNestedMap() throws Exception {
+    // given
+    String partitionKeyValue = "pk_value";
+    Integer clusteringKeyValue = 1;
+    long timestamp = 1000;
+    TableMetadata tableMetadata = mockTableMetadata();
+    String topicName = creteTopicName(tableMetadata);
+
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    Map<String, Object> properties = createKafkaProducerSettings();
+    kafkaCDCProducer.init(properties).get();
+
+    // normal map
+    MapDataType mapType = new MapDataType(Native.INT, Native.DECIMAL);
+    Map<Integer, BigDecimal> mapValues = ImmutableMap.of(123, new BigDecimal(123));
+    // Utf8 as key because avro converts all keys to this type
+    Map<Utf8, BigDecimal> expectedMapValues = ImmutableMap.of(new Utf8("123"), new BigDecimal(123));
+
+    // nested map
+    MapDataType mapOfMapType =
+        new MapDataType(Native.INT, new MapDataType(Native.TEXT, Native.INT));
+    Map<Integer, Map<String, Integer>> mapOfMapValues =
+        ImmutableMap.of(4, ImmutableMap.of("v", 100));
+    Map<Utf8, Map<Utf8, Integer>> expectedMapOfMapValues =
+        ImmutableMap.of(new Utf8("4"), ImmutableMap.of(new Utf8("v"), 100));
+
+    // when
+    // schema change event
+    when(tableMetadata.getPartitionKeys())
+        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
+    when(tableMetadata.getClusteringKeys())
+        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
+    when(tableMetadata.getColumns())
+        .thenReturn(
+            Arrays.asList(column(COLUMN_NAME, mapType), column(COLUMN_NAME_2, mapOfMapType)));
+    kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
+    try {
+      // send actual event
+      RowUpdateEvent rowMutationEvent =
+          createRowUpdateEvent(
+              Collections.singletonList(
+                  cellValue(partitionKeyValue, partitionKey(PARTITION_KEY_NAME, Native.TEXT))),
+              Arrays.asList(
+                  cell(column(COLUMN_NAME, mapType), mapValues),
+                  cell(column(COLUMN_NAME_2, mapOfMapType), mapOfMapValues)),
+              Collections.singletonList(
+                  cellValue(clusteringKeyValue, clusteringKey(CLUSTERING_KEY_NAME, Native.INT))),
+              tableMetadata,
+              timestamp);
+      kafkaCDCProducer.send(rowMutationEvent).get();
+
+      // then
+      GenericRecord expectedKey =
+          kafkaCDCProducer.keyValueConstructor.constructKey(rowMutationEvent, topicName);
+      GenericRecord expectedValue =
+          kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
+      // override map with expected type
+      ((GenericRecord) ((GenericRecord) expectedValue.get(DATA_FIELD_NAME)).get(COLUMN_NAME))
+          .put(0, expectedMapValues);
+      ((GenericRecord) ((GenericRecord) expectedValue.get(DATA_FIELD_NAME)).get(COLUMN_NAME_2))
+          .put(0, expectedMapOfMapValues);
+
+      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+    } finally {
+      kafkaCDCProducer.close().get();
+    }
+  }
+
   @SuppressWarnings("unchecked")
   public static Stream<Arguments> complexTypesProvider() {
     Collection listType = new Collection(Kind.LIST, Native.INT);
     Collection listOfSet = new Collection(Kind.LIST, new Collection(Kind.SET, Native.INT));
     Collection setType = new Collection(Kind.SET, Native.INT);
     Collection setOfList = new Collection(Kind.SET, new Collection(Kind.LIST, Native.INT));
+
     return Stream.of(
         Arguments.of(
             Collections.singletonList(column(listType)),
@@ -579,7 +653,13 @@ class KafkaCDCProducerIntegrationTest {
                       IteratorUtils.toList(records.iterator()));
                 }
                 return Streams.stream(records)
-                    .anyMatch(r -> r.key().equals(expectedKey) && r.value().equals(expectedValue));
+                    .anyMatch(
+                        r -> {
+                          System.out.println("expectedValue:" + expectedValue);
+                          System.out.println("actualValue:" + r.value());
+
+                          return r.key().equals(expectedKey) && r.value().equals(expectedValue);
+                        });
               });
     } finally {
       consumer.close();

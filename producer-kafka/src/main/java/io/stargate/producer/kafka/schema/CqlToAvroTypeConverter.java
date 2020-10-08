@@ -133,7 +133,9 @@ public class CqlToAvroTypeConverter {
   }
 
   private static Schema createMapSchema(MapDataType type) {
-    return null;
+    // avro assumes that every key is of a string type, and convert every key to a string
+    // representation automatically
+    return SchemaBuilder.map().values(toAvroType(type.getValueType()));
   }
 
   private static Schema createCollectionSchema(Collection type) {
