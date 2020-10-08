@@ -13,24 +13,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.graphql.fetchers;
+package io.stargate.graphql.schema.fetchers.ddl;
 
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.DataTypes;
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
+import io.stargate.auth.AuthenticationService;
+import io.stargate.db.Persistence;
+import io.stargate.db.datastore.DataStore;
+import io.stargate.graphql.schema.fetchers.CassandraFetcher;
 import java.util.Map;
 
-public interface SchemaFetcher extends DataFetcher {
-  String getQuery(DataFetchingEnvironment dataFetchingEnvironment);
+/**
+ * Base class for fetchers that execute a single DDL query, such as a CREATE KEYSPACE or DROP TABLE.
+ */
+public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
 
-  default DataType decodeType(Object typeObject) {
+  protected DdlQueryFetcher(
+      Persistence<?, ?, ?> persistence, AuthenticationService authenticationService) {
+    super(persistence, authenticationService);
+  }
+
+  @Override
+  protected Boolean get(DataFetchingEnvironment environment, DataStore dataStore) throws Exception {
+    dataStore.query(getQuery(environment)).get();
+    return true;
+  }
+
+  abstract String getQuery(DataFetchingEnvironment dataFetchingEnvironment);
+
+  protected DataType decodeType(Object typeObject) {
+    // TODO can these casts fail? If so add proper error handling.
+    @SuppressWarnings("unchecked")
     Map<String, Object> type = (Map<String, Object>) typeObject;
     String basic = (String) type.get("basic");
+    @SuppressWarnings("unchecked")
     Map<String, Object> info = (Map<String, Object>) type.get("info");
 
     switch (basic) {
       case "INT":
+      case "INET":
         return DataTypes.INT;
       case "TIMEUUID":
         return DataTypes.TIMEUUID;
@@ -52,8 +74,6 @@ public interface SchemaFetcher extends DataFetcher {
         return DataTypes.TINYINT;
       case "SMALLINT":
         return DataTypes.SMALLINT;
-      case "INET":
-        return DataTypes.INT;
       case "ASCII":
         return DataTypes.ASCII;
       case "DECIMAL":
@@ -61,6 +81,7 @@ public interface SchemaFetcher extends DataFetcher {
       case "BLOB":
         return DataTypes.BLOB;
       case "VARCHAR":
+      case "TEXT":
         return DataTypes.TEXT;
       case "DOUBLE":
         return DataTypes.DOUBLE;
@@ -68,20 +89,15 @@ public interface SchemaFetcher extends DataFetcher {
         return DataTypes.COUNTER;
       case "DATE":
         return DataTypes.DATE;
-      case "TEXT":
-        return DataTypes.TEXT;
       case "FLOAT":
         return DataTypes.FLOAT;
-      case "CUSTOM":
-        return null;
       case "LIST":
         return DataTypes.listOf(decodeType(info.get("subTypes")));
       case "SET":
         return DataTypes.setOf(decodeType(info.get("subTypes")));
+      case "CUSTOM":
       case "MAP":
-        return null;
       case "TUPLE":
-        return null;
       case "UDT":
         return null;
     }

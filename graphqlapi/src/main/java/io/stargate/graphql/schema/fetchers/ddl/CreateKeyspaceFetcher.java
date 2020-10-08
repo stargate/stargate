@@ -13,31 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.graphql.fetchers;
+package io.stargate.graphql.schema.fetchers.ddl;
 
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import com.datastax.oss.driver.api.querybuilder.schema.CreateKeyspaceStart;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
-import io.stargate.auth.StoredCredentials;
-import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
-import io.stargate.db.datastore.DataStore;
-import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CreateKeyspaceFetcher implements SchemaFetcher {
-
-  private final Persistence<?, ?, ?> persistence;
-  private final AuthenticationService authenticationService;
+public class CreateKeyspaceFetcher extends DdlQueryFetcher {
 
   public CreateKeyspaceFetcher(
       Persistence<?, ?, ?> persistence, AuthenticationService authenticationService) {
-    this.persistence = persistence;
-    this.authenticationService = authenticationService;
+    super(persistence, authenticationService);
   }
 
   @Override
@@ -77,19 +68,5 @@ public class CreateKeyspaceFetcher implements SchemaFetcher {
       result.put(dcName, dcReplicas);
     }
     return result;
-  }
-
-  @Override
-  public Object get(DataFetchingEnvironment environment) throws Exception {
-    HTTPAwareContextImpl httpAwareContext = environment.getContext();
-
-    String token = httpAwareContext.getAuthToken();
-    StoredCredentials storedCredentials = authenticationService.validateToken(token);
-    ClientState clientState = persistence.newClientState(storedCredentials.getRoleName());
-    QueryState queryState = persistence.newQueryState(clientState);
-    DataStore dataStore = persistence.newDataStore(queryState, null);
-
-    dataStore.query(getQuery(environment)).get();
-    return true;
   }
 }

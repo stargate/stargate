@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.graphql.core;
+package io.stargate.graphql.schema;
 
 import com.google.common.base.Preconditions;
 import graphql.language.ArrayValue;
@@ -44,24 +44,21 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/** * Enum representation of all the custom scalars supported by AppStax */
+/** Enum representation of all the custom scalars supported by Stargate. */
 public enum CustomScalar {
   UUID(
       "Uuid",
-      java.util.UUID.class,
       "The `Uuid` scalar type represents a CQL uuid as a string.",
       o -> java.util.UUID.fromString(String.valueOf(o)),
       Object::toString),
   TIMEUUID(
       "TimeUuid",
-      java.util.UUID.class,
       "The `TimeUuid` scalar type represents a CQL timeuuid as a string.",
       o -> java.util.UUID.fromString(String.valueOf(o)),
       Object::toString),
 
   INET(
       "Inet",
-      InetAddress.class,
       "The `Inet` scalar type represents a CQL inet as a string.",
       e -> {
         try {
@@ -71,7 +68,7 @@ public enum CustomScalar {
         }
       },
       InetAddress::getHostAddress),
-  DATE("Date", java.sql.Date.class, "", o -> java.sql.Date.valueOf(o.toString()), Object::toString),
+  DATE("Date", "", o -> java.sql.Date.valueOf(o.toString()), Object::toString),
   //    DURATION("Duration", com.datastax.driver.core.Duration.class, "Represents a duration. A
   // duration stores separately months, days, and seconds due to the fact that the number of days in
   // a month varies, and a day can have 23 or 25 hours if a daylight saving is involved.",
@@ -79,7 +76,6 @@ public enum CustomScalar {
   //            Object::toString),
   BIGINT(
       "BigInt",
-      Object.class,
       "The `BIGINT` scalar type represents a CQL bigint (64-bit signed integer) as a string.",
       e -> {
         if (e instanceof Long) {
@@ -92,67 +88,57 @@ public enum CustomScalar {
       e -> e.toString()),
   COUNTER(
       "Counter",
-      String.class,
       "The `COUNTER` scalar type represents a CQL counter (64-bit signed integer) as a string.",
       String::valueOf,
       Object::toString),
   ASCII(
       "Ascii",
-      String.class,
       "The `Ascii` scalar type represents CQL ascii character values as a string.",
       String::valueOf,
       Object::toString),
   DECIMAL(
       "Decimal",
-      BigDecimal.class,
       "The `Decimal` scalar type represents a CQL decimal as a string.",
       o -> new BigDecimal(o.toString()),
       Object::toString),
   VARINT(
       "Varint",
-      BigInteger.class,
       "The `Varint` scalar type represents a CQL varint as a string.",
       o -> new BigInteger(o.toString()),
       Object::toString),
   FLOAT(
       "Float32",
-      Float.class,
       "The `Float32` scalar type represents a CQL float (single-precision floating point values).",
       o -> Float.parseFloat(o.toString()),
       e -> e),
   BLOB(
       "Blob",
-      ByteBuffer.class,
       "The `Blob` scalar type represents a CQL blob as a base64 encoded byte array.",
       o -> ByteBuffer.wrap(Base64.getDecoder().decode(o.toString())),
       o -> Base64.getEncoder().encode(o)),
   TIMESTAMP(
       "Timestamp",
-      Instant.class,
       "The `Timestamp` scalar type represents a DateTime.",
       o -> Instant.parse((String) o),
       Object::toString),
   TIME(
       "Time",
-      LocalTime.class,
       "The `Time` scalar type represents a local time.",
       o -> LocalTime.parse((String) o),
       Object::toString);
 
   private final GraphQLScalarType graphQLScalar;
 
-  private <T> CustomScalar(
+  <T> CustomScalar(
       String graphQLName,
-      Class<T> javaType,
       String description,
       Function<Object, T> parser,
       Function<T, Object> serializer) {
-    this(graphQLName, javaType, description, parser, serializer, o -> {});
+    this(graphQLName, description, parser, serializer, o -> {});
   }
 
-  private <T> CustomScalar(
+  <T> CustomScalar(
       String graphQLName,
-      Class<T> javaType,
       String description,
       Function<Object, T> parser,
       Function<T, Object> serializer,

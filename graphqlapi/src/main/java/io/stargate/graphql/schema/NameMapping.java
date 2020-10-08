@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.graphql.core;
+package io.stargate.graphql.schema;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
+import io.stargate.graphql.util.CaseUtil;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -40,11 +41,7 @@ public class NameMapping {
   }
 
   private void buildColumnNames(Table tableMetadata) {
-    if (columnName.get(tableMetadata) == null) {
-      columnName.put(tableMetadata, HashBiMap.create());
-    }
-
-    BiMap map = columnName.get(tableMetadata);
+    BiMap<Column, String> map = columnName.computeIfAbsent(tableMetadata, k -> HashBiMap.create());
     for (Column column : tableMetadata.columns()) {
       map.put(column, CaseUtil.toLowerCamel(column.name()));
     }
