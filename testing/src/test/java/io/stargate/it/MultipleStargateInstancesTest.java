@@ -63,10 +63,13 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
             .withString(
                 DefaultDriverOption.LOAD_BALANCING_POLICY_CLASS,
                 DcInferringLoadBalancingPolicy.class.getName())
-            .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(30))
-            .withDuration(DefaultDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(30))
-            .withDuration(DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(30))
-            .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
+            .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(180))
+            .withDuration(
+                DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT, Duration.ofSeconds(180))
+            .withDuration(
+                DefaultDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(180))
+            .withDuration(DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
+            .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5))
             .withStringList(
                 DefaultDriverOption.METRICS_NODE_ENABLED,
                 Collections.singletonList(DefaultNodeMetric.CQL_MESSAGES.getPath()))
