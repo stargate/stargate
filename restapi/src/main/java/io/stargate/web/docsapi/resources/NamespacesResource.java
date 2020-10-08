@@ -115,7 +115,7 @@ public class NamespacesResource {
         @ApiResponse(code = 404, message = "Not Found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  @Path("/{namespaceName}")
+  @Path("/{namespace-id: [a-zA-Z_0-9]+}")
   public Response getOneNamespace(
       @ApiParam(
               value =
@@ -124,7 +124,7 @@ public class NamespacesResource {
           @HeaderParam("X-Cassandra-Token")
           String token,
       @ApiParam(value = "The namespace to use for the request.", required = true)
-          @PathParam("namespaceName")
+          @PathParam("namespace-id")
           final String namespaceName,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw) {
@@ -245,7 +245,7 @@ public class NamespacesResource {
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  @Path("/{namespaceName}")
+  @Path("/{namespace-id: [a-zA-Z_0-9]+}")
   public Response deleteNamespace(
       @ApiParam(
               value =
@@ -254,7 +254,7 @@ public class NamespacesResource {
           @HeaderParam("X-Cassandra-Token")
           String token,
       @ApiParam(value = "Name of the namespace to use for the request.", required = true)
-          @PathParam("namespaceName")
+          @PathParam("namespace-id")
           final String namespaceName) {
     return RequestHandler.handle(
         () -> {
