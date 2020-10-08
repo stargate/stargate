@@ -31,6 +31,11 @@ import io.stargate.web.models.RowUpdate;
 import io.stargate.web.models.Rows;
 import io.stargate.web.models.RowsResponse;
 import io.stargate.web.models.SuccessResponse;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -64,9 +69,14 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Api(
+    produces = MediaType.APPLICATION_JSON,
+    consumes = MediaType.APPLICATION_JSON,
+    tags = {"data"})
 @Path("/v1/keyspaces/{keyspaceName}/tables/{tableName}/rows")
 @Produces(MediaType.APPLICATION_JSON)
 public class RowResource {
+
   private static final Logger logger = LoggerFactory.getLogger(RowResource.class);
 
   @Inject private Db db;
@@ -75,12 +85,39 @@ public class RowResource {
 
   @Timed
   @GET
-  @Path("/{id : (.+)?}")
-  public Response getOne(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName,
-      @PathParam("tableName") final String tableName,
-      @PathParam("id") final PathSegment id,
+  @ApiOperation(
+      value = "Retrieve rows",
+      notes = "Get rows from a table based on the primary key.",
+      response = Rows.class)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = Rows.class),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
+  @Path("/{primaryKey : (.+)?}")
+  public Response getRows(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(
+              value =
+                  "Value from the primary key column for the table. Define composite keys by separating values with semicolons (`val1;val2...`) in the order they were defined. </br> For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)` then the primary key in the path would be `race_year;race_name`.",
+              required = true)
+          @PathParam("primaryKey")
+          final PathSegment id,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
@@ -107,12 +144,36 @@ public class RowResource {
 
   @Timed
   @GET
-  public Response getAll(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName,
-      @PathParam("tableName") final String tableName,
-      @QueryParam("pageSize") final int pageSizeParam,
-      @QueryParam("pageState") final String pageStateParam) {
+  @ApiOperation(
+      value = "Retrieve all rows",
+      notes = "Get all rows from a table.",
+      response = Rows.class)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = Rows.class),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
+  public Response getAllRows(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(value = "Restrict the number of returned items") @QueryParam("pageSize")
+          final int pageSizeParam,
+      @ApiParam(value = "Move the cursor to a particular result") @QueryParam("pageState")
+          final String pageStateParam) {
     return RequestHandler.handle(
         () -> {
           ByteBuffer pageState = null;
@@ -151,12 +212,34 @@ public class RowResource {
 
   @Timed
   @POST
+  @ApiOperation(
+      value = "Submit queries",
+      notes = "Submit queries to retrieve data from a table.",
+      response = Rows.class)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = Rows.class),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
   @Path("/query")
-  public Response query(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName,
-      @PathParam("tableName") final String tableName,
-      @NotNull final Query queryModel) {
+  public Response queryRows(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(value = "The query to be used for retrieving rows.", required = true) @NotNull
+          final Query queryModel) {
     return RequestHandler.handle(
         () -> {
           ByteBuffer pageState = null;
@@ -246,11 +329,34 @@ public class RowResource {
 
   @Timed
   @POST
+  @ApiOperation(
+      value = "Add row",
+      notes =
+          "Add a row to a table in your database. If the new row has the same primary key as that of an existing row, the database processes it as an update to the existing row.",
+      response = RowsResponse.class)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 201, message = "Created", response = RowsResponse.class),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
   public Response addRow(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName,
-      @PathParam("tableName") final String tableName,
-      @NotNull final RowAdd rowAdd) {
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(value = "Row object that needs to be added to the table", required = true) @NotNull
+          final RowAdd rowAdd) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -277,12 +383,35 @@ public class RowResource {
 
   @Timed
   @DELETE
-  @Path("/{id}")
+  @ApiOperation(value = "Delete rows", notes = "Delete individual rows from a table.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
+  @Path("/{primaryKey}")
   public Response deleteRow(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName,
-      @PathParam("tableName") final String tableName,
-      @PathParam("id") final PathSegment id,
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(
+              value =
+                  "Value from the primary key column for the table. Define composite keys by separating values with semicolons (`val1;val2...`) in the order they were defined. </br> For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)` then the primary key in the path would be `race_year;race_name`.",
+              required = true)
+          @PathParam("primaryKey")
+          final PathSegment id,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
@@ -302,12 +431,38 @@ public class RowResource {
 
   @Timed
   @PUT
-  @Path("/{id}")
+  @ApiOperation(
+      value = "Update rows",
+      notes = "Update existing rows in a table.",
+      response = RowsResponse.class)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = RowsResponse.class),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
+  @Path("/{primaryKey}")
   public Response updateRow(
-      @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("keyspaceName") final String keyspaceName,
-      @PathParam("tableName") final String tableName,
-      @PathParam("id") final PathSegment id,
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(
+              value =
+                  "Value from the primary key column for the table. Define composite keys by separating values with semicolons (`val1;val2...`) in the order they were defined. </br> For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)` then the primary key in the path would be `race_year;race_name`.",
+              required = true)
+          @PathParam("primaryKey")
+          final PathSegment id,
       @Context HttpServletRequest request,
       final RowUpdate changeSet) {
     return RequestHandler.handle(

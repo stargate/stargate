@@ -12,8 +12,9 @@
   <properties>
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
     <jettyVersion>9.4.24.v20191120</jettyVersion>
-    <dropwizard.version>2.0.10</dropwizard.version>
+    <dropwizard.version>2.0.12</dropwizard.version>
     <junit.version>5.6.2</junit.version>
+    <swagger-ui.version>3.35.0</swagger-ui.version>
   </properties>
   <dependencies>
     <dependency>
@@ -37,12 +38,6 @@
     <dependency>
       <groupId>io.stargate.auth</groupId>
       <artifactId>authentication</artifactId>
-      <version>0.0.15-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.stargate.health</groupId>
-      <artifactId>health-checker</artifactId>
       <version>0.0.15-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
@@ -123,6 +118,11 @@
       <version>27.0-jre</version>
     </dependency>
     <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-jersey2-jaxrs</artifactId>
+      <version>1.5.0</version>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>${junit.version}</version>
@@ -134,9 +134,79 @@
       <version>3.14.0</version>
       <scope>test</scope>
     </dependency>
+
   </dependencies>
   <build>
     <plugins>
+      <plugin>
+        <!-- Download swagger-ui resources jar -->
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.1.1</version>
+        <executions>
+          <execution>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.webjars</groupId>
+                  <artifactId>swagger-ui</artifactId>
+                  <version>${swagger-ui.version}</version>
+                </artifactItem>
+              </artifactItems>
+              <outputDirectory>${project.build.directory}/swagger-ui</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Replace swagger.json URL in index.html -->
+      <plugin>
+        <groupId>com.google.code.maven-replacer-plugin</groupId>
+        <artifactId>replacer</artifactId>
+        <version>1.5.3</version>
+        <executions>
+          <execution>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>replace</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <file>${project.build.directory}/swagger-ui/META-INF/resources/webjars/swagger-ui/${swagger-ui.version}/index.html</file>
+          <replacements>
+            <replacement>
+              <token>https://petstore.swagger.io/v2/swagger.json</token>
+              <value>/swagger.json</value>
+            </replacement>
+          </replacements>
+        </configuration>
+      </plugin>
+      <!-- Copy swagger-ui resources to target resources -->
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>copy-resources</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/classes/swagger-ui</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.build.directory}/swagger-ui/META-INF/resources/webjars/swagger-ui/${swagger-ui.version}</directory>
+                  <filtering>true</filtering>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
@@ -170,21 +240,22 @@
                             !org.eclipse.jetty.websocket.common.io,
                             !org.eclipse.jetty.websocket.common.scopes,
                             !org.eclipse.jetty.websocket.servlet,
+                            !org.eclipse.core.runtime.content,
                             !org.slf4j,
                             !org.slf4j.helpers,
                             !org.slf4j.spi,
                             !org.eclipse.jetty.security,
-                            io.stargate.db,
-                            org.apache.cassandra.stargate,
-                            org.apache.cassandra.stargate.*,
                             !ch.qos.logback.classic.*,
                             !ch.qos.logback.core.*,
                             !io.dropwizard.logging,
+                            org.apache.cassandra.stargate,
+                            org.apache.cassandra.stargate.*,
+                            io.stargate.db,
                             io.stargate.db.datastore,
                             io.stargate.db.datastore.query,
                             io.stargate.core,
                             com.codahale.metrics,
-                            org.osgi.framework,
+                            org.osgi.framework
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
