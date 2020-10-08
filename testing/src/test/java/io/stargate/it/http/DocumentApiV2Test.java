@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,16 +17,20 @@ import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.ClusterConnectionInfo;
+import io.stargate.web.models.Keyspace;
+import io.stargate.web.models.ResponseWrapper;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URLEncoder;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.*;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -2043,6 +2048,113 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             "The results as requested must fit in one page, try increasing the `page-size` parameter.");
   }
 
+  // Below are "namespace" tests that should match the REST Api's keyspace tests
+  @Test
+  public void getNamespaces() throws IOException {
+    String body =
+        RestUtils.get(authToken, String.format("%s:8082/v2/namespaces", host), HttpStatus.SC_OK);
+
+    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    List<Keyspace> keyspaces =
+        objectMapper.convertValue(response.getData(), new TypeReference<List<Keyspace>>() {});
+    assertThat(keyspaces)
+        .anySatisfy(
+            value ->
+                assertThat(value).isEqualToComparingFieldByField(new Keyspace("system", null)));
+  }
+
+  @Test
+  public void getNamespacesMissingToken() throws IOException {
+    RestUtils.get("", String.format("%s:8082/v2/namespaces", host), HttpStatus.SC_UNAUTHORIZED);
+  }
+
+  @Test
+  public void getNamespacesBadToken() throws IOException {
+    RestUtils.get("foo", String.format("%s:8082/v2/namespaces", host), HttpStatus.SC_UNAUTHORIZED);
+  }
+
+  @Test
+  public void getNamespacesRaw() throws IOException {
+    String body =
+        RestUtils.get(
+            authToken, String.format("%s:8082/v2/namespaces?raw=true", host), HttpStatus.SC_OK);
+
+    List<Keyspace> keyspaces = objectMapper.readValue(body, new TypeReference<List<Keyspace>>() {});
+    assertThat(keyspaces)
+        .anySatisfy(
+            value ->
+                assertThat(value)
+                    .isEqualToComparingFieldByField(new Keyspace("system_schema", null)));
+  }
+
+  @Test
+  public void getNamespace() throws IOException {
+    String body =
+        RestUtils.get(
+            authToken, String.format("%s:8082/v2/namespaces/system", host), HttpStatus.SC_OK);
+
+    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    Keyspace keyspace = objectMapper.convertValue(response.getData(), Keyspace.class);
+
+    assertThat(keyspace).isEqualToComparingFieldByField(new Keyspace("system", null));
+  }
+
+  @Test
+  public void getNamespaceRaw() throws IOException {
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/namespaces/system?raw=true", host),
+            HttpStatus.SC_OK);
+
+    Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
+
+    assertThat(keyspace).isEqualToComparingFieldByField(new Keyspace("system", null));
+  }
+
+  @Test
+  public void getNamespaceNotFound() throws IOException {
+    RestUtils.get(
+        authToken,
+        String.format("%s:8082/v2/namespaces/ks_not_found", host),
+        HttpStatus.SC_NOT_FOUND);
+  }
+
+  @Test
+  public void createNamespace() throws IOException {
+    String keyspaceName = "ks_createkeyspace_" + System.currentTimeMillis();
+    createKeyspace(keyspaceName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/namespaces/%s?raw=true", host, keyspaceName),
+            HttpStatus.SC_OK);
+
+    Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
+
+    assertThat(keyspace).isEqualToComparingFieldByField(new Keyspace(keyspaceName, null));
+  }
+
+  @Test
+  public void deleteNamespace() throws IOException {
+    String keyspaceName = "ks_createkeyspace_" + System.currentTimeMillis();
+    createKeyspace(keyspaceName);
+
+    RestUtils.get(
+        authToken, String.format("%s:8082/v2/namespaces/%s", host, keyspaceName), HttpStatus.SC_OK);
+
+    RestUtils.delete(
+        authToken,
+        String.format("%s:8082/v2/namespaces/%s", host, keyspaceName),
+        HttpStatus.SC_NO_CONTENT);
+
+    RestUtils.get(
+        authToken,
+        String.format("%s:8082/v2/namespaces/%s", host, keyspaceName),
+        HttpStatus.SC_NOT_FOUND);
+  }
+
   private Response get(String path) throws IOException {
     Request request =
         new Request.Builder()
@@ -2127,5 +2239,16 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     }
     wrapperNode.set("pageState", TextNode.valueOf(pagingState));
     return wrapperNode;
+  }
+
+  private void createKeyspace(String keyspaceName) throws IOException {
+    String createKeyspaceRequest =
+        String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspaceName);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces", host),
+        createKeyspaceRequest,
+        HttpStatus.SC_CREATED);
   }
 }
