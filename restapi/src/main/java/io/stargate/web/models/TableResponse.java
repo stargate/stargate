@@ -18,6 +18,7 @@ package io.stargate.web.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -42,22 +43,28 @@ public class TableResponse {
     this.tableOptions = tableOptions;
   }
 
+  @ApiModelProperty(value = "The name of the table.")
   public String getName() {
     return name;
   }
 
+  @ApiModelProperty(value = "Name of the keyspace the table belongs.")
   public String getKeyspace() {
     return keyspace;
   }
 
+  @ApiModelProperty(value = "Definition of columns within the table.")
   public List<ColumnDefinition> getColumnDefinitions() {
     return columnDefinitions;
   }
 
+  @ApiModelProperty(
+      value = "The definition of the partition and clustering keys that make up the primary key.")
   public PrimaryKey getPrimaryKey() {
     return primaryKey;
   }
 
+  @ApiModelProperty(value = "Table options that are applied to the table.")
   public TableOptions getTableOptions() {
     return tableOptions;
   }

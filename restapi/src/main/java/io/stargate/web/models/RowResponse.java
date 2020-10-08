@@ -18,6 +18,7 @@ package io.stargate.web.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 import java.util.Map;
 
@@ -26,10 +27,12 @@ public class RowResponse {
   int count;
   List<Map<String, Object>> rows;
 
+  @ApiModelProperty(value = "Number of records being returned by the request.")
   public int getCount() {
     return count;
   }
 
+  @ApiModelProperty(value = "The rows returned by the request.")
   public List<Map<String, Object>> getRows() {
     return rows;
   }

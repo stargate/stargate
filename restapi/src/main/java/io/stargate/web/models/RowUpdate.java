@@ -15,11 +15,15 @@
  */
 package io.stargate.web.models;
 
+import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 
 public class RowUpdate {
   List<Changeset> changeset;
 
+  @ApiModelProperty(
+      required = true,
+      value = "The values for the named parameters used in the setExpression field")
   public List<Changeset> getChangeset() {
     return changeset;
   }

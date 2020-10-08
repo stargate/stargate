@@ -17,8 +17,10 @@ package io.stargate.web.models;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModelProperty;
 
 public class ClusteringExpression {
+
   final String column;
   final String order;
 
@@ -29,10 +31,12 @@ public class ClusteringExpression {
     this.order = order;
   }
 
+  @ApiModelProperty(required = true, value = "The name of the column to order by")
   public String getColumn() {
     return column;
   }
 
+  @ApiModelProperty(required = true, value = "The clustering order", allowableValues = "asc,desc")
   public String getOrder() {
     return order;
   }

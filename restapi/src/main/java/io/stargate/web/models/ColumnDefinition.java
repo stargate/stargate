@@ -18,6 +18,7 @@ package io.stargate.web.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModelProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ColumnDefinition {
@@ -39,14 +40,23 @@ public class ColumnDefinition {
     this.isStatic = isStatic;
   }
 
+  @ApiModelProperty(
+      example = "emailaddress",
+      required = true,
+      value = "Name for the column, which must be unique.")
   public String getName() {
     return name;
   }
 
+  @ApiModelProperty(
+      example = "text",
+      required = true,
+      value = "The type of data allowed in the column.")
   public String getTypeDefinition() {
     return typeDefinition;
   }
 
+  @ApiModelProperty(value = "Denotes whether the column is shared by all rows of a partition.")
   @JsonProperty("static")
   public boolean getIsStatic() {
     return isStatic;
