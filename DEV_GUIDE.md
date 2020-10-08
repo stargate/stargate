@@ -136,7 +136,7 @@ curl -L -X GET 'localhost:8082/v1/keyspaces' \
 
 ## Running Integration Tests
 
-Integration tests require that Cassandra Cluster Manager ((ccm)[https://github.com/riptano/ccm])
+Integration tests require that Cassandra Cluster Manager ([ccm](https://github.com/riptano/ccm))
 be installed and accessible via the OS `PATH`.
 to be installed and accessible via the OS `PATH`.
 
