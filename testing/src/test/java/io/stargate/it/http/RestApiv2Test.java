@@ -809,7 +809,8 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     List<Map<String, Object>> data =
         objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
     assertThat(data.get(0).get("name")).isEqualTo("alice");
-    assertThat(data.get(0).get("email")).isEqualTo("[\"foo@example.com\", \"bar@example.com\"]");
+    assertThat(data.get(0).get("email"))
+        .isEqualTo(Arrays.asList("foo@example.com", "bar@example.com"));
   }
 
   @Test
