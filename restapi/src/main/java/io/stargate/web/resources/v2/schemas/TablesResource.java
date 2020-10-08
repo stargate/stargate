@@ -81,21 +81,23 @@ public class TablesResource {
       responseContainer = "List")
   @ApiResponses(
       value = {
-          @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
-          @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-          @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-          @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   public Response getAllTables(
       @ApiParam(
-          value =
-              "The token returned from the authorization endpoint. Use this token in each request.",
-          required = true)
-      @HeaderParam("X-Cassandra-Token")
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
           String token,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
-      @PathParam("keyspaceName") final String keyspaceName,
-      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") final boolean raw) {
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
+          final boolean raw) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -119,24 +121,27 @@ public class TablesResource {
       response = Table.class)
   @ApiResponses(
       value = {
-          @ApiResponse(code = 200, message = "OK", response = Table.class),
-          @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-          @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-          @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 200, message = "OK", response = Table.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{tableName}")
   public Response getOneTable(
       @ApiParam(
-          value =
-              "The token returned from the authorization endpoint. Use this token in each request.",
-          required = true)
-      @HeaderParam("X-Cassandra-Token")
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
           String token,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
-      @PathParam("keyspaceName") final String keyspaceName,
+          @PathParam("keyspaceName")
+          final String keyspaceName,
       @ApiParam(value = "Name of the table to use for the request.", required = true)
-      @PathParam("tableName") final String tableName,
-      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") final boolean raw) {
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
+          final boolean raw) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
@@ -148,7 +153,6 @@ public class TablesResource {
         });
   }
 
-
   @Timed
   @POST
   @ApiOperation(
@@ -157,21 +161,22 @@ public class TablesResource {
       response = Map.class)
   @ApiResponses(
       value = {
-          @ApiResponse(code = 201, message = "Created", response = Map.class),
-          @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-          @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-          @ApiResponse(code = 409, message = "Conflict", response = Error.class),
-          @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 201, message = "Created", response = Map.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 409, message = "Conflict", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   public Response createTable(
       @ApiParam(
-          value =
-              "The token returned from the authorization endpoint. Use this token in each request.",
-          required = true)
-      @HeaderParam("X-Cassandra-Token")
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
           String token,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
-      @PathParam("keyspaceName") final String keyspaceName,
+          @PathParam("keyspaceName")
+          final String keyspaceName,
       @ApiParam(value = "", required = true) @NotNull final TableAdd tableAdd) {
     return RequestHandler.handle(
         () -> {
@@ -269,25 +274,27 @@ public class TablesResource {
       response = Map.class)
   @ApiResponses(
       value = {
-          @ApiResponse(code = 200, message = "resource updated", response = Map.class),
-          @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-          @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-          @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-          @ApiResponse(code = 409, message = "Conflict", response = Error.class),
-          @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 200, message = "resource updated", response = Map.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
+        @ApiResponse(code = 409, message = "Conflict", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{tableName}")
   public Response updateTable(
       @ApiParam(
-          value =
-              "The token returned from the authorization endpoint. Use this token in each request.",
-          required = true)
-      @HeaderParam("X-Cassandra-Token")
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
           String token,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
-      @PathParam("keyspaceName") final String keyspaceName,
+          @PathParam("keyspaceName")
+          final String keyspaceName,
       @ApiParam(value = "Name of the table to use for the request.", required = true)
-      @PathParam("tableName") final String tableName,
+          @PathParam("tableName")
+          final String tableName,
       @ApiParam(value = "table name", required = true) @NotNull final TableAdd tableUpdate) {
     return RequestHandler.handle(
         () -> {
@@ -330,22 +337,24 @@ public class TablesResource {
       notes = "Delete a single table in the specified keyspace.")
   @ApiResponses(
       value = {
-          @ApiResponse(code = 204, message = "No Content"),
-          @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-          @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{tableName}")
   public Response deleteTable(
       @ApiParam(
-          value =
-              "The token returned from the authorization endpoint. Use this token in each request.",
-          required = true)
-      @HeaderParam("X-Cassandra-Token")
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
           String token,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
-      @PathParam("keyspaceName") final String keyspaceName,
+          @PathParam("keyspaceName")
+          final String keyspaceName,
       @ApiParam(value = "Name of the table to use for the request.", required = true)
-      @PathParam("tableName") final String tableName) {
+          @PathParam("tableName")
+          final String tableName) {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
