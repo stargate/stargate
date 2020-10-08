@@ -74,6 +74,7 @@ import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.it.storage.ClusterConnectionInfo;
+import io.stargate.it.storage.ExternalStorage;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -98,32 +99,37 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import net.jcip.annotations.NotThreadSafe;
+import org.assertj.core.api.Assertions;
 import org.javatuples.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.osgi.framework.InvalidSyntaxException;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@ExtendWith(ExternalStorage.class)
 @NotThreadSafe
-public class PersistenceTest extends BaseOsgiIntegrationTest {
+public abstract class PersistenceTest {
   private static final Logger logger = LoggerFactory.getLogger(PersistenceTest.class);
+
+  protected static final int KEYSPACE_NAME_MAX_LENGTH = 48;
 
   private DataStore dataStore;
   private String table;
   private String keyspace;
+  private ClusterConnectionInfo backend;
 
   private static final int CUSTOM_PAGE_SIZE = 50;
 
-  public PersistenceTest(ClusterConnectionInfo backendConnectionInfo) {
-    super(backendConnectionInfo);
-  }
+  protected abstract Persistence persistence();
 
   @BeforeEach
-  public void setup(TestInfo testInfo) throws InvalidSyntaxException {
-    Persistence persistence = getOsgiService("io.stargate.db.Persistence", Persistence.class);
+  public void setup(TestInfo testInfo, ClusterConnectionInfo backend) {
+    this.backend = backend;
+
+    Persistence persistence = persistence();
     ClientState clientState = persistence.newClientState("");
     QueryState queryState = persistence.newQueryState(clientState);
     dataStore = persistence.newDataStore(queryState, null);
@@ -188,7 +194,7 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
     // assertThat(createTable.waitedForSchemaAgreement()).isTrue();
     Table t = dataStore.schema().keyspace(keyspace).table(table);
     assertThat(t)
-        .isEqualToComparingFieldByField(
+        .isEqualTo(
             Schema.build()
                 .keyspace(keyspace)
                 .table(table)
@@ -202,7 +208,7 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
     // TODO: [doug] 2020-07-10, Fri, 16:50 More schemaAgreement to revisit
     //        assertThat(alterTable.waitedForSchemaAgreement()).isTrue();
     assertThat(dataStore.schema().keyspace(keyspace).table(table))
-        .isEqualToComparingFieldByField(
+        .isEqualTo(
             Schema.build()
                 .keyspace(keyspace)
                 .table(table)
@@ -235,7 +241,7 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
         .column("S2", Varchar, Static)
         .execute();
     assertThat(dataStore.schema().keyspace(keyspace).table(table))
-        .isEqualToComparingFieldByField(
+        .isEqualTo(
             Schema.build()
                 .keyspace(keyspace)
                 .table(table)
@@ -243,10 +249,10 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
                 .column("PK2", Varchar, PartitionKey)
                 .column("CC1", Varchar, Clustering, Asc)
                 .column("CC2", Varchar, Clustering, Desc)
-                .column("R1", Varchar)
-                .column("R2", Varchar)
                 .column("S1", Varchar, Static)
                 .column("S2", Varchar, Static)
+                .column("R1", Varchar)
+                .column("R2", Varchar)
                 .build()
                 .keyspace(keyspace)
                 .table(table));
@@ -502,7 +508,7 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
     dataStore.query().create().index("byB").ifNotExists().on(keyspace, table).column("b").execute();
 
     assertThat(dataStore.schema().keyspace(keyspace).table(this.table))
-        .isEqualToComparingFieldByField(
+        .isEqualTo(
             Schema.build()
                 .keyspace(keyspace)
                 .table(table)
@@ -776,15 +782,19 @@ public class PersistenceTest extends BaseOsgiIntegrationTest {
         .column("name", Text)
         .execute();
 
-    try {
-      dataStore.query().insertInto(ks.name(), table).value("x", 1).value("name", 42).execute();
-
-      fail("Should have thrown IllegalArgumentException");
-    } catch (IllegalArgumentException ex) {
-      assertThat(ex)
-          .hasMessage(
-              "Wrong value type provided for column 'name'. Provided type 'Integer' is not compatible with expected CQL type 'varchar'.");
-    }
+    Assertions.assertThatThrownBy(
+            () ->
+                dataStore
+                    .query()
+                    .insertInto(ks.name(), table)
+                    .value("x", 1)
+                    .value("name", 42)
+                    .execute())
+        .isInstanceOf(ExecutionException.class)
+        .hasCauseExactlyInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(
+            "Wrong value type provided for column 'name'. "
+                + "Provided type 'Integer' is not compatible with expected CQL type 'varchar'.");
   }
 
   @Disabled("Disabling for now since it fails with a strange MV schema generated")

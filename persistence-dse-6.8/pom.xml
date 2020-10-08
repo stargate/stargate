@@ -12,6 +12,8 @@
   <properties>
     <dse.version>6.8.2-69139b3</dse.version>
     <junit.version>5.6.2</junit.version>
+    <surefire.version>3.0.0-M3</surefire.version>
+    <failsafe.version>3.0.0-M3</failsafe.version>
   </properties>
   <repositories>
     <repository>
@@ -32,6 +34,12 @@
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-common</artifactId>
       <version>0.0.15-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.db</groupId>
+      <artifactId>persistence-test</artifactId>
+      <version>0.0.15-SNAPSHOT</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.db</groupId>
@@ -154,24 +162,30 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>2.22.0</version>
+        <version>${failsafe.version}</version>
         <dependencies>
-          <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-surefire-provider</artifactId>
-            <version>1.3.2</version>
-          </dependency>
           <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
             <version>${junit.version}</version>
           </dependency>
         </dependencies>
+        <configuration>
+          <parallel>suites</parallel>
+          <threadCountSuites>1</threadCountSuites>
+          <reuseForks>false</reuseForks>
+          <forkCount>1</forkCount>
+          <systemPropertyVariables>
+            <ccm.dse>true</ccm.dse>
+            <ccm.version>6.8.4</ccm.version>
+          </systemPropertyVariables>
+        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.22.2</version>
+        <version>${surefire.version}</version>
         <dependencies>
           <dependency>
             <groupId>org.junit.platform</groupId>
@@ -273,4 +287,30 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>it-dse-6.8</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>${failsafe.version}</version>
+            <executions>
+              <execution>
+                <id>dse-6.8</id>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
