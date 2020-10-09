@@ -80,7 +80,17 @@
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-query-builder</artifactId>
-      <version>4.7.2</version>
+      <version>4.9.0</version>
+      <exclusions>
+        <!--
+          We want to use the one pulled transitively with persistence-api, otherwise we'll run
+          into type mismatch issues.
+        -->
+        <exclusion>
+          <groupId>com.datastax.oss</groupId>
+          <artifactId>java-driver-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>

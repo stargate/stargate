@@ -21,6 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import graphql.Scalars;
 import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLEnumType;
@@ -41,6 +42,7 @@ import io.stargate.db.Persistence;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
+import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.schema.fetchers.dml.DeleteMutationFetcher;
 import io.stargate.graphql.schema.fetchers.dml.InsertMutationFetcher;
 import io.stargate.graphql.schema.fetchers.dml.QueryFetcher;
@@ -65,7 +67,7 @@ class DmlSchemaBuilder {
   private final Map<Table, GraphQLOutputType> entityResultMap = new HashMap<>();
   private final Map<String, GraphQLType> typeCache = new HashMap<>();
   private final NameMapping nameMapping;
-  private Set<Table> tables;
+  private final Keyspace keyspace;
 
   private GraphQLInputType mutationOptions =
       GraphQLInputObjectType.newInputObject()
@@ -105,20 +107,24 @@ class DmlSchemaBuilder {
       Keyspace keyspace) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
-    this.tables = keyspace.tables();
+    this.keyspace = keyspace;
 
-    this.nameMapping = new NameMapping(tables);
+    this.nameMapping = new NameMapping(keyspace.tables(), keyspace.userDefinedTypes());
     this.filterInputTypes = buildFilterInputTypes();
   }
 
   GraphQLSchema build() {
     GraphQLSchema.Builder builder = new GraphQLSchema.Builder();
 
+    for (UserDefinedType udt : keyspace.userDefinedTypes()) {
+      builder.additionalTypes(buildTypesForUdt(udt));
+    }
+
     List<GraphQLFieldDefinition> queryFields = new ArrayList<>();
     List<GraphQLFieldDefinition> mutationFields = new ArrayList<>();
 
     // Tables must be iterated one at a time. If a table is unfulfillable, it is skipped
-    for (Table table : tables) {
+    for (Table table : keyspace.tables()) {
       Set<GraphQLType> additionalTypes;
       List<GraphQLFieldDefinition> tableQueryField;
       List<GraphQLFieldDefinition> tableMutationFields;
@@ -376,11 +382,21 @@ class DmlSchemaBuilder {
   private List<GraphQLInputObjectField> buildFilterInputFields(Table table) {
     List<GraphQLInputObjectField> fields = new ArrayList<>();
     for (Column columnMetadata : table.columns()) {
-      if (filterInputTypes.get(columnMetadata.type()) != null) {
+      Column.ColumnType type = columnMetadata.type();
+      if (type != null && type.isUserDefined()) {
+        assert type instanceof UserDefinedType;
         fields.add(
             GraphQLInputObjectField.newInputObjectField()
                 .name(nameMapping.getColumnNames(table).get(columnMetadata))
-                .type(getFilterInputTypeRef(columnMetadata.type()))
+                .type(
+                    new GraphQLTypeReference(
+                        nameMapping.getUdtNames().get(type.frozen(false)) + "Input"))
+                .build());
+      } else if (filterInputTypes.get(type) != null) {
+        fields.add(
+            GraphQLInputObjectField.newInputObjectField()
+                .name(nameMapping.getColumnNames(table).get(columnMetadata))
+                .type(getFilterInputTypeRef(type))
                 .build());
       }
     }
@@ -533,13 +549,49 @@ class DmlSchemaBuilder {
         .type((GraphQLOutputType) getGraphQLType(columnMetadata.type(), false));
   }
 
+  private Set<GraphQLType> buildTypesForUdt(UserDefinedType udt) {
+
+    GraphQLObjectType.Builder outputType =
+        GraphQLObjectType.newObject().name(nameMapping.getUdtNames().get(udt));
+    for (Column columnMetadata : udt.columns()) {
+      try {
+        outputType.field(
+            new GraphQLFieldDefinition.Builder()
+                .name(nameMapping.getFieldNames(udt).get(columnMetadata))
+                .type((GraphQLOutputType) getGraphQLType(columnMetadata.type(), false))
+                .build());
+      } catch (Exception e) {
+        log.error(String.format("Type for %s could not be created", columnMetadata.name()), e);
+      }
+    }
+
+    GraphQLInputObjectType.Builder inputType =
+        GraphQLInputObjectType.newInputObject().name(nameMapping.getUdtNames().get(udt) + "Input");
+    for (Column column : udt.columns()) {
+      try {
+        inputType.field(
+            GraphQLInputObjectField.newInputObjectField()
+                .name(nameMapping.getFieldNames(udt).get(column))
+                .type((GraphQLInputType) getGraphQLType(column.type(), true))
+                .build());
+      } catch (Exception e) {
+        log.error(String.format("Input type for %s could not be created", column.name()), e);
+      }
+    }
+
+    return ImmutableSet.of(outputType.build(), inputType.build());
+  }
+
   private GraphQLType getGraphQLType(Column.ColumnType type, boolean isInput) {
-    return getGraphQLType(type, isInput, typeCache);
+    return getGraphQLType(type, isInput, typeCache, nameMapping);
   }
 
   @VisibleForTesting
   static GraphQLType getGraphQLType(
-      Column.ColumnType type, boolean isInput, Map<String, GraphQLType> typeCache) {
+      Column.ColumnType type,
+      boolean isInput,
+      Map<String, GraphQLType> typeCache,
+      NameMapping nameMapping) {
     switch (type.rawType()) {
       case Ascii:
         return CustomScalar.ASCII.getGraphQLScalar();
@@ -564,13 +616,12 @@ class DmlSchemaBuilder {
       case Tinyint:
         return Scalars.GraphQLInt;
       case Text:
+      case Varchar:
         return Scalars.GraphQLString;
       case Timestamp:
         return CustomScalar.TIMESTAMP.getGraphQLScalar();
       case Uuid:
         return CustomScalar.UUID.getGraphQLScalar();
-      case Varchar:
-        return Scalars.GraphQLString;
       case Varint:
         return CustomScalar.VARINT.getGraphQLScalar();
       case Timeuuid:
@@ -583,11 +634,21 @@ class DmlSchemaBuilder {
         return CustomScalar.TIME.getGraphQLScalar();
       case List:
       case Set:
-        return new GraphQLList(getGraphQLType(type.parameters().get(0), isInput, typeCache));
+        return new GraphQLList(
+            getGraphQLType(type.parameters().get(0), isInput, typeCache, nameMapping));
       case Map:
-        GraphQLType keyType = getGraphQLType(type.parameters().get(0), isInput, typeCache);
-        GraphQLType valueType = getGraphQLType(type.parameters().get(1), isInput, typeCache);
+        GraphQLType keyType =
+            getGraphQLType(type.parameters().get(0), isInput, typeCache, nameMapping);
+        GraphQLType valueType =
+            getGraphQLType(type.parameters().get(1), isInput, typeCache, nameMapping);
         return new GqlMapBuilder(keyType, valueType, isInput, typeCache).build();
+      case UDT:
+        UserDefinedType udt = (UserDefinedType) type;
+        if (udt.isFrozen()) {
+          udt = udt.frozen(false);
+        }
+        return new GraphQLTypeReference(
+            nameMapping.getUdtNames().get(udt) + (isInput ? "Input" : ""));
       default:
         break;
     }

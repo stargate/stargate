@@ -260,6 +260,8 @@ public interface Row {
           return getUUID(column);
         case Timestamp:
           return getTimestamp(column);
+        case UDT:
+          return getUDT(column);
       }
     } catch (IllegalArgumentException iae) {
       // If we get this far then we know the column exists on the table but if there is a null value
@@ -269,7 +271,7 @@ public interface Row {
       // that nullable columns could prevent an entire row from being returned.
       return null;
     }
-    throw new UnsupportedOperationException("Unknown type");
+    throw new UnsupportedOperationException("Unknown type " + column.type().rawType());
   }
 
   AbstractTable table();

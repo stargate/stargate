@@ -1,8 +1,5 @@
 package io.stargate.graphql.schema.fetchers.dml;
 
-import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.literal;
-
-import com.datastax.oss.driver.api.querybuilder.Literal;
 import com.datastax.oss.driver.api.querybuilder.condition.Condition;
 import com.datastax.oss.driver.api.querybuilder.relation.Relation;
 import com.datastax.oss.driver.api.querybuilder.term.Term;
@@ -52,7 +49,7 @@ public abstract class DmlFetcher extends CassandraFetcher<Map<String, Object>> {
           continue;
         }
 
-        Literal dbValue = toDbLiteral(column, condition.getValue());
+        Term dbValue = toCqlTerm(column, condition.getValue());
         switch (condition.getKey()) {
           case "eq":
             clause.add(Condition.column(column.name()).isEqualTo(dbValue));
@@ -83,10 +80,10 @@ public abstract class DmlFetcher extends CassandraFetcher<Map<String, Object>> {
   private List<Term> buildListLiterals(Column column, Object o) {
     if (o instanceof Collection<?>) {
       Collection<?> values = (Collection<?>) o;
-      return values.stream().map(item -> toDbLiteral(column, item)).collect(Collectors.toList());
+      return values.stream().map(item -> toCqlTerm(column, item)).collect(Collectors.toList());
     }
 
-    return Collections.singletonList(toDbLiteral(column, o));
+    return Collections.singletonList(toCqlTerm(column, o));
   }
 
   protected List<Relation> buildFilterConditions(
@@ -103,7 +100,7 @@ public abstract class DmlFetcher extends CassandraFetcher<Map<String, Object>> {
           relations.add(
               Relation.column(column.name()).in(buildListLiterals(column, condition.getValue())));
         }
-        Literal dbValue = toDbLiteral(column, condition.getValue());
+        Term dbValue = toCqlTerm(column, condition.getValue());
 
         switch (condition.getKey()) {
           case "eq":
@@ -142,9 +139,9 @@ public abstract class DmlFetcher extends CassandraFetcher<Map<String, Object>> {
       if (value == null) return ImmutableList.of();
 
       for (Map.Entry<String, Object> entry : value.entrySet()) {
+        Column column = getColumn(table, entry.getKey());
         relations.add(
-            Relation.column(getDBColumnName(table, entry.getKey()))
-                .isEqualTo(literal(entry.getValue())));
+            Relation.column(column.name()).isEqualTo(toCqlTerm(column, entry.getValue())));
       }
       return relations;
     }
@@ -162,7 +159,7 @@ public abstract class DmlFetcher extends CassandraFetcher<Map<String, Object>> {
     return nameMapping.getColumnNames(table).inverse().get(fieldName);
   }
 
-  protected Literal toDbLiteral(Column column, Object value) {
-    return literal(DataTypeMapping.toDbValue(column.type(), value));
+  protected Term toCqlTerm(Column column, Object value) {
+    return DataTypeMapping.toCqlTerm(column.type(), value, nameMapping);
   }
 }

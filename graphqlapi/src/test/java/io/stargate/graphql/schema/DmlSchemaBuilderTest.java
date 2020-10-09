@@ -24,12 +24,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class DmlSchemaBuilderTest {
   private Map<String, GraphQLType> typeCache = new HashMap<>();
+  @Mock private NameMapping nameMapping;
 
   @ParameterizedTest
   @MethodSource("getScalarTypes")
@@ -104,13 +109,13 @@ public class DmlSchemaBuilderTest {
       Column.ColumnType keyDbType, Column.ColumnType valueDbType) {
     Map<String, GraphQLType> typeCache = new HashMap<>();
     Column.ColumnType mapDbType = Column.Type.Map.of(keyDbType, valueDbType);
-    GraphQLType graphTypeParentType = getGraphQLType(mapDbType, false, typeCache);
+    GraphQLType graphTypeParentType = getGraphQLType(mapDbType, false, typeCache, nameMapping);
     assertThat(graphTypeParentType).isInstanceOf(GraphQLList.class);
     GraphQLSchemaElement childObjectType = graphTypeParentType.getChildren().get(0);
 
     // Following calls should yield the same instance
     assertThat(childObjectType)
-        .isSameAs(getGraphQLType(mapDbType, false, typeCache).getChildren().get(0));
+        .isSameAs(getGraphQLType(mapDbType, false, typeCache, nameMapping).getChildren().get(0));
   }
 
   @ParameterizedTest
@@ -204,14 +209,14 @@ public class DmlSchemaBuilderTest {
 
   /** Gets a GraphQL input type using the shared cache */
   private GraphQLInputType getInputType(Column.ColumnType dbType) {
-    GraphQLType result = getGraphQLType(dbType, true, typeCache);
+    GraphQLType result = getGraphQLType(dbType, true, typeCache, nameMapping);
     assertThat(result).isInstanceOf(GraphQLInputType.class);
     return (GraphQLInputType) result;
   }
 
   /** Gets a GraphQL output type using the shared cache */
   private GraphQLOutputType getOutputType(Column.ColumnType dbType) {
-    GraphQLType result = getGraphQLType(dbType, false, typeCache);
+    GraphQLType result = getGraphQLType(dbType, false, typeCache, nameMapping);
     assertThat(result).isInstanceOf(GraphQLOutputType.class);
     return (GraphQLOutputType) result;
   }
