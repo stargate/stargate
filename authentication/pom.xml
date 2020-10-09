@@ -8,7 +8,6 @@
   </parent>
   <groupId>io.stargate.auth</groupId>
   <artifactId>authentication</artifactId>
-  <version>0.0.15-SNAPSHOT</version>
   <build>
     <plugins>
       <plugin>
@@ -28,7 +27,6 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <configuration>
           <archive>
