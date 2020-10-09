@@ -888,17 +888,41 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(ex.errors.get(0).getMessage()).contains("Invalid UUID string");
   }
 
-  @ParameterizedTest(name = "[{index}] {0}")
+  @SuppressWarnings("unchecked")
+  @ParameterizedTest
   @MethodSource("getInvalidQueries")
-  @DisplayName("Invalid GraphQL parameters should return error response")
+  @DisplayName("Invalid GraphQL queries and mutations should return error response")
   public void invalidGraphQLParametersReturnsErrorResponse(
-      @SuppressWarnings("unused") String description,
-      String path,
-      String query,
-      String errorName,
-      String message)
-      throws IOException {
-    assertResponseErrorWithRawQuery(path, query, errorName, message);
+      String path, String query, String errorName, String message) throws IOException {
+
+    OkHttpClient okHttpClient =
+        new OkHttpClient.Builder()
+            .addInterceptor(
+                chain ->
+                    chain.proceed(
+                        chain
+                            .request()
+                            .newBuilder()
+                            .addHeader("X-Cassandra-Token", authToken)
+                            .addHeader("content-type", "application/json")
+                            .build()))
+            .build();
+
+    String url = String.format("http://%s:8080%s", getStargateHost(), path);
+    HttpUrl.Builder httpBuilder = HttpUrl.parse(url).newBuilder();
+    httpBuilder.addQueryParameter("query", query);
+    okhttp3.Response response =
+        okHttpClient.newCall(new Request.Builder().url(httpBuilder.build()).build()).execute();
+    assertThat(response.code()).isEqualTo(HttpStatus.SC_OK);
+    ObjectMapper mapper = new ObjectMapper();
+    Map<String, Object> mapResponse = mapper.readValue(response.body().string(), Map.class);
+    assertThat(mapResponse).containsKey("errors");
+    assertThat(mapResponse.get("errors")).isInstanceOf(List.class);
+    List<Map<String, Object>> errors = (List<Map<String, Object>>) mapResponse.get("errors");
+    assertThat(errors)
+        .hasOnlyOneElementSatisfying(
+            item -> assertThat(item.get("message")).asString().contains(errorName, message));
+    response.close();
   }
 
   public static Stream<Arguments> getInvalidQueries() {
@@ -906,16 +930,29 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     String ddlPath = "/graphql-schema";
     return Stream.of(
         arguments(
-            "ABC",
             dmlPath,
             "query { zzz { name } }",
             "Field 'zzz' in type 'Query' is undefined",
             "Validation error"),
         arguments(
-            "DEF",
+            dmlPath,
+            "invalidWrapper { zzz { name } }",
+            "offending token 'invalidWrapper'",
+            "Invalid Syntax"),
+        arguments(
             ddlPath,
             "query { zzz { name } }",
             "Field 'zzz' in type 'Query' is undefined",
+            "Validation error"),
+        arguments(
+            ddlPath,
+            "query { keyspace (name: 1) { name } }",
+            "WrongType: argument 'name'",
+            "Validation error"),
+        arguments(
+            ddlPath,
+            "query { keyspaces { name, nameInvalid } }",
+            "Field 'nameInvalid' in type 'Keyspace' is undefined",
             "Validation error"));
   }
 
@@ -983,41 +1020,6 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     UpdateCollectionsSimpleMutation.Data updateResult = mutateAndGet(client, updateMutation);
     assertThat(updateResult.getUpdateCollectionsSimple()).isPresent();
     assertCollectionsSimple(client, id, list, set, map);
-  }
-
-  @SuppressWarnings("unchecked")
-  private void assertResponseErrorWithRawQuery(
-      String path, String graphQLQuery, String... expectedMessages) throws IOException {
-    OkHttpClient okHttpClient =
-        new OkHttpClient.Builder()
-            .addInterceptor(
-                chain ->
-                    chain.proceed(
-                        chain
-                            .request()
-                            .newBuilder()
-                            .addHeader("X-Cassandra-Token", authToken)
-                            .addHeader("content-type", "application/json")
-                            .build()))
-            .build();
-
-    String url = String.format("http://%s:8080%s", getStargateHost(), path);
-    HttpUrl.Builder httpBuilder = HttpUrl.parse(url).newBuilder();
-    httpBuilder.addQueryParameter("query", graphQLQuery);
-    okhttp3.Response response =
-        okHttpClient.newCall(new Request.Builder().url(httpBuilder.build()).build()).execute();
-    assertThat(response.code()).isEqualTo(HttpStatus.SC_OK);
-    ObjectMapper mapper = new ObjectMapper();
-    Map<String, Object> mapResponse = mapper.readValue(response.body().string(), Map.class);
-    assertThat(mapResponse).containsKey("errors");
-    assertThat(mapResponse.get("errors")).isInstanceOf(List.class);
-    List<Map<String, Object>> errors = (List<Map<String, Object>>) mapResponse.get("errors");
-    assertThat(errors)
-        .hasOnlyOneElementSatisfying(
-            item -> {
-              assertThat(item.get("message")).asString().contains(expectedMessages);
-            });
-    response.close();
   }
 
   private void assertCollectionsSimple(
