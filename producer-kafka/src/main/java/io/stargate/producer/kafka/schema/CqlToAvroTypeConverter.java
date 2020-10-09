@@ -15,6 +15,7 @@
  */
 package io.stargate.producer.kafka.schema;
 
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.stargate.producer.kafka.schema.codecs.BigIntegerConversion;
 import io.stargate.producer.kafka.schema.codecs.BigIntegerLogicalType;
 import io.stargate.producer.kafka.schema.codecs.BigIntegerLogicalType.BigIntegerTypeFactory;
@@ -100,6 +101,10 @@ public class CqlToAvroTypeConverter {
     GenericData.get().addLogicalTypeConversion(new BigIntegerConversion());
   }
 
+  /**
+   * It create a Schema based on the CqlType. To see how specific types are handled, see java doc of
+   * other methods.
+   */
   public static Schema toAvroType(CQLType type) {
     if (type instanceof Collection) {
       return createCollectionSchema((Collection) type);
@@ -127,7 +132,8 @@ public class CqlToAvroTypeConverter {
    * responsibility to deserialize it correctly. Currently, the class name form {@link
    * Custom#getClassName()} is not propagated in the avro message.
    */
-  private static Schema createCustomSchema(@SuppressWarnings("unused") Custom type) {
+  @VisibleForTesting
+  static Schema createCustomSchema(@SuppressWarnings("unused") Custom type) {
     return Schema.create(Type.BYTES);
   }
 
@@ -166,7 +172,8 @@ public class CqlToAvroTypeConverter {
    *
    * <p>The generated schema also supports nested Tuple types.
    */
-  private static Schema creteTupleSchema(Tuple type) {
+  @VisibleForTesting
+  static Schema creteTupleSchema(Tuple type) {
     FieldAssembler<Schema> tupleSchemaBuilder =
         SchemaBuilder.record(tupleToRecordName(type)).fields();
 
@@ -231,7 +238,8 @@ public class CqlToAvroTypeConverter {
    *
    * The generated schema also supports nested UserDefined types.
    */
-  private static Schema createUserDefinedSchema(UserDefined type) {
+  @VisibleForTesting
+  static Schema createUserDefinedSchema(UserDefined type) {
     FieldAssembler<Schema> udtSchemaBuilder = SchemaBuilder.record(type.getName()).fields();
     for (Map.Entry<String, CQLType> udtField : type.getFields().entrySet()) {
       udtSchemaBuilder.name(udtField.getKey()).type(toAvroType(udtField.getValue())).noDefault();
@@ -256,7 +264,8 @@ public class CqlToAvroTypeConverter {
    *
    * Please note that there is no field that represents the value for keys in a map.
    */
-  private static Schema createMapSchema(MapDataType type) {
+  @VisibleForTesting
+  static Schema createMapSchema(MapDataType type) {
     return SchemaBuilder.map().values(toAvroType(type.getValueType()));
   }
 
@@ -271,7 +280,8 @@ public class CqlToAvroTypeConverter {
    * }
    * </pre>
    */
-  private static Schema createCollectionSchema(Collection type) {
+  @VisibleForTesting
+  static Schema createCollectionSchema(Collection type) {
     return SchemaBuilder.array().items(toAvroType(type.getSubType()));
   }
 }
