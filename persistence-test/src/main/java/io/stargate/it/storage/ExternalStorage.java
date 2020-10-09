@@ -42,6 +42,8 @@ public class ExternalStorage
   private static final boolean EXTERNAL_BACKEND =
       Boolean.getBoolean("stargate.test.backend.use.external");
   private static final String DATACENTER = System.getProperty("stargate.test.backend.dc", "dc1");
+  private static final String CLUSTER_NAME =
+      System.getProperty("stargate.test.backend.cluster_name", "Test_Cluster");
 
   private static final AtomicBoolean executing = new AtomicBoolean();
 
@@ -181,7 +183,7 @@ public class ExternalStorage
       this.initSite = displayName;
       this.ccm =
           CcmBridge.builder()
-              .withCassandraConfiguration("cluster_name", spec.name())
+              .withCassandraConfiguration("cluster_name", CLUSTER_NAME)
               .withNodes(clusterNodes)
               .build();
     }
@@ -240,7 +242,7 @@ public class ExternalStorage
 
     @Override
     public String clusterName() {
-      return spec.name();
+      return CLUSTER_NAME;
     }
 
     @Override
