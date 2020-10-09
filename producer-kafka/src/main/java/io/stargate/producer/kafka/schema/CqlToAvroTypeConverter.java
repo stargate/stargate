@@ -131,6 +131,37 @@ public class CqlToAvroTypeConverter {
     throw new UnsupportedOperationException(String.format("The type: %s is not supported", type));
   }
 
+  /**
+   * The UserDefined is a Record in Avro. For example, such an UserDefined type:
+   *
+   * <pre>
+   * LinkedHashMap<String, CQLType> udtColumns = new LinkedHashMap<>();
+   * udtColumns.put("udtcol_1", Native.INT);
+   * udtColumns.put("udtcol_2", Native.TEXT);
+   * UserDefined userDefinedType = new UserDefined("ks", "typeName", udtColumns);
+   * </pre>
+   *
+   * will have the following schema:
+   *
+   * <pre>
+   * {
+   * "type":"record",
+   * "name":"typeName",
+   * "fields":[
+   *    {
+   *       "name":"udtcol_1",
+   *       "type":"int"
+   *    },
+   *    {
+   *       "name":"udtcol_2",
+   *       "type":"string"
+   *    }
+   *  ]
+   * }
+   * </pre>
+   *
+   * This also supports nested UserDefined types.
+   */
   private static Schema createUserDefinedSchema(UserDefined type) {
     FieldAssembler<Schema> udtSchemaBuilder = SchemaBuilder.record(type.getName()).fields();
     for (Map.Entry<String, CQLType> udtField : type.getFields().entrySet()) {
@@ -139,12 +170,38 @@ public class CqlToAvroTypeConverter {
     return udtSchemaBuilder.endRecord();
   }
 
+  /**
+   * Avro assumes that every key is of a string type and automatically converts every key to a
+   * string representation. See {@link org.apache.avro.util.Utf8} - all keys are converted to this
+   * class. Example map with Integer values in avro schema:
+   *
+   * <pre>
+   * {
+   *  "type":"map",
+   *  "values":{
+   *    "type":"map",
+   *    "values":"int"
+   *   }
+   * }
+   * </pre>
+   *
+   * Please note that there is no field that represents the value for keys in a map.
+   */
   private static Schema createMapSchema(MapDataType type) {
-    // avro assumes that every key is of a string type, and convert every key to a string
-    // representation automatically
     return SchemaBuilder.map().values(toAvroType(type.getValueType()));
   }
 
+  /**
+   * Both lists and sets are converted to the Avro array type. For example, the resulting type for
+   * set and list of an integer type will be:
+   *
+   * <pre>
+   * {
+   *  "type":"array",
+   *  "items":"int"
+   * }
+   * </pre>
+   */
   private static Schema createCollectionSchema(Collection type) {
     return SchemaBuilder.array().items(toAvroType(type.getSubType()));
   }
