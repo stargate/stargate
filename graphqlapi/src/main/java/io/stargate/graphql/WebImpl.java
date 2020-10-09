@@ -30,6 +30,7 @@ import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
+import org.osgi.framework.FrameworkUtil;
 
 public class WebImpl {
 
@@ -52,7 +53,8 @@ public class WebImpl {
     ServletHolder schema = new ServletHolder(new SchemaGraphQLServlet(persistence, authentication));
     context.addServlet(schema, "/graphql-schema");
 
-    ServletHolder playground = new ServletHolder(new PlaygroundServlet());
+    ServletHolder playground =
+        new ServletHolder(new PlaygroundServlet(FrameworkUtil.getBundle(GraphqlActivator.class)));
     context.addServlet(playground, "/playground");
 
     EnumSet<DispatcherType> allDispatcherTypes = EnumSet.allOf(DispatcherType.class);
