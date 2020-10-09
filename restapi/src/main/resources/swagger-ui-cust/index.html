@@ -48,9 +48,9 @@
         ],
         layout: "StandaloneLayout",
         parameterMacro: function (operation, parameter) {
-          urlParams = new URLSearchParams(window.location.search);
-          tokenValue = urlParams.get('token');
           if (parameter.name === "X-Cassandra-Token") {
+            urlParams = new URLSearchParams(window.location.search);
+            tokenValue = urlParams.get('token');
             return tokenValue;
           }
         }
