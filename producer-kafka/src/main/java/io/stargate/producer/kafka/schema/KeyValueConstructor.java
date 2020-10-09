@@ -42,6 +42,9 @@ import org.apache.cassandra.stargate.schema.CQLType.UserDefined;
 
 public class KeyValueConstructor {
 
+  private static final List<Class<?>> AVRO_UNSUPPORTED_TYPES =
+      Arrays.asList(CqlDuration.class, InetAddress.class);
+
   private SchemaProvider schemaProvider;
 
   public KeyValueConstructor(SchemaProvider schemaProvider) {
@@ -161,9 +164,6 @@ public class KeyValueConstructor {
             genericRecord.put(
                 cellValue.getColumn().getName(), getValueObjectOrByteBuffer(cellValue)));
   }
-
-  private static final List<Class<?>> AVRO_UNSUPPORTED_TYPES =
-      Arrays.asList(CqlDuration.class, InetAddress.class);
 
   /**
    * It returns the java representation of the underlying value using {@link
