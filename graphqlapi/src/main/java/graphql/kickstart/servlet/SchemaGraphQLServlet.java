@@ -19,8 +19,8 @@ import graphql.kickstart.execution.GraphQLObjectMapper;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
-import io.stargate.graphql.graphqlservlet.CassandraUnboxingGraphqlErrorHandler;
 import io.stargate.graphql.graphqlservlet.GraphqlCustomContextBuilder;
+import io.stargate.graphql.graphqlservlet.StargateGraphqlErrorHandler;
 import io.stargate.graphql.schema.SchemaFactory;
 
 public class SchemaGraphQLServlet extends SimpleGraphQLHttpServlet {
@@ -39,7 +39,7 @@ public class SchemaGraphQLServlet extends SimpleGraphQLHttpServlet {
         .with(new GraphqlCustomContextBuilder())
         .with(
             GraphQLObjectMapper.newBuilder()
-                .withGraphQLErrorHandler(new CassandraUnboxingGraphqlErrorHandler())
+                .withGraphQLErrorHandler(new StargateGraphqlErrorHandler())
                 .build())
         .build();
   }

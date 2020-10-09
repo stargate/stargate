@@ -11,7 +11,7 @@
   <artifactId>persistence-dse-6.8</artifactId>
   <properties>
     <dse.version>6.8.2-69139b3</dse.version>
-    <junit.version>5.6.2</junit.version>
+    <junit.version>5.7.0</junit.version>
     <surefire.version>3.0.0-M3</surefire.version>
     <failsafe.version>3.0.0-M3</failsafe.version>
   </properties>
