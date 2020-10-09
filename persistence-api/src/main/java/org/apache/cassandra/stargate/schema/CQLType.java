@@ -222,6 +222,7 @@ public interface CQLType {
 
   public static class Tuple implements CQLType {
     private final CQLType[] subTypes;
+    private final String name;
 
     public Tuple(CQLType... subTypes) {
       this.subTypes = subTypes;
@@ -229,10 +230,15 @@ public interface CQLType {
       if (subTypes == null || subTypes.length == 0) {
         throw new IllegalArgumentException("subTypes should contain at least an item");
       }
+      this.name = constructSubTypesName();
     }
 
     public CQLType[] getSubTypes() {
       return subTypes;
+    }
+
+    public String getName() {
+      return name;
     }
 
     @Override
@@ -244,7 +250,7 @@ public interface CQLType {
         return false;
       }
       Tuple tuple = (Tuple) o;
-      return Arrays.equals(subTypes, tuple.subTypes);
+      return name.equals(tuple.name) && Arrays.equals(subTypes, tuple.subTypes);
     }
 
     @Override
@@ -254,6 +260,10 @@ public interface CQLType {
 
     @Override
     public String toString() {
+      return name;
+    }
+
+    private String constructSubTypesName() {
       StringBuilder builder = new StringBuilder("tuple<");
       builder.append(subTypes[0].toString());
       for (int i = 1; i < subTypes.length; i++) {
