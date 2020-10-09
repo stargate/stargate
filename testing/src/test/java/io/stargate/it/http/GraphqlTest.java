@@ -893,7 +893,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   @MethodSource("getInvalidQueries")
   @DisplayName("Invalid GraphQL queries and mutations should return error response")
   public void invalidGraphQLParametersReturnsErrorResponse(
-      String path, String query, String errorName, String message) throws IOException {
+      String path, String query, String message1, String message2) throws IOException {
 
     OkHttpClient okHttpClient =
         new OkHttpClient.Builder()
@@ -921,7 +921,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     List<Map<String, Object>> errors = (List<Map<String, Object>>) mapResponse.get("errors");
     assertThat(errors)
         .hasOnlyOneElementSatisfying(
-            item -> assertThat(item.get("message")).asString().contains(errorName, message));
+            item -> assertThat(item.get("message")).asString().contains(message1, message2));
     response.close();
   }
 
@@ -939,6 +939,11 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             "invalidWrapper { zzz { name } }",
             "offending token 'invalidWrapper'",
             "Invalid Syntax"),
+        arguments(
+            dmlPath,
+            "query { products(filter: { name: { gt: \"a\"} }) { values { id } }}",
+            "Cannot execute this query",
+            "use ALLOW FILTERING"),
         arguments(
             ddlPath,
             "query { zzz { name } }",

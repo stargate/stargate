@@ -48,7 +48,7 @@ public class CassandraUnboxingGraphqlErrorHandler implements GraphQLErrorHandler
           .build();
     }
 
-    // ValidationError should not be unboxed
+    // ValidationError, TypeMismatchError, ... should not be unboxed
     return error;
   }
 
