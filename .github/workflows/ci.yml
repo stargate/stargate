@@ -3,7 +3,7 @@ name: Java CI
 on: [push]
 
 jobs:
-  build-cassandra-3.11:
+  build-cassandra-3_11:
     runs-on: ubuntu-latest
 
     steps:
@@ -51,7 +51,7 @@ jobs:
           CCM_CLUSTER_START_TIMEOUT_OVERRIDE: 600
         run: |
           mvn -B verify --file pom.xml  -P it-cassandra-3.11
-  build-cassandra-4.0:
+  build-cassandra-4_0:
     runs-on: ubuntu-latest
 
     steps:
@@ -100,7 +100,7 @@ jobs:
         run: |
           mvn -B verify --file pom.xml -P it-cassandra-4.0
 
-  build-dse-6.8:
+  build-dse-6_8:
     runs-on: ubuntu-latest
 
     steps:
