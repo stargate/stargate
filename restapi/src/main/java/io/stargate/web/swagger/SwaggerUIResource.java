@@ -47,7 +47,7 @@ public class SwaggerUIResource {
     if (!matcher.matches()) {
       return Response.status(Status.NOT_FOUND).build();
     }
-    return serveFile(fileName);
+    return serveFile("/swagger-ui/", fileName);
   }
 
   @GET
@@ -58,14 +58,14 @@ public class SwaggerUIResource {
     if (!uriInfo.getAbsolutePath().getPath().endsWith("/")) {
       return Response.temporaryRedirect(uriInfo.getAbsolutePathBuilder().path("/").build()).build();
     }
-    return serveFile("index.html");
+    return serveFile("/swagger-ui-cust/", "index.html");
   }
 
-  private Response serveFile(String fileName) {
+  private Response serveFile(String path, String fileName) {
     InputStream is;
     String type = MediaType.TEXT_HTML;
     try {
-      URL entry = bundle.getEntry("/swagger-ui/" + fileName);
+      URL entry = bundle.getEntry(path + fileName);
       is = entry.openConnection().getInputStream();
 
       if (fileName.endsWith(".css")) {
