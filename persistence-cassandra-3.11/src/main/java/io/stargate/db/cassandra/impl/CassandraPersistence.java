@@ -153,7 +153,7 @@ public class CassandraPersistence
   @Override
   protected void initializePersistence(Config config) {
     // C* picks this property during the static loading of the ClientState class. So we set it
-    // early, to make sure that class i not loaded before we've set it.
+    // early, to make sure that class is not loaded before we've set it.
     System.setProperty(
         "cassandra.custom_query_handler_class", StargateQueryHandler.class.getName());
 
@@ -242,7 +242,7 @@ public class CassandraPersistence
   }
 
   private <T extends Result> CompletableFuture<T> runOnExecutor(Supplier<T> supplier) {
-    assert executor != null : "This persistence has not be initialized";
+    assert executor != null : "This persistence has not been initialized";
     CompletableFuture<T> future = new CompletableFuture<>();
     executor.submit(
         () -> {

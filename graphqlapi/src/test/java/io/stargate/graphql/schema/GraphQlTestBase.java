@@ -3,6 +3,7 @@ package io.stargate.graphql.schema;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 import static org.mockito.quality.Strictness.LENIENT;
 
@@ -19,11 +20,13 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 
@@ -42,6 +45,8 @@ public abstract class GraphQlTestBase {
 
   @Captor protected ArgumentCaptor<String> queryCaptor;
 
+  private MockedStatic<DataStore> dataStoreCreateMock;
+
   @BeforeEach
   @SuppressWarnings("unchecked")
   public void setupEnvironment() {
@@ -53,7 +58,9 @@ public abstract class GraphQlTestBase {
       when(context.getAuthToken()).thenReturn(token);
       when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
       when(storedCredentials.getRoleName()).thenReturn(roleName);
-      when(DataStore.create(persistence, roleName)).thenReturn(dataStore);
+      dataStoreCreateMock = mockStatic(DataStore.class);
+      dataStoreCreateMock.when(() -> DataStore.create(persistence, roleName))
+          .thenReturn(dataStore);
     } catch (Exception e) {
       fail("Unexpected exception while mocking authentication", e);
     }
@@ -72,6 +79,11 @@ public abstract class GraphQlTestBase {
         .thenReturn(CompletableFuture.completedFuture(resultSet));
 
     graphQl = GraphQL.newGraphQL(createGraphQlSchema()).build();
+  }
+
+  @AfterEach
+  public void resetMocks() {
+    dataStoreCreateMock.close();
   }
 
   protected abstract GraphQLSchema createGraphQlSchema();

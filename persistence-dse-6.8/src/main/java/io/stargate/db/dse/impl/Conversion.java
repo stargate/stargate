@@ -143,8 +143,6 @@ public class Conversion {
         toInternal(parameters.protocolVersion());
     // Note that PagingState.deserialize below modifies its input, so we duplicate to avoid nasty
     // surprises down the line
-    // Note that PagingState.deserialize below modifies its input, so we duplicate to avoid nasty
-    // surprises down the line
     PagingState pagingState =
         parameters
             .pagingState()

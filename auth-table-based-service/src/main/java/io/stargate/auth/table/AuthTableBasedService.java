@@ -117,7 +117,8 @@ public class AuthTableBasedService implements AuthenticationService {
     }
 
     if (username == null || username.isEmpty()) {
-      throw new UnauthorizedException(String.format("Provided username %s is incorrect", key));
+      throw new UnauthorizedException(
+          String.format("Provided username %s and/or password are incorrect", key));
     }
 
     saveToken(key, token);

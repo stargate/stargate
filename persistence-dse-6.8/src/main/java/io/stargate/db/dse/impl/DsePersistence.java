@@ -137,7 +137,7 @@ public class DsePersistence
   @Override
   protected void initializePersistence(Config config) {
     // DSE picks this property during the static loading of the ClientState class. So we set it
-    // early, to make sure that class i not loaded before we've set it.
+    // early, to make sure that class is not loaded before we've set it.
     System.setProperty(
         "cassandra.custom_query_handler_class", StargateQueryHandler.class.getName());
 
