@@ -114,15 +114,7 @@ public class KeyValueConstructor {
   }
 
   private void handleUdt(CellValue v, GenericRecord record) {
-    List<Field> fields = record.getSchema().getFields();
-    if (fields.size() > 1) {
-      throw new IllegalStateException(
-          "The schema for userDefined: "
-              + v.getColumn()
-              + " should have only one field, but have: "
-              + fields.size());
-    }
-    Schema udtSchema = fields.get(0).schema();
+    Schema udtSchema = validateNumberOfFieldsAndConstructSchema(v, record);
     UserDefined userDefined = (UserDefined) v.getColumn().getType();
     GenericRecord innerRecord =
         validateUnionTypeAndConstructRecord(userDefined.getName(), udtSchema);
@@ -131,21 +123,25 @@ public class KeyValueConstructor {
   }
 
   private void handleTuple(CellValue v, GenericRecord record) {
-    List<Field> fields = record.getSchema().getFields();
-    if (fields.size() > 1) {
-      throw new IllegalStateException(
-          "The schema for tuple: "
-              + v.getColumn()
-              + " should have only one field, but have: "
-              + fields.size());
-    }
-    Schema tupleSchema = fields.get(0).schema();
+    Schema tupleSchema = validateNumberOfFieldsAndConstructSchema(v, record);
     Tuple tuple = (Tuple) v.getColumn().getType();
     GenericRecord innerRecord =
         validateUnionTypeAndConstructRecord(
             CqlToAvroTypeConverter.tupleToRecordName(tuple), tupleSchema);
 
     record.put(VALUE_FIELD_NAME, constructTuple(tuple, v.getValueObject(), innerRecord));
+  }
+
+  private Schema validateNumberOfFieldsAndConstructSchema(CellValue v, GenericRecord record) {
+    List<Field> fields = record.getSchema().getFields();
+    if (fields.size() > 1) {
+      throw new IllegalStateException(
+          "The schema for: "
+              + v.getColumn()
+              + " should have only one field, but has: "
+              + fields.size());
+    }
+    return fields.get(0).schema();
   }
 
   @SuppressWarnings("unchecked")
