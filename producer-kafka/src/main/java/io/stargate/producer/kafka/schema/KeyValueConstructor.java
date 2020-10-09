@@ -38,6 +38,7 @@ import org.apache.cassandra.stargate.db.MutationEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
 import org.apache.cassandra.stargate.schema.CQLType;
 import org.apache.cassandra.stargate.schema.CQLType.Custom;
+import org.apache.cassandra.stargate.schema.CQLType.Tuple;
 import org.apache.cassandra.stargate.schema.CQLType.UserDefined;
 
 public class KeyValueConstructor {
@@ -103,6 +104,8 @@ public class KeyValueConstructor {
 
           if (v.getColumn().getType().isUDT()) {
             handleUdt(v, record);
+          } else if (v.getColumn().getType() instanceof Tuple) {
+            handleTuple(v, record);
           } else {
             record.put(VALUE_FIELD_NAME, getValueObjectOrByteBuffer(v));
           }
@@ -125,6 +128,45 @@ public class KeyValueConstructor {
         validateUnionTypeAndConstructRecord(userDefined.getName(), udtSchema);
 
     record.put(VALUE_FIELD_NAME, constructUdt(userDefined, v.getValueObject(), innerRecord));
+  }
+
+  private void handleTuple(CellValue v, GenericRecord record) {
+    List<Field> fields = record.getSchema().getFields();
+    if (fields.size() > 1) {
+      throw new IllegalStateException(
+          "The schema for tuple: "
+              + v.getColumn()
+              + " should have only one field, but have: "
+              + fields.size());
+    }
+    Schema tupleSchema = fields.get(0).schema();
+    Tuple tuple = (Tuple) v.getColumn().getType();
+    GenericRecord innerRecord =
+        validateUnionTypeAndConstructRecord(
+            CqlToAvroTypeConverter.tupleToRecordName(tuple), tupleSchema);
+
+    record.put(VALUE_FIELD_NAME, constructTuple(tuple, v.getValueObject(), innerRecord));
+  }
+
+  @SuppressWarnings("unchecked")
+  private Object constructTuple(Tuple tuple, Object value, GenericRecord record) {
+    // tuple underlying type is a list
+    List<Object> udtValues = (List<Object>) value;
+    for (int i = 0; i < udtValues.size(); i++) {
+      Object udtValue = udtValues.get(i);
+      String udtKey = CqlToAvroTypeConverter.toTupleFieldName(i);
+      CQLType cqlType = tuple.getSubTypes()[i];
+      if (cqlType instanceof Tuple) {
+        // extract nested value
+        Record nestedUdtRecord = new Record(record.getSchema().getField(udtKey).schema());
+        constructTuple((Tuple) cqlType, udtValue, nestedUdtRecord);
+        record.put(udtKey, nestedUdtRecord);
+      } else {
+        // put actual value
+        record.put(udtKey, udtValue);
+      }
+    }
+    return record;
   }
 
   @SuppressWarnings("unchecked")

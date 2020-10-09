@@ -71,6 +71,7 @@ import org.apache.cassandra.stargate.schema.CQLType.Collection.Kind;
 import org.apache.cassandra.stargate.schema.CQLType.Custom;
 import org.apache.cassandra.stargate.schema.CQLType.MapDataType;
 import org.apache.cassandra.stargate.schema.CQLType.Native;
+import org.apache.cassandra.stargate.schema.CQLType.Tuple;
 import org.apache.cassandra.stargate.schema.CQLType.UserDefined;
 import org.apache.cassandra.stargate.schema.ColumnMetadata;
 import org.apache.cassandra.stargate.schema.TableMetadata;
@@ -580,6 +581,15 @@ class KafkaCDCProducerIntegrationTest {
             .build();
     Custom customType = new Custom("java.className");
 
+    // tuple
+    Tuple tupleType = new Tuple(Native.INT, new Collection(Kind.LIST, Native.TEXT), Native.DECIMAL);
+    List<Object> tupleValues =
+        Arrays.asList(1, Collections.singletonList("v_1"), new BigDecimal(100));
+
+    // nested tuple
+    Tuple nestedTupleType = new Tuple(Native.INT, tupleType);
+    List<Object> nestedTupleValues = Arrays.asList(1, tupleValues);
+
     return Stream.of(
         Arguments.of(
             Collections.singletonList(column(listType)),
@@ -605,7 +615,13 @@ class KafkaCDCProducerIntegrationTest {
             Collections.singletonList(cell(column(userDefinedTypeNested), nestedUdtValue))),
         Arguments.of(
             Collections.singletonList(column(customType)),
-            Collections.singletonList(cell(column(customType), Bytes.fromHexString("0xCAFE")))));
+            Collections.singletonList(cell(column(customType), Bytes.fromHexString("0xCAFE")))),
+        Arguments.of(
+            Collections.singletonList(column(tupleType)),
+            Collections.singletonList(cell(column(tupleType), tupleValues))),
+        Arguments.of(
+            Collections.singletonList(column(nestedTupleType)),
+            Collections.singletonList(cell(column(nestedTupleType), nestedTupleValues))));
   }
 
   @NotNull
@@ -662,13 +678,7 @@ class KafkaCDCProducerIntegrationTest {
                       IteratorUtils.toList(records.iterator()));
                 }
                 return Streams.stream(records)
-                    .anyMatch(
-                        r -> {
-                          System.out.println("expectedValue:" + expectedValue);
-                          System.out.println("actualValue:" + r.value());
-
-                          return r.key().equals(expectedKey) && r.value().equals(expectedValue);
-                        });
+                    .anyMatch(r -> r.key().equals(expectedKey) && r.value().equals(expectedValue));
               });
     } finally {
       consumer.close();

@@ -41,11 +41,12 @@ import org.apache.cassandra.stargate.schema.CQLType.MapDataType;
 import org.apache.cassandra.stargate.schema.CQLType.Native;
 import org.apache.cassandra.stargate.schema.CQLType.Tuple;
 import org.apache.cassandra.stargate.schema.CQLType.UserDefined;
+import org.apache.commons.lang.StringUtils;
 
 public class CqlToAvroTypeConverter {
-  private CqlToAvroTypeConverter() {}
-
   private static final Map<Native, Schema> SCHEMA_PER_NATIVE_TYPE = new HashMap<>();
+
+  private CqlToAvroTypeConverter() {}
 
   static {
     // register custom logical types
@@ -123,18 +124,44 @@ public class CqlToAvroTypeConverter {
 
   /**
    * The custom type is saved as bytes without an attempt to deserialize it. It's the client
-   * responsibility to deserialize it correctly
+   * responsibility to deserialize it correctly. Currently, the class name form {@link
+   * Custom#getClassName()} is not propagated in the avro message.
    */
-  private static Schema createCustomSchema(Custom type) {
+  private static Schema createCustomSchema(@SuppressWarnings("unused") Custom type) {
     return Schema.create(Type.BYTES);
   }
 
-  /*
-   */
   private static Schema creteTupleSchema(Tuple type) {
-    //  	return SchemaBuilder.map().values(toAvroType(type.getSubTypes()))
+    FieldAssembler<Schema> tupleSchemaBuilder =
+        SchemaBuilder.record(tupleToRecordName(type)).fields();
 
-    throw new UnsupportedOperationException(String.format("The type: %s is not supported", type));
+    for (int i = 0; i < type.getSubTypes().length; i++) {
+      tupleSchemaBuilder
+          .name(toTupleFieldName(i))
+          .type(toAvroType(type.getSubTypes()[i]))
+          .noDefault();
+    }
+    return tupleSchemaBuilder.endRecord();
+  }
+
+  /**
+   * It creates a name for a given tuple value index. This method is just prepending t_ prefix to an
+   * index. For example, for index 0 it will return 't_0'
+   */
+  public static String toTupleFieldName(int index) {
+    return "t_" + index;
+  }
+
+  /**
+   * It converts the tuple name returned by the {@link Tuple#getName()} to a name that can be used
+   * as an Avro record name. For example {@code new Tuple(Native.INT)} will be transformed to
+   * 'tuple_int_' string value.
+   */
+  public static String tupleToRecordName(Tuple type) {
+    return StringUtils.deleteWhitespace(type.getName())
+        .replaceAll("<", "_")
+        .replaceAll(">", "_")
+        .replaceAll(",", "_");
   }
 
   /**
