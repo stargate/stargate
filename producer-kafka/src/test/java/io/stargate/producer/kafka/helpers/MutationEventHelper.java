@@ -22,6 +22,8 @@ import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.internal.core.type.codec.CqlDurationCodec;
 import com.datastax.oss.driver.internal.core.type.codec.InetCodec;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -34,11 +36,10 @@ import org.apache.cassandra.stargate.schema.CQLType;
 import org.apache.cassandra.stargate.schema.CQLType.Native;
 import org.apache.cassandra.stargate.schema.ColumnMetadata;
 import org.apache.cassandra.stargate.schema.TableMetadata;
-import org.jetbrains.annotations.NotNull;
 
 public class MutationEventHelper {
 
-  @NotNull
+  @NonNull
   public static RowUpdateEvent createRowUpdateEvent(
       String partitionKeyValue,
       ColumnMetadata partitionKeyMetadata,
@@ -58,7 +59,7 @@ public class MutationEventHelper {
         0);
   }
 
-  @NotNull
+  @NonNull
   public static RowUpdateEvent createRowUpdateEventNoPk(
       String columnValue,
       ColumnMetadata columnMetadata,
@@ -73,7 +74,7 @@ public class MutationEventHelper {
         0);
   }
 
-  @NotNull
+  @NonNull
   public static RowUpdateEvent createRowUpdateEventNoCK(
       String partitionKeyValue,
       ColumnMetadata partitionKeyMetadata,
@@ -88,7 +89,7 @@ public class MutationEventHelper {
         0);
   }
 
-  @NotNull
+  @NonNull
   public static RowUpdateEvent createRowUpdateEventNoColumns(
       String partitionKeyValue,
       ColumnMetadata partitionKeyMetadata,
@@ -103,7 +104,7 @@ public class MutationEventHelper {
         0);
   }
 
-  @NotNull
+  @NonNull
   public static RowUpdateEvent createRowUpdateEvent(
       String partitionKeyValue,
       ColumnMetadata partitionKeyMetadata,
@@ -121,7 +122,7 @@ public class MutationEventHelper {
         timestamp);
   }
 
-  @NotNull
+  @NonNull
   public static RowUpdateEvent createRowUpdateEvent(
       List<CellValue> partitionKeys,
       List<Cell> cells,
@@ -130,7 +131,7 @@ public class MutationEventHelper {
     return createRowUpdateEvent(partitionKeys, cells, clusteringKeys, tableMetadata, 0);
   }
 
-  @NotNull
+  @NonNull
   public static RowUpdateEvent createRowUpdateEvent(
       List<CellValue> partitionKeys,
       List<Cell> cells,
@@ -165,7 +166,7 @@ public class MutationEventHelper {
     };
   }
 
-  @NotNull
+  @NonNull
   public static DeleteEvent createDeleteEvent(
       String partitionKeyValue,
       ColumnMetadata partitionKeyMetadata,
@@ -181,7 +182,7 @@ public class MutationEventHelper {
         0);
   }
 
-  @NotNull
+  @NonNull
   public static DeleteEvent createDeleteEvent(
       String partitionKeyValue,
       ColumnMetadata partitionKeyMetadata,
@@ -196,7 +197,7 @@ public class MutationEventHelper {
         timestamp);
   }
 
-  @NotNull
+  @NonNull
   public static DeleteEvent createDeleteEventNoPk(
       Integer clusteringKeyValue,
       ColumnMetadata clusteringKeyMetadata,
@@ -208,7 +209,7 @@ public class MutationEventHelper {
         0);
   }
 
-  @NotNull
+  @NonNull
   public static DeleteEvent createDeleteEventNoCk(
       String partitionKeyValue, ColumnMetadata partitionKeyMetadata, TableMetadata tableMetadata) {
     return createDeleteEvent(
@@ -218,7 +219,7 @@ public class MutationEventHelper {
         0);
   }
 
-  @NotNull
+  @NonNull
   public static DeleteEvent createDeleteEvent(
       List<CellValue> partitionKeys,
       List<CellValue> clusteringKeys,
@@ -247,10 +248,29 @@ public class MutationEventHelper {
     };
   }
 
-  @NotNull
+  @NonNull
+  public static Cell cell(ColumnMetadata columnMetadata, ByteBuffer columnValue) {
+    return cell(columnMetadata, null, columnValue);
+  }
+
+  @NonNull
   public static Cell cell(ColumnMetadata columnMetadata, Object columnValue) {
-    final InetCodec INET_CODEC = new InetCodec();
-    final CqlDurationCodec CQL_DURATION_CODEC = new CqlDurationCodec();
+    InetCodec INET_CODEC = new InetCodec();
+    CqlDurationCodec CQL_DURATION_CODEC = new CqlDurationCodec();
+    ByteBuffer byteBuffer = null;
+    if (columnValue instanceof InetAddress) {
+      byteBuffer = INET_CODEC.encode((InetAddress) columnValue, ProtocolVersion.DEFAULT);
+    } else if (columnValue instanceof CqlDuration) {
+      byteBuffer = CQL_DURATION_CODEC.encode((CqlDuration) columnValue, ProtocolVersion.DEFAULT);
+    }
+    return cell(columnMetadata, columnValue, byteBuffer);
+  }
+
+  @NonNull
+  public static Cell cell(
+      ColumnMetadata columnMetadata,
+      @Nullable Object columnValue,
+      @Nullable ByteBuffer byteBuffer) {
     return new Cell() {
       @Override
       public int getTTL() {
@@ -269,12 +289,7 @@ public class MutationEventHelper {
 
       @Override
       public ByteBuffer getValue() {
-        if (columnValue instanceof InetAddress) {
-          return INET_CODEC.encode((InetAddress) columnValue, ProtocolVersion.DEFAULT);
-        } else if (columnValue instanceof CqlDuration) {
-          return CQL_DURATION_CODEC.encode((CqlDuration) columnValue, ProtocolVersion.DEFAULT);
-        }
-        return null;
+        return byteBuffer;
       }
 
       @Override
@@ -284,7 +299,7 @@ public class MutationEventHelper {
     };
   }
 
-  @NotNull
+  @NonNull
   public static CellValue cellValue(Object partitionKeyValue, ColumnMetadata columnMetadata) {
     return new CellValue() {
       @Override
@@ -304,12 +319,12 @@ public class MutationEventHelper {
     };
   }
 
-  @NotNull
+  @NonNull
   public static ColumnMetadata partitionKey(String partitionKeyName) {
     return partitionKey(partitionKeyName, Native.TEXT);
   }
 
-  @NotNull
+  @NonNull
   public static ColumnMetadata partitionKey(String partitionKeyName, CQLType cqlType) {
 
     return new ColumnMetadata() {
@@ -330,7 +345,7 @@ public class MutationEventHelper {
     };
   }
 
-  @NotNull
+  @NonNull
   public static ColumnMetadata clusteringKey(String clusteringKeyName, CQLType cqlType) {
 
     return new ColumnMetadata() {
@@ -351,22 +366,22 @@ public class MutationEventHelper {
     };
   }
 
-  @NotNull
+  @NonNull
   public static ColumnMetadata clusteringKey(String clusteringKeyName) {
     return clusteringKey(clusteringKeyName, Native.TEXT);
   }
 
-  @NotNull
+  @NonNull
   public static ColumnMetadata column(String columnName) {
     return column(columnName, Native.TEXT);
   }
 
-  @NotNull
+  @NonNull
   public static ColumnMetadata column(CQLType cqlType) {
     return column(COLUMN_NAME, cqlType);
   }
 
-  @NotNull
+  @NonNull
   public static ColumnMetadata column(String columnName, CQLType cqlType) {
     return new ColumnMetadata() {
       @Override

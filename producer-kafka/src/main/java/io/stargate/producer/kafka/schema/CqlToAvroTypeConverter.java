@@ -121,10 +121,16 @@ public class CqlToAvroTypeConverter {
     return SCHEMA_PER_NATIVE_TYPE.get(type);
   }
 
+  /**
+   * The custom type is saved as bytes without an attempt to deserialize it. It's the client
+   * responsibility to deserialize it correctly
+   */
   private static Schema createCustomSchema(Custom type) {
-    throw new UnsupportedOperationException(String.format("The type: %s is not supported", type));
+    return Schema.create(Type.BYTES);
   }
 
+  /*
+   */
   private static Schema creteTupleSchema(Tuple type) {
     //  	return SchemaBuilder.map().values(toAvroType(type.getSubTypes()))
 

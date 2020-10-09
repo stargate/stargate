@@ -68,6 +68,7 @@ import org.apache.cassandra.stargate.db.RowUpdateEvent;
 import org.apache.cassandra.stargate.schema.CQLType;
 import org.apache.cassandra.stargate.schema.CQLType.Collection;
 import org.apache.cassandra.stargate.schema.CQLType.Collection.Kind;
+import org.apache.cassandra.stargate.schema.CQLType.Custom;
 import org.apache.cassandra.stargate.schema.CQLType.MapDataType;
 import org.apache.cassandra.stargate.schema.CQLType.Native;
 import org.apache.cassandra.stargate.schema.CQLType.UserDefined;
@@ -577,6 +578,7 @@ class KafkaCDCProducerIntegrationTest {
             .put("nested", udtValue)
             .put("list", Arrays.asList(1, 2))
             .build();
+    Custom customType = new Custom("java.className");
 
     return Stream.of(
         Arguments.of(
@@ -600,7 +602,10 @@ class KafkaCDCProducerIntegrationTest {
             Collections.singletonList(cell(column(userDefinedType), udtValue))),
         Arguments.of(
             Collections.singletonList(column(userDefinedTypeNested)),
-            Collections.singletonList(cell(column(userDefinedTypeNested), nestedUdtValue))));
+            Collections.singletonList(cell(column(userDefinedTypeNested), nestedUdtValue))),
+        Arguments.of(
+            Collections.singletonList(column(customType)),
+            Collections.singletonList(cell(column(customType), Bytes.fromHexString("0xCAFE")))));
   }
 
   @NotNull

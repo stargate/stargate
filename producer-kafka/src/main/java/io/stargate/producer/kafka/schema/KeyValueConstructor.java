@@ -37,6 +37,7 @@ import org.apache.cassandra.stargate.db.DeleteEvent;
 import org.apache.cassandra.stargate.db.MutationEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
 import org.apache.cassandra.stargate.schema.CQLType;
+import org.apache.cassandra.stargate.schema.CQLType.Custom;
 import org.apache.cassandra.stargate.schema.CQLType.UserDefined;
 
 public class KeyValueConstructor {
@@ -164,9 +165,20 @@ public class KeyValueConstructor {
   private static final List<Class<?>> AVRO_UNSUPPORTED_TYPES =
       Arrays.asList(CqlDuration.class, InetAddress.class);
 
+  /**
+   * It returns the java representation of the underlying value using {@link
+   * CellValue#getValueObject()}. For the {@link CqlDuration} and {@link InetAddress} it returns the
+   * byte buffer using {@link CellValue#getValue()} because both of those type does not have an avro
+   * representation. If the cell value is of a {@link Custom} it also returns byte buffer.
+   */
   private Object getValueObjectOrByteBuffer(CellValue valueObject) {
     if (valueObject.getValueObject() == null) {
       return null;
+    }
+
+    // custom type saved as bytes
+    if (valueObject.getColumn().getType() instanceof Custom) {
+      valueObject.getValue();
     }
 
     for (Class<?> avroUnsupportedType : AVRO_UNSUPPORTED_TYPES) {
