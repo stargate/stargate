@@ -22,7 +22,7 @@ import graphql.kickstart.execution.error.GraphQLErrorHandler;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CassandraUnboxingGraphqlErrorHandler implements GraphQLErrorHandler {
+public class StargateGraphqlErrorHandler implements GraphQLErrorHandler {
 
   @Override
   public List<GraphQLError> processErrors(List<GraphQLError> errors) {
