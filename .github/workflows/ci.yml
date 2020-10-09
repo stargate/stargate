@@ -112,8 +112,7 @@ jobs:
           CCM_CLUSTER_START_TIMEOUT_OVERRIDE: 600
         run: |
           MAVEN_OPTS="-XX:+TieredCompilation -XX:TieredStopAtLevel=1" # speed up jvm
-          # -T 1C: one thread per cpu core.
-          mvn -T 1C -B verify --file pom.xml -P it-cassandra-4.0
+          mvn -B verify --file pom.xml -P it-cassandra-4.0
 
   build-dse-6_8:
     runs-on: ubuntu-latest
@@ -169,5 +168,4 @@ jobs:
           CCM_CLUSTER_START_TIMEOUT_OVERRIDE: 600
         run: |
           MAVEN_OPTS="-XX:+TieredCompilation -XX:TieredStopAtLevel=1" # speed up jvm
-          # -T 1C: one thread per cpu core.
-          mvn -T 1C -B verify --file pom.xml -P dse -Pit-dse-6.8
+          mvn -B verify --file pom.xml -P dse -Pit-dse-6.8
