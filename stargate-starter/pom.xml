@@ -11,7 +11,7 @@
   <artifactId>stargate-starter</artifactId>
   <properties>
     <airline.version>2.7.0</airline.version>
-    <junit.version>5.6.2</junit.version>
+    <junit.version>5.7.0</junit.version>
   </properties>
   <dependencies>
     <dependency>
