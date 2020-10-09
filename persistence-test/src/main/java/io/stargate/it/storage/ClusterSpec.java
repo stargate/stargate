@@ -25,8 +25,4 @@ import java.lang.annotation.Target;
 public @interface ClusterSpec {
 
   ClusterScope scope() default ClusterScope.SHARED;
-
-  String name() default "Test_Cluster";
-
-  int nodes() default 1;
 }
