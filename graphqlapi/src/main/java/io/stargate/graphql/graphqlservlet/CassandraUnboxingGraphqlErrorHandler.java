@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CassandraUnboxingGraphqlErrorHandler implements GraphQLErrorHandler {
+
   @Override
   public List<GraphQLError> processErrors(List<GraphQLError> errors) {
     List<GraphQLError> unboxed = new ArrayList<>();
@@ -37,6 +38,7 @@ public class CassandraUnboxingGraphqlErrorHandler implements GraphQLErrorHandler
 
   private GraphQLError unbox(GraphQLError error) {
     if (error instanceof ExceptionWhileDataFetching) {
+      // Hide the stack trace to the client
       ExceptionWhileDataFetching fetchingError = (ExceptionWhileDataFetching) error;
       Throwable unboxed = unboxException(fetchingError.getException());
       return GraphqlErrorException.newErrorException()
@@ -45,7 +47,9 @@ public class CassandraUnboxingGraphqlErrorHandler implements GraphQLErrorHandler
           .path(error.getPath())
           .build();
     }
-    return null;
+
+    // ValidationError should not be unboxed
+    return error;
   }
 
   public Throwable unboxException(Throwable exception) {

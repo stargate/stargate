@@ -2,6 +2,8 @@ package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.apollographql.apollo.ApolloCall;
 import com.apollographql.apollo.ApolloClient;
@@ -9,8 +11,10 @@ import com.apollographql.apollo.ApolloMutationCall;
 import com.apollographql.apollo.ApolloQueryCall;
 import com.apollographql.apollo.api.CustomTypeAdapter;
 import com.apollographql.apollo.api.CustomTypeValue;
+import com.apollographql.apollo.api.Error;
 import com.apollographql.apollo.api.Mutation;
 import com.apollographql.apollo.api.Operation;
+import com.apollographql.apollo.api.Response;
 import com.apollographql.apollo.exception.ApolloException;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
@@ -62,17 +66,29 @@ import java.math.BigDecimal;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import net.jcip.annotations.NotThreadSafe;
+import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * To update these tests:
@@ -741,7 +757,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void insertProducts() throws ExecutionException, InterruptedException {
+  public void insertProducts() {
     ApolloClient client = getApolloClient("/graphql/betterbotz");
 
     String productId = UUID.randomUUID().toString();
@@ -765,8 +781,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(product.getDescription()).hasValue(input.description());
   }
 
-  public GetProductsWithFilterQuery.Value getProduct(ApolloClient client, String productId)
-      throws ExecutionException, InterruptedException {
+  public GetProductsWithFilterQuery.Value getProduct(ApolloClient client, String productId) {
     ProductsFilterInput filterInput =
         ProductsFilterInput.builder().id(UuidFilterInput.builder().eq(productId).build()).build();
 
@@ -776,17 +791,9 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     GetProductsWithFilterQuery query =
         GetProductsWithFilterQuery.builder().filter(filterInput).options(options).build();
 
-    CompletableFuture<GetProductsWithFilterQuery.Data> future = new CompletableFuture<>();
-    ApolloQueryCall<Optional<GetProductsWithFilterQuery.Data>> observable = client.query(query);
-    observable.enqueue(queryCallback(future));
-
-    GetProductsWithFilterQuery.Data result = future.get();
-    observable.cancel();
-
+    GetProductsWithFilterQuery.Data result = getObservable(client.query(query));
     assertThat(result.getProducts()).isPresent();
-
     GetProductsWithFilterQuery.Products products = result.getProducts().get();
-
     assertThat(products.getValues()).isPresent();
     List<GetProductsWithFilterQuery.Value> valuesList = products.getValues().get();
 
@@ -794,23 +801,15 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   }
 
   public InsertProductsMutation.InsertProducts insertProduct(
-      ApolloClient client, ProductsInput input) throws ExecutionException, InterruptedException {
+      ApolloClient client, ProductsInput input) {
     InsertProductsMutation mutation = InsertProductsMutation.builder().value(input).build();
-
-    CompletableFuture<InsertProductsMutation.Data> future = new CompletableFuture<>();
-    ApolloMutationCall<Optional<InsertProductsMutation.Data>> observable = client.mutate(mutation);
-    observable.enqueue(queryCallback(future));
-
-    InsertProductsMutation.Data result = future.get();
-    observable.cancel();
-
+    InsertProductsMutation.Data result = getObservable(client.mutate(mutation));
     assertThat(result.getInsertProducts()).isPresent();
-
     return result.getInsertProducts().get();
   }
 
   @Test
-  public void updateProducts() throws ExecutionException, InterruptedException {
+  public void updateProducts() {
     ApolloClient client = getApolloClient("/graphql/betterbotz");
 
     String productId = UUID.randomUUID().toString();
@@ -835,16 +834,8 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .build();
 
     UpdateProductsMutation mutation = UpdateProductsMutation.builder().value(input).build();
-
-    CompletableFuture<UpdateProductsMutation.Data> future = new CompletableFuture<>();
-    ApolloMutationCall<Optional<UpdateProductsMutation.Data>> observable = client.mutate(mutation);
-    observable.enqueue(queryCallback(future));
-
-    UpdateProductsMutation.Data result = future.get();
-    observable.cancel();
-
+    UpdateProductsMutation.Data result = getObservable(client.mutate(mutation));
     assertThat(result.getUpdateProducts()).isPresent();
-
     GetProductsWithFilterQuery.Value product = getProduct(client, productId);
 
     assertThat(product.getId()).hasValue(productId);
@@ -855,7 +846,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void deleteProducts() throws ExecutionException, InterruptedException {
+  public void deleteProducts() {
     ApolloClient client = getApolloClient("/graphql/betterbotz");
 
     String productId = UUID.randomUUID().toString();
@@ -875,12 +866,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .value(ProductsInput.builder().id(productId).build())
             .build();
 
-    CompletableFuture<DeleteProductsMutation.Data> future = new CompletableFuture<>();
-    ApolloMutationCall<Optional<DeleteProductsMutation.Data>> observable = client.mutate(mutation);
-    observable.enqueue(queryCallback(future));
-
-    DeleteProductsMutation.Data result = future.get();
-    observable.cancel();
+    DeleteProductsMutation.Data result = getObservable(client.mutate(mutation));
 
     assertThat(result.getDeleteProducts()).isPresent();
 
@@ -890,6 +876,47 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             })
         .isInstanceOf(IndexOutOfBoundsException.class)
         .hasMessageContaining("Index: 0, Size: 0");
+  }
+
+  @Test
+  public void invalidTypeMappingReturnsErrorResponse() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    // Expected UUID format
+    GraphQLTestException ex =
+        catchThrowableOfType(() -> getProduct(client, "zzz"), GraphQLTestException.class);
+    assertThat(ex.errors).hasSize(1);
+    assertThat(ex.errors.get(0).getMessage()).contains("Invalid UUID string");
+  }
+
+  @ParameterizedTest(name = "[{index}] {0}")
+  @MethodSource("getInvalidQueries")
+  @DisplayName("Invalid GraphQL parameters should return error response")
+  public void invalidGraphQLParametersReturnsErrorResponse(
+      @SuppressWarnings("unused") String description,
+      String path,
+      String query,
+      String errorName,
+      String message)
+      throws IOException {
+    assertResponseErrorWithRawQuery(path, query, errorName, message);
+  }
+
+  public static Stream<Arguments> getInvalidQueries() {
+    String dmlPath = "/graphql/betterbotz";
+    String ddlPath = "/graphql-schema";
+    return Stream.of(
+        arguments(
+            "ABC",
+            dmlPath,
+            "query { zzz { name } }",
+            "Field 'zzz' in type 'Query' is undefined",
+            "Validation error"),
+        arguments(
+            "DEF",
+            ddlPath,
+            "query { zzz { name } }",
+            "Field 'zzz' in type 'Query' is undefined",
+            "Validation error"));
   }
 
   @Test
@@ -958,6 +985,41 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertCollectionsSimple(client, id, list, set, map);
   }
 
+  @SuppressWarnings("unchecked")
+  private void assertResponseErrorWithRawQuery(
+      String path, String graphQLQuery, String... expectedMessages) throws IOException {
+    OkHttpClient okHttpClient =
+        new OkHttpClient.Builder()
+            .addInterceptor(
+                chain ->
+                    chain.proceed(
+                        chain
+                            .request()
+                            .newBuilder()
+                            .addHeader("X-Cassandra-Token", authToken)
+                            .addHeader("content-type", "application/json")
+                            .build()))
+            .build();
+
+    String url = String.format("http://%s:8080%s", getStargateHost(), path);
+    HttpUrl.Builder httpBuilder = HttpUrl.parse(url).newBuilder();
+    httpBuilder.addQueryParameter("query", graphQLQuery);
+    okhttp3.Response response =
+        okHttpClient.newCall(new Request.Builder().url(httpBuilder.build()).build()).execute();
+    assertThat(response.code()).isEqualTo(HttpStatus.SC_OK);
+    ObjectMapper mapper = new ObjectMapper();
+    Map<String, Object> mapResponse = mapper.readValue(response.body().string(), Map.class);
+    assertThat(mapResponse).containsKey("errors");
+    assertThat(mapResponse.get("errors")).isInstanceOf(List.class);
+    List<Map<String, Object>> errors = (List<Map<String, Object>>) mapResponse.get("errors");
+    assertThat(errors)
+        .hasOnlyOneElementSatisfying(
+            item -> {
+              assertThat(item.get("message")).asString().contains(expectedMessages);
+            });
+    response.close();
+  }
+
   private void assertCollectionsSimple(
       ApolloClient client,
       UUID id,
@@ -1000,6 +1062,12 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
 
     try {
       return future.get();
+    } catch (ExecutionException e) {
+      // Unwrap exception
+      if (e.getCause() instanceof RuntimeException) {
+        throw (RuntimeException) e.getCause();
+      }
+      throw new RuntimeException("Unexpected exception", e);
     } catch (Exception e) {
       throw new RuntimeException("Operation could not be completed", e);
     } finally {
@@ -1049,12 +1117,20 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   private static <U> ApolloCall.Callback<Optional<U>> queryCallback(CompletableFuture<U> future) {
     return new ApolloCall.Callback<Optional<U>>() {
       @Override
-      public void onResponse(@NotNull com.apollographql.apollo.api.Response<Optional<U>> response) {
+      public void onResponse(@NotNull Response<Optional<U>> response) {
         if (response.getData().isPresent()) {
           future.complete(response.getData().get());
-        } else {
-          future.complete(null);
+          return;
         }
+
+        if (response.getErrors() != null && response.getErrors().size() > 0) {
+          future.completeExceptionally(
+              new GraphQLTestException("GraphQL error response", response.getErrors()));
+          return;
+        }
+
+        future.completeExceptionally(
+            new IllegalStateException("Unexpected empty data and errors properties"));
       }
 
       @Override
@@ -1062,5 +1138,14 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         future.completeExceptionally(e);
       }
     };
+  }
+
+  private static class GraphQLTestException extends RuntimeException {
+    private final List<Error> errors;
+
+    GraphQLTestException(String message, List<Error> errors) {
+      super(message);
+      this.errors = errors;
+    }
   }
 }
