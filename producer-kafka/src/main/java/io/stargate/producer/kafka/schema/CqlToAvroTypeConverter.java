@@ -112,13 +112,13 @@ public class CqlToAvroTypeConverter {
     } else if (type instanceof Custom) {
       return createCustomSchema((Custom) type);
     } else if (type instanceof Native) {
-      return createNativeSchema((Native) type);
+      return getNativeSchema((Native) type);
     } else {
       throw new UnsupportedOperationException(String.format("The type: %s is not supported", type));
     }
   }
 
-  private static Schema createNativeSchema(Native type) {
+  private static Schema getNativeSchema(Native type) {
     return SCHEMA_PER_NATIVE_TYPE.get(type);
   }
 
@@ -131,6 +131,41 @@ public class CqlToAvroTypeConverter {
     return Schema.create(Type.BYTES);
   }
 
+  /**
+   * The Tuple is a Record type in Avro. For example, such an Tuple type:
+   *
+   * <pre>
+   *     new Tuple(Native.INT, new Collection(Kind.LIST, Native.TEXT));
+   * </pre>
+   *
+   * will have the following schema:
+   *
+   * <pre>
+   * {
+   * "type":"record",
+   * "name":"tuple_int_list_text__",
+   * "fields":[
+   *    {
+   *       "name":"t_0",
+   *       "type":"int"
+   *    },
+   *    {
+   *       "name":"t_1",
+   *       "type":{
+   *          "type":"array",
+   *          "items":"string"
+   *       }
+   *    }
+   *  ]
+   * }
+   * </pre>
+   *
+   * Please note that the name of the record is transformed according to {@link
+   * this#tupleToRecordName(Tuple)} method. Every element in the tuple has a name according to
+   * {@link this#toTupleFieldName(int)}.
+   *
+   * <p>The generated schema also supports nested Tuple types.
+   */
   private static Schema creteTupleSchema(Tuple type) {
     FieldAssembler<Schema> tupleSchemaBuilder =
         SchemaBuilder.record(tupleToRecordName(type)).fields();
@@ -155,7 +190,8 @@ public class CqlToAvroTypeConverter {
   /**
    * It converts the tuple name returned by the {@link Tuple#getName()} to a name that can be used
    * as an Avro record name. For example {@code new Tuple(Native.INT)} will be transformed to
-   * 'tuple_int_' string value.
+   * 'tuple_int_' string value. It replaces removes all whitespaces, and replaces all occurrences of
+   * '<', '>' and ','.
    */
   public static String tupleToRecordName(Tuple type) {
     return StringUtils.deleteWhitespace(type.getName())
@@ -193,7 +229,7 @@ public class CqlToAvroTypeConverter {
    * }
    * </pre>
    *
-   * This also supports nested UserDefined types.
+   * The generated schema also supports nested UserDefined types.
    */
   private static Schema createUserDefinedSchema(UserDefined type) {
     FieldAssembler<Schema> udtSchemaBuilder = SchemaBuilder.record(type.getName()).fields();

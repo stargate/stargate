@@ -449,7 +449,7 @@ class KafkaCDCProducerIntegrationTest {
 
   @ParameterizedTest
   @MethodSource("complexTypesProvider")
-  public void shouldSendEventsWithAllComplexTypes(
+  public void shouldSendEventsWithComplexTypes(
       List<ColumnMetadata> columnMetadata, List<Cell> columnValues) throws Exception {
     // given
     TableMetadata tableMetadata = mockTableMetadata();
