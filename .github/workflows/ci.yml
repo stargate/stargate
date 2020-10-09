@@ -56,8 +56,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           CCM_CLUSTER_START_TIMEOUT_OVERRIDE: 600
         run: |
-          # -T 1C: one thread per cpu core.
-          mvn -T 1C -B verify --file pom.xml  -P it-cassandra-3.11
+          MAVEN_OPTS="-XX:+TieredCompilation -XX:TieredStopAtLevel=1" # speed up jvm
+          mvn -B verify --file pom.xml  -P it-cassandra-3.11
   build-cassandra-4_0:
     runs-on: ubuntu-latest
 
