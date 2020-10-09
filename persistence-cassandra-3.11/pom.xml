@@ -21,15 +21,18 @@
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
+      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-common</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
+      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -93,6 +96,7 @@
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-test</artifactId>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>

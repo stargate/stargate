@@ -26,6 +26,7 @@
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-test</artifactId>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -53,6 +54,7 @@
     <dependency>
       <groupId>io.stargate.auth.api</groupId>
       <artifactId>auth-api</artifactId>
+      <version>${project.version}</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -64,6 +66,7 @@
     <dependency>
       <groupId>io.stargate.web</groupId>
       <artifactId>restapi</artifactId>
+      <version>${project.version}</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -113,6 +116,7 @@
     <dependency>
       <groupId>io.stargate.starter</groupId>
       <artifactId>stargate-starter</artifactId>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
