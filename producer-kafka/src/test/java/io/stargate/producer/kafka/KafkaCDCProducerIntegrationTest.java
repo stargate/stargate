@@ -560,12 +560,23 @@ class KafkaCDCProducerIntegrationTest {
     Collection listOfSet = new Collection(Kind.LIST, new Collection(Kind.SET, Native.INT));
     Collection setType = new Collection(Kind.SET, Native.INT);
     Collection setOfList = new Collection(Kind.SET, new Collection(Kind.LIST, Native.INT));
+    // udt
     LinkedHashMap<String, CQLType> udtColumns = new LinkedHashMap<>();
     udtColumns.put("udtcol_1", Native.INT);
     udtColumns.put("udtcol_2", Native.TEXT);
     UserDefined userDefinedType = new UserDefined("ks", "typeName", udtColumns);
     Map<String, Object> udtValue =
         ImmutableMap.<String, Object>builder().put("udtcol_1", 47).put("udtcol_2", "value").build();
+    // nested udt
+    LinkedHashMap<String, CQLType> nestedUdtColumns = new LinkedHashMap<>();
+    nestedUdtColumns.put("nested", userDefinedType);
+    nestedUdtColumns.put("list", new Collection(Kind.LIST, Native.INT));
+    UserDefined userDefinedTypeNested = new UserDefined("ks", "nested", nestedUdtColumns);
+    Map<String, Object> nestedUdtValue =
+        ImmutableMap.<String, Object>builder()
+            .put("nested", udtValue)
+            .put("list", Arrays.asList(1, 2))
+            .build();
 
     return Stream.of(
         Arguments.of(
@@ -586,7 +597,10 @@ class KafkaCDCProducerIntegrationTest {
                     Sets.newHashSet(Collections.singletonList(1), Collections.singletonList(2))))),
         Arguments.of(
             Collections.singletonList(column(userDefinedType)),
-            Collections.singletonList(cell(column(userDefinedType), udtValue))));
+            Collections.singletonList(cell(column(userDefinedType), udtValue))),
+        Arguments.of(
+            Collections.singletonList(column(userDefinedTypeNested)),
+            Collections.singletonList(cell(column(userDefinedTypeNested), nestedUdtValue))));
   }
 
   @NotNull

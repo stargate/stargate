@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.apache.avro.Schema;
+import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericData.Record;
@@ -35,6 +36,7 @@ import org.apache.cassandra.stargate.db.CellValue;
 import org.apache.cassandra.stargate.db.DeleteEvent;
 import org.apache.cassandra.stargate.db.MutationEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
+import org.apache.cassandra.stargate.schema.CQLType;
 import org.apache.cassandra.stargate.schema.CQLType.UserDefined;
 
 public class KeyValueConstructor {
@@ -96,8 +98,7 @@ public class KeyValueConstructor {
           GenericRecord record = validateUnionTypeAndConstructRecord(columnName, unionSchema);
 
           if (v.getColumn().getType().isUDT()) {
-            Schema udtSchema = record.getSchema().getFields().get(0).schema();
-            record.put(VALUE_FIELD_NAME, constructUdt(v, udtSchema));
+            handleUdt(v, record);
           } else {
             record.put(VALUE_FIELD_NAME, getValueObjectOrByteBuffer(v));
           }
@@ -105,13 +106,39 @@ public class KeyValueConstructor {
         });
   }
 
+  private void handleUdt(CellValue v, GenericRecord record) {
+    List<Field> fields = record.getSchema().getFields();
+    if (fields.size() > 1) {
+      throw new IllegalStateException(
+          "The schema for userDefined: "
+              + v.getColumn()
+              + " should have only one field, but have: "
+              + fields.size());
+    }
+    Schema udtSchema = fields.get(0).schema();
+    UserDefined userDefined = (UserDefined) v.getColumn().getType();
+    GenericRecord innerRecord =
+        validateUnionTypeAndConstructRecord(userDefined.getName(), udtSchema);
+
+    record.put(VALUE_FIELD_NAME, constructUdt(userDefined, v.getValueObject(), innerRecord));
+  }
+
   @SuppressWarnings("unchecked")
-  private Object constructUdt(CellValue v, Schema udtSchema) {
-    UserDefined userDefined = ((UserDefined) v.getColumn().getType());
-    GenericRecord record = validateUnionTypeAndConstructRecord(userDefined.getName(), udtSchema);
-    Map<String, Object> udtValues = (Map<String, Object>) v.getValueObject();
+  private Object constructUdt(UserDefined userDefined, Object value, GenericRecord record) {
+    // udt underlying type is a map
+    Map<String, Object> udtValues = (Map<String, Object>) value;
     for (Map.Entry<String, Object> udtValue : udtValues.entrySet()) {
-      record.put(udtValue.getKey(), udtValue.getValue());
+      CQLType cqlType = userDefined.getFields().get(udtValue.getKey());
+      if (cqlType.isUDT()) {
+        // extract nested values
+        Record nestedUdtRecord =
+            new Record(record.getSchema().getField(udtValue.getKey()).schema());
+        constructUdt((UserDefined) cqlType, udtValue.getValue(), nestedUdtRecord);
+        record.put(udtValue.getKey(), nestedUdtRecord);
+      } else {
+        // put actual value
+        record.put(udtValue.getKey(), udtValue.getValue());
+      }
     }
     return record;
   }
