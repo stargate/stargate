@@ -25,8 +25,8 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
-import io.stargate.graphql.graphqlservlet.CassandraUnboxingGraphqlErrorHandler;
 import io.stargate.graphql.graphqlservlet.GraphqlCustomContextBuilder;
+import io.stargate.graphql.graphqlservlet.StargateGraphqlErrorHandler;
 import io.stargate.graphql.schema.SchemaFactory;
 import java.io.IOException;
 import java.util.Comparator;
@@ -212,7 +212,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
             .with(new GraphqlCustomContextBuilder())
             .with(
                 GraphQLObjectMapper.newBuilder()
-                    .withGraphQLErrorHandler(new CassandraUnboxingGraphqlErrorHandler())
+                    .withGraphQLErrorHandler(new StargateGraphqlErrorHandler())
                     .build())
             .build();
     return new HttpRequestHandlerImpl(configuration);
