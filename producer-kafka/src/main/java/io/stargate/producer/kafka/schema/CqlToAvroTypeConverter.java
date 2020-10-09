@@ -132,7 +132,7 @@ public class CqlToAvroTypeConverter {
   }
 
   /**
-   * The UserDefined is a Record in Avro. For example, such an UserDefined type:
+   * The UserDefined is a Record type in Avro. For example, such an UserDefined type:
    *
    * <pre>
    * LinkedHashMap<String, CQLType> udtColumns = new LinkedHashMap<>();
