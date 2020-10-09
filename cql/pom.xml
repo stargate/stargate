@@ -8,10 +8,6 @@
   </parent>
   <groupId>io.stargate.cql</groupId>
   <artifactId>cql</artifactId>
-  <version>0.0.15-SNAPSHOT</version>
-  <properties>
-    <junit.version>5.7.0</junit.version>
-  </properties>
   <dependencies>
     <dependency>
       <groupId>org.apache.cassandra</groupId>
@@ -27,19 +23,16 @@
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
-      <version>0.0.15-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.15-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.auth</groupId>
       <artifactId>authentication</artifactId>
-      <version>0.0.15-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -91,13 +84,11 @@
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>3.14.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>3.5.11</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -156,7 +147,6 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <configuration>
           <archive>

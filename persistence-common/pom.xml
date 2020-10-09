@@ -21,7 +21,6 @@
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.15-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
