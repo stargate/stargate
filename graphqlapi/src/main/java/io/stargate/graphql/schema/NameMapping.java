@@ -25,33 +25,34 @@ import java.util.Map;
 import java.util.Set;
 
 public class NameMapping {
-  private final BiMap<Table, String> entityName = HashBiMap.create();
-  private final Map<Table, BiMap<Column, String>> columnName;
+  private final BiMap<Table, String> entityNames = HashBiMap.create();
+  private final Map<Table, BiMap<Column, String>> columnNames;
 
   public NameMapping(Set<Table> tables) {
-    columnName = new HashMap<>();
+    columnNames = new HashMap<>();
     buildNames(tables);
   }
 
   private void buildNames(Set<Table> tables) {
     for (Table table : tables) {
-      entityName.put(table, CaseUtil.toCamel(table.name()));
-      buildColumnNames(table);
+      entityNames.put(table, CaseUtil.toCamel(table.name()));
+      columnNames.put(table, buildColumnNames(table));
     }
   }
 
-  private void buildColumnNames(Table tableMetadata) {
-    BiMap<Column, String> map = columnName.computeIfAbsent(tableMetadata, k -> HashBiMap.create());
+  private BiMap<Column, String> buildColumnNames(Table tableMetadata) {
+    BiMap<Column, String> map = HashBiMap.create();
     for (Column column : tableMetadata.columns()) {
       map.put(column, CaseUtil.toLowerCamel(column.name()));
     }
+    return map;
   }
 
-  public BiMap<Table, String> getEntityName() {
-    return entityName;
+  public BiMap<Table, String> getEntityNames() {
+    return entityNames;
   }
 
-  public BiMap<Column, String> getColumnName(Table table) {
-    return columnName.get(table);
+  public BiMap<Column, String> getColumnNames(Table table) {
+    return columnNames.get(table);
   }
 }

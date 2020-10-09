@@ -70,7 +70,7 @@ class DataTypeMapping {
     Map<String, Object> map = new HashMap<>(columns.size());
     for (Column column : columns) {
       if (row.has(column)) {
-        map.put(nameMapping.getColumnName(table).get(column), toGraphQLValue(column, row));
+        map.put(nameMapping.getColumnNames(table).get(column), toGraphQLValue(column, row));
       }
     }
     return map;
