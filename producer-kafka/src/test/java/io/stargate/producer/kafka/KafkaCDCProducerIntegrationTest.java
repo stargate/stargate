@@ -24,10 +24,10 @@ import static io.stargate.producer.kafka.helpers.MutationEventHelper.createDelet
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.createRowUpdateEvent;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.partitionKey;
 import static io.stargate.producer.kafka.schema.SchemaConstants.DATA_FIELD_NAME;
-import static io.stargate.producer.kafka.schema.SchemasConstants.CLUSTERING_KEY_NAME;
-import static io.stargate.producer.kafka.schema.SchemasConstants.COLUMN_NAME;
-import static io.stargate.producer.kafka.schema.SchemasConstants.COLUMN_NAME_2;
-import static io.stargate.producer.kafka.schema.SchemasConstants.PARTITION_KEY_NAME;
+import static io.stargate.producer.kafka.schema.SchemasTestConstants.CLUSTERING_KEY_NAME;
+import static io.stargate.producer.kafka.schema.SchemasTestConstants.COLUMN_NAME;
+import static io.stargate.producer.kafka.schema.SchemasTestConstants.COLUMN_NAME_2;
+import static io.stargate.producer.kafka.schema.SchemasTestConstants.PARTITION_KEY_NAME;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -54,6 +54,7 @@ import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -64,10 +65,12 @@ import org.apache.avro.util.Utf8;
 import org.apache.cassandra.stargate.db.Cell;
 import org.apache.cassandra.stargate.db.DeleteEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
+import org.apache.cassandra.stargate.schema.CQLType;
 import org.apache.cassandra.stargate.schema.CQLType.Collection;
 import org.apache.cassandra.stargate.schema.CQLType.Collection.Kind;
 import org.apache.cassandra.stargate.schema.CQLType.MapDataType;
 import org.apache.cassandra.stargate.schema.CQLType.Native;
+import org.apache.cassandra.stargate.schema.CQLType.UserDefined;
 import org.apache.cassandra.stargate.schema.ColumnMetadata;
 import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.apache.commons.collections.IteratorUtils;
@@ -557,6 +560,12 @@ class KafkaCDCProducerIntegrationTest {
     Collection listOfSet = new Collection(Kind.LIST, new Collection(Kind.SET, Native.INT));
     Collection setType = new Collection(Kind.SET, Native.INT);
     Collection setOfList = new Collection(Kind.SET, new Collection(Kind.LIST, Native.INT));
+    LinkedHashMap<String, CQLType> udtColumns = new LinkedHashMap<>();
+    udtColumns.put("udtcol_1", Native.INT);
+    udtColumns.put("udtcol_2", Native.TEXT);
+    UserDefined userDefinedType = new UserDefined("ks", "typeName", udtColumns);
+    Map<String, Object> udtValue =
+        ImmutableMap.<String, Object>builder().put("udtcol_1", 47).put("udtcol_2", "value").build();
 
     return Stream.of(
         Arguments.of(
@@ -574,7 +583,10 @@ class KafkaCDCProducerIntegrationTest {
             Collections.singletonList(
                 cell(
                     column(setOfList),
-                    Sets.newHashSet(Collections.singletonList(1), Collections.singletonList(2))))));
+                    Sets.newHashSet(Collections.singletonList(1), Collections.singletonList(2))))),
+        Arguments.of(
+            Collections.singletonList(column(userDefinedType)),
+            Collections.singletonList(cell(column(userDefinedType), udtValue))));
   }
 
   @NotNull
@@ -603,7 +615,6 @@ class KafkaCDCProducerIntegrationTest {
     return String.format("%s.%s", ConfigLoader.CDC_KAFKA_PRODUCER_SETTING_PREFIX, settingName);
   }
 
-  @SuppressWarnings("UnstableApiUsage")
   private void validateThatWasSendToKafka(
       GenericRecord expectedKey, GenericRecord expectedValue, String topicName) {
     Properties props = new Properties();

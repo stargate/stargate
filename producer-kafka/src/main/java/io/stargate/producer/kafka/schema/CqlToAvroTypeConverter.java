@@ -31,6 +31,7 @@ import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.SchemaBuilder;
+import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.avro.data.TimeConversions;
 import org.apache.avro.generic.GenericData;
 import org.apache.cassandra.stargate.schema.CQLType;
@@ -121,15 +122,21 @@ public class CqlToAvroTypeConverter {
   }
 
   private static Schema createCustomSchema(Custom type) {
-    return null;
+    throw new UnsupportedOperationException(String.format("The type: %s is not supported", type));
   }
 
   private static Schema creteTupleSchema(Tuple type) {
-    return null;
+    //  	return SchemaBuilder.map().values(toAvroType(type.getSubTypes()))
+
+    throw new UnsupportedOperationException(String.format("The type: %s is not supported", type));
   }
 
   private static Schema createUserDefinedSchema(UserDefined type) {
-    return null;
+    FieldAssembler<Schema> udtSchemaBuilder = SchemaBuilder.record(type.getName()).fields();
+    for (Map.Entry<String, CQLType> udtField : type.getFields().entrySet()) {
+      udtSchemaBuilder.name(udtField.getKey()).type(toAvroType(udtField.getValue())).noDefault();
+    }
+    return udtSchemaBuilder.endRecord();
   }
 
   private static Schema createMapSchema(MapDataType type) {

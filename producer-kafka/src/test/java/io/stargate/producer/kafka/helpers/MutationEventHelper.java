@@ -16,7 +16,7 @@
 
 package io.stargate.producer.kafka.helpers;
 
-import static io.stargate.producer.kafka.schema.SchemasConstants.COLUMN_NAME;
+import static io.stargate.producer.kafka.schema.SchemasTestConstants.COLUMN_NAME;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.data.CqlDuration;

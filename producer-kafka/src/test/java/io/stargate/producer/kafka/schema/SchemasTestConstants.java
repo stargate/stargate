@@ -9,7 +9,7 @@ import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 
-public class SchemasConstants {
+public class SchemasTestConstants {
   public static final String SCHEMA_NAMESPACE = "io.stargate.producer.kafka";
   public static final String KEY_RECORD_NAME = "topicName.Key";
   public static final String VALUE_RECORD_NAME = "topicName.Value";

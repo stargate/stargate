@@ -25,6 +25,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.GenericData;
@@ -34,6 +35,7 @@ import org.apache.cassandra.stargate.db.CellValue;
 import org.apache.cassandra.stargate.db.DeleteEvent;
 import org.apache.cassandra.stargate.db.MutationEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
+import org.apache.cassandra.stargate.schema.CQLType.UserDefined;
 
 public class KeyValueConstructor {
 
@@ -88,22 +90,40 @@ public class KeyValueConstructor {
   private void createUnionAndAppendToData(
       List<? extends CellValue> cellValues, Schema dataSchema, GenericRecord data) {
     cellValues.forEach(
-        pk -> {
-          String columnName = pk.getColumn().getName();
+        v -> {
+          String columnName = v.getColumn().getName();
           Schema unionSchema = dataSchema.getField(columnName).schema();
-          if (!unionSchema.getType().equals(Type.UNION)) {
-            throw new IllegalStateException(
-                String.format(
-                    "The type for %s should be UNION but is: %s",
-                    columnName, unionSchema.getType()));
-          }
-          GenericRecord record =
-              new Record(
-                  unionSchema.getTypes().get(1)); // 0 - is null type, 1 - is an actual union type
+          GenericRecord record = validateUnionTypeAndConstructRecord(columnName, unionSchema);
 
-          record.put(VALUE_FIELD_NAME, getValueObjectOrByteBuffer(pk));
+          if (v.getColumn().getType().isUDT()) {
+            Schema udtSchema = record.getSchema().getFields().get(0).schema();
+            record.put(VALUE_FIELD_NAME, constructUdt(v, udtSchema));
+          } else {
+            record.put(VALUE_FIELD_NAME, getValueObjectOrByteBuffer(v));
+          }
           data.put(columnName, record);
         });
+  }
+
+  @SuppressWarnings("unchecked")
+  private Object constructUdt(CellValue v, Schema udtSchema) {
+    UserDefined userDefined = ((UserDefined) v.getColumn().getType());
+    GenericRecord record = validateUnionTypeAndConstructRecord(userDefined.getName(), udtSchema);
+    Map<String, Object> udtValues = (Map<String, Object>) v.getValueObject();
+    for (Map.Entry<String, Object> udtValue : udtValues.entrySet()) {
+      record.put(udtValue.getKey(), udtValue.getValue());
+    }
+    return record;
+  }
+
+  private GenericRecord validateUnionTypeAndConstructRecord(String columnName, Schema unionSchema) {
+    if (!unionSchema.getType().equals(Type.UNION)) {
+      throw new IllegalStateException(
+          String.format(
+              "The type for %s should be UNION but is: %s", columnName, unionSchema.getType()));
+    }
+    return new Record(
+        unionSchema.getTypes().get(1)); // 0 - is null type, 1 - is an actual union type
   }
 
   private void fillGenericRecordWithData(
