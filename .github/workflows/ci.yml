@@ -34,6 +34,12 @@ jobs:
            </servers>
           </settings>
           EOF
+      - name: Cache Maven packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
       - name: Clone CCM
         uses: actions/checkout@v2
         with:
@@ -82,6 +88,12 @@ jobs:
            </servers>
           </settings>
           EOF
+      - name: Cache Maven packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
       - name: Clone CCM
         uses: actions/checkout@v2
         with:
@@ -131,6 +143,12 @@ jobs:
            </servers>
           </settings>
           EOF
+      - name: Cache Maven packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
       - name: Clone CCM
         uses: actions/checkout@v2
         with:
