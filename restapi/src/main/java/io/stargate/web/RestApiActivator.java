@@ -108,6 +108,10 @@ public class RestApiActivator implements BundleActivator, ServiceListener {
     if (authenticationReference != null) {
       context.ungetService(authenticationReference);
     }
+
+    if (metricsReference != null) {
+      context.ungetService(metricsReference);
+    }
   }
 
   @Override

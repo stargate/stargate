@@ -120,7 +120,6 @@
       <version>3.14.0</version>
       <scope>test</scope>
     </dependency>
-
   </dependencies>
   <build>
     <plugins>

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.auth.api;
+package io.stargate.auth.api.resources;
 
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.UnauthorizedException;
@@ -22,6 +22,7 @@ import io.stargate.auth.model.Credentials;
 import io.stargate.auth.model.Error;
 import io.stargate.auth.model.Secret;
 import io.stargate.auth.model.UsernameCredentials;
+import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -36,13 +37,9 @@ public class AuthResource {
 
   private static final Logger logger = LoggerFactory.getLogger(AuthResource.class);
 
-  final AuthenticationService authService;
+  @Inject private AuthenticationService authService;
   private static final boolean shouldEnableUsernameToken =
       Boolean.parseBoolean(System.getProperty("stargate.auth_api_enable_username_token", "false"));
-
-  public AuthResource(AuthenticationService authService) {
-    this.authService = authService;
-  }
 
   @POST
   @Path("/auth/token/generate")
