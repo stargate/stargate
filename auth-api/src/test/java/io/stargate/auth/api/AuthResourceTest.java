@@ -32,7 +32,7 @@ class AuthResourceTest {
     }
 
     @Test
-    void createTokenFromSecret_success() throws UnauthorizedException {
+    void createTokenFromSecretSuccess() throws UnauthorizedException {
         Secret secret = new Secret("key", "secret");
         when(authService.createToken("key", "secret")).thenReturn("token");
 
@@ -44,7 +44,7 @@ class AuthResourceTest {
     }
 
     @Test
-    void createTokenFromSecret_unauthorized() throws UnauthorizedException {
+    void createTokenFromSecretUnauthorized() throws UnauthorizedException {
         Secret secret = new Secret("key", "secret");
         when(authService.createToken("key", "secret")).thenThrow(UnauthorizedException.class);
 
@@ -56,7 +56,7 @@ class AuthResourceTest {
     }
 
     @Test
-    void createTokenFromSecret_internalServerError() throws UnauthorizedException {
+    void createTokenFromSecretInternalServerError() throws UnauthorizedException {
         Secret secret = new Secret("key", "secret");
         when(authService.createToken("key", "secret")).thenThrow(RuntimeException.class);
 
@@ -68,7 +68,7 @@ class AuthResourceTest {
     }
 
     @Test
-    void createTokenFromSecret_nullSecret() {
+    void createTokenFromSecretNoPayload() {
         Response response = resource.target("/v1/auth/token/generate")
                 .request()
                 .post(null);
@@ -77,7 +77,7 @@ class AuthResourceTest {
     }
 
     @Test
-    void createTokenFromSecret_emptyKey() {
+    void createTokenFromSecretEmptyKey() {
         Secret secret = new Secret("", "secret");
 
         Response response = resource.target("/v1/auth/token/generate")
@@ -88,7 +88,7 @@ class AuthResourceTest {
     }
 
     @Test
-    void createTokenFromSecret_emptySecret() {
+    void createTokenFromSecretEmptySecret() {
         Secret secret = new Secret("key", "");
 
         Response response = resource.target("/v1/auth/token/generate")
