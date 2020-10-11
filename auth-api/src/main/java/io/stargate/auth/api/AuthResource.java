@@ -36,12 +36,17 @@ public class AuthResource {
 
   private static final Logger logger = LoggerFactory.getLogger(AuthResource.class);
 
-  final AuthenticationService authService;
-  private static final boolean shouldEnableUsernameToken =
-      Boolean.parseBoolean(System.getProperty("stargate.auth_api_enable_username_token", "false"));
+  private final AuthenticationService authService;
+  private boolean shouldEnableUsernameToken;
+
 
   public AuthResource(AuthenticationService authService) {
+    this(authService, Boolean.parseBoolean(System.getProperty("stargate.auth_api_enable_username_token", "false")));
+  }
+
+  public AuthResource(AuthenticationService authService, boolean shouldEnableUsernameToken) {
     this.authService = authService;
+    this.shouldEnableUsernameToken = shouldEnableUsernameToken;
   }
 
   @POST
