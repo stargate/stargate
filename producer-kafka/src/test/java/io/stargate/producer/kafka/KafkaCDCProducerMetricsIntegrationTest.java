@@ -1,3 +1,18 @@
+/*
+ * Copyright 2018-2020 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.producer.kafka;
 
 import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_ENABLED_SETTING_NAME;
@@ -31,12 +46,13 @@ public class KafkaCDCProducerMetricsIntegrationTest extends IntegrationTestBase 
     TableMetadata tableMetadata = mockTableMetadata();
     String topicName = creteTopicName(tableMetadata);
 
+    String kafkaMetricsPrefix = "producer-prefix";
     MetricRegistry metricRegistry = new MetricRegistry();
     KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(metricRegistry);
     Map<String, Object> metricsSettings = new HashMap<>();
     metricsSettings.put(METRICS_ENABLED_SETTING_NAME, true);
     metricsSettings.put(METRICS_INCLUDE_TAGS_SETTING_NAME, true);
-    metricsSettings.put(METRICS_NAME_SETTING_NAME, "producer-prefix");
+    metricsSettings.put(METRICS_NAME_SETTING_NAME, kafkaMetricsPrefix);
 
     Map<String, Object> properties = createKafkaProducerSettings(metricsSettings);
     kafkaCDCProducer.init(properties).get();
@@ -72,12 +88,43 @@ public class KafkaCDCProducerMetricsIntegrationTest extends IntegrationTestBase 
 
     try {
       validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
-      // it should have all kafka producer metrics registered
-      // todo better validation
-      assertThat(metricRegistry.getMetrics().size()).isGreaterThan(100);
+      // it should have all kafka producer metrics registered (more than 100 metrics)
+      assertThat(
+              metricRegistry.getMetrics().keySet().stream()
+                  .filter(v -> v.startsWith(kafkaMetricsPrefix))
+                  .count())
+          .isGreaterThan(100);
+      // validate number of sent records
+      assertThat(getMetricValue(metricRegistry, "record-send-total", topicName)).isEqualTo(1.0);
+      Double outgoingBytesRate = getMetricValue(metricRegistry, "outgoing-byte-rate");
+      assertThat(outgoingBytesRate).isGreaterThan(10);
+
+      // when send additional kafka event
+      kafkaCDCProducer.send(rowMutationEvent).get();
+      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+
+      // then validate that number of records send increased
+      assertThat(getMetricValue(metricRegistry, "record-send-total", topicName)).isEqualTo(2.0);
+      assertThat(getMetricValue(metricRegistry, "outgoing-byte-rate"))
+          .isGreaterThan(outgoingBytesRate);
 
     } finally {
       kafkaCDCProducer.close().get();
     }
+  }
+
+  private Double getMetricValue(MetricRegistry metricRegistry, String metricName) {
+    return getMetricValue(metricRegistry, metricName, "");
+  }
+
+  private Double getMetricValue(
+      MetricRegistry metricRegistry, String metricName, String topicName) {
+    return (Double)
+        metricRegistry.getGauges().entrySet().stream()
+            .filter(v -> v.getKey().contains(metricName) && v.getKey().contains(topicName))
+            .findFirst()
+            .get()
+            .getValue()
+            .getValue();
   }
 }
