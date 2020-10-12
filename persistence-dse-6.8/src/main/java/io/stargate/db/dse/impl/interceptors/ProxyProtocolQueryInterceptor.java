@@ -48,7 +48,7 @@ import org.apache.cassandra.transport.messages.ResultMessage;
  * The goal is to populate `system.peers` with A-records from a provided DNS name.
  */
 public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
-  private final static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+  private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
   private final CopyOnWriteArraySet<InetAddress> peers = new CopyOnWriteArraySet<>();
 
@@ -57,6 +57,54 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   @Override
   public void initialize() {
     populatePeers();
+  }
+
+  @Override
+  public Single<Result> interceptQuery(
+      QueryHandler handler,
+      CQLStatement statement,
+      QueryState state,
+      QueryOptions options,
+      Map<String, ByteBuffer> customPayload,
+      long queryStartNanoTime) {
+    if (!isSystemLocalOrPeers(statement)) {
+      return null;
+    }
+
+    SelectStatement selectStatement = (SelectStatement) statement;
+    ProtocolVersion version = Conversion.toInternal(options.getProtocolVersion());
+
+    List<List<ByteBuffer>> rows;
+    InetSocketAddress publicAddress = state.getClientState().getPublicAddress();
+    String tableName = selectStatement.table();
+    if (tableName.equals(PeersSystemView.NAME)) {
+      rows = Lists.newArrayListWithCapacity(peers.size() - 1);
+      for (InetAddress peer : peers) {
+        if (!peer.equals(publicAddress.getAddress())) {
+          rows.add(
+              buildRow(
+                  selectStatement.getResultMetadata(),
+                  publicAddress.getAddress(),
+                  publicAddress.getPort()));
+        }
+      }
+    } else {
+      assert tableName.equals(LocalNodeSystemView.NAME);
+      rows =
+          Collections.singletonList(
+              buildRow(
+                  selectStatement.getResultMetadata(),
+                  publicAddress.getAddress(),
+                  publicAddress.getPort()));
+    }
+
+    ResultSet resultSet = new ResultSet(selectStatement.getResultMetadata(), rows);
+    return Single.just(Conversion.toResult(new ResultMessage.Rows(resultSet), version));
+  }
+
+  @Override
+  public void register(IEndpointLifecycleSubscriber subscriber) {
+    // Nothing
   }
 
   private void populatePeers() {
@@ -73,54 +121,8 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
     }
   }
 
-  @Override
-  public Single<Result> interceptQuery(
-      QueryHandler handler,
-      CQLStatement statement,
-      QueryState state,
-      QueryOptions options,
-      Map<String, ByteBuffer> customPayload,
-      long queryStartNanoTime) {
-    if (!isSystemLocalOrPeers(statement)) {
-      return null;
-    }
-
-    SelectStatement selectStatement = (SelectStatement) statement;
-
-    org.apache.cassandra.cql3.QueryOptions internalOptions = Conversion.toInternal(options);
-    org.apache.cassandra.service.QueryState internalState = Conversion.toInternal(state);
-
-    ProtocolVersion version = internalOptions.getProtocolVersion();
-
-
-    List<List<ByteBuffer>> rows;
-    InetSocketAddress publicAddress = state.getClientState().getPublicAddress();
-    String tableName = selectStatement.table();
-    if (tableName.equals(PeersSystemView.NAME)) {
-      rows = Lists.newArrayListWithCapacity(peers.size() - 1);
-      for (InetAddress peer : peers) {
-        if (!peer.equals(publicAddress.getAddress())) {
-          rows.add(buildRow(selectStatement.getResultMetadata(), publicAddress.getAddress(),
-              publicAddress.getPort()));
-        }
-      }
-    } else {
-      assert tableName.equals(LocalNodeSystemView.NAME);
-      rows = Collections.singletonList(
-          buildRow(selectStatement.getResultMetadata(), publicAddress.getAddress(),
-              publicAddress.getPort()));
-    }
-
-    ResultSet resultSet = new ResultSet(selectStatement.getResultMetadata(), rows);
-    return Single.just(Conversion.toResult(new ResultMessage.Rows(resultSet), version));
-  }
-
-  @Override
-  public void register(IEndpointLifecycleSubscriber subscriber) {
-    // Nothing
-  }
-
-  private static ByteBuffer buildColumnValue(String name, InetAddress publicAddress, int publicPort) {
+  private static ByteBuffer buildColumnValue(
+      String name, InetAddress publicAddress, int publicPort) {
     switch (name) {
       case "key":
         return UTF8Type.instance.decompose("local");
@@ -144,7 +146,8 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
       case "native_protocol_version":
         return UTF8Type.instance.decompose(String.valueOf(ProtocolVersion.CURRENT.asInt()));
       case "partitioner":
-        return UTF8Type.instance.decompose(DatabaseDescriptor.getPartitioner().getClass().getName());
+        return UTF8Type.instance.decompose(
+            DatabaseDescriptor.getPartitioner().getClass().getName());
       case "rack":
         return UTF8Type.instance.decompose(DatabaseDescriptor.getLocalRack());
       case "release_version":
@@ -155,10 +158,8 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
         return SetType.getInstance(UTF8Type.instance, false)
             .decompose(
                 Collections.singleton(
-                    DatabaseDescriptor.getPartitioner()
-                        .getMinimumToken()
-                        .toString()));
-      case "native_transport_port":  // Fallthrough intentional
+                    DatabaseDescriptor.getPartitioner().getMinimumToken().toString()));
+      case "native_transport_port": // Fallthrough intentional
       case "native_transport_port_ssl":
         return Int32Type.instance.decompose(publicPort);
       case "storage_port":
@@ -166,16 +167,19 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
       case "storage_port_ssl":
         return Int32Type.instance.decompose(DatabaseDescriptor.getSSLStoragePort());
       case "jmx_port":
-        return DatabaseDescriptor.getJMXPort().map(p -> Int32Type.instance.decompose(p)).orElse(null);
+        return DatabaseDescriptor.getJMXPort()
+            .map(p -> Int32Type.instance.decompose(p))
+            .orElse(null);
       default:
         return null;
     }
   }
 
-  private static List<ByteBuffer> buildRow(ResultMetadata metadata, InetAddress publicAddress, int publicPort) {
+  private static List<ByteBuffer> buildRow(
+      ResultMetadata metadata, InetAddress publicAddress, int publicPort) {
     List<ByteBuffer> row = Lists.newArrayListWithCapacity(metadata.names.size());
-    metadata.names.forEach(column -> row.add(buildColumnValue(column.name.toString(), publicAddress, publicPort)));
+    metadata.names.forEach(
+        column -> row.add(buildColumnValue(column.name.toString(), publicAddress, publicPort)));
     return row;
   }
-
 }
