@@ -37,10 +37,12 @@ import java.util.List;
 import java.util.Optional;
 import net.jcip.annotations.NotThreadSafe;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 @NotThreadSafe
+@Disabled("Waiting for fixes on #232 and #250")
 public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
 
   private String table;
