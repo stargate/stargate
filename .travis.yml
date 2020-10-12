@@ -3,11 +3,21 @@ jdk:
   - openjdk8
 dist: trusty
 sudo: false
+env:
+  - CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
+#  - DB=mongodb SUITE=all
+#  - DB=mongodb SUITE=compact
+#  - DB=redis
+#  - DB=mysql
+before_script:
+  - git clone git@github.com:riptano/ccm.git
+  - cd ccm
+  - ./setup.py install
 before_install:
   # Require JDK8 for compiling
   - jdk_switcher use openjdk8
 install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
-script: mvn -B verify --file pom.xml -P it-cassandra-3.11 -P it-cassandra-4.0 -P !it-dse-6.8 
+script: mvn -B verify --file pom.xml -P it-cassandra-3.11 -P it-cassandra-4.0 -P !it-dse-6.8
 cache:
   directories:
     - $HOME/.m2
