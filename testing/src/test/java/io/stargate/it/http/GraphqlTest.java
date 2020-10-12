@@ -2,6 +2,8 @@ package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.apollographql.apollo.ApolloCall;
 import com.apollographql.apollo.ApolloClient;
@@ -9,14 +11,27 @@ import com.apollographql.apollo.ApolloMutationCall;
 import com.apollographql.apollo.ApolloQueryCall;
 import com.apollographql.apollo.api.CustomTypeAdapter;
 import com.apollographql.apollo.api.CustomTypeValue;
+import com.apollographql.apollo.api.Error;
+import com.apollographql.apollo.api.Mutation;
+import com.apollographql.apollo.api.Operation;
+import com.apollographql.apollo.api.Response;
 import com.apollographql.apollo.exception.ApolloException;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.example.graphql.client.betterbotz.collections.GetCollectionsSimpleQuery;
+import com.example.graphql.client.betterbotz.collections.InsertCollectionsSimpleMutation;
+import com.example.graphql.client.betterbotz.collections.UpdateCollectionsSimpleMutation;
 import com.example.graphql.client.betterbotz.orders.GetOrdersByValueQuery;
 import com.example.graphql.client.betterbotz.orders.GetOrdersWithFilterQuery;
 import com.example.graphql.client.betterbotz.products.DeleteProductsMutation;
 import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery;
 import com.example.graphql.client.betterbotz.products.InsertProductsMutation;
 import com.example.graphql.client.betterbotz.products.UpdateProductsMutation;
+import com.example.graphql.client.betterbotz.type.CollectionsSimpleInput;
 import com.example.graphql.client.betterbotz.type.CustomType;
+import com.example.graphql.client.betterbotz.type.InputKeyIntValueString;
 import com.example.graphql.client.betterbotz.type.OrdersFilterInput;
 import com.example.graphql.client.betterbotz.type.OrdersInput;
 import com.example.graphql.client.betterbotz.type.ProductsFilterInput;
@@ -35,39 +50,45 @@ import com.example.graphql.client.schema.GetKeyspacesQuery;
 import com.example.graphql.client.schema.GetTableQuery;
 import com.example.graphql.client.schema.GetTablesQuery;
 import com.example.graphql.client.schema.type.BasicType;
+import com.example.graphql.client.schema.type.ClusteringKeyInput;
 import com.example.graphql.client.schema.type.ColumnInput;
 import com.example.graphql.client.schema.type.DataTypeInput;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.db.ClientState;
-import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
-import io.stargate.db.datastore.DataStore;
-import io.stargate.db.schema.Column.Kind;
-import io.stargate.db.schema.Column.Type;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import net.jcip.annotations.NotThreadSafe;
+import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.osgi.framework.InvalidSyntaxException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * To update these tests:
@@ -77,7 +98,8 @@ import org.slf4j.LoggerFactory;
  *       use the query in `src/main/resources/introspection.graphql` (paste it into the graphql
  *       playground at ${STARGATE_HOST}:8080/playground).
  *   <li>If there are new operations, create corresponding descriptors in
- *       `src/main/graphql/betterbotz` or `src/main/graphql/schema`.
+ *       `src/main/graphql/betterbotz` or `src/main/graphql/schema`. For betterbotz, there's a cql
+ *       schema file at src/main/resources/betterbotz.cql
  *   <li>Run the apollo-client-maven-plugin, which reads the descriptors and generates the
  *       corresponding Java types: `mvn generate-sources` (an IDE rebuild should also work). You can
  *       see generated code in `target/generated-sources/graphql-client`.
@@ -85,9 +107,8 @@ import org.slf4j.LoggerFactory;
  */
 @NotThreadSafe
 public class GraphqlTest extends BaseOsgiIntegrationTest {
-  private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
 
-  private DataStore dataStore;
+  private CqlSession session;
   private String keyspace;
   private static String authToken;
   private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -98,88 +119,117 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   }
 
   @BeforeEach
-  public void setup()
-      throws InvalidSyntaxException, ExecutionException, InterruptedException, IOException {
+  public void setup(ClusterConnectionInfo cluster) throws IOException {
     keyspace = "betterbotz";
 
-    Persistence persistence = getOsgiService("io.stargate.db.Persistence", Persistence.class);
-    ClientState clientState = persistence.newClientState("");
-    QueryState queryState = persistence.newQueryState(clientState);
-    dataStore = persistence.newDataStore(queryState, null);
-    logger.info("{} {} {}", clientState, queryState, dataStore);
+    session =
+        CqlSession.builder()
+            .withConfigLoader(
+                DriverConfigLoader.programmaticBuilder()
+                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
+                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(20))
+                    .build())
+            .withAuthCredentials("cassandra", "cassandra")
+            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
+            .withLocalDatacenter(cluster.datacenter())
+            .build();
 
-    dataStore
-        .query()
-        .create()
-        .keyspace("betterbotz")
-        .ifNotExists()
-        .withReplication("{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }")
-        .execute();
+    assertThat(
+            session
+                .execute(
+                    String.format(
+                        "create keyspace if not exists %s WITH replication = "
+                            + "{'class': 'SimpleStrategy', 'replication_factor': 1 }",
+                        keyspace))
+                .wasApplied())
+        .isTrue();
 
-    dataStore.waitForSchemaAgreement();
+    assertThat(
+            session
+                .execute(
+                    String.format(
+                        "create table if not exists %s.%s "
+                            + " ("
+                            + "id uuid,"
+                            + "name text,"
+                            + "price decimal,"
+                            + "created timestamp,"
+                            + "prod_name text,"
+                            + "customer_name text,"
+                            + "description text,"
+                            + "PRIMARY KEY ((id), name, price, created)"
+                            + ")",
+                        keyspace, "products"))
+                .wasApplied())
+        .isTrue();
 
-    dataStore
-        .query()
-        .create()
-        .table("betterbotz", "products")
-        .ifNotExists()
-        .column("id", Type.Uuid, Kind.PartitionKey)
-        .column("name", Type.Text, Kind.Clustering)
-        .column("price", Type.Decimal, Kind.Clustering)
-        .column("created", Type.Timestamp, Kind.Clustering)
-        .column("prod_name", Type.Text)
-        .column("customer_name", Type.Text)
-        .column("description", Type.Text)
-        .execute();
+    assertThat(
+            session
+                .execute(
+                    String.format(
+                        "create table if not exists %s.%s "
+                            + " ("
+                            + "prod_name text,"
+                            + "customer_name text,"
+                            + "id uuid,"
+                            + "prod_id uuid,"
+                            + "address text,"
+                            + "description text,"
+                            + "price decimal,"
+                            + "sell_price decimal,"
+                            + "PRIMARY KEY ((prod_name), customer_name)"
+                            + ")",
+                        keyspace, "orders"))
+                .wasApplied())
+        .isTrue();
 
-    dataStore.waitForSchemaAgreement();
+    session.execute(
+        String.format(
+            "CREATE TABLE IF NOT EXISTS %s.%s ("
+                + "id uuid PRIMARY KEY,\n"
+                + "list_value1 frozen<list<int>>,\n"
+                + "list_value2 frozen<list<timeuuid>>,\n"
+                + "set_value1 frozen<set<text>>,\n"
+                + "map_value1 frozen<map<int, text>>,\n"
+                + "map_value2 frozen<map<uuid, bigint>>,)",
+            keyspace, "collections_simple"));
 
-    dataStore
-        .query()
-        .create()
-        .table("betterbotz", "orders")
-        .ifNotExists()
-        .column("prod_name", Type.Text, Kind.PartitionKey)
-        .column("customer_name", Type.Text, Kind.Clustering)
-        .column("id", Type.Uuid)
-        .column("prod_id", Type.Uuid)
-        .column("address", Type.Text)
-        .column("description", Type.Text)
-        .column("price", Type.Decimal)
-        .column("sell_price", Type.Decimal)
-        .execute();
+    PreparedStatement insert =
+        session.prepare(
+            String.format(
+                "insert into %s.%s (id, prod_id, prod_name, description, price,"
+                    + "sell_price, customer_name, address) values (?, ?, ?, ?, ?, ?, ?, ?)",
+                keyspace, "orders"));
 
-    dataStore.waitForSchemaAgreement();
+    assertThat(
+            session
+                .execute(
+                    insert.bind(
+                        UUID.fromString("792d0a56-bb46-4bc2-bc41-5f4a94a83da9"),
+                        UUID.fromString("31047029-2175-43ce-9fdd-b3d568b19bb2"),
+                        "Medium Lift Arms",
+                        "Ordering some more arms for my construction bot.",
+                        BigDecimal.valueOf(3199.99),
+                        BigDecimal.valueOf(3119.99),
+                        "Janice Evernathy",
+                        "2101 Everplace Ave 3116"))
+                .wasApplied())
+        .isTrue();
 
-    dataStore
-        .query()
-        .insertInto(keyspace, "orders")
-        .value("id", UUID.fromString("792d0a56-bb46-4bc2-bc41-5f4a94a83da9"))
-        .value("prod_id", UUID.fromString("31047029-2175-43ce-9fdd-b3d568b19bb2"))
-        .value("prod_name", "Medium Lift Arms")
-        .value("description", "Ordering some more arms for my construction bot.")
-        .value("price", BigDecimal.valueOf(3199.99))
-        .value("sell_price", BigDecimal.valueOf(3119.99))
-        .value("customer_name", "Janice Evernathy")
-        .value("address", "2101 Everplace Ave 3116")
-        .execute();
-
-    dataStore.waitForSchemaAgreement();
-
-    dataStore
-        .query()
-        .insertInto(keyspace, "orders")
-        .value("id", UUID.fromString("dd73afe2-9841-4ce1-b841-575b8be405c1"))
-        .value("prod_id", UUID.fromString("31047029-2175-43ce-9fdd-b3d568b19bb5"))
-        .value("prod_name", "Basic Task CPU")
-        .value("description", "Ordering replacement CPUs.")
-        .value("price", BigDecimal.valueOf(899.99))
-        .value("sell_price", BigDecimal.valueOf(900.82))
-        .value("customer_name", "John Doe")
-        .value("address", "123 Main St 67890")
-        .execute();
-
-    dataStore.waitForSchemaAgreement();
+    assertThat(
+            session
+                .execute(
+                    insert.bind(
+                        UUID.fromString("dd73afe2-9841-4ce1-b841-575b8be405c1"),
+                        UUID.fromString("31047029-2175-43ce-9fdd-b3d568b19bb5"),
+                        "Basic Task CPU",
+                        "Ordering replacement CPUs.",
+                        BigDecimal.valueOf(899.99),
+                        BigDecimal.valueOf(900.82),
+                        "John Doe",
+                        "123 Main St 67890"))
+                .wasApplied())
+        .isTrue();
 
     initAuth();
   }
@@ -251,9 +301,11 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   public void createKeyspace() throws Exception {
     String newKeyspaceName = "graphql_create_test";
 
-    dataStore.query().drop().keyspace(newKeyspaceName).ifExists().execute();
-    dataStore.waitForSchemaAgreement();
-    assertThat(dataStore.schema().keyspaceNames()).doesNotContain(newKeyspaceName);
+    assertThat(
+            session
+                .execute(String.format("drop keyspace if exists %s", newKeyspaceName))
+                .wasApplied())
+        .isTrue();
 
     ApolloClient client = getApolloClient("/graphql-schema");
     CreateKeyspaceMutation mutation =
@@ -271,8 +323,15 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     observable.cancel();
 
     assertThat(result.getCreateKeyspace()).hasValue(true);
-    dataStore.waitForSchemaAgreement();
-    assertThat(dataStore.schema().keyspaceNames()).contains(newKeyspaceName);
+
+    // Create a table in the new keyspace via CQL to validate that the keyspace is usable
+    assertThat(
+            session
+                .execute(
+                    String.format(
+                        "create table %s.%s (id uuid, primary key (id))", newKeyspaceName, "test"))
+                .wasApplied())
+        .isTrue();
   }
 
   @Test
@@ -377,6 +436,52 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         .anySatisfy(value -> assertThat(value.getBasic()).isEqualTo(BasicType.UUID));
   }
 
+  @Test
+  @DisplayName("Should create table with clustering keys")
+  public void createTableWithClusteringKey() throws ExecutionException, InterruptedException {
+    ApolloClient client = getApolloClient("/graphql-schema");
+    String tableName = "tbl_createtable_with_ck_" + System.currentTimeMillis();
+
+    CreateTableMutation.Builder builder =
+        CreateTableMutation.builder()
+            .partitionKeys(
+                ImmutableList.of(
+                    ColumnInput.builder()
+                        .name("pk1")
+                        .type(DataTypeInput.builder().basic(BasicType.INT).build())
+                        .build()))
+            .clusteringKeys(
+                ImmutableList.of(
+                    ClusteringKeyInput.builder()
+                        .name("ck1")
+                        .type(DataTypeInput.builder().basic(BasicType.TIMEUUID).build())
+                        .order(null)
+                        .build(),
+                    ClusteringKeyInput.builder()
+                        .name("ck2")
+                        .type(DataTypeInput.builder().basic(BasicType.BIGINT).build())
+                        .order("DESC")
+                        .build()))
+            .values(
+                ImmutableList.of(
+                    ColumnInput.builder()
+                        .name("value1")
+                        .type(DataTypeInput.builder().basic(BasicType.TEXT).build())
+                        .build()));
+
+    createTable(client, tableName, builder);
+
+    GetTableQuery.Table table = getTable(client, keyspace, tableName);
+    assertThat(table.getName()).isEqualTo(tableName);
+
+    assertThat(table.getColumns()).isPresent();
+    List<GetTableQuery.Column> columns = table.getColumns().get();
+    assertThat(columns).filteredOn(c -> c.getName().equals("pk1")).hasSize(1);
+    assertThat(columns)
+        .filteredOn(c -> c.getName().equals("ck1") || c.getName().equals("ck2"))
+        .hasSize(2);
+  }
+
   private GetTableQuery.Table createTable(
       ApolloClient client,
       String keyspaceName,
@@ -384,14 +489,21 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
       List<ColumnInput> partitionKeys,
       List<ColumnInput> values)
       throws ExecutionException, InterruptedException {
-    CreateTableMutation mutation =
+    return createTable(
+        client,
+        tableName,
         CreateTableMutation.builder()
             .keyspaceName(keyspaceName)
-            .tableName(tableName)
             .partitionKeys(partitionKeys)
-            .values(values)
-            .build();
+            .values(values));
+  }
 
+  private GetTableQuery.Table createTable(
+      ApolloClient client, String tableName, CreateTableMutation.Builder mutationBuilder)
+      throws ExecutionException, InterruptedException {
+
+    CreateTableMutation mutation =
+        mutationBuilder.keyspaceName(keyspace).tableName(tableName).build();
     CompletableFuture<CreateTableMutation.Data> future = new CompletableFuture<>();
     ApolloMutationCall<Optional<CreateTableMutation.Data>> observable = client.mutate(mutation);
     observable.enqueue(queryCallback(future));
@@ -645,7 +757,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void insertProducts() throws ExecutionException, InterruptedException {
+  public void insertProducts() {
     ApolloClient client = getApolloClient("/graphql/betterbotz");
 
     String productId = UUID.randomUUID().toString();
@@ -669,8 +781,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(product.getDescription()).hasValue(input.description());
   }
 
-  public GetProductsWithFilterQuery.Value getProduct(ApolloClient client, String productId)
-      throws ExecutionException, InterruptedException {
+  public GetProductsWithFilterQuery.Value getProduct(ApolloClient client, String productId) {
     ProductsFilterInput filterInput =
         ProductsFilterInput.builder().id(UuidFilterInput.builder().eq(productId).build()).build();
 
@@ -680,17 +791,9 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     GetProductsWithFilterQuery query =
         GetProductsWithFilterQuery.builder().filter(filterInput).options(options).build();
 
-    CompletableFuture<GetProductsWithFilterQuery.Data> future = new CompletableFuture<>();
-    ApolloQueryCall<Optional<GetProductsWithFilterQuery.Data>> observable = client.query(query);
-    observable.enqueue(queryCallback(future));
-
-    GetProductsWithFilterQuery.Data result = future.get();
-    observable.cancel();
-
+    GetProductsWithFilterQuery.Data result = getObservable(client.query(query));
     assertThat(result.getProducts()).isPresent();
-
     GetProductsWithFilterQuery.Products products = result.getProducts().get();
-
     assertThat(products.getValues()).isPresent();
     List<GetProductsWithFilterQuery.Value> valuesList = products.getValues().get();
 
@@ -698,23 +801,15 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   }
 
   public InsertProductsMutation.InsertProducts insertProduct(
-      ApolloClient client, ProductsInput input) throws ExecutionException, InterruptedException {
+      ApolloClient client, ProductsInput input) {
     InsertProductsMutation mutation = InsertProductsMutation.builder().value(input).build();
-
-    CompletableFuture<InsertProductsMutation.Data> future = new CompletableFuture<>();
-    ApolloMutationCall<Optional<InsertProductsMutation.Data>> observable = client.mutate(mutation);
-    observable.enqueue(queryCallback(future));
-
-    InsertProductsMutation.Data result = future.get();
-    observable.cancel();
-
+    InsertProductsMutation.Data result = getObservable(client.mutate(mutation));
     assertThat(result.getInsertProducts()).isPresent();
-
     return result.getInsertProducts().get();
   }
 
   @Test
-  public void updateProducts() throws ExecutionException, InterruptedException {
+  public void updateProducts() {
     ApolloClient client = getApolloClient("/graphql/betterbotz");
 
     String productId = UUID.randomUUID().toString();
@@ -739,16 +834,8 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .build();
 
     UpdateProductsMutation mutation = UpdateProductsMutation.builder().value(input).build();
-
-    CompletableFuture<UpdateProductsMutation.Data> future = new CompletableFuture<>();
-    ApolloMutationCall<Optional<UpdateProductsMutation.Data>> observable = client.mutate(mutation);
-    observable.enqueue(queryCallback(future));
-
-    UpdateProductsMutation.Data result = future.get();
-    observable.cancel();
-
+    UpdateProductsMutation.Data result = getObservable(client.mutate(mutation));
     assertThat(result.getUpdateProducts()).isPresent();
-
     GetProductsWithFilterQuery.Value product = getProduct(client, productId);
 
     assertThat(product.getId()).hasValue(productId);
@@ -759,7 +846,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void deleteProducts() throws ExecutionException, InterruptedException {
+  public void deleteProducts() {
     ApolloClient client = getApolloClient("/graphql/betterbotz");
 
     String productId = UUID.randomUUID().toString();
@@ -779,12 +866,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .value(ProductsInput.builder().id(productId).build())
             .build();
 
-    CompletableFuture<DeleteProductsMutation.Data> future = new CompletableFuture<>();
-    ApolloMutationCall<Optional<DeleteProductsMutation.Data>> observable = client.mutate(mutation);
-    observable.enqueue(queryCallback(future));
-
-    DeleteProductsMutation.Data result = future.get();
-    observable.cancel();
+    DeleteProductsMutation.Data result = getObservable(client.mutate(mutation));
 
     assertThat(result.getDeleteProducts()).isPresent();
 
@@ -794,6 +876,216 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             })
         .isInstanceOf(IndexOutOfBoundsException.class)
         .hasMessageContaining("Index: 0, Size: 0");
+  }
+
+  @Test
+  public void invalidTypeMappingReturnsErrorResponse() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    // Expected UUID format
+    GraphQLTestException ex =
+        catchThrowableOfType(() -> getProduct(client, "zzz"), GraphQLTestException.class);
+    assertThat(ex.errors).hasSize(1);
+    assertThat(ex.errors.get(0).getMessage()).contains("Invalid UUID string");
+  }
+
+  @SuppressWarnings("unchecked")
+  @ParameterizedTest
+  @MethodSource("getInvalidQueries")
+  @DisplayName("Invalid GraphQL queries and mutations should return error response")
+  public void invalidGraphQLParametersReturnsErrorResponse(
+      String path, String query, String message1, String message2) throws IOException {
+
+    OkHttpClient okHttpClient =
+        new OkHttpClient.Builder()
+            .addInterceptor(
+                chain ->
+                    chain.proceed(
+                        chain
+                            .request()
+                            .newBuilder()
+                            .addHeader("X-Cassandra-Token", authToken)
+                            .addHeader("content-type", "application/json")
+                            .build()))
+            .build();
+
+    String url = String.format("http://%s:8080%s", getStargateHost(), path);
+    HttpUrl.Builder httpBuilder = HttpUrl.parse(url).newBuilder();
+    httpBuilder.addQueryParameter("query", query);
+    okhttp3.Response response =
+        okHttpClient.newCall(new Request.Builder().url(httpBuilder.build()).build()).execute();
+    assertThat(response.code()).isEqualTo(HttpStatus.SC_OK);
+    ObjectMapper mapper = new ObjectMapper();
+    Map<String, Object> mapResponse = mapper.readValue(response.body().string(), Map.class);
+    assertThat(mapResponse).containsKey("errors");
+    assertThat(mapResponse.get("errors")).isInstanceOf(List.class);
+    List<Map<String, Object>> errors = (List<Map<String, Object>>) mapResponse.get("errors");
+    assertThat(errors)
+        .hasOnlyOneElementSatisfying(
+            item -> assertThat(item.get("message")).asString().contains(message1, message2));
+    response.close();
+  }
+
+  public static Stream<Arguments> getInvalidQueries() {
+    String dmlPath = "/graphql/betterbotz";
+    String ddlPath = "/graphql-schema";
+    return Stream.of(
+        arguments(
+            dmlPath,
+            "query { zzz { name } }",
+            "Field 'zzz' in type 'Query' is undefined",
+            "Validation error"),
+        arguments(
+            dmlPath,
+            "invalidWrapper { zzz { name } }",
+            "offending token 'invalidWrapper'",
+            "Invalid Syntax"),
+        arguments(
+            dmlPath,
+            "query { products(filter: { name: { gt: \"a\"} }) { values { id } }}",
+            "Cannot execute this query",
+            "use ALLOW FILTERING"),
+        arguments(
+            ddlPath,
+            "query { zzz { name } }",
+            "Field 'zzz' in type 'Query' is undefined",
+            "Validation error"),
+        arguments(
+            ddlPath,
+            "query { keyspace (name: 1) { name } }",
+            "WrongType: argument 'name'",
+            "Validation error"),
+        arguments(
+            ddlPath,
+            "query { keyspaces { name, nameInvalid } }",
+            "Field 'nameInvalid' in type 'Keyspace' is undefined",
+            "Validation error"));
+  }
+
+  @Test
+  public void shouldInsertAndUpdateSimpleListSetsAndMaps() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    UUID id = UUID.randomUUID();
+
+    List<Integer> list = Arrays.asList(1, 2, 3);
+    List<String> set = Arrays.asList("a", "b", "c");
+    List<Map<Integer, String>> map =
+        Arrays.asList(
+            ImmutableMap.<Integer, String>builder().put(1, "one").build(),
+            ImmutableMap.<Integer, String>builder().put(2, "two").build());
+
+    InsertCollectionsSimpleMutation insertMutation =
+        InsertCollectionsSimpleMutation.builder()
+            .value(
+                CollectionsSimpleInput.builder()
+                    .id(id)
+                    .listValue1(list)
+                    .setValue1(set)
+                    .mapValue1(
+                        map.stream()
+                            .map(m -> m.entrySet().stream().findFirst().get())
+                            .map(
+                                e ->
+                                    InputKeyIntValueString.builder()
+                                        .key(e.getKey())
+                                        .value(e.getValue())
+                                        .build())
+                            .collect(Collectors.toList()))
+                    .build())
+            .build();
+
+    InsertCollectionsSimpleMutation.Data insertResult = mutateAndGet(client, insertMutation);
+    assertThat(insertResult.getInsertCollectionsSimple()).isPresent();
+    assertCollectionsSimple(client, id, list, set, map);
+
+    list = Arrays.asList(4, 5);
+    set = Collections.singletonList("d");
+    map =
+        Collections.singletonList(ImmutableMap.<Integer, String>builder().put(3, "three").build());
+
+    UpdateCollectionsSimpleMutation updateMutation =
+        UpdateCollectionsSimpleMutation.builder()
+            .value(
+                CollectionsSimpleInput.builder()
+                    .id(id)
+                    .listValue1(list)
+                    .setValue1(set)
+                    .mapValue1(
+                        map.stream()
+                            .map(m -> m.entrySet().stream().findFirst().get())
+                            .map(
+                                e ->
+                                    InputKeyIntValueString.builder()
+                                        .key(e.getKey())
+                                        .value(e.getValue())
+                                        .build())
+                            .collect(Collectors.toList()))
+                    .build())
+            .build();
+
+    UpdateCollectionsSimpleMutation.Data updateResult = mutateAndGet(client, updateMutation);
+    assertThat(updateResult.getUpdateCollectionsSimple()).isPresent();
+    assertCollectionsSimple(client, id, list, set, map);
+  }
+
+  private void assertCollectionsSimple(
+      ApolloClient client,
+      UUID id,
+      List<Integer> list,
+      List<String> set,
+      List<Map<Integer, String>> map) {
+    GetCollectionsSimpleQuery.Value item = getCollectionSimple(client, id);
+    assertThat(item.getListValue1()).isPresent();
+    assertThat(item.getListValue1().get()).isEqualTo(list);
+    assertThat(item.getSetValue1()).isPresent();
+    assertThat(item.getSetValue1().get()).isEqualTo(set);
+    assertThat(item.getMapValue1()).isPresent();
+    assertThat(
+            item.getMapValue1().get().stream()
+                .map(
+                    m ->
+                        ImmutableMap.<Integer, String>builder()
+                            .put(m.getKey(), m.getValue().get())
+                            .build())
+                .collect(Collectors.toList()))
+        .isEqualTo(map);
+  }
+
+  private GetCollectionsSimpleQuery.Value getCollectionSimple(ApolloClient client, UUID id) {
+    GetCollectionsSimpleQuery getQuery =
+        GetCollectionsSimpleQuery.builder()
+            .value(CollectionsSimpleInput.builder().id(id).build())
+            .build();
+
+    GetCollectionsSimpleQuery.Data getResult = getObservable(client.query(getQuery));
+    assertThat(getResult.getCollectionsSimple()).isPresent();
+    assertThat(getResult.getCollectionsSimple().get().getValues()).isPresent();
+    assertThat(getResult.getCollectionsSimple().get().getValues().get()).hasSize(1);
+    return getResult.getCollectionsSimple().get().getValues().get().get(0);
+  }
+
+  private static <T> T getObservable(ApolloCall<Optional<T>> observable) {
+    CompletableFuture<T> future = new CompletableFuture<>();
+    observable.enqueue(queryCallback(future));
+
+    try {
+      return future.get();
+    } catch (ExecutionException e) {
+      // Unwrap exception
+      if (e.getCause() instanceof RuntimeException) {
+        throw (RuntimeException) e.getCause();
+      }
+      throw new RuntimeException("Unexpected exception", e);
+    } catch (Exception e) {
+      throw new RuntimeException("Operation could not be completed", e);
+    } finally {
+      observable.cancel();
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <D extends Operation.Data, T, V extends Operation.Variables> D mutateAndGet(
+      ApolloClient client, Mutation<D, T, V> mutation) {
+    return getObservable((ApolloMutationCall<Optional<D>>) client.mutate(mutation));
   }
 
   private ApolloClient getApolloClient(String path) {
@@ -832,12 +1124,20 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   private static <U> ApolloCall.Callback<Optional<U>> queryCallback(CompletableFuture<U> future) {
     return new ApolloCall.Callback<Optional<U>>() {
       @Override
-      public void onResponse(@NotNull com.apollographql.apollo.api.Response<Optional<U>> response) {
+      public void onResponse(@NotNull Response<Optional<U>> response) {
         if (response.getData().isPresent()) {
           future.complete(response.getData().get());
-        } else {
-          future.complete(null);
+          return;
         }
+
+        if (response.getErrors() != null && response.getErrors().size() > 0) {
+          future.completeExceptionally(
+              new GraphQLTestException("GraphQL error response", response.getErrors()));
+          return;
+        }
+
+        future.completeExceptionally(
+            new IllegalStateException("Unexpected empty data and errors properties"));
       }
 
       @Override
@@ -845,5 +1145,14 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         future.completeExceptionally(e);
       }
     };
+  }
+
+  private static class GraphQLTestException extends RuntimeException {
+    private final List<Error> errors;
+
+    GraphQLTestException(String message, List<Error> errors) {
+      super(message);
+      this.errors = errors;
+    }
   }
 }

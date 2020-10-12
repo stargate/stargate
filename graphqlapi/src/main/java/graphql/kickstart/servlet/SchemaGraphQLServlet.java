@@ -19,9 +19,9 @@ import graphql.kickstart.execution.GraphQLObjectMapper;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
-import io.stargate.graphql.core.KeyspaceManagementSchema;
-import io.stargate.graphql.graphqlservlet.CassandraUnboxingGraphqlErrorHandler;
 import io.stargate.graphql.graphqlservlet.GraphqlCustomContextBuilder;
+import io.stargate.graphql.graphqlservlet.StargateGraphqlErrorHandler;
+import io.stargate.graphql.schema.SchemaFactory;
 
 public class SchemaGraphQLServlet extends SimpleGraphQLHttpServlet {
   private final Persistence persistence;
@@ -39,12 +39,12 @@ public class SchemaGraphQLServlet extends SimpleGraphQLHttpServlet {
         .with(new GraphqlCustomContextBuilder())
         .with(
             GraphQLObjectMapper.newBuilder()
-                .withGraphQLErrorHandler(new CassandraUnboxingGraphqlErrorHandler())
+                .withGraphQLErrorHandler(new StargateGraphqlErrorHandler())
                 .build())
         .build();
   }
 
   private GraphQLSchema createSchema() {
-    return new KeyspaceManagementSchema(persistence, authenticationService).build().build();
+    return SchemaFactory.newDdlSchema(persistence, authenticationService);
   }
 }

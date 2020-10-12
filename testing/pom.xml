@@ -4,18 +4,13 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.12-SNAPSHOT</version>
+    <version>0.0.15-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.it</groupId>
   <artifactId>testing</artifactId>
   <properties>
-    <slf4j.version>1.7.25</slf4j.version>
-    <logback.version>1.2.3</logback.version>
-    <junit.version>5.6.2</junit.version>
     <airline.version>2.7.0</airline.version>
-    <bytebuddy.version>1.10.10</bytebuddy.version>
     <kotlin.version>1.3.72</kotlin.version>
-    <failsafe.version>3.0.0-M4</failsafe.version>
   </properties>
   <dependencies>
     <dependency>
@@ -25,15 +20,14 @@
     </dependency>
     <dependency>
       <groupId>com.datastax.oss</groupId>
-      <artifactId>java-driver-test-infra</artifactId>
+      <artifactId>java-driver-query-builder</artifactId>
       <version>${driver.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.db</groupId>
+      <artifactId>persistence-test</artifactId>
+      <version>${project.version}</version>
       <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>junit</groupId>
-          <artifactId>junit</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -44,19 +38,11 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>${slf4j.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-core</artifactId>
-      <version>${logback.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>${logback.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -66,27 +52,9 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>io.stargate.db</groupId>
-      <artifactId>persistence-api</artifactId>
-      <version>0.0.12-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.stargate.db.cassandra</groupId>
-      <artifactId>persistence-cassandra-3.11</artifactId>
-      <version>0.0.12-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.stargate.db.dse</groupId>
-      <artifactId>persistence-dse-6.8</artifactId>
-      <version>0.0.5-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>io.stargate.auth.api</groupId>
       <artifactId>auth-api</artifactId>
-      <version>0.0.12-SNAPSHOT</version>
+      <version>${project.version}</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -98,7 +66,7 @@
     <dependency>
       <groupId>io.stargate.web</groupId>
       <artifactId>restapi</artifactId>
-      <version>0.0.12-SNAPSHOT</version>
+      <version>${project.version}</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -129,21 +97,8 @@
       <version>1.3.72</version>
     </dependency>
     <dependency>
-      <groupId>net.bytebuddy</groupId>
-      <artifactId>byte-buddy</artifactId>
-      <version>${bytebuddy.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>net.bytebuddy</groupId>
-      <artifactId>byte-buddy-agent</artifactId>
-      <version>${bytebuddy.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>3.14.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -161,7 +116,7 @@
     <dependency>
       <groupId>io.stargate.starter</groupId>
       <artifactId>stargate-starter</artifactId>
-      <version>0.0.12-SNAPSHOT</version>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -179,7 +134,11 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-params</artifactId>
-      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -187,6 +146,22 @@
       <artifactId>httpcore</artifactId>
       <version>4.4.11</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>29.0-jre</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.lz4</groupId>
+      <artifactId>lz4-java</artifactId>
+      <version>1.7.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.xerial.snappy</groupId>
+      <artifactId>snappy-java</artifactId>
+      <version>1.1.2.6</version>
     </dependency>
   </dependencies>
   <build>
@@ -224,17 +199,13 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M3</version>
         <configuration>
           <skipTests>true</skipTests>
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>${failsafe.version}</version>
         <dependencies>
           <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -266,9 +237,7 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-failsafe-plugin</artifactId>
-            <version>${failsafe.version}</version>
             <executions>
               <execution>
                 <id>cassandra-3.11</id>
@@ -295,9 +264,7 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-failsafe-plugin</artifactId>
-            <version>${failsafe.version}</version>
             <executions>
               <execution>
                 <id>cassandra-4.0</id>
@@ -323,14 +290,12 @@
     <profile>
       <id>it-dse-6.8</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <activeByDefault>false</activeByDefault>
       </activation>
       <build>
         <plugins>
           <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-failsafe-plugin</artifactId>
-            <version>${failsafe.version}</version>
             <executions>
               <execution>
                 <id>dse-6.8</id>
