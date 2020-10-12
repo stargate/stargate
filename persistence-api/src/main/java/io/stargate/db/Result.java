@@ -15,18 +15,18 @@
  */
 package io.stargate.db;
 
+import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
 import io.stargate.db.schema.Column;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
+import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.utils.MD5Digest;
 
 public abstract class Result {
-  public static Void VOID = new Void();
-
   public enum Kind {
     Void(1),
     Rows(2),
@@ -50,6 +50,7 @@ public abstract class Result {
 
   public final Kind kind;
   private UUID tracingId;
+  private @Nullable List<String> warnings;
 
   private Result(Kind kind) {
     this.kind = kind;
@@ -60,8 +61,18 @@ public abstract class Result {
     return this;
   }
 
+  public Result setWarnings(@Nullable List<String> warnings) {
+    Preconditions.checkState(this.warnings == null, "Warnings have already been set.");
+    this.warnings = warnings;
+    return this;
+  }
+
   public UUID getTracingId() {
     return tracingId;
+  }
+
+  public @Nullable List<String> getWarnings() {
+    return warnings;
   }
 
   public static class Rows extends Result {

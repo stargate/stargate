@@ -32,7 +32,6 @@ import io.stargate.db.Statement;
 import io.stargate.db.cassandra.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import io.stargate.db.datastore.common.AbstractCassandraPersistence;
-import io.stargate.db.datastore.common.util.UncheckedExecutionException;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -70,7 +69,9 @@ import org.apache.cassandra.service.MigrationListener;
 import org.apache.cassandra.service.MigrationManager;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageService;
+import org.apache.cassandra.stargate.exceptions.PersistenceException;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
+import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.transport.Message;
 import org.apache.cassandra.transport.Message.Request;
 import org.apache.cassandra.transport.messages.BatchMessage;
@@ -250,11 +251,7 @@ public class CassandraPersistence
             future.complete(supplier.get());
           } catch (Throwable t) {
             JVMStabilityInspector.inspectThrowable(t);
-            Throwable ex = t;
-            if (t instanceof UncheckedExecutionException) {
-              ex = t.getCause();
-            }
-            future.completeExceptionally(Conversion.convertInternalException(ex));
+            future.completeExceptionally(t);
           }
         });
 
@@ -352,25 +349,37 @@ public class CassandraPersistence
         Parameters parameters, long queryStartNanoTime, Supplier<Request> requestSupplier) {
       return runOnExecutor(
           () -> {
-            QueryState queryState = new QueryState(clientState);
-            Request request = requestSupplier.get();
-            if (parameters.tracingRequested()) {
-              request.setTracingRequested();
+            if (parameters.protocolVersion().isGreaterOrEqualTo(ProtocolVersion.V4))
+              ClientWarn.instance.captureWarnings();
+            try {
+              QueryState queryState = new QueryState(clientState);
+              Request request = requestSupplier.get();
+              if (parameters.tracingRequested()) {
+                request.setTracingRequested();
+              }
+              request.setCustomPayload(parameters.customPayload().orElse(null));
+              Message.Response response = request.execute(queryState, queryStartNanoTime);
+              // There is only 2 types of response that can come out: either a ResultMessage (which
+              // itself can of different kind), or an ErrorMessage.
+              if (response instanceof ErrorMessage) {
+                PersistenceException pe =
+                    Conversion.convertInternalException(
+                        (Throwable) ((ErrorMessage) response).error);
+                pe.setWarnings(ClientWarn.instance.getWarnings());
+                throw pe;
+              }
+              @SuppressWarnings("unchecked")
+              T result =
+                  (T)
+                      Conversion.toResult(
+                          (ResultMessage) response,
+                          Conversion.toInternal(parameters.protocolVersion()),
+                          ClientWarn.instance.getWarnings());
+              return result;
+            } finally {
+              // Note that it's a no-op if we haven't called captureWarnings
+              ClientWarn.instance.resetWarnings();
             }
-            request.setCustomPayload(parameters.customPayload().orElse(null));
-            Message.Response response = request.execute(queryState, queryStartNanoTime);
-            // There is only 2 types of response that can come out: either a ResultMessage (which
-            // itself can of different kind), or an ErrorMessage.
-            if (response instanceof ErrorMessage) {
-              throw new UncheckedExecutionException((Throwable) ((ErrorMessage) response).error);
-            }
-            @SuppressWarnings("unchecked")
-            T result =
-                (T)
-                    Conversion.toResult(
-                        (ResultMessage) response,
-                        Conversion.toInternal(parameters.protocolVersion()));
-            return result;
           });
     }
 
@@ -432,21 +441,6 @@ public class CassandraPersistence
       } else {
         return Conversion.toInternal(((BoundStatement) statement).preparedId());
       }
-    }
-
-    @Override
-    public void captureClientWarnings() {
-      ClientWarn.instance.captureWarnings();
-    }
-
-    @Override
-    public List<String> getClientWarnings() {
-      return ClientWarn.instance.getWarnings();
-    }
-
-    @Override
-    public void resetClientWarnings() {
-      ClientWarn.instance.resetWarnings();
     }
   }
 }

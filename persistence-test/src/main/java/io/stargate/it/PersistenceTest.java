@@ -51,12 +51,16 @@ import static io.stargate.db.schema.Column.Type.Varint;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.fail;
 
+import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
+import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
+import io.stargate.db.Result;
+import io.stargate.db.SimpleStatement;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
@@ -109,6 +113,13 @@ import org.slf4j.LoggerFactory;
 @NotThreadSafe
 public abstract class PersistenceTest {
   private static final Logger logger = LoggerFactory.getLogger(PersistenceTest.class);
+
+  static {
+    // Required by the testWarnings() so a warning is generated (rather than a rejection). Unlikely
+    // to ever influence another test. This needs to be really early, before the concrete
+    // implementations initialize their persistence so it gets picked up.
+    System.setProperty("cassandra.expiration_date_overflow_policy", "CAP");
+  }
 
   protected static final int KEYSPACE_NAME_MAX_LENGTH = 48;
 
@@ -1146,5 +1157,41 @@ public abstract class PersistenceTest {
     dataStore.waitForSchemaAgreement();
 
     return keyspace;
+  }
+
+  private static Result execute(
+      Persistence.Connection connection, String query, ByteBuffer... values)
+      throws ExecutionException, InterruptedException {
+    return connection
+        .execute(
+            new SimpleStatement(query, Arrays.asList(values)),
+            Parameters.defaults(),
+            System.nanoTime())
+        .get();
+  }
+
+  @Test
+  public void testWarnings() throws ExecutionException, InterruptedException {
+    // This test is admittedly a bit fragile, because the exact warnings that may or may not be
+    // raised are not strongly defined. Here, we pick the warning on TTL too large, because it's
+    // currently raised by all our persistence implementation, it's easy to trigger, and it feels
+    // like it'll probably stay for a while. But if this test start failing on some persistence
+    // implementation, we may have to adapt.
+    Keyspace ks = createKeyspace();
+
+    Persistence.Connection conn = persistence().newConnection();
+
+    execute(conn, "USE " + ks.cqlName());
+    execute(conn, "CREATE TABLE t (k int PRIMARY KEY)");
+
+    persistence().waitForSchemaAgreement();
+
+    // TTLs have a hard cap to 20 years, so we can't pass a bigger one that that or it will hard
+    // throw rather than warn (and cap the TTL).
+    ByteBuffer ttl = Int.codec().encode(20 * 365 * 24 * 60 * 60, ProtocolVersion.DEFAULT);
+    Result result = execute(conn, "INSERT INTO t(k) VALUES (0) USING TTL ?", ttl);
+
+    assertThat(result.getWarnings()).hasSize(1);
+    assertThat(result.getWarnings().get(0)).contains("exceeds maximum supported expiration");
   }
 }

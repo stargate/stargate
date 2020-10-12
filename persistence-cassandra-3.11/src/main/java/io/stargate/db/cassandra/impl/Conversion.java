@@ -36,6 +36,8 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.cql3.QueryOptions;
@@ -61,6 +63,7 @@ import org.apache.cassandra.stargate.exceptions.FunctionExecutionException;
 import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
 import org.apache.cassandra.stargate.exceptions.IsBootstrappingException;
 import org.apache.cassandra.stargate.exceptions.OverloadedException;
+import org.apache.cassandra.stargate.exceptions.PersistenceException;
 import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.exceptions.ReadFailureException;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
@@ -79,11 +82,14 @@ import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.apache.cassandra.transport.Event;
 import org.apache.cassandra.transport.ProtocolVersionLimit;
 import org.apache.cassandra.transport.messages.ResultMessage;
+import org.apache.cassandra.utils.NoSpamLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Conversion {
   private static final Logger LOG = LoggerFactory.getLogger(Conversion.class);
+  private static final NoSpamLogger noSpamLogger =
+      NoSpamLogger.getLogger(LOG, 5L, TimeUnit.MINUTES);
 
   // A number of constructors for classes related to QueryOptions but that are not accessible in C*
   // at the moment and need to be accessed through reflection.
@@ -267,7 +273,8 @@ public class Conversion {
     return new FunctionName(internal.keyspace, internal.name);
   }
 
-  public static RuntimeException toExternal(org.apache.cassandra.exceptions.CassandraException e) {
+  public static PersistenceException toExternal(
+      org.apache.cassandra.exceptions.CassandraException e) {
     switch (e.code()) {
       case SERVER_ERROR:
         return addSuppressed(new ServerError(e.getMessage()), e);
@@ -357,11 +364,16 @@ public class Conversion {
         org.apache.cassandra.exceptions.PreparedQueryNotFoundException pnfe =
             (org.apache.cassandra.exceptions.PreparedQueryNotFoundException) e;
         return addSuppressed(new PreparedQueryNotFoundException(MD5Digest.wrap(pnfe.id.bytes)), e);
+      default:
+        noSpamLogger.error(
+            "Unhandled Cassandra exception code {} in the persistence conversion "
+                + "code. This should be fixed (but a ServerError will be use in the meantime)");
+        return new ServerError(e);
     }
-    return e;
   }
 
-  private static RuntimeException addSuppressed(RuntimeException e, RuntimeException suppressed) {
+  private static PersistenceException addSuppressed(
+      PersistenceException e, RuntimeException suppressed) {
     e.addSuppressed(suppressed);
     return e;
   }
@@ -436,15 +448,19 @@ public class Conversion {
   }
 
   public static Result toResult(
-      ResultMessage resultMessage, org.apache.cassandra.transport.ProtocolVersion version) {
-    return toResultInternal(resultMessage, version).setTracingId(resultMessage.getTracingId());
+      ResultMessage resultMessage,
+      org.apache.cassandra.transport.ProtocolVersion version,
+      @Nullable List<String> warnings) {
+    return toResultInternal(resultMessage, version)
+        .setTracingId(resultMessage.getTracingId())
+        .setWarnings(warnings);
   }
 
   public static Result toResultInternal(
       ResultMessage resultMessage, org.apache.cassandra.transport.ProtocolVersion version) {
     switch (resultMessage.kind) {
       case VOID:
-        return Result.VOID;
+        return new Result.Void();
       case ROWS:
         return new Result.Rows(
             ((ResultMessage.Rows) resultMessage).result.rows,
@@ -467,7 +483,7 @@ public class Conversion {
     throw new ProtocolException("Unexpected type for RESULT message: " + resultMessage.kind);
   }
 
-  public static Throwable convertInternalException(Throwable t) {
+  public static PersistenceException convertInternalException(Throwable t) {
     if (t instanceof CassandraException) {
       return Conversion.toExternal((CassandraException) t);
     } else if (t instanceof org.apache.cassandra.transport.ProtocolException) {
@@ -475,8 +491,11 @@ public class Conversion {
       org.apache.cassandra.transport.ProtocolException ex =
           (org.apache.cassandra.transport.ProtocolException) t;
       return new ProtocolException(t.getMessage(), toExternal(ex.getForcedProtocolVersion()));
+    } else if (t instanceof org.apache.cassandra.transport.ServerError) {
+      // Nor is ServerError
+      return new ServerError(t.getMessage());
     }
-    return t;
+    return new ServerError(t);
   }
 
   public static List<Object> toInternalQueryOrIds(List<Object> queryOrIds) {

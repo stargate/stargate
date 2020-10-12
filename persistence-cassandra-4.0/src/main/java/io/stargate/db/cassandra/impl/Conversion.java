@@ -17,6 +17,8 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.cql3.QueryHandler;
 import org.apache.cassandra.cql3.QueryOptions;
@@ -42,8 +44,15 @@ import org.apache.cassandra.stargate.transport.ServerError;
 import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.apache.cassandra.transport.Event;
 import org.apache.cassandra.transport.messages.ResultMessage;
+import org.apache.cassandra.utils.NoSpamLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Conversion {
+  private static final Logger logger = LoggerFactory.getLogger(Conversion.class);
+  private static final NoSpamLogger noSpamLogger =
+      NoSpamLogger.getLogger(logger, 5L, TimeUnit.MINUTES);
+
   private static final Map<Class<? extends AbstractType>, Column.Type> TYPE_MAPPINGS;
 
   static {
@@ -165,7 +174,8 @@ public class Conversion {
     return new FunctionName(internal.keyspace, internal.name);
   }
 
-  public static RuntimeException toExternal(org.apache.cassandra.exceptions.CassandraException e) {
+  public static PersistenceException toExternal(
+      org.apache.cassandra.exceptions.CassandraException e) {
     switch (e.code()) {
       case SERVER_ERROR:
         return addSuppressed(new ServerError(e.getMessage()), e);
@@ -226,7 +236,7 @@ public class Conversion {
         } else if (e instanceof org.apache.cassandra.exceptions.OperationExecutionException) {
           return addSuppressed(new OperationExecutionException(e.getMessage()), e);
         }
-        return e;
+        break;
       case WRITE_FAILURE:
         org.apache.cassandra.exceptions.WriteFailureException wfe =
             (org.apache.cassandra.exceptions.WriteFailureException) e;
@@ -269,10 +279,14 @@ public class Conversion {
             (org.apache.cassandra.exceptions.PreparedQueryNotFoundException) e;
         return addSuppressed(new PreparedQueryNotFoundException(MD5Digest.wrap(pnfe.id.bytes)), e);
     }
-    return e;
+    noSpamLogger.error(
+        "Unhandled Cassandra exception code {} in the persistence conversion "
+            + "code. This should be fixed (but a ServerError will be use in the meantime)");
+    return new ServerError(e);
   }
 
-  private static RuntimeException addSuppressed(RuntimeException e, RuntimeException suppressed) {
+  private static PersistenceException addSuppressed(
+      PersistenceException e, RuntimeException suppressed) {
     e.addSuppressed(suppressed);
     return e;
   }
@@ -341,9 +355,12 @@ public class Conversion {
   }
 
   public static Result toResult(
-      ResultMessage resultMessage, org.apache.cassandra.transport.ProtocolVersion version) {
+      ResultMessage resultMessage,
+      org.apache.cassandra.transport.ProtocolVersion version,
+      @Nullable List<String> warnings) {
     return toResultInternal(resultMessage, version)
-        .setTracingId(ReflectionUtils.getTracingId(resultMessage));
+        .setTracingId(ReflectionUtils.getTracingId(resultMessage))
+        .setWarnings(warnings);
   }
 
   private static Result toResultInternal(
@@ -351,7 +368,7 @@ public class Conversion {
 
     switch (resultMessage.kind) {
       case VOID:
-        return Result.VOID;
+        return new Result.Void();
       case ROWS:
         return new Result.Rows(
             ((ResultMessage.Rows) resultMessage).result.rows,
@@ -375,7 +392,7 @@ public class Conversion {
     throw new ProtocolException("Unexpected type for RESULT message: " + resultMessage.kind);
   }
 
-  public static Throwable convertInternalException(Throwable t) {
+  public static PersistenceException convertInternalException(Throwable t) {
     if (t instanceof CassandraException) {
       return Conversion.toExternal((CassandraException) t);
     } else if (t instanceof org.apache.cassandra.transport.ProtocolException) {
@@ -383,8 +400,11 @@ public class Conversion {
       org.apache.cassandra.transport.ProtocolException ex =
           (org.apache.cassandra.transport.ProtocolException) t;
       return new ProtocolException(t.getMessage(), toExternal(ex.getForcedProtocolVersion()));
+    } else if (t instanceof org.apache.cassandra.transport.ServerError) {
+      // Nor is ServerError
+      return new ServerError(t.getMessage());
     }
-    return t;
+    return new ServerError(t);
   }
 
   public static BatchStatement.Type toInternal(BatchType external) {

@@ -658,9 +658,6 @@ public abstract class Message {
 
         final Persistence.Connection persistenceConnection = connection.persistenceConnection();
 
-        if (connection.getVersion().isGreaterOrEqualTo(ProtocolVersion.V4))
-          persistenceConnection.captureClientWarnings();
-
         connection.validateNewMessage(request.type, connection.getVersion());
 
         logger.trace("Received: {}, v={}", request, connection.getVersion());
@@ -675,7 +672,6 @@ public abstract class Message {
               } else {
                 try {
                   response.setStreamId(request.getStreamId());
-                  response.setWarnings(persistenceConnection.getClientWarnings());
                   response.attach(connection);
                   connection.applyStateTransition(request.type, response.type);
 
@@ -691,8 +687,6 @@ public abstract class Message {
                       "Failed to reply, got another error whilst writing reply: {}",
                       t.getMessage(),
                       t);
-                } finally {
-                  persistenceConnection.resetClientWarnings();
                 }
               }
             });

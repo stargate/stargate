@@ -1,7 +1,6 @@
 package io.stargate.db.dse.impl;
 
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.google.common.util.concurrent.Uninterruptibles;
 import io.reactivex.Single;
 import io.stargate.db.Authenticator;
@@ -56,7 +55,9 @@ import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.ClientWarn;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageService;
+import org.apache.cassandra.stargate.exceptions.PersistenceException;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
+import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.transport.Message.Request;
 import org.apache.cassandra.transport.messages.BatchMessage;
 import org.apache.cassandra.transport.messages.ErrorMessage;
@@ -354,6 +355,9 @@ public class DsePersistence
         Parameters parameters, long queryStartNanoTime, Supplier<Request> requestSupplier) {
 
       try {
+        if (parameters.protocolVersion().isGreaterOrEqualTo(ProtocolVersion.V4))
+          ClientWarn.instance.captureWarnings();
+
         Single<QueryState> queryState = newQueryState();
         Request request = requestSupplier.get();
         if (parameters.tracingRequested()) {
@@ -366,25 +370,35 @@ public class DsePersistence
                 .execute(queryState, queryStartNanoTime)
                 .map(
                     response -> {
-                      // There is only 2 types of response that can come out: either a ResutMessage
-                      // (which itself can of different kind), or an ErrorMessage.
-                      if (response instanceof ErrorMessage) {
-                        throw new UncheckedExecutionException(
-                            Conversion.convertInternalException(
-                                (Throwable) ((ErrorMessage) response).error));
-                      }
+                      try {
+                        // There is only 2 types of response that can come out: either a
+                        // ResutMessage
+                        // (which itself can of different kind), or an ErrorMessage.
+                        if (response instanceof ErrorMessage) {
+                          PersistenceException pe =
+                              Conversion.convertInternalException(
+                                  (Throwable) ((ErrorMessage) response).error);
+                          pe.setWarnings(ClientWarn.instance.getWarnings());
+                          throw pe;
+                        }
 
-                      @SuppressWarnings("unchecked")
-                      T result =
-                          (T)
-                              Conversion.toResult(
-                                  (ResultMessage) response,
-                                  Conversion.toInternal(parameters.protocolVersion()));
-                      return result;
+                        @SuppressWarnings("unchecked")
+                        T result =
+                            (T)
+                                Conversion.toResult(
+                                    (ResultMessage) response,
+                                    Conversion.toInternal(parameters.protocolVersion()),
+                                    ClientWarn.instance.getWarnings());
+                        return result;
+                      } finally {
+                        ClientWarn.instance.resetWarnings();
+                      }
                     }));
       } catch (Exception e) {
         CompletableFuture<T> exceptionalFuture = new CompletableFuture<>();
-        exceptionalFuture.completeExceptionally(Conversion.convertInternalException(e));
+        PersistenceException pe = Conversion.convertInternalException(e);
+        pe.setWarnings(ClientWarn.instance.getWarnings());
+        exceptionalFuture.completeExceptionally(pe);
         return exceptionalFuture;
       }
     }
@@ -449,21 +463,6 @@ public class DsePersistence
       } else {
         return Conversion.toInternal(((BoundStatement) statement).preparedId());
       }
-    }
-
-    @Override
-    public void captureClientWarnings() {
-      ClientWarn.instance.captureWarnings();
-    }
-
-    @Override
-    public List<String> getClientWarnings() {
-      return ClientWarn.instance.getWarnings();
-    }
-
-    @Override
-    public void resetClientWarnings() {
-      ClientWarn.instance.resetWarnings();
     }
   }
 }

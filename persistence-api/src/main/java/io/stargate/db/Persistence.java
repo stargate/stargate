@@ -19,7 +19,6 @@ import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptib
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Schema;
 import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -166,11 +165,5 @@ public interface Persistence {
      *     warnings apply for this method as well.
      */
     CompletableFuture<Result> batch(Batch batch, Parameters parameters, long queryStartNanoTime);
-
-    void captureClientWarnings();
-
-    List<String> getClientWarnings();
-
-    void resetClientWarnings();
   }
 }
