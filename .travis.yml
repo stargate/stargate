@@ -1,7 +1,7 @@
 language: java
 jdk:
   - openjdk8
-dist: trusty
+dist: bionic
 env:
   - CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
 #  - DB=mongodb SUITE=all
