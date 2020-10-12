@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.*;
 import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -41,7 +42,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   private static Logger logger = LoggerFactory.getLogger(DocumentApiV2Test.class);
 
   private String keyspace;
-
+  private CqlSession session;
   private static String authToken;
   private static String host = "http://" + getStargateHost();
   private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -55,7 +56,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   @BeforeEach
   public void setup(ClusterConnectionInfo cluster) throws IOException {
     keyspace = "ks_docs_" + System.currentTimeMillis();
-    CqlSession session =
+    session =
         CqlSession.builder()
             .withConfigLoader(
                 DriverConfigLoader.programmaticBuilder()
@@ -85,6 +86,11 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         .isTrue();
 
     initAuth();
+  }
+
+  @AfterEach
+  public void teardown() {
+    session.close();
   }
 
   private void initAuth() throws IOException {

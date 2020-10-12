@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import net.jcip.annotations.NotThreadSafe;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
@@ -87,6 +88,11 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
     keyspace = "ks_" + testName;
     table = testName;
     runningStargateNodes = stargateStarters.size();
+  }
+
+  @AfterEach
+  public void teardown() {
+    session.close();
   }
 
   @Test

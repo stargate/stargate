@@ -53,6 +53,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -63,6 +64,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   private static String authToken;
   private static String host = "http://" + getStargateHost();
   private String keyspace;
+  private CqlSession session;
 
   public RestApiTest(ClusterConnectionInfo backend) {
     super(backend);
@@ -72,7 +74,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   public void setup(ClusterConnectionInfo cluster) throws IOException {
     keyspace = "ks_restapitest";
 
-    CqlSession session =
+    session =
         CqlSession.builder()
             .withConfigLoader(
                 DriverConfigLoader.programmaticBuilder()
@@ -100,6 +102,11 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         .isTrue();
 
     initAuth();
+  }
+
+  @AfterEach
+  public void teardown() {
+    session.close();
   }
 
   private void initAuth() throws IOException {
