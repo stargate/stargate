@@ -43,7 +43,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 @NotThreadSafe
-@Disabled
+@Disabled("Waiting for fixes on #232 and #250")
 public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
 
   private String table;
