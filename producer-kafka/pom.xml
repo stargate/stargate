@@ -243,7 +243,6 @@
               io.stargate.db,
               ]]>
             </Import-Package>
-            <Export-Package>io.stargate.producer.kafka</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
             <Bundle-ClassPath>.,sjk-core-0.14.jar,{maven-dependencies}</Bundle-ClassPath>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
