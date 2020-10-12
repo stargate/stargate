@@ -1,5 +1,6 @@
 package io.stargate.db.cassandra;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.cassandra.impl.CassandraPersistence;
@@ -37,11 +38,9 @@ public class CassandraPersistenceActivator implements BundleActivator, ServiceLi
 
   private volatile BundleContext context;
 
-  private Config makeConfig() throws IOException {
+  @VisibleForTesting
+  public static Config makeConfig(File baseDir) throws IOException {
     Config c = new Config();
-
-    // Throw away data directory since stargate is ephemeral anyway
-    File baseDir = Files.createTempDirectory("stargate-cassandra").toFile();
 
     File commitLogDir = Paths.get(baseDir.getPath(), "commitlog").toFile();
     commitLogDir.mkdirs();
@@ -134,7 +133,10 @@ public class CassandraPersistenceActivator implements BundleActivator, ServiceLi
     props.put("Identifier", "CassandraPersistence");
 
     try {
-      cassandraDB.initialize(makeConfig());
+      // Throw away data directory since stargate is ephemeral anyway
+      File baseDir = Files.createTempDirectory("stargate-cassandra-4.0").toFile();
+
+      cassandraDB.initialize(makeConfig(baseDir));
     } catch (IOException e) {
       logger.error("Error initializing cassandra persistence", e);
       throw new IOError(e);

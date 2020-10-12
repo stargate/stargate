@@ -1,0 +1,11 @@
+query GetCollectionsNested($value: CollectionsNestedInput) {
+    collectionsNested(value: $value) {
+        pageState
+        values {
+            id
+            listValue1 { key, value }
+            setValue1
+            mapValue1 { key, value { key, value } }
+        }
+    }
+}

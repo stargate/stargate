@@ -18,6 +18,7 @@ package io.stargate.web.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModelProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GetResponseWrapper<T> {
@@ -30,6 +31,7 @@ public class GetResponseWrapper<T> {
   @JsonProperty("data")
   T data;
 
+  @ApiModelProperty(value = "The count of records returned")
   public int getCount() {
     return count;
   }
@@ -39,6 +41,8 @@ public class GetResponseWrapper<T> {
     return this;
   }
 
+  @ApiModelProperty(
+      value = "A string representing the paging state to be used on future paging requests.")
   public String getPageState() {
     return pageState;
   }
@@ -48,6 +52,7 @@ public class GetResponseWrapper<T> {
     return this;
   }
 
+  @ApiModelProperty(value = "The data returned by the request")
   public T getData() {
     return data;
   }

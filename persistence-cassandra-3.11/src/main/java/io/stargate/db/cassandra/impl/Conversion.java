@@ -23,7 +23,6 @@ import io.stargate.db.QueryState;
 import io.stargate.db.Result;
 import io.stargate.db.Result.Flag;
 import io.stargate.db.cassandra.datastore.DataStoreUtil;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
 import java.lang.reflect.Constructor;
@@ -262,76 +261,99 @@ public class Conversion {
   public static RuntimeException toExternal(org.apache.cassandra.exceptions.CassandraException e) {
     switch (e.code()) {
       case SERVER_ERROR:
-        return new ServerError(e.getMessage());
+        return addSuppressed(new ServerError(e.getMessage()), e);
       case BAD_CREDENTIALS:
-        return new AuthenticationException(e.getMessage(), e.getCause());
+        return addSuppressed(new AuthenticationException(e.getMessage(), e.getCause()), e);
       case UNAVAILABLE:
         org.apache.cassandra.exceptions.UnavailableException ue =
             (org.apache.cassandra.exceptions.UnavailableException) e;
-        return new UnavailableException(
-            ue.getMessage(), toExternal(ue.consistency), ue.required, ue.alive);
+        return addSuppressed(
+            new UnavailableException(
+                ue.getMessage(), toExternal(ue.consistency), ue.required, ue.alive),
+            e);
       case OVERLOADED:
-        return new OverloadedException(e.getMessage());
+        return addSuppressed(new OverloadedException(e.getMessage()), e);
       case IS_BOOTSTRAPPING:
-        return new IsBootstrappingException();
+        return addSuppressed(new IsBootstrappingException(), e);
       case TRUNCATE_ERROR:
-        return new TruncateException(e.getCause());
+        return addSuppressed(
+            e.getCause() == null
+                ? new TruncateException(e.getMessage())
+                : new TruncateException(e.getCause()),
+            e);
       case WRITE_TIMEOUT:
         org.apache.cassandra.exceptions.WriteTimeoutException wte =
             (org.apache.cassandra.exceptions.WriteTimeoutException) e;
-        return new WriteTimeoutException(
-            toExternal(wte.writeType),
-            toExternal(wte.consistency),
-            wte.received,
-            wte.blockFor,
-            wte.getMessage());
+        return addSuppressed(
+            new WriteTimeoutException(
+                toExternal(wte.writeType),
+                toExternal(wte.consistency),
+                wte.received,
+                wte.blockFor,
+                wte.getMessage()),
+            e);
       case READ_TIMEOUT:
         org.apache.cassandra.exceptions.ReadTimeoutException rte =
             (org.apache.cassandra.exceptions.ReadTimeoutException) e;
-        return new ReadTimeoutException(
-            toExternal(rte.consistency), rte.received, rte.blockFor, rte.dataPresent);
+        return addSuppressed(
+            new ReadTimeoutException(
+                toExternal(rte.consistency), rte.received, rte.blockFor, rte.dataPresent),
+            e);
       case READ_FAILURE:
         org.apache.cassandra.exceptions.ReadFailureException rfe =
             (org.apache.cassandra.exceptions.ReadFailureException) e;
-        return new ReadFailureException(
-            toExternal(rfe.consistency),
-            rfe.received,
-            rfe.blockFor,
-            rfe.dataPresent,
-            toExternal(rfe.failureReasonByEndpoint));
+        return addSuppressed(
+            new ReadFailureException(
+                toExternal(rfe.consistency),
+                rfe.received,
+                rfe.blockFor,
+                rfe.dataPresent,
+                toExternal(rfe.failureReasonByEndpoint)),
+            e);
       case FUNCTION_FAILURE:
         org.apache.cassandra.exceptions.FunctionExecutionException fee =
             (org.apache.cassandra.exceptions.FunctionExecutionException) e;
-        return new FunctionExecutionException(
-            toExternal(fee.functionName), fee.argTypes, fee.detail);
+        return addSuppressed(
+            new FunctionExecutionException(toExternal(fee.functionName), fee.argTypes, fee.detail),
+            e);
       case WRITE_FAILURE:
         org.apache.cassandra.exceptions.WriteFailureException wfe =
             (org.apache.cassandra.exceptions.WriteFailureException) e;
-        return new WriteFailureException(
-            toExternal(wfe.consistency),
-            wfe.received,
-            wfe.blockFor,
-            toExternal(wfe.writeType),
-            toExternal(wfe.failureReasonByEndpoint));
+        return addSuppressed(
+            new WriteFailureException(
+                toExternal(wfe.consistency),
+                wfe.received,
+                wfe.blockFor,
+                toExternal(wfe.writeType),
+                toExternal(wfe.failureReasonByEndpoint)),
+            e);
       case SYNTAX_ERROR:
-        return new SyntaxException(e.getMessage());
+        return addSuppressed(new SyntaxException(e.getMessage()), e);
       case UNAUTHORIZED:
+        // Not adding suppressed exception to avoid information leaking
         return new UnauthorizedException(e.getMessage(), e.getCause());
       case INVALID:
-        return new InvalidRequestException(e.getMessage());
+        return addSuppressed(new InvalidRequestException(e.getMessage()), e);
       case CONFIG_ERROR:
-        return new ConfigurationException(e.getMessage(), e.getCause());
+        return addSuppressed(new ConfigurationException(e.getMessage(), e.getCause()), e);
       case ALREADY_EXISTS:
         org.apache.cassandra.exceptions.AlreadyExistsException aee =
             (org.apache.cassandra.exceptions.AlreadyExistsException) e;
-        return Strings.isNullOrEmpty(aee.cfName)
-            ? new AlreadyExistsException(aee.ksName)
-            : new AlreadyExistsException(aee.ksName, aee.cfName);
+        return addSuppressed(
+            Strings.isNullOrEmpty(aee.cfName)
+                ? new AlreadyExistsException(aee.ksName)
+                : new AlreadyExistsException(aee.ksName, aee.cfName),
+            e);
       case UNPREPARED:
         org.apache.cassandra.exceptions.PreparedQueryNotFoundException pnfe =
             (org.apache.cassandra.exceptions.PreparedQueryNotFoundException) e;
-        return new PreparedQueryNotFoundException(MD5Digest.wrap(pnfe.id.bytes));
+        return addSuppressed(new PreparedQueryNotFoundException(MD5Digest.wrap(pnfe.id.bytes)), e);
     }
+    return e;
+  }
+
+  private static RuntimeException addSuppressed(RuntimeException e, RuntimeException suppressed) {
+    e.addSuppressed(suppressed);
     return e;
   }
 
@@ -435,9 +457,7 @@ public class Conversion {
   public static void handleException(CompletableFuture<?> future, Throwable t) {
     Throwable e = t;
 
-    if (t instanceof org.apache.cassandra.exceptions.UnauthorizedException) {
-      e = DataStore.UnauthorizedException.rbac(t);
-    } else if (t instanceof CassandraException) {
+    if (t instanceof CassandraException) {
       e = Conversion.toExternal((CassandraException) t);
     } else if (t instanceof org.apache.cassandra.transport.ProtocolException) {
       // Note that ProtocolException is not a CassandraException
