@@ -1,5 +1,5 @@
 steps:
-  - name: 'ubuntu:xenial'
+  - name: 'ubuntu:bionic'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]
 options:
