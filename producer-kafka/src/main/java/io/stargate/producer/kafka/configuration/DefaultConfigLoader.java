@@ -16,12 +16,14 @@
 package io.stargate.producer.kafka.configuration;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import io.dropwizard.kafka.metrics.DropwizardMetricsReporter;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.CommonClientConfigs;
 
 public class DefaultConfigLoader implements ConfigLoader {
 
@@ -32,8 +34,39 @@ public class DefaultConfigLoader implements ConfigLoader {
   public CDCKafkaConfig loadConfig(Map<String, Object> options) {
     String topicPrefixName = getTopicPrefixName(options);
     Map<String, Object> kafkaProducerSettings = filterKafkaProducerSettings(options);
+    MetricsConfig metricsConfig = loadMetricsConfig(options);
+    registerMetricsIfEnabled(kafkaProducerSettings, metricsConfig);
     String schemaRegistryUrl = getSchemaRegistryUrl(kafkaProducerSettings);
-    return new CDCKafkaConfig(topicPrefixName, schemaRegistryUrl, kafkaProducerSettings);
+    return new CDCKafkaConfig(
+        topicPrefixName, schemaRegistryUrl, kafkaProducerSettings, metricsConfig);
+  }
+
+  private void registerMetricsIfEnabled(
+      Map<String, Object> kafkaProducerSettings, MetricsConfig metricsConfig) {
+    if (metricsConfig.isMetricsEnabled()) {
+      kafkaProducerSettings.put(
+          CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG,
+          DropwizardMetricsReporter.class.getName());
+      // create dropwizard specific settings
+      kafkaProducerSettings.put(
+          DropwizardMetricsReporter.SHOULD_INCLUDE_TAGS_CONFIG,
+          Boolean.toString(metricsConfig.isIncludeTags()));
+      kafkaProducerSettings.put(
+          DropwizardMetricsReporter.METRICS_NAME_CONFIG, metricsConfig.getMetricsName());
+    }
+  }
+
+  private MetricsConfig loadMetricsConfig(Map<String, Object> options) {
+    boolean metricsEnabled = getBooleanSettingValue(options, METRICS_ENABLED_SETTING_NAME);
+    if (metricsEnabled) {
+      // load specific settings only if metrics are enabled
+      boolean metricsIncludeTags =
+          getBooleanSettingValue(options, METRICS_INCLUDE_TAGS_SETTING_NAME);
+      String metricsName = getStringSettingValue(options, METRICS_NAME_SETTING_NAME);
+      return new MetricsConfig(metricsEnabled, metricsIncludeTags, metricsName);
+    } else {
+      return new MetricsConfig(metricsEnabled, null, null);
+    }
   }
 
   Map<String, Object> filterKafkaProducerSettings(Map<String, Object> options) {
@@ -68,18 +101,29 @@ public class DefaultConfigLoader implements ConfigLoader {
     return getStringSettingValue(kafkaProducerSettings, SCHEMA_REGISTRY_URL_SETTING_NAME);
   }
 
+  @NonNull
   String getStringSettingValue(Map<String, Object> options, String settingName) {
+    return (String) getSettingValue(options, settingName, String.class);
+  }
+
+  @NonNull
+  Boolean getBooleanSettingValue(Map<String, Object> options, String settingName) {
+    return (Boolean) getSettingValue(options, settingName, Boolean.class);
+  }
+
+  @NonNull
+  Object getSettingValue(Map<String, Object> options, String settingName, Class<?> expectedType) {
     Object prefixName = options.get(settingName);
     if (prefixName == null) {
       throw new IllegalArgumentException(
           String.format("The config value for %s is not present", settingName));
     }
-    if (!(prefixName instanceof String)) {
+    if (!(prefixName.getClass().isAssignableFrom(expectedType))) {
       throw new IllegalArgumentException(
           String.format(
-              "The config value for %s has wrong type: %s. It should be of a String type",
-              settingName, prefixName.getClass().getName()));
+              "The config value for %s has wrong type: %s. It should be of a %s type",
+              settingName, prefixName.getClass().getName(), expectedType.getName()));
     }
-    return (String) prefixName;
+    return prefixName;
   }
 }

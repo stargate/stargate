@@ -22,12 +22,17 @@ public class CDCKafkaConfig {
   private final String topicPrefixName;
   private final String schemaRegistryUrl;
   private final Map<String, Object> kafkaProducerSettings;
+  private final MetricsConfig metricsConfig;
 
   public CDCKafkaConfig(
-      String topicPrefixName, String schemaRegistryUrl, Map<String, Object> kafkaProducerSettings) {
+      String topicPrefixName,
+      String schemaRegistryUrl,
+      Map<String, Object> kafkaProducerSettings,
+      MetricsConfig metricsConfig) {
     this.topicPrefixName = topicPrefixName;
     this.schemaRegistryUrl = schemaRegistryUrl;
     this.kafkaProducerSettings = ImmutableMap.copyOf(kafkaProducerSettings);
+    this.metricsConfig = metricsConfig;
   }
 
   public String getTopicPrefixName() {
@@ -40,5 +45,9 @@ public class CDCKafkaConfig {
 
   public String getSchemaRegistryUrl() {
     return schemaRegistryUrl;
+  }
+
+  public MetricsConfig getMetricsConfig() {
+    return metricsConfig;
   }
 }

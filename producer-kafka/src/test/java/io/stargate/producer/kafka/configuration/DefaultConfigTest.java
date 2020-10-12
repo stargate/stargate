@@ -17,13 +17,18 @@ package io.stargate.producer.kafka.configuration;
 
 import static io.stargate.producer.kafka.configuration.ConfigLoader.CDC_KAFKA_PRODUCER_SETTING_PREFIX;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.CDC_TOPIC_PREFIX_NAME;
+import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_ENABLED_SETTING_NAME;
+import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_INCLUDE_TAGS_SETTING_NAME;
+import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_NAME_SETTING_NAME;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.SCHEMA_REGISTRY_URL_SETTING_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
+import io.dropwizard.kafka.metrics.DropwizardMetricsReporter;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.junit.jupiter.api.Test;
 
 class DefaultConfigTest {
@@ -99,8 +104,8 @@ class DefaultConfigTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(
             String.format(
-                "The config value for %s has wrong type: %s. It should be of a String type",
-                settingName, Integer.class.getName()));
+                "The config value for %s has wrong type: %s. It should be of a %s type",
+                settingName, Integer.class.getName(), String.class.getName()));
   }
 
   @Test
@@ -119,6 +124,10 @@ class DefaultConfigTest {
     options.put(String.format(".%s%s", CDC_KAFKA_PRODUCER_SETTING_PREFIX, "setting"), "ignored");
     options.put(String.format("%s", CDC_KAFKA_PRODUCER_SETTING_PREFIX), "ignored");
 
+    // metrics config
+    options.put(METRICS_NAME_SETTING_NAME, "producer-prefix");
+    options.put(METRICS_ENABLED_SETTING_NAME, true);
+    options.put(METRICS_INCLUDE_TAGS_SETTING_NAME, true);
     // when
     CDCKafkaConfig config = new DefaultConfigLoader().loadConfig(options);
 
@@ -127,8 +136,16 @@ class DefaultConfigTest {
         .containsExactly(
             new SimpleEntry<>("setting-a", 1),
             new SimpleEntry<>("setting-b", "a"),
-            new SimpleEntry<>(SCHEMA_REGISTRY_URL_SETTING_NAME, "schema-url"));
+            new SimpleEntry<>(SCHEMA_REGISTRY_URL_SETTING_NAME, "schema-url"),
+            // metric specific settings
+            new SimpleEntry<>(
+                CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG,
+                DropwizardMetricsReporter.class.getName()),
+            new SimpleEntry<>(DropwizardMetricsReporter.METRICS_NAME_CONFIG, "producer-prefix"),
+            new SimpleEntry<>(DropwizardMetricsReporter.SHOULD_INCLUDE_TAGS_CONFIG, "true"));
     assertThat(config.getSchemaRegistryUrl()).isEqualTo("schema-url");
     assertThat(config.getTopicPrefixName()).isEqualTo("prefix");
+    assertThat(config.getMetricsConfig())
+        .isEqualTo(new MetricsConfig(true, true, "producer-prefix"));
   }
 }

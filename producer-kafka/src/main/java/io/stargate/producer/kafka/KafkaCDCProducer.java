@@ -16,6 +16,7 @@
 package io.stargate.producer.kafka;
 
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.SharedMetricRegistries;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.cdc.SchemaAwareCDCProducer;
 import io.stargate.producer.kafka.configuration.CDCKafkaConfig;
@@ -49,10 +50,9 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   private CompletableFuture<CompletableKafkaProducer<GenericRecord, GenericRecord>> kafkaProducer;
 
-  private MetricRegistry registry;
-
   public KafkaCDCProducer(MetricRegistry registry) {
-    this.registry = registry;
+    // register metrics globally, because it is used by the DropwizardMetricsReporter
+    SharedMetricRegistries.add("default", registry);
     this.configLoader = new DefaultConfigLoader();
   }
 

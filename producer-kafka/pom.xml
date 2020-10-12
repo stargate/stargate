@@ -66,6 +66,11 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>io.dropwizard.modules</groupId>
+      <artifactId>dropwizard-kafka</artifactId>
+      <version>1.6.0</version>
+	</dependency>
+    <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
       <version>${project.version}</version>
