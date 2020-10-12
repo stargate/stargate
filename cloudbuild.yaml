@@ -2,3 +2,5 @@ steps:
   - name: 'ubuntu:xenial'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]
+options:
+  machineType: 'N1_HIGHCPU_32'
