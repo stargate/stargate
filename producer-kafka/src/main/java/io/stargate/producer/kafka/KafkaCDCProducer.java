@@ -15,6 +15,7 @@
  */
 package io.stargate.producer.kafka;
 
+import com.codahale.metrics.MetricRegistry;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.cdc.SchemaAwareCDCProducer;
 import io.stargate.producer.kafka.configuration.CDCKafkaConfig;
@@ -48,7 +49,10 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   private CompletableFuture<CompletableKafkaProducer<GenericRecord, GenericRecord>> kafkaProducer;
 
-  public KafkaCDCProducer() {
+  private MetricRegistry registry;
+
+  public KafkaCDCProducer(MetricRegistry registry) {
+    this.registry = registry;
     this.configLoader = new DefaultConfigLoader();
   }
 

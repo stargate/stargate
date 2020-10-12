@@ -15,28 +15,68 @@
  */
 package io.stargate.producer.kafka;
 
+import io.stargate.core.BundleUtils;
+import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.cdc.CDCProducer;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceEvent;
 import org.osgi.framework.ServiceListener;
+import org.osgi.framework.ServiceReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /* Logic for registering the kafka producer as an OSGI bundle */
 public class KafkaProducerActivator implements BundleActivator, ServiceListener {
+  private static final String KAFKA_CDC_METRICS_PREFIX = "cdc.kafka";
   private static final Logger logger = LoggerFactory.getLogger(KafkaProducerActivator.class);
+  private boolean started;
+  private BundleContext context;
 
   @Override
-  public synchronized void start(BundleContext context) {
+  public synchronized void start(BundleContext context) throws InvalidSyntaxException {
     logger.info("Registering Kafka producer...");
-    CDCProducer producer = new KafkaCDCProducer();
-    context.registerService(CDCProducer.class, producer, null);
+    this.context = context;
+
+    ServiceReference<?> metricsReference = context.getServiceReference(Metrics.class.getName());
+    if (metricsReference == null) {
+      logger.debug(
+          "Metrics service is null, registering a listener to get notification when it will be ready.");
+      context.addServiceListener(this, String.format("(objectClass=%s)", Metrics.class.getName()));
+      // It will be started once the metrics service is registered
+      return;
+    }
+    Metrics metrics = (Metrics) context.getService(metricsReference);
+    startKafkaCDCProducer(metrics);
   }
 
   @Override
   public synchronized void stop(BundleContext context) {}
 
   @Override
-  public synchronized void serviceChanged(ServiceEvent event) {}
+  public synchronized void serviceChanged(ServiceEvent serviceEvent) {
+    Metrics metrics = BundleUtils.getRegisteredService(context, serviceEvent, Metrics.class);
+
+    if (metrics != null) {
+      startKafkaCDCProducer(metrics);
+    }
+  }
+
+  private synchronized void startKafkaCDCProducer(Metrics metrics) {
+    if (started) {
+      logger.info("The Kafka producer is already started. Ignoring the start request.");
+      return;
+    }
+
+    started = true;
+    logger.info("Starting Kafka producer....");
+    try {
+      CDCProducer producer = new KafkaCDCProducer(metrics.getRegistry(KAFKA_CDC_METRICS_PREFIX));
+      context.registerService(CDCProducer.class, producer, null);
+      logger.info("Started Kafka producer....");
+    } catch (Exception e) {
+      logger.error("Failed while starting Kafka producer", e);
+    }
+  }
 }

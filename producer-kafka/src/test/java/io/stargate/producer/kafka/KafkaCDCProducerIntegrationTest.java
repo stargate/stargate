@@ -33,6 +33,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testcontainers.containers.KafkaContainer.ZOOKEEPER_PORT;
 
+import com.codahale.metrics.MetricRegistry;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
@@ -132,7 +133,7 @@ class KafkaCDCProducerIntegrationTest {
     TableMetadata tableMetadata = mockTableMetadata();
     String topicName = creteTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
@@ -190,7 +191,7 @@ class KafkaCDCProducerIntegrationTest {
     TableMetadata tableMetadata = mockTableMetadata();
     String topicName = creteTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
@@ -236,7 +237,7 @@ class KafkaCDCProducerIntegrationTest {
     TableMetadata tableMetadata = mockTableMetadata();
     String topicName = creteTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
@@ -310,7 +311,7 @@ class KafkaCDCProducerIntegrationTest {
     TableMetadata tableMetadata = mockTableMetadata();
     String topicName = creteTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
@@ -455,7 +456,7 @@ class KafkaCDCProducerIntegrationTest {
     TableMetadata tableMetadata = mockTableMetadata();
     String topicName = creteTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
@@ -497,7 +498,7 @@ class KafkaCDCProducerIntegrationTest {
     TableMetadata tableMetadata = mockTableMetadata();
     String topicName = creteTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
