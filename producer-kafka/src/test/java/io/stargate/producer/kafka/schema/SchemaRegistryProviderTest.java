@@ -20,7 +20,6 @@ import static io.stargate.producer.kafka.helpers.MutationEventHelper.partitionKe
 import static io.stargate.producer.kafka.schema.SchemaConstants.DATA_FIELD_NAME;
 import static io.stargate.producer.kafka.schema.SchemaConstants.OPERATION_FIELD_NAME;
 import static io.stargate.producer.kafka.schema.SchemaConstants.TIMESTAMP_FIELD_NAME;
-import static io.stargate.producer.kafka.schema.SchemaConstants.TIMESTAMP_MILLIS_TYPE;
 import static io.stargate.producer.kafka.schema.SchemaConstants.VALUE_FIELD_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -81,7 +80,7 @@ class SchemaRegistryProviderTest {
     assertThat(schema.getNamespace()).isEqualTo("topicName");
     assertThat(schema.getName()).isEqualTo("Value");
     assertThat(schema.getField(OPERATION_FIELD_NAME).schema().getType()).isEqualTo(Type.STRING);
-    assertThat(schema.getField(TIMESTAMP_FIELD_NAME).schema()).isEqualTo(TIMESTAMP_MILLIS_TYPE);
+    assertThat(schema.getField(TIMESTAMP_FIELD_NAME).schema().getType()).isEqualTo(Type.LONG);
     assertThat(schema.getField(DATA_FIELD_NAME).schema().getType()).isEqualTo(Type.RECORD);
     isNullOrTypeUnion(schema, "pk1", Type.STRING);
     isNullOrTypeUnion(schema, "ck1", Type.STRING);
