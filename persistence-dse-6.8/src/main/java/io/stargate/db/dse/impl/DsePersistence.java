@@ -59,6 +59,7 @@ import org.apache.cassandra.stargate.exceptions.PersistenceException;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.transport.Message.Request;
+import org.apache.cassandra.transport.ServerConnection;
 import org.apache.cassandra.transport.messages.BatchMessage;
 import org.apache.cassandra.transport.messages.ErrorMessage;
 import org.apache.cassandra.transport.messages.ExecuteMessage;
@@ -301,6 +302,7 @@ public class DsePersistence
 
   private class DseConnection extends AbstractConnection {
     private final ClientState clientState;
+    private final ServerConnection fakeServerConnection;
 
     private DseConnection(@Nonnull ClientInfo clientInfo) {
       this(clientInfo, clientStateForExternalCalls(clientInfo));
@@ -313,6 +315,10 @@ public class DsePersistence
     private DseConnection(@Nullable ClientInfo clientInfo, ClientState clientState) {
       super(clientInfo);
       this.clientState = clientState;
+      this.fakeServerConnection =
+          new FakeConnection(
+              clientInfo == null ? null : clientInfo.remoteAddress(),
+              org.apache.cassandra.transport.ProtocolVersion.CURRENT);
 
       if (!authenticator.requireAuthentication()) {
         clientState.login(AuthenticatedUser.ANONYMOUS_USER);
@@ -364,43 +370,53 @@ public class DsePersistence
           request.setTracingRequested();
         }
         request.setCustomPayload(parameters.customPayload().orElse(null));
+        request.attach(fakeServerConnection);
 
-        return Conversion.toFuture(
-            request
-                .execute(queryState, queryStartNanoTime)
-                .map(
-                    response -> {
-                      try {
-                        // There is only 2 types of response that can come out: either a
-                        // ResutMessage
-                        // (which itself can of different kind), or an ErrorMessage.
-                        if (response instanceof ErrorMessage) {
-                          PersistenceException pe =
-                              Conversion.convertInternalException(
-                                  (Throwable) ((ErrorMessage) response).error);
-                          pe.setWarnings(ClientWarn.instance.getWarnings());
-                          throw pe;
-                        }
+        CompletableFuture<T> future = new CompletableFuture<>();
+        request
+            .execute(queryState, queryStartNanoTime)
+            .map(
+                response -> {
+                  try {
+                    // There is only 2 types of response that can come out: either a
+                    // ResultMessage (which itself can of different kind), or an ErrorMessage.
+                    if (response instanceof ErrorMessage) {
+                      throw convertExceptionWithWarnings(
+                          (Throwable) ((ErrorMessage) response).error);
+                    }
 
-                        @SuppressWarnings("unchecked")
-                        T result =
-                            (T)
-                                Conversion.toResult(
-                                    (ResultMessage) response,
-                                    Conversion.toInternal(parameters.protocolVersion()),
-                                    ClientWarn.instance.getWarnings());
-                        return result;
-                      } finally {
-                        ClientWarn.instance.resetWarnings();
-                      }
-                    }));
+                    @SuppressWarnings("unchecked")
+                    T result =
+                        (T)
+                            Conversion.toResult(
+                                (ResultMessage) response,
+                                Conversion.toInternal(parameters.protocolVersion()),
+                                ClientWarn.instance.getWarnings());
+                    return result;
+                  } finally {
+                    ClientWarn.instance.resetWarnings();
+                  }
+                })
+            .subscribe(
+                future::complete,
+                ex -> {
+                  if (!(ex instanceof PersistenceException)) {
+                    ex = convertExceptionWithWarnings(ex);
+                  }
+                  future.completeExceptionally(ex);
+                });
+        return future;
       } catch (Exception e) {
         CompletableFuture<T> exceptionalFuture = new CompletableFuture<>();
-        PersistenceException pe = Conversion.convertInternalException(e);
-        pe.setWarnings(ClientWarn.instance.getWarnings());
-        exceptionalFuture.completeExceptionally(pe);
+        exceptionalFuture.completeExceptionally(convertExceptionWithWarnings(e));
         return exceptionalFuture;
       }
+    }
+
+    private PersistenceException convertExceptionWithWarnings(Throwable t) {
+      PersistenceException pe = Conversion.convertInternalException(t);
+      pe.setWarnings(ClientWarn.instance.getWarnings());
+      return pe;
     }
 
     @Override

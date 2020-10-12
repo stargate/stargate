@@ -59,8 +59,7 @@ public abstract class GraphQlTestBase {
       when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
       when(storedCredentials.getRoleName()).thenReturn(roleName);
       dataStoreCreateMock = mockStatic(DataStore.class);
-      dataStoreCreateMock.when(() -> DataStore.create(persistence, roleName))
-          .thenReturn(dataStore);
+      dataStoreCreateMock.when(() -> DataStore.create(persistence, roleName)).thenReturn(dataStore);
     } catch (Exception e) {
       fail("Unexpected exception while mocking authentication", e);
     }

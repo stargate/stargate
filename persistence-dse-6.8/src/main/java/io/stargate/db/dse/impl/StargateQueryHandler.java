@@ -17,7 +17,6 @@ import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.utils.MD5Digest;
 
 public class StargateQueryHandler implements QueryHandler {
-
   private final List<QueryInterceptor> interceptors = new CopyOnWriteArrayList<>();
 
   void register(QueryInterceptor interceptor) {

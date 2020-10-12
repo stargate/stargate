@@ -3,7 +3,6 @@ package io.stargate.db.dse.impl;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
-import io.reactivex.Single;
 import io.stargate.db.BatchType;
 import io.stargate.db.Parameters;
 import io.stargate.db.Result;
@@ -20,7 +19,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import org.apache.cassandra.cql3.ColumnSpecification;
@@ -508,13 +506,9 @@ public class Conversion {
       return new ServerError(t.getMessage());
     }
 
+    // We shouldn't get random error so let's log it.
+    logger.error("Unexpected error thrown by persistence", t);
     return new ServerError(t);
-  }
-
-  public static <U> CompletableFuture<U> toFuture(Single<U> single) {
-    CompletableFuture<U> future = new CompletableFuture<>();
-    single.subscribe(future::complete, future::completeExceptionally);
-    return future;
   }
 
   public static List<Object> toInternalQueryOrIds(List<Object> queryOrIds) {
