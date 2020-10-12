@@ -81,7 +81,7 @@ import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.db.schema.Column;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
-import io.stargate.it.storage.ClusterConnectionInfo;
+import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -144,14 +144,14 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   private static final String keyspace = "betterbotz";
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
-  public GraphqlTest(ClusterConnectionInfo backend) {
-    super(backend);
-  }
+  private StargateConnectionInfo stargate;
 
   @BeforeEach
-  public void setup(ClusterConnectionInfo cluster) throws Exception {
+  public void setup(StargateConnectionInfo stargate) throws Exception {
+    this.stargate = stargate;
+
     if (session == null) {
-      createSessionAndSchema(cluster);
+      createSessionAndSchema();
 
       initAuth();
     }
@@ -164,7 +164,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     }
   }
 
-  private void createSessionAndSchema(ClusterConnectionInfo cluster) throws Exception {
+  private void createSessionAndSchema() throws Exception {
     session =
         CqlSession.builder()
             .withConfigLoader(
@@ -178,8 +178,8 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                         DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
                     .build())
             .withAuthCredentials("cassandra", "cassandra")
-            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
-            .withLocalDatacenter(cluster.datacenter())
+            .addContactPoint(new InetSocketAddress(stargate.seedAddress(), 9043))
+            .withLocalDatacenter(stargate.datacenter())
             .build();
 
     // Create CQL schema using betterbotz.cql file
@@ -231,7 +231,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             "",
-            String.format("http://%s:8081/v1/auth/token/generate", getStargateHost()),
+            String.format("http://%s:8081/v1/auth/token/generate", stargate.seedAddress()),
             objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
             HttpStatus.SC_CREATED);
 
@@ -1039,7 +1039,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   @SuppressWarnings("unchecked")
   private Map<String, Object> executePost(String path, String query) throws IOException {
     OkHttpClient okHttpClient = getHttpClient();
-    String url = String.format("http://%s:8080%s", getStargateHost(), path);
+    String url = String.format("http://%s:8080%s", stargate.seedAddress(), path);
     HttpUrl.Builder httpBuilder = HttpUrl.parse(url).newBuilder();
     httpBuilder.addQueryParameter("query", query);
     Map<String, Object> formData = new HashMap<>();
@@ -1503,7 +1503,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
 
   private ApolloClient getApolloClient(String path) {
     return ApolloClient.builder()
-        .serverUrl(String.format("http://%s:8080%s", getStargateHost(), path))
+        .serverUrl(String.format("http://%s:8080%s", stargate.seedAddress(), path))
         .okHttpClient(getHttpClient())
         .addCustomTypeAdapter(
             CustomType.TIMESTAMP,

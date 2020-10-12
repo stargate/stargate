@@ -15,27 +15,18 @@
  */
 package io.stargate.it.storage;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import org.junit.jupiter.api.extension.ExtendWith;
+
 /**
- * Provides data for connecting to storage clusters managed by {@link ExternalStorage}. Instances of
- * this interface are automatically injected into test constructor and method parameters with
- * compatible declared type.
+ * A convenience annotation for test classes that need a managed {@link StargateContainer}. This
+ * annotation includes both {@link StargateContainer} and {@link ExternalStorage} in the right order
+ * to ensure proper initialization.
  */
-public interface ClusterConnectionInfo {
-  String id();
-
-  String seedAddress();
-
-  int storagePort();
-
-  int cqlPort();
-
-  String clusterVersion();
-
-  boolean isDse();
-
-  String clusterName();
-
-  String datacenter();
-
-  String rack();
-}
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@ExtendWith({ExternalStorage.class, StargateContainer.class})
+public @interface UseStargateContainer {}

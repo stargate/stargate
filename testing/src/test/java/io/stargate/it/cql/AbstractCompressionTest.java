@@ -7,14 +7,9 @@ import com.datastax.oss.driver.api.core.cql.ExecutionInfo;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
-import io.stargate.it.storage.ClusterConnectionInfo;
 import org.junit.jupiter.api.BeforeEach;
 
 public abstract class AbstractCompressionTest extends JavaDriverTestBase {
-
-  public AbstractCompressionTest(ClusterConnectionInfo backend) {
-    super(backend);
-  }
 
   @BeforeEach
   public void createTable() {

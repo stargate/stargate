@@ -10,7 +10,6 @@ import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
-import io.stargate.it.storage.ClusterConnectionInfo;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -28,10 +27,6 @@ public class PaginationTest extends JavaDriverTestBase {
   private static final int STATEMENT_PAGE_SIZE = 10;
   private static final int SESSION_PAGE_SIZE = STATEMENT_PAGE_SIZE * 2;
   private static final int TOTAL_COUNT = SESSION_PAGE_SIZE * 5 - 1;
-
-  public PaginationTest(ClusterConnectionInfo backend) {
-    super(backend);
-  }
 
   @Override
   protected void customizeConfig(OptionsMap config) {

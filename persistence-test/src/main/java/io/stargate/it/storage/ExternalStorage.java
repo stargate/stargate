@@ -15,17 +15,14 @@
  */
 package io.stargate.it.storage;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
 import com.datastax.oss.driver.api.core.Version;
 import com.datastax.oss.driver.api.testinfra.ccm.CcmBridge;
-import java.lang.reflect.AnnotatedElement;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeTestExecutionCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
@@ -33,10 +30,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** JUnit 5 extension for tests that need a backend database cluster managed by {@code ccm}. */
-public class ExternalStorage
-    implements BeforeAllCallback, AfterAllCallback, ParameterResolver, BeforeTestExecutionCallback {
+public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStorage.Cluster>
+    implements ParameterResolver, BeforeTestExecutionCallback {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalStorage.class);
+
+  public static final String STORE_KEY = "stargate-storage";
 
   private static final String CCM_VERSION = "ccm.version";
   private static final boolean EXTERNAL_BACKEND =
@@ -45,137 +44,67 @@ public class ExternalStorage
   private static final String CLUSTER_NAME =
       System.getProperty("stargate.test.backend.cluster_name", "Test_Cluster");
 
-  private static final AtomicBoolean executing = new AtomicBoolean();
-
-  private static final int clusterNodes = Integer.getInteger("stargate.test.backend.nodes", 1);
-
-  private static Cluster cluster;
-
   static {
     String version = System.getProperty(CCM_VERSION, "3.11.8");
     System.setProperty(CCM_VERSION, version);
   }
 
-  private static Cluster cluster() {
-    if (cluster == null) {
-      throw new IllegalStateException("Cluster not started");
-    }
-
-    return cluster;
+  public ExternalStorage() {
+    super(ClusterSpec.class, STORE_KEY, Namespace.GLOBAL);
   }
 
-  private static ClusterSpec defaultSpec() {
-    return DefaultClusterSpecHolder.class.getAnnotation(ClusterSpec.class);
+  @Override
+  protected boolean isShared(ClusterSpec spec) {
+    return spec.shared();
   }
 
-  private static synchronized void start(ClusterSpec spec, ExtensionContext context) {
-    // Make sure all shared cluster use the same (default) spec.
-    if (spec.scope() == ClusterScope.SHARED) {
-      assertEquals(defaultSpec(), spec);
-    }
-
-    String initSite = context.getDisplayName();
-
-    Cluster c = ExternalStorage.cluster;
-    if (c != null) {
-      if (c.spec.scope() == ClusterScope.SHARED && spec.scope() == ClusterScope.SHARED) {
-        return;
+  @Override
+  protected Optional<Cluster> processResource(
+      Cluster current, ClusterSpec spec, ExtensionContext context) {
+    if (current != null) {
+      if (current.spec.equals(spec)) {
+        LOG.info("Reusing matching storage cluster {} for {}", spec, context.getUniqueId());
+        return Optional.empty();
       }
 
-      LOG.warn(
-          "Stopping cluster started for '{}' due to conflicting specs:"
-              + " {} is not compatible with {} (which is requested by '{}')",
-          c.initSite,
-          c.spec,
-          spec,
-          initSite);
-      c.stop();
+      LOG.info("Closing old cluster due to spec mismatch within {}", context.getUniqueId());
+      current.close();
     }
 
-    c = new Cluster(spec, initSite);
+    LOG.info("Creating storage cluster {} for {}", spec, context.getUniqueId());
+
+    Cluster c = new Cluster(spec, context.getUniqueId());
     c.start();
-    ExternalStorage.cluster = c;
-  }
-
-  @Override
-  public void beforeAll(ExtensionContext context) {
-    if (!executing.compareAndSet(false, true)) {
-      throw new IllegalStateException(
-          String.format(
-              "Concurrent execution with %s is not supported", getClass().getSimpleName()));
-    }
-
-    AnnotatedElement test =
-        context
-            .getElement()
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "Test class or method is not available in current context"));
-
-    ClusterSpec spec = test.getAnnotation(ClusterSpec.class);
-    if (spec == null) {
-      spec = defaultSpec();
-    }
-
-    assertNotNull(spec, "ClusterSpec is not available");
-    start(spec, context);
-  }
-
-  @Override
-  public void afterAll(ExtensionContext context) {
-    Cluster c = cluster;
-    if (c != null) {
-      ClusterScope scope = c.spec.scope();
-      if (scope != ClusterScope.SHARED) {
-        c.stop();
-        cluster = null;
-      }
-    }
-
-    executing.set(false);
+    return Optional.of(c);
   }
 
   @Override
   public boolean supportsParameter(
       ParameterContext parameterContext, ExtensionContext extensionContext)
       throws ParameterResolutionException {
-    Class<?> parameterType = parameterContext.getParameter().getType();
-    // Resolve only ClusterConnectionInfo instances
-    return parameterType != Object.class
-        && parameterType.isAssignableFrom(ClusterConnectionInfo.class);
+    return parameterContext.getParameter().getType() == ClusterConnectionInfo.class;
   }
 
   @Override
   public Object resolveParameter(
       ParameterContext parameterContext, ExtensionContext extensionContext)
       throws ParameterResolutionException {
-    return cluster();
-  }
-
-  private String getFullTestPath(ExtensionContext context) {
-    StringBuilder sb = new StringBuilder();
-    while (context != null) {
-      sb.insert(0, context.getDisplayName());
-      sb.insert(0, '/');
-      context = context.getParent().orElse(null);
-    }
-    return sb.toString();
+    return getResource(extensionContext)
+        .orElseThrow(() -> new IllegalStateException("Cluster not available"));
   }
 
   @Override
   public void beforeTestExecution(ExtensionContext context) {
     LOG.info(
         "About to run {} with storage cluster version {}",
-        getFullTestPath(context),
-        cluster().clusterVersion());
+        context.getUniqueId(),
+        getResource(context).map(Cluster::clusterVersion).orElse("[missing]"));
   }
 
-  @ClusterSpec
-  private static class DefaultClusterSpecHolder {}
+  protected static class Cluster extends ExternalResource.Holder
+      implements ClusterConnectionInfo, AutoCloseable {
 
-  private static class Cluster implements ClusterConnectionInfo {
-
+    private final UUID id = UUID.randomUUID();
     private final ClusterSpec spec;
     private final String initSite;
     private final CcmBridge ccm;
@@ -187,7 +116,7 @@ public class ExternalStorage
       this.ccm =
           CcmBridge.builder()
               .withCassandraConfiguration("cluster_name", CLUSTER_NAME)
-              .withNodes(clusterNodes)
+              .withNodes(spec.nodes())
               .build();
     }
 
@@ -196,23 +125,25 @@ public class ExternalStorage
         ccm.create();
         ccm.start();
 
-        if (spec.scope() == ClusterScope.SHARED) {
-          Runtime.getRuntime()
-              .addShutdownHook(
-                  new Thread("ccm-shutdown-hook:" + initSite) {
-                    @Override
-                    public void run() {
-                      Cluster.this.stop();
-                    }
-                  });
-        }
+        ShutdownHook.add(this);
 
-        LOG.info("Storage cluster requested by {} has been started.", initSite);
+        LOG.info(
+            "Storage cluster requested by {} has been started with version {}",
+            initSite,
+            clusterVersion());
       }
+    }
+
+    @Override
+    public void close() {
+      super.close();
+      stop();
     }
 
     public void stop() {
       if (!EXTERNAL_BACKEND) {
+        ShutdownHook.remove(this);
+
         try {
           if (removed.compareAndSet(false, true)) {
             ccm.remove();
@@ -226,6 +157,11 @@ public class ExternalStorage
           LOG.warn("Exception during CCM cluster shutdown: {}", e.toString(), e);
         }
       }
+    }
+
+    @Override
+    public String id() {
+      return id.toString();
     }
 
     @Override

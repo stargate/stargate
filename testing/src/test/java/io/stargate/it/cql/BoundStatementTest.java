@@ -14,7 +14,6 @@ import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.data.ByteUtils;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.servererrors.ProtocolError;
-import io.stargate.it.storage.ClusterConnectionInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,10 +25,6 @@ public class BoundStatementTest extends JavaDriverTestBase {
 
   private static final String KEY = "test";
   private static final int VALUE = 7;
-
-  public BoundStatementTest(ClusterConnectionInfo backend) {
-    super(backend);
-  }
 
   @BeforeEach
   public void setupSchema() {

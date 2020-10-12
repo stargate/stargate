@@ -10,10 +10,15 @@ import com.datastax.oss.driver.api.core.config.TypedDriverOption;
 import com.datastax.oss.driver.api.core.session.SessionBuilder;
 import com.datastax.oss.driver.internal.core.loadbalancing.DcInferringLoadBalancingPolicy;
 import io.stargate.it.BaseOsgiIntegrationTest;
-import io.stargate.it.storage.ClusterConnectionInfo;
+import io.stargate.it.storage.StargateConnectionInfo;
+import io.stargate.it.storage.StargateEnvironmentInfo;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,15 +38,16 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
 
   protected static final int KEYSPACE_NAME_MAX_LENGTH = 48;
 
+  protected StargateEnvironmentInfo stargateEnvironment;
+  protected StargateConnectionInfo stargate;
   protected CqlSession session;
   protected CqlIdentifier keyspaceId;
 
-  public JavaDriverTestBase(ClusterConnectionInfo backend) {
-    super(backend);
-  }
-
   @BeforeEach
-  public void before(TestInfo testInfo) {
+  public void before(TestInfo testInfo, StargateEnvironmentInfo stargateEnvironment) {
+    this.stargateEnvironment = stargateEnvironment;
+    this.stargate = stargateEnvironment.nodes().get(0);
+
     session = newSessionBuilder().build();
 
     keyspaceId = generateKeyspaceId(testInfo);
@@ -74,7 +80,7 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
         builder
             .withConfigLoader(DriverConfigLoader.fromMap(config))
             .withAuthCredentials("cassandra", "cassandra")
-            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043));
+            .addContactPoint(new InetSocketAddress(stargate.seedAddress(), stargate.cqlPort()));
     return builder;
   }
 
@@ -120,5 +126,18 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
   public boolean isCassandra4() {
     return !backend.isDse()
         && Version.parse(backend.clusterVersion()).nextStable().compareTo(Version.V4_0_0) >= 0;
+  }
+
+  public List<InetAddress> getStargateInetSocketAddresses() {
+    return stargateEnvironment.nodes().stream()
+        .map(
+            n -> {
+              try {
+                return InetAddress.getByName(n.seedAddress());
+              } catch (UnknownHostException e) {
+                throw new RuntimeException(e);
+              }
+            })
+        .collect(Collectors.toList());
   }
 }

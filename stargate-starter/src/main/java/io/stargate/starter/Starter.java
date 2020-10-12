@@ -66,8 +66,11 @@ import org.osgi.framework.ServiceReference;
 @Command(name = "Stargate")
 public class Starter {
 
+  public static final String STARTED_MESSAGE = "Finished starting bundles.";
+
   private static final String JAR_DIRECTORY =
       System.getProperty("stargate.libdir", "../stargate-lib");
+  private static final String CACHE_DIRECTORY = System.getProperty("stargate.bundle.cache.dir");
 
   @Retention(RetentionPolicy.RUNTIME)
   public @interface Order {
@@ -360,6 +363,11 @@ public class Starter {
     configMap.put(
         FelixConstants.FRAMEWORK_SYSTEMPACKAGES_EXTRA,
         "sun.misc,sun.nio.ch,com.sun.management,sun.rmi.registry");
+
+    if (CACHE_DIRECTORY != null) {
+      configMap.put(FelixConstants.FRAMEWORK_STORAGE, CACHE_DIRECTORY);
+    }
+
     framework = new Felix(configMap);
     framework.init();
 
@@ -383,6 +391,8 @@ public class Starter {
       System.out.println("Starting bundle " + bundle.getSymbolicName());
       bundle.start();
     }
+
+    System.out.println(STARTED_MESSAGE);
 
     if (watchBundles) watchJarDirectory(JAR_DIRECTORY);
   }
