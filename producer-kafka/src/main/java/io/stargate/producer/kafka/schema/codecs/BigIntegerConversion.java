@@ -44,6 +44,6 @@ public class BigIntegerConversion extends Conversion<BigInteger> {
 
   @Override
   public Schema getRecommendedSchema() {
-    return Schema.create(Type.INT);
+    return Schema.create(Type.BYTES);
   }
 }

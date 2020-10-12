@@ -145,8 +145,13 @@ public class KeyValueConstructor {
   }
 
   @SuppressWarnings("unchecked")
-  private Object constructTuple(Tuple tuple, Object value, GenericRecord record) {
-    // tuple underlying type is a list
+  private Object constructTuple(
+      @NonNull Tuple tuple, @NonNull Object value, @NonNull GenericRecord record) {
+
+    if (!(value instanceof List)) {
+      throw new IllegalArgumentException(
+          "The underlying type of a Tuple should be a list, but is:" + value.getClass());
+    }
     List<Object> udtValues = (List<Object>) value;
     for (int i = 0; i < udtValues.size(); i++) {
       Object udtValue = udtValues.get(i);
@@ -166,8 +171,12 @@ public class KeyValueConstructor {
   }
 
   @SuppressWarnings("unchecked")
-  private Object constructUdt(UserDefined userDefined, Object value, GenericRecord record) {
-    // udt underlying type is a map
+  private Object constructUdt(
+      @NonNull UserDefined userDefined, @NonNull Object value, @NonNull GenericRecord record) {
+    if (!(value instanceof Map)) {
+      throw new IllegalArgumentException(
+          "The underlying type of a UserDefined should be a Map, but is:" + value.getClass());
+    }
     Map<String, Object> udtValues = (Map<String, Object>) value;
     for (Map.Entry<String, Object> udtValue : udtValues.entrySet()) {
       CQLType cqlType = userDefined.getFields().get(udtValue.getKey());
@@ -214,7 +223,7 @@ public class KeyValueConstructor {
       return null;
     }
 
-    // custom type saved as bytes
+    // custom type should be saved as bytes
     if (valueObject.getColumn().getType() instanceof Custom) {
       valueObject.getValue();
     }

@@ -102,8 +102,8 @@ public class CqlToAvroTypeConverter {
   }
 
   /**
-   * It create a Schema based on the CqlType. To see how specific types are handled, see java doc of
-   * other methods.
+   * It creates a Schema based on the CqlType. To see how specific types are handled, see the Java
+   * doc of other methods.
    */
   public static Schema toAvroType(CQLType type) {
     if (type instanceof Collection) {
