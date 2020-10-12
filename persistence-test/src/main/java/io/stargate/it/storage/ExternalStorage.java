@@ -183,6 +183,7 @@ public class ExternalStorage
       this.initSite = displayName;
       this.ccm =
           CcmBridge.builder()
+              .withCreateOption("-R")
               .withCassandraConfiguration("cluster_name", CLUSTER_NAME)
               .withNodes(clusterNodes)
               .build();

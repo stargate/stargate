@@ -1,5 +1,8 @@
 #!/bin/bash
 
+adduser --disabled-password --gecos "" ubuntu
+su - ubuntu
+
 apt-get update && apt-get install openjdk-8-jdk git python2.7 python-setuptools python-six python-yaml -y
 java -version
 
