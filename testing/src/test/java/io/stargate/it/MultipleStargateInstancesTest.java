@@ -38,10 +38,12 @@ import java.util.Optional;
 import net.jcip.annotations.NotThreadSafe;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 @NotThreadSafe
+@Disabled
 public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
 
   private String table;
