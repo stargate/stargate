@@ -109,6 +109,38 @@ class DefaultConfigTest {
   }
 
   @Test
+  public void shouldConstructMetricsWithAllSettings() {
+    // given
+    Map<String, Object> options = new HashMap<>();
+    options.put(METRICS_NAME_SETTING_NAME, "producer-prefix");
+    options.put(METRICS_ENABLED_SETTING_NAME, true);
+    options.put(METRICS_INCLUDE_TAGS_SETTING_NAME, true);
+
+    // when
+    MetricsConfig metricsConfig = new DefaultConfigLoader().loadMetricsConfig(options);
+
+    // then
+    assertThat(metricsConfig.isMetricsEnabled()).isEqualTo(true);
+    assertThat(metricsConfig.getMetricsName()).isEqualTo("producer-prefix");
+    assertThat(metricsConfig.isIncludeTags()).isEqualTo(true);
+  }
+
+  @Test
+  public void shouldConstructMetricsWithDefaultsIfNotProvided() {
+    // given
+    Map<String, Object> options = new HashMap<>();
+    options.put(METRICS_ENABLED_SETTING_NAME, true);
+
+    // when
+    MetricsConfig metricsConfig = new DefaultConfigLoader().loadMetricsConfig(options);
+
+    // then
+    assertThat(metricsConfig.isMetricsEnabled()).isEqualTo(true);
+    assertThat(metricsConfig.getMetricsName()).isEqualTo(MetricsConfig.METRICS_NAME_DEFAULT);
+    assertThat(metricsConfig.isIncludeTags()).isEqualTo(MetricsConfig.INCLUDE_TAGS_DEFAULT);
+  }
+
+  @Test
   public void shouldConstructCDCKafkaConfig() {
     // given
     Map<String, Object> options = new HashMap<>();

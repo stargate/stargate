@@ -15,7 +15,11 @@
  */
 package io.stargate.producer.kafka.configuration;
 
+import com.codahale.metrics.MetricRegistry;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import io.stargate.producer.kafka.mapping.DefaultMappingService;
+import io.stargate.producer.kafka.producer.CompletableKafkaProducer;
+import io.stargate.producer.kafka.schema.SchemaRegistryProvider;
 import java.util.Map;
 
 public class CDCKafkaConfig {
@@ -35,18 +39,37 @@ public class CDCKafkaConfig {
     this.metricsConfig = metricsConfig;
   }
 
+  /**
+   * @return The prefix that will be used for every kafka topic. For more information, see {@link
+   *     DefaultMappingService}.
+   */
   public String getTopicPrefixName() {
     return topicPrefixName;
   }
 
+  /**
+   * @return all kafka producer settings that are passed directly to the {@link
+   *     CompletableKafkaProducer} when it is constructed. All settings that are passed to a kafka
+   *     producer, should be prefixed with {@link ConfigLoader#CDC_KAFKA_PRODUCER_SETTING_PREFIX}.
+   */
   public Map<String, Object> getKafkaProducerSettings() {
     return kafkaProducerSettings;
   }
 
+  /**
+   * @return the url that is used to connect to schema registry. The {@link SchemaRegistryProvider}
+   *     uses it when constructing and retrieving schema. It will be passed to a kafka producer as
+   *     {@link ConfigLoader#SCHEMA_REGISTRY_URL_SETTING_NAME}' setting. This settings should be
+   *     prefixed with {@link ConfigLoader#CDC_KAFKA_PRODUCER_SETTING_PREFIX}
+   */
   public String getSchemaRegistryUrl() {
     return schemaRegistryUrl;
   }
 
+  /**
+   * @return MetricsConfiguration used to expose kafka producer settings to a {@link
+   *     MetricRegistry}.
+   */
   public MetricsConfig getMetricsConfig() {
     return metricsConfig;
   }
