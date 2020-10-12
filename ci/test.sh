@@ -5,6 +5,8 @@ java -version
 
 ln -sf /usr/bin/python2.7 /usr/bin/python
 
+export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
+
 git clone --branch master --single-branch https://github.com/riptano/ccm.git
 pushd ccm || exit
 python setup.py install
