@@ -1,0 +1,14 @@
+<settings>
+  <servers>
+    <server>
+      <id>artifactory-snapshots</id>
+      <username>env.ARTIFACTORY_USERNAME</username>
+      <password>env.ARTIFACTORY_PASSWORD</password>
+    </server>
+    <server>
+      <id>artifactory-releases</id>
+      <username>env.ARTIFACTORY_USERNAME</username>
+      <password>env.ARTIFACTORY_PASSWORD</password>
+    </server>
+  </servers>
+</settings>

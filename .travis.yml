@@ -13,8 +13,8 @@ before_install:
   - pushd ccm || exit
   - sudo python setup.py install
   - popd
-install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
-script: mvn -B verify --file pom.xml -P it-cassandra-3.11 -P it-cassandra-4.0 -P !it-dse-6.8
+install: mvn install --settings ci/mvn-settings.xml -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+script: mvn -B verify --settings ci/mvn-settings.xml --file pom.xml -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -P it-cassandra-3.11 -P it-cassandra-4.0 -P !it-dse-6.8
 cache:
   directories:
     - $HOME/.m2
