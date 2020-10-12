@@ -9,8 +9,6 @@ env:
 #  - DB=redis
 #  - DB=mysql
 before_install:
-  # Require JDK8 for compiling
-  - jdk_switcher use openjdk8
   - git clone --branch master --single-branch https://github.com/riptano/ccm.git
   - pushd ccm || exit
   - sudo python setup.py install
