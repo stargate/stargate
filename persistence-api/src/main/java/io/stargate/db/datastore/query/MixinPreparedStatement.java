@@ -16,13 +16,13 @@
 package io.stargate.db.datastore.query;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
+import io.stargate.db.Parameters;
 import io.stargate.db.datastore.PreparedStatement;
 import io.stargate.db.datastore.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import java.util.function.UnaryOperator;
 
 /** Mixes in prepared parameters to those supplied at execution. */
 class MixinPreparedStatement implements PreparedStatement {
@@ -48,7 +48,7 @@ class MixinPreparedStatement implements PreparedStatement {
 
   @Override
   public CompletableFuture<ResultSet> execute(
-      Optional<ConsistencyLevel> consistencyLevel, Object... parameters) {
+      UnaryOperator<Parameters> parametersModifier, Object... parameters) {
     Preconditions.checkArgument(
         parameters.length == unboundParameters,
         "Unexpected number of arguments. Expected %s but got %s. Statement: %s.",
@@ -69,7 +69,7 @@ class MixinPreparedStatement implements PreparedStatement {
       if (value == Value.NULL) value = null;
       mergedParameters.add(value);
     }
-    return prepared.execute(consistencyLevel, mergedParameters.toArray());
+    return prepared.execute(parametersModifier, mergedParameters.toArray());
   }
 
   @Override

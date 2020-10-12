@@ -34,7 +34,6 @@ import io.swagger.annotations.ApiResponses;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
@@ -302,7 +301,7 @@ public class ColumnsResource {
                       Converters.maybeQuote(keyspaceName),
                       Converters.maybeQuote(tableName),
                       alterInstructions),
-                  Optional.of(ConsistencyLevel.LOCAL_QUORUM))
+                  ConsistencyLevel.LOCAL_QUORUM)
               .get();
 
           return Response.status(Response.Status.OK)

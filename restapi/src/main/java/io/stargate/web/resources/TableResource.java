@@ -35,7 +35,6 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
@@ -203,7 +202,7 @@ public class TableResource {
                   Converters.maybeQuote(tableAdd.getName()),
                   columnDefinitions.toString(),
                   tableOptions);
-          localDB.query(query.trim(), Optional.of(ConsistencyLevel.LOCAL_QUORUM)).get();
+          localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM).get();
 
           return Response.status(Response.Status.CREATED).entity(new SuccessResponse()).build();
         });

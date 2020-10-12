@@ -108,53 +108,22 @@ public abstract class Parameters {
    * Copy these parameters but with the {@link #consistencyLevel()} replaced by the provided one.
    */
   public Parameters withConsistencyLevel(ConsistencyLevel newConsistencyLevel) {
-    return ImmutableParameters.builder()
-        .protocolVersion(protocolVersion())
-        .pageSize(pageSize())
-        .pagingState(pagingState())
-        .consistencyLevel(newConsistencyLevel)
-        .serialConsistencyLevel(serialConsistencyLevel())
-        .defaultTimestamp(defaultTimestamp())
-        .nowInSeconds(nowInSeconds())
-        .defaultKeyspace(defaultKeyspace())
-        .customPayload(customPayload())
-        .skipMetadataInResult(skipMetadataInResult())
-        .tracingRequested(tracingRequested())
-        .build();
+    return toBuilder().consistencyLevel(newConsistencyLevel).build();
   }
 
   /** Copy these parameters but with the {@link #pagingState()} ()} replaced by the provided one. */
   public Parameters withPagingState(@Nonnull ByteBuffer newPagingState) {
-    return ImmutableParameters.builder()
-        .protocolVersion(protocolVersion())
-        .pageSize(pageSize())
-        .pagingState(newPagingState)
-        .consistencyLevel(consistencyLevel())
-        .serialConsistencyLevel(serialConsistencyLevel())
-        .defaultTimestamp(defaultTimestamp())
-        .nowInSeconds(nowInSeconds())
-        .defaultKeyspace(defaultKeyspace())
-        .customPayload(customPayload())
-        .skipMetadataInResult(skipMetadataInResult())
-        .tracingRequested(tracingRequested())
-        .build();
+    return toBuilder().pagingState(newPagingState).build();
   }
 
   /** Copy these parameters but with {@link #skipMetadataInResult()} set. */
   public Parameters withoutMetadataInResult() {
-    return ImmutableParameters.builder()
-        .protocolVersion(protocolVersion())
-        .pageSize(pageSize())
-        .pagingState(pagingState())
-        .consistencyLevel(consistencyLevel())
-        .serialConsistencyLevel(serialConsistencyLevel())
-        .defaultTimestamp(defaultTimestamp())
-        .nowInSeconds(nowInSeconds())
-        .defaultKeyspace(defaultKeyspace())
-        .customPayload(customPayload())
-        .skipMetadataInResult(true)
-        .tracingRequested(tracingRequested())
-        .build();
+    return toBuilder().skipMetadataInResult(true).build();
+  }
+
+  /** Creates a new parameters builder filled with the values of this builder. */
+  public ImmutableParameters.Builder toBuilder() {
+    return ImmutableParameters.builder().from(this);
   }
 
   @Override

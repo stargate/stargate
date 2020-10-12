@@ -15,16 +15,55 @@
  */
 package io.stargate.db.datastore;
 
-import java.util.Optional;
+import io.stargate.db.Parameters;
+import io.stargate.db.Persistence;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.UnaryOperator;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /** A statement prepared through the {@link DataStore} API. */
 public interface PreparedStatement {
 
-  default CompletableFuture<ResultSet> execute(Object... parameters) {
-    return execute(Optional.empty(), parameters);
+  /**
+   * Executes this prepared statement.
+   *
+   * <p>This is a shortcut for {@link #execute(UnaryOperator, Object...)} but where the execution
+   * {@link Parameters} are the default ones of the underlying data store.
+   */
+  default CompletableFuture<ResultSet> execute(Object... values) {
+    return execute(p -> p, values);
   }
 
-  CompletableFuture<ResultSet> execute(Optional<ConsistencyLevel> cl, Object... parameters);
+  /**
+   * Executes this prepared statement.
+   *
+   * <p>This is a shortcut for {@link #execute(UnaryOperator, Object...)} where the underlying data
+   * store default parameters are only modified to use the provided consistency level.
+   */
+  default CompletableFuture<ResultSet> execute(ConsistencyLevel consistency, Object... values) {
+    return execute(p -> p.withConsistencyLevel(consistency), values);
+  }
+
+  /**
+   * Executes this prepared statement.
+   *
+   * @param parametersModifier a function called on the default parameters of then underlying data
+   *     store (the instance provided when building the data store) and whose result parameters are
+   *     used for the statement execution.
+   * @param values the (positional) values for the bind variables in this prepared statement, if
+   *     any.
+   * @return a future with a {@link ResultSet} object to access the result of the query. The future
+   *     is complete as soon as some initial result for the query is available, which for paging
+   *     queries means only the first page of the result set. As for {@link
+   *     Persistence.Connection#execute}, this future can be completed on a sensitive thread and one
+   *     should not chain blocking operations on this future <b>including</b> iterating over the
+   *     whole result set (as this may be block when paging kicks in to query further pages). In
+   *     other words, <b>do not</b> do:
+   *     <pre>
+   *   query(...).thenAccept(rs -> { for (Row r : rs) {...} });
+   * </pre>
+   *     Use {@link CompletableFuture#thenAcceptAsync} instead in that case.
+   */
+  CompletableFuture<ResultSet> execute(
+      UnaryOperator<Parameters> parametersModifier, Object... values);
 }

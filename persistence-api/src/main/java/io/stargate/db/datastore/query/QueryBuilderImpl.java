@@ -739,7 +739,11 @@ public class QueryBuilderImpl {
   @DSLAction
   public ResultSet execute(Object... args) throws ExecutionException, InterruptedException {
     return prepare()
-        .thenCompose(p -> p.execute(Optional.ofNullable(this.consistencyLevel), args))
+        .thenCompose(
+            p ->
+                this.consistencyLevel == null
+                    ? p.execute(args)
+                    : p.execute(this.consistencyLevel, args))
         .get();
   }
 
@@ -842,15 +846,10 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  protected CompletableFuture<MixinPreparedStatement> prepareInternal(
-      String cql, Optional<Index> index) {
-    return dataStore
-        .prepare(cql, index)
-        .thenApply(prepared -> new MixinPreparedStatement(prepared, parameters));
-  }
-
   protected CompletableFuture<MixinPreparedStatement> prepareInternal(String cql) {
-    return prepareInternal(cql, Optional.empty());
+    return dataStore
+        .prepare(cql)
+        .thenApply(prepared -> new MixinPreparedStatement(prepared, parameters));
   }
 
   private CompletableFuture<MixinPreparedStatement> dropType() {
@@ -1081,45 +1080,7 @@ public class QueryBuilderImpl {
       throw new UnsupportedQueryException(query.toString(), table, expression(), orders);
     }
 
-    selectedIndex.ifPresent(this::warnWhenIndexNotReady);
-
-    return prepareInternal(query.toString(), selectedIndex);
-  }
-
-  private void warnWhenIndexNotReady(Index selectedIndex) {
-    /* TODO: Fix?
-    String indexNotReadyMsg = null;
-    if (selectedIndex instanceof MaterializedView)
-    {
-        MaterializedView mv = (MaterializedView) selectedIndex;
-        if (!dataStore.isMaterializedViewBuilt(mv.keyspace(), mv.name()).blockingGet())
-        {
-            indexNotReadyMsg = DataStoreUtil.mvIndexNotReadyMessage(mv.keyspace(), mv.name());
-        }
-    }
-    else if (selectedIndex instanceof SecondaryIndex)
-    {
-        SecondaryIndex secondaryIndex = (SecondaryIndex) selectedIndex;
-        if (!dataStore.isSecondaryIndexBuilt(secondaryIndex.keyspace(), secondaryIndex.name()).blockingGet())
-        {
-            indexNotReadyMsg = DataStoreUtil.secondaryIndexNotReadyMessage(secondaryIndex.keyspace(),
-                    secondaryIndex.name());
-        }
-    }
-
-    if (null != indexNotReadyMsg)
-    {
-        LOGGER.warn(indexNotReadyMsg);
-        if (dataStore instanceof InternalDataStore)
-        {
-            InternalDataStore store = (InternalDataStore) dataStore;
-            if (null != store.getWarningBuffer())
-            {
-                store.getWarningBuffer().addWarning(indexNotReadyMsg);
-            }
-        }
-    }
-     */
+    return prepareInternal(query.toString());
   }
 
   /**

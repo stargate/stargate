@@ -19,11 +19,10 @@ import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.query.QueryBuilder;
-import io.stargate.db.schema.Index;
 import io.stargate.db.schema.Schema;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.UnaryOperator;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -32,8 +31,8 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
  * Wraps a {@link Persistence} implementation to provide more convenient and high-level access.
  *
  * <p>DataStore provides a number of convenience over {@link Persistence}, like the use of actual
- * java object values (instead of raw byte buffers), automatic handling of paging in its result
- * set, etc.
+ * java object values (instead of raw byte buffers), automatic handling of paging in its result set,
+ * etc.
  */
 public interface DataStore {
 
@@ -57,9 +56,8 @@ public interface DataStore {
    * default parameters.
    *
    * @param connection the persistence connection to use for querying.
-   * @param queryParameters the default parameters to use for the queries made on the created
-   *                        store. Note that all those parameters can be overridden on a per-query
-   *                        basis if needed.
+   * @param queryParameters the default parameters to use for the queries made on the created store.
+   *     Note that all those parameters can be overridden on a per-query basis if needed.
    * @return the created store.
    */
   static DataStore create(Persistence.Connection connection, @Nonnull Parameters queryParameters) {
@@ -71,13 +69,11 @@ public interface DataStore {
    * Creates a new DataStore on top of the provided persistence.
    *
    * @param persistence the persistence to use for querying (this method effectively creates a new
-   *                    {@link Persistence.Connection} underneath).
+   *     {@link Persistence.Connection} underneath).
    * @param userName the user name to login for this store. For convenience, if it is {@code null}
-   *                 or the empty string, no login attempt is performed (so no authentication must
-   *                 be setup).
-   * @param queryParameters the default parameters to use for the queries made on the created
-   *                        store. Note that all those parameters can be overridden on a per-query
-   *                        basis if needed.
+   *     or the empty string, no login attempt is performed (so no authentication must be setup).
+   * @param queryParameters the default parameters to use for the queries made on the created store.
+   *     Note that all those parameters can be overridden on a per-query basis if needed.
    * @return the created store.
    */
   static DataStore create(
@@ -92,8 +88,8 @@ public interface DataStore {
   /**
    * Creates a new DataStore on top of the provided persistence.
    *
-   * Same as {@link #create(Persistence, String, Parameters)}, but using
-   * {@link Parameters#defaults()} for the default parameters.
+   * <p>Same as {@link #create(Persistence, String, Parameters)}, but using {@link
+   * Parameters#defaults()} for the default parameters.
    */
   static DataStore create(Persistence persistence, @Nullable String userName) {
     return create(persistence, userName, Parameters.defaults());
@@ -102,7 +98,7 @@ public interface DataStore {
   /**
    * Creates a new DataStore on top of the provided persistence.
    *
-   * A shortcut for {@link #create(Persistence, String)} with a {@code null} userName.
+   * <p>A shortcut for {@link #create(Persistence, String)} with a {@code null} userName.
    */
   static DataStore create(Persistence persistence) {
     return create(persistence, null);
@@ -113,18 +109,52 @@ public interface DataStore {
     return new QueryBuilder(this);
   }
 
-  default CompletableFuture<ResultSet> query(String cql, Object... parameters) {
-    return query(cql, Optional.empty(), parameters);
+  /**
+   * Executes the provided query against this data store.
+   *
+   * <p>This is a shortcut for {@link #query(String, UnaryOperator, Object...)} but where the
+   * execution {@link Parameters} are the default ones of the data store.
+   */
+  default CompletableFuture<ResultSet> query(String queryString, Object... values) {
+    return query(queryString, p -> p, values);
   }
 
+  /**
+   * Executes the provided query against this data store.
+   *
+   * <p>This is a shortcut for {@link #query(String, UnaryOperator, Object...)} where the data store
+   * default parameters are only modified to use the provided consistency level.
+   */
+  default CompletableFuture<ResultSet> query(
+      String queryString, ConsistencyLevel consistencyLevel, Object... values) {
+    return query(queryString, p -> p.withConsistencyLevel(consistencyLevel), values);
+  }
+
+  /**
+   * Executes the provided query against this data store.
+   *
+   * @param queryString the query to execute.
+   * @param parametersModifier a function called on the default parameters of this data store (the
+   *     instance provided when building the data store) and whose result parameters are used for
+   *     the query execution.
+   * @param values the (positional) values for the bind variables in {@code queryString}, if any.
+   * @return a future with a {@link ResultSet} object to access the result of the query. The future
+   *     is complete as soon as some initial result for the query is available, which for paging
+   *     queries means only the first page of the result set. As for {@link
+   *     Persistence.Connection#execute}, this future can be completed on a sensitive thread and one
+   *     should not chain blocking operations on this future <b>including</b> iterating over the
+   *     whole result set (as this may be block when paging kicks in to query further pages). In
+   *     other words, <b>do not</b> do:
+   *     <pre>
+   *   query(...).thenAccept(rs -> { for (Row r : rs) {...} });
+   * </pre>
+   *     Use {@link CompletableFuture#thenAcceptAsync} instead in that case.
+   */
   CompletableFuture<ResultSet> query(
-      String cql, Optional<ConsistencyLevel> consistencyLevel, Object... parameters);
+      String queryString, UnaryOperator<Parameters> parametersModifier, Object... values);
 
-  default CompletableFuture<PreparedStatement> prepare(String cql) {
-    return prepare(cql, Optional.empty());
-  }
-
-  CompletableFuture<PreparedStatement> prepare(String cql, Optional<Index> index);
+  /** Prepares the provided query against this data store. */
+  CompletableFuture<PreparedStatement> prepare(String queryString);
 
   /**
    * Returns the current schema.

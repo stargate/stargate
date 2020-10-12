@@ -15,11 +15,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
-import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import java.util.function.UnaryOperator;
 import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.utils.MD5Digest;
@@ -70,13 +69,9 @@ class PersistenceBackedPreparedStatement implements PreparedStatement {
 
   @Override
   public CompletableFuture<ResultSet> execute(
-      Optional<ConsistencyLevel> consistencyLevel, Object... values) {
+      UnaryOperator<Parameters> parametersModifier, Object... values) {
     long queryStartNanos = System.nanoTime();
-    Parameters executeParameters =
-        consistencyLevel.isPresent()
-            ? parameters.withConsistencyLevel(consistencyLevel.get())
-            : parameters;
-
+    Parameters executeParameters = parametersModifier.apply(parameters);
     CompletableFuture<ResultSet> future = new CompletableFuture<>();
     executeWithRetry(values, executeParameters, queryStartNanos, future);
     return future;

@@ -25,7 +25,6 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.datastore.query.WhereCondition;
 import java.time.Instant;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -70,14 +69,14 @@ public class AuthTableBasedService implements AuthenticationService {
               String.format(
                   "CREATE KEYSPACE IF NOT EXISTS %s WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor':1}",
                   AUTH_KEYSPACE),
-              Optional.of(ConsistencyLevel.LOCAL_QUORUM))
+              ConsistencyLevel.LOCAL_QUORUM)
           .get();
       dataStore
           .query(
               String.format(
                   "CREATE TABLE IF NOT EXISTS %s.\"%s\" (auth_token UUID, username text, created_timestamp int, PRIMARY KEY (auth_token))",
                   AUTH_KEYSPACE, AUTH_TABLE),
-              Optional.of(ConsistencyLevel.LOCAL_QUORUM))
+              ConsistencyLevel.LOCAL_QUORUM)
           .get();
     } catch (Exception e) {
       logger.error("Failed to initialize auth table", e);

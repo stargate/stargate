@@ -130,7 +130,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
       CompletableFuture<ResultSet> query =
           dataStore.query(
               "select writetime(durable_writes) as wt, keyspace_name from system_schema.keyspaces",
-              Optional.of(ConsistencyLevel.LOCAL_QUORUM));
+              ConsistencyLevel.LOCAL_QUORUM);
 
       ResultSet resultSet = query.get();
 

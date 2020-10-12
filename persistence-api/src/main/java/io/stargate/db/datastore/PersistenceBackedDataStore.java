@@ -3,11 +3,9 @@ package io.stargate.db.datastore;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.PersistenceBackedPreparedStatement.PreparedInfo;
-import io.stargate.db.schema.Index;
 import io.stargate.db.schema.Schema;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import java.util.function.UnaryOperator;
 
 class PersistenceBackedDataStore implements DataStore {
   private final Persistence.Connection connection;
@@ -20,18 +18,18 @@ class PersistenceBackedDataStore implements DataStore {
 
   @Override
   public CompletableFuture<ResultSet> query(
-      String cql, Optional<ConsistencyLevel> consistencyLevel, Object... values) {
-    return prepare(cql, Optional.empty()).thenCompose(p -> p.execute(consistencyLevel, values));
+      String queryString, UnaryOperator<Parameters> parametersModifier, Object... values) {
+    return prepare(queryString).thenCompose(p -> p.execute(parametersModifier, values));
   }
 
   @Override
-  public CompletableFuture<PreparedStatement> prepare(String cql, Optional<Index> index) {
+  public CompletableFuture<PreparedStatement> prepare(String queryString) {
     return connection
-        .prepare(cql, parameters)
+        .prepare(queryString, parameters)
         .thenApply(
             prepared ->
                 new PersistenceBackedPreparedStatement(
-                    connection, parameters, new PreparedInfo(prepared), cql));
+                    connection, parameters, new PreparedInfo(prepared), queryString));
   }
 
   private Persistence persistence() {
