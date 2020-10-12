@@ -5,7 +5,7 @@ java -version
 
 git clone --branch master --single-branch https://github.com/riptano/ccm.git
 pushd ccm || exit
-python setup.py install
+python2.7 setup.py install
 popd
 
 
