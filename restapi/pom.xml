@@ -120,11 +120,6 @@
       <version>3.14.0</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.dropwizard</groupId>
-      <artifactId>dropwizard-testing</artifactId>
-      <scope>test</scope>
-    </dependency>
 
   </dependencies>
   <build>
