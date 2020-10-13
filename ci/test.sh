@@ -26,7 +26,7 @@ cd /workspace
 
 export CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
 mvn -B verify --file pom.xml \
--P it-cassandra-3.11 \
+-P !it-cassandra-3.11 \
 -P it-cassandra-4.0 \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 EOF
