@@ -66,7 +66,7 @@ jobs:
       - name: Build with Maven
         run: |
           mvn versions:set -DremoveSnapshot versions:commit
-          mvn -q -ff clean package -DskipTests
+          mvn -P dse -q -ff clean package -DskipTests
       - name: zip-up
         run: |
           zip stargate-jars.zip starctl stargate-lib/*.jar
