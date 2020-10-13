@@ -3,7 +3,6 @@ package io.stargate.db.dse.impl.interceptors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import io.dropwizard.util.Sets;
 import io.reactivex.Single;
 import io.stargate.db.DefaultQueryOptions;
@@ -16,7 +15,6 @@ import io.stargate.db.dse.impl.ClientStateWrapper;
 import io.stargate.db.dse.impl.QueryStateWrapper;
 import java.io.File;
 import java.io.IOException;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -37,15 +35,15 @@ import org.junit.jupiter.api.Test;
 public class ProxyProtocolQueryInterceptorTest {
   private final InetSocketAddress remoteAddress = new InetSocketAddress("127.0.0.1", 9042);
   private final InetSocketAddress publicAddress = new InetSocketAddress("127.0.0.2", 9042);
-  private final QueryStateWrapper queryState = new QueryStateWrapper(ClientStateWrapper.forExternalCalls(
-      null, remoteAddress, publicAddress));
+  private final QueryStateWrapper queryState =
+      new QueryStateWrapper(
+          ClientStateWrapper.forExternalCalls(null, remoteAddress, publicAddress));
   private final QueryOptions queryOptions = DefaultQueryOptions.builder().build();
 
   private static File baseDir;
 
-  private static final Map<String, AbstractType> types = ImmutableMap.of(
-      "rpc_address", InetAddressType.instance
-  );
+  private static final Map<String, AbstractType> types =
+      ImmutableMap.of("rpc_address", InetAddressType.instance);
 
   @BeforeAll
   public static void setup() throws IOException {
@@ -58,7 +56,9 @@ public class ProxyProtocolQueryInterceptorTest {
   @SuppressWarnings({"unchecked"})
   private static <T> T columnValue(List<ByteBuffer> row, ResultMetadata metadata, String name) {
     OptionalInt index =
-        IntStream.range(0, metadata.columnCount).filter(i -> metadata.columns.get(i).name().equals(name)).findFirst();
+        IntStream.range(0, metadata.columnCount)
+            .filter(i -> metadata.columns.get(i).name().equals(name))
+            .findFirst();
     assertThat(index).isPresent();
 
     AbstractType<?> type = types.get(name);
@@ -70,11 +70,13 @@ public class ProxyProtocolQueryInterceptorTest {
   @Test
   public void systemLocal() {
     ProxyProtocolQueryInterceptor interceptor = new ProxyProtocolQueryInterceptor();
-    CQLStatement statement = QueryProcessor.parseStatement("SELECT * FROM system.local", queryState.getWrapped());
+    CQLStatement statement =
+        QueryProcessor.parseStatement("SELECT * FROM system.local", queryState.getWrapped());
     interceptor.initialize();
-    Single<Result> single = interceptor.interceptQuery(statement, queryState, queryOptions, null, 0);
+    Single<Result> single =
+        interceptor.interceptQuery(statement, queryState, queryOptions, null, 0);
 
-    Rows rowsResult = (Rows)single.blockingGet();
+    Rows rowsResult = (Rows) single.blockingGet();
     assertThat(rowsResult.rows).isNotEmpty();
     assertThat(rowsResult.rows.get(0).size()).isEqualTo(rowsResult.resultMetadata.columnCount);
 
@@ -85,12 +87,19 @@ public class ProxyProtocolQueryInterceptorTest {
 
   @Test
   public void systemPeers() {
-    ProxyProtocolQueryInterceptor interceptor = new ProxyProtocolQueryInterceptor(name -> {
-      return Sets.of(InetAddress.getByName("127.0.0.3"), InetAddress.getByName("127.0.0.4"));
-    }, "test", 1);
+    ProxyProtocolQueryInterceptor interceptor =
+        new ProxyProtocolQueryInterceptor(
+            name -> {
+              return Sets.of(
+                  InetAddress.getByName("127.0.0.3"), InetAddress.getByName("127.0.0.4"));
+            },
+            "test",
+            1);
 
-    CQLStatement statement = QueryProcessor.parseStatement("SELECT * FROM system.peers", queryState.getWrapped());
+    CQLStatement statement =
+        QueryProcessor.parseStatement("SELECT * FROM system.peers", queryState.getWrapped());
     interceptor.initialize();
-    Single<Result> single = interceptor.interceptQuery(statement, queryState, queryOptions, null, 0);
+    Single<Result> single =
+        interceptor.interceptQuery(statement, queryState, queryOptions, null, 0);
   }
 }

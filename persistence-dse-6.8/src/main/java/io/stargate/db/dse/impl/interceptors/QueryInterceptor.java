@@ -7,7 +7,6 @@ import io.stargate.db.Result;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import org.apache.cassandra.cql3.CQLStatement;
-import org.apache.cassandra.cql3.QueryHandler;
 import org.apache.cassandra.service.IEndpointLifecycleSubscriber;
 
 /**

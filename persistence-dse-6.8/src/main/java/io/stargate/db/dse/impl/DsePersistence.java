@@ -658,8 +658,7 @@ public class DsePersistence
       long queryStartNanoTime,
       UUID tracingId) {
     Single<Result> resp =
-        interceptor.interceptQuery(
-            statement, state, options, customPayload, queryStartNanoTime);
+        interceptor.interceptQuery(statement, state, options, customPayload, queryStartNanoTime);
 
     if (resp == null) {
       resp =

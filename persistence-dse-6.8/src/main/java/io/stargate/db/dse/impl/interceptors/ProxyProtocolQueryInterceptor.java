@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.CQLStatement;
-import org.apache.cassandra.cql3.QueryHandler;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.ResultSet.ResultMetadata;
@@ -55,8 +54,10 @@ import org.slf4j.LoggerFactory;
  * The goal is to populate `system.peers` with A-records from a provided DNS name.
  */
 public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
-  public static final String PROXY_DNS_NAME = System.getProperty("stargate.proxy_protocol.dns_name");
-  public static final long RESOLVE_DELAY_SECS = Long.getLong("stargate.proxy_protocol.resolve_delay_secs", 10);
+  public static final String PROXY_DNS_NAME =
+      System.getProperty("stargate.proxy_protocol.dns_name");
+  public static final long RESOLVE_DELAY_SECS =
+      Long.getLong("stargate.proxy_protocol.resolve_delay_secs", 10);
 
   private static final Logger logger = LoggerFactory.getLogger(ProxyProtocolQueryInterceptor.class);
   private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -76,7 +77,8 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   }
 
   @VisibleForTesting
-  public ProxyProtocolQueryInterceptor(Resolver resolver, String proxyDnsName, long resolveDelaySecs) {
+  public ProxyProtocolQueryInterceptor(
+      Resolver resolver, String proxyDnsName, long resolveDelaySecs) {
     this.resolver = resolver;
     this.proxyDnsName = proxyDnsName;
     this.resolveDelaySecs = resolveDelaySecs;
@@ -108,7 +110,8 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
     List<List<ByteBuffer>> rows;
     InetSocketAddress publicAddress = state.getClientState().getPublicAddress();
     if (publicAddress == null) {
-      throw new RuntimeException("Unable to intercept proxy protocol system query without a valid public address");
+      throw new RuntimeException(
+          "Unable to intercept proxy protocol system query without a valid public address");
     }
 
     String tableName = selectStatement.table();
