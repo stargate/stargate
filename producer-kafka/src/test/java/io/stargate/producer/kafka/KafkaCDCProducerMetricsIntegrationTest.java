@@ -45,7 +45,7 @@ public class KafkaCDCProducerMetricsIntegrationTest extends IntegrationTestBase 
   public void shouldRegisterMetricsWhenMetricsAreEnabled() throws Exception {
     // given
     TableMetadata tableMetadata = mockTableMetadata();
-    String topicName = creteTopicName(tableMetadata);
+    String topicName = createTopicName(tableMetadata);
 
     String kafkaMetricsPrefix = "producer-prefix";
     MetricRegistry metricRegistry = new MetricRegistry();
@@ -88,7 +88,7 @@ public class KafkaCDCProducerMetricsIntegrationTest extends IntegrationTestBase 
         kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
 
     try {
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
       // it should have all kafka producer metrics registered (more than 100 metrics)
       assertThat(countMetricsByPrefix(kafkaMetricsPrefix, metricRegistry)).isGreaterThan(100);
       // validate number of sent records
@@ -98,7 +98,7 @@ public class KafkaCDCProducerMetricsIntegrationTest extends IntegrationTestBase 
 
       // when send additional kafka event
       kafkaCDCProducer.send(rowMutationEvent).get();
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
 
       // then validate that number of records send increased
       assertThat(getMetricValue(metricRegistry, "record-send-total", topicName)).isEqualTo(2.0);
@@ -114,7 +114,7 @@ public class KafkaCDCProducerMetricsIntegrationTest extends IntegrationTestBase 
   public void shouldNotRegisterMetricsWhenMetricsAreDisabled() throws Exception {
     // given
     TableMetadata tableMetadata = mockTableMetadata();
-    String topicName = creteTopicName(tableMetadata);
+    String topicName = createTopicName(tableMetadata);
 
     MetricRegistry metricRegistry = new MetricRegistry();
     KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(metricRegistry);
@@ -154,7 +154,7 @@ public class KafkaCDCProducerMetricsIntegrationTest extends IntegrationTestBase 
         kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
 
     try {
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
       assertThat(countMetricsByPrefix(METRICS_NAME_DEFAULT, metricRegistry)).isEqualTo(0);
 
     } finally {

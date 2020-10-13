@@ -75,7 +75,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
     // given
     String columnValue = "col_value";
     TableMetadata tableMetadata = mockTableMetadata();
-    String topicName = creteTopicName(tableMetadata);
+    String topicName = createTopicName(tableMetadata);
 
     KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
@@ -111,7 +111,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
         kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
 
     try {
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
     } finally {
       kafkaCDCProducer.close().get();
     }
@@ -121,7 +121,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
   public void shouldSendDeleteEventForAllPKsAndCK() throws Exception {
     // given
     TableMetadata tableMetadata = mockTableMetadata();
-    String topicName = creteTopicName(tableMetadata);
+    String topicName = createTopicName(tableMetadata);
 
     KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
@@ -154,7 +154,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
         kafkaCDCProducer.keyValueConstructor.constructValue(event, topicName);
 
     try {
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
     } finally {
       kafkaCDCProducer.close().get();
     }
@@ -167,7 +167,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
     // given
     String columnValue = "col_value";
     TableMetadata tableMetadata = mockTableMetadata();
-    String topicName = creteTopicName(tableMetadata);
+    String topicName = createTopicName(tableMetadata);
 
     KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
@@ -201,7 +201,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
       GenericRecord expectedValue =
           kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
 
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
 
       // when change schema
       when(tableMetadata.getPartitionKeys())
@@ -228,7 +228,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
       expectedValue =
           kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
 
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
 
     } finally {
       kafkaCDCProducer.close().get();
@@ -241,7 +241,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
       List<ColumnMetadata> columnMetadata, List<Cell> columnValues) throws Exception {
     // given
     TableMetadata tableMetadata = mockTableMetadata();
-    String topicName = creteTopicName(tableMetadata);
+    String topicName = createTopicName(tableMetadata);
 
     KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
@@ -273,7 +273,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
       GenericRecord expectedValue =
           kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
 
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
     } finally {
       kafkaCDCProducer.close().get();
     }
@@ -386,7 +386,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
       List<ColumnMetadata> columnMetadata, List<Cell> columnValues) throws Exception {
     // given
     TableMetadata tableMetadata = mockTableMetadata();
-    String topicName = creteTopicName(tableMetadata);
+    String topicName = createTopicName(tableMetadata);
 
     KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
@@ -418,7 +418,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
       GenericRecord expectedValue =
           kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
 
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
     } finally {
       kafkaCDCProducer.close().get();
     }
@@ -428,7 +428,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
   public void shouldSendEventsWithMapAndNestedMap() throws Exception {
     // given
     TableMetadata tableMetadata = mockTableMetadata();
-    String topicName = creteTopicName(tableMetadata);
+    String topicName = createTopicName(tableMetadata);
 
     KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
@@ -483,7 +483,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
       ((GenericRecord) ((GenericRecord) expectedValue.get(DATA_FIELD_NAME)).get(COLUMN_NAME_2))
           .put(0, expectedMapOfMapValues);
 
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
     } finally {
       kafkaCDCProducer.close().get();
     }

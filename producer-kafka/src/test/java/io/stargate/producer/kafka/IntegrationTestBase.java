@@ -88,7 +88,7 @@ public class IntegrationTestBase {
     return tableMetadata;
   }
 
-  protected String creteTopicName(TableMetadata tableMetadata) {
+  protected String createTopicName(TableMetadata tableMetadata) {
     return String.format(
         "%s.%s.%s", TOPIC_PREFIX, tableMetadata.getKeyspace(), tableMetadata.getName());
   }
@@ -130,7 +130,7 @@ public class IntegrationTestBase {
     return String.format("%s.%s", ConfigLoader.CDC_KAFKA_PRODUCER_SETTING_PREFIX, settingName);
   }
 
-  protected void validateThatWasSendToKafka(
+  protected void verifyReceivedByKafka(
       GenericRecord expectedKey, GenericRecord expectedValue, String topicName) {
     Properties props = new Properties();
     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers());
