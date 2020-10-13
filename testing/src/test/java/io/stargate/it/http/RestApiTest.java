@@ -53,6 +53,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -63,6 +64,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   private static String authToken;
   private static String host = "http://" + getStargateHost();
   private String keyspace;
+  private CqlSession session;
 
   public RestApiTest(ClusterConnectionInfo backend) {
     super(backend);
@@ -72,12 +74,17 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   public void setup(ClusterConnectionInfo cluster) throws IOException {
     keyspace = "ks_restapitest";
 
-    CqlSession session =
+    session =
         CqlSession.builder()
             .withConfigLoader(
                 DriverConfigLoader.programmaticBuilder()
-                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
-                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(20))
+                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5))
+                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(180))
+                    .withDuration(
+                        DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT,
+                        Duration.ofSeconds(180))
+                    .withDuration(
+                        DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
                     .build())
             .withAuthCredentials("cassandra", "cassandra")
             .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
@@ -95,6 +102,11 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         .isTrue();
 
     initAuth();
+  }
+
+  @AfterEach
+  public void teardown() {
+    session.close();
   }
 
   private void initAuth() throws IOException {

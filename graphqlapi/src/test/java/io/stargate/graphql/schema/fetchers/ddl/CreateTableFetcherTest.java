@@ -1,13 +1,8 @@
 package io.stargate.graphql.schema.fetchers.ddl;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.mockito.Mockito.when;
 
-import graphql.ExecutionResult;
-import graphql.GraphQLError;
 import io.stargate.graphql.schema.DdlTestBase;
-import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -19,12 +14,7 @@ public class CreateTableFetcherTest extends DdlTestBase {
   @MethodSource("successfulQueries")
   @DisplayName("Should execute GraphQL and generate expected CQL query")
   public void queryTest(String graphQlMutation, String expectedCqlQuery) {
-    when(dataStore.query(queryCaptor.capture()))
-        .thenReturn(CompletableFuture.completedFuture(null));
-
-    ExecutionResult result = executeGraphQl(String.format("mutation { %s }", graphQlMutation));
-    assertThat(result.getErrors()).isEmpty();
-    assertThat(queryCaptor.getValue()).isEqualTo(expectedCqlQuery);
+    assertSuccess(String.format("mutation { %s }", graphQlMutation), expectedCqlQuery);
   }
 
   public static Arguments[] successfulQueries() {
@@ -41,10 +31,7 @@ public class CreateTableFetcherTest extends DdlTestBase {
   @MethodSource("failingQueries")
   @DisplayName("Should execute GraphQL and throw expected error")
   public void errorTest(String graphQlMutation, String expectedError) {
-    ExecutionResult result = executeGraphQl(String.format("mutation { %s }", graphQlMutation));
-    assertThat(result.getErrors()).isNotEmpty();
-    GraphQLError error = result.getErrors().get(0);
-    assertThat(error.getMessage()).contains(expectedError);
+    assertError(String.format("mutation { %s }", graphQlMutation), expectedError);
   }
 
   public static Arguments[] failingQueries() {
