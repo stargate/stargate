@@ -23,9 +23,9 @@ export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
 export PATH=$PATH:$JAVA_HOME/bin
 cd /workspace
 
-C3="!"
-C4="!"
-DSE="!"
+C3="\!"
+C4="\!"
+DSE="\!"
 case "$PERSISTENCE_BACKEND" in
   "cassandra-3.11") C3=""  ;;
   "cassandra-4.0")  C4=""  ;;
