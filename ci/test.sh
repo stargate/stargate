@@ -6,6 +6,7 @@ java -version
 ln -sf /usr/bin/python2.7 /usr/bin/python
 
 export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
+export PATH=$PATH:$JAVA_HOME/bin
 
 git clone --branch master --single-branch https://github.com/riptano/ccm.git
 pushd ccm || exit
@@ -18,6 +19,7 @@ chown -R ubuntu:ubuntu *
 # Need to switch users since we can't pass the right flag to allow running Cassandra as root
 sudo -i -u ubuntu bash << EOF
 export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
+export PATH=$PATH:$JAVA_HOME/bin
 cd /workspace
 
 #mkdir -p /tmp/ccm8202548329431989080
