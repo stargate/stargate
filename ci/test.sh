@@ -16,9 +16,12 @@ sudo python setup.py install
 popd
 
 adduser --disabled-password --gecos "" ubuntu
-su - ubuntu bash << EOF
+chown -R ubuntu *
+
+# Need to switch users since we can't pass the right flag to allow running Cassandra as root
+sudo -i -u ubuntu bash << EOF
 export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
-cd /
+cd /workspace
 
 mkdir -p /tmp/ccm8202548329431989080
 ccm create ccm_1 -i 127.0.0. -n 1:0 -v 3.11.8 --config-dir=/tmp/ccm8202548329431989080
