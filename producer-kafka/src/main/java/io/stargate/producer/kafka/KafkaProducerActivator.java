@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 public class KafkaProducerActivator implements BundleActivator, ServiceListener {
   private static final String KAFKA_CDC_METRICS_PREFIX = "cdc.kafka";
   private static final Logger logger = LoggerFactory.getLogger(KafkaProducerActivator.class);
-  private boolean started;
+  boolean started;
   private BundleContext context;
 
   @Override
