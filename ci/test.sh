@@ -23,6 +23,10 @@ export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
 export PATH=$PATH:$JAVA_HOME/bin
 cd /workspace
 
+# create temp directories to avoid issues with concurrent execution
+cp -R . /tmp/$PERSISTENCE_BACKEND
+cd /tmp/$PERSISTENCE_BACKEND
+
 C3="!"
 C4="!"
 DSE="!"

@@ -5,7 +5,7 @@ apt-get update && apt-get install openjdk-8-jdk git sudo maven -y
 git clone --branch master --single-branch https://github.com/riptano/ccm.git
 
 adduser --disabled-password --gecos "" ubuntu
-chown -R ubuntu:ubuntu *
+chown -R ubuntu:ubuntu /workspace/
 
 # Need to switch users since we can't pass the right flag to allow running Cassandra as root
 sudo -i -u ubuntu bash << EOF
