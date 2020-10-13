@@ -1,6 +1,6 @@
 #!/bin/bash
 
-apt-get update && apt-get install openjdk-8-jdk git python2.7 python-setuptools python-six python-yaml sudo maven -y
+apt-get update && apt-get install openjdk-8-jdk git sudo maven -y
 
 git clone --branch master --single-branch https://github.com/riptano/ccm.git
 
@@ -14,5 +14,6 @@ export PATH=$PATH:$JAVA_HOME/bin
 cd /workspace
 
 mvn -B install --file pom.xml \
+-DskipTests=true -Dmaven.javadoc.skip=true \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 EOF
