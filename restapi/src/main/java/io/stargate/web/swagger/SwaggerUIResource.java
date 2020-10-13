@@ -56,7 +56,7 @@ public class SwaggerUIResource {
    *
    * @param fileName The name of the file that should be returned from the swagger-ui directory
    * @return An {@code javax.ws.rs.core.Response} containing an {@code java.io.InputStream} of the
-   * file requested
+   *     file requested
    */
   @GET
   @Path("/{fileName}")
@@ -78,9 +78,10 @@ public class SwaggerUIResource {
       return Response.temporaryRedirect(uriInfo.getAbsolutePathBuilder().path("/").build()).build();
     }
 
-    // Using an HTML file with a String formatting character that's been read in as a String. Yes,
-    // we could use something like Velocity but that feels overkill for a single field.
-    String formattedIndexFile = String.format(indexFile, token == null ? "" : token);
+    // Using an HTML file with templated text that's been read in as a String. Yes,  we could use
+    // something like Velocity but that feels overkill for a single field.
+    String formattedIndexFile =
+        indexFile.replaceFirst("AUTHENTICATION_TOKEN", token == null ? "" : token);
     return Response.ok(new ByteArrayInputStream(formattedIndexFile.getBytes()))
         .type(MediaType.TEXT_HTML)
         .build();
