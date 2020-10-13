@@ -22,7 +22,7 @@ import io.swagger.annotations.ApiModelProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DocumentResponseWrapper<T> {
-  @JsonProperty("id")
+  @JsonProperty("documentId")
   String documentId;
 
   @JsonProperty("pageState")
