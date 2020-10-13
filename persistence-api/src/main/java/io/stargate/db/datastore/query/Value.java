@@ -16,6 +16,7 @@
 package io.stargate.db.datastore.query;
 
 import io.stargate.db.schema.Column;
+import java.util.function.Function;
 import org.immutables.value.Value.Style.ImplementationVisibility;
 
 @org.immutables.value.Value.Immutable
@@ -55,6 +56,18 @@ public abstract class Value<T> implements Parameter<T> {
    */
   public static <V> Value<V> create(Column c, V value) {
     return ImmutableValue.<V>builder().column(c).value(value == null ? NULL : value).build();
+  }
+
+  /**
+   * Creates a bound value for the provided column, bound at execution time using the provided
+   * binding function.
+   *
+   * @param c the column name.
+   * @param binding the function producing the bound value on demand (may never be called).
+   * @return the created value.
+   */
+  public static <V> Value<V> create(Column c, Function<V, Object> binding) {
+    return ImmutableValue.<V>builder().column(c).bindingFunction(binding).build();
   }
 
   /**
