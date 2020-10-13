@@ -23,9 +23,9 @@ export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
 export PATH=$PATH:$JAVA_HOME/bin
 cd /workspace
 
-C3="\!"
-C4="\!"
-DSE="\!"
+C3="!"
+C4="!"
+DSE="!"
 case "$PERSISTENCE_BACKEND" in
   "cassandra-3.11") C3=""  ;;
   "cassandra-4.0")  C4=""  ;;
@@ -36,9 +36,9 @@ echo "Using backend $PERSISTENCE_BACKEND"
 
 export CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
 mvn -B verify --file pom.xml \
--P ${C3}it-cassandra-3.11 \
--P ${C4}it-cassandra-4.0 \
--P ${DSE}dse -P ${DSE}it-dse-6.8 \
+-P '\${C3}it-cassandra-3.11' \
+-P '\${C4}it-cassandra-4.0' \
+-P '\${DSE}dse' -P '\${DSE}it-dse-6.8' \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 EOF
 
