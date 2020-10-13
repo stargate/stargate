@@ -18,7 +18,6 @@ public interface QueryInterceptor {
   void initialize();
 
   Single<Result> interceptQuery(
-      QueryHandler handler,
       CQLStatement statement,
       QueryState state,
       QueryOptions options,

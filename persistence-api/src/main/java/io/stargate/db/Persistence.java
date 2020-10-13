@@ -23,7 +23,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.utils.MD5Digest;
 
 public interface Persistence<T, C, Q> {
@@ -41,10 +40,6 @@ public interface Persistence<T, C, Q> {
   Schema schema();
 
   void registerEventListener(EventListener listener);
-
-  boolean isRpcReady(InetAddressAndPort endpoint);
-
-  InetAddressAndPort getNativeAddress(InetAddressAndPort endpoint);
 
   QueryState<Q> newQueryState(ClientState<C> clientState);
 

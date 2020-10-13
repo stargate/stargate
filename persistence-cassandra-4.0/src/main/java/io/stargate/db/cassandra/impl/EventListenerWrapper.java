@@ -1,7 +1,5 @@
 package io.stargate.db.cassandra.impl;
 
-import static io.stargate.db.cassandra.impl.Conversion.toExternal;
-
 import io.stargate.db.EventListener;
 import java.util.List;
 import org.apache.cassandra.db.marshal.AbstractType;
@@ -19,27 +17,27 @@ public class EventListenerWrapper extends SchemaChangeListener
 
   @Override
   public void onJoinCluster(InetAddressAndPort endpoint) {
-    wrapped.onJoinCluster(toExternal(endpoint));
+    wrapped.onJoinCluster(endpoint.address);
   }
 
   @Override
   public void onLeaveCluster(InetAddressAndPort endpoint) {
-    wrapped.onLeaveCluster(toExternal(endpoint));
+    wrapped.onLeaveCluster(endpoint.address);
   }
 
   @Override
   public void onUp(InetAddressAndPort endpoint) {
-    wrapped.onUp(toExternal(endpoint));
+    wrapped.onUp(endpoint.address);
   }
 
   @Override
   public void onDown(InetAddressAndPort endpoint) {
-    wrapped.onDown(toExternal(endpoint));
+    wrapped.onDown(endpoint.address);
   }
 
   @Override
   public void onMove(InetAddressAndPort endpoint) {
-    wrapped.onMove(toExternal(endpoint));
+    wrapped.onMove(endpoint.address);
   }
 
   @Override

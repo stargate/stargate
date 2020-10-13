@@ -12,6 +12,7 @@ import io.stargate.db.Result;
 import io.stargate.db.dse.impl.Conversion;
 import io.stargate.db.dse.impl.StargateSystemKeyspace;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +29,10 @@ import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
 import org.apache.cassandra.gms.VersionedValue;
 import org.apache.cassandra.service.IEndpointLifecycleSubscriber;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.transport.messages.ResultMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A default interceptor implementation that returns only stargate nodes for `system.peers` queries,
@@ -36,6 +40,8 @@ import org.apache.cassandra.transport.messages.ResultMessage;
  * for both `system.local` and `system.peers` tables.
  */
 public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointStateChangeSubscriber {
+  private static final Logger logger = LoggerFactory.getLogger(DefaultQueryInterceptor.class);
+
   private final List<IEndpointLifecycleSubscriber> subscribers = new CopyOnWriteArrayList<>();
   private final Set<InetAddress> liveStargateNodes = Sets.newConcurrentHashSet();
 
@@ -49,7 +55,6 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
 
   @Override
   public Single<Result> interceptQuery(
-      QueryHandler handler,
       CQLStatement statement,
       QueryState state,
       QueryOptions options,
@@ -104,7 +109,8 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
       return;
     }
 
-    for (IEndpointLifecycleSubscriber subscriber : subscribers) subscriber.onLeaveCluster(endpoint);
+    for (IEndpointLifecycleSubscriber subscriber : subscribers)
+      subscriber.onLeaveCluster(getNativeAddress(endpoint));
   }
 
   @Override
@@ -115,7 +121,8 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
       return;
     }
 
-    for (IEndpointLifecycleSubscriber subscriber : subscribers) subscriber.onJoinCluster(endpoint);
+    for (IEndpointLifecycleSubscriber subscriber : subscribers)
+      subscriber.onJoinCluster(getNativeAddress(endpoint));
   }
 
   private static Single<Result> interceptSystemLocalOrPeers(
@@ -139,5 +146,16 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
                 new ResultMessage.Rows(
                     new ResultSet(selectStatement.getResultMetadata(), r.result.rows)),
                 options.getProtocolVersion()));
+  }
+
+  private static InetAddress getNativeAddress(InetAddress endpoint) {
+    try {
+      return InetAddress.getByName(StorageService.instance.getNativeTransportAddress(endpoint));
+    } catch (UnknownHostException e) {
+      // That should not happen, so log an error, but return the
+      // endpoint address since there's a good change this is right
+      logger.error("Problem retrieving RPC address for {}", endpoint, e);
+      return endpoint;
+    }
   }
 }

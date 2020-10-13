@@ -176,25 +176,6 @@ public class CassandraPersistence
   }
 
   @Override
-  public boolean isRpcReady(InetAddressAndPort endpoint) {
-    return StorageService.instance.isRpcReady(Conversion.toInternal(endpoint));
-  }
-
-  @Override
-  public InetAddressAndPort getNativeAddress(InetAddressAndPort endpoint) {
-    try {
-      return InetAddressAndPort.getByName(
-          StorageService.instance.getNativeaddress(Conversion.toInternal(endpoint), true));
-    } catch (UnknownHostException e) {
-      // That should not happen, so log an error, but return the
-      // endpoint address since there's a good change this is right
-      logger.error("Problem retrieving RPC address for {}", endpoint, e);
-      return InetAddressAndPort.getByAddressOverrideDefaults(
-          endpoint.address, DatabaseDescriptor.getNativeTransportPort());
-    }
-  }
-
-  @Override
   public DataStore newDataStore(
       QueryState<org.apache.cassandra.service.QueryState> state, QueryOptions queryOptions) {
     return new InternalDataStore(

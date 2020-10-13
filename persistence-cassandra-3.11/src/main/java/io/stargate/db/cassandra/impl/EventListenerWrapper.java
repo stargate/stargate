@@ -15,8 +15,6 @@
  */
 package io.stargate.db.cassandra.impl;
 
-import static io.stargate.db.cassandra.impl.Conversion.toExternal;
-
 import io.stargate.db.EventListener;
 import java.net.InetAddress;
 import java.util.List;
@@ -34,27 +32,27 @@ public class EventListenerWrapper extends MigrationListener
 
   @Override
   public void onJoinCluster(InetAddress endpoint) {
-    wrapped.onJoinCluster(toExternal(endpoint));
+    wrapped.onJoinCluster(endpoint);
   }
 
   @Override
   public void onLeaveCluster(InetAddress endpoint) {
-    wrapped.onLeaveCluster(toExternal(endpoint));
+    wrapped.onLeaveCluster(endpoint);
   }
 
   @Override
   public void onUp(InetAddress endpoint) {
-    wrapped.onUp(toExternal(endpoint));
+    wrapped.onUp(endpoint);
   }
 
   @Override
   public void onDown(InetAddress endpoint) {
-    wrapped.onDown(toExternal(endpoint));
+    wrapped.onDown(endpoint);
   }
 
   @Override
   public void onMove(InetAddress endpoint) {
-    wrapped.onMove(toExternal(endpoint));
+    wrapped.onMove(endpoint);
   }
 
   @Override

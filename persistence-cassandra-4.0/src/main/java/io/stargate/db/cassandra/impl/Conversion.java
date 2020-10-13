@@ -27,7 +27,26 @@ import org.apache.cassandra.service.pager.PagingState;
 import org.apache.cassandra.stargate.cql3.functions.FunctionName;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.db.WriteType;
-import org.apache.cassandra.stargate.exceptions.*;
+import org.apache.cassandra.stargate.exceptions.AlreadyExistsException;
+import org.apache.cassandra.stargate.exceptions.AuthenticationException;
+import org.apache.cassandra.stargate.exceptions.CDCWriteException;
+import org.apache.cassandra.stargate.exceptions.CasWriteUnknownResultException;
+import org.apache.cassandra.stargate.exceptions.ConfigurationException;
+import org.apache.cassandra.stargate.exceptions.FunctionExecutionException;
+import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
+import org.apache.cassandra.stargate.exceptions.IsBootstrappingException;
+import org.apache.cassandra.stargate.exceptions.OperationExecutionException;
+import org.apache.cassandra.stargate.exceptions.OverloadedException;
+import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
+import org.apache.cassandra.stargate.exceptions.ReadFailureException;
+import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
+import org.apache.cassandra.stargate.exceptions.RequestFailureReason;
+import org.apache.cassandra.stargate.exceptions.SyntaxException;
+import org.apache.cassandra.stargate.exceptions.TruncateException;
+import org.apache.cassandra.stargate.exceptions.UnauthorizedException;
+import org.apache.cassandra.stargate.exceptions.UnavailableException;
+import org.apache.cassandra.stargate.exceptions.WriteFailureException;
+import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.ServerError;
@@ -136,17 +155,6 @@ public class Conversion {
   public static ProtocolVersion toExternal(
       org.apache.cassandra.transport.ProtocolVersion protocolVersion) {
     return protocolVersion == null ? null : ProtocolVersion.decode(protocolVersion.asInt(), true);
-  }
-
-  public static org.apache.cassandra.stargate.locator.InetAddressAndPort toExternal(
-      InetAddressAndPort internal) {
-    return org.apache.cassandra.stargate.locator.InetAddressAndPort.getByAddressOverrideDefaults(
-        internal.address, internal.port);
-  }
-
-  public static InetAddressAndPort toInternal(
-      org.apache.cassandra.stargate.locator.InetAddressAndPort external) {
-    return InetAddressAndPort.getByAddressOverrideDefaults(external.address, external.port);
   }
 
   public static org.apache.cassandra.utils.MD5Digest toInternal(MD5Digest id) {

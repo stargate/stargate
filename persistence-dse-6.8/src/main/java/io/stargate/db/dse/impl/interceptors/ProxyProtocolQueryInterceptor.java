@@ -6,8 +6,10 @@ import com.datastax.bdp.db.nodes.BootstrapState;
 import com.datastax.bdp.db.nodes.virtual.LocalNodeSystemView;
 import com.datastax.bdp.db.nodes.virtual.PeersSystemView;
 import com.datastax.bdp.db.util.ProductVersion;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import io.dropwizard.util.Strings;
+import com.google.common.collect.Sets;
 import io.reactivex.Single;
 import io.stargate.db.QueryOptions;
 import io.stargate.db.QueryState;
@@ -18,15 +20,18 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.security.Security;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryHandler;
@@ -42,26 +47,52 @@ import org.apache.cassandra.db.marshal.UUIDType;
 import org.apache.cassandra.service.IEndpointLifecycleSubscriber;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.transport.messages.ResultMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A query interceptor that echos back the public IPs from the proxy protocol from `system.local`.
  * The goal is to populate `system.peers` with A-records from a provided DNS name.
  */
 public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
+  public static final String PROXY_DNS_NAME = System.getProperty("stargate.proxy_protocol.dns_name");
+  public static final long RESOLVE_DELAY_SECS = Long.getLong("stargate.proxy_protocol.resolve_delay_secs", 10);
+
+  private static final Logger logger = LoggerFactory.getLogger(ProxyProtocolQueryInterceptor.class);
   private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
-  private final CopyOnWriteArraySet<InetAddress> peers = new CopyOnWriteArraySet<>();
+  public interface Resolver {
+    Set<InetAddress> resolve(String name) throws UnknownHostException;
+  }
 
-  public static final String PROXY_DNS_NAME = System.getProperty("stargate.proxy_dns_name");
+  private final Resolver resolver;
+  private final String proxyDnsName;
+  private final long resolveDelaySecs;
+  private final List<IEndpointLifecycleSubscriber> subscribers = new CopyOnWriteArrayList<>();
+  private volatile Set<InetAddress> peers = Collections.emptySet();
+
+  public ProxyProtocolQueryInterceptor() {
+    this(new DefaultResolver(), PROXY_DNS_NAME, RESOLVE_DELAY_SECS);
+  }
+
+  @VisibleForTesting
+  public ProxyProtocolQueryInterceptor(Resolver resolver, String proxyDnsName, long resolveDelaySecs) {
+    this.resolver = resolver;
+    this.proxyDnsName = proxyDnsName;
+    this.resolveDelaySecs = resolveDelaySecs;
+  }
 
   @Override
   public void initialize() {
-    populatePeers();
+    String ttl = Security.getProperty("networkaddress.cache.ttl");
+    if (Strings.isNullOrEmpty(ttl)) {
+      Security.setProperty("networkaddress.cache.ttl", "60");
+    }
+    resolvePeers();
   }
 
   @Override
   public Single<Result> interceptQuery(
-      QueryHandler handler,
       CQLStatement statement,
       QueryState state,
       QueryOptions options,
@@ -76,16 +107,20 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
 
     List<List<ByteBuffer>> rows;
     InetSocketAddress publicAddress = state.getClientState().getPublicAddress();
+    if (publicAddress == null) {
+      throw new RuntimeException("Unable to intercept proxy protocol system query without a valid public address");
+    }
+
     String tableName = selectStatement.table();
     if (tableName.equals(PeersSystemView.NAME)) {
-      rows = Lists.newArrayListWithCapacity(peers.size() - 1);
-      for (InetAddress peer : peers) {
+      Set<InetAddress> currentPeers = peers;
+      rows =
+          currentPeers.isEmpty()
+              ? Collections.emptyList()
+              : Lists.newArrayListWithCapacity(currentPeers.size() - 1);
+      for (InetAddress peer : currentPeers) {
         if (!peer.equals(publicAddress.getAddress())) {
-          rows.add(
-              buildRow(
-                  selectStatement.getResultMetadata(),
-                  publicAddress.getAddress(),
-                  publicAddress.getPort()));
+          rows.add(buildRow(selectStatement.getResultMetadata(), peer, publicAddress.getPort()));
         }
       }
     } else {
@@ -104,20 +139,32 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
 
   @Override
   public void register(IEndpointLifecycleSubscriber subscriber) {
-    // Nothing
+    subscribers.add(subscriber);
   }
 
-  private void populatePeers() {
+  private void resolvePeers() {
     if (!Strings.isNullOrEmpty(PROXY_DNS_NAME)) {
       try {
-        List<InetAddress> resolved = Arrays.asList(InetAddress.getAllByName(PROXY_DNS_NAME));
-        if (!peers.containsAll(resolved)) {
-          peers.addAll(resolved);
+        Set<InetAddress> resolved = resolver.resolve(proxyDnsName);
+
+        if (!peers.equals(resolved)) {
+          Sets.SetView<InetAddress> added = Sets.difference(resolved, peers);
+          Sets.SetView<InetAddress> removed = Sets.difference(peers, resolved);
+
+          for (IEndpointLifecycleSubscriber subscriber : subscribers) {
+            for (InetAddress peer : added) {
+              subscriber.onJoinCluster(peer);
+            }
+            for (InetAddress peer : removed) {
+              subscriber.onLeaveCluster(peer);
+            }
+          }
+          peers = resolved;
         }
       } catch (UnknownHostException e) {
         throw new RuntimeException("Unable to resolve DNS for proxy protocol peers table", e);
       }
-      scheduler.schedule(this::populatePeers, 10, TimeUnit.SECONDS);
+      scheduler.schedule(this::resolvePeers, resolveDelaySecs, TimeUnit.SECONDS);
     }
   }
 
@@ -181,5 +228,12 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
     metadata.names.forEach(
         column -> row.add(buildColumnValue(column.name.toString(), publicAddress, publicPort)));
     return row;
+  }
+
+  private static class DefaultResolver implements Resolver {
+    @Override
+    public Set<InetAddress> resolve(String name) throws UnknownHostException {
+      return Arrays.stream(InetAddress.getAllByName(name)).collect(Collectors.toSet());
+    }
   }
 }

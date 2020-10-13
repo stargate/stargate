@@ -101,10 +101,12 @@ public class Server implements CassandraDaemon.Server {
   public final AuthenticationService authentication;
   public boolean useSSL = false;
   private final AtomicBoolean isRunning = new AtomicBoolean(false);
+  private final AtomicBoolean isRpcReady;
 
   private EventLoopGroup workerGroup;
 
-  private Server(Builder builder) {
+  private Server(AtomicBoolean isRpcReady, Builder builder) {
+    this.isRpcReady = isRpcReady;
     this.persistence = builder.persistence;
     this.authentication = builder.authentication;
     this.socket = builder.getSocket();
@@ -249,8 +251,8 @@ public class Server implements CassandraDaemon.Server {
       return this;
     }
 
-    public Server build() {
-      return new Server(this);
+    public Server build(AtomicBoolean isRpcReady) {
+      return new Server(isRpcReady, this);
     }
 
     private InetSocketAddress getSocket() {
@@ -625,37 +627,43 @@ public class Server implements CassandraDaemon.Server {
     // "see" non-stargate node events
 
     @Override
-    public void onJoinCluster(InetAddressAndPort endpoint) {
-      if (server.persistence.isRpcReady(endpoint)) endpointsPendingJoinedNotification.add(endpoint);
-      else
-        onTopologyChange(
-            endpoint, Event.TopologyChange.newNode(server.persistence.getNativeAddress(endpoint)));
+    public void onJoinCluster(InetAddress endpoint) {
+      InetAddressAndPort endpointWithPort = withPort(endpoint);
+      if (server.isRpcReady.get()) endpointsPendingJoinedNotification.add(endpointWithPort);
+      else onTopologyChange(endpointWithPort, Event.TopologyChange.newNode(endpointWithPort));
     }
 
     @Override
-    public void onLeaveCluster(InetAddressAndPort endpoint) {
-      onTopologyChange(
+    public void onLeaveCluster(InetAddress endpoint) {
+      InetAddressAndPort endpointWithPort = withPort(endpoint);
+      onTopologyChange(endpointWithPort, Event.TopologyChange.removedNode(endpointWithPort));
+    }
+
+    @Override
+    public void onMove(InetAddress endpoint) {
+      InetAddressAndPort endpointWithPort = withPort(endpoint);
+      onTopologyChange(endpointWithPort, Event.TopologyChange.movedNode(endpointWithPort));
+    }
+
+    @Override
+    public void onUp(InetAddress endpoint) {
+      InetAddressAndPort endpointWithPort = withPort(endpoint);
+      if (endpointsPendingJoinedNotification.remove(endpointWithPort)) onJoinCluster(endpoint);
+
+      onStatusChange(endpointWithPort, Event.StatusChange.nodeUp(endpointWithPort));
+    }
+
+    public void onDown(InetAddress endpoint) {
+      InetAddressAndPort endpointWithPort = withPort(endpoint);
+      onStatusChange(endpointWithPort, Event.StatusChange.nodeDown(endpointWithPort));
+    }
+
+    private InetAddressAndPort withPort(InetAddress endpoint) {
+      return InetAddressAndPort.getByAddressOverrideDefaults(
           endpoint,
-          Event.TopologyChange.removedNode(server.persistence.getNativeAddress(endpoint)));
-    }
-
-    @Override
-    public void onMove(InetAddressAndPort endpoint) {
-      onTopologyChange(
-          endpoint, Event.TopologyChange.movedNode(server.persistence.getNativeAddress(endpoint)));
-    }
-
-    @Override
-    public void onUp(InetAddressAndPort endpoint) {
-      if (endpointsPendingJoinedNotification.remove(endpoint)) onJoinCluster(endpoint);
-
-      onStatusChange(
-          endpoint, Event.StatusChange.nodeUp(server.persistence.getNativeAddress(endpoint)));
-    }
-
-    public void onDown(InetAddressAndPort endpoint) {
-      onStatusChange(
-          endpoint, Event.StatusChange.nodeDown(server.persistence.getNativeAddress(endpoint)));
+          server.useSSL
+              ? TransportDescriptor.getNativeTransportPortSSL()
+              : TransportDescriptor.getNativeTransportPort());
     }
 
     private void onTopologyChange(InetAddressAndPort endpoint, Event.TopologyChange event) {

@@ -19,7 +19,6 @@ import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,7 +58,6 @@ import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.ClientWarn;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
-import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.apache.cassandra.tracing.Tracing;
 import org.apache.cassandra.utils.ByteBufferUtil;
@@ -194,25 +192,6 @@ public class DsePersistence
     EventListenerWrapper wrapper = new EventListenerWrapper(listener);
     SchemaManager.instance.registerListener(wrapper);
     interceptor.register(wrapper);
-  }
-
-  @Override
-  public boolean isRpcReady(InetAddressAndPort endpoint) {
-    return StorageService.instance.isRpcReady(endpoint.address);
-  }
-
-  @Override
-  public InetAddressAndPort getNativeAddress(InetAddressAndPort endpoint) {
-    try {
-      return InetAddressAndPort.getByName(
-          StorageService.instance.getNativeTransportAddress(endpoint.address));
-    } catch (UnknownHostException e) {
-      // That should not happen, so log an error, but return the
-      // endpoint address since there's a good change this is right
-      logger.error("Problem retrieving RPC address for {}", endpoint, e);
-      return InetAddressAndPort.getByAddressOverrideDefaults(
-          endpoint.address, DatabaseDescriptor.getNativeTransportPort());
-    }
   }
 
   public DataStore newDataStore(QueryState state, QueryOptions queryOptions) {
@@ -680,7 +659,7 @@ public class DsePersistence
       UUID tracingId) {
     Single<Result> resp =
         interceptor.interceptQuery(
-            handler, statement, state, options, customPayload, queryStartNanoTime);
+            statement, state, options, customPayload, queryStartNanoTime);
 
     if (resp == null) {
       resp =
