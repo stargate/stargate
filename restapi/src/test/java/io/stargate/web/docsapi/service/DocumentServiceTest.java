@@ -908,41 +908,6 @@ public class DocumentServiceTest {
   }
 
   @Test
-  public void putAtRoot() throws UnauthorizedException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    Db dbFactoryMock = mock(Db.class);
-    when(dbFactoryMock.getDocDataStoreForToken(anyString())).thenReturn(dbMock);
-    when(dbMock.newBindMap(anyObject(), anyLong())).thenCallRealMethod();
-    when(dbMock.insertBatchIfNotExists(anyString(), anyString(), anyString(), anyObject()))
-        .thenReturn(true);
-
-    boolean success =
-        service.putAtRoot(
-            "authToken", "ks", "collection", "id", "{\"some\": \"data\"}", dbFactoryMock);
-
-    assertThat(success).isTrue();
-  }
-
-  @Test
-  public void putAtRoot_noData() throws UnauthorizedException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    Db dbFactoryMock = mock(Db.class);
-    when(dbFactoryMock.getDocDataStoreForToken(anyString())).thenReturn(dbMock);
-    when(dbMock.newBindMap(anyObject(), anyLong())).thenCallRealMethod();
-    when(dbMock.insertBatchIfNotExists(anyString(), anyString(), anyString(), anyObject()))
-        .thenReturn(true);
-
-    Throwable thrown =
-        catchThrowable(
-            () -> service.putAtRoot("authToken", "ks", "collection", "id", "1", dbFactoryMock));
-
-    assertThat(thrown)
-        .isInstanceOf(DocumentAPIRequestException.class)
-        .hasMessageContaining(
-            "Updating a key with just a JSON primitive, empty object, or empty array is not allowed.");
-  }
-
-  @Test
   public void putAtPath() throws UnauthorizedException {
     DocumentDB dbMock = mock(DocumentDB.class);
     Db dbFactoryMock = mock(Db.class);

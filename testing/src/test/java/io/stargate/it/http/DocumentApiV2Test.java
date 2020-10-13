@@ -353,59 +353,6 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void testRootDocumentPut() throws IOException {
-    JsonNode obj = objectMapper.readTree("{\"abc\": 1}");
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
-
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1"));
-
-    obj = objectMapper.readTree("{\"bcd\": true}");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(409);
-    assertThat(r.body().string()).isEqualTo("Document 1 already exists in collection collection");
-
-    obj = objectMapper.readTree("{\"bcd\": true}");
-    r = post("/v2/namespaces/" + keyspace + "/collections/collection", obj);
-    assertThat(r.code()).isEqualTo(201);
-    String body = r.body().string();
-    JsonNode newId = objectMapper.readTree(body).requiredAt("/documentId");
-    assertThat(newId).isNotNull();
-
-    obj = objectMapper.readTree("{\"bcd\": true}");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/" + newId.asText(), obj);
-    assertThat(r.code()).isEqualTo(409);
-    assertThat(r.body().string())
-        .isEqualTo(
-            String.format("Document %s already exists in collection collection", newId.asText()));
-
-    obj = objectMapper.readTree("{\"cde\": 1}");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/2", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
-
-    obj = objectMapper.readTree("{\"bcd\": true}");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/2", obj);
-    assertThat(r.code()).isEqualTo(409);
-    assertThat(r.body().string()).isEqualTo("Document 2 already exists in collection collection");
-
-    r = delete("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(204);
-
-    obj = objectMapper.readTree("{\"bcd\": true}");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
-
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1"));
-  }
-
-  @Test
   public void testPutNullsAndEmpties() throws IOException {
     JsonNode obj = objectMapper.readTree("{\"abc\": null}");
     Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
@@ -2261,7 +2208,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces", host),
+        String.format("%s:8082/v2/schemas/namespaces", host),
         createKeyspaceRequest,
         HttpStatus.SC_CREATED);
   }

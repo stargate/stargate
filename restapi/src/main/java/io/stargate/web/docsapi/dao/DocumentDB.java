@@ -6,7 +6,6 @@ import com.google.common.collect.ImmutableList;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.PreparedStatement;
 import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.Row;
 import io.stargate.db.datastore.query.Parameter;
 import io.stargate.db.datastore.query.QueryBuilder;
 import io.stargate.db.datastore.query.Where;
@@ -34,6 +33,7 @@ public class DocumentDB {
   public static final Integer MAX_ARRAY_LENGTH =
       Integer.getInteger("stargate.document_max_array_len", 1000000);
   public static final String GLOB_VALUE = "*";
+
   public static final String ROOT_DOC_MARKER = "DOCROOT-a9fb1f04-0394-4c74-b77b-49b4e0ef7900";
   public static final String EMPTY_OBJECT_MARKER = "EMPTYOBJ-bccbeee1-6173-4120-8492-7d7bafaefb1f";
   public static final String EMPTY_ARRAY_MARKER = "EMPTYARRAY-9df4802a-c135-42d6-8be3-d23d9520a4e7";
@@ -281,43 +281,6 @@ public class DocumentDB {
   }
 
   /**
-   * Prepares an insert for the root-most part of a document. Adds the `IF NOT EXISTS` clause
-   * if @param ifNotExists is true. If it is false, adds the `USING TIMESTAMP` clause. Inserts do
-   * not support both `IF NOT EXISTS` and `USING TIMESTAMP`.
-   */
-  public PreparedStatement getRootDocInsertStatement(
-      String keyspaceName, String tableName, boolean ifNotExists) {
-    StringBuilder emptyStrings = new StringBuilder();
-
-    for (int i = 0; i < MAX_DEPTH; i++) {
-      emptyStrings.append("''");
-      if (i < MAX_DEPTH - 1) {
-        emptyStrings.append(", ");
-      }
-    }
-
-    StringBuilder stmt = new StringBuilder();
-    stmt.append("INSERT INTO \"%s\".\"%s\" (key, %s, leaf) VALUES (:key, %s, '%s')");
-    if (ifNotExists) {
-      stmt.append(" IF NOT EXISTS");
-    } else {
-      stmt.append(" USING TIMESTAMP ?");
-    }
-
-    String statement =
-        String.format(
-            stmt.toString(),
-            keyspaceName,
-            tableName,
-            String.join(", ", allPathColumnNames),
-            emptyStrings,
-            ROOT_DOC_MARKER);
-
-    logger.debug(statement);
-    return dataStore.prepare(statement);
-  }
-
-  /**
    * Performs a delete of all the rows that are prefixed by the @param path, and then does an insert
    * using the @param vars provided, all in one batch.
    */
@@ -328,25 +291,18 @@ public class DocumentDB {
       List<Object[]> vars,
       List<String> pathToDelete,
       long microsSinceEpoch) {
-    PreparedStatement[] statements = new PreparedStatement[vars.size() + 2];
+    PreparedStatement[] statements = new PreparedStatement[vars.size() + 1];
     statements[0] = getPrefixDeleteStatement(keyspace, table, pathToDelete);
-    statements[1] = getRootDocInsertStatement(keyspace, table, false);
     Object[] deleteVars = new Object[pathToDelete.size() + 2];
-    Object[] rootDocVars = new Object[2];
     deleteVars[0] = microsSinceEpoch - 1;
     deleteVars[1] = key;
-
-    // Read the CQL in getRootDocInsertStatement to see why these are reversed
-    rootDocVars[0] = key;
-    rootDocVars[1] = microsSinceEpoch;
 
     for (int i = 2; i < deleteVars.length; i++) {
       deleteVars[i] = pathToDelete.get(i - 2);
     }
 
-    vars.add(0, rootDocVars);
     vars.add(0, deleteVars);
-    Arrays.fill(statements, 2, statements.length, getInsertStatement(keyspace, table));
+    Arrays.fill(statements, 1, statements.length, getInsertStatement(keyspace, table));
     dataStore
         .processBatch(Arrays.asList(statements), vars, Optional.of(ConsistencyLevel.LOCAL_QUORUM))
         .join();
@@ -364,19 +320,13 @@ public class DocumentDB {
       List<String> pathToDelete,
       List<String> patchedKeys,
       long microsSinceEpoch) {
-    boolean hasPath = !pathToDelete.isEmpty();
-    PreparedStatement[] statements = new PreparedStatement[vars.size() + (hasPath ? 4 : 3)];
+    PreparedStatement[] statements = new PreparedStatement[vars.size() + 3];
     Object[] deleteVarsWithPathKeys = new Object[pathToDelete.size() + patchedKeys.size() + 2];
     Object[] deleteVarsExact = new Object[pathToDelete.size() + 2];
-    Object[] rootDocInsertVars = new Object[2];
     deleteVarsWithPathKeys[0] = microsSinceEpoch - 1;
     deleteVarsWithPathKeys[1] = key;
     deleteVarsExact[0] = microsSinceEpoch - 1;
     deleteVarsExact[1] = key;
-
-    // Read the CQL in getRootDocInsertStatement to see why these are reversed
-    rootDocInsertVars[0] = key;
-    rootDocInsertVars[1] = microsSinceEpoch;
 
     for (int i = 0; i < pathToDelete.size(); i++) {
       deleteVarsWithPathKeys[i + 2] = pathToDelete.get(i);
@@ -387,58 +337,20 @@ public class DocumentDB {
       deleteVarsWithPathKeys[i + 2 + pathToDelete.size()] = patchedKeys.get(i);
     }
 
-    Arrays.fill(
-        statements, 0, statements.length - (hasPath ? 4 : 3), getInsertStatement(keyspace, table));
+    Arrays.fill(statements, 0, statements.length - 3, getInsertStatement(keyspace, table));
 
-    // This statement makes sure there is a DOCROOT. the writetime will always represent the time of
-    // latest write to the document.
-    statements[statements.length - 3] = getRootDocInsertStatement(keyspace, table, false);
+    statements[statements.length - 3] = getExactPathDeleteStatement(keyspace, table, pathToDelete);
     statements[statements.length - 2] =
         getSubpathArrayDeleteStatement(keyspace, table, pathToDelete);
     statements[statements.length - 1] =
         getPathKeysDeleteStatement(keyspace, table, pathToDelete, patchedKeys);
 
-    if (hasPath) {
-      // Only deleting the root path when there is a defined `pathToDelete` ensures that the DOCROOT
-      // entry is never deleted out.
-      statements[statements.length - 4] =
-          getExactPathDeleteStatement(keyspace, table, pathToDelete);
-      vars.add(deleteVarsExact);
-    }
-    vars.add(rootDocInsertVars);
+    vars.add(deleteVarsExact);
     vars.add(deleteVarsExact);
     vars.add(deleteVarsWithPathKeys);
     dataStore
         .processBatch(Arrays.asList(statements), vars, Optional.of(ConsistencyLevel.LOCAL_QUORUM))
         .join();
-  }
-
-  /**
-   * Performs an insert using the @param vars provided, all in one batch, using `IF NOT EXISTS`
-   * behavior on the `key`.
-   *
-   * @return true if data was written, false otherwise
-   */
-  public boolean insertBatchIfNotExists(
-      String keyspace, String table, String key, List<Object[]> vars) {
-    PreparedStatement[] statements = new PreparedStatement[vars.size() + 1];
-    statements[0] = getRootDocInsertStatement(keyspace, table, true);
-    Object[] rootInsertVars = new Object[1];
-    rootInsertVars[0] = key;
-
-    vars.add(0, rootInsertVars);
-    Arrays.fill(statements, 1, statements.length, getInsertStatement(keyspace, table));
-
-    ResultSet res =
-        dataStore
-            .processBatch(
-                Arrays.asList(statements), vars, Optional.of(ConsistencyLevel.LOCAL_QUORUM))
-            .join();
-
-    Column appliedCol = Column.reference("[applied]");
-    List<Row> rows = res.rows();
-
-    return rows.stream().allMatch(r -> r.getBoolean(appliedCol));
   }
 
   public void delete(

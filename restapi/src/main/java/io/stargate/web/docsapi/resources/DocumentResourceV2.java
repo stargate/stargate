@@ -102,37 +102,26 @@ public class DocumentResourceV2 {
     String newId = UUID.randomUUID().toString();
     return handle(
         () -> {
-          boolean success =
-              documentService.putAtRoot(
-                  authToken, namespace, collection, newId, payload, dbFactory);
+          putDocPath(
+              headers, ui, authToken, namespace, collection, newId, new ArrayList<>(), payload);
 
-          if (success) {
-            return Response.created(
-                    URI.create(
-                        String.format(
-                            "/v2/namespaces/%s/collections/%s/%s", namespace, collection, newId)))
-                .entity(mapper.writeValueAsString(wrapResponse(null, newId)))
-                .build();
-          } else {
-            // This should really never happen, just being defensive
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(String.format("Fatal ID collision, try once more: %s", newId))
-                .build();
-          }
+          return Response.created(
+                  URI.create(
+                      String.format(
+                          "/v2/namespaces/%s/collections/%s/%s", namespace, collection, newId)))
+              .entity(mapper.writeValueAsString(wrapResponse(null, newId)))
+              .build();
         });
   }
 
   @PUT
-  @ApiOperation(
-      value = "Create a new document with a provided document-id",
-      notes = "Rejects the request if a document with that document-id already exists.")
+  @ApiOperation(value = "Create or update a document with the provided document-id")
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK"),
         @ApiResponse(code = 400, message = "Bad request"),
         @ApiResponse(code = 401, message = "Unauthorized"),
         @ApiResponse(code = 403, message = "Forbidden"),
-        @ApiResponse(code = 409, message = "Conflict: document already exists"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}")
@@ -156,21 +145,10 @@ public class DocumentResourceV2 {
           String id,
       String payload) {
     logger.debug("Put: Collection = {}, id = {}", collection, id);
-
     return handle(
-        () -> {
-          boolean success =
-              documentService.putAtRoot(authToken, namespace, collection, id, payload, dbFactory);
-
-          if (success) {
-            return Response.ok().entity(mapper.writeValueAsString(wrapResponse(null, id))).build();
-          } else {
-            return Response.status(Response.Status.CONFLICT)
-                .entity(
-                    String.format("Document %s already exists in collection %s", id, collection))
-                .build();
-          }
-        });
+        () ->
+            putDocPath(
+                headers, ui, authToken, namespace, collection, id, new ArrayList<>(), payload));
   }
 
   @PUT
@@ -210,7 +188,6 @@ public class DocumentResourceV2 {
           List<PathSegment> path,
       String payload) {
     logger.debug("Put: Collection = {}, id = {}, path = {}", collection, id, path);
-
     return handle(
         () -> {
           documentService.putAtPath(
@@ -252,7 +229,6 @@ public class DocumentResourceV2 {
           String id,
       String payload) {
     logger.debug("Patch: Collection = {}, id = {}", collection, id);
-
     return handle(
         () -> {
           documentService.putAtPath(
@@ -299,7 +275,6 @@ public class DocumentResourceV2 {
           List<PathSegment> path,
       String payload) {
     logger.debug("Patch: Collection = {}, id = {}, path = {}", collection, id, path);
-
     return handle(
         () -> {
           documentService.putAtPath(
@@ -378,7 +353,6 @@ public class DocumentResourceV2 {
           @PathParam("document-path")
           List<PathSegment> path) {
     logger.debug("Delete: Collection = {}, id = {}, path = {}", collection, id, path);
-
     return handle(
         () -> {
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
