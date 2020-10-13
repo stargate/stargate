@@ -1,12 +1,14 @@
 #!/bin/bash
 
 apt-get update && apt-get install openjdk-8-jdk git python2.7 python-setuptools python-six python-yaml sudo maven -y
+
+
+update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
+export PATH=$PATH:$JAVA_HOME/bin
 java -version
 
 ln -sf /usr/bin/python2.7 /usr/bin/python
-
-export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
-export PATH=$PATH:$JAVA_HOME/bin
 
 git clone --branch master --single-branch https://github.com/riptano/ccm.git
 pushd ccm || exit
