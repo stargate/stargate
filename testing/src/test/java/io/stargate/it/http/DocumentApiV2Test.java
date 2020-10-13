@@ -1499,7 +1499,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode responseBody2 = objectMapper.readTree(responseBody);
 
     assertThat(responseBody2.requiredAt("/data").size()).isEqualTo(5);
-    assertThat(responseBody2.at("/pageState").isNull()).isEqualTo(true);
+    assertThat(responseBody2.at("/pageState")).isNull();
 
     JsonNode data = responseBody2.requiredAt("/data");
     Iterator<JsonNode> iter = data.iterator();
@@ -1537,7 +1537,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     responseBody2 = objectMapper.readTree(responseBody);
 
     assertThat(responseBody2.requiredAt("/data").size()).isEqualTo(34);
-    assertThat(responseBody2.at("/pageState").isNull()).isEqualTo(true);
+    assertThat(responseBody2.at("/pageState")).isNull();
 
     data = responseBody2.requiredAt("/data");
     iter = data.iterator();
@@ -1615,7 +1615,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(body).startsWith("{");
     assertThat(r.code()).isEqualTo(200);
     resp = objectMapper.readTree(body);
-    assertThat(resp.at("/pageState").isNull()).isEqualTo(true);
+    assertThat(resp.at("/pageState")).isNull();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
     // Any document could come back, find out which one is there
@@ -1655,7 +1655,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(body).startsWith("{");
     assertThat(r.code()).isEqualTo(200);
     resp = objectMapper.readTree(body);
-    assertThat(resp.at("/pageState").isNull()).isEqualTo(true);
+    assertThat(resp.at("/pageState")).isNull();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
     // Any document could come back, find out which one is there
@@ -1674,7 +1674,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(body).startsWith("{");
     assertThat(r.code()).isEqualTo(200);
     resp = objectMapper.readTree(body);
-    assertThat(resp.at("/pageState").isNull()).isEqualTo(true);
+    assertThat(resp.at("/pageState")).isNull();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(3);
     Iterator<String> iter = data.fieldNames();
@@ -1769,7 +1769,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(body).startsWith("{");
     assertThat(r.code()).isEqualTo(200);
     resp = objectMapper.readTree(body);
-    assertThat(resp.at("/pageState").isNull()).isEqualTo(true);
+    assertThat(resp.at("/pageState")).isNull();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
     // Any document could come back, find out which one is there
@@ -1830,7 +1830,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(body).startsWith("{");
     assertThat(r.code()).isEqualTo(200);
     resp = objectMapper.readTree(body);
-    assertThat(resp.at("/pageState").isNull()).isEqualTo(true);
+    assertThat(resp.at("/pageState")).isNull();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
     // Any document could come back, find out which one is there
@@ -1856,7 +1856,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(body).startsWith("{");
     assertThat(r.code()).isEqualTo(200);
     resp = objectMapper.readTree(body);
-    assertThat(resp.at("/pageState").isNull()).isEqualTo(true);
+    assertThat(resp.at("/pageState")).isNull();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(3);
     Iterator<String> iter = data.fieldNames();
@@ -1912,7 +1912,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + "/collections/collection?where={\"b.value\": {\"$eq\": 2}}&fields=[\"a\"]");
     assertThat(r.code()).isEqualTo(200);
     JsonNode resp = objectMapper.readTree(r.body().string());
-    assertThat(resp.at("/pageState").isNull()).isEqualTo(true);
+    assertThat(resp.at("/pageState")).isNull();
     JsonNode data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
     // The only matching document based on `where` is document 1
@@ -1955,7 +1955,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + URLEncoder.encode(pageState, "UTF-8"));
     assertThat(r.code()).isEqualTo(200);
     resp = objectMapper.readTree(r.body().string());
-    assertThat(resp.at("/pageState").isNull()).isEqualTo(true);
+    assertThat(resp.at("/pageState")).isNull();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
     key = data.fieldNames().next();

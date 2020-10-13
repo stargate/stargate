@@ -3,11 +3,10 @@ package io.stargate.web.docsapi.resources;
 import com.datastax.oss.driver.api.core.NoNodeAvailableException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.models.ResponseWrapper;
@@ -37,31 +36,6 @@ public class DocumentResourceV2 {
   private static final ObjectMapper mapper = new ObjectMapper();
   private final DocumentService documentService = new DocumentService();
   private final int DEFAULT_PAGE_SIZE = 100;
-
-  private JsonNode wrapResponse(JsonNode node, String id) {
-    ObjectNode wrapperNode = mapper.createObjectNode();
-
-    if (id != null) {
-      wrapperNode.set("documentId", TextNode.valueOf(id));
-    }
-    if (node != null) {
-      wrapperNode.set("data", node);
-    }
-    return wrapperNode;
-  }
-
-  private JsonNode wrapResponse(JsonNode node, String id, String pagingState) {
-    ObjectNode wrapperNode = mapper.createObjectNode();
-
-    if (id != null) {
-      wrapperNode.set("documentId", TextNode.valueOf(id));
-    }
-    if (node != null) {
-      wrapperNode.set("data", node);
-    }
-    wrapperNode.set("pageState", TextNode.valueOf(pagingState));
-    return wrapperNode;
-  }
 
   @POST
   @ApiOperation(
@@ -109,7 +83,7 @@ public class DocumentResourceV2 {
                   URI.create(
                       String.format(
                           "/v2/namespaces/%s/collections/%s/%s", namespace, collection, newId)))
-              .entity(mapper.writeValueAsString(wrapResponse(null, newId)))
+              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(newId, null, null)))
               .build();
         });
   }
@@ -192,7 +166,9 @@ public class DocumentResourceV2 {
         () -> {
           documentService.putAtPath(
               authToken, namespace, collection, id, payload, path, false, dbFactory);
-          return Response.ok().entity(mapper.writeValueAsString(wrapResponse(null, id))).build();
+          return Response.ok()
+              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
+              .build();
         });
   }
 
@@ -233,7 +209,9 @@ public class DocumentResourceV2 {
         () -> {
           documentService.putAtPath(
               authToken, namespace, collection, id, payload, new ArrayList<>(), true, dbFactory);
-          return Response.ok().entity(mapper.writeValueAsString(wrapResponse(null, id))).build();
+          return Response.ok()
+              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
+              .build();
         });
   }
 
@@ -279,7 +257,9 @@ public class DocumentResourceV2 {
         () -> {
           documentService.putAtPath(
               authToken, namespace, collection, id, payload, path, true, dbFactory);
-          return Response.ok().entity(mapper.writeValueAsString(wrapResponse(null, id))).build();
+          return Response.ok()
+              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
+              .build();
         });
   }
 
@@ -525,11 +505,12 @@ public class DocumentResourceV2 {
               return Response.noContent().build();
             }
 
+            String json;
             if (raw == null || !raw) {
-              node = wrapResponse(node, id);
+              json = mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, node));
+            } else {
+              json = mapper.writeValueAsString(node);
             }
-
-            String json = mapper.writeValueAsString(node);
 
             logger.debug(json);
             return Response.ok(json).build();
@@ -550,17 +531,19 @@ public class DocumentResourceV2 {
               return Response.noContent().build();
             }
 
+            String json;
+
             if (raw == null || !raw) {
               String pagingStateStr =
                   result.right != null
                       ? Base64.getEncoder().encodeToString(result.right.array())
                       : null;
-              node = wrapResponse(result.left, id, pagingStateStr);
+              json =
+                  mapper.writeValueAsString(
+                      new DocumentResponseWrapper<>(id, pagingStateStr, result.left));
             } else {
-              node = result.left;
+              json = mapper.writeValueAsString(result.left);
             }
-
-            String json = mapper.writeValueAsString(node);
 
             logger.debug(json);
             return Response.ok(json).build();
@@ -694,11 +677,14 @@ public class DocumentResourceV2 {
                   ? Base64.getEncoder().encodeToString(results.right.array())
                   : null;
 
+          String json;
           if (raw == null || !raw) {
-            docsResult = wrapResponse(docsResult, null, pagingStateStr);
+            json =
+                mapper.writeValueAsString(
+                    new DocumentResponseWrapper<>(null, pagingStateStr, docsResult));
+          } else {
+            json = mapper.writeValueAsString(docsResult);
           }
-
-          String json = mapper.writeValueAsString(docsResult);
 
           logger.debug(json);
           return Response.ok(json).build();
