@@ -2,5 +2,6 @@ steps:
   - name: 'ubuntu:bionic'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]
+  timeout: 1800s
 options:
   machineType: 'N1_HIGHCPU_32'
