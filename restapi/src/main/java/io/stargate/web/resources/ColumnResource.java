@@ -60,7 +60,12 @@ public class ColumnResource {
 
   private static final Logger logger = LoggerFactory.getLogger(ColumnResource.class);
 
-  @Inject private Db db;
+  private Db db;
+
+  @Inject
+  public ColumnResource(Db db) {
+    this.db = db;
+  }
 
   @Timed
   @GET
