@@ -1,7 +1,18 @@
 steps:
-  - name: 'ubuntu:bionic'
+  - id: 'cassandra-3.11'
+    waitFor: [ '-' ]
+    name: 'ubuntu:bionic'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]
+    env:
+      - 'PERSISTENCE_BACKEND=cassandra-3.11'
+  - id: 'cassandra-4.0'
+    waitFor: [ '-' ]
+    name: 'ubuntu:bionic'
+    entrypoint: 'bash'
+    args: [ 'ci/test.sh' ]
+    env:
+      - 'PERSISTENCE_BACKEND=cassandra-4.0'
 timeout: 1800s
 options:
   machineType: 'N1_HIGHCPU_32'

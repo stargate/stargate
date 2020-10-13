@@ -2,7 +2,6 @@
 
 apt-get update && apt-get install openjdk-8-jdk git python2.7 python-setuptools python-six python-yaml sudo maven -y
 
-
 update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
 export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
 export PATH=$PATH:$JAVA_HOME/bin
@@ -24,10 +23,22 @@ export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
 export PATH=$PATH:$JAVA_HOME/bin
 cd /workspace
 
+C3="!"
+C4="!"
+DSE="!"
+case "$PERSISTENCE_BACKEND" in
+  "cassandra-3.11") C3=""  ;;
+  "cassandra-4.0")  C4=""  ;;
+  "dse-6.8")        DSE="" ;;
+esac
+
+echo "Using backend $PERSISTENCE_BACKEND"
+
 export CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
 mvn -B verify --file pom.xml \
--P !it-cassandra-3.11 \
--P it-cassandra-4.0 \
+-P ${C3}it-cassandra-3.11 \
+-P ${C4}it-cassandra-4.0 \
+-P ${DSE}dse -P ${DSE}it-dse-6.8 \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 EOF
 
