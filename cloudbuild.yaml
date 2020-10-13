@@ -1,13 +1,18 @@
 steps:
+  - id: 'build'
+    #    waitFor: [ '-' ]
+    name: 'ubuntu:bionic'
+    entrypoint: 'bash'
+    args: [ 'ci/build.sh' ]
   - id: 'cassandra-3.11'
-    waitFor: [ '-' ]
+    waitFor: [ 'build' ]
     name: 'ubuntu:bionic'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]
     env:
       - 'PERSISTENCE_BACKEND=cassandra-3.11'
   - id: 'cassandra-4.0'
-    waitFor: [ '-' ]
+    waitFor: [ 'build' ]
     name: 'ubuntu:bionic'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]

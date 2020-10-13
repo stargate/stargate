@@ -9,7 +9,7 @@ java -version
 
 ln -sf /usr/bin/python2.7 /usr/bin/python
 
-git clone --branch master --single-branch https://github.com/riptano/ccm.git
+#git clone --branch master --single-branch https://github.com/riptano/ccm.git
 pushd ccm || exit
 sudo python setup.py install
 popd
