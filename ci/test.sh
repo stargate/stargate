@@ -1,5 +1,7 @@
 #!/bin/bash
 
+ls -altrh
+pwd
 
 apt-get update && apt-get install openjdk-8-jdk git python2.7 python-setuptools python-six python-yaml sudo -y
 java -version
@@ -14,12 +16,9 @@ sudo python setup.py install
 popd
 
 adduser --disabled-password --gecos "" ubuntu
-su - ubuntu
-echo "#########"
-whoami
-echo "#########"
-
+su - ubuntu bash << EOF
 export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
+cd /
 
 mkdir -p /tmp/ccm8202548329431989080
 ccm create ccm_1 -i 127.0.0. -n 1:0 -v 3.11.8 --config-dir=/tmp/ccm8202548329431989080
@@ -43,3 +42,6 @@ export CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
 -P it-cassandra-3.11 \
 -P it-cassandra-4.0 \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+EOF
+
+
