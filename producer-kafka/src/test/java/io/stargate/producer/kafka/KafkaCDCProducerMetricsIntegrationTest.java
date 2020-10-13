@@ -18,6 +18,7 @@ package io.stargate.producer.kafka;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_ENABLED_SETTING_NAME;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_INCLUDE_TAGS_SETTING_NAME;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_NAME_SETTING_NAME;
+import static io.stargate.producer.kafka.configuration.MetricsConfig.METRICS_NAME_DEFAULT;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.clusteringKey;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.column;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.createRowUpdateEvent;
@@ -89,11 +90,7 @@ public class KafkaCDCProducerMetricsIntegrationTest extends IntegrationTestBase 
     try {
       validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
       // it should have all kafka producer metrics registered (more than 100 metrics)
-      assertThat(
-              metricRegistry.getMetrics().keySet().stream()
-                  .filter(v -> v.startsWith(kafkaMetricsPrefix))
-                  .count())
-          .isGreaterThan(100);
+      assertThat(countMetricsByPrefix(kafkaMetricsPrefix, metricRegistry)).isGreaterThan(100);
       // validate number of sent records
       assertThat(getMetricValue(metricRegistry, "record-send-total", topicName)).isEqualTo(1.0);
       Double outgoingBytesRate = getMetricValue(metricRegistry, "outgoing-byte-rate");
@@ -111,6 +108,64 @@ public class KafkaCDCProducerMetricsIntegrationTest extends IntegrationTestBase 
     } finally {
       kafkaCDCProducer.close().get();
     }
+  }
+
+  @Test
+  public void shouldNotRegisterMetricsWhenMetricsAreDisabled() throws Exception {
+    // given
+    TableMetadata tableMetadata = mockTableMetadata();
+    String topicName = creteTopicName(tableMetadata);
+
+    MetricRegistry metricRegistry = new MetricRegistry();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(metricRegistry);
+    Map<String, Object> metricsSettings = new HashMap<>();
+    metricsSettings.put(METRICS_ENABLED_SETTING_NAME, false);
+
+    Map<String, Object> properties = createKafkaProducerSettings(metricsSettings);
+    kafkaCDCProducer.init(properties).get();
+
+    // when
+    // schema change event
+    when(tableMetadata.getPartitionKeys())
+        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
+    when(tableMetadata.getClusteringKeys())
+        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
+    when(tableMetadata.getColumns())
+        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
+    kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
+
+    // send actual event
+    RowUpdateEvent rowMutationEvent =
+        createRowUpdateEvent(
+            PARTITION_KEY_VALUE,
+            partitionKey(PARTITION_KEY_NAME, Native.TEXT),
+            "col_value",
+            column(COLUMN_NAME, Native.TEXT),
+            CLUSTERING_KEY_VALUE,
+            clusteringKey(CLUSTERING_KEY_NAME, Native.INT),
+            tableMetadata,
+            1000);
+    kafkaCDCProducer.send(rowMutationEvent).get();
+
+    // then
+    GenericRecord expectedKey =
+        kafkaCDCProducer.keyValueConstructor.constructKey(rowMutationEvent, topicName);
+    GenericRecord expectedValue =
+        kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
+
+    try {
+      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      assertThat(countMetricsByPrefix(METRICS_NAME_DEFAULT, metricRegistry)).isEqualTo(0);
+
+    } finally {
+      kafkaCDCProducer.close().get();
+    }
+  }
+
+  private long countMetricsByPrefix(String kafkaMetricsPrefix, MetricRegistry metricRegistry) {
+    return metricRegistry.getMetrics().keySet().stream()
+        .filter(v -> v.startsWith(kafkaMetricsPrefix))
+        .count();
   }
 
   private Double getMetricValue(MetricRegistry metricRegistry, String metricName) {
