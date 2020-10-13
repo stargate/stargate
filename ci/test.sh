@@ -26,6 +26,15 @@ ccm updateconf enable_user_defined_functions:true --config-dir=/tmp/ccm820254832
 ccm start --wait-for-binary-proto --config-dir=/tmp/ccm8202548329431989080 --verbose
 ccm checklogerror --config-dir=/tmp/ccm8202548329431989080
 
+
+for file in $(ls /tmp/ccm8202548329431989080/ccm_1/node1/logs/); do
+  echo "######## File: $file ########"
+  cat /tmp/ccm8202548329431989080/ccm_1/node1/logs/$file
+  echo ""
+  echo ""
+done
+
+
 export CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
 ./mvnw -B verify --file pom.xml \
 -P it-cassandra-3.11 \
