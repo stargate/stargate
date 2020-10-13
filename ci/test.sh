@@ -18,7 +18,16 @@ su - ubuntu
 
 export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
 
-CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600 ./mvnw -B verify --file pom.xml \
--P it-cassandra-3.11 \
--P it-cassandra-4.0 \
--Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+mkdir -p /tmp/ccm8202548329431989080
+ccm create ccm_1 -i 127.0.0. -n 1:0 -v 3.11.8 --config-dir=/tmp/ccm8202548329431989080
+ccm updateconf auto_snapshot:false --config-dir=/tmp/ccm8202548329431989080
+ccm updateconf cluster_name:Test_Cluster --config-dir=/tmp/ccm8202548329431989080
+ccm updateconf enable_user_defined_functions:true --config-dir=/tmp/ccm8202548329431989080
+ccm start --wait-for-binary-proto --config-dir=/tmp/ccm8202548329431989080 --verbose
+ccm checklogerror --config-dir=/tmp/ccm8202548329431989080
+
+
+#CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600 ./mvnw -B verify --file pom.xml \
+#-P it-cassandra-3.11 \
+#-P it-cassandra-4.0 \
+#-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
