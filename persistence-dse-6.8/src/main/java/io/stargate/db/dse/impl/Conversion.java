@@ -178,7 +178,7 @@ public class Conversion {
       org.apache.cassandra.transport.ProtocolVersion protocolVersion,
       long timestamp,
       String keyspace) {
-    org.apache.cassandra.cql3.QueryOptions options;
+    QueryOptions options;
     try {
       PagingOptions pagingOptions = null;
       if (pageSize > 0) {
@@ -194,13 +194,11 @@ public class Conversion {
       Object defaultOptions =
           defaultOptionsCtor.newInstance(
               consistencyLevel, values, skipMetadata, specificOptions, protocolVersion);
-      options = (org.apache.cassandra.cql3.QueryOptions) defaultOptions;
+      options = (QueryOptions) defaultOptions;
 
       // Adds names if there is some.
       if (boundNames != null) {
-        options =
-            (org.apache.cassandra.cql3.QueryOptions)
-                optionsWithNameCtor.newInstance(defaultOptions, boundNames);
+        options = (QueryOptions) optionsWithNameCtor.newInstance(defaultOptions, boundNames);
       }
     } catch (Exception e) {
       // We can't afford to ignore that: the values wouldn't be in the proper order, and worst

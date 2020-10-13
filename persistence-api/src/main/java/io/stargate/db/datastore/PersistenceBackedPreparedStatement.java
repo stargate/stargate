@@ -256,8 +256,8 @@ class PersistenceBackedPreparedStatement implements PreparedStatement {
   }
 
   static class PreparedInfo {
-    final MD5Digest id;
-    final List<Column> bindMarkerDefinitions;
+    private final MD5Digest id;
+    private final List<Column> bindMarkerDefinitions;
 
     PreparedInfo(Result.Prepared prepared) {
       this.id = prepared.statementId;

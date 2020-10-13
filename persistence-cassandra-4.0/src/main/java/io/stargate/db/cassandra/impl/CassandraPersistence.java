@@ -230,18 +230,32 @@ public class CassandraPersistence
     return new CassandraConnection();
   }
 
-  private <T extends Result> CompletableFuture<T> runOnExecutor(Supplier<T> supplier) {
+  private <T extends Result> CompletableFuture<T> runOnExecutor(
+      Supplier<T> supplier, boolean captureWarnings) {
     assert executor != null : "This persistence has not been initialized";
     CompletableFuture<T> future = new CompletableFuture<>();
     executor.submit(
         () -> {
+          if (captureWarnings) ClientWarn.instance.captureWarnings();
           try {
-            future.complete(supplier.get());
+            @SuppressWarnings("unchecked")
+            T resultWithWarnings =
+                (T) supplier.get().setWarnings(ClientWarn.instance.getWarnings());
+            future.complete(resultWithWarnings);
           } catch (Throwable t) {
             JVMStabilityInspector.inspectThrowable(t);
-            future.completeExceptionally(t);
+            PersistenceException pe =
+                (t instanceof PersistenceException)
+                    ? (PersistenceException) t
+                    : Conversion.convertInternalException(t);
+            pe.setWarnings(ClientWarn.instance.getWarnings());
+            future.completeExceptionally(pe);
+          } finally {
+            // Note that it's a no-op if we haven't called captureWarnings
+            ClientWarn.instance.resetWarnings();
           }
         });
+
     return future;
   }
 
@@ -336,42 +350,35 @@ public class CassandraPersistence
         Parameters parameters, long queryStartNanoTime, Supplier<Request> requestSupplier) {
       return runOnExecutor(
           () -> {
-            if (parameters.protocolVersion().isGreaterOrEqualTo(ProtocolVersion.V4))
-              ClientWarn.instance.captureWarnings();
-            try {
-              QueryState queryState = new QueryState(clientState);
-              Request request = requestSupplier.get();
-              if (parameters.tracingRequested()) {
-                ReflectionUtils.setTracingRequested(request);
-              }
-              request.setCustomPayload(parameters.customPayload().orElse(null));
-
-              Message.Response response =
-                  ReflectionUtils.execute(request, queryState, queryStartNanoTime);
-
-              // There is only 2 types of response that can come out: either a ResultMessage (which
-              // itself can of different kind), or an ErrorMessage.
-              if (response instanceof ErrorMessage) {
-                PersistenceException pe =
-                    Conversion.convertInternalException(
-                        (Throwable) ((ErrorMessage) response).error);
-                pe.setWarnings(ClientWarn.instance.getWarnings());
-                throw pe;
-              }
-
-              @SuppressWarnings("unchecked")
-              T result =
-                  (T)
-                      Conversion.toResult(
-                          (ResultMessage) response,
-                          Conversion.toInternal(parameters.protocolVersion()),
-                          ClientWarn.instance.getWarnings());
-              return result;
-            } finally {
-              // Note that it's a no-op if we haven't called captureWarnings
-              ClientWarn.instance.resetWarnings();
+            QueryState queryState = new QueryState(clientState);
+            Request request = requestSupplier.get();
+            if (parameters.tracingRequested()) {
+              ReflectionUtils.setTracingRequested(request);
             }
-          });
+            request.setCustomPayload(parameters.customPayload().orElse(null));
+
+            Message.Response response =
+                ReflectionUtils.execute(request, queryState, queryStartNanoTime);
+
+            // There is only 2 types of response that can come out: either a ResultMessage (which
+            // itself can of different kind), or an ErrorMessage.
+            if (response instanceof ErrorMessage) {
+              // Note that we convert in runOnExecutor (to handle exceptions coming from other
+              // parts of this method), but we need an unchecked exception here anyway, so
+              // we convert, and runOnExecutor will detect it's already converted.
+              throw Conversion.convertInternalException(
+                  (Throwable) ((ErrorMessage) response).error);
+            }
+
+            @SuppressWarnings("unchecked")
+            T result =
+                (T)
+                    Conversion.toResult(
+                        (ResultMessage) response,
+                        Conversion.toInternal(parameters.protocolVersion()));
+            return result;
+          },
+          parameters.protocolVersion().isGreaterOrEqualTo(ProtocolVersion.V4));
     }
 
     @Override

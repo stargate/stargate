@@ -6,6 +6,9 @@ import io.stargate.db.Persistence;
 import io.stargate.db.Result;
 import io.stargate.db.Statement;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.Schema;
+import io.stargate.db.schema.Table;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -14,8 +17,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
+import javax.annotation.Nullable;
 
 class PersistenceBackedResultSet implements ResultSet {
+
   private final Persistence.Connection connection;
   private final Parameters parameters;
   private final Statement statement;
@@ -38,8 +43,34 @@ class PersistenceBackedResultSet implements ResultSet {
     this.statement = statement;
     this.driverProtocolVersion = driverProtocolVersion;
     this.fetchedRows = new ArrayDeque<>(parameters.pageSize().orElse(32));
-    this.columns = initialPage.resultMetadata.columns;
+    this.columns = processColumns(initialPage.resultMetadata.columns);
     processNewPage(initialPage);
+  }
+
+  // We have the slight abstraction issue that the columns from Result.Rows "abuse" the Column
+  // class a bit by returning instances that 1) may not represent genuine columns and 2) even when
+  // they represents genuine column, maybe not not be "exactly" those column (in term of object
+  // equality). See Result.Rows#columns javadoc for details.
+  // Here, there is little we can do about non-genuine columns, but we can at least ensure that
+  // for genuine columns, the object we use in the result set will full formed.
+  private List<Column> processColumns(List<Column> columns) {
+    Schema schema = connection.persistence().schema();
+    List<Column> processed = new ArrayList<>(columns.size());
+    for (Column c : columns) {
+      Column inSchema = columnInSchema(schema, c);
+      processed.add(inSchema == null ? c : inSchema);
+    }
+    return processed;
+  }
+
+  private static @Nullable Column columnInSchema(Schema schema, Column toFind) {
+    Keyspace ks = schema.keyspace(toFind.keyspace());
+    if (ks == null) return null;
+
+    Table t = ks.table(toFind.table());
+    if (t == null) return null;
+
+    return t.column(toFind.name());
   }
 
   private void processNewPage(Result.Rows page) {

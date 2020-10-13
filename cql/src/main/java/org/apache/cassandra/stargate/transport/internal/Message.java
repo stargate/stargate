@@ -656,8 +656,6 @@ public abstract class Message {
         assert request.connection() instanceof ServerConnection;
         connection = (ServerConnection) request.connection();
 
-        final Persistence.Connection persistenceConnection = connection.persistenceConnection();
-
         connection.validateNewMessage(request.type, connection.getVersion());
 
         logger.trace("Received: {}, v={}", request, connection.getVersion());

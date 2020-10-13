@@ -210,7 +210,24 @@ public abstract class Result {
 
     public final EnumSet<Flag> flags;
     public final int columnCount;
+    /**
+     * The definition of the columns for each row in the result set. Please note that the objects in
+     * this list are not "true" columns, in the sense that 1) some may not correspond to a declared
+     * column at all (for instance, {@code ttl(c)}) and 2) even for definition that correspond to a
+     * genuine column, some of information may not be set. For instance, the {@link Column#kind()}
+     * method may well return {@code null}, even if the column is otherwise a partition column. The
+     * only things that can be safely relied upon for a column are it's keyspace and table name, the
+     * name of what it represents and the type.
+     *
+     * <p>Practically, if you get a column {@code c} from this list that correspond to a genuine
+     * column "c" in table "k.t", and {@code t} is that {@link io.stargate.db.schema.Table} schema,
+     * do no assume that {@code c.equals(t.column(c.name()))} (because the {@link Column#kind} or
+     * {@link Column#order} may differ).
+     */
+    // TODO: we may want to try to have a specific class here instead of Column to make it very
+    //  clear that those aren't entirely the same concept that the Column object in the schema.
     public final List<Column> columns;
+
     public final MD5Digest resultMetadataId;
     public ByteBuffer pagingState;
 

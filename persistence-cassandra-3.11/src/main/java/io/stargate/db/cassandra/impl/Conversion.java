@@ -37,7 +37,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import javax.annotation.Nullable;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.cql3.QueryOptions;
@@ -198,7 +197,7 @@ public class Conversion {
       Object defaultOptions =
           defaultOptionsCtor.newInstance(
               consistencyLevel, values, skipMetadata, specificOptions, protocolVersion);
-      options = (org.apache.cassandra.cql3.QueryOptions) defaultOptions;
+      options = (QueryOptions) defaultOptions;
 
       // Adds names if there is some.
       if (boundNames != null) {
@@ -273,8 +272,7 @@ public class Conversion {
     return new FunctionName(internal.keyspace, internal.name);
   }
 
-  public static PersistenceException toExternal(
-      org.apache.cassandra.exceptions.CassandraException e) {
+  public static PersistenceException toExternal(CassandraException e) {
     switch (e.code()) {
       case SERVER_ERROR:
         return addSuppressed(new ServerError(e.getMessage()), e);
@@ -448,12 +446,8 @@ public class Conversion {
   }
 
   public static Result toResult(
-      ResultMessage resultMessage,
-      org.apache.cassandra.transport.ProtocolVersion version,
-      @Nullable List<String> warnings) {
-    return toResultInternal(resultMessage, version)
-        .setTracingId(resultMessage.getTracingId())
-        .setWarnings(warnings);
+      ResultMessage resultMessage, org.apache.cassandra.transport.ProtocolVersion version) {
+    return toResultInternal(resultMessage, version).setTracingId(resultMessage.getTracingId());
   }
 
   public static Result toResultInternal(
