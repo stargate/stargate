@@ -53,10 +53,10 @@ public class PlaygroundServlet extends HttpServlet {
     // Replace the templated text with the token if it exist. Using java.lang.String.replaceFirst
     // since it's safer than java.lang.String.format(java.lang.String, java.lang.Object...) due to
     // the percent signs that exist in the string.
-    String formattedIndexFile =
+    String formattedPlaygroundFile =
         playgroundFile.replaceFirst("AUTHENTICATION_TOKEN", token == null ? "" : token);
     ByteArrayInputStream byteArrayInputStream =
-        new ByteArrayInputStream(formattedIndexFile.getBytes());
+        new ByteArrayInputStream(formattedPlaygroundFile.getBytes());
     try {
       OutputStream os = response.getOutputStream();
 
