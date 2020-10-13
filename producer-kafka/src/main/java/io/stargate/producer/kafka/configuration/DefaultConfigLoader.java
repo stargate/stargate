@@ -42,13 +42,23 @@ public class DefaultConfigLoader implements ConfigLoader {
         topicPrefixName, schemaRegistryUrl, kafkaProducerSettings, metricsConfig);
   }
 
+  /**
+   * It adds the settings to a Kafka producer setting map that is used when constructing the
+   * producer. The {@link DropwizardMetricsReporter} is extending the {@link
+   * org.apache.kafka.common.metrics.MetricsReporter}, plugging into the Kafka producer lifecycle.
+   * This class is set as {@link CommonClientConfigs#METRIC_REPORTER_CLASSES_CONFIG}. The {@link
+   * MetricsConfig#isIncludeTags()} is mapped to the dropwizard reporter {@link
+   * DropwizardMetricsReporter#SHOULD_INCLUDE_TAGS_CONFIG}. The {@link
+   * MetricsConfig#getMetricsName()} is mapped to the dropwizard reporter {@link
+   * DropwizardMetricsReporter#METRICS_NAME_CONFIG}.
+   */
   private void registerMetricsIfEnabled(
       Map<String, Object> kafkaProducerSettings, MetricsConfig metricsConfig) {
     if (metricsConfig.isMetricsEnabled()) {
       kafkaProducerSettings.put(
           CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG,
           DropwizardMetricsReporter.class.getName());
-      // map to  dropwizard specific settings
+      // map CDC producer to dropwizard specific settings
       kafkaProducerSettings.put(
           DropwizardMetricsReporter.SHOULD_INCLUDE_TAGS_CONFIG,
           Boolean.toString(metricsConfig.isIncludeTags()));
@@ -57,6 +67,13 @@ public class DefaultConfigLoader implements ConfigLoader {
     }
   }
 
+  /**
+   * It loads the metrics settings for CDC connector. The {@link
+   * ConfigLoader#METRICS_ENABLED_SETTING_NAME} is required. The {@link
+   * ConfigLoader#METRICS_INCLUDE_TAGS_SETTING_NAME} is optional, if not provided the {@link
+   * MetricsConfig#INCLUDE_TAGS_DEFAULT} is used. The {@link ConfigLoader#METRICS_NAME_SETTING_NAME}
+   * is optional, if not provided the {@link MetricsConfig#METRICS_NAME_DEFAULT} is used.
+   */
   @NonNull
   MetricsConfig loadMetricsConfig(Map<String, Object> options) {
     boolean metricsEnabled = getBooleanSettingValue(options, METRICS_ENABLED_SETTING_NAME);
