@@ -50,6 +50,9 @@ public class PlaygroundServlet extends HttpServlet {
 
     String token = request.getHeader("x-cassandra-token");
 
+    // Replace the templated text with the token if it exist. Using java.lang.String.replaceFirst
+    // since it's safer than java.lang.String.format(java.lang.String, java.lang.Object...) due to the
+    // percent signs that exist in the string.
     String formattedIndexFile =
         playgroundFile.replaceFirst("AUTHENTICATION_TOKEN", token == null ? "" : token);
     ByteArrayInputStream byteArrayInputStream =
