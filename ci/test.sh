@@ -26,8 +26,8 @@ ccm updateconf enable_user_defined_functions:true --config-dir=/tmp/ccm820254832
 ccm start --wait-for-binary-proto --config-dir=/tmp/ccm8202548329431989080 --verbose
 ccm checklogerror --config-dir=/tmp/ccm8202548329431989080
 
-
-#CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600 ./mvnw -B verify --file pom.xml \
-#-P it-cassandra-3.11 \
-#-P it-cassandra-4.0 \
-#-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+export CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
+./mvnw -B verify --file pom.xml \
+-P it-cassandra-3.11 \
+-P it-cassandra-4.0 \
+-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
