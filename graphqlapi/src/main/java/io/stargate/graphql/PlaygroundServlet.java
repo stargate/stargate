@@ -15,10 +15,13 @@
  */
 package io.stargate.graphql;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.URL;
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -26,10 +29,17 @@ import org.osgi.framework.Bundle;
 
 public class PlaygroundServlet extends HttpServlet {
 
-  private final Bundle bundle;
+  private final String playgroundFile;
 
-  public PlaygroundServlet(Bundle bundle) {
-    this.bundle = bundle;
+  public PlaygroundServlet(Bundle bundle) throws IOException {
+    // From
+    // https://raw.githubusercontent.com/prisma-labs/graphql-playground/master/packages/graphql-playground-html/withAnimation.html
+    URL entry = bundle.getEntry("/playground.html");
+    // Save the templated file away for later so that we only have to do this conversion once.
+    playgroundFile =
+        new BufferedReader(new InputStreamReader(entry.openConnection().getInputStream()))
+            .lines()
+            .collect(Collectors.joining("\n"));
   }
 
   @Override
@@ -37,21 +47,21 @@ public class PlaygroundServlet extends HttpServlet {
     response.setStatus(HttpServletResponse.SC_OK);
     response.setContentType("text/html");
     response.setCharacterEncoding("utf-8");
-    URL entry = bundle.getEntry("/playground.html");
-    // From
-    // https://raw.githubusercontent.com/prisma-labs/graphql-playground/master/packages/graphql-playground-html/withAnimation.html
-    try (InputStream is = entry.openConnection().getInputStream()) {
+
+    String token = request.getHeader("x-cassandra-token");
+
+    String formattedIndexFile =
+        playgroundFile.replaceFirst("AUTHENTICATION_TOKEN", token == null ? "" : token);
+    ByteArrayInputStream byteArrayInputStream =
+        new ByteArrayInputStream(formattedIndexFile.getBytes());
+    try {
       OutputStream os = response.getOutputStream();
 
-      if (is == null) {
-        response.setStatus(500);
-      } else {
-        byte[] buffer = new byte[1024];
-        int bytesRead;
+      byte[] buffer = new byte[1024];
+      int bytesRead;
 
-        while ((bytesRead = is.read(buffer)) != -1) {
-          os.write(buffer, 0, bytesRead);
-        }
+      while ((bytesRead = byteArrayInputStream.read(buffer)) != -1) {
+        os.write(buffer, 0, bytesRead);
       }
     } catch (IOException e) {
       response.setStatus(500);

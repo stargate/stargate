@@ -22,6 +22,7 @@ import graphql.kickstart.servlet.SchemaGraphQLServlet;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
+import java.io.IOException;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import org.eclipse.jetty.server.Server;
@@ -37,7 +38,8 @@ public class WebImpl {
   private final Server server;
 
   public WebImpl(
-      Persistence<?, ?, ?> persistence, Metrics metrics, AuthenticationService authentication) {
+      Persistence<?, ?, ?> persistence, Metrics metrics, AuthenticationService authentication)
+      throws IOException {
     server = new Server();
 
     ServerConnector connector = new ServerConnector(server);

@@ -552,11 +552,10 @@
       const root = document.getElementById('root');
       root.classList.add('playgroundIn');
 
-      urlParams = new URLSearchParams(window.location.search);
-      tokenValue = urlParams.get('token');
+      tokenValue = "AUTHENTICATION_TOKEN";
 
       const header = {
-        "x-cassandra-token": tokenValue == null ? "populate_me" : tokenValue
+        "x-cassandra-token": (tokenValue == null ? "" : tokenValue.trim()) || "populate_me"
       }
 
       const tabs = [
