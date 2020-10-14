@@ -38,22 +38,23 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
 
       Object consistency = options.containsKey("consistency");
       if (consistency != null) {
-        builder.consistencyLevel(ConsistencyLevel.valueOf((String)consistency));
+        builder.consistencyLevel(ConsistencyLevel.valueOf((String) consistency));
       }
 
-      Object serialConsistency =  options.get("serialConsistency");
+      Object serialConsistency = options.get("serialConsistency");
       if (serialConsistency != null) {
-        builder.serialConsistencyLevel(ConsistencyLevel.valueOf((String)options.get("serialConsistencyLevel")));
+        builder.serialConsistencyLevel(
+            ConsistencyLevel.valueOf((String) options.get("serialConsistencyLevel")));
       }
 
       Object pageSize = options.get("pageSize");
       if (pageSize != null) {
-        builder.pageSize(Integer.valueOf((String)pageSize));
+        builder.pageSize(Integer.valueOf((String) pageSize));
       }
 
       Object pageState = options.get("pageState");
       if (pageSize != null) {
-        builder.pagingState(PagingState.fromString((String)pageState).getRawPagingState());
+        builder.pagingState(PagingState.fromString((String) pageState).getRawPagingState());
       }
 
       parameters = builder.build();
@@ -61,7 +62,8 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
       parameters = Parameters.defaults();
     }
 
-    DataStore dataStore = DataStore.create(persistence, storedCredentials.getRoleName(), parameters);
+    DataStore dataStore =
+        DataStore.create(persistence, storedCredentials.getRoleName(), parameters);
     return get(environment, dataStore);
   }
 

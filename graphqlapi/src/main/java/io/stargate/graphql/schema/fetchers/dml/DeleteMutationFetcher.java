@@ -8,7 +8,6 @@ import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
-import java.util.Map;
 
 public class DeleteMutationFetcher extends MutationFetcher {
 
