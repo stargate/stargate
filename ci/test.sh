@@ -19,6 +19,7 @@
 #echo "ubuntu     ALL=(ALL) NOPASSWD:/usr/bin/python" >> /etc/sudoers
 #chown -R ubuntu:ubuntu *
 chown -R ubuntu:ubuntu /workspace/
+ls -altrh /cache/.m2
 
 # Need to switch users since we can't pass the right flag to allow running Cassandra as root
 sudo -i -u ubuntu bash << EOF
