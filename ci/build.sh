@@ -4,7 +4,6 @@
 
 #git clone --branch master --single-branch https://github.com/riptano/ccm.git
 
-#adduser --disabled-password --gecos "" ubuntu
 chown -R ubuntu:ubuntu /workspace/
 
 # Need to switch users since we can't pass the right flag to allow running Cassandra as root
