@@ -29,6 +29,7 @@ import com.codahale.metrics.MetricRegistry;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.cdc.CDCProducer;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
@@ -73,5 +74,35 @@ class KafkaProducerActivatorTest {
     // not register listener
     verify(bundleContext, times(0))
         .addServiceListener(any(), eq(String.format("(objectClass=%s)", Metrics.class.getName())));
+  }
+
+  @Test
+  public void shouldRegisterServiceOnlyOnceEvenIfStartIsCalledSecondTime()
+      throws InvalidSyntaxException {
+    // given
+    BundleContext bundleContext = mock(BundleContext.class);
+    KafkaProducerActivator kafkaProducerActivator = new KafkaProducerActivator();
+    ServiceReference<Metrics> serviceReference = mock(ServiceReference.class);
+    Metrics metrics = mock(Metrics.class);
+    doReturn(serviceReference).when(bundleContext).getServiceReference(Metrics.class.getName());
+    when(bundleContext.getService(serviceReference)).thenReturn(metrics);
+    when(metrics.getRegistry(any())).thenReturn(new MetricRegistry());
+
+    // when
+    kafkaProducerActivator.start(bundleContext);
+
+    // then register service and start
+    verify(bundleContext, times(1))
+        .registerService(eq(CDCProducer.class), any(CDCProducer.class), eq(null));
+    assertThat(kafkaProducerActivator.started).isTrue();
+
+    // when start 2nd time
+    Mockito.reset(bundleContext); // reset the invocations counter
+    kafkaProducerActivator.start(bundleContext);
+
+    // then should not register service and remain started
+    verify(bundleContext, times(0))
+        .registerService(eq(CDCProducer.class), any(CDCProducer.class), eq(null));
+    assertThat(kafkaProducerActivator.started).isTrue();
   }
 }
