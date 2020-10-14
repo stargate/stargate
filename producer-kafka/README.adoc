@@ -192,7 +192,7 @@ The field's actual value is also a union of the type of a field and a `null`. Wh
 So, to sum up, such a structure allow the CDC connector to model 3 states:
 
 ==== Absence of the Value
-The absence of the change is presented as a null union value. For example, if the CDC does not contain the modification for the `col_1`, the created Avro record will look like this:
+The absence of change is presented as a null union value. For example, if `col_1` was not modified then the Avro record will look like this:
 
 [source,json]
 ----
