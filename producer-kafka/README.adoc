@@ -38,13 +38,13 @@ this change to the CDC extension via the send() method. The send() retrieves the
 The `init()` method takes the `Map<String, Object>` as an argument. This map must contain the required settings for running the Kafka CDC connector.
 There are multiple required settings:
 
-=== Prefix name
+=== Prefix Name
 
 `cdc.topic.prefix-name` - it should contain a `String` value. It is used to construct the topic name to which the CDC modification for a given TableMetadata is sent.
 Value from this setting is used as a prefix. For example, if the prefix is 'p', keyspace 'ks' and table 't', the final topic name will be: 'p.ks.t'
 The send() will publish a CDC event to a Kafka topic constructed  using this strategy
 
-=== Kafka Producer settings
+=== Kafka Producer Settings
 All Kafka Producer settings must be prefixed with `cdc.kafka.producer`.
 The Kafka producer has an extensive list of producer settings. For a full list, please visit the link:https://kafka.apache.org/documentation/#producerconfigs[Kafka producer configs].
 All settings with the `cdc.kafka.producer` passed to this extension will be passed to the Kafka producer.
@@ -53,13 +53,13 @@ There are two required settings that you need to pass to the CDC connector.
 
 - `cdc.kafka.producer.bootstrap.servers` - please note that you need to prefix it with CDC setting prefix. It contains a list of Kafka servers.
 - `cdc.kafka.producer.schema.registry.url` - it contains one URL or multiple urls to a schema registry that will be used to schema management.
-The schema-registry should work in the full_transitive compatibility mode to allow the backward and forward compatible evolution of schema.
+The `schema-registry` should work in the `full_transitive` compatibility mode to allow the backward and forward compatible evolution of schema.
 To see how to achieve it, please visit the link:https://docs.confluent.io/current/schema-registry/avro.html#compatibility-types[Schema Registry Guide].
 - Two Kafka producer settings cannot be set by the user: `key.serializer` and `value.serializer` - must be set to `KafkaAvroSerializer.class`
 because the CDC producer uses Avro format for publishing events to a Kafka. If the user passes those settings, they will be ignored.
 
 
-=== Metrics settings
+=== Metrics Settings
 The metrics framework has three settings that allow you to control it:
 
 - `cdc.kafka.metrics.enabled` - whether the CDC extension should register all Kafka producer metrics in the `MetricRegistry`. This setting is required. It should contain a boolean value.
@@ -191,7 +191,7 @@ Every field (Primary Key, Clustering Key, and normal cell) has a union schema. I
 The field's actual value is also a union of the type of a field and a `null`. When the value is `null`, it means that there field was cleared.
 So, to sum up, such a structure allow the CDC connector to model 3 states:
 
-==== Absence of the value
+==== Absence of the Value
 The absence of the change is presented as a null union value. For example, if the CDC does not contain the modification for the `col_1`, the created Avro record will look like this:
 
 [source,json]
@@ -233,7 +233,9 @@ If the `col_1` was cleared, meaning that it was deleted or set to null, the resu
 }
 ----
 Please note that the `col_1` contains the `value`, but the actual value is equal to `null`.
+
 ==== Change of the value
+
 Finally, the most obvious state is denoting that there was a change to the particular field.
 The resulting CDC event will contain the value with a change:
 [source,json]
@@ -262,10 +264,10 @@ It will enable renaming, adding, and removing of Clustering Key and Cells.
 To make it work, you need to assure that the consumer will read the Avro record using proper schema id.
 
 
-=== Schema supported types
+=== Schema Supported Types
 The resulting schema supports a variety of types that can be used for any cell value.
 
-==== Supported native types.
+==== Supported Native Types.
 Let's take a look at a list of supported native types:
 
 - `Native.ASCII` is serialized as avro `Type.STRING`.
@@ -291,7 +293,7 @@ Let's take a look at a list of supported native types:
 - `Native.VARCHAR` is serialized as avro `Type.STRING`.
 - `Native.TIMESTAMP` is serialized as avro logical `bigInteger` type with underlying `Type.BYTES` representation.
 
-==== Map type
+==== Map Type
 Avro assumes that every key is of a string type and automatically converts every key to a
 string representation. See link:http://avro.apache.org/docs/1.10.0/api/java/org/apache/avro/util/Utf8.html[Utf8] - all keys are converted to this class.
 For example, a map with Integer values will have such Avro schema:
@@ -307,7 +309,7 @@ For example, a map with Integer values will have such Avro schema:
 ----
 Please note that there is no field that represents the value for keys in a map.
 
-==== List and Set types
+==== List and Set Types
 Both lists and sets are converted to the Avro array type.
 For example, the resulting type for set and list of an integer type will be:
 [source,json]
@@ -318,7 +320,7 @@ For example, the resulting type for set and list of an integer type will be:
 }
 ----
 
-==== User Defined Type (UDT) schema
+==== User Defined Type (UDT) Schema
 The UserDefined is a Record type in Avro.
 For example, such an UserDefined type:
 
@@ -352,7 +354,7 @@ will have the following schema:
 
 The generated schema also supports nested UserDefined types.
 
-==== Tuple type
+==== Tuple Type
 
 The Tuple is a Record type in Avro. For example, such a Tuple type:
 
@@ -388,12 +390,12 @@ Please note that the name of the record is transformed according to `CqlToAvroTy
 Every element in the tuple has a name according to `CqlToAvroTypeConverter#toTupleFieldName(int)`.
 The generated schema also supports nested Tuple types.
 
-==== Custom type
+==== Custom Type
 The custom type is saved as bytes without an attempt to deserialize it. It's the client
 responsibility to deserialize it correctly.
 Currently, the class name form `Custom#getClassName()` is not propagated in the avro message.
 
-== New topic creation
+== New Topic Creation
 When the mutation event for a topic that does not exists in Kafka arrives, the producer will create the topic automatically if
 link:https://kafka.apache.org/documentation/#allow.auto.create.topics[allow.auto.create.topics] on the Kafka broker is enabled.
 It is enabled on default. It would be best if you were careful because Kafka will automatically create the topic with the default replication factor and number of partitions.
@@ -401,5 +403,5 @@ You need to assure that the link:https://kafka.apache.org/documentation/#num.par
 and link:https://kafka.apache.org/documentation/#default.replication.factor[replicas] settings are optimal for your cluster.
 Otherwise, you may end up with a topic that has enough replicas. It may degrade the performance of the CDC producer substantially.
 
-You may consider disabling the `allow.auto.create.topics`, but in that case, you will need to create every topic manually according to <<Prefix name>>.
+You may consider disabling the `allow.auto.create.topics`, but in that case, you will need to create every topic manually according to <<Prefix Name>>.
 It also means that you need to create the topic manually before any CDC event is sent to this producer.
