@@ -29,6 +29,6 @@ steps:
     args: [ 'ci/test.sh' ]
     env:
       - 'PERSISTENCE_BACKEND=dse-6.8'
-timeout: 3600s
+timeout: 10800s
 options:
   machineType: 'N1_HIGHCPU_32'
