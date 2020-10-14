@@ -38,7 +38,7 @@ steps:
       - path: '/cache/.m2'
         name: 'm2_cache'
     env:
-      - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
+#      - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
       - 'PERSISTENCE_BACKEND=cassandra-3.11'
   - id: 'cassandra-4.0'
     waitFor: [ 'build' ]
@@ -49,7 +49,7 @@ steps:
       - path: '/cache/.m2'
         name: 'm2_cache'
     env:
-      - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
+      #      - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
       - 'PERSISTENCE_BACKEND=cassandra-4.0'
   - id: 'dse-6.8'
     waitFor: [ 'build' ]
@@ -60,7 +60,7 @@ steps:
       - path: '/cache/.m2'
         name: 'm2_cache'
     env:
-      - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
+      #      - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
       - 'PERSISTENCE_BACKEND=dse-6.8'
   - name: 'gcr.io/cloud-builders/gsutil'
     args:
