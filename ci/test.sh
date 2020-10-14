@@ -10,9 +10,9 @@ java -version
 ln -sf /usr/bin/python2.7 /usr/bin/python
 
 #git clone --branch master --single-branch https://github.com/riptano/ccm.git
-pushd ccm || exit
-sudo python setup.py install
-popd
+#pushd ccm || exit
+#sudo python setup.py install
+#popd
 
 adduser --disabled-password --gecos "" ubuntu
 chown -R ubuntu:ubuntu *
@@ -26,6 +26,11 @@ cd /workspace
 # create temp directories to avoid issues with concurrent execution
 cp -R . /tmp/$PERSISTENCE_BACKEND
 cd /tmp/$PERSISTENCE_BACKEND
+
+git clone --branch master --single-branch https://github.com/riptano/ccm.git
+pushd ccm || exit
+sudo python setup.py install
+popd
 
 PROFILE=""
 case "$PERSISTENCE_BACKEND" in

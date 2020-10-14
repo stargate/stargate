@@ -2,7 +2,7 @@
 
 apt-get update && apt-get install openjdk-8-jdk git sudo maven -y
 
-git clone --branch master --single-branch https://github.com/riptano/ccm.git
+#git clone --branch master --single-branch https://github.com/riptano/ccm.git
 
 adduser --disabled-password --gecos "" ubuntu
 chown -R ubuntu:ubuntu /workspace/
