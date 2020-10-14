@@ -89,7 +89,7 @@ For example, if the table metadata contains one primary key with a field name: `
 ----
 Please note that this schema's name will be `Key`, but this schema is created in the context of a specific namespace.
 The namespace equals a topic name constructed based on the `cdc.topic.prefix-name` and `TableMetadata` keyspace and table.
-Once the schema for a specific key was created, you cannot remove or rename any existing field. Such a change will not be backward compatible.
+Once the schema for a specific key is created, you cannot remove or rename any existing field. Such a change will not be backward compatible.
 By doing so, you will break the consumers of the Kafka topic. You are allowed to add a new Primary Key because adding a new field to an Avro schema is backward compatible.
 
 
