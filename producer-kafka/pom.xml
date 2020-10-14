@@ -66,9 +66,14 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>io.dropwizard.modules</groupId>
+      <artifactId>dropwizard-kafka</artifactId>
+      <version>1.6.0</version>
+	</dependency>
+    <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.15-SNAPSHOT</version>
+      <version>${project.version}</version>
       <scope>provided</scope>
         <exclusions>
           <exclusion>
@@ -80,6 +85,12 @@
             <artifactId>hibernate-validator</artifactId>
           </exclusion>
         </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.core</groupId>
+      <artifactId>core</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -241,6 +252,8 @@
             <Import-Package><![CDATA[
               org.osgi.framework,
               io.stargate.db,
+              !com.codahale.metrics.graphite.*,
+              com.codahale.metrics,
               ]]>
             </Import-Package>
             <DynamicImport-Package>*</DynamicImport-Package>

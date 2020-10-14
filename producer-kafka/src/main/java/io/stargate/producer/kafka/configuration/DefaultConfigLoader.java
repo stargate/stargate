@@ -16,12 +16,15 @@
 package io.stargate.producer.kafka.configuration;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import io.dropwizard.kafka.metrics.DropwizardMetricsReporter;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.CommonClientConfigs;
 
 public class DefaultConfigLoader implements ConfigLoader {
 
@@ -32,8 +35,54 @@ public class DefaultConfigLoader implements ConfigLoader {
   public CDCKafkaConfig loadConfig(Map<String, Object> options) {
     String topicPrefixName = getTopicPrefixName(options);
     Map<String, Object> kafkaProducerSettings = filterKafkaProducerSettings(options);
+    MetricsConfig metricsConfig = loadMetricsConfig(options);
+    registerMetricsIfEnabled(kafkaProducerSettings, metricsConfig);
     String schemaRegistryUrl = getSchemaRegistryUrl(kafkaProducerSettings);
-    return new CDCKafkaConfig(topicPrefixName, schemaRegistryUrl, kafkaProducerSettings);
+    return new CDCKafkaConfig(
+        topicPrefixName, schemaRegistryUrl, kafkaProducerSettings, metricsConfig);
+  }
+
+  /**
+   * It adds the settings to a Kafka producer setting map that is used when constructing the
+   * producer. The {@link DropwizardMetricsReporter} is extending the {@link
+   * org.apache.kafka.common.metrics.MetricsReporter}, plugging into the Kafka producer lifecycle.
+   * This class is set as {@link CommonClientConfigs#METRIC_REPORTER_CLASSES_CONFIG}. The {@link
+   * MetricsConfig#isIncludeTags()} is mapped to the dropwizard reporter {@link
+   * DropwizardMetricsReporter#SHOULD_INCLUDE_TAGS_CONFIG}. The {@link
+   * MetricsConfig#getMetricsName()} is mapped to the dropwizard reporter {@link
+   * DropwizardMetricsReporter#METRICS_NAME_CONFIG}.
+   */
+  private void registerMetricsIfEnabled(
+      Map<String, Object> kafkaProducerSettings, MetricsConfig metricsConfig) {
+    if (metricsConfig.isMetricsEnabled()) {
+      kafkaProducerSettings.put(
+          CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG,
+          DropwizardMetricsReporter.class.getName());
+      // map CDC producer to dropwizard specific settings
+      kafkaProducerSettings.put(
+          DropwizardMetricsReporter.SHOULD_INCLUDE_TAGS_CONFIG,
+          Boolean.toString(metricsConfig.isIncludeTags()));
+      kafkaProducerSettings.put(
+          DropwizardMetricsReporter.METRICS_NAME_CONFIG, metricsConfig.getMetricsName());
+    }
+  }
+
+  /**
+   * It loads the metrics settings for CDC connector. The {@link
+   * ConfigLoader#METRICS_ENABLED_SETTING_NAME} is required. The {@link
+   * ConfigLoader#METRICS_INCLUDE_TAGS_SETTING_NAME} is optional, if not provided the {@link
+   * MetricsConfig#INCLUDE_TAGS_DEFAULT} is used. The {@link ConfigLoader#METRICS_NAME_SETTING_NAME}
+   * is optional, if not provided the {@link MetricsConfig#METRICS_NAME_DEFAULT} is used.
+   */
+  @NonNull
+  MetricsConfig loadMetricsConfig(Map<String, Object> options) {
+    boolean metricsEnabled = getBooleanSettingValue(options, METRICS_ENABLED_SETTING_NAME);
+    // METRICS_INCLUDE_TAGS_SETTING_NAME and METRICS_NAME_SETTING_NAME are optional.
+    // If not provided, the default value will be taken.
+    Optional<Boolean> metricsIncludeTags =
+        getOptionalBooleanSettingValue(options, METRICS_INCLUDE_TAGS_SETTING_NAME);
+    Optional<String> metricsName = getOptionalStringValue(options, METRICS_NAME_SETTING_NAME);
+    return MetricsConfig.create(metricsEnabled, metricsIncludeTags, metricsName);
   }
 
   Map<String, Object> filterKafkaProducerSettings(Map<String, Object> options) {
@@ -68,18 +117,56 @@ public class DefaultConfigLoader implements ConfigLoader {
     return getStringSettingValue(kafkaProducerSettings, SCHEMA_REGISTRY_URL_SETTING_NAME);
   }
 
+  @NonNull
   String getStringSettingValue(Map<String, Object> options, String settingName) {
-    Object prefixName = options.get(settingName);
-    if (prefixName == null) {
+    return (String) getSettingValue(options, settingName, String.class);
+  }
+
+  @NonNull
+  Optional<String> getOptionalStringValue(Map<String, Object> options, String settingName) {
+    return getOptionalSettingValue(options, settingName, String.class).map(v -> (String) v);
+  }
+
+  @NonNull
+  Boolean getBooleanSettingValue(Map<String, Object> options, String settingName) {
+    return (Boolean) getSettingValue(options, settingName, Boolean.class);
+  }
+
+  @NonNull
+  Optional<Boolean> getOptionalBooleanSettingValue(
+      Map<String, Object> options, String settingName) {
+    return getOptionalSettingValue(options, settingName, Boolean.class).map(v -> (Boolean) v);
+  }
+
+  @NonNull
+  Object getSettingValue(Map<String, Object> options, String settingName, Class<?> expectedType) {
+    Object configValue = options.get(settingName);
+    if (configValue == null) {
       throw new IllegalArgumentException(
           String.format("The config value for %s is not present", settingName));
     }
-    if (!(prefixName instanceof String)) {
+    if (!(configValue.getClass().isAssignableFrom(expectedType))) {
       throw new IllegalArgumentException(
           String.format(
-              "The config value for %s has wrong type: %s. It should be of a String type",
-              settingName, prefixName.getClass().getName()));
+              "The config value for %s has wrong type: %s. It should be of a %s type",
+              settingName, configValue.getClass().getName(), expectedType.getName()));
     }
-    return (String) prefixName;
+    return configValue;
+  }
+
+  @NonNull
+  Optional<Object> getOptionalSettingValue(
+      Map<String, Object> options, String settingName, Class<?> expectedType) {
+    Object configValue = options.get(settingName);
+    if (configValue == null) {
+      return Optional.empty();
+    }
+    if (!(configValue.getClass().isAssignableFrom(expectedType))) {
+      throw new IllegalArgumentException(
+          String.format(
+              "The config value for %s has wrong type: %s. It should be of a %s type",
+              settingName, configValue.getClass().getName(), expectedType.getName()));
+    }
+    return Optional.of(configValue);
   }
 }

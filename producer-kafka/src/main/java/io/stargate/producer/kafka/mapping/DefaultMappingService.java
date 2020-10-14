@@ -15,6 +15,7 @@
  */
 package io.stargate.producer.kafka.mapping;
 
+import io.stargate.producer.kafka.configuration.ConfigLoader;
 import org.apache.cassandra.stargate.schema.TableMetadata;
 
 public class DefaultMappingService implements MappingService {
@@ -24,6 +25,11 @@ public class DefaultMappingService implements MappingService {
     this.prefixName = prefixName;
   }
 
+  /**
+   * It constructs the topic name to which the CDC modification for a given TableMetadata is sent.
+   * It uses the {@link ConfigLoader#CDC_TOPIC_PREFIX_NAME} as the prefix. For the prefix 'p',
+   * keyspace 'ks' and table 't', the final topic name will be: 'p.ks.t'
+   */
   @Override
   public String getTopicNameFromTableMetadata(TableMetadata tableMetadata) {
     return String.format(

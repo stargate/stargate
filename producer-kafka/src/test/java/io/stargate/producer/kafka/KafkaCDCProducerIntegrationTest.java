@@ -15,7 +15,6 @@
  */
 package io.stargate.producer.kafka;
 
-import static io.stargate.producer.kafka.configuration.ConfigLoader.CDC_TOPIC_PREFIX_NAME;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.cell;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.cellValue;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.clusteringKey;
@@ -28,36 +27,25 @@ import static io.stargate.producer.kafka.schema.SchemasTestConstants.CLUSTERING_
 import static io.stargate.producer.kafka.schema.SchemasTestConstants.COLUMN_NAME;
 import static io.stargate.producer.kafka.schema.SchemasTestConstants.COLUMN_NAME_2;
 import static io.stargate.producer.kafka.schema.SchemasTestConstants.PARTITION_KEY_NAME;
-import static org.awaitility.Awaitility.await;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.testcontainers.containers.KafkaContainer.ZOOKEEPER_PORT;
 
+import com.codahale.metrics.MetricRegistry;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
-import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
 import com.datastax.oss.protocol.internal.util.Bytes;
-import io.confluent.kafka.serializers.KafkaAvroDeserializer;
-import io.confluent.kafka.serializers.KafkaAvroSerializer;
-import io.stargate.producer.kafka.configuration.ConfigLoader;
-import io.stargate.producer.kafka.schema.EmbeddedSchemaRegistryServer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
-import java.net.ServerSocket;
 import java.net.UnknownHostException;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.apache.avro.generic.GenericRecord;
@@ -75,64 +63,21 @@ import org.apache.cassandra.stargate.schema.CQLType.Tuple;
 import org.apache.cassandra.stargate.schema.CQLType.UserDefined;
 import org.apache.cassandra.stargate.schema.ColumnMetadata;
 import org.apache.cassandra.stargate.schema.TableMetadata;
-import org.apache.commons.collections.IteratorUtils;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.Network;
 
-class KafkaCDCProducerIntegrationTest {
-
-  private static final Logger LOG = LoggerFactory.getLogger(KafkaCDCProducerIntegrationTest.class);
-
-  private static KafkaContainer kafkaContainer;
-  private static EmbeddedSchemaRegistryServer schemaRegistry;
-
-  private static final String TOPIC_PREFIX = "topicPrefix";
-  private static final String PARTITION_KEY_VALUE = "pk_value";
-  private static final Integer CLUSTERING_KEY_VALUE = 1;
-
-  @BeforeAll
-  public static void setup() throws Exception {
-    Network network = Network.newNetwork();
-    kafkaContainer = new KafkaContainer().withNetwork(network).withEmbeddedZookeeper();
-    kafkaContainer.start();
-    try (ServerSocket serverSocket = new ServerSocket(0)) {
-
-      schemaRegistry =
-          new EmbeddedSchemaRegistryServer(
-              String.format("http://localhost:%s", serverSocket.getLocalPort()),
-              String.format("localhost:%s", ZOOKEEPER_PORT),
-              kafkaContainer.getBootstrapServers());
-    }
-    schemaRegistry.startSchemaRegistry();
-  }
-
-  @AfterAll
-  public static void cleanup() {
-    kafkaContainer.stop();
-    schemaRegistry.close();
-  }
+class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
 
   @Test
   public void shouldSendUpdateEventWithOnePartitionKeyAndOneValue() throws Exception {
     // given
     String columnValue = "col_value";
     TableMetadata tableMetadata = mockTableMetadata();
-    String topicName = creteTopicName(tableMetadata);
+    String topicName = createTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
@@ -166,31 +111,19 @@ class KafkaCDCProducerIntegrationTest {
         kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
 
     try {
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
     } finally {
       kafkaCDCProducer.close().get();
     }
-  }
-
-  private String creteTopicName(TableMetadata tableMetadata) {
-    return String.format(
-        "%s.%s.%s", TOPIC_PREFIX, tableMetadata.getKeyspace(), tableMetadata.getName());
-  }
-
-  private TableMetadata mockTableMetadata() {
-    TableMetadata tableMetadata = mock(TableMetadata.class);
-    when(tableMetadata.getKeyspace()).thenReturn("keyspaceName");
-    when(tableMetadata.getName()).thenReturn("tableName" + UUID.randomUUID().toString());
-    return tableMetadata;
   }
 
   @Test
   public void shouldSendDeleteEventForAllPKsAndCK() throws Exception {
     // given
     TableMetadata tableMetadata = mockTableMetadata();
-    String topicName = creteTopicName(tableMetadata);
+    String topicName = createTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
@@ -221,7 +154,7 @@ class KafkaCDCProducerIntegrationTest {
         kafkaCDCProducer.keyValueConstructor.constructValue(event, topicName);
 
     try {
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
     } finally {
       kafkaCDCProducer.close().get();
     }
@@ -234,9 +167,9 @@ class KafkaCDCProducerIntegrationTest {
     // given
     String columnValue = "col_value";
     TableMetadata tableMetadata = mockTableMetadata();
-    String topicName = creteTopicName(tableMetadata);
+    String topicName = createTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
@@ -268,7 +201,7 @@ class KafkaCDCProducerIntegrationTest {
       GenericRecord expectedValue =
           kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
 
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
 
       // when change schema
       when(tableMetadata.getPartitionKeys())
@@ -295,7 +228,7 @@ class KafkaCDCProducerIntegrationTest {
       expectedValue =
           kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
 
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
 
     } finally {
       kafkaCDCProducer.close().get();
@@ -308,9 +241,9 @@ class KafkaCDCProducerIntegrationTest {
       List<ColumnMetadata> columnMetadata, List<Cell> columnValues) throws Exception {
     // given
     TableMetadata tableMetadata = mockTableMetadata();
-    String topicName = creteTopicName(tableMetadata);
+    String topicName = createTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
@@ -340,7 +273,7 @@ class KafkaCDCProducerIntegrationTest {
       GenericRecord expectedValue =
           kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
 
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
     } finally {
       kafkaCDCProducer.close().get();
     }
@@ -453,9 +386,9 @@ class KafkaCDCProducerIntegrationTest {
       List<ColumnMetadata> columnMetadata, List<Cell> columnValues) throws Exception {
     // given
     TableMetadata tableMetadata = mockTableMetadata();
-    String topicName = creteTopicName(tableMetadata);
+    String topicName = createTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
@@ -485,7 +418,7 @@ class KafkaCDCProducerIntegrationTest {
       GenericRecord expectedValue =
           kafkaCDCProducer.keyValueConstructor.constructValue(rowMutationEvent, topicName);
 
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
     } finally {
       kafkaCDCProducer.close().get();
     }
@@ -495,9 +428,9 @@ class KafkaCDCProducerIntegrationTest {
   public void shouldSendEventsWithMapAndNestedMap() throws Exception {
     // given
     TableMetadata tableMetadata = mockTableMetadata();
-    String topicName = creteTopicName(tableMetadata);
+    String topicName = createTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
     Map<String, Object> properties = createKafkaProducerSettings();
     kafkaCDCProducer.init(properties).get();
 
@@ -550,7 +483,7 @@ class KafkaCDCProducerIntegrationTest {
       ((GenericRecord) ((GenericRecord) expectedValue.get(DATA_FIELD_NAME)).get(COLUMN_NAME_2))
           .put(0, expectedMapOfMapValues);
 
-      validateThatWasSendToKafka(expectedKey, expectedValue, topicName);
+      verifyReceivedByKafka(expectedKey, expectedValue, topicName);
     } finally {
       kafkaCDCProducer.close().get();
     }
@@ -622,66 +555,5 @@ class KafkaCDCProducerIntegrationTest {
         Arguments.of(
             Collections.singletonList(column(nestedTupleType)),
             Collections.singletonList(cell(column(nestedTupleType), nestedTupleValues))));
-  }
-
-  @NotNull
-  private Map<String, Object> createKafkaProducerSettings() {
-    Map<String, Object> properties = new HashMap<>();
-    properties.put(CDC_TOPIC_PREFIX_NAME, TOPIC_PREFIX);
-
-    properties.put(
-        withCDCPrefixPrefix(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG),
-        kafkaContainer.getBootstrapServers());
-    properties.put(
-        withCDCPrefixPrefix(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG), KafkaAvroSerializer.class);
-    properties.put(
-        withCDCPrefixPrefix(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG),
-        KafkaAvroSerializer.class);
-    // lower the max.block to allow faster failure scenario testing
-    properties.put(withCDCPrefixPrefix(ProducerConfig.MAX_BLOCK_MS_CONFIG), "2000");
-
-    properties.put(
-        withCDCPrefixPrefix("schema.registry.url"), schemaRegistry.getSchemaRegistryUrl());
-    return properties;
-  }
-
-  @NotNull
-  private String withCDCPrefixPrefix(String settingName) {
-    return String.format("%s.%s", ConfigLoader.CDC_KAFKA_PRODUCER_SETTING_PREFIX, settingName);
-  }
-
-  private void validateThatWasSendToKafka(
-      GenericRecord expectedKey, GenericRecord expectedValue, String topicName) {
-    Properties props = new Properties();
-    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers());
-    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
-    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
-    props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
-    props.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
-    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-    props.put("schema.registry.url", schemaRegistry.getSchemaRegistryUrl());
-
-    KafkaConsumer<GenericRecord, GenericRecord> consumer = new KafkaConsumer<>(props);
-    consumer.subscribe(Collections.singletonList(topicName));
-
-    try {
-      await()
-          .atMost(Duration.ofSeconds(5))
-          .until(
-              () -> {
-                ConsumerRecords<GenericRecord, GenericRecord> records =
-                    consumer.poll(Duration.ofMillis(100));
-                if (records.count() > 0) {
-                  LOG.info(
-                      "Retrieved {} records: {}",
-                      records.count(),
-                      IteratorUtils.toList(records.iterator()));
-                }
-                return Streams.stream(records)
-                    .anyMatch(r -> r.key().equals(expectedKey) && r.value().equals(expectedValue));
-              });
-    } finally {
-      consumer.close();
-    }
   }
 }
