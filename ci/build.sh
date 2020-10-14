@@ -14,6 +14,6 @@ export PATH=$PATH:$JAVA_HOME/bin
 cd /workspace
 
 mvn -B install --settings ci/custom-settings.xml --file pom.xml \
--DskipTests=true -Dmaven.javadoc.skip=true -P dse \
+-Dmaven.javadoc.skip=true -P dse \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 EOF
