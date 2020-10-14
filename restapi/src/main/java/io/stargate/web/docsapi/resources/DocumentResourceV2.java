@@ -132,13 +132,12 @@ public class DocumentResourceV2 {
     logger.debug("Put: Collection = {}, id = {}", collection, id);
     return handle(
         () -> {
-            documentService.putAtPath(
-                    authToken, namespace, collection, id, payload, new ArrayList<>(), false, dbFactory);
-            return Response.ok()
-                    .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
-                    .build();
-        }
-    );
+          documentService.putAtPath(
+              authToken, namespace, collection, id, payload, new ArrayList<>(), false, dbFactory);
+          return Response.ok()
+              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
+              .build();
+        });
   }
 
   @PUT
@@ -720,7 +719,9 @@ public class DocumentResourceV2 {
     try {
       return action.call();
     } catch (UnauthorizedException ue) {
-      return Response.status(Response.Status.UNAUTHORIZED).entity("You are not permitted to perform this action. Did you authenticate?").build();
+      return Response.status(Response.Status.UNAUTHORIZED)
+          .entity("You are not permitted to perform this action. Did you authenticate?")
+          .build();
     } catch (DocumentAPIRequestException sre) {
       return Response.status(Response.Status.BAD_REQUEST).entity(sre.getLocalizedMessage()).build();
     } catch (NoNodeAvailableException e) {
