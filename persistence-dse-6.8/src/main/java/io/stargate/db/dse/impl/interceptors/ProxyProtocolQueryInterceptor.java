@@ -188,7 +188,8 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   }
 
   /**
-   * Creates {@link ByteBuffer} value for a given column name. Unhandled names and aggregates return a null value.
+   * Creates {@link ByteBuffer} value for a given column name. Unhandled names and aggregates return
+   * a null value.
    *
    * @param name
    * @param publicAddress
