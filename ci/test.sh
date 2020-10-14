@@ -1,23 +1,6 @@
 #!/bin/bash
 
-#apt-get update && apt-get install openjdk-8-jdk git python2.7 python-setuptools python-six python-yaml sudo maven -y
-#
-#update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
-#export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
-#export PATH=$PATH:$JAVA_HOME/bin
-#java -version
-#
-#ln -sf /usr/bin/python2.7 /usr/bin/python
-
-#git clone --branch master --single-branch https://github.com/riptano/ccm.git
-#pushd ccm || exit
-#sudo python setup.py install
-#popd
-
-#adduser --disabled-password --gecos "" ubuntu
-#usermod -aG sudo ubuntu
-#echo "ubuntu     ALL=(ALL) NOPASSWD:/usr/bin/python" >> /etc/sudoers
-#chown -R ubuntu:ubuntu *
+# These directories are used by other steps so make sure the non-root user has access
 chown -R ubuntu:ubuntu /workspace/
 chown -R ubuntu:ubuntu /cache/
 
