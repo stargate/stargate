@@ -13,6 +13,7 @@ import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.resources.Db;
 import io.swagger.annotations.*;
+import io.swagger.jaxrs.PATCH;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.*;
