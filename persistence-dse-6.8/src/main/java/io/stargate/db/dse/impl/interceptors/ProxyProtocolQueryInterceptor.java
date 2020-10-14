@@ -251,8 +251,9 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   }
 
   /**
-   * return Conversion.toResult(result, version); cases like aggregates, null is returned in those
-   * cases, but it should be good enough for handling system tables.
+   * Builds a row using the {@link CQLStatement}'s result metadata. This doesn't handles special
+   * cases like aggregates, null is returned in those cases, but it should be good enough for
+   * handling system tables.
    *
    * @param metadata
    * @param publicAddress
