@@ -1,0 +1,29 @@
+mutation ProductsAndOrdersMutation(
+    $productValue: ProductsInput!
+    $orderValue: OrdersInput!
+    $options: MutationOptions
+) @atomic {
+    productMutation: insertProducts(value: $productValue, options: $options) {
+        applied
+        value {
+            id
+            name
+            price
+            created
+            description
+        }
+    },
+    orderMutation: updateOrders(value: $orderValue) {
+        applied
+        value {
+            id
+            prodId
+            prodName
+            customerName
+            address
+            description
+            price
+            sellPrice
+        }
+    }
+}

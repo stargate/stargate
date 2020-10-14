@@ -19,7 +19,14 @@ import graphql.kickstart.execution.context.GraphQLContext;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.impl.DefaultClaims;
+import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.ResultSet;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -33,6 +40,14 @@ public class HTTPAwareContextImpl implements GraphQLContext {
   private HandshakeRequest handshakeRequest;
   private HttpServletRequest request;
   private HttpServletResponse response;
+
+  // We need to manually maintain state between multiple selections in a single mutation
+  // operation to execute them as a batch.
+  // Currently graphql-java batching support is only restricted to queries and not mutations
+  // See https://www.graphql-java.com/documentation/v15/batching/ and
+  // https://github.com/graphql-java/graphql-java/blob/v15.0/src/main/java/graphql/execution/instrumentation/dataloader/DataLoaderDispatcherInstrumentation.java#L112-L115
+  // For more information.
+  private final BatchContext batchContext = new BatchContext();
 
   private static final String HEADER = "Authorization";
   private static final String PREFIX = "Bearer ";
@@ -96,5 +111,59 @@ public class HTTPAwareContextImpl implements GraphQLContext {
   @Override
   public Optional<DataLoaderRegistry> getDataLoaderRegistry() {
     return Optional.ofNullable(dataLoaderRegistry);
+  }
+
+  public BatchContext getBatchContext() {
+    return batchContext;
+  }
+
+  /**
+   * Encapsulates logic to add multiple statements contained in the same operation that need to be
+   * executed in a batch.
+   */
+  public static class BatchContext {
+    private final List<String> statements = Collections.synchronizedList(new ArrayList<>());
+    private final AtomicInteger statementCounter = new AtomicInteger();
+    private final CompletableFuture<ResultSet> future = new CompletableFuture<>();
+    private volatile DataStore dataStore;
+    private final AtomicInteger dataStoreCounter = new AtomicInteger();
+
+    public CompletableFuture<ResultSet> getExecutionFuture() {
+      return future;
+    }
+
+    public List<String> getStatements() {
+      return statements;
+    }
+
+    public void setExecutionResult(CompletableFuture<ResultSet> result) {
+      result.whenComplete(
+          (r, e) -> {
+            if (e != null) {
+              future.completeExceptionally(e);
+            } else {
+              future.complete(r);
+            }
+          });
+    }
+
+    public void setExecutionResult(Exception ex) {
+      future.completeExceptionally(ex);
+    }
+
+    public int add(String query) {
+      statements.add(query);
+      return statementCounter.incrementAndGet();
+    }
+
+    public int setDataStore(DataStore dataStore) {
+      this.dataStore = dataStore;
+      return dataStoreCounter.incrementAndGet();
+    }
+
+    public DataStore getDataStoreOrDefault(DataStore defaultDataStore) {
+      DataStore result = this.dataStore;
+      return result != null ? result : defaultDataStore;
+    }
   }
 }
