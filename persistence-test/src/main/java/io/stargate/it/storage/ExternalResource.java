@@ -118,7 +118,9 @@ public abstract class ExternalResource<A extends Annotation, R extends ExternalR
     public void close() {
       LOG.info("Closing {} resource in {}", type, location);
 
-      store.remove(key);
+      if (store != null) {
+        store.remove(key);
+      }
     }
   }
 }

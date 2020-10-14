@@ -185,7 +185,16 @@ is managed manually, use the following options to convey connection information 
 * `-Dstargate.test.backend.use.external=true`
 * `-Dstargate.test.backend.cluster_name=<CLUSTER_NAME>`
 * `-Dstargate.test.backend.dc=<DATA_CENTER_NAME>`
-* `-Dstargate.test.backend.nodes=<NUMBER_OR_STORAGE_NODES>`
+
+When integration test run in with debugging options, the related Stargate nodes will also be
+started with debugging options (using consecutive ports starting with 5100), for example:
+```
+-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=localhost:5100
+```
+
+It is expected that the user has several java debuggers waiting for connections on ports `510N` -
+one for each Stargate node required for the test. Note that most of the tests start only
+one Stargate node.
 
 ### Running / Debugging Integration Tests in an IDE
 
@@ -193,3 +202,65 @@ Integration tests can be started / debugged individually in an IDE.
 
 If `ccm` is used to mange storage nodes during tests, it should be accessible from the IDE's
 execution environment (`PATH`).
+
+### Using JUnit Console Launcher
+
+JUnit [Console Launcher](https://junit.org/junit5/docs/current/user-guide/#running-tests-console-launcher)
+can also be used for executing (and debugging) integration tests.
+
+For example, execute these commands from the project root:
+```shell
+$ ./mvnw package
+$ java -Dstargate.libdir=stargate-lib -jar junit-platform-console-standalone-1.6.2.jar -cp testing-<VERSION>-all.jar -p io.stargate.it
+```
+
+### Specifying Storage Backend
+
+When tests are started manually via an IDE or JUnit Console Launcher, the type and version
+of the storage backend can be specified using the following java system properties.
+
+* `-Dccm.version=<version>` - the version of the storage cluster (e.g. `3.11.8`)
+* `-Dccm.dse=<true|false>` - whether the storage cluster is DSE or OSS Cassandra.
+  If `false` this option can be omitted.
+
+### Adding New Integration Tests
+
+There are two custom JUnit 5 extensions used by Stargate code when running integration tests.
+
+* `ExternalStorage` - manages starting and stopping storage nodes (Cassandra and/or DSE) through
+  [ccm]((https://github.com/riptano/ccm)).
+  This extension is defined in the `persistence-test`  module.
+  The `@ClusterSpec` annotation work in conjunction with `ExternalStorage` and defines parameters
+  of the external storage nodes.
+  When this extension is active, it will automatically inject test method parameters of type
+  `ClusterConnectionInfo`.
+
+* `StargateContainer` - manages starting and stopping Stargate nodes (OSGi containers).
+  This extension is defined in the `testing` module.
+  The `@StargateSpec` annotation work in conjunction with `StargateContainer` and defines parameters
+  of the Stargate nodes.
+  When this extension is active, it will automatically inject test method parameters of type
+  `StargateConnectionInfo` and `StargateEnvironmentInfo`.
+
+Integration tests that do not need Stargate nodes (e.g. `CassandraPersistenceIT`) can use only
+the `ExternalStorage` extension by having the `@ExtendWith(ExternalStorage.class)` annotation
+either directly on the test class or on one of its super-classes.
+
+Integration tests that need both storage and Stargate nodes, should use the `@UseStargateContainer`
+annotation to active both extensions in the right order.
+
+The code element holding `@ClustgerSpec` or `@StargateSpec` annotations controls the lifecycle of
+the nodes they define. If the "spec" is present at the class level (inherited), the corresponding 
+nodes will be started/stopped according to `@BeforeAll` / `@AfterAll` JUnit 5 callbacks. Similarly,
+if the spec is present at the method level, the nodes' lifecycle will follow `@BeforeEach` /
+`@AfetrEach` callbacks. An exception to this rule is when the spec has the `shared` property set 
+to `true`, in which case the corresponding nodes will not be stopped until another test is executed
+and that test requests _different_ node parameters (when that happens the old nodes will be stopped,
+and the new node(s) will be started before executing the new test). If the spec annotations are not
+present on the code element, no action is taken by the extensions and storage / Stargate nodes 
+may or may not be available to the test depending on what happened before in the test execution
+context.
+
+Parameter injection works with any method where JUnit 5 supports parameter injection
+(e.g. constructors, `@Test` methods, `@Before*` methods) if the corresponding storage / Stargate
+nodes are available.
