@@ -11,10 +11,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.reactivex.Single;
-import io.stargate.db.QueryOptions;
-import io.stargate.db.QueryState;
-import io.stargate.db.Result;
-import io.stargate.db.dse.impl.Conversion;
+import io.stargate.db.dse.impl.ClientStateWithPublicAddress;
 import io.stargate.db.dse.impl.StargateSystemKeyspace;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -34,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.CQLStatement;
+import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.ResultSet.ResultMetadata;
@@ -43,7 +41,9 @@ import org.apache.cassandra.db.marshal.Int32Type;
 import org.apache.cassandra.db.marshal.SetType;
 import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.db.marshal.UUIDType;
+import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.IEndpointLifecycleSubscriber;
+import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.slf4j.Logger;
@@ -108,7 +108,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   }
 
   @Override
-  public Single<Result> interceptQuery(
+  public Single<ResultMessage> interceptQuery(
       CQLStatement statement,
       QueryState state,
       QueryOptions options,
@@ -119,15 +119,15 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
     }
 
     SelectStatement selectStatement = (SelectStatement) statement;
-    ProtocolVersion version = Conversion.toInternal(options.getProtocolVersion());
 
     List<List<ByteBuffer>> rows;
-    InetSocketAddress publicAddress = state.getClientState().getPublicAddress();
+    ClientState clientState = state.getClientState();
+    assert clientState instanceof ClientStateWithPublicAddress;
+    InetSocketAddress publicAddress = ((ClientStateWithPublicAddress) clientState).publicAddress();
     if (publicAddress == null) {
       throw new RuntimeException(
           "Unable to intercept proxy protocol system query without a valid public address");
     }
-
     String tableName = selectStatement.table();
     if (tableName.equals(PeersSystemView.NAME)) {
       Set<InetAddress> currentPeers = peers;
@@ -151,7 +151,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
     }
 
     ResultSet resultSet = new ResultSet(selectStatement.getResultMetadata(), rows);
-    return Single.just(Conversion.toResult(new ResultMessage.Rows(resultSet), version));
+    return Single.just(new ResultMessage.Rows(resultSet));
   }
 
   @Override
@@ -251,9 +251,8 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   }
 
   /**
-   * Builds a row using the {@link CQLStatement}'s result metadata. This doesn't handles special
-   * cases like aggregates, null is returned in those cases, but it should be good enough for
-   * handling system tables.
+   * return Conversion.toResult(result, version); cases like aggregates, null is returned in those
+   * cases, but it should be good enough for handling system tables.
    *
    * @param metadata
    * @param publicAddress

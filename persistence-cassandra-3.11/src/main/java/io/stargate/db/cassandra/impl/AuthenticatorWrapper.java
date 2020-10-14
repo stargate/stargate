@@ -67,31 +67,12 @@ public class AuthenticatorWrapper implements Authenticator {
     }
 
     @Override
-    public AuthenticatedUser<?> getAuthenticatedUser() throws AuthenticationException {
+    public AuthenticatedUser getAuthenticatedUser() throws AuthenticationException {
       try {
-        return new AuthenticatedUserWrapper(wrapped.getAuthenticatedUser());
+        return AuthenticatedUser.of(wrapped.getAuthenticatedUser().getName());
       } catch (org.apache.cassandra.exceptions.AuthenticationException e) {
         throw Conversion.toExternal(e);
       }
-    }
-  }
-
-  public static class AuthenticatedUserWrapper
-      implements AuthenticatedUser<org.apache.cassandra.auth.AuthenticatedUser> {
-    private final org.apache.cassandra.auth.AuthenticatedUser wrapped;
-
-    AuthenticatedUserWrapper(org.apache.cassandra.auth.AuthenticatedUser wrapped) {
-      this.wrapped = wrapped;
-    }
-
-    @Override
-    public String getName() {
-      return wrapped.getName();
-    }
-
-    @Override
-    public org.apache.cassandra.auth.AuthenticatedUser getWrapped() {
-      return wrapped;
     }
   }
 }

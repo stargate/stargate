@@ -10,14 +10,12 @@ import com.datastax.bdp.db.nodes.BootstrapState;
 import com.datastax.bdp.db.util.ProductVersion;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.stargate.db.DefaultQueryOptions;
-import io.stargate.db.QueryOptions;
 import io.stargate.db.Result;
 import io.stargate.db.Result.ResultMetadata;
 import io.stargate.db.Result.Rows;
 import io.stargate.db.dse.impl.BaseDseTest;
-import io.stargate.db.dse.impl.ClientStateWrapper;
-import io.stargate.db.dse.impl.QueryStateWrapper;
+import io.stargate.db.dse.impl.ClientStateWithPublicAddress;
+import io.stargate.db.dse.impl.Conversion;
 import io.stargate.db.dse.impl.StargateSystemKeyspace;
 import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor.Resolver;
 import java.net.InetAddress;
@@ -33,6 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.cassandra.auth.user.UserRolesAndPermissions;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryProcessor;
@@ -42,6 +41,7 @@ import org.apache.cassandra.db.marshal.Int32Type;
 import org.apache.cassandra.db.marshal.SetType;
 import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.db.marshal.UUIDType;
+import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -69,7 +69,6 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
 
   private final InetSocketAddress REMOTE_SOCKET_ADDRESS =
       new InetSocketAddress(REMOTE_ADDRESS, 1234);
-  private final QueryOptions QUERY_OPTIONS = DefaultQueryOptions.builder().build();
 
   private static final Map<String, AbstractType<?>> TYPES =
       ImmutableMap.<String, AbstractType<?>>builder()
@@ -267,17 +266,21 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
     return value == null ? null : (T) type.compose(value);
   }
 
-  private QueryStateWrapper queryStateForAddress(InetAddress address) {
-    return new QueryStateWrapper(
-        ClientStateWrapper.forExternalCalls(
-            null, REMOTE_SOCKET_ADDRESS, new InetSocketAddress(address, 9042)));
+  private QueryState queryStateForAddress(InetAddress address) {
+    return new QueryState(
+        new ClientStateWithPublicAddress(
+            null, REMOTE_SOCKET_ADDRESS, new InetSocketAddress(address, 9042)),
+        UserRolesAndPermissions.ANONYMOUS);
   }
 
   private Result interceptQuery(
       ProxyProtocolQueryInterceptor interceptor, String query, InetAddress publicAddress) {
-    QueryStateWrapper queryState = queryStateForAddress(publicAddress);
-    CQLStatement statement = QueryProcessor.parseStatement(query, queryState.getWrapped());
+    QueryState queryState = queryStateForAddress(publicAddress);
+    CQLStatement statement = QueryProcessor.parseStatement(query, queryState);
     interceptor.initialize();
-    return interceptor.interceptQuery(statement, queryState, QUERY_OPTIONS, null, 0).blockingGet();
+    return Conversion.toResult(
+        interceptor.interceptQuery(statement, queryState, null, null, 0).blockingGet(),
+        ProtocolVersion.V4,
+        null);
   }
 }

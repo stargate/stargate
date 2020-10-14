@@ -15,47 +15,56 @@
  */
 package io.stargate.db;
 
+import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptibles;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Schema;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import org.apache.cassandra.stargate.utils.MD5Digest;
+import java.util.concurrent.TimeUnit;
+import org.apache.cassandra.stargate.exceptions.AuthenticationException;
 
-public interface Persistence<T, C, Q> {
+/**
+ * A persistence layer that can be queried.
+ *
+ * <p>This is the interface that stargate API extensions uses (either directly, or through the
+ * higher level {@link DataStore} API which wraps a instance of this interface) to query the
+ * underlying store, and thus the one interface that persistence extensions must implement.
+ */
+public interface Persistence {
+
+  /** Name describing the persistence implementation. */
   String name();
 
-  void initialize(T config);
-
-  void destroy();
-
-  /**
-   * Returns the current schema.
-   *
-   * @return The current schema.
-   */
+  /** The current schema. */
   Schema schema();
 
+  /**
+   * Registers a listener whose methods will be called when either the schema or the topology of the
+   * persistence changes.
+   */
   void registerEventListener(EventListener listener);
-
-  QueryState<Q> newQueryState(ClientState<C> clientState);
-
-  ClientState<C> newClientState(SocketAddress remoteAddress, InetSocketAddress publicAddress);
-
-  ClientState newClientState(String name);
-
-  AuthenticatedUser<?> newAuthenticatedUser(String name);
 
   Authenticator getAuthenticator();
 
-  DataStore newDataStore(QueryState<Q> state, QueryOptions queryOptions);
+  /**
+   * Creates a new connection for an "external" client identified by the provided info.
+   *
+   * @param clientInfo info identifying the client for which the connection is created.
+   * @return the newly created persistence connection.
+   */
+  Connection newConnection(ClientInfo clientInfo);
+
+  /**
+   * Creates a new "internal" connection, that is one with no client information.
+   *
+   * @return the newly created persistence connection.
+   */
+  Connection newConnection();
 
   /**
    * The object that should be used to act as an 'unset' value for this persistence (for use in
-   * {@link QueryOptions#getValues()} or in the {@code values} argument of {@link #batch}).
+   * {@link Statement#values()}).
    *
    * <p>Please note that persistence implementations are allowed to use <b>reference equality</b> to
    * detect this value, so the object returned by this method should be used "as-is" and should
@@ -63,43 +72,93 @@ public interface Persistence<T, C, Q> {
    */
   ByteBuffer unsetValue();
 
-  CompletableFuture<? extends Result> query(
-      String cql,
-      QueryState state,
-      QueryOptions options,
-      Map<String, ByteBuffer> customPayload,
-      boolean isTracingRequested,
-      long queryStartNanoTime);
-
-  CompletableFuture<? extends Result> execute(
-      MD5Digest id,
-      QueryState state,
-      QueryOptions options,
-      Map<String, ByteBuffer> customPayload,
-      boolean isTracingRequested,
-      long queryStartNanoTime);
-
-  CompletableFuture<? extends Result> prepare(
-      String cql,
-      QueryState state,
-      Map<String, ByteBuffer> customPayload,
-      boolean isTracingRequested);
-
-  CompletableFuture<? extends Result> batch(
-      BatchType type,
-      List<Object> queryOrIds,
-      List<List<ByteBuffer>> values,
-      QueryState state,
-      QueryOptions options,
-      Map<String, ByteBuffer> customPayload,
-      boolean isTracingRequested,
-      long queryStartNanoTime);
-
   boolean isInSchemaAgreement();
 
-  void captureClientWarnings();
+  /** Wait for schema to agree across the cluster */
+  default void waitForSchemaAgreement() {
+    for (int count = 0; count < 100; count++) {
+      if (isInSchemaAgreement()) {
+        return;
+      }
+      Uninterruptibles.sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
+    }
+    throw new IllegalStateException("Failed to reach schema agreement after 20 seconds.");
+  }
 
-  List<String> getClientWarnings();
+  /**
+   * A connection to the persistence.
+   *
+   * <p>It is through this object that a user can be logged in and that the persistence can be
+   * queried.
+   */
+  interface Connection {
 
-  void resetClientWarnings();
+    /** The underlying persistence on which this is a connection. */
+    Persistence persistence();
+
+    /**
+     * Login a user on that connection.
+     *
+     * @param user the user to login.
+     * @throws AuthenticationException if the user is not authorized to login.
+     */
+    void login(AuthenticatedUser user) throws AuthenticationException;
+
+    /** The user logged in, if any. */
+    Optional<AuthenticatedUser> loggedUser();
+
+    /** Information on the client for which the connection was created, if any. */
+    Optional<ClientInfo> clientInfo();
+
+    /**
+     * The default keyspace that is in use on this connection, if any (that is, if a {@code USE}
+     * query has been performed on this connection).
+     */
+    Optional<String> usedKeyspace();
+
+    /**
+     * Prepare a query on this connection.
+     *
+     * @param query the query to prepare.
+     * @param parameters the parameters for the preparation (note that preparation only use a subset
+     *     of parameters).
+     * @return a future that, on completion of the preparation, provides its result. Please see the
+     *     {@link #execute} method for warnings regarding the completion of that future. The same
+     *     warnings apply for this method as well.
+     */
+    CompletableFuture<Result.Prepared> prepare(String query, Parameters parameters);
+
+    /**
+     * Executes a statement on this connection.
+     *
+     * @param statement the statement to execute.
+     * @param parameters the parameters for the execution.
+     * @param queryStartNanoTime the start time of the query, as a nano time returned by {@link
+     *     System#nanoTime()}.
+     * @return a future that, on completion of the execution, provides its result. Please note that
+     *     persistence implementations are allowed to complete this future on an internal, and
+     *     potentially performance sensitive, thread. As such, consumers should <b>not</b> "chain"
+     *     costly/blocking operations on this future without passing their own executor. In other
+     *     words, do not do something like: <code>
+     *       execute(...).thenRun(() -> { someBlockingOperation(); })
+     *     </code> Instead, use one of the "async" variants of {@link CompletableFuture}, namely:
+     *     <code>
+     *       // you can also provide your own executor below obviously
+     *       execute(...).thenRunAsync(() -> { someBlockingOperation(); })
+     *     </code>
+     */
+    CompletableFuture<Result> execute(
+        Statement statement, Parameters parameters, long queryStartNanoTime);
+
+    /**
+     * Executes a batch on this connection.
+     *
+     * @param batch the batch to execute.
+     * @param parameters the parameters for the batch execution.
+     * @return a future that, on completion of the execution, provides its result. Please see the
+     *     {@link #execute} method for warnings regarding the completion of that future. The same
+     *     warnings apply for this method as well.
+     */
+    CompletableFuture<Result> batch(Batch batch, Parameters parameters, long queryStartNanoTime);
+  }
 }

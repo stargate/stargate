@@ -6,10 +6,6 @@ import static io.stargate.db.dse.impl.StargateSystemKeyspace.isSystemLocalOrPeer
 
 import com.google.common.collect.Sets;
 import io.reactivex.Single;
-import io.stargate.db.QueryOptions;
-import io.stargate.db.QueryState;
-import io.stargate.db.Result;
-import io.stargate.db.dse.impl.Conversion;
 import io.stargate.db.dse.impl.StargateSystemKeyspace;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -19,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.cassandra.cql3.CQLStatement;
+import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.SelectStatement;
@@ -28,6 +25,7 @@ import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
 import org.apache.cassandra.gms.VersionedValue;
 import org.apache.cassandra.service.IEndpointLifecycleSubscriber;
+import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.slf4j.Logger;
@@ -53,7 +51,7 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
   }
 
   @Override
-  public Single<Result> interceptQuery(
+  public Single<ResultMessage> interceptQuery(
       CQLStatement statement,
       QueryState state,
       QueryOptions options,
@@ -62,11 +60,7 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     if (!isSystemLocalOrPeers(statement)) {
       return null;
     }
-
-    org.apache.cassandra.service.QueryState internalState = Conversion.toInternal(state);
-    org.apache.cassandra.cql3.QueryOptions internalOptions = Conversion.toInternal(options);
-    return interceptSystemLocalOrPeers(
-        statement, internalState, internalOptions, queryStartNanoTime);
+    return interceptSystemLocalOrPeers(statement, state, options, queryStartNanoTime);
   }
 
   @Override
@@ -124,11 +118,8 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
       subscriber.onJoinCluster(getNativeAddress(endpoint));
   }
 
-  private static Single<Result> interceptSystemLocalOrPeers(
-      CQLStatement statement,
-      org.apache.cassandra.service.QueryState state,
-      org.apache.cassandra.cql3.QueryOptions options,
-      long queryStartNanoTime) {
+  private static Single<ResultMessage> interceptSystemLocalOrPeers(
+      CQLStatement statement, QueryState state, QueryOptions options, long queryStartNanoTime) {
     SelectStatement selectStatement = ((SelectStatement) statement);
 
     // Re-parse so that we can intercept and replace the keyspace.
@@ -141,10 +132,8 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
         interceptStatement.execute(state, options, queryStartNanoTime);
     return rows.map(
         r ->
-            Conversion.toResult(
-                new ResultMessage.Rows(
-                    new ResultSet(selectStatement.getResultMetadata(), r.result.rows)),
-                options.getProtocolVersion()));
+            new ResultMessage.Rows(
+                new ResultSet(selectStatement.getResultMetadata(), r.result.rows)));
   }
 
   private static InetAddress getNativeAddress(InetAddress endpoint) {

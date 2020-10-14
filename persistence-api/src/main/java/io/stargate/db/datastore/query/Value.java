@@ -16,19 +16,77 @@
 package io.stargate.db.datastore.query;
 
 import io.stargate.db.schema.Column;
+import org.immutables.value.Value.Style.ImplementationVisibility;
 
 @org.immutables.value.Value.Immutable
+@org.immutables.value.Value.Style(visibility = ImplementationVisibility.PACKAGE)
 public abstract class Value<T> implements Parameter<T> {
-  public interface Builder<T> {
 
-    default ImmutableValue.Builder<T> column(String column) {
-      return column(Column.reference(column));
-    }
+  /**
+   * Object that represents a value that is set, but to (CQL) null.
+   *
+   * <p>Note that a {@link Value} object cannot have a {@code null} (in the sense of java) {@link
+   * #value()}, because {@link java.util.Optional} cannot have a {@code null} and an empty optional
+   * represents an unbound value, <b>not</b> a null CQL value. So this object allows to represent a
+   * null CQL value.
+   *
+   * <p>Note that you should never have to pass this object directly. Instead, simply pass {@code
+   * null} to the {@link #create(Column, Object)} method. However, the create value will use this
+   * "null" object underneath, so this exposed so it possible to test if the value of a {@link
+   * Value} object is null (meaning, something like {@code if (v.value().isPresent() &&
+   * v.value().get() == NULL)) ...}).
+   */
+  public static final Object NULL =
+      new Object() {
+        @Override
+        public String toString() {
+          return "<null>";
+        }
+      };
 
-    ImmutableValue.Builder<T> column(Column column);
+  /**
+   * Creates a bound value for the provided column, bound to the provided value.
+   *
+   * @param c the column name.
+   * @param value the value, which <b>can</b> be {@code null} (in which case the {@link #value()}
+   *     method of the created value will return an non-empty optional with the {@link Value#NULL})
+   *     value. Use {@link #createUnbound(Column)} if instead you want an unbound value.
+   * @return the created value.
+   */
+  public static <V> Value<V> create(Column c, V value) {
+    return ImmutableValue.<V>builder().column(c).value(value == null ? NULL : value).build();
   }
 
+  /**
+   * Creates a bound value for the provided column, bound to the provided value.
+   *
+   * @param c the column name.
+   * @param value the value, which <b>can</b> be {@code null} (in which case the {@link #value()}
+   *     method of the created value will return an non-empty optional with the {@link Value#NULL})
+   *     value. Use {@link #createUnbound(String)} if instead you want an unbound value.
+   * @return the created value.
+   */
   public static <V> Value<V> create(String c, V value) {
-    return ImmutableValue.<V>builder().column(c).value(value).build();
+    return create(Column.reference(c), value);
+  }
+
+  /**
+   * Creates an unbound value for the provided column.
+   *
+   * @param c the column name.
+   * @return the created (unbound) value.
+   */
+  public static <V> Value<V> createUnbound(Column c) {
+    return ImmutableValue.<V>builder().column(c).build();
+  }
+
+  /**
+   * Creates an unbound value for the provided column.
+   *
+   * @param c the column name.
+   * @return the created (unbound) value.
+   */
+  public static <V> Value<V> createUnbound(String c) {
+    return createUnbound(c);
   }
 }

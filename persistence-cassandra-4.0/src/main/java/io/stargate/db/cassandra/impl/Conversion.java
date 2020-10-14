@@ -1,26 +1,35 @@
 package io.stargate.db.cassandra.impl;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import io.stargate.db.BatchType;
-import io.stargate.db.ClientState;
-import io.stargate.db.QueryOptions;
-import io.stargate.db.QueryState;
+import io.stargate.db.Parameters;
 import io.stargate.db.Result;
-import io.stargate.db.cassandra.datastore.DataStoreUtil;
+import io.stargate.db.datastore.common.util.ColumnUtils;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
-import java.lang.reflect.Constructor;
+import io.stargate.db.schema.ImmutableUserDefinedType;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.cql3.QueryHandler;
+import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.statements.BatchStatement;
+import org.apache.cassandra.db.marshal.AbstractType;
+import org.apache.cassandra.db.marshal.ListType;
+import org.apache.cassandra.db.marshal.MapType;
+import org.apache.cassandra.db.marshal.ReversedType;
+import org.apache.cassandra.db.marshal.SetType;
+import org.apache.cassandra.db.marshal.TupleType;
+import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.exceptions.CassandraException;
 import org.apache.cassandra.locator.InetAddressAndPort;
 import org.apache.cassandra.service.pager.PagingState;
@@ -53,70 +62,61 @@ import org.apache.cassandra.stargate.transport.ServerError;
 import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.apache.cassandra.transport.Event;
 import org.apache.cassandra.transport.messages.ResultMessage;
+import org.apache.cassandra.utils.NoSpamLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Conversion {
-  // Constructor for a needed sub-class of QueryOptions that is not accessible in C* at the moment
-  // and need to be accessed through reflection.
-  // OptionsWithNames(QueryOptions.DefaultQueryOptions wrapped, List<String> names)
-  private static final Constructor<?> optionsWithNameCtor;
+  private static final Logger logger = LoggerFactory.getLogger(Conversion.class);
+  private static final NoSpamLogger noSpamLogger =
+      NoSpamLogger.getLogger(logger, 5L, TimeUnit.MINUTES);
+
+  private static final Map<Class<? extends AbstractType>, Column.Type> TYPE_MAPPINGS;
 
   static {
-    try {
-      // Note that the ctor for OptionsWithNames directly takes a DefaultQueryOptions which is not
-      // accessible. That said, we know QueryOptions#create, which we'll use to build the object
-      // passed as that argument, actually does create a DefaultQueryOptions, so we're good.
-      Class<?> defaultOptionsClass =
-          Class.forName("org.apache.cassandra.cql3.QueryOptions$DefaultQueryOptions");
-      Class<?> withNamesClass =
-          Class.forName("org.apache.cassandra.cql3.QueryOptions$OptionsWithNames");
-
-      optionsWithNameCtor = withNamesClass.getDeclaredConstructor(defaultOptionsClass, List.class);
-      optionsWithNameCtor.setAccessible(true);
-    } catch (Exception e) {
-      throw new RuntimeException(
-          "Error during initialization of the persistence layer: some "
-              + "reflection-based accesses cannot be setup.",
-          e);
-    }
+    Map<Class<? extends AbstractType>, Column.Type> types = new HashMap<>();
+    Arrays.asList(Column.Type.values())
+        .forEach(
+            ct -> {
+              if (ct != Column.Type.Tuple
+                  && ct != Column.Type.List
+                  && ct != Column.Type.Map
+                  && ct != Column.Type.Set
+                  && ct != Column.Type.UDT) {
+                types.put(ColumnUtils.toInternalType(ct).getClass(), ct);
+              }
+            });
+    TYPE_MAPPINGS = ImmutableMap.copyOf(types);
   }
 
-  public static org.apache.cassandra.service.QueryState toInternal(
-      QueryState<org.apache.cassandra.service.QueryState> state) {
-    if (state == null) {
-      return org.apache.cassandra.service.QueryState.forInternalCalls();
-    }
-    return state.getWrapped();
-  }
-
-  public static org.apache.cassandra.cql3.QueryOptions toInternal(QueryOptions options) {
-    if (options == null) {
-      return org.apache.cassandra.cql3.QueryOptions.DEFAULT;
-    }
+  public static QueryOptions toInternal(
+      List<ByteBuffer> values, List<String> boundNames, Parameters parameters) {
     org.apache.cassandra.transport.ProtocolVersion protocolVersion =
-        toInternal(options.getProtocolVersion());
+        toInternal(parameters.protocolVersion());
     // Note that PagingState.deserialize below modifies its input, so we duplicate to avoid nasty
     // surprises down the line
-    ByteBuffer pagingState =
-        options.getPagingState() == null ? null : options.getPagingState().duplicate();
-    org.apache.cassandra.cql3.QueryOptions internalOptions =
-        org.apache.cassandra.cql3.QueryOptions.create(
-            toInternal(options.getConsistency()),
-            options.getValues(),
-            options.skipMetadata(),
-            options.getPageSize(),
-            PagingState.deserialize(pagingState, protocolVersion),
-            toInternal(options.getSerialConsistency()),
+    PagingState pagingState =
+        parameters
+            .pagingState()
+            .map(s -> PagingState.deserialize(s.duplicate(), protocolVersion))
+            .orElse(null);
+    QueryOptions options =
+        QueryOptions.create(
+            toInternal(parameters.consistencyLevel()),
+            values,
+            parameters.skipMetadataInResult(),
+            parameters.pageSize().orElse(-1),
+            pagingState,
+            toInternal(parameters.serialConsistencyLevel().orElse(ConsistencyLevel.SERIAL)),
             protocolVersion,
-            options.getKeyspace(),
-            options.getTimestamp(),
-            options.getNowInSeconds());
+            parameters.defaultKeyspace().orElse(null),
+            parameters.defaultTimestamp().orElse(Long.MIN_VALUE),
+            parameters.nowInSeconds().orElse(Integer.MIN_VALUE));
 
     // Adds names if there is some.
-    if (options.getNames() != null) {
+    if (boundNames != null && !boundNames.isEmpty()) {
       try {
-        internalOptions =
-            (org.apache.cassandra.cql3.QueryOptions)
-                optionsWithNameCtor.newInstance(internalOptions, options.getNames());
+        options = ReflectionUtils.newOptionsWithNames(options, boundNames);
       } catch (Exception e) {
         // We can't afford to ignore that: the values wouldn't be in the proper order, and worst
         // case scenario, this could end up inserting values in the wrong columns, which essentially
@@ -125,15 +125,7 @@ public class Conversion {
             "Unexpected error while trying to bind the query values by name", e);
       }
     }
-    return internalOptions;
-  }
-
-  public static org.apache.cassandra.service.ClientState toInternal(
-      ClientState<org.apache.cassandra.service.ClientState> state) {
-    if (state == null) {
-      return org.apache.cassandra.service.ClientState.forInternalCalls();
-    }
-    return state.getWrapped();
+    return options;
   }
 
   public static org.apache.cassandra.db.ConsistencyLevel toInternal(ConsistencyLevel cl) {
@@ -189,7 +181,7 @@ public class Conversion {
     return new FunctionName(internal.keyspace, internal.name);
   }
 
-  public static RuntimeException toExternal(org.apache.cassandra.exceptions.CassandraException e) {
+  public static PersistenceException toExternal(CassandraException e) {
     switch (e.code()) {
       case SERVER_ERROR:
         return addSuppressed(new ServerError(e.getMessage()), e);
@@ -250,7 +242,7 @@ public class Conversion {
         } else if (e instanceof org.apache.cassandra.exceptions.OperationExecutionException) {
           return addSuppressed(new OperationExecutionException(e.getMessage()), e);
         }
-        return e;
+        break;
       case WRITE_FAILURE:
         org.apache.cassandra.exceptions.WriteFailureException wfe =
             (org.apache.cassandra.exceptions.WriteFailureException) e;
@@ -293,10 +285,14 @@ public class Conversion {
             (org.apache.cassandra.exceptions.PreparedQueryNotFoundException) e;
         return addSuppressed(new PreparedQueryNotFoundException(MD5Digest.wrap(pnfe.id.bytes)), e);
     }
-    return e;
+    noSpamLogger.error(
+        "Unhandled Cassandra exception code {} in the persistence conversion "
+            + "code. This should be fixed (but a ServerError will be use in the meantime)");
+    return new ServerError(e);
   }
 
-  private static RuntimeException addSuppressed(RuntimeException e, RuntimeException suppressed) {
+  private static PersistenceException addSuppressed(
+      PersistenceException e, RuntimeException suppressed) {
     e.addSuppressed(suppressed);
     return e;
   }
@@ -313,7 +309,7 @@ public class Conversion {
                       .keyspace(c.ksName)
                       .table(c.cfName)
                       .name(c.name.toString())
-                      .type(DataStoreUtil.getTypeFromInternal(c.type))
+                      .type(getTypeFromInternal(c.type))
                       .build()));
     }
 
@@ -343,7 +339,7 @@ public class Conversion {
                     .keyspace(c.ksName)
                     .table(c.cfName)
                     .name(c.name.toString())
-                    .type(DataStoreUtil.getTypeFromInternal(c.type))
+                    .type(getTypeFromInternal(c.type))
                     .build()));
 
     EnumSet<Result.Flag> flags = EnumSet.noneOf(Result.Flag.class);
@@ -366,9 +362,16 @@ public class Conversion {
 
   public static Result toResult(
       ResultMessage resultMessage, org.apache.cassandra.transport.ProtocolVersion version) {
+    return toResultInternal(resultMessage, version)
+        .setTracingId(ReflectionUtils.getTracingId(resultMessage));
+  }
+
+  private static Result toResultInternal(
+      ResultMessage resultMessage, org.apache.cassandra.transport.ProtocolVersion version) {
+
     switch (resultMessage.kind) {
       case VOID:
-        return Result.VOID;
+        return new Result.Void();
       case ROWS:
         return new Result.Rows(
             ((ResultMessage.Rows) resultMessage).result.rows,
@@ -377,48 +380,34 @@ public class Conversion {
         return new Result.SetKeyspace(((ResultMessage.SetKeyspace) resultMessage).keyspace);
       case SCHEMA_CHANGE:
         return new Result.SchemaChange(toSchemaChangeMetadata(resultMessage));
+      case PREPARED:
+        ResultMessage.Prepared prepared = (ResultMessage.Prepared) resultMessage;
+        QueryHandler.Prepared preparedStatement =
+            QueryProcessor.instance.getPrepared(prepared.statementId);
+        return new Result.Prepared(
+            Conversion.toExternal(prepared.statementId),
+            Conversion.toExternal(prepared.resultMetadataId),
+            toResultMetadata(prepared.resultMetadata, null),
+            toPreparedMetadata(
+                prepared.metadata.names,
+                preparedStatement.statement.getPartitionKeyBindVariableIndexes()));
     }
-
-    throw new ProtocolException("Unexpected type for RESULT message");
+    throw new ProtocolException("Unexpected type for RESULT message: " + resultMessage.kind);
   }
 
-  public static Result.Prepared toPrepared(ResultMessage.Prepared prepared) {
-    QueryHandler.Prepared preparedStatement =
-        QueryProcessor.instance.getPrepared(prepared.statementId);
-    return new Result.Prepared(
-        Conversion.toExternal(prepared.statementId),
-        Conversion.toExternal(prepared.resultMetadataId),
-        toResultMetadata(prepared.resultMetadata, null),
-        toPreparedMetadata(
-            prepared.metadata.names,
-            preparedStatement.statement.getPartitionKeyBindVariableIndexes()));
-  }
-
-  public static void handleException(CompletableFuture<?> future, Throwable t) {
-    Throwable e = t;
-
+  public static PersistenceException convertInternalException(Throwable t) {
     if (t instanceof CassandraException) {
-      e = Conversion.toExternal((CassandraException) t);
+      return Conversion.toExternal((CassandraException) t);
     } else if (t instanceof org.apache.cassandra.transport.ProtocolException) {
       // Note that ProtocolException is not a CassandraException
       org.apache.cassandra.transport.ProtocolException ex =
           (org.apache.cassandra.transport.ProtocolException) t;
-      e = new ProtocolException(t.getMessage(), toExternal(ex.getForcedProtocolVersion()));
+      return new ProtocolException(t.getMessage(), toExternal(ex.getForcedProtocolVersion()));
+    } else if (t instanceof org.apache.cassandra.transport.ServerError) {
+      // Nor is ServerError
+      return new ServerError(t.getMessage());
     }
-
-    future.completeExceptionally(e);
-  }
-
-  public static List<Object> toInternalQueryOrIds(List<Object> queryOrIds) {
-    List<Object> internal = new ArrayList<>(queryOrIds.size());
-    for (Object o : queryOrIds) {
-      if (o instanceof MD5Digest) {
-        internal.add(toInternal((MD5Digest) o));
-      } else {
-        internal.add(o);
-      }
-    }
-    return internal;
+    return new ServerError(t);
   }
 
   public static BatchStatement.Type toInternal(BatchType external) {
@@ -431,5 +420,57 @@ public class Conversion {
         return BatchStatement.Type.COUNTER;
     }
     throw new IllegalArgumentException("Invalid batch type");
+  }
+
+  public static Column.ColumnType getTypeFromInternal(AbstractType abstractType) {
+    if (abstractType instanceof ReversedType) {
+      return getTypeFromInternal(((ReversedType) abstractType).baseType);
+    }
+    if (abstractType instanceof MapType) {
+      return Column.Type.Map.of(
+              getTypeFromInternal(((MapType) abstractType).getKeysType()),
+              getTypeFromInternal(((MapType) abstractType).getValuesType()))
+          .frozen(!abstractType.isMultiCell());
+    } else if (abstractType instanceof SetType) {
+      return Column.Type.Set.of(getTypeFromInternal(((SetType) abstractType).getElementsType()))
+          .frozen(!abstractType.isMultiCell());
+    } else if (abstractType instanceof ListType) {
+      return Column.Type.List.of(getTypeFromInternal(((ListType) abstractType).getElementsType()))
+          .frozen(!abstractType.isMultiCell());
+    } else if (abstractType.getClass().equals(TupleType.class)) {
+      TupleType tupleType = ((TupleType) abstractType);
+      return Column.Type.Tuple.of(
+              ((TupleType) abstractType)
+                  .allTypes().stream()
+                      .map(t -> getTypeFromInternal(t))
+                      .toArray(Column.ColumnType[]::new))
+          .frozen(!tupleType.isMultiCell());
+    } else if (abstractType.getClass().equals(UserType.class)) {
+      UserType udt = (UserType) abstractType;
+      return ImmutableUserDefinedType.builder()
+          .keyspace(udt.keyspace)
+          .name(udt.getNameAsString())
+          .addAllColumns(getUDTColumns(udt))
+          .build()
+          .frozen(!udt.isMultiCell());
+    }
+
+    Column.Type type = TYPE_MAPPINGS.get(abstractType.getClass());
+    Preconditions.checkArgument(
+        type != null, "Unknown type mapping for %s", abstractType.getClass());
+    return type;
+  }
+
+  public static List<Column> getUDTColumns(UserType userType) {
+    List<Column> columns = new ArrayList<>(userType.fieldTypes().size());
+    for (int i = 0; i < userType.fieldTypes().size(); i++) {
+      columns.add(
+          ImmutableColumn.builder()
+              .name(userType.fieldName(i).toString())
+              .type(getTypeFromInternal(userType.fieldType(i)))
+              .kind(Column.Kind.Regular)
+              .build());
+    }
+    return columns;
   }
 }

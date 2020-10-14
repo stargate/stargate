@@ -67,6 +67,7 @@ public class ResultMessage extends Message.Response {
     super(Message.Type.RESULT);
     this.result = result;
     this.tracingId = result.getTracingId();
+    this.warnings = result.getWarnings();
   }
 
   public static class VoidSubCodec implements CBCodec<Result> {

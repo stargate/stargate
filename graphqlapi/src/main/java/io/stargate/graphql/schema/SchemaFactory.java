@@ -14,9 +14,7 @@ public class SchemaFactory {
    * <p>This is the API exposed at {@code /graphql/<keyspaceName>}.
    */
   public static GraphQLSchema newDmlSchema(
-      Persistence<?, ?, ?> persistence,
-      AuthenticationService authenticationService,
-      Keyspace keyspace) {
+      Persistence persistence, AuthenticationService authenticationService, Keyspace keyspace) {
     return new DmlSchemaBuilder(persistence, authenticationService, keyspace).build();
   }
 
@@ -27,7 +25,7 @@ public class SchemaFactory {
    * <p>This is the API exposed at {@code /graphql-schema}.
    */
   public static GraphQLSchema newDdlSchema(
-      Persistence<?, ?, ?> persistence, AuthenticationService authenticationService) {
+      Persistence persistence, AuthenticationService authenticationService) {
     return new DdlSchemaBuilder(persistence, authenticationService).build();
   }
 }

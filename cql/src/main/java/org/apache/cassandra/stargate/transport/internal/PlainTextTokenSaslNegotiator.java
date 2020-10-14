@@ -5,7 +5,6 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.Authenticator;
-import io.stargate.db.Persistence;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
@@ -21,16 +20,12 @@ class PlainTextTokenSaslNegotiator implements Authenticator.SaslNegotiator {
 
   static final byte NUL = 0;
 
-  private final Persistence<?, ?, ?> persistence;
   private final AuthenticationService authentication;
   private final Authenticator.SaslNegotiator wrapped;
   private StoredCredentials storedCredentials;
 
   PlainTextTokenSaslNegotiator(
-      Authenticator.SaslNegotiator wrapped,
-      Persistence<?, ?, ?> persistence,
-      AuthenticationService authentication) {
-    this.persistence = persistence;
+      Authenticator.SaslNegotiator wrapped, AuthenticationService authentication) {
     this.authentication = authentication;
     this.wrapped = wrapped;
   }
@@ -47,9 +42,8 @@ class PlainTextTokenSaslNegotiator implements Authenticator.SaslNegotiator {
   }
 
   @Override
-  public AuthenticatedUser<?> getAuthenticatedUser() throws AuthenticationException {
-    if (storedCredentials != null)
-      return persistence.newAuthenticatedUser(storedCredentials.getRoleName());
+  public AuthenticatedUser getAuthenticatedUser() throws AuthenticationException {
+    if (storedCredentials != null) return AuthenticatedUser.of(storedCredentials.getRoleName());
     else return wrapped.getAuthenticatedUser();
   }
 

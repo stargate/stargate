@@ -55,7 +55,7 @@ public class CqlImpl {
   }
 
   public void start(
-      Persistence<?, ?, ?> persistence, Metrics metrics, AuthenticationService authentication) {
+      Persistence persistence, Metrics metrics, AuthenticationService authentication) {
 
     int nativePort = TransportDescriptor.getNativeTransportPort();
     int nativePortSSL = TransportDescriptor.getNativeTransportPortSSL();

@@ -25,8 +25,6 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.datastore.query.WhereCondition;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -54,7 +52,7 @@ public class AuthTableBasedService implements AuthenticationService {
 
   public void setPersistence(Persistence persistence) {
     this.persistence = persistence;
-    this.dataStore = persistence.newDataStore(null, null);
+    this.dataStore = DataStore.create(persistence);
 
     if (shouldInitializeAuthKeyspace) {
       initAuthTable(this.dataStore);
@@ -71,16 +69,14 @@ public class AuthTableBasedService implements AuthenticationService {
               String.format(
                   "CREATE KEYSPACE IF NOT EXISTS %s WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor':1}",
                   AUTH_KEYSPACE),
-              Optional.of(ConsistencyLevel.LOCAL_QUORUM),
-              Collections.emptyList())
+              ConsistencyLevel.LOCAL_QUORUM)
           .get();
       dataStore
           .query(
               String.format(
                   "CREATE TABLE IF NOT EXISTS %s.\"%s\" (auth_token UUID, username text, created_timestamp int, PRIMARY KEY (auth_token))",
                   AUTH_KEYSPACE, AUTH_TABLE),
-              Optional.of(ConsistencyLevel.LOCAL_QUORUM),
-              Collections.emptyList())
+              ConsistencyLevel.LOCAL_QUORUM)
           .get();
     } catch (Exception e) {
       logger.error("Failed to initialize auth table", e);
@@ -120,7 +116,8 @@ public class AuthTableBasedService implements AuthenticationService {
     }
 
     if (username == null || username.isEmpty()) {
-      throw new UnauthorizedException(String.format("Provided username %s is incorrect", key));
+      throw new UnauthorizedException(
+          String.format("Provided username %s and/or password are incorrect", key));
     }
 
     saveToken(key, token);
@@ -157,12 +154,12 @@ public class AuthTableBasedService implements AuthenticationService {
             .where("role", WhereCondition.Predicate.Eq, key)
             .execute();
 
-    if (resultSet.isEmpty()) {
+    if (resultSet.hasNoMoreFetchedRows()) {
       throw new RuntimeException(String.format("Provided username %s is incorrect", key));
     }
 
     Row row = resultSet.one();
-    if (!row.has("role")) {
+    if (row.isNull("role")) {
       throw new RuntimeException(String.format("Provided username %s is incorrect", key));
     }
 
@@ -179,13 +176,13 @@ public class AuthTableBasedService implements AuthenticationService {
             .where("role", WhereCondition.Predicate.Eq, key)
             .execute();
 
-    if (resultSet.isEmpty()) {
+    if (resultSet.hasNoMoreFetchedRows()) {
       throw new RuntimeException(
           String.format("Provided username %s and/or password are incorrect", key));
     }
 
     Row row = resultSet.one();
-    if (!row.has("salted_hash")) {
+    if (row.isNull("salted_hash")) {
       throw new RuntimeException(
           String.format("Provided username %s and/or password are incorrect", key));
     }
@@ -228,12 +225,12 @@ public class AuthTableBasedService implements AuthenticationService {
               .where("auth_token", WhereCondition.Predicate.Eq, uuid)
               .execute();
 
-      if (resultSet.isEmpty()) {
+      if (resultSet.hasNoMoreFetchedRows()) {
         throw new UnauthorizedException("authorization failed");
       }
 
       Row row = resultSet.one();
-      if (!row.has("username")) {
+      if (row.isNull("username")) {
         throw new RuntimeException("unable to get username from token table");
       }
 
