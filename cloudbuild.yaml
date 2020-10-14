@@ -1,6 +1,10 @@
 steps:
+  - id: 'fetch_secret'
+    name: gcr.io/cloud-builders/gcloud
+    entrypoint: 'bash'
+    args: [ '-c', "gcloud secrets versions access latest --secret=stargate-artifactory --format='get(payload.data)' | tr '_-' '/+' | base64 -d > ci/custom-settings.xml" ]
   - id: 'build'
-    #    waitFor: [ '-' ]
+    waitFor: [ 'fetch_secret' ]
     name: 'ubuntu:bionic'
     entrypoint: 'bash'
     args: [ 'ci/build.sh' ]
