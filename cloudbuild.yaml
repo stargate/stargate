@@ -3,11 +3,16 @@ steps:
     name: gcr.io/cloud-builders/gcloud
     entrypoint: 'bash'
     args: [ '-c', "gcloud secrets versions access latest --secret=stargate-artifactory --format='get(payload.data)' | tr '_-' '/+' | base64 -d > /workspace/ci/custom-settings.xml" ]
+  #  - id: 'build'
+  #    waitFor: [ 'fetch_secret' ]
+  #    name: 'ubuntu:bionic'
+  #    entrypoint: 'bash'
+  #    args: [ 'ci/build.sh' ]
   - id: 'build'
     waitFor: [ 'fetch_secret' ]
-    name: 'ubuntu:bionic'
-    entrypoint: 'bash'
-    args: [ 'ci/build.sh' ]
+    name: 'maven:3-jdk-8'
+    entrypoint: mvn
+    args: [ '-B','install', '--settings', 'ci/custom-settings.xml', '--file', 'pom.xml', '-Dmaven.javadoc.skip=true', '-Pdse', '-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn' ]
   - id: 'cassandra-3.11'
     waitFor: [ 'build' ]
     name: 'ubuntu:bionic'
