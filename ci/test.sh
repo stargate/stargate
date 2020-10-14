@@ -18,9 +18,9 @@ cd /tmp/$PERSISTENCE_BACKEND
 
 PROFILE=""
 case "$PERSISTENCE_BACKEND" in
-  "cassandra-3.11") PROFILE="it-cassandra-3.11"  ;;
-  "cassandra-4.0")  PROFILE="it-cassandra-4.0"  ;;
-  "dse-6.8")        PROFILE="dse,it-dse-6.8" ;;
+  "cassandra-3.11") PROFILE="it-cassandra-3.11,!it-cassandra-4.0"  ;;
+  "cassandra-4.0")  PROFILE="it-cassandra-4.0,!it-cassandra-3.11"  ;;
+  "dse-6.8")        PROFILE="dse,it-dse-6.8,!it-cassandra-4.0,!it-cassandra-3.11" ;;
 esac
 
 echo "Using backend $PERSISTENCE_BACKEND"
