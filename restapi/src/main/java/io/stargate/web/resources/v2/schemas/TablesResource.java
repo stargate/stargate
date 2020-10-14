@@ -18,6 +18,8 @@ package io.stargate.web.resources.v2.schemas;
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
+import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.ClusteringExpression;
 import io.stargate.web.models.ColumnDefinition;
@@ -367,13 +369,13 @@ public class TablesResource {
     final List<ColumnDefinition> columnDefinitions =
         tableMetadata.columns().stream()
             .map(
-                (col) ->
-                    new ColumnDefinition(
-                        col.name(),
-                        Objects.requireNonNull(col.type()).isParameterized()
-                            ? null
-                            : Objects.requireNonNull(col.type()).name(),
-                        col.kind() == Column.Kind.Static))
+                (col) -> {
+                  ColumnType type = col.type();
+                  return new ColumnDefinition(
+                      col.name(),
+                      type == null ? null : type.cqlDefinition(),
+                      col.kind() == Kind.Static);
+                })
             .collect(Collectors.toList());
 
     final List<String> partitionKey =

@@ -19,6 +19,12 @@ To build locally run the following:
 ./mvnw clean package
 ```
 
+You can also build a single module with
+
+```sh
+./mvnw package -pl restapi -am
+```
+
 * If you get a `Could not find or load main class org.apache.maven.wrapper.MavenWrapperMain` exception, upgrade your local `wget`
 ## Running Locally
 
