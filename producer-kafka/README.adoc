@@ -185,7 +185,7 @@ Let's take a look at a simple value schema with three fields: the primary key of
 ----
 The name of this schema is `Value` and it is created in the same namespace as `key` schema.
 There are two required fields. The first one is `op` denoting the type of operation. It can be updated, meaning that some value in the CDC enabled table changed.
-For the update, the `op` will have a value equal to `u`. The second possible state is deleted. It means that there was a delete of the field in the database.
+For the update, the `op` will have a value equal to `u`. The second possible state is deleted which means that there was a delete on the field in the database.
 The deleted value is `d`. The `ts_ms` contains the timestamp of a change.
 Every field (Primary Key, Clustering Key, and normal cell) has a union schema. It means that the whole field can be absent.
 The field's actual value is also a union of the type of a field and a `null`. When the value is `null`, it means that there field was cleared.
