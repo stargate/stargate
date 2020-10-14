@@ -1,6 +1,7 @@
 package io.stargate.db.datastore;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
+import io.stargate.db.BoundStatement;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Result;
@@ -23,7 +24,8 @@ class PersistenceBackedResultSet implements ResultSet {
 
   private final Persistence.Connection connection;
   private final Parameters parameters;
-  private final Statement statement;
+  // Can be null when we know there is a single page
+  private final @Nullable Statement statement;
   private final ProtocolVersion driverProtocolVersion;
   private final Deque<Row> fetchedRows;
   private final List<Column> columns;
@@ -34,17 +36,44 @@ class PersistenceBackedResultSet implements ResultSet {
   PersistenceBackedResultSet(
       Persistence.Connection connection,
       Parameters parameters,
-      Statement statement,
-      ProtocolVersion driverProtocolVersion,
+      @Nullable Statement statement,
       Result.Rows initialPage) {
     this.connection = connection;
     // We get our metadata in our initial page; let's skip it for following pages
     this.parameters = parameters.withoutMetadataInResult();
     this.statement = statement;
-    this.driverProtocolVersion = driverProtocolVersion;
+    this.driverProtocolVersion =
+        PersistenceBackedDataStore.toDriverVersion(parameters.protocolVersion());
     this.fetchedRows = new ArrayDeque<>(parameters.pageSize().orElse(32));
     this.columns = processColumns(initialPage.resultMetadata.columns);
     processNewPage(initialPage);
+    if (nextPagingState != null && this.statement == null) {
+      throw new IllegalStateException(
+          "The statement must be provided if there is more than the initial page.");
+    }
+  }
+
+  static ResultSet create(
+      Persistence.Connection connection,
+      Result result,
+      @Nullable BoundStatement statement,
+      Parameters executeParameters) {
+    switch (result.kind) {
+      case Prepared:
+        throw new AssertionError(
+            "Shouldn't get a 'Prepared' result when executing a prepared statement");
+      case SchemaChange:
+        connection.persistence().waitForSchemaAgreement();
+        return ResultSet.empty(true);
+      case Void: // fallthrough on purpose
+      case SetKeyspace:
+        return ResultSet.empty();
+      case Rows:
+        return new PersistenceBackedResultSet(
+            connection, executeParameters, statement, (Result.Rows) result);
+      default:
+        throw new AssertionError("Unhandled result type: " + result.kind);
+    }
   }
 
   // We have the slight abstraction issue that the columns from Result.Rows "abuse" the Column
@@ -81,6 +110,7 @@ class PersistenceBackedResultSet implements ResultSet {
   }
 
   private void fetchNextPage() {
+    assert nextPagingState != null;
     try {
       // Note: we could have add a timeout on that get() for security. That said, we don't want
       // to pull a random number, and adding a new config for that should probably be discussed.

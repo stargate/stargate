@@ -90,26 +90,16 @@ public class Db {
 
   public DocumentDB getDocDataStoreForToken(String token) throws UnauthorizedException {
     StoredCredentials storedCredentials = authenticationService.validateToken(token);
-    ClientState clientState = persistence.newClientState(storedCredentials.getRoleName());
-    QueryState queryState = persistence.newQueryState(clientState);
-
-    return new DocumentDB(persistence.newDataStore(queryState, null));
+    return new DocumentDB(DataStore.create(persistence, storedCredentials.getRoleName()));
   }
 
   public DocumentDB getDocDataStoreForToken(String token, int pageSize, ByteBuffer pageState)
       throws UnauthorizedException {
     StoredCredentials storedCredentials = authenticationService.validateToken(token);
-    ClientState clientState = persistence.newClientState(storedCredentials.getRoleName());
-    QueryState queryState = persistence.newQueryState(clientState);
-    QueryOptions queryOptions =
-        DefaultQueryOptions.builder()
-            .options(
-                DefaultQueryOptions.SpecificOptions.builder()
-                    .pageSize(pageSize)
-                    .pagingState(pageState)
-                    .build())
-            .build();
+    Parameters parameters =
+        Parameters.builder().pageSize(pageSize).pagingState(Optional.ofNullable(pageState)).build();
 
-    return new DocumentDB(persistence.newDataStore(queryState, queryOptions));
+    return new DocumentDB(
+        DataStore.create(persistence, storedCredentials.getRoleName(), parameters));
   }
 }

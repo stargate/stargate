@@ -16,10 +16,12 @@
 package io.stargate.db.datastore;
 
 import io.stargate.db.AuthenticatedUser;
+import io.stargate.db.BatchType;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.query.QueryBuilder;
 import io.stargate.db.schema.Schema;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
@@ -155,6 +157,45 @@ public interface DataStore {
 
   /** Prepares the provided query against this data store. */
   CompletableFuture<PreparedStatement> prepare(String queryString);
+
+  /**
+   * Executes the provided bound statements as a batch against this data store.
+   *
+   * <p>This is a shortcut for {@link #batch(List, UnaryOperator)} where the data store default
+   * parameters are only modified to use the provided consistency level.
+   */
+  default CompletableFuture<ResultSet> batch(
+      List<PreparedStatement.Bound> statements, ConsistencyLevel consistencyLevel) {
+    return batch(statements, p -> p.withConsistencyLevel(consistencyLevel));
+  }
+
+  /**
+   * Executes the provided bound statements as a batch against this data store.
+   *
+   * <p>This is a shortcut for {@link #batch(List, BatchType, UnaryOperator)} where batch type
+   * defaults to "logged".
+   */
+  default CompletableFuture<ResultSet> batch(
+      List<PreparedStatement.Bound> statements, UnaryOperator<Parameters> parametersModifier) {
+    return batch(statements, BatchType.LOGGED, parametersModifier);
+  }
+
+  /**
+   * Executes the provided bound statements as a batch against this data store.
+   *
+   * @param statements the statements to execute as a batch.
+   * @param batchType the type of the batch.
+   * @param parametersModifier a function called on the default parameters of this data store (the
+   *     instance provided when building the data store) and whose result parameters are used for
+   *     the query execution.
+   * @return a future with a {@link ResultSet} object to access the result of the query. See {@link
+   *     #query(String, UnaryOperator, Object...)} javadoc for details on that result set; the same
+   *     description applies here.
+   */
+  CompletableFuture<ResultSet> batch(
+      List<PreparedStatement.Bound> statements,
+      BatchType batchType,
+      UnaryOperator<Parameters> parametersModifier);
 
   /**
    * Returns the current schema.

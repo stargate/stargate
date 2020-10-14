@@ -16,13 +16,9 @@
 package io.stargate.db.datastore.query;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
-import io.stargate.db.Parameters;
 import io.stargate.db.datastore.PreparedStatement;
-import io.stargate.db.datastore.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.UnaryOperator;
 
 /** Mixes in prepared parameters to those supplied at execution. */
 class MixinPreparedStatement implements PreparedStatement {
@@ -47,15 +43,19 @@ class MixinPreparedStatement implements PreparedStatement {
   }
 
   @Override
-  public CompletableFuture<ResultSet> execute(
-      UnaryOperator<Parameters> parametersModifier, Object... parameters) {
+  public String preparedQueryString() {
+    return prepared.preparedQueryString();
+  }
+
+  @Override
+  public Bound bind(Object... values) {
     Preconditions.checkArgument(
-        parameters.length == unboundParameters,
+        values.length == unboundParameters,
         "Unexpected number of arguments. Expected %s but got %s. Statement: %s.",
         unboundParameters,
-        parameters.length,
+        values.length,
         prepared);
-    List<Object> mergedParameters = new ArrayList<>(this.parameters.size());
+    List<Object> mergedValues = new ArrayList<>(this.parameters.size());
     int mergeCount = 0;
     for (Parameter<?> parameter : this.parameters) {
       if (parameter.ignored()) {
@@ -64,12 +64,11 @@ class MixinPreparedStatement implements PreparedStatement {
         }
         continue;
       }
-      Object value =
-          parameter.value().isPresent() ? parameter.value().get() : parameters[mergeCount++];
+      Object value = parameter.value().isPresent() ? parameter.value().get() : values[mergeCount++];
       if (value == Value.NULL) value = null;
-      mergedParameters.add(value);
+      mergedValues.add(value);
     }
-    return prepared.execute(parametersModifier, mergedParameters.toArray());
+    return prepared.bind(mergedValues.toArray());
   }
 
   @Override

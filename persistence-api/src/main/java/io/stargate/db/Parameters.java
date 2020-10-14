@@ -24,6 +24,10 @@ public abstract class Parameters {
     return ImmutableParameters.of();
   }
 
+  public static ImmutableParameters.Builder builder() {
+    return ImmutableParameters.builder();
+  }
+
   @Value.Check
   protected void validate() {
     if (pageSize().isPresent() && pageSize().getAsInt() <= 0) {
