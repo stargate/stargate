@@ -46,6 +46,7 @@ import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
 import org.apache.cassandra.stargate.exceptions.IsBootstrappingException;
 import org.apache.cassandra.stargate.exceptions.OperationExecutionException;
 import org.apache.cassandra.stargate.exceptions.OverloadedException;
+import org.apache.cassandra.stargate.exceptions.PersistenceException;
 import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.exceptions.ReadFailureException;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
