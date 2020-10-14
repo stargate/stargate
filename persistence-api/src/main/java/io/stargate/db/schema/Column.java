@@ -211,6 +211,18 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       return false;
     }
 
+    default boolean isList() {
+      return false;
+    }
+
+    default boolean isMap() {
+      return false;
+    }
+
+    default boolean isSet() {
+      return false;
+    }
+
     default boolean isComplexType() {
       return isParameterized() || isUserDefined();
     }
@@ -260,6 +272,11 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       public boolean isCollection() {
         return true;
       }
+
+      @Override
+      public boolean isList() {
+        return true;
+      }
     },
     Map(33, Map.class, false, "mapOf(<type>, <type>)", "A typed map of key value pairs") {
       @Override
@@ -286,6 +303,11 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       public boolean isCollection() {
         return true;
       }
+
+      @Override
+      public boolean isMap() {
+        return true;
+      }
     },
     Set(34, Set.class, false, "setOf(<type>)", "A typed set of values") {
       @Override
@@ -310,6 +332,11 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
 
       @Override
       public boolean isCollection() {
+        return true;
+      }
+
+      @Override
+      public boolean isSet() {
         return true;
       }
     },

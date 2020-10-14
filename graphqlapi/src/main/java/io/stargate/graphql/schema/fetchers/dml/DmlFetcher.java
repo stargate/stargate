@@ -29,7 +29,7 @@ public abstract class DmlFetcher extends CassandraFetcher<Map<String, Object>> {
   protected DmlFetcher(
       Table table,
       NameMapping nameMapping,
-      Persistence<?, ?, ?> persistence,
+      Persistence persistence,
       AuthenticationService authenticationService) {
     super(persistence, authenticationService);
     this.table = table;

@@ -23,8 +23,7 @@ import io.stargate.db.Persistence;
 
 public class DropTableFetcher extends DdlQueryFetcher {
 
-  public DropTableFetcher(
-      Persistence<?, ?, ?> persistence, AuthenticationService authenticationService) {
+  public DropTableFetcher(Persistence persistence, AuthenticationService authenticationService) {
     super(persistence, authenticationService);
   }
 

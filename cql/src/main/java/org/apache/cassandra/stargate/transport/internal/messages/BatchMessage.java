@@ -18,20 +18,22 @@
 package org.apache.cassandra.stargate.transport.internal.messages;
 
 import io.netty.buffer.ByteBuf;
+import io.stargate.db.Batch;
 import io.stargate.db.BatchType;
-import io.stargate.db.Persistence;
-import io.stargate.db.QueryOptions;
-import io.stargate.db.QueryState;
+import io.stargate.db.BoundStatement;
 import io.stargate.db.Result;
+import io.stargate.db.SimpleStatement;
+import io.stargate.db.Statement;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import org.apache.cassandra.stargate.cql3.DefaultQueryOptions;
+import java.util.stream.Collectors;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.stargate.transport.internal.Message;
+import org.apache.cassandra.stargate.transport.internal.QueryOptions;
 import org.apache.cassandra.stargate.utils.MD5Digest;
 
 public class BatchMessage extends Message.Request {
@@ -39,108 +41,93 @@ public class BatchMessage extends Message.Request {
       new Message.Codec<BatchMessage>() {
         public BatchMessage decode(ByteBuf body, ProtocolVersion version) {
           byte type = body.readByte();
+          if (type < 0 || type > 2) {
+            throw new ProtocolException("Invalid BATCH message type " + type);
+          }
           int n = body.readUnsignedShort();
-          List<Object> queryOrIds = new ArrayList<>(n);
-          List<List<ByteBuffer>> variables = new ArrayList<>(n);
+          List<Statement> statements = new ArrayList<>(n);
           for (int i = 0; i < n; i++) {
             byte kind = body.readByte();
-            if (kind == 0) queryOrIds.add(CBUtil.readLongString(body));
-            else if (kind == 1) queryOrIds.add(MD5Digest.wrap(CBUtil.readBytes(body)));
-            else
+            if (kind == 0) {
+              String query = CBUtil.readLongString(body);
+              List<ByteBuffer> values = CBUtil.readValueList(body, version);
+              statements.add(new SimpleStatement(query, values, null));
+            } else if (kind == 1) {
+              MD5Digest id = MD5Digest.wrap(CBUtil.readBytes(body));
+              List<ByteBuffer> values = CBUtil.readValueList(body, version);
+              statements.add(new BoundStatement(id, values, null));
+            } else {
               throw new ProtocolException(
                   "Invalid query kind in BATCH messages. Must be 0 or 1 but got " + kind);
-            variables.add(CBUtil.readValueList(body, version));
+            }
           }
-          QueryOptions options = DefaultQueryOptions.codec.decode(body, version);
+          QueryOptions options = QueryOptions.codec.decode(body, version);
 
-          return new BatchMessage(type, queryOrIds, variables, options);
+          return new BatchMessage(new Batch(BatchType.fromId(type), statements), options);
         }
 
         public void encode(BatchMessage msg, ByteBuf dest, ProtocolVersion version) {
-          int queries = msg.queryOrIdList.size();
+          int queries = msg.batch.size();
 
-          dest.writeByte(msg.batchType);
+          dest.writeByte(msg.batch.type().id);
           dest.writeShort(queries);
 
-          for (int i = 0; i < queries; i++) {
-            Object q = msg.queryOrIdList.get(i);
-            dest.writeByte((byte) (q instanceof String ? 0 : 1));
-            if (q instanceof String) CBUtil.writeLongString((String) q, dest);
-            else CBUtil.writeBytes(((MD5Digest) q).bytes, dest);
+          for (Statement s : msg.batch.statements()) {
+            dest.writeByte((byte) (s instanceof SimpleStatement ? 0 : 1));
+            if (s instanceof SimpleStatement) {
+              CBUtil.writeLongString(((SimpleStatement) s).queryString(), dest);
+            } else {
+              CBUtil.writeBytes(((BoundStatement) s).preparedId().bytes, dest);
+            }
 
-            CBUtil.writeValueList(msg.values.get(i), dest);
+            CBUtil.writeValueList(s.values(), dest);
           }
 
           if (version.isSmallerThan(ProtocolVersion.V3))
             CBUtil.writeConsistencyLevel(msg.options.getConsistency(), dest);
-          else DefaultQueryOptions.codec.encode(msg.options, dest, version);
+          else QueryOptions.codec.encode(msg.options, dest, version);
         }
 
         public int encodedSize(BatchMessage msg, ProtocolVersion version) {
           int size = 3; // type + nb queries
-          for (int i = 0; i < msg.queryOrIdList.size(); i++) {
-            Object q = msg.queryOrIdList.get(i);
+          for (Statement s : msg.batch.statements()) {
             size +=
                 1
-                    + (q instanceof String
-                        ? CBUtil.sizeOfLongString((String) q)
-                        : CBUtil.sizeOfBytes(((MD5Digest) q).bytes));
+                    + ((s instanceof SimpleStatement)
+                        ? CBUtil.sizeOfLongString(((SimpleStatement) s).queryString())
+                        : CBUtil.sizeOfBytes(((BoundStatement) s).preparedId().bytes));
 
-            size += CBUtil.sizeOfValueList(msg.values.get(i));
+            size += CBUtil.sizeOfValueList(s.values());
           }
           size +=
               version.isSmallerThan(ProtocolVersion.V3)
                   ? CBUtil.sizeOfConsistencyLevel(msg.options.getConsistency())
-                  : DefaultQueryOptions.codec.encodedSize(msg.options, version);
+                  : QueryOptions.codec.encodedSize(msg.options, version);
           return size;
         }
       };
 
-  public final byte batchType;
-  public final List<Object> queryOrIdList;
-  public final List<List<ByteBuffer>> values;
+  public final Batch batch;
   public final QueryOptions options;
 
-  public BatchMessage(
-      byte type, List<Object> queryOrIdList, List<List<ByteBuffer>> values, QueryOptions options) {
+  public BatchMessage(Batch batch, QueryOptions options) {
     super(Message.Type.BATCH);
-    if (type < 0 && type > 2) {
-      throw new ProtocolException("Invalid BATCH message type " + type);
-    }
-    this.batchType = type;
-    this.queryOrIdList = queryOrIdList;
-    this.values = values;
+    this.batch = batch;
     this.options = options;
   }
 
   @Override
-  protected CompletableFuture<? extends Response> execute(
-      Persistence persistence, QueryState state, long queryStartNanoTime) {
-    CompletableFuture<? extends Result> future =
-        persistence.batch(
-            BatchType.fromId(batchType),
-            queryOrIdList,
-            values,
-            state,
-            options,
-            getCustomPayload(),
-            isTracingRequested(),
-            queryStartNanoTime);
-    return future.thenApply(result -> new ResultMessage(result));
+  protected CompletableFuture<? extends Response> execute(long queryStartNanoTime) {
+    CompletableFuture<Result> future =
+        persistenceConnection().batch(batch, makeParameters(options), queryStartNanoTime);
+    return future.thenApply(ResultMessage::new);
   }
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("BATCH of [");
-    for (int i = 0; i < queryOrIdList.size(); i++) {
-      if (i > 0) sb.append(", ");
-      sb.append(queryOrIdList.get(i))
-          .append(" with ")
-          .append(values.get(i).size())
-          .append(" values");
-    }
-    sb.append("] at consistency ").append(options.getConsistency());
-    return sb.toString();
+    return String.format(
+        "BATCH of [%s] at consistency %s",
+        batch.statements().stream().map(Object::toString).collect(Collectors.joining(", ")),
+        options.getConsistency());
   }
 }

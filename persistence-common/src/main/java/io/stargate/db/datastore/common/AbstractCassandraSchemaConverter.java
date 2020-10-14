@@ -126,7 +126,7 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
   }
 
   private Table convertTable(String keyspaceName, T table, Iterable<V> views) {
-    List<Column> columns = convertColumns(table).collect(Collectors.toList());
+    List<Column> columns = convertColumns(keyspaceName, table).collect(Collectors.toList());
     Stream<Index> secondaryIndexes = convertSecondaryIndexes(keyspaceName, table, columns);
     Stream<Index> materializedViews = convertMVIndexes(keyspaceName, table, views);
     return Table.create(
@@ -136,17 +136,20 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
         Stream.concat(secondaryIndexes, materializedViews).collect(Collectors.toList()));
   }
 
-  private Stream<Column> convertColumns(T table) {
-    return convertColumns(columns(table));
+  private Stream<Column> convertColumns(String keyspaceName, T table) {
+    return convertColumns(keyspaceName, tableName(table), columns(table));
   }
 
-  private Stream<Column> convertColumns(Iterable<C> columns) {
-    return Streams.of(columns).map(this::convertColumn);
+  private Stream<Column> convertColumns(
+      String keyspaceName, String tableName, Iterable<C> columns) {
+    return Streams.of(columns).map(c -> convertColumn(keyspaceName, tableName, c));
   }
 
-  private Column convertColumn(C column) {
+  private Column convertColumn(String keyspaceName, String tableName, C column) {
     return ImmutableColumn.builder()
         .name(columnName(column))
+        .keyspace(keyspaceName)
+        .table(tableName)
         .type(columnType(column))
         .kind(columnKind(column))
         .order(columnClusteringOrder(column))
@@ -233,7 +236,7 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
 
   private Index convertMVIndex(String keyspaceName, V view) {
     T table = asTable(view);
-    List<Column> columns = convertColumns(table).collect(Collectors.toList());
+    List<Column> columns = convertColumns(keyspaceName, table).collect(Collectors.toList());
     return MaterializedView.create(keyspaceName, tableName(table), columns);
   }
 
