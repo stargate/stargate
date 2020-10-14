@@ -55,8 +55,8 @@ There are two required settings that you need to pass to the CDC connector.
 - `cdc.kafka.producer.schema.registry.url` - contains one URL or multiple urls for a schema registry that will be used to schema management.
 The `schema-registry` should work in the `full_transitive` compatibility mode to allow the backward and forward compatible evolution of schema.
 To see how to achieve it, please visit the link:https://docs.confluent.io/current/schema-registry/avro.html#compatibility-types[Schema Registry Guide].
-- Two Kafka producer settings cannot be set by the user: `key.serializer` and `value.serializer` - must be set to `KafkaAvroSerializer.class`
-because the CDC producer uses Avro format for publishing events to a Kafka. If the user passes those settings, they will be ignored.
+- There are two Kafka producer settings which cannot be set by the user: `key.serializer` and `value.serializer` - both must be set to `KafkaAvroSerializer.class`
+because the CDC producer uses Avro format for publishing events to Kafka. Any value provided for these two settings will be ignored.
 
 
 === Metrics Settings
