@@ -171,7 +171,8 @@ public class Starter {
   @Order(value = 13)
   @Option(
       name = {"--proxy-dns-name"},
-      description = "Used with the proxy protocol flag to populate `system.peers` with a proxy's public IP addresses (i.e. A records)")
+      description =
+          "Used with the proxy protocol flag to populate `system.peers` with a proxy's public IP addresses (i.e. A records)")
   private String proxyDnsName;
 
   @Order(value = 14)
