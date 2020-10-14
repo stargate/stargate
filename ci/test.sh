@@ -15,6 +15,8 @@ ln -sf /usr/bin/python2.7 /usr/bin/python
 #popd
 
 adduser --disabled-password --gecos "" ubuntu
+usermod -aG sudo ubuntu
+echo "ubuntu     ALL=(ALL) NOPASSWD:/usr/bin/python" >> /etc/sudoers
 chown -R ubuntu:ubuntu *
 
 # Need to switch users since we can't pass the right flag to allow running Cassandra as root
