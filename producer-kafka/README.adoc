@@ -39,7 +39,8 @@ The `init()` method takes the `Map<String, Object>` as an argument. This map mus
 There are multiple required settings:
 
 === Prefix name
- `cdc.topic.prefix-name` - it should contain a `String` value. It is used to construct the topic name to which the CDC modification for a given TableMetadata is sent.
+
+`cdc.topic.prefix-name` - it should contain a `String` value. It is used to construct the topic name to which the CDC modification for a given TableMetadata is sent.
 Value from this setting is used as a prefix. For example, if the prefix is 'p', keyspace 'ks' and table 't', the final topic name will be: 'p.ks.t'
 The send() will publish a CDC event to a Kafka topic constructed  using this strategy
 
