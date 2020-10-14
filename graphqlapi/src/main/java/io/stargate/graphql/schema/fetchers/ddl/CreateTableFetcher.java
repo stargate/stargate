@@ -28,8 +28,7 @@ import java.util.Map;
 
 public class CreateTableFetcher extends DdlQueryFetcher {
 
-  public CreateTableFetcher(
-      Persistence<?, ?, ?> persistence, AuthenticationService authenticationService) {
+  public CreateTableFetcher(Persistence persistence, AuthenticationService authenticationService) {
     super(persistence, authenticationService);
   }
 

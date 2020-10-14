@@ -134,7 +134,7 @@ class DataTypeMapping {
     List<Column> columns = row.columns();
     Map<String, Object> map = new HashMap<>(columns.size());
     for (Column column : columns) {
-      if (row.has(column)) {
+      if (!row.isNull(column.name())) {
         map.put(
             nameMapping.getColumnNames(table).get(column),
             toGraphQLValue(nameMapping, column, row));
@@ -144,7 +144,7 @@ class DataTypeMapping {
   }
 
   private static Object toGraphQLValue(NameMapping nameMapping, Column column, Row row) {
-    Object dbValue = row.getValue(column.name());
+    Object dbValue = row.getObject(column.name());
     return toGraphQLValue(nameMapping, column.type(), dbValue);
   }
 

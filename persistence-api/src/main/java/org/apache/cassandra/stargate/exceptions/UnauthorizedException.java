@@ -22,8 +22,12 @@ public class UnauthorizedException extends RequestValidationException {
     super(ExceptionCode.UNAUTHORIZED, msg);
   }
 
+  public UnauthorizedException(Throwable e) {
+    this(e.getMessage(), e);
+  }
+
   public UnauthorizedException(String msg, Throwable e) {
-    super(ExceptionCode.UNAUTHORIZED, msg, e);
+    super(ExceptionCode.UNAUTHORIZED, msg, AuthenticationException.removeStackTracesRecursively(e));
   }
 
   /** Information may be leaked via stack trace, so we don't fill in the stack trace. */

@@ -5,10 +5,6 @@ import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemLocal
 import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemLocalOrPeers;
 
 import com.google.common.collect.Sets;
-import io.stargate.db.QueryOptions;
-import io.stargate.db.QueryState;
-import io.stargate.db.Result;
-import io.stargate.db.cassandra.impl.Conversion;
 import io.stargate.db.cassandra.impl.StargateSystemKeyspace;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -18,7 +14,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.cql3.CQLStatement;
-import org.apache.cassandra.cql3.QueryHandler;
+import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.gms.ApplicationState;
@@ -27,6 +23,7 @@ import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
 import org.apache.cassandra.gms.VersionedValue;
 import org.apache.cassandra.service.IEndpointLifecycleSubscriber;
+import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.messages.ResultMessage;
 
 /**
@@ -35,6 +32,7 @@ import org.apache.cassandra.transport.messages.ResultMessage;
  * for both `system.local` and `system.peers` tables.
  */
 public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointStateChangeSubscriber {
+
   private final List<IEndpointLifecycleSubscriber> subscribers = new CopyOnWriteArrayList<>();
   private final Set<InetAddress> liveStargateNodes = Sets.newConcurrentHashSet();
 
@@ -47,8 +45,7 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
   }
 
   @Override
-  public Result interceptQuery(
-      QueryHandler handler,
+  public ResultMessage interceptQuery(
       CQLStatement statement,
       QueryState state,
       QueryOptions options,
@@ -58,11 +55,24 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
       return null;
     }
 
-    org.apache.cassandra.service.QueryState internalState = Conversion.toInternal(state);
-    org.apache.cassandra.cql3.QueryOptions internalOptions = Conversion.toInternal(options);
-    return Conversion.toResult(
-        interceptSystemLocalOrPeers(statement, internalState, internalOptions, queryStartNanoTime),
-        internalOptions.getProtocolVersion());
+    SelectStatement selectStatement = (SelectStatement) statement;
+    SelectStatement interceptStatement =
+        new SelectStatement(
+            isSystemLocal(selectStatement)
+                ? StargateSystemKeyspace.Local
+                : StargateSystemKeyspace.Peers,
+            selectStatement.getBoundTerms(),
+            selectStatement.parameters,
+            selectStatement.getSelection(),
+            selectStatement.getRestrictions(),
+            false,
+            null,
+            null,
+            null,
+            null);
+    ResultMessage.Rows rows = interceptStatement.execute(state, options, queryStartNanoTime);
+    return new ResultMessage.Rows(
+        new ResultSet(selectStatement.getResultMetadata(), rows.result.rows));
   }
 
   @Override
@@ -116,30 +126,5 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     }
 
     for (IEndpointLifecycleSubscriber subscriber : subscribers) subscriber.onJoinCluster(endpoint);
-  }
-
-  private static ResultMessage.Rows interceptSystemLocalOrPeers(
-      CQLStatement statement,
-      org.apache.cassandra.service.QueryState state,
-      org.apache.cassandra.cql3.QueryOptions options,
-      long queryStartNanoTime) {
-    SelectStatement selectStatement = (SelectStatement) statement;
-    SelectStatement interceptStatement =
-        new SelectStatement(
-            isSystemLocal(selectStatement)
-                ? StargateSystemKeyspace.Local
-                : StargateSystemKeyspace.Peers,
-            selectStatement.getBoundTerms(),
-            selectStatement.parameters,
-            selectStatement.getSelection(),
-            selectStatement.getRestrictions(),
-            false,
-            null,
-            null,
-            null,
-            null);
-    ResultMessage.Rows rows = interceptStatement.execute(state, options, queryStartNanoTime);
-    return new ResultMessage.Rows(
-        new ResultSet(selectStatement.getResultMetadata(), rows.result.rows));
   }
 }

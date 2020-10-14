@@ -74,7 +74,7 @@ public class NamespacesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized"),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   public Response getAllNamespaces(
@@ -110,9 +110,9 @@ public class NamespacesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Keyspace.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
+        @ApiResponse(code = 400, message = "Bad Request"),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 404, message = "Not Found"),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{namespace-id: [a-zA-Z_0-9]+}")
@@ -159,9 +159,9 @@ public class NamespacesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = Map.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 409, message = "Conflict", response = Error.class),
+        @ApiResponse(code = 400, message = "Bad Request"),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 409, message = "Conflict"),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   public Response createNamespace(
@@ -173,10 +173,10 @@ public class NamespacesResource {
           String token,
       @ApiParam(
               value =
-                  "A map representing a namespace with SimpleStrategy or NetworkTopologyStrategy \n"
+                  "A map representing a namespace with SimpleStrategy or NetworkTopologyStrategy with default replicas of 1 and 3 respectively \n"
                       + "Simple:\n"
                       + "```json\n"
-                      + "{ \"name\": \"killrvideo\", \"replicas\": 1}\n"
+                      + "{ \"name\": \"killrvideo\", \"replicas\": 1 }\n"
                       + "````\n"
                       + "Network Topology:\n"
                       + "```json\n"
@@ -188,8 +188,7 @@ public class NamespacesResource {
                       + "         { \"name\": \"dc2\", \"replicas\": 3 },\n"
                       + "      ],\n"
                       + "}\n"
-                      + "```",
-              defaultValue = "false")
+                      + "```")
           String payload) {
     return RequestHandler.handle(
         () -> {
@@ -219,7 +218,7 @@ public class NamespacesResource {
             replication =
                 String.format(
                     "{ 'class' : 'SimpleStrategy', 'replication_factor' : %s }",
-                    requestBody.get("replicas"));
+                    requestBody.getOrDefault("replicas", 1));
           }
 
           localDB
@@ -242,7 +241,7 @@ public class NamespacesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized"),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{namespace-id: [a-zA-Z_0-9]+}")

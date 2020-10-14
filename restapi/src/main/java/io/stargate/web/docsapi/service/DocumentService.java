@@ -110,7 +110,6 @@ public class DocumentService {
    *     of the document.
    * @param key The name of the document that will be written
    * @param payload a JSON object
-   * @param now The write time to use for this object
    * @param patching If this payload meant to be part of a PATCH request (this causes a small amount
    *     of extra validation if true)
    * @return The full bind variable list for the subsequent inserts, and all first-level keys, as an
@@ -122,7 +121,6 @@ public class DocumentService {
       List<String> path,
       String key,
       String payload,
-      long now,
       boolean patching) {
     List<Object[]> bindVariableList = new ArrayList<>();
     List<String> firstLevelKeys = new ArrayList<>();
@@ -146,7 +144,7 @@ public class DocumentService {
                 JsonPath p =
                     JsonPathCompiler.compile(convertToBracketedPath(parsingContext.getJsonPath()));
                 int i = path.size();
-                Map<String, Object> bindMap = db.newBindMap(path, now);
+                Map<String, Object> bindMap = db.newBindMap(path);
 
                 bindMap.put("key", key);
 
@@ -233,36 +231,6 @@ public class DocumentService {
     return ImmutablePair.of(bindVariableList, firstLevelKeys);
   }
 
-  /*
-   * Unlike putAtPath, which handles all other updates, putAtRoot only handles root document PUTs.
-   * The PUT only succeeds if a document with the provided @param id does not yet exist.
-   * @return a boolean detailing success
-   */
-  public boolean putAtRoot(
-      String authToken, String keyspace, String collection, String id, String payload, Db dbFactory)
-      throws UnauthorizedException {
-    DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
-
-    JsonSurfer surfer = JsonSurferGson.INSTANCE;
-
-    db.maybeCreateTable(keyspace, collection);
-
-    long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
-
-    List<Object[]> bindVariableList =
-        shredPayload(surfer, db, new ArrayList<>(), id, payload, now, false).left;
-
-    if (bindVariableList.size() == 0) {
-      throw new DocumentAPIRequestException(
-          "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: "
-              + payload
-              + "\nHint: update the parent path with a defined object instead.");
-    }
-
-    logger.debug("Bind {}", bindVariableList.size());
-    return db.insertBatchIfNotExists(keyspace, collection, id, bindVariableList);
-  }
-
   public void putAtPath(
       String authToken,
       String keyspace,
@@ -286,9 +254,8 @@ public class DocumentService {
       convertedPath.add(convertArrayPath(pathStr));
     }
 
-    Long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
     ImmutablePair<List<Object[]>, List<String>> shreddingResults =
-        shredPayload(surfer, db, convertedPath, id, payload, now, patching);
+        shredPayload(surfer, db, convertedPath, id, payload, patching);
 
     List<Object[]> bindVariableList = shreddingResults.left;
     List<String> firstLevelKeys = shreddingResults.right;
@@ -302,6 +269,7 @@ public class DocumentService {
 
     logger.debug("Bind {}", bindVariableList.size());
 
+    long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
     if (patching) {
       db.deletePatchedPathsThenInsertBatch(
           keyspace, collection, id, bindVariableList, convertedPath, firstLevelKeys, now);
@@ -973,7 +941,7 @@ public class DocumentService {
       r = db.executeSelectAll(keyspace, collection);
     }
 
-    List<Row> rows = r.rows();
+    List<Row> rows = r.currentPageRows();
     ByteBuffer newState = r.getPagingState();
 
     if (documentKey != null) {
@@ -1081,9 +1049,9 @@ public class DocumentService {
   }
 
   private boolean allFiltersMatch(Row row, List<FilterCondition> filters) {
-    String textValue = row.has("text_value") ? row.getString("text_value") : null;
-    Boolean boolValue = row.has("bool_value") ? row.getBoolean("bool_value") : null;
-    Double dblValue = row.has("dbl_value") ? row.getDouble("dbl_value") : null;
+    String textValue = row.isNull("text_value") ? null : row.getString("text_value");
+    Boolean boolValue = row.isNull("bool_value") ? null : row.getBoolean("bool_value");
+    Double dblValue = row.isNull("dbl_value") ? null : row.getDouble("dbl_value");
     for (FilterCondition fc : filters) {
       if (fc.getFilterOp() == FilterOp.EXISTS) {
         if (textValue == null && boolValue == null && dblValue == null) {
@@ -1237,7 +1205,7 @@ public class DocumentService {
     Column writeTimeCol = Column.reference("writetime(leaf)");
 
     for (Row row : rows) {
-      Long rowWriteTime = row.getLong(writeTimeCol);
+      Long rowWriteTime = row.getLong(writeTimeCol.name());
       String rowLeaf = row.getString("leaf");
       if (rowLeaf.equals(DocumentDB.ROOT_DOC_MARKER)) {
         continue;
@@ -1433,7 +1401,7 @@ public class DocumentService {
       Long rowWriteTime) {
     JsonNode n = NullNode.getInstance();
 
-    if (row.has("text_value")) {
+    if (!row.isNull("text_value")) {
       String value = row.getString("text_value");
       if (value.equals(DocumentDB.EMPTY_OBJECT_MARKER)) {
         n = mapper.createObjectNode();
@@ -1442,15 +1410,15 @@ public class DocumentService {
       } else {
         n = new TextNode(value);
       }
-    } else if (row.has("bool_value")) {
+    } else if (!row.isNull("bool_value")) {
       n = BooleanNode.valueOf(row.getBoolean("bool_value"));
-    } else if (row.has("dbl_value")) {
+    } else if (!row.isNull("dbl_value")) {
       // If not a fraction represent as a long to the user
       // This lets us handle queries of doubles and longs without
       // splitting them into separate columns
-      Double dv = row.getDouble("dbl_value");
-      Long lv = dv.longValue();
-      if (lv.doubleValue() == dv) n = new LongNode(lv);
+      double dv = row.getDouble("dbl_value");
+      long lv = (long) dv;
+      if ((double) lv == dv) n = new LongNode(lv);
       else n = new DoubleNode(dv);
     }
     if (ref == null)

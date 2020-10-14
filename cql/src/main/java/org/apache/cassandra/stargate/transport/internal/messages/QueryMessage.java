@@ -18,15 +18,13 @@
 package org.apache.cassandra.stargate.transport.internal.messages;
 
 import io.netty.buffer.ByteBuf;
-import io.stargate.db.Persistence;
-import io.stargate.db.QueryOptions;
-import io.stargate.db.QueryState;
 import io.stargate.db.Result;
+import io.stargate.db.SimpleStatement;
 import java.util.concurrent.CompletableFuture;
-import org.apache.cassandra.stargate.cql3.DefaultQueryOptions;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.stargate.transport.internal.Message;
+import org.apache.cassandra.stargate.transport.internal.QueryOptions;
 import org.apache.cassandra.stargate.transport.internal.SchemaAgreement;
 
 /** A CQL query */
@@ -35,14 +33,14 @@ public class QueryMessage extends Message.Request {
       new Message.Codec<QueryMessage>() {
         public QueryMessage decode(ByteBuf body, ProtocolVersion version) {
           String query = CBUtil.readLongString(body);
-          return new QueryMessage(query, DefaultQueryOptions.codec.decode(body, version));
+          return new QueryMessage(query, QueryOptions.codec.decode(body, version));
         }
 
         public void encode(QueryMessage msg, ByteBuf dest, ProtocolVersion version) {
           CBUtil.writeLongString(msg.query, dest);
           if (version == ProtocolVersion.V1)
             CBUtil.writeConsistencyLevel(msg.options.getConsistency(), dest);
-          else DefaultQueryOptions.codec.encode(msg.options, dest, version);
+          else QueryOptions.codec.encode(msg.options, dest, version);
         }
 
         public int encodedSize(QueryMessage msg, ProtocolVersion version) {
@@ -51,7 +49,7 @@ public class QueryMessage extends Message.Request {
           if (version == ProtocolVersion.V1) {
             size += CBUtil.sizeOfConsistencyLevel(msg.options.getConsistency());
           } else {
-            size += DefaultQueryOptions.codec.encodedSize(msg.options, version);
+            size += QueryOptions.codec.encodedSize(msg.options, version);
           }
           return size;
         }
@@ -67,13 +65,12 @@ public class QueryMessage extends Message.Request {
   }
 
   @Override
-  protected CompletableFuture<? extends Response> execute(
-      Persistence persistence, QueryState state, long queryStartNanoTime) {
+  protected CompletableFuture<? extends Response> execute(long queryStartNanoTime) {
+    SimpleStatement statement = new SimpleStatement(query, options.getValues(), options.getNames());
     CompletableFuture<? extends Result> future =
-        persistence.query(
-            query, state, options, getCustomPayload(), isTracingRequested(), queryStartNanoTime);
-    return SchemaAgreement.maybeWaitForAgreement(future, persistence)
-        .thenApply(result -> new ResultMessage(result));
+        persistenceConnection().execute(statement, makeParameters(options), queryStartNanoTime);
+    return SchemaAgreement.maybeWaitForAgreement(future, persistence())
+        .thenApply(ResultMessage::new);
   }
 
   @Override

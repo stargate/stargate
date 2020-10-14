@@ -61,7 +61,7 @@ import org.slf4j.LoggerFactory;
 class DmlSchemaBuilder {
   private static final Logger log = LoggerFactory.getLogger(DmlSchemaBuilder.class);
 
-  private final Persistence<?, ?, ?> persistence;
+  private final Persistence persistence;
   private final AuthenticationService authenticationService;
   private final Map<Column.ColumnType, GraphQLInputObjectType> filterInputTypes;
   private final Map<Table, GraphQLOutputType> entityResultMap = new HashMap<>();
@@ -102,9 +102,7 @@ class DmlSchemaBuilder {
           .build();
 
   DmlSchemaBuilder(
-      Persistence<?, ?, ?> persistence,
-      AuthenticationService authenticationService,
-      Keyspace keyspace) {
+      Persistence persistence, AuthenticationService authenticationService, Keyspace keyspace) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
     this.keyspace = keyspace;

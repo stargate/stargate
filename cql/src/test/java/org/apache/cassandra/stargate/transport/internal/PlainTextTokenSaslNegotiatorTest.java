@@ -11,7 +11,6 @@ import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.Authenticator.SaslNegotiator;
-import io.stargate.db.Persistence;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -80,15 +79,11 @@ public class PlainTextTokenSaslNegotiatorTest {
     AuthenticationService authentication = mock(AuthenticationService.class);
     when(authentication.validateToken(TOKEN)).thenReturn(credentials);
 
-    Persistence<?, ?, ?> persistence = mock(Persistence.class);
-    when((AuthenticatedUser) persistence.newAuthenticatedUser(ROLE))
-        .thenReturn(newAuthenticatorUser(ROLE));
-
     PlainTextTokenSaslNegotiator negotiator =
-        new PlainTextTokenSaslNegotiator(null, persistence, authentication);
+        new PlainTextTokenSaslNegotiator(null, authentication);
     assertThat(negotiator.evaluateResponse(clientResponse)).isNull();
     assertThat(negotiator.isComplete()).isTrue();
-    assertThat(negotiator.getAuthenticatedUser().getName()).isEqualTo(ROLE);
+    assertThat(negotiator.getAuthenticatedUser().name()).isEqualTo(ROLE);
   }
 
   @Test
@@ -98,13 +93,13 @@ public class PlainTextTokenSaslNegotiatorTest {
     SaslNegotiator wrappedNegotiator = mock(SaslNegotiator.class);
     when(wrappedNegotiator.evaluateResponse(clientResponse)).thenReturn(null);
     when(wrappedNegotiator.isComplete()).thenReturn(true);
-    doReturn(newAuthenticatorUser(ROLE)).when(wrappedNegotiator).getAuthenticatedUser();
+    doReturn(AuthenticatedUser.of(ROLE)).when(wrappedNegotiator).getAuthenticatedUser();
 
     PlainTextTokenSaslNegotiator negotiator =
-        new PlainTextTokenSaslNegotiator(wrappedNegotiator, null, null);
+        new PlainTextTokenSaslNegotiator(wrappedNegotiator, null);
     assertThat(negotiator.evaluateResponse(clientResponse)).isNull();
     assertThat(negotiator.isComplete()).isTrue();
-    assertThat(negotiator.getAuthenticatedUser().getName()).isEqualTo(ROLE);
+    assertThat(negotiator.getAuthenticatedUser().name()).isEqualTo(ROLE);
   }
 
   @Test
@@ -116,7 +111,7 @@ public class PlainTextTokenSaslNegotiatorTest {
     when(wrappedNegotiator.isComplete()).thenReturn(false);
 
     PlainTextTokenSaslNegotiator negotiator =
-        new PlainTextTokenSaslNegotiator(wrappedNegotiator, null, null);
+        new PlainTextTokenSaslNegotiator(wrappedNegotiator, null);
     assertThat(
             negotiator.attemptTokenAuthentication(
                 createClientResponse(PlainTextTokenSaslNegotiator.TOKEN_USERNAME, tooLongToken)))
@@ -133,7 +128,7 @@ public class PlainTextTokenSaslNegotiatorTest {
     when(wrappedNegotiator.isComplete()).thenReturn(false);
 
     PlainTextTokenSaslNegotiator negotiator =
-        new PlainTextTokenSaslNegotiator(wrappedNegotiator, null, authentication);
+        new PlainTextTokenSaslNegotiator(wrappedNegotiator, authentication);
     assertThat(
             negotiator.attemptTokenAuthentication(
                 createClientResponse(PlainTextTokenSaslNegotiator.TOKEN_USERNAME, TOKEN)))
@@ -151,7 +146,7 @@ public class PlainTextTokenSaslNegotiatorTest {
     when(wrappedNegotiator.isComplete()).thenReturn(false);
 
     PlainTextTokenSaslNegotiator negotiator =
-        new PlainTextTokenSaslNegotiator(wrappedNegotiator, null, authentication);
+        new PlainTextTokenSaslNegotiator(wrappedNegotiator, authentication);
     assertThat(
             negotiator.attemptTokenAuthentication(
                 createClientResponse(PlainTextTokenSaslNegotiator.TOKEN_USERNAME, TOKEN)))
@@ -166,19 +161,5 @@ public class PlainTextTokenSaslNegotiatorTest {
     bytes.write(0);
     bytes.write(password.getBytes(StandardCharsets.UTF_8));
     return bytes.toByteArray();
-  }
-
-  private static AuthenticatedUser<?> newAuthenticatorUser(String role) {
-    return new AuthenticatedUser<Object>() {
-      @Override
-      public String getName() {
-        return role;
-      }
-
-      @Override
-      public Object getWrapped() {
-        return null;
-      }
-    };
   }
 }

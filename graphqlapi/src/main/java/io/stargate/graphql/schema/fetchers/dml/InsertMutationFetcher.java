@@ -34,7 +34,7 @@ public class InsertMutationFetcher extends MutationFetcher {
   public InsertMutationFetcher(
       Table table,
       NameMapping nameMapping,
-      Persistence<?, ?, ?> persistence,
+      Persistence persistence,
       AuthenticationService authenticationService) {
     super(table, nameMapping, persistence, authenticationService);
   }
