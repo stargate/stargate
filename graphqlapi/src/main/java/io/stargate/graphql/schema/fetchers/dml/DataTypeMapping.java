@@ -69,7 +69,7 @@ class DataTypeMapping {
     List<Column> columns = row.columns();
     Map<String, Object> map = new HashMap<>(columns.size());
     for (Column column : columns) {
-      if (row.has(column)) {
+      if (!row.isNull(column.name())) {
         map.put(nameMapping.getColumnName(table).get(column), toGraphQLValue(column, row));
       }
     }
@@ -77,7 +77,7 @@ class DataTypeMapping {
   }
 
   private static Object toGraphQLValue(Column column, Row row) {
-    Object dbValue = row.getValue(column.name());
+    Object dbValue = row.getObject(column.name());
     return toGraphQLValue(column.type(), dbValue);
   }
 
@@ -107,7 +107,7 @@ class DataTypeMapping {
     if (itemType.isCollection()) {
       Collection<?> dbCollection = (Collection<?>) dbValue;
       return dbCollection.stream()
-          .map(item -> toDbValue(itemType, item))
+          .map(item -> toGraphQLValue(itemType, item))
           .collect(Collectors.toList());
     }
 

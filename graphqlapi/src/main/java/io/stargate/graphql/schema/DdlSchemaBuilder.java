@@ -43,10 +43,10 @@ import java.util.HashMap;
 
 class DdlSchemaBuilder {
   private final HashMap<String, GraphQLType> objects;
-  private final Persistence<?, ?, ?> persistence;
+  private final Persistence persistence;
   private AuthenticationService authenticationService;
 
-  DdlSchemaBuilder(Persistence<?, ?, ?> persistence, AuthenticationService authenticationService) {
+  DdlSchemaBuilder(Persistence persistence, AuthenticationService authenticationService) {
     this.persistence = persistence;
     this.objects = new HashMap<>();
     this.authenticationService = authenticationService;

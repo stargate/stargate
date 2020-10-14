@@ -519,7 +519,7 @@ public class RowsResource {
             .execute();
 
     List<Map<String, Object>> rows =
-        r.rows().stream().map(Converters::row2Map).collect(Collectors.toList());
+        r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
     String newPagingState =
         r.getPagingState() != null
             ? Base64.getEncoder().encodeToString(r.getPagingState().array())

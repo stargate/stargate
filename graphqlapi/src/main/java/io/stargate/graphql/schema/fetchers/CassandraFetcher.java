@@ -4,20 +4,17 @@ import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
-import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 
 /** Base class for fetchers that access the Cassandra backend. It also handles authentication. */
 public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> {
 
-  protected final Persistence<?, ?, ?> persistence;
+  protected final Persistence persistence;
   protected final AuthenticationService authenticationService;
 
-  public CassandraFetcher(
-      Persistence<?, ?, ?> persistence, AuthenticationService authenticationService) {
+  public CassandraFetcher(Persistence persistence, AuthenticationService authenticationService) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
   }
@@ -28,9 +25,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
 
     String token = httpAwareContext.getAuthToken();
     StoredCredentials storedCredentials = authenticationService.validateToken(token);
-    ClientState clientState = persistence.newClientState(storedCredentials.getRoleName());
-    QueryState queryState = persistence.newQueryState(clientState);
-    DataStore dataStore = persistence.newDataStore(queryState, null);
+    DataStore dataStore = DataStore.create(persistence, storedCredentials.getRoleName());
 
     return get(environment, dataStore);
   }

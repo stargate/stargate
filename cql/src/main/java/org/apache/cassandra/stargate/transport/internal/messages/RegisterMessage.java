@@ -18,8 +18,6 @@
 package org.apache.cassandra.stargate.transport.internal.messages;
 
 import io.netty.buffer.ByteBuf;
-import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -63,8 +61,7 @@ public class RegisterMessage extends Message.Request {
   }
 
   @Override
-  protected CompletableFuture<? extends Response> execute(
-      Persistence persistence, QueryState state, long queryStartNanoTime) {
+  protected CompletableFuture<? extends Response> execute(long queryStartNanoTime) {
     assert connection instanceof ServerConnection;
     Connection.Tracker tracker = connection.getTracker();
     assert tracker instanceof Server.ConnectionTracker;

@@ -128,6 +128,11 @@ public abstract class ParameterizedType implements Column.ColumnType {
     }
 
     @Override
+    public boolean isList() {
+      return true;
+    }
+
+    @Override
     public Column.Type rawType() {
       return Column.Type.List;
     }
@@ -185,6 +190,11 @@ public abstract class ParameterizedType implements Column.ColumnType {
 
     @Override
     public boolean isCollection() {
+      return true;
+    }
+
+    @Override
+    public boolean isSet() {
       return true;
     }
 
@@ -265,6 +275,11 @@ public abstract class ParameterizedType implements Column.ColumnType {
 
     @Override
     public boolean isCollection() {
+      return true;
+    }
+
+    @Override
+    public boolean isMap() {
       return true;
     }
 

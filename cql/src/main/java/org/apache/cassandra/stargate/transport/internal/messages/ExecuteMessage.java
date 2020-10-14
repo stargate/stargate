@@ -18,15 +18,13 @@
 package org.apache.cassandra.stargate.transport.internal.messages;
 
 import io.netty.buffer.ByteBuf;
-import io.stargate.db.Persistence;
-import io.stargate.db.QueryOptions;
-import io.stargate.db.QueryState;
+import io.stargate.db.BoundStatement;
 import io.stargate.db.Result;
 import java.util.concurrent.CompletableFuture;
-import org.apache.cassandra.stargate.cql3.DefaultQueryOptions;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.stargate.transport.internal.Message;
+import org.apache.cassandra.stargate.transport.internal.QueryOptions;
 import org.apache.cassandra.stargate.transport.internal.SchemaAgreement;
 import org.apache.cassandra.stargate.utils.MD5Digest;
 
@@ -41,7 +39,7 @@ public class ExecuteMessage extends Message.Request {
             resultMetadataId = MD5Digest.wrap(CBUtil.readBytes(body));
 
           return new ExecuteMessage(
-              statementId, resultMetadataId, DefaultQueryOptions.codec.decode(body, version));
+              statementId, resultMetadataId, QueryOptions.codec.decode(body, version));
         }
 
         public void encode(ExecuteMessage msg, ByteBuf dest, ProtocolVersion version) {
@@ -54,7 +52,7 @@ public class ExecuteMessage extends Message.Request {
             CBUtil.writeValueList(msg.options.getValues(), dest);
             CBUtil.writeConsistencyLevel(msg.options.getConsistency(), dest);
           } else {
-            DefaultQueryOptions.codec.encode(msg.options, dest, version);
+            QueryOptions.codec.encode(msg.options, dest, version);
           }
         }
 
@@ -69,7 +67,7 @@ public class ExecuteMessage extends Message.Request {
             size += CBUtil.sizeOfValueList(msg.options.getValues());
             size += CBUtil.sizeOfConsistencyLevel(msg.options.getConsistency());
           } else {
-            size += DefaultQueryOptions.codec.encodedSize(msg.options, version);
+            size += QueryOptions.codec.encodedSize(msg.options, version);
           }
           return size;
         }
@@ -87,18 +85,14 @@ public class ExecuteMessage extends Message.Request {
   }
 
   @Override
-  protected CompletableFuture<? extends Response> execute(
-      Persistence persistence, QueryState state, long queryStartNanoTime) {
+  protected CompletableFuture<? extends Response> execute(long queryStartNanoTime) {
+
+    BoundStatement statement =
+        new BoundStatement(statementId, options.getValues(), options.getNames());
     CompletableFuture<? extends Result> future =
-        persistence.execute(
-            statementId,
-            state,
-            options,
-            getCustomPayload(),
-            isTracingRequested(),
-            queryStartNanoTime);
-    return SchemaAgreement.maybeWaitForAgreement(future, persistence)
-        .thenApply(result -> new ResultMessage(result));
+        persistenceConnection().execute(statement, makeParameters(options), queryStartNanoTime);
+    return SchemaAgreement.maybeWaitForAgreement(future, persistence())
+        .thenApply(ResultMessage::new);
   }
 
   @Override
