@@ -4,9 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.*;
 
-import com.datastax.oss.driver.api.core.data.CqlDuration;
-import com.datastax.oss.driver.api.core.data.TupleValue;
-import com.datastax.oss.driver.api.core.data.UdtValue;
+import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,10 +18,11 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.datastore.ArrayListBackedRow;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
-import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.Type;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
@@ -32,18 +31,11 @@ import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.resources.Db;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.net.InetAddress;
 import java.nio.ByteBuffer;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.PathSegment;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.JsonSurferGson;
@@ -100,7 +92,6 @@ public class DocumentServiceTest {
             List.class,
             String.class,
             String.class,
-            long.class,
             boolean.class);
     shredPayload.setAccessible(true);
     validateOpAndValue =
@@ -288,7 +279,7 @@ public class DocumentServiceTest {
   @Test
   public void shredPayload_booleanLeaf() throws InvocationTargetException, IllegalAccessException {
     DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.newBindMap(anyObject(), anyLong())).thenCallRealMethod();
+    when(dbMock.newBindMap(anyObject())).thenCallRealMethod();
 
     List<String> path = new ArrayList<>();
     String key = "eric";
@@ -296,12 +287,12 @@ public class DocumentServiceTest {
     ImmutablePair<List<Object[]>, List<String>> shredResult =
         (ImmutablePair<List<Object[]>, List<String>>)
             shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, 111L, false);
+                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false);
     List<Object[]> bindVariables = shredResult.left;
     List<String> topLevelKeys = shredResult.right;
     assertThat(bindVariables.size()).isEqualTo(1);
     Object[] vars = bindVariables.get(0);
-    assertThat(vars.length).isEqualTo(70);
+    assertThat(vars.length).isEqualTo(69);
     Object[] expected = {
       "eric",
       "cool",
@@ -372,9 +363,8 @@ public class DocumentServiceTest {
       null,
       null,
       true,
-      111L
     };
-    for (int i = 0; i < 70; i++) {
+    for (int i = 0; i < vars.length; i++) {
       assertThat(vars[i]).isEqualTo(expected[i]);
     }
 
@@ -385,7 +375,7 @@ public class DocumentServiceTest {
   @Test
   public void shredPayload_numberLeaf() throws InvocationTargetException, IllegalAccessException {
     DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.newBindMap(anyObject(), anyLong())).thenCallRealMethod();
+    when(dbMock.newBindMap(anyObject())).thenCallRealMethod();
 
     List<String> path = new ArrayList<>();
     String key = "eric";
@@ -393,12 +383,12 @@ public class DocumentServiceTest {
     ImmutablePair<List<Object[]>, List<String>> shredResult =
         (ImmutablePair<List<Object[]>, List<String>>)
             shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, 111L, false);
+                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false);
     List<Object[]> bindVariables = shredResult.left;
     List<String> topLevelKeys = shredResult.right;
     assertThat(bindVariables.size()).isEqualTo(1);
     Object[] vars = bindVariables.get(0);
-    assertThat(vars.length).isEqualTo(70);
+    assertThat(vars.length).isEqualTo(69);
     Object[] expected = {
       "eric",
       "cool",
@@ -468,10 +458,9 @@ public class DocumentServiceTest {
       "document",
       null,
       3.0,
-      null,
-      111L
+      null
     };
-    for (int i = 0; i < 70; i++) {
+    for (int i = 0; i < vars.length; i++) {
       assertThat(vars[i]).isEqualTo(expected[i]);
     }
 
@@ -482,7 +471,7 @@ public class DocumentServiceTest {
   @Test
   public void shredPayload_stringLeaf() throws InvocationTargetException, IllegalAccessException {
     DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.newBindMap(anyObject(), anyLong())).thenCallRealMethod();
+    when(dbMock.newBindMap(anyObject())).thenCallRealMethod();
 
     List<String> path = new ArrayList<>();
     String key = "eric";
@@ -490,12 +479,12 @@ public class DocumentServiceTest {
     ImmutablePair<List<Object[]>, List<String>> shredResult =
         (ImmutablePair<List<Object[]>, List<String>>)
             shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, 111L, false);
+                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false);
     List<Object[]> bindVariables = shredResult.left;
     List<String> topLevelKeys = shredResult.right;
     assertThat(bindVariables.size()).isEqualTo(1);
     Object[] vars = bindVariables.get(0);
-    assertThat(vars.length).isEqualTo(70);
+    assertThat(vars.length).isEqualTo(69);
     Object[] expected = {
       "eric",
       "cool",
@@ -565,10 +554,9 @@ public class DocumentServiceTest {
       "document",
       "leaf",
       null,
-      null,
-      111L
+      null
     };
-    for (int i = 0; i < 70; i++) {
+    for (int i = 0; i < vars.length; i++) {
       assertThat(vars[i]).isEqualTo(expected[i]);
     }
 
@@ -580,7 +568,7 @@ public class DocumentServiceTest {
   public void shredPayload_emptyObjectLeaf()
       throws InvocationTargetException, IllegalAccessException {
     DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.newBindMap(anyObject(), anyLong())).thenCallRealMethod();
+    when(dbMock.newBindMap(anyObject())).thenCallRealMethod();
 
     List<String> path = new ArrayList<>();
     String key = "eric";
@@ -588,12 +576,12 @@ public class DocumentServiceTest {
     ImmutablePair<List<Object[]>, List<String>> shredResult =
         (ImmutablePair<List<Object[]>, List<String>>)
             shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, 111L, false);
+                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false);
     List<Object[]> bindVariables = shredResult.left;
     List<String> topLevelKeys = shredResult.right;
     assertThat(bindVariables.size()).isEqualTo(1);
     Object[] vars = bindVariables.get(0);
-    assertThat(vars.length).isEqualTo(70);
+    assertThat(vars.length).isEqualTo(69);
     Object[] expected = {
       "eric",
       "cool",
@@ -664,9 +652,8 @@ public class DocumentServiceTest {
       DocumentDB.EMPTY_OBJECT_MARKER,
       null,
       null,
-      111L
     };
-    for (int i = 0; i < 70; i++) {
+    for (int i = 0; i < vars.length; i++) {
       assertThat(vars[i]).isEqualTo(expected[i]);
     }
 
@@ -678,7 +665,7 @@ public class DocumentServiceTest {
   public void shredPayload_emptyArrayLeaf()
       throws InvocationTargetException, IllegalAccessException {
     DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.newBindMap(anyObject(), anyLong())).thenCallRealMethod();
+    when(dbMock.newBindMap(anyObject())).thenCallRealMethod();
 
     List<String> path = new ArrayList<>();
     String key = "eric";
@@ -686,12 +673,12 @@ public class DocumentServiceTest {
     ImmutablePair<List<Object[]>, List<String>> shredResult =
         (ImmutablePair<List<Object[]>, List<String>>)
             shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, 111L, false);
+                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false);
     List<Object[]> bindVariables = shredResult.left;
     List<String> topLevelKeys = shredResult.right;
     assertThat(bindVariables.size()).isEqualTo(1);
     Object[] vars = bindVariables.get(0);
-    assertThat(vars.length).isEqualTo(70);
+    assertThat(vars.length).isEqualTo(69);
     Object[] expected = {
       "eric",
       "cool",
@@ -761,10 +748,9 @@ public class DocumentServiceTest {
       "document",
       DocumentDB.EMPTY_ARRAY_MARKER,
       null,
-      null,
-      111L
+      null
     };
-    for (int i = 0; i < 70; i++) {
+    for (int i = 0; i < vars.length; i++) {
       assertThat(vars[i]).isEqualTo(expected[i]);
     }
 
@@ -775,7 +761,7 @@ public class DocumentServiceTest {
   @Test
   public void shredPayload_nullLeaf() throws InvocationTargetException, IllegalAccessException {
     DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.newBindMap(anyObject(), anyLong())).thenCallRealMethod();
+    when(dbMock.newBindMap(anyObject())).thenCallRealMethod();
 
     List<String> path = new ArrayList<>();
     String key = "eric";
@@ -783,12 +769,12 @@ public class DocumentServiceTest {
     ImmutablePair<List<Object[]>, List<String>> shredResult =
         (ImmutablePair<List<Object[]>, List<String>>)
             shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, 111L, false);
+                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false);
     List<Object[]> bindVariables = shredResult.left;
     List<String> topLevelKeys = shredResult.right;
     assertThat(bindVariables.size()).isEqualTo(1);
     Object[] vars = bindVariables.get(0);
-    assertThat(vars.length).isEqualTo(70);
+    assertThat(vars.length).isEqualTo(69);
     Object[] expected = {
       "eric",
       "cool",
@@ -858,10 +844,9 @@ public class DocumentServiceTest {
       "document",
       null,
       null,
-      null,
-      111L
+      null
     };
-    for (int i = 0; i < 70; i++) {
+    for (int i = 0; i < vars.length; i++) {
       assertThat(vars[i]).isEqualTo(expected[i]);
     }
 
@@ -872,7 +857,7 @@ public class DocumentServiceTest {
   @Test
   public void shredPayload_invalidKeys() {
     DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.newBindMap(anyObject(), anyLong())).thenCallRealMethod();
+    when(dbMock.newBindMap(anyObject())).thenCallRealMethod();
 
     List<String> path = new ArrayList<>();
     String key = "eric";
@@ -881,7 +866,7 @@ public class DocumentServiceTest {
         catchThrowable(
             () ->
                 shredPayload.invoke(
-                    service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, 111L, false));
+                    service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false));
     assertThat(thrown.getCause())
         .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessageContaining("are not permitted in JSON field names, invalid field coo]");
@@ -891,7 +876,7 @@ public class DocumentServiceTest {
   @Test
   public void shredPayload_patchingArrayInvalid() {
     DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.newBindMap(anyObject(), anyLong())).thenCallRealMethod();
+    when(dbMock.newBindMap(anyObject())).thenCallRealMethod();
 
     List<String> path = new ArrayList<>();
     String key = "eric";
@@ -900,7 +885,7 @@ public class DocumentServiceTest {
         catchThrowable(
             () ->
                 shredPayload.invoke(
-                    service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, 111L, true));
+                    service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, true));
     assertThat(thrown.getCause())
         .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessageContaining("A patch operation must be done with a JSON object, not an array.");
@@ -912,7 +897,7 @@ public class DocumentServiceTest {
     DocumentDB dbMock = mock(DocumentDB.class);
     Db dbFactoryMock = mock(Db.class);
     when(dbFactoryMock.getDocDataStoreForToken(anyString())).thenReturn(dbMock);
-    when(dbMock.newBindMap(anyObject(), anyLong())).thenCallRealMethod();
+    when(dbMock.newBindMap(anyObject())).thenCallRealMethod();
 
     service.putAtPath(
         "authToken",
@@ -943,7 +928,7 @@ public class DocumentServiceTest {
     DocumentDB dbMock = mock(DocumentDB.class);
     Db dbFactoryMock = mock(Db.class);
     when(dbFactoryMock.getDocDataStoreForToken(anyString())).thenReturn(dbMock);
-    when(dbMock.newBindMap(anyObject(), anyLong())).thenCallRealMethod();
+    when(dbMock.newBindMap(anyObject())).thenCallRealMethod();
 
     service.putAtPath(
         "authToken",
@@ -974,7 +959,7 @@ public class DocumentServiceTest {
     DocumentDB dbMock = mock(DocumentDB.class);
     Db dbFactoryMock = mock(Db.class);
     when(dbFactoryMock.getDocDataStoreForToken(anyString())).thenReturn(dbMock);
-    when(dbMock.newBindMap(anyObject(), anyLong())).thenCallRealMethod();
+    when(dbMock.newBindMap(anyObject())).thenCallRealMethod();
 
     Throwable thrown =
         catchThrowable(
@@ -1715,18 +1700,10 @@ public class DocumentServiceTest {
     List<Row> initial = makeInitialRowData();
     initial.sort(
         (row1, row2) -> {
-          return (row1.getString(Column.reference("p0"))
-                      .compareTo(row2.getString(Column.reference("p0")))
-                  * 100000
-              + row1.getString(Column.reference("p1"))
-                      .compareTo(row2.getString(Column.reference("p1")))
-                  * 10000
-              + row1.getString(Column.reference("p2"))
-                      .compareTo(row2.getString(Column.reference("p2")))
-                  * 1000
-              + row1.getString(Column.reference("p3"))
-                      .compareTo(row2.getString(Column.reference("p3")))
-                  * 100);
+          return (row1.getString("p0").compareTo(row2.getString("p0")) * 100000
+              + row1.getString("p1").compareTo(row2.getString("p1")) * 10000
+              + row1.getString("p2").compareTo(row2.getString("p2")) * 1000
+              + row1.getString("p3").compareTo(row2.getString("p3")) * 100);
         });
     ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result =
         service.convertToJsonDoc(initial, false);
@@ -1795,92 +1772,92 @@ public class DocumentServiceTest {
 
   private List<Row> makeInitialRowData() {
     List<Row> rows = new ArrayList<>();
-    Map<Column, Object> data1 = new HashMap<>();
-    Map<Column, Object> data2 = new HashMap<>();
-    Map<Column, Object> data3 = new HashMap<>();
-    data1.put(Column.reference("key"), "1");
-    data2.put(Column.reference("key"), "1");
-    data3.put(Column.reference("key"), "1");
+    Map<String, Object> data1 = new HashMap<>();
+    Map<String, Object> data2 = new HashMap<>();
+    Map<String, Object> data3 = new HashMap<>();
+    data1.put("key", "1");
+    data2.put("key", "1");
+    data3.put("key", "1");
 
-    data1.put(Column.reference("writetime(leaf)"), 0L);
-    data2.put(Column.reference("writetime(leaf)"), 0L);
-    data3.put(Column.reference("writetime(leaf)"), 0L);
+    data1.put("writetime(leaf)", 0L);
+    data2.put("writetime(leaf)", 0L);
+    data3.put("writetime(leaf)", 0L);
 
-    data1.put(Column.reference("p0"), "a");
-    data1.put(Column.reference("p1"), "b");
-    data1.put(Column.reference("p2"), "c");
-    data1.put(Column.reference("bool_value"), true);
-    data1.put(Column.reference("p3"), "");
-    data1.put(Column.reference("leaf"), "c");
+    data1.put("p0", "a");
+    data1.put("p1", "b");
+    data1.put("p2", "c");
+    data1.put("bool_value", true);
+    data1.put("p3", "");
+    data1.put("leaf", "c");
 
-    data2.put(Column.reference("p0"), "d");
-    data2.put(Column.reference("p1"), "e");
-    data2.put(Column.reference("p2"), "[0]");
-    data2.put(Column.reference("dbl_value"), 3.0);
-    data2.put(Column.reference("p3"), "");
-    data2.put(Column.reference("leaf"), "[0]");
+    data2.put("p0", "d");
+    data2.put("p1", "e");
+    data2.put("p2", "[0]");
+    data2.put("dbl_value", 3.0);
+    data2.put("p3", "");
+    data2.put("leaf", "[0]");
 
-    data3.put(Column.reference("p0"), "f");
-    data3.put(Column.reference("text_value"), "abc");
-    data3.put(Column.reference("p1"), "");
-    data3.put(Column.reference("p2"), "");
-    data3.put(Column.reference("p3"), "");
-    data3.put(Column.reference("leaf"), "f");
+    data3.put("p0", "f");
+    data3.put("text_value", "abc");
+    data3.put("p1", "");
+    data3.put("p2", "");
+    data3.put("p3", "");
+    data3.put("leaf", "f");
 
-    rows.add(new TestRow(data1));
-    rows.add(new TestRow(data2));
-    rows.add(new TestRow(data3));
+    rows.add(makeRow(data1));
+    rows.add(makeRow(data2));
+    rows.add(makeRow(data3));
 
     return rows;
   }
 
   private List<Row> makeSecondRowData() {
     List<Row> rows = new ArrayList<>();
-    Map<Column, Object> data1 = new HashMap<>();
-    data1.put(Column.reference("key"), "1");
-    data1.put(Column.reference("writetime(leaf)"), 1L);
-    data1.put(Column.reference("p0"), "a");
-    data1.put(Column.reference("p1"), "b");
-    data1.put(Column.reference("p2"), "c");
-    data1.put(Column.reference("p3"), "d");
-    data1.put(Column.reference("text_value"), "replaced");
-    data1.put(Column.reference("leaf"), "d");
-    data1.put(Column.reference("p4"), "");
-    rows.add(new TestRow(data1));
+    Map<String, Object> data1 = new HashMap<>();
+    data1.put("key", "1");
+    data1.put("writetime(leaf)", 1L);
+    data1.put("p0", "a");
+    data1.put("p1", "b");
+    data1.put("p2", "c");
+    data1.put("p3", "d");
+    data1.put("text_value", "replaced");
+    data1.put("leaf", "d");
+    data1.put("p4", "");
+    rows.add(makeRow(data1));
     return rows;
   }
 
   private List<Row> makeThirdRowData() {
     List<Row> rows = new ArrayList<>();
-    Map<Column, Object> data1 = new HashMap<>();
+    Map<String, Object> data1 = new HashMap<>();
 
-    data1.put(Column.reference("key"), "1");
-    data1.put(Column.reference("writetime(leaf)"), 2L);
-    data1.put(Column.reference("p0"), "[0]");
-    data1.put(Column.reference("text_value"), "replaced");
-    data1.put(Column.reference("p1"), "");
-    data1.put(Column.reference("p2"), "");
-    data1.put(Column.reference("p3"), "");
-    data1.put(Column.reference("leaf"), "[0]");
+    data1.put("key", "1");
+    data1.put("writetime(leaf)", 2L);
+    data1.put("p0", "[0]");
+    data1.put("text_value", "replaced");
+    data1.put("p1", "");
+    data1.put("p2", "");
+    data1.put("p3", "");
+    data1.put("leaf", "[0]");
 
-    rows.add(new TestRow(data1));
+    rows.add(makeRow(data1));
     return rows;
   }
 
   private List<Row> makeRowDataForSecondDoc() {
     List<Row> rows = new ArrayList<>();
-    Map<Column, Object> data1 = new HashMap<>();
+    Map<String, Object> data1 = new HashMap<>();
 
-    data1.put(Column.reference("key"), "2");
-    data1.put(Column.reference("writetime(leaf)"), 2L);
-    data1.put(Column.reference("p0"), "[0]");
-    data1.put(Column.reference("text_value"), "replaced");
-    data1.put(Column.reference("p1"), "");
-    data1.put(Column.reference("p2"), "");
-    data1.put(Column.reference("p3"), "");
-    data1.put(Column.reference("leaf"), "[0]");
+    data1.put("key", "2");
+    data1.put("writetime(leaf)", 2L);
+    data1.put("p0", "[0]");
+    data1.put("text_value", "replaced");
+    data1.put("p1", "");
+    data1.put("p2", "");
+    data1.put("p3", "");
+    data1.put("leaf", "[0]");
 
-    rows.add(new TestRow(data1));
+    rows.add(makeRow(data1));
     return rows;
   }
 
@@ -1913,137 +1890,15 @@ public class DocumentServiceTest {
     return path;
   }
 
-  private class TestTable extends AbstractTable {
-    public List<Column> columns() {
-      return DocumentDB.allColumns();
+  private static Row makeRow(Map<String, Object> data) {
+    List<Column> columns = new ArrayList<>(DocumentDB.allColumns());
+    columns.add(Column.create("writetime(leaf)", Type.Bigint));
+    List<ByteBuffer> values = new ArrayList<>(columns.size());
+    ProtocolVersion version = ProtocolVersion.DEFAULT;
+    for (Column column : columns) {
+      Object v = data.get(column.name());
+      values.add(v == null ? null : column.type().codec().encode(v, version));
     }
-
-    public int priority() {
-      return 0;
-    }
-
-    public String indexTypeName() {
-      return "";
-    }
-
-    public String name() {
-      return "collection";
-    }
-
-    public String keyspace() {
-      return "eric";
-    }
-  }
-
-  private class TestRow implements Row {
-    private Map<Column, Object> data;
-
-    public TestRow(Map<Column, Object> data) {
-      this.data = data;
-    }
-
-    public boolean has(String column) {
-      return data.containsKey(Column.reference(column));
-    }
-
-    public List<Column> columns() {
-      return DocumentDB.allColumns();
-    }
-
-    public int getInt(Column c) {
-      return (int) data.get(c);
-    }
-
-    public long getLong(Column c) {
-      return (long) data.get(c);
-    }
-
-    public String getString(Column c) {
-      return (String) data.get(c);
-    }
-
-    public boolean getBoolean(Column c) {
-      return (boolean) data.get(c);
-    }
-
-    public byte getByte(Column c) {
-      return (byte) data.get(c);
-    }
-
-    public short getShort(Column c) {
-      return (short) data.get(c);
-    }
-
-    public double getDouble(Column c) {
-      return (double) data.get(c);
-    }
-
-    public float getFloat(Column c) {
-      return (float) data.get(c);
-    }
-
-    public ByteBuffer getBytes(Column c) {
-      throw new NotImplementedException("Not Implemented");
-    }
-
-    public InetAddress getInetAddress(Column c) {
-      throw new NotImplementedException("Not Implemented");
-    }
-
-    public BigInteger getVarint(Column c) {
-      throw new NotImplementedException("Not Implemented");
-    }
-
-    public UUID getUUID(Column c) {
-      throw new NotImplementedException("Not Implemented");
-    }
-
-    public BigDecimal getDecimal(Column c) {
-      throw new NotImplementedException("Not Implemented");
-    }
-
-    public Instant getTimestamp(Column c) {
-      throw new NotImplementedException("Not Implemented");
-    }
-
-    public LocalTime getTime(Column c) {
-      throw new NotImplementedException("Not Implemented");
-    }
-
-    public LocalDate getDate(Column c) {
-      throw new NotImplementedException("Not Implemented");
-    }
-
-    public long getCounter(Column c) {
-      throw new NotImplementedException("Not Implemented");
-    }
-
-    public CqlDuration getDuration(Column column) {
-      throw new NotImplementedException("Not Implemented");
-    }
-
-    public <T> List<T> getList(Column column) {
-      throw new NotImplementedException("Not Implemented");
-    }
-
-    public <T> Set<T> getSet(Column column) {
-      throw new NotImplementedException("Not Implemented");
-    }
-
-    public <K, V> Map<K, V> getMap(Column column) {
-      throw new NotImplementedException("Not Implemented");
-    }
-
-    public TupleValue getTuple(Column column) {
-      throw new NotImplementedException("Not Implemented");
-    }
-
-    public UdtValue getUDT(Column column) {
-      throw new NotImplementedException("Not Implemented");
-    }
-
-    public AbstractTable table() {
-      return new TestTable();
-    }
+    return new ArrayListBackedRow(columns, values, version);
   }
 }

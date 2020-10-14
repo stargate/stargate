@@ -15,7 +15,7 @@ public class DeleteMutationFetcher extends MutationFetcher {
   public DeleteMutationFetcher(
       Table table,
       NameMapping nameMapping,
-      Persistence<?, ?, ?> persistence,
+      Persistence persistence,
       AuthenticationService authenticationService) {
     super(table, nameMapping, persistence, authenticationService);
   }

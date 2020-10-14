@@ -21,7 +21,7 @@ public class UpdateMutationFetcher extends MutationFetcher {
   public UpdateMutationFetcher(
       Table table,
       NameMapping nameMapping,
-      Persistence<?, ?, ?> persistence,
+      Persistence persistence,
       AuthenticationService authenticationService) {
     super(table, nameMapping, persistence, authenticationService);
   }

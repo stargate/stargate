@@ -17,20 +17,35 @@
  */
 package org.apache.cassandra.stargate.exceptions;
 
-public abstract class CassandraException extends RuntimeException implements TransportException {
-  private final ExceptionCode code;
+import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
+import java.util.List;
+import javax.annotation.Nullable;
 
-  protected CassandraException(ExceptionCode code, String msg) {
+public abstract class PersistenceException extends RuntimeException {
+  private final ExceptionCode code;
+  private volatile List<String> warnings;
+
+  protected PersistenceException(ExceptionCode code, String msg) {
     super(msg);
     this.code = code;
   }
 
-  protected CassandraException(ExceptionCode code, String msg, Throwable cause) {
+  protected PersistenceException(ExceptionCode code, String msg, Throwable cause) {
     super(msg, cause);
     this.code = code;
   }
 
   public ExceptionCode code() {
     return code;
+  }
+
+  public PersistenceException setWarnings(List<String> warnings) {
+    Preconditions.checkState(this.warnings == null, "Warnings have already been set");
+    this.warnings = warnings;
+    return this;
+  }
+
+  public @Nullable List<String> warnings() {
+    return this.warnings;
   }
 }

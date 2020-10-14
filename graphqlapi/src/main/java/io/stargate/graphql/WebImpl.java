@@ -37,9 +37,7 @@ public class WebImpl {
 
   private final Server server;
 
-  public WebImpl(
-      Persistence<?, ?, ?> persistence, Metrics metrics, AuthenticationService authentication)
-      throws IOException {
+  public WebImpl(Persistence persistence, Metrics metrics, AuthenticationService authentication) throws IOException {
     server = new Server();
 
     ServerConnector connector = new ServerConnector(server);

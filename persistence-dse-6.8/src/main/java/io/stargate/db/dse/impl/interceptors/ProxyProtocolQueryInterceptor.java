@@ -5,11 +5,9 @@ import static io.stargate.db.dse.impl.StargateSystemKeyspace.isSystemLocalOrPeer
 import com.datastax.bdp.db.nodes.virtual.LocalNodeSystemView;
 import com.datastax.bdp.db.nodes.virtual.PeersSystemView;
 import io.reactivex.Single;
-import io.stargate.db.QueryOptions;
-import io.stargate.db.QueryState;
-import io.stargate.db.Result;
-import io.stargate.db.dse.impl.Conversion;
+import io.stargate.db.dse.impl.ClientStateWithPublicAddress;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
@@ -17,7 +15,8 @@ import java.util.UUID;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.ColumnSpecification;
-import org.apache.cassandra.cql3.QueryHandler;
+import org.apache.cassandra.cql3.QueryOptions;
+import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.db.marshal.InetAddressType;
@@ -25,8 +24,9 @@ import org.apache.cassandra.db.marshal.Int32Type;
 import org.apache.cassandra.db.marshal.SetType;
 import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.db.marshal.UUIDType;
+import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.IEndpointLifecycleSubscriber;
-import org.apache.cassandra.transport.ProtocolVersion;
+import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.messages.ResultMessage;
 
 /**
@@ -38,8 +38,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   public void initialize() {}
 
   @Override
-  public Single<Result> interceptQuery(
-      QueryHandler handler,
+  public Single<ResultMessage> interceptQuery(
       CQLStatement statement,
       QueryState state,
       QueryOptions options,
@@ -51,27 +50,20 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
 
     SelectStatement selectStatement = (SelectStatement) statement;
 
-    org.apache.cassandra.cql3.QueryOptions internalOptions = Conversion.toInternal(options);
-    org.apache.cassandra.service.QueryState internalState = Conversion.toInternal(state);
-
-    ProtocolVersion version = internalOptions.getProtocolVersion();
-
     String tableName = selectStatement.table();
     if (tableName.equals(PeersSystemView.NAME)) {
       // Returning an empty result for now, but this will return the result of the proxy's DNS A
       // records in the future
       return Single.just(
-          Conversion.toResult(
-              new ResultMessage.Rows(
-                  new org.apache.cassandra.cql3.ResultSet(
-                      ((SelectStatement) statement).getResultMetadata())),
-              version));
+          new ResultMessage.Rows(
+              new org.apache.cassandra.cql3.ResultSet(
+                  ((SelectStatement) statement).getResultMetadata())));
     } else {
       assert tableName.equals(LocalNodeSystemView.NAME);
 
       Single<ResultMessage> resp =
-          handler.processStatement(
-              statement, internalState, internalOptions, customPayload, queryStartNanoTime);
+          QueryProcessor.instance.processStatement(
+              statement, state, options, customPayload, queryStartNanoTime);
 
       return resp.map(
           (result) -> {
@@ -79,8 +71,14 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
               ResultMessage.Rows rows = (ResultMessage.Rows) result;
               if (!rows.result.isEmpty()) {
                 ResultSet.ResultMetadata metadata = rows.result.metadata;
-                InetAddress publicAddress = state.getClientState().getPublicAddress().getAddress();
-                int publicPort = state.getClientState().getPublicAddress().getPort();
+
+                ClientState clientState = state.getClientState();
+                assert clientState instanceof ClientStateWithPublicAddress;
+                InetSocketAddress inetAddress =
+                    ((ClientStateWithPublicAddress) clientState).publicAddress();
+
+                InetAddress publicAddress = inetAddress.getAddress();
+                int publicPort = inetAddress.getPort();
 
                 int index = 0;
                 // Intercept and replace all address/port entries with the proxy protocol's public
@@ -130,7 +128,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
                 }
               }
             }
-            return Conversion.toResult(result, version);
+            return result;
           });
     }
   }
