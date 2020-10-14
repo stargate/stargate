@@ -170,12 +170,18 @@ public class Starter {
 
   @Order(value = 13)
   @Option(
+      name = {"--proxy-dns-name"},
+      description = "Used with the proxy protocol flag to populate `system.peers` with a proxy's public IP addresses (i.e. A records)")
+  private String proxyDnsName;
+
+  @Order(value = 14)
+  @Option(
       name = {"--emulate-dbaas-defaults"},
       description =
           "Updated defaults reflect those of DataStax Astra at the time of the currently used DSE release")
   private boolean emulateDbaasDefaults = false;
 
-  @Order(value = 14)
+  @Order(value = 15)
   @Option(
       name = {"--developer-mode"},
       description =
@@ -184,19 +190,19 @@ public class Starter {
               + "requiring additional nodes or existing cluster")
   boolean developerMode = false;
 
-  @Order(value = 15)
+  @Order(value = 16)
   @Option(
       name = {"--bind-to-listen-address"},
       description = "When set, it binds web services to listen address only")
   boolean bindToListenAddressOnly = false;
 
-  @Order(value = 16)
+  @Order(value = 17)
   @Option(
       name = {"--jmx-port"},
       description = "The port on which JMX should start")
   int jmxPort = 7199;
 
-  @Order(value = 17)
+  @Order(value = 18)
   @Option(
       name = {
         "--disable-dynamic-snitch",
@@ -204,7 +210,7 @@ public class Starter {
       })
   boolean disableDynamicSnitch = false;
 
-  @Order(value = 18)
+  @Order(value = 19)
   @Option(
       name = {"--disable-mbean-registration", "Whether the mbean registration should be disabled"})
   boolean disableMBeanRegistration = false;
@@ -296,6 +302,7 @@ public class Starter {
     System.setProperty("stargate.cql_port", String.valueOf(cqlPort));
     System.setProperty("stargate.enable_auth", enableAuth ? "true" : "false");
     System.setProperty("stargate.use_proxy_protocol", useProxyProtocol ? "true" : "false");
+    System.setProperty("stargate.proxy_protocol.dns_name", proxyDnsName);
     System.setProperty("stargate.emulate_dbaas_defaults", emulateDbaasDefaults ? "true" : "false");
     System.setProperty("stargate.developer_mode", String.valueOf(developerMode));
     System.setProperty("stargate.bind_to_listen_address", String.valueOf(bindToListenAddressOnly));
