@@ -170,29 +170,6 @@
           </execution>
         </executions>
       </plugin>
-      <!-- Replace swagger.json URL in index.html -->
-      <plugin>
-        <groupId>com.google.code.maven-replacer-plugin</groupId>
-        <artifactId>replacer</artifactId>
-        <version>1.5.3</version>
-        <executions>
-          <execution>
-            <phase>prepare-package</phase>
-            <goals>
-              <goal>replace</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <file>${project.build.directory}/swagger-ui/META-INF/resources/webjars/swagger-ui/${swagger-ui.version}/index.html</file>
-          <replacements>
-            <replacement>
-              <token>https://petstore.swagger.io/v2/swagger.json</token>
-              <value>/swagger.json</value>
-            </replacement>
-          </replacements>
-        </configuration>
-      </plugin>
       <!-- Copy swagger-ui resources to target resources -->
       <plugin>
         <artifactId>maven-resources-plugin</artifactId>
