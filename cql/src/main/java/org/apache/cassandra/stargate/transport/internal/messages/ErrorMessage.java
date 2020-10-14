@@ -40,6 +40,7 @@ import org.apache.cassandra.stargate.exceptions.FunctionExecutionException;
 import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
 import org.apache.cassandra.stargate.exceptions.IsBootstrappingException;
 import org.apache.cassandra.stargate.exceptions.OverloadedException;
+import org.apache.cassandra.stargate.exceptions.PersistenceException;
 import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.exceptions.ReadFailureException;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
@@ -47,7 +48,6 @@ import org.apache.cassandra.stargate.exceptions.RequestFailureException;
 import org.apache.cassandra.stargate.exceptions.RequestFailureReason;
 import org.apache.cassandra.stargate.exceptions.RequestTimeoutException;
 import org.apache.cassandra.stargate.exceptions.SyntaxException;
-import org.apache.cassandra.stargate.exceptions.TransportException;
 import org.apache.cassandra.stargate.exceptions.TruncateException;
 import org.apache.cassandra.stargate.exceptions.UnauthorizedException;
 import org.apache.cassandra.stargate.exceptions.UnavailableException;
@@ -73,33 +73,33 @@ public class ErrorMessage extends Message.Response {
           ExceptionCode code = ExceptionCode.fromValue(body.readInt());
           String msg = CBUtil.readString(body);
 
-          TransportException te = null;
+          PersistenceException pe = null;
           switch (code) {
             case SERVER_ERROR:
-              te = new ServerError(msg);
+              pe = new ServerError(msg);
               break;
             case PROTOCOL_ERROR:
-              te = new ProtocolException(msg);
+              pe = new ProtocolException(msg);
               break;
             case BAD_CREDENTIALS:
-              te = new AuthenticationException(msg);
+              pe = new AuthenticationException(msg);
               break;
             case UNAVAILABLE:
               {
                 ConsistencyLevel cl = CBUtil.readConsistencyLevel(body);
                 int required = body.readInt();
                 int alive = body.readInt();
-                te = UnavailableException.create(cl, required, alive);
+                pe = UnavailableException.create(cl, required, alive);
               }
               break;
             case OVERLOADED:
-              te = new OverloadedException(msg);
+              pe = new OverloadedException(msg);
               break;
             case IS_BOOTSTRAPPING:
-              te = new IsBootstrappingException();
+              pe = new IsBootstrappingException();
               break;
             case TRUNCATE_ERROR:
-              te = new TruncateException(msg);
+              pe = new TruncateException(msg);
               break;
             case WRITE_FAILURE:
             case READ_FAILURE:
@@ -128,12 +128,12 @@ public class ErrorMessage extends Message.Response {
 
                 if (code == ExceptionCode.WRITE_FAILURE) {
                   WriteType writeType = Enum.valueOf(WriteType.class, CBUtil.readString(body));
-                  te =
+                  pe =
                       new WriteFailureException(
                           cl, received, blockFor, writeType, failureReasonByEndpoint);
                 } else {
                   byte dataPresent = body.readByte();
-                  te =
+                  pe =
                       new ReadFailureException(
                           cl, received, blockFor, dataPresent != 0, failureReasonByEndpoint);
                 }
@@ -150,15 +150,15 @@ public class ErrorMessage extends Message.Response {
                   if (version.isGreaterOrEqualTo(ProtocolVersion.V5)
                       && writeType == WriteType.CAS) {
                     int contentions = body.readShort();
-                    te =
+                    pe =
                         new CasWriteTimeoutException(
                             writeType, cl, received, blockFor, contentions);
                   } else {
-                    te = new WriteTimeoutException(writeType, cl, received, blockFor);
+                    pe = new WriteTimeoutException(writeType, cl, received, blockFor);
                   }
                 } else {
                   byte dataPresent = body.readByte();
-                  te = new ReadTimeoutException(cl, received, blockFor, dataPresent != 0);
+                  pe = new ReadTimeoutException(cl, received, blockFor, dataPresent != 0);
                 }
                 break;
               }
@@ -166,35 +166,35 @@ public class ErrorMessage extends Message.Response {
               String fKeyspace = CBUtil.readString(body);
               String fName = CBUtil.readString(body);
               List<String> argTypes = CBUtil.readStringList(body);
-              te =
+              pe =
                   new FunctionExecutionException(new FunctionName(fKeyspace, fName), argTypes, msg);
               break;
             case UNPREPARED:
               {
                 MD5Digest id = MD5Digest.wrap(CBUtil.readBytes(body));
-                te = new PreparedQueryNotFoundException(id);
+                pe = new PreparedQueryNotFoundException(id);
               }
               break;
             case SYNTAX_ERROR:
-              te = new SyntaxException(msg);
+              pe = new SyntaxException(msg);
               break;
             case UNAUTHORIZED:
-              te = new UnauthorizedException(msg);
+              pe = new UnauthorizedException(msg);
               break;
             case INVALID:
-              te = new InvalidRequestException(msg);
+              pe = new InvalidRequestException(msg);
               break;
             case CONFIG_ERROR:
-              te = new ConfigurationException(msg);
+              pe = new ConfigurationException(msg);
               break;
             case CDC_WRITE_FAILURE:
-              te = new CDCWriteException(msg);
+              pe = new CDCWriteException(msg);
               break;
             case ALREADY_EXISTS:
               String ksName = CBUtil.readString(body);
               String cfName = CBUtil.readString(body);
-              if (cfName.isEmpty()) te = new AlreadyExistsException(ksName);
-              else te = new AlreadyExistsException(ksName, cfName);
+              if (cfName.isEmpty()) pe = new AlreadyExistsException(ksName);
+              else pe = new AlreadyExistsException(ksName, cfName);
               break;
             case CAS_WRITE_UNKNOWN:
               assert version.isGreaterOrEqualTo(ProtocolVersion.V5);
@@ -202,14 +202,14 @@ public class ErrorMessage extends Message.Response {
               ConsistencyLevel cl = CBUtil.readConsistencyLevel(body);
               int received = body.readInt();
               int blockFor = body.readInt();
-              te = new CasWriteUnknownResultException(cl, received, blockFor);
+              pe = new CasWriteUnknownResultException(cl, received, blockFor);
               break;
           }
-          return new ErrorMessage(te);
+          return new ErrorMessage(pe);
         }
 
         public void encode(ErrorMessage msg, ByteBuf dest, ProtocolVersion version) {
-          final TransportException err = getBackwardsCompatibleException(msg, version);
+          final PersistenceException err = getBackwardsCompatibleException(msg, version);
           dest.writeInt(err.code().value);
           String errorString = err.getMessage() == null ? "" : err.getMessage();
           CBUtil.writeString(errorString, dest);
@@ -289,7 +289,7 @@ public class ErrorMessage extends Message.Response {
         }
 
         public int encodedSize(ErrorMessage msg, ProtocolVersion version) {
-          TransportException err = getBackwardsCompatibleException(msg, version);
+          PersistenceException err = getBackwardsCompatibleException(msg, version);
           String errorString = err.getMessage() == null ? "" : err.getMessage();
           int size = 4 + CBUtil.sizeOfString(errorString);
           switch (err.code()) {
@@ -361,7 +361,7 @@ public class ErrorMessage extends Message.Response {
         }
       };
 
-  private static TransportException getBackwardsCompatibleException(
+  private static PersistenceException getBackwardsCompatibleException(
       ErrorMessage msg, ProtocolVersion version) {
     if (version.isSmallerThan(ProtocolVersion.V4)) {
       switch (msg.error.code()) {
@@ -399,16 +399,17 @@ public class ErrorMessage extends Message.Response {
   }
 
   // We need to figure error codes out (#3979)
-  public final TransportException error;
+  public final PersistenceException error;
 
-  private ErrorMessage(TransportException error) {
+  private ErrorMessage(PersistenceException error) {
     super(Message.Type.ERROR);
     this.error = error;
   }
 
-  private ErrorMessage(TransportException error, int streamId) {
+  private ErrorMessage(PersistenceException error, int streamId) {
     this(error);
     setStreamId(streamId);
+    this.warnings = error.warnings();
   }
 
   public static ErrorMessage fromException(Throwable e) {
@@ -433,7 +434,7 @@ public class ErrorMessage extends Message.Response {
         if (cause instanceof WrappedException) {
           streamId = ((WrappedException) cause).streamId;
           e = cause.getCause();
-        } else if (cause instanceof TransportException) {
+        } else if (cause instanceof PersistenceException) {
           e = cause;
         }
       }
@@ -442,8 +443,8 @@ public class ErrorMessage extends Message.Response {
       e = e.getCause();
     }
 
-    if (e instanceof TransportException) {
-      ErrorMessage message = new ErrorMessage((TransportException) e, streamId);
+    if (e instanceof PersistenceException) {
+      ErrorMessage message = new ErrorMessage((PersistenceException) e, streamId);
       if (e instanceof ProtocolException) {
         // if the driver attempted to connect with a protocol version not supported then
         // respond with the appropiate version, see ProtocolVersion.decode()

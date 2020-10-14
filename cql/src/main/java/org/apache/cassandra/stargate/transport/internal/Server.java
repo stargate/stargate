@@ -60,6 +60,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -310,8 +311,8 @@ public class Server implements CassandraDaemon.Server {
         Connection connection = c.attr(Connection.attributeKey).get();
         if (connection instanceof ServerConnection) {
           ServerConnection conn = (ServerConnection) connection;
-          AuthenticatedUser<?> user = conn.getClientState().getUser();
-          String name = (null != user) ? user.getName() : null;
+          Optional<AuthenticatedUser> user = conn.persistenceConnection().loggedUser();
+          String name = user.map(AuthenticatedUser::name).orElse(null);
           result.put(name, result.getOrDefault(name, 0) + 1);
         }
       }

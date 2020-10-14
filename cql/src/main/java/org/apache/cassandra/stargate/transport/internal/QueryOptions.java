@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.cassandra.stargate.cql3;
+package org.apache.cassandra.stargate.transport.internal;
 
 import io.netty.buffer.ByteBuf;
-import io.stargate.db.QueryOptions;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -27,11 +26,9 @@ import java.util.List;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
-import org.apache.cassandra.stargate.transport.internal.CBCodec;
-import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.utils.Pair;
 
-public class DefaultQueryOptions implements QueryOptions {
+public class QueryOptions {
   public static final CBCodec<QueryOptions> codec = new Codec();
 
   private final ConsistencyLevel consistency;
@@ -41,7 +38,7 @@ public class DefaultQueryOptions implements QueryOptions {
   private final ProtocolVersion version;
   private final SpecificOptions options;
 
-  public DefaultQueryOptions(
+  QueryOptions(
       ConsistencyLevel consistency,
       List<ByteBuffer> values,
       List<String> names,
@@ -56,60 +53,49 @@ public class DefaultQueryOptions implements QueryOptions {
     this.version = version;
   }
 
-  @Override
   public ConsistencyLevel getConsistency() {
     return consistency;
   }
 
-  @Override
   public List<ByteBuffer> getValues() {
     return values;
   }
 
-  @Override
   public List<String> getNames() {
     return names;
   }
 
-  @Override
   public ProtocolVersion getProtocolVersion() {
     return version;
   }
 
-  @Override
   public int getPageSize() {
     return getSpecificOptions().pageSize;
   }
 
-  @Override
   public ByteBuffer getPagingState() {
     return getSpecificOptions().pagingState;
   }
 
-  @Override
   public ConsistencyLevel getSerialConsistency() {
     return getSpecificOptions().serialConsistency;
   }
 
-  @Override
   public long getTimestamp() {
     return getSpecificOptions().timestamp;
   }
 
-  @Override
   public int getNowInSeconds() {
     return getSpecificOptions().nowInSeconds;
   }
 
   /** The keyspace that this query is bound to, or null if not relevant. */
-  @Override
   public String getKeyspace() {
     return getSpecificOptions().keyspace;
   }
 
-  @Override
   public boolean skipMetadata() {
-    return false;
+    return skipMetadata;
   }
 
   private SpecificOptions getSpecificOptions() {
@@ -157,36 +143,35 @@ public class DefaultQueryOptions implements QueryOptions {
       KEYSPACE,
       NOW_IN_SECONDS;
 
-      private static final DefaultQueryOptions.Codec.Flag[] ALL_VALUES = values();
+      private static final QueryOptions.Codec.Flag[] ALL_VALUES = values();
 
-      public static EnumSet<DefaultQueryOptions.Codec.Flag> deserialize(int flags) {
-        EnumSet<DefaultQueryOptions.Codec.Flag> set =
-            EnumSet.noneOf(DefaultQueryOptions.Codec.Flag.class);
+      public static EnumSet<QueryOptions.Codec.Flag> deserialize(int flags) {
+        EnumSet<QueryOptions.Codec.Flag> set = EnumSet.noneOf(QueryOptions.Codec.Flag.class);
         for (int n = 0; n < ALL_VALUES.length; n++) {
           if ((flags & (1 << n)) != 0) set.add(ALL_VALUES[n]);
         }
         return set;
       }
 
-      public static int serialize(EnumSet<DefaultQueryOptions.Codec.Flag> flags) {
+      public static int serialize(EnumSet<QueryOptions.Codec.Flag> flags) {
         int i = 0;
-        for (DefaultQueryOptions.Codec.Flag flag : flags) i |= 1 << flag.ordinal();
+        for (QueryOptions.Codec.Flag flag : flags) i |= 1 << flag.ordinal();
         return i;
       }
     }
 
     public QueryOptions decode(ByteBuf body, ProtocolVersion version) {
       ConsistencyLevel consistency = CBUtil.readConsistencyLevel(body);
-      EnumSet<DefaultQueryOptions.Codec.Flag> flags =
-          DefaultQueryOptions.Codec.Flag.deserialize(
+      EnumSet<QueryOptions.Codec.Flag> flags =
+          QueryOptions.Codec.Flag.deserialize(
               version.isGreaterOrEqualTo(ProtocolVersion.V5)
                   ? (int) body.readUnsignedInt()
                   : (int) body.readUnsignedByte());
 
-      List<ByteBuffer> values = Collections.<ByteBuffer>emptyList();
+      List<ByteBuffer> values = Collections.emptyList();
       List<String> names = null;
-      if (flags.contains(DefaultQueryOptions.Codec.Flag.VALUES)) {
-        if (flags.contains(DefaultQueryOptions.Codec.Flag.NAMES_FOR_VALUES)) {
+      if (flags.contains(QueryOptions.Codec.Flag.VALUES)) {
+        if (flags.contains(QueryOptions.Codec.Flag.NAMES_FOR_VALUES)) {
           Pair<List<String>, List<ByteBuffer>> namesAndValues =
               CBUtil.readNameAndValueList(body, version);
           names = namesAndValues.left;
@@ -196,24 +181,23 @@ public class DefaultQueryOptions implements QueryOptions {
         }
       }
 
-      boolean skipMetadata = flags.contains(DefaultQueryOptions.Codec.Flag.SKIP_METADATA);
-      flags.remove(DefaultQueryOptions.Codec.Flag.VALUES);
-      flags.remove(DefaultQueryOptions.Codec.Flag.SKIP_METADATA);
+      boolean skipMetadata = flags.contains(QueryOptions.Codec.Flag.SKIP_METADATA);
+      flags.remove(QueryOptions.Codec.Flag.VALUES);
+      flags.remove(QueryOptions.Codec.Flag.SKIP_METADATA);
 
-      DefaultQueryOptions.SpecificOptions options = DefaultQueryOptions.SpecificOptions.DEFAULT;
+      QueryOptions.SpecificOptions options = QueryOptions.SpecificOptions.DEFAULT;
       if (!flags.isEmpty()) {
-        int pageSize =
-            flags.contains(DefaultQueryOptions.Codec.Flag.PAGE_SIZE) ? body.readInt() : -1;
+        int pageSize = flags.contains(QueryOptions.Codec.Flag.PAGE_SIZE) ? body.readInt() : -1;
         ByteBuffer pagingState =
-            flags.contains(DefaultQueryOptions.Codec.Flag.PAGING_STATE)
+            flags.contains(QueryOptions.Codec.Flag.PAGING_STATE)
                 ? CBUtil.readValueNoCopy(body)
                 : null;
         ConsistencyLevel serialConsistency =
-            flags.contains(DefaultQueryOptions.Codec.Flag.SERIAL_CONSISTENCY)
+            flags.contains(QueryOptions.Codec.Flag.SERIAL_CONSISTENCY)
                 ? CBUtil.readConsistencyLevel(body)
                 : ConsistencyLevel.SERIAL;
         long timestamp = Long.MIN_VALUE;
-        if (flags.contains(DefaultQueryOptions.Codec.Flag.TIMESTAMP)) {
+        if (flags.contains(QueryOptions.Codec.Flag.TIMESTAMP)) {
           long ts = body.readLong();
           if (ts == Long.MIN_VALUE)
             throw new ProtocolException(
@@ -223,42 +207,38 @@ public class DefaultQueryOptions implements QueryOptions {
           timestamp = ts;
         }
         String keyspace =
-            flags.contains(DefaultQueryOptions.Codec.Flag.KEYSPACE)
-                ? CBUtil.readString(body)
-                : null;
+            flags.contains(QueryOptions.Codec.Flag.KEYSPACE) ? CBUtil.readString(body) : null;
         int nowInSeconds =
-            flags.contains(DefaultQueryOptions.Codec.Flag.NOW_IN_SECONDS)
+            flags.contains(QueryOptions.Codec.Flag.NOW_IN_SECONDS)
                 ? body.readInt()
                 : Integer.MIN_VALUE;
         options =
-            new DefaultQueryOptions.SpecificOptions(
+            new QueryOptions.SpecificOptions(
                 pageSize, pagingState, serialConsistency, timestamp, keyspace, nowInSeconds);
       }
 
-      return new DefaultQueryOptions(consistency, values, names, skipMetadata, options, version);
+      return new QueryOptions(consistency, values, names, skipMetadata, options, version);
     }
 
     public void encode(QueryOptions options, ByteBuf dest, ProtocolVersion version) {
       CBUtil.writeConsistencyLevel(options.getConsistency(), dest);
 
-      EnumSet<DefaultQueryOptions.Codec.Flag> flags = gatherFlags(options, version);
+      EnumSet<QueryOptions.Codec.Flag> flags = gatherFlags(options, version);
       if (version.isGreaterOrEqualTo(ProtocolVersion.V5))
-        dest.writeInt(DefaultQueryOptions.Codec.Flag.serialize(flags));
-      else dest.writeByte((byte) DefaultQueryOptions.Codec.Flag.serialize(flags));
+        dest.writeInt(QueryOptions.Codec.Flag.serialize(flags));
+      else dest.writeByte((byte) QueryOptions.Codec.Flag.serialize(flags));
 
-      if (flags.contains(DefaultQueryOptions.Codec.Flag.VALUES))
+      if (flags.contains(QueryOptions.Codec.Flag.VALUES))
         CBUtil.writeValueList(options.getValues(), dest);
-      if (flags.contains(DefaultQueryOptions.Codec.Flag.PAGE_SIZE))
-        dest.writeInt(options.getPageSize());
-      if (flags.contains(DefaultQueryOptions.Codec.Flag.PAGING_STATE))
+      if (flags.contains(QueryOptions.Codec.Flag.PAGE_SIZE)) dest.writeInt(options.getPageSize());
+      if (flags.contains(QueryOptions.Codec.Flag.PAGING_STATE))
         CBUtil.writeValue(options.getPagingState(), dest);
-      if (flags.contains(DefaultQueryOptions.Codec.Flag.SERIAL_CONSISTENCY))
+      if (flags.contains(QueryOptions.Codec.Flag.SERIAL_CONSISTENCY))
         CBUtil.writeConsistencyLevel(options.getSerialConsistency(), dest);
-      if (flags.contains(DefaultQueryOptions.Codec.Flag.TIMESTAMP))
-        dest.writeLong(options.getTimestamp());
-      if (flags.contains(DefaultQueryOptions.Codec.Flag.KEYSPACE))
+      if (flags.contains(QueryOptions.Codec.Flag.TIMESTAMP)) dest.writeLong(options.getTimestamp());
+      if (flags.contains(QueryOptions.Codec.Flag.KEYSPACE))
         CBUtil.writeAsciiString(options.getKeyspace(), dest);
-      if (flags.contains(DefaultQueryOptions.Codec.Flag.NOW_IN_SECONDS))
+      if (flags.contains(QueryOptions.Codec.Flag.NOW_IN_SECONDS))
         dest.writeInt(options.getNowInSeconds());
 
       // Note that we don't really have to bother with NAMES_FOR_VALUES server side,
@@ -271,41 +251,39 @@ public class DefaultQueryOptions implements QueryOptions {
 
       size += CBUtil.sizeOfConsistencyLevel(options.getConsistency());
 
-      EnumSet<DefaultQueryOptions.Codec.Flag> flags = gatherFlags(options, version);
+      EnumSet<QueryOptions.Codec.Flag> flags = gatherFlags(options, version);
       size += (version.isGreaterOrEqualTo(ProtocolVersion.V5) ? 4 : 1);
 
-      if (flags.contains(DefaultQueryOptions.Codec.Flag.VALUES))
+      if (flags.contains(QueryOptions.Codec.Flag.VALUES))
         size += CBUtil.sizeOfValueList(options.getValues());
-      if (flags.contains(DefaultQueryOptions.Codec.Flag.PAGE_SIZE)) size += 4;
-      if (flags.contains(DefaultQueryOptions.Codec.Flag.PAGING_STATE))
+      if (flags.contains(QueryOptions.Codec.Flag.PAGE_SIZE)) size += 4;
+      if (flags.contains(QueryOptions.Codec.Flag.PAGING_STATE))
         size += CBUtil.sizeOfValue(options.getPagingState());
-      if (flags.contains(DefaultQueryOptions.Codec.Flag.SERIAL_CONSISTENCY))
+      if (flags.contains(QueryOptions.Codec.Flag.SERIAL_CONSISTENCY))
         size += CBUtil.sizeOfConsistencyLevel(options.getSerialConsistency());
-      if (flags.contains(DefaultQueryOptions.Codec.Flag.TIMESTAMP)) size += 8;
-      if (flags.contains(DefaultQueryOptions.Codec.Flag.KEYSPACE))
+      if (flags.contains(QueryOptions.Codec.Flag.TIMESTAMP)) size += 8;
+      if (flags.contains(QueryOptions.Codec.Flag.KEYSPACE))
         size += CBUtil.sizeOfAsciiString(options.getKeyspace());
-      if (flags.contains(DefaultQueryOptions.Codec.Flag.NOW_IN_SECONDS)) size += 4;
+      if (flags.contains(QueryOptions.Codec.Flag.NOW_IN_SECONDS)) size += 4;
 
       return size;
     }
 
-    private EnumSet<DefaultQueryOptions.Codec.Flag> gatherFlags(
+    private EnumSet<QueryOptions.Codec.Flag> gatherFlags(
         QueryOptions options, ProtocolVersion version) {
-      EnumSet<DefaultQueryOptions.Codec.Flag> flags =
-          EnumSet.noneOf(DefaultQueryOptions.Codec.Flag.class);
-      if (options.getValues().size() > 0) flags.add(DefaultQueryOptions.Codec.Flag.VALUES);
-      if (options.skipMetadata()) flags.add(DefaultQueryOptions.Codec.Flag.SKIP_METADATA);
-      if (options.getPageSize() >= 0) flags.add(DefaultQueryOptions.Codec.Flag.PAGE_SIZE);
-      if (options.getPagingState() != null) flags.add(DefaultQueryOptions.Codec.Flag.PAGING_STATE);
+      EnumSet<QueryOptions.Codec.Flag> flags = EnumSet.noneOf(QueryOptions.Codec.Flag.class);
+      if (options.getValues().size() > 0) flags.add(QueryOptions.Codec.Flag.VALUES);
+      if (options.skipMetadata()) flags.add(QueryOptions.Codec.Flag.SKIP_METADATA);
+      if (options.getPageSize() >= 0) flags.add(QueryOptions.Codec.Flag.PAGE_SIZE);
+      if (options.getPagingState() != null) flags.add(QueryOptions.Codec.Flag.PAGING_STATE);
       if (options.getSerialConsistency() != ConsistencyLevel.SERIAL)
-        flags.add(DefaultQueryOptions.Codec.Flag.SERIAL_CONSISTENCY);
-      if (options.getTimestamp() != Long.MIN_VALUE)
-        flags.add(DefaultQueryOptions.Codec.Flag.TIMESTAMP);
+        flags.add(QueryOptions.Codec.Flag.SERIAL_CONSISTENCY);
+      if (options.getTimestamp() != Long.MIN_VALUE) flags.add(QueryOptions.Codec.Flag.TIMESTAMP);
 
       if (version.isGreaterOrEqualTo(ProtocolVersion.V5)) {
-        if (options.getKeyspace() != null) flags.add(DefaultQueryOptions.Codec.Flag.KEYSPACE);
+        if (options.getKeyspace() != null) flags.add(QueryOptions.Codec.Flag.KEYSPACE);
         if (options.getNowInSeconds() != Integer.MIN_VALUE)
-          flags.add(DefaultQueryOptions.Codec.Flag.NOW_IN_SECONDS);
+          flags.add(QueryOptions.Codec.Flag.NOW_IN_SECONDS);
       }
 
       return flags;

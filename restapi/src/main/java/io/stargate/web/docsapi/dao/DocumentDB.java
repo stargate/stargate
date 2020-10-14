@@ -2,14 +2,15 @@ package io.stargate.web.docsapi.dao;
 
 import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.PreparedStatement;
 import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.query.Parameter;
 import io.stargate.db.datastore.query.QueryBuilder;
 import io.stargate.db.datastore.query.Where;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import java.time.Instant;
@@ -25,7 +26,9 @@ public class DocumentDB {
   private static final Logger logger = LoggerFactory.getLogger(DocumentDB.class);
   private static final List<Character> forbiddenCharacters;
   private static final List<String> allColumnNames;
+  private static final List<Column.ColumnType> allColumnTypes;
   private static final List<String> allPathColumnNames;
+  private static final List<Column.ColumnType> allPathColumnTypes;
   public static final Integer MAX_DEPTH = Integer.getInteger("stargate.document_max_depth", 64);
 
   // All array elements will be represented as 6 digits, so they get left-padded, such as [000010]
@@ -42,16 +45,25 @@ public class DocumentDB {
 
   static {
     allColumnNames = new ArrayList<>();
+    allColumnTypes = new ArrayList<>();
     allPathColumnNames = new ArrayList<>();
+    allPathColumnTypes = new ArrayList<>();
     allColumnNames.add("key");
+    allColumnTypes.add(Type.Text);
     for (int i = 0; i < MAX_DEPTH; i++) {
       allPathColumnNames.add("p" + i);
+      allPathColumnTypes.add(Type.Text);
     }
     allColumnNames.addAll(allPathColumnNames);
+    allColumnTypes.addAll(allPathColumnTypes);
     allColumnNames.add("leaf");
+    allColumnTypes.add(Type.Text);
     allColumnNames.add("text_value");
+    allColumnTypes.add(Type.Text);
     allColumnNames.add("dbl_value");
+    allColumnTypes.add(Type.Double);
     allColumnNames.add("bool_value");
+    allColumnTypes.add(Type.Boolean);
 
     forbiddenCharacters = ImmutableList.of('[', ']', ',', '.', '\'', '*');
 
@@ -76,7 +88,11 @@ public class DocumentDB {
   }
 
   public static List<Column> allColumns() {
-    return allColumnNames.stream().map(Column::reference).collect(Collectors.toList());
+    List<Column> allColumns = new ArrayList<>(allColumnNames.size());
+    for (int i = 0; i < allColumnNames.size(); i++) {
+      allColumns.add(Column.create(allColumnNames.get(i), allColumnTypes.get(i)));
+    }
+    return allColumns;
   }
 
   public QueryBuilder builder() {
@@ -168,7 +184,12 @@ public class DocumentDB {
         .execute();
   }
 
-  public PreparedStatement getInsertStatement(String keyspaceName, String tableName) {
+  private PreparedStatement prepare(String statement) {
+    return dataStore.prepare(statement).join();
+  }
+
+  public PreparedStatement.Bound getInsertStatement(
+      String keyspaceName, String tableName, long microsTimestamp, Object[] columnValues) {
     String statement =
         String.format(
             "INSERT INTO \"%s\".\"%s\" (%s) VALUES (:%s) USING TIMESTAMP ?",
@@ -178,22 +199,32 @@ public class DocumentDB {
             String.join(", :", allColumnNames));
 
     logger.debug(statement);
-    return dataStore.prepare(statement);
+    Object[] values = Arrays.copyOf(columnValues, columnValues.length + 1);
+    values[values.length - 1] = microsTimestamp;
+    return prepare(statement).bind(values);
   }
 
   /** Deletes from @param tableName all rows that are prefixed by @param pathPrefixToDelete */
-  public PreparedStatement getPrefixDeleteStatement(
-      String keyspaceName, String tableName, List<String> pathPrefixToDelete) {
+  public PreparedStatement.Bound getPrefixDeleteStatement(
+      String keyspaceName,
+      String tableName,
+      String key,
+      long microsTimestamp,
+      List<String> pathPrefixToDelete) {
+    Object[] values = new Object[2 + pathPrefixToDelete.size()];
+    values[0] = microsTimestamp;
+    values[1] = key;
     StringBuilder pathClause = new StringBuilder();
     for (int i = 0; i < pathPrefixToDelete.size(); i++) {
       pathClause.append(" AND p").append(i).append(" = :p").append(i);
+      values[2 + i] = pathPrefixToDelete.get(i);
     }
     String statement =
         String.format(
             "DELETE FROM \"%s\".\"%s\" USING TIMESTAMP ? WHERE key = :key%s",
             keyspaceName, tableName, pathClause.toString());
     logger.debug(statement);
-    return dataStore.prepare(statement);
+    return prepare(statement).bind(values);
   }
 
   /**
@@ -201,12 +232,20 @@ public class DocumentDB {
    * pathToDelete, and also deletes all rows that match the @param patchedKeys at path @param
    * pathToDelete.
    */
-  public PreparedStatement getSubpathArrayDeleteStatement(
-      String keyspaceName, String tableName, List<String> pathToDelete) {
+  public PreparedStatement.Bound getSubpathArrayDeleteStatement(
+      String keyspaceName,
+      String tableName,
+      String key,
+      long microsTimestamp,
+      List<String> pathToDelete) {
+    Object[] values = new Object[2 + pathToDelete.size()];
+    values[0] = microsTimestamp;
+    values[1] = key;
+
     StringBuilder pathClause = new StringBuilder();
-    int i = 0;
-    for (; i < pathToDelete.size(); i++) {
+    for (int i = 0; i < pathToDelete.size(); i++) {
       pathClause.append(" AND p").append(i).append(" = :p").append(i);
+      values[2 + i] = pathToDelete.get(i);
     }
 
     // Delete array paths with a range tombstone
@@ -223,24 +262,36 @@ public class DocumentDB {
             keyspaceName, tableName, pathClause.toString());
 
     logger.debug(statement);
-    return dataStore.prepare(statement);
+    return prepare(statement).bind(values);
   }
 
   /**
    * Prepares a delete from @param tableName with all rows that match the @param keysToDelete at
    * path @param pathToDelete.
    */
-  public PreparedStatement getPathKeysDeleteStatement(
-      String keyspaceName, String tableName, List<String> pathToDelete, List<String> keysToDelete) {
+  public PreparedStatement.Bound getPathKeysDeleteStatement(
+      String keyspaceName,
+      String tableName,
+      String key,
+      long microsTimestamp,
+      List<String> pathToDelete,
+      List<String> keysToDelete) {
+    Object[] values = new Object[2 + pathToDelete.size() + keysToDelete.size()];
+    int idx = 0;
+    values[idx++] = microsTimestamp;
+    values[idx++] = key;
+
     StringBuilder pathClause = new StringBuilder();
     for (int i = 0; i < pathToDelete.size(); i++) {
       pathClause.append(" AND p").append(i).append(" = :p").append(i);
+      values[idx++] = pathToDelete.get(i);
     }
 
     if (pathToDelete.size() < MAX_DEPTH && !keysToDelete.isEmpty()) {
       pathClause.append(" AND p").append(pathToDelete.size()).append(" IN (");
       for (int j = 0; j < keysToDelete.size(); j++) {
-        pathClause.append(":p" + pathToDelete.size());
+        pathClause.append(":p" + (pathToDelete.size() + j));
+        values[idx++] = keysToDelete.get(j);
         if (j != keysToDelete.size() - 1) {
           pathClause.append(",");
         }
@@ -254,17 +305,29 @@ public class DocumentDB {
             "DELETE FROM \"%s\".\"%s\" USING TIMESTAMP ? WHERE key = :key%s ",
             keyspaceName, tableName, pathClause.toString());
 
+    // We might not have filled the whole values array pathToDelete >= MAX_DEPTH.
+    if (idx < values.length) {
+      values = Arrays.copyOf(values, idx);
+    }
     logger.debug(statement);
-    return dataStore.prepare(statement);
+    return prepare(statement).bind(values);
   }
 
   /** Deletes from @param tableName all rows that match @param pathToDelete exactly. */
-  public PreparedStatement getExactPathDeleteStatement(
-      String keyspaceName, String tableName, List<String> pathToDelete) {
+  public PreparedStatement.Bound getExactPathDeleteStatement(
+      String keyspaceName,
+      String tableName,
+      String key,
+      long microsTimestamp,
+      List<String> pathToDelete) {
+    Object[] values = new Object[2 + pathToDelete.size()];
+    values[0] = microsTimestamp;
+    values[1] = key;
     StringBuilder pathClause = new StringBuilder();
     int i = 0;
     for (; i < pathToDelete.size(); i++) {
       pathClause.append(" AND p").append(i).append(" = :p").append(i);
+      values[2 + i] = pathToDelete.get(i);
     }
 
     for (; i < MAX_DEPTH; i++) {
@@ -277,7 +340,7 @@ public class DocumentDB {
             keyspaceName, tableName, pathClause.toString());
 
     logger.debug(statement);
-    return dataStore.prepare(statement);
+    return prepare(statement).bind(values);
   }
 
   /**
@@ -291,21 +354,16 @@ public class DocumentDB {
       List<Object[]> vars,
       List<String> pathToDelete,
       long microsSinceEpoch) {
-    PreparedStatement[] statements = new PreparedStatement[vars.size() + 1];
-    statements[0] = getPrefixDeleteStatement(keyspace, table, pathToDelete);
-    Object[] deleteVars = new Object[pathToDelete.size() + 2];
-    deleteVars[0] = microsSinceEpoch - 1;
-    deleteVars[1] = key;
 
-    for (int i = 2; i < deleteVars.length; i++) {
-      deleteVars[i] = pathToDelete.get(i - 2);
+    List<PreparedStatement.Bound> statements = new ArrayList<>(1 + vars.size());
+    statements.add(
+        getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch - 1, pathToDelete));
+
+    for (Object[] values : vars) {
+      statements.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
     }
 
-    vars.add(0, deleteVars);
-    Arrays.fill(statements, 1, statements.length, getInsertStatement(keyspace, table));
-    dataStore
-        .processBatch(Arrays.asList(statements), vars, Optional.of(ConsistencyLevel.LOCAL_QUORUM))
-        .join();
+    dataStore.batch(statements, ConsistencyLevel.LOCAL_QUORUM).join();
   }
 
   /**
@@ -320,62 +378,60 @@ public class DocumentDB {
       List<String> pathToDelete,
       List<String> patchedKeys,
       long microsSinceEpoch) {
-    PreparedStatement[] statements = new PreparedStatement[vars.size() + 3];
-    Object[] deleteVarsWithPathKeys = new Object[pathToDelete.size() + patchedKeys.size() + 2];
-    Object[] deleteVarsExact = new Object[pathToDelete.size() + 2];
-    deleteVarsWithPathKeys[0] = microsSinceEpoch - 1;
-    deleteVarsWithPathKeys[1] = key;
-    deleteVarsExact[0] = microsSinceEpoch - 1;
-    deleteVarsExact[1] = key;
+    boolean hasPath = !pathToDelete.isEmpty();
 
-    for (int i = 0; i < pathToDelete.size(); i++) {
-      deleteVarsWithPathKeys[i + 2] = pathToDelete.get(i);
-      deleteVarsExact[i + 2] = pathToDelete.get(i);
+    long insertTs = microsSinceEpoch;
+    long deleteTs = microsSinceEpoch - 1;
+
+    List<PreparedStatement.Bound> statements = new ArrayList<>(vars.size() + 3);
+    for (Object[] values : vars) {
+      statements.add(getInsertStatement(keyspace, table, insertTs, values));
     }
 
+    if (hasPath) {
+      // Only deleting the root path when there is a defined `pathToDelete` ensures that the DOCROOT
+      // entry is never deleted out.
+      statements.add(getExactPathDeleteStatement(keyspace, table, key, deleteTs, pathToDelete));
+    }
+
+    statements.add(getSubpathArrayDeleteStatement(keyspace, table, key, deleteTs, pathToDelete));
+    statements.add(
+        getPathKeysDeleteStatement(keyspace, table, key, deleteTs, pathToDelete, patchedKeys));
+
+    Object[] deleteVarsWithPathKeys = new Object[pathToDelete.size() + patchedKeys.size() + 2];
+    deleteVarsWithPathKeys[0] = microsSinceEpoch - 1;
+    deleteVarsWithPathKeys[1] = key;
+    for (int i = 0; i < pathToDelete.size(); i++) {
+      deleteVarsWithPathKeys[i + 2] = pathToDelete.get(i);
+    }
     for (int i = 0; i < patchedKeys.size(); i++) {
       deleteVarsWithPathKeys[i + 2 + pathToDelete.size()] = patchedKeys.get(i);
     }
 
-    Arrays.fill(statements, 0, statements.length - 3, getInsertStatement(keyspace, table));
-
-    statements[statements.length - 3] = getExactPathDeleteStatement(keyspace, table, pathToDelete);
-    statements[statements.length - 2] =
-        getSubpathArrayDeleteStatement(keyspace, table, pathToDelete);
-    statements[statements.length - 1] =
-        getPathKeysDeleteStatement(keyspace, table, pathToDelete, patchedKeys);
-
-    vars.add(deleteVarsExact);
-    vars.add(deleteVarsExact);
-    vars.add(deleteVarsWithPathKeys);
-    dataStore
-        .processBatch(Arrays.asList(statements), vars, Optional.of(ConsistencyLevel.LOCAL_QUORUM))
-        .join();
+    dataStore.batch(statements, ConsistencyLevel.LOCAL_QUORUM).join();
   }
 
   public void delete(
       String keyspace, String table, String key, List<String> pathToDelete, long microsSinceEpoch) {
-    PreparedStatement[] statements = new PreparedStatement[1];
-    statements[0] = getPrefixDeleteStatement(keyspace, table, pathToDelete);
-    Object[] deleteVars = new Object[pathToDelete.size() + 2];
-    deleteVars[0] = microsSinceEpoch;
-    deleteVars[1] = key;
-    for (int i = 2; i < deleteVars.length; i++) {
-      deleteVars[i] = pathToDelete.get(i - 2);
-    }
 
-    List<Object[]> vars = new ArrayList<>();
-    vars.add(deleteVars);
-    dataStore
-        .processBatch(Arrays.asList(statements), vars, Optional.of(ConsistencyLevel.LOCAL_QUORUM))
-        .join();
+    getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch, pathToDelete).execute().join();
   }
 
   public void deleteDeadLeaves(
       String keyspaceName, String tableName, String key, Map<String, List<JsonNode>> deadLeaves) {
-    Long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
-    List<PreparedStatement> statements = new ArrayList<>();
-    List<Object[]> vars = new ArrayList<>();
+    long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
+    deleteDeadLeaves(keyspaceName, tableName, key, now, deadLeaves);
+  }
+
+  @VisibleForTesting
+  void deleteDeadLeaves(
+      String keyspaceName,
+      String tableName,
+      String key,
+      long microsTimestamp,
+      Map<String, List<JsonNode>> deadLeaves) {
+
+    List<PreparedStatement.Bound> statements = new ArrayList<>();
     for (Map.Entry<String, List<JsonNode>> entry : deadLeaves.entrySet()) {
       String path = entry.getKey();
       List<JsonNode> deadNodes = entry.getValue();
@@ -395,43 +451,32 @@ public class DocumentDB {
         }
       }
 
-      Object[] deleteVars = new Object[pathToDelete.length + keysToDelete.size() + 2];
-      Object[] arrayDeleteVars = new Object[pathToDelete.length + 2];
-      deleteVars[0] = now;
-      deleteVars[1] = key;
-      arrayDeleteVars[0] = now;
-      arrayDeleteVars[1] = key;
-      for (int i = 0; i < pathToDelete.length; i++) {
-        deleteVars[i + 2] = pathToDelete[i];
-        arrayDeleteVars[i + 2] = pathToDelete[i];
-      }
-
-      for (int i = 0; i < keysToDelete.size(); i++) {
-        deleteVars[i + 2 + pathToDelete.length] = keysToDelete.get(i);
-      }
-
       if (!keysToDelete.isEmpty()) {
         statements.add(
             getPathKeysDeleteStatement(
-                keyspaceName, tableName, Arrays.asList(pathToDelete), keysToDelete));
-        vars.add(deleteVars);
+                keyspaceName,
+                tableName,
+                key,
+                microsTimestamp,
+                Arrays.asList(pathToDelete),
+                keysToDelete));
       }
 
       if (deleteArray) {
         statements.add(
-            getSubpathArrayDeleteStatement(keyspaceName, tableName, Arrays.asList(pathToDelete)));
-        vars.add(arrayDeleteVars);
+            getSubpathArrayDeleteStatement(
+                keyspaceName, tableName, key, microsTimestamp, Arrays.asList(pathToDelete)));
       }
     }
 
     // Fire this off in a future
-    dataStore.processBatch(statements, vars, Optional.of(ConsistencyLevel.LOCAL_QUORUM));
+    dataStore.batch(statements, ConsistencyLevel.LOCAL_QUORUM);
   }
 
-  public Map<String, Object> newBindMap(List<String> path, long microsSinceEpoch) {
+  public Map<String, Object> newBindMap(List<String> path) {
     Map<String, Object> bindMap = new LinkedHashMap<>(MAX_DEPTH + 7);
 
-    bindMap.put("key", Parameter.UNSET);
+    bindMap.put("key", DataStore.UNSET);
 
     for (int i = 0; i < MAX_DEPTH; i++) {
       String value = "";
@@ -441,11 +486,10 @@ public class DocumentDB {
       bindMap.put("p" + i, value);
     }
 
-    bindMap.put("leaf", Parameter.UNSET);
-    bindMap.put("text_value", Parameter.UNSET);
-    bindMap.put("dbl_value", Parameter.UNSET);
-    bindMap.put("bool_value", Parameter.UNSET);
-    bindMap.put("timestamp", microsSinceEpoch);
+    bindMap.put("leaf", DataStore.UNSET);
+    bindMap.put("text_value", DataStore.UNSET);
+    bindMap.put("dbl_value", DataStore.UNSET);
+    bindMap.put("bool_value", DataStore.UNSET);
 
     return bindMap;
   }

@@ -20,7 +20,9 @@ package org.apache.cassandra.stargate.transport.internal;
 import com.google.common.collect.ImmutableMap;
 import io.netty.handler.ssl.SslHandler;
 import io.stargate.db.AuthenticatedUser;
-import io.stargate.db.ClientState;
+import io.stargate.db.ClientInfo;
+import io.stargate.db.DriverInfo;
+import io.stargate.db.Persistence;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Optional;
@@ -50,13 +52,11 @@ public final class ConnectedClient {
   }
 
   public InetSocketAddress remoteAddress() {
-    return state().getRemoteAddress();
+    return clientInfo().remoteAddress();
   }
 
   public Optional<String> username() {
-    AuthenticatedUser<?> user = state().getUser();
-
-    return null != user ? Optional.of(user.getName()) : Optional.empty();
+    return persistenceConnection().loggedUser().map(AuthenticatedUser::name);
   }
 
   public int protocolVersion() {
@@ -64,11 +64,11 @@ public final class ConnectedClient {
   }
 
   public Optional<String> driverName() {
-    return state().getDriverName();
+    return clientInfo().driverInfo().map(DriverInfo::name);
   }
 
   public Optional<String> driverVersion() {
-    return state().getDriverVersion();
+    return clientInfo().driverInfo().flatMap(DriverInfo::version);
   }
 
   public long requestCount() {
@@ -76,7 +76,7 @@ public final class ConnectedClient {
   }
 
   public Optional<String> keyspace() {
-    return Optional.ofNullable(state().getRawKeyspace());
+    return persistenceConnection().usedKeyspace();
   }
 
   public boolean sslEnabled() {
@@ -99,8 +99,12 @@ public final class ConnectedClient {
         : Optional.empty();
   }
 
-  private ClientState state() {
-    return connection.getClientState();
+  private ClientInfo clientInfo() {
+    return connection.clientInfo();
+  }
+
+  private Persistence.Connection persistenceConnection() {
+    return connection.persistenceConnection();
   }
 
   private SslHandler sslHandler() {

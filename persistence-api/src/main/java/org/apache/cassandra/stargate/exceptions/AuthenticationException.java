@@ -22,7 +22,24 @@ public class AuthenticationException extends RequestValidationException {
     super(ExceptionCode.BAD_CREDENTIALS, msg);
   }
 
+  public AuthenticationException(Throwable e) {
+    this(e.getMessage(), e);
+  }
+
   public AuthenticationException(String msg, Throwable e) {
-    super(ExceptionCode.BAD_CREDENTIALS, msg, e);
+    super(ExceptionCode.BAD_CREDENTIALS, msg, removeStackTracesRecursively(e));
+  }
+
+  /** Information may be leaked via stack trace, so we remove them. */
+  static Throwable removeStackTracesRecursively(Throwable cause) {
+    for (Throwable t = cause; t != null; t = t.getCause()) {
+      t.setStackTrace(new StackTraceElement[0]);
+    }
+    return cause;
+  }
+
+  @Override
+  public synchronized Throwable fillInStackTrace() {
+    return this;
   }
 }
