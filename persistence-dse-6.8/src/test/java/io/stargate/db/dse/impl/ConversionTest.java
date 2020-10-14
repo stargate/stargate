@@ -8,17 +8,15 @@ import io.stargate.db.QueryOptions;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
-import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.ColumnIdentifier;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-class ConversionTest {
+class ConversionTest extends BaseDseTest {
 
   private static ByteBuffer bytes(String v) {
     return UTF8Type.instance.decompose(v);
@@ -28,14 +26,6 @@ class ConversionTest {
   private static ColumnSpecification spec(String name) {
     ColumnIdentifier id = ColumnIdentifier.getInterned(name, true);
     return new ColumnSpecification("ks", "tbl", id, UTF8Type.instance);
-  }
-
-  @BeforeAll
-  public static void setup() {
-    // Wonderfully, the org.apache.cassandra.transport.ProtocolVersion#decode method, which ends up
-    // being used as part those tests, calls the DataDescriptor singleton, so we need to initialize
-    // it.
-    DatabaseDescriptor.clientInitialization();
   }
 
   @Test

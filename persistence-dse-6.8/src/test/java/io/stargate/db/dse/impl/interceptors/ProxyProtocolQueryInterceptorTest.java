@@ -15,18 +15,15 @@ import io.stargate.db.QueryOptions;
 import io.stargate.db.Result;
 import io.stargate.db.Result.ResultMetadata;
 import io.stargate.db.Result.Rows;
-import io.stargate.db.dse.DsePersistenceActivator;
+import io.stargate.db.dse.impl.BaseDseTest;
 import io.stargate.db.dse.impl.ClientStateWrapper;
 import io.stargate.db.dse.impl.QueryStateWrapper;
 import io.stargate.db.dse.impl.StargateSystemKeyspace;
 import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor.Resolver;
-import java.io.File;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -45,15 +42,13 @@ import org.apache.cassandra.db.marshal.Int32Type;
 import org.apache.cassandra.db.marshal.SetType;
 import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.db.marshal.UUIDType;
-import org.apache.cassandra.db.virtual.VirtualTables;
 import org.apache.cassandra.transport.ProtocolVersion;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class ProxyProtocolQueryInterceptorTest {
+public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
   private static final InetAddress REMOTE_ADDRESS;
   private static final InetAddress PUBLIC_ADDRESS1;
   private static final InetAddress PUBLIC_ADDRESS2;
@@ -102,14 +97,6 @@ public class ProxyProtocolQueryInterceptorTest {
           .put("storage_port_ssl", Int32Type.instance)
           .put("jmx_port", Int32Type.instance)
           .build();
-
-  @BeforeAll
-  public static void setup() throws IOException {
-    File baseDir = Files.createTempDirectory("stargate-dse-test").toFile();
-    baseDir.deleteOnExit();
-    DatabaseDescriptor.daemonInitialization(true, DsePersistenceActivator.makeConfig(baseDir));
-    VirtualTables.initialize();
-  }
 
   @ParameterizedTest
   @MethodSource("publicAddresses")
