@@ -5,15 +5,12 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.15-SNAPSHOT</version>
+    <version>0.0.15</version>
   </parent>
   <groupId>io.stargate.db.dse</groupId>
   <artifactId>persistence-dse-6.8</artifactId>
   <properties>
     <dse.version>6.8.2-69139b3</dse.version>
-    <junit.version>5.7.0</junit.version>
-    <surefire.version>3.0.0-M3</surefire.version>
-    <failsafe.version>3.0.0-M3</failsafe.version>
   </properties>
   <repositories>
     <repository>
@@ -33,24 +30,24 @@
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-common</artifactId>
-      <version>0.0.15-SNAPSHOT</version>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-test</artifactId>
-      <version>0.0.15-SNAPSHOT</version>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
-      <version>0.0.15-SNAPSHOT</version>
+      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
-      <version>0.0.15-SNAPSHOT</version>
+      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -137,7 +134,6 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
-      <version>${junit.version}</version>
       <exclusions>
         <exclusion>
           <groupId>com.google.guava</groupId>
@@ -149,7 +145,6 @@
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>3.14.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -162,9 +157,7 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>${failsafe.version}</version>
         <dependencies>
           <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -185,7 +178,6 @@
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>${surefire.version}</version>
         <dependencies>
           <dependency>
             <groupId>org.junit.platform</groupId>
@@ -200,7 +192,6 @@
         </dependencies>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
           <execution>
@@ -223,7 +214,6 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-antrun-plugin</artifactId>
         <executions>
           <execution>
@@ -276,7 +266,6 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <configuration>
           <archive>
@@ -296,9 +285,7 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-failsafe-plugin</artifactId>
-            <version>${failsafe.version}</version>
             <executions>
               <execution>
                 <id>dse-6.8</id>
