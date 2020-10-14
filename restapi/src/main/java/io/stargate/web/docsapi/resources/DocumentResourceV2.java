@@ -80,8 +80,15 @@ public class DocumentResourceV2 {
     String newId = UUID.randomUUID().toString();
     return handle(
         () -> {
-          putDocPath(
-              headers, ui, authToken, namespace, collection, newId, new ArrayList<>(), payload);
+          documentService.putAtPath(
+              authToken,
+              namespace,
+              collection,
+              newId,
+              payload,
+              new ArrayList<>(),
+              false,
+              dbFactory);
 
           return Response.created(
                   URI.create(
@@ -124,9 +131,14 @@ public class DocumentResourceV2 {
       @ApiParam(value = "The JSON document", required = true) String payload) {
     logger.debug("Put: Collection = {}, id = {}", collection, id);
     return handle(
-        () ->
-            putDocPath(
-                headers, ui, authToken, namespace, collection, id, new ArrayList<>(), payload));
+        () -> {
+            documentService.putAtPath(
+                    authToken, namespace, collection, id, payload, new ArrayList<>(), false, dbFactory);
+            return Response.ok()
+                    .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
+                    .build();
+        }
+    );
   }
 
   @PUT
@@ -708,7 +720,7 @@ public class DocumentResourceV2 {
     try {
       return action.call();
     } catch (UnauthorizedException ue) {
-      return Response.status(Response.Status.UNAUTHORIZED).build();
+      return Response.status(Response.Status.UNAUTHORIZED).entity("You are not permitted to perform this action. Did you authenticate?").build();
     } catch (DocumentAPIRequestException sre) {
       return Response.status(Response.Status.BAD_REQUEST).entity(sre.getLocalizedMessage()).build();
     } catch (NoNodeAvailableException e) {

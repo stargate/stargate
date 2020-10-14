@@ -45,151 +45,10 @@ public class DocumentResourceV2Test {
   private Method wrapResponseIdPageState;
 
   @Before
-  public void setup() throws NoSuchMethodException {
+  public void setup() {
     documentResourceV2 = new DocumentResourceV2();
     Whitebox.setInternalState(documentResourceV2, DocumentService.class, documentServiceMock);
     Whitebox.setInternalState(documentResourceV2, Db.class, dbFactoryMock);
-
-    wrapResponseId =
-        DocumentResourceV2.class.getDeclaredMethod("wrapResponse", JsonNode.class, String.class);
-    wrapResponseId.setAccessible(true);
-    wrapResponseIdPageState =
-        DocumentResourceV2.class.getDeclaredMethod(
-            "wrapResponse", JsonNode.class, String.class, String.class);
-    wrapResponseIdPageState.setAccessible(true);
-  }
-
-  @Test
-  public void wrapResponse_nodeIdDefined()
-      throws IllegalAccessException, InvocationTargetException {
-    ObjectNode node = mapper.createObjectNode();
-    node.set("name", TextNode.valueOf("Eric"));
-    JsonNode result = (JsonNode) wrapResponseId.invoke(documentResourceV2, node, "a");
-    ObjectNode expected = mapper.createObjectNode();
-    expected.set("documentId", TextNode.valueOf("a"));
-    expected.set("data", node);
-    assertThat(result).isEqualTo(expected);
-  }
-
-  @Test
-  public void wrapResponse_nodeDefined() throws IllegalAccessException, InvocationTargetException {
-    ObjectNode node = mapper.createObjectNode();
-    node.set("name", TextNode.valueOf("Eric"));
-    JsonNode result = (JsonNode) wrapResponseId.invoke(documentResourceV2, node, null);
-    ObjectNode expected = mapper.createObjectNode();
-    expected.set("data", node);
-    assertThat(result).isEqualTo(expected);
-  }
-
-  @Test
-  public void wrapResponse_idDefined() throws IllegalAccessException, InvocationTargetException {
-    JsonNode result = (JsonNode) wrapResponseId.invoke(documentResourceV2, null, "a");
-    ObjectNode expected = mapper.createObjectNode();
-    expected.set("documentId", TextNode.valueOf("a"));
-    assertThat(result).isEqualTo(expected);
-  }
-
-  @Test
-  public void wrapResponse_nulls() throws IllegalAccessException, InvocationTargetException {
-    JsonNode result = (JsonNode) wrapResponseId.invoke(documentResourceV2, null, null);
-    ObjectNode expected = mapper.createObjectNode();
-    assertThat(result).isEqualTo(expected);
-  }
-
-  @Test
-  public void wrapResponse_nodeIdDefinedNullPageState()
-      throws IllegalAccessException, InvocationTargetException {
-    ObjectNode node = mapper.createObjectNode();
-    node.set("name", TextNode.valueOf("Eric"));
-    JsonNode result =
-        (JsonNode) wrapResponseIdPageState.invoke(documentResourceV2, node, "a", null);
-    ObjectNode expected = mapper.createObjectNode();
-    expected.set("documentId", TextNode.valueOf("a"));
-    expected.set("data", node);
-    expected.set("pageState", NullNode.getInstance());
-    assertThat(result).isEqualTo(expected);
-  }
-
-  @Test
-  public void wrapResponse_nodeDefinedNullPageState()
-      throws IllegalAccessException, InvocationTargetException {
-    ObjectNode node = mapper.createObjectNode();
-    node.set("name", TextNode.valueOf("Eric"));
-    JsonNode result =
-        (JsonNode) wrapResponseIdPageState.invoke(documentResourceV2, node, null, null);
-    ObjectNode expected = mapper.createObjectNode();
-    expected.set("data", node);
-    expected.set("pageState", NullNode.getInstance());
-    assertThat(result).isEqualTo(expected);
-  }
-
-  @Test
-  public void wrapResponse_idDefinedNullPageState()
-      throws IllegalAccessException, InvocationTargetException {
-    JsonNode result =
-        (JsonNode) wrapResponseIdPageState.invoke(documentResourceV2, null, "a", null);
-    ObjectNode expected = mapper.createObjectNode();
-    expected.set("documentId", TextNode.valueOf("a"));
-    expected.set("pageState", NullNode.getInstance());
-    assertThat(result).isEqualTo(expected);
-  }
-
-  @Test
-  public void wrapResponse_nodeIdPageStateDefined()
-      throws IllegalAccessException, InvocationTargetException {
-    ObjectNode node = mapper.createObjectNode();
-    node.set("name", TextNode.valueOf("Eric"));
-    JsonNode result =
-        (JsonNode) wrapResponseIdPageState.invoke(documentResourceV2, node, "a", "pagestatevalue");
-    ObjectNode expected = mapper.createObjectNode();
-    expected.set("data", node);
-    expected.set("documentId", TextNode.valueOf("a"));
-    expected.set("pageState", TextNode.valueOf("pagestatevalue"));
-    assertThat(result).isEqualTo(expected);
-  }
-
-  @Test
-  public void wrapResponse_nodePageStateDefined()
-      throws IllegalAccessException, InvocationTargetException {
-    ObjectNode node = mapper.createObjectNode();
-    node.set("name", TextNode.valueOf("Eric"));
-    JsonNode result =
-        (JsonNode) wrapResponseIdPageState.invoke(documentResourceV2, node, null, "pagestatevalue");
-    ObjectNode expected = mapper.createObjectNode();
-    expected.set("data", node);
-    expected.set("pageState", TextNode.valueOf("pagestatevalue"));
-    assertThat(result).isEqualTo(expected);
-  }
-
-  @Test
-  public void wrapResponse_idPageStateDefined()
-      throws IllegalAccessException, InvocationTargetException {
-    JsonNode result =
-        (JsonNode) wrapResponseIdPageState.invoke(documentResourceV2, null, "a", "pagestatevalue");
-    ObjectNode expected = mapper.createObjectNode();
-    expected.set("documentId", TextNode.valueOf("a"));
-    expected.set("pageState", TextNode.valueOf("pagestatevalue"));
-    assertThat(result).isEqualTo(expected);
-  }
-
-  @Test
-  public void wrapResponse_pageStateDefined()
-      throws IllegalAccessException, InvocationTargetException {
-    JsonNode result =
-        (JsonNode) wrapResponseIdPageState.invoke(documentResourceV2, null, null, "pagestatevalue");
-    ObjectNode expected = mapper.createObjectNode();
-    expected.set("pageState", TextNode.valueOf("pagestatevalue"));
-    assertThat(result).isEqualTo(expected);
-  }
-
-  @Test
-  public void wrapResponse_nullsPageState()
-      throws IllegalAccessException, InvocationTargetException {
-    JsonNode result =
-        (JsonNode) wrapResponseIdPageState.invoke(documentResourceV2, null, null, null);
-    ObjectNode expected = mapper.createObjectNode();
-    expected.set("pageState", NullNode.getInstance());
-    assertThat(result).isEqualTo(expected);
   }
 
   @Test
@@ -592,7 +451,6 @@ public class DocumentResourceV2Test {
     JsonNode resp = mapper.readTree((String) r.getEntity());
     ObjectNode expected = mapper.createObjectNode();
     expected.set("data", searchResult);
-    expected.set("pageState", null);
     assertThat(resp).isEqualTo(expected);
   }
 
