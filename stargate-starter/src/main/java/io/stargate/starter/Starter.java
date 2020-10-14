@@ -303,7 +303,9 @@ public class Starter {
     System.setProperty("stargate.cql_port", String.valueOf(cqlPort));
     System.setProperty("stargate.enable_auth", enableAuth ? "true" : "false");
     System.setProperty("stargate.use_proxy_protocol", useProxyProtocol ? "true" : "false");
-    System.setProperty("stargate.proxy_protocol.dns_name", proxyDnsName);
+    if (proxyDnsName != null) {
+      System.setProperty("stargate.proxy_protocol.dns_name", proxyDnsName);
+    }
     System.setProperty("stargate.emulate_dbaas_defaults", emulateDbaasDefaults ? "true" : "false");
     System.setProperty("stargate.developer_mode", String.valueOf(developerMode));
     System.setProperty("stargate.bind_to_listen_address", String.valueOf(bindToListenAddressOnly));
