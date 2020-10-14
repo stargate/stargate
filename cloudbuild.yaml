@@ -5,7 +5,7 @@ steps:
     args: [ '-c', "gcloud secrets versions access latest --secret=stargate-artifactory --format='get(payload.data)' | tr '_-' '/+' | base64 -d > /workspace/ci/custom-settings.xml" ]
   #  - id: 'build'
   #    waitFor: [ 'fetch_secret' ]
-  #    name: 'ubuntu:bionic'
+  #    name: 'gcr.io/datastax-gcp-mp-dev/stargate-builder:v1.0.0'
   #    entrypoint: 'bash'
   #    args: [ 'ci/build.sh' ]
   - name: 'gcr.io/cloud-builders/gsutil'
@@ -31,7 +31,7 @@ steps:
       - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
   - id: 'cassandra-3.11'
     waitFor: [ 'build' ]
-    name: 'ubuntu:bionic'
+    name: 'gcr.io/datastax-gcp-mp-dev/stargate-builder:v1.0.0'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]
     volumes:
@@ -42,7 +42,7 @@ steps:
       - 'PERSISTENCE_BACKEND=cassandra-3.11'
   - id: 'cassandra-4.0'
     waitFor: [ 'build' ]
-    name: 'ubuntu:bionic'
+    name: 'gcr.io/datastax-gcp-mp-dev/stargate-builder:v1.0.0'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]
     volumes:
@@ -53,7 +53,7 @@ steps:
       - 'PERSISTENCE_BACKEND=cassandra-4.0'
   - id: 'dse-6.8'
     waitFor: [ 'build' ]
-    name: 'ubuntu:bionic'
+    name: 'gcr.io/datastax-gcp-mp-dev/stargate-builder:v1.0.0'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]
     volumes:
