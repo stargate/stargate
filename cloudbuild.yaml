@@ -12,7 +12,9 @@ steps:
     waitFor: [ 'fetch_secret' ]
     name: 'maven:3-jdk-8'
     entrypoint: mvn
-    args: [ '-B','install', '--settings', 'ci/custom-settings.xml', '--file', 'pom.xml', '-Dmaven.javadoc.skip=true', '-Pdse', '-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn' ]
+    args: [ '-B','install', '--settings', 'ci/custom-settings.xml', '--file', 'pom.xml', '-DskipITs',
+            '-Dmaven.javadoc.skip=true', '-Pdse', '-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn'
+    ]
   - id: 'cassandra-3.11'
     waitFor: [ 'build' ]
     name: 'ubuntu:bionic'
