@@ -110,39 +110,6 @@ public class DocumentDBTest {
   }
 
   @Test
-  public void getRootDocInsertStatement() {
-    TestPreparedStatement stmt =
-        (TestPreparedStatement) documentDB.getRootDocInsertStatement("keyspace", "table", true);
-    String allPaths = "";
-    for (int i = 0; i < 64; i++) {
-      allPaths += "p" + i + ", ";
-    }
-
-    String allPathValues = "";
-    for (int i = 0; i < 64; i++) {
-      allPathValues += "'', ";
-    }
-
-    assertThat(stmt.getCql())
-        .isEqualTo(
-            "INSERT INTO \"keyspace\".\"table\" (key, "
-                + allPaths
-                + "leaf) VALUES (:key, "
-                + allPathValues
-                + "'DOCROOT-a9fb1f04-0394-4c74-b77b-49b4e0ef7900') IF NOT EXISTS");
-
-    stmt = (TestPreparedStatement) documentDB.getRootDocInsertStatement("keyspace", "table", false);
-
-    assertThat(stmt.getCql())
-        .isEqualTo(
-            "INSERT INTO \"keyspace\".\"table\" (key, "
-                + allPaths
-                + "leaf) VALUES (:key, "
-                + allPathValues
-                + "'DOCROOT-a9fb1f04-0394-4c74-b77b-49b4e0ef7900') USING TIMESTAMP ?");
-  }
-
-  @Test
   public void deleteThenInsertBatch() {
     ds = mock(TestDataStore.class);
     when(ds.prepare(anyString())).thenCallRealMethod();
@@ -161,9 +128,6 @@ public class DocumentDBTest {
     expectedStmts.add(
         new TestPreparedStatement(
             "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = :key AND p0 = :p0 AND p1 = :p1 AND p2 = :p2"));
-    expectedStmts.add(
-        new TestPreparedStatement(
-            "INSERT INTO \"keyspace\".\"table\" (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf) VALUES (:key, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'DOCROOT-a9fb1f04-0394-4c74-b77b-49b4e0ef7900') USING TIMESTAMP ?"));
     expectedStmts.add(
         new TestPreparedStatement(
             "INSERT INTO \"keyspace\".\"table\" (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (:key, :p0, :p1, :p2, :p3, :p4, :p5, :p6, :p7, :p8, :p9, :p10, :p11, :p12, :p13, :p14, :p15, :p16, :p17, :p18, :p19, :p20, :p21, :p22, :p23, :p24, :p25, :p26, :p27, :p28, :p29, :p30, :p31, :p32, :p33, :p34, :p35, :p36, :p37, :p38, :p39, :p40, :p41, :p42, :p43, :p44, :p45, :p46, :p47, :p48, :p49, :p50, :p51, :p52, :p53, :p54, :p55, :p56, :p57, :p58, :p59, :p60, :p61, :p62, :p63, :leaf, :text_value, :dbl_value, :bool_value) USING TIMESTAMP ?"));
@@ -198,39 +162,10 @@ public class DocumentDBTest {
             "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ?  WHERE key = :key AND p0 = :p0 AND p1 = :p1 AND p2 = :p2 AND p3 = '' AND p4 = '' AND p5 = '' AND p6 = '' AND p7 = '' AND p8 = '' AND p9 = '' AND p10 = '' AND p11 = '' AND p12 = '' AND p13 = '' AND p14 = '' AND p15 = '' AND p16 = '' AND p17 = '' AND p18 = '' AND p19 = '' AND p20 = '' AND p21 = '' AND p22 = '' AND p23 = '' AND p24 = '' AND p25 = '' AND p26 = '' AND p27 = '' AND p28 = '' AND p29 = '' AND p30 = '' AND p31 = '' AND p32 = '' AND p33 = '' AND p34 = '' AND p35 = '' AND p36 = '' AND p37 = '' AND p38 = '' AND p39 = '' AND p40 = '' AND p41 = '' AND p42 = '' AND p43 = '' AND p44 = '' AND p45 = '' AND p46 = '' AND p47 = '' AND p48 = '' AND p49 = '' AND p50 = '' AND p51 = '' AND p52 = '' AND p53 = '' AND p54 = '' AND p55 = '' AND p56 = '' AND p57 = '' AND p58 = '' AND p59 = '' AND p60 = '' AND p61 = '' AND p62 = '' AND p63 = ''"));
     expectedStmts.add(
         new TestPreparedStatement(
-            "INSERT INTO \"keyspace\".\"table\" (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf) VALUES (:key, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'DOCROOT-a9fb1f04-0394-4c74-b77b-49b4e0ef7900') USING TIMESTAMP ?"));
-    expectedStmts.add(
-        new TestPreparedStatement(
             "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = :key AND p0 = :p0 AND p1 = :p1 AND p2 = :p2 AND p3 >= '[000000]' AND p3 <= '[999999]' "));
     expectedStmts.add(
         new TestPreparedStatement(
             "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = :key AND p0 = :p0 AND p1 = :p1 AND p2 = :p2 AND p3 IN (:p3) "));
-    verify(ds, times(1))
-        .processBatch(expectedStmts, vars, Optional.of(ConsistencyLevel.LOCAL_QUORUM));
-  }
-
-  @Test
-  public void insertBatchIfNotExists() {
-    ds = mock(TestDataStore.class);
-    when(ds.prepare(anyString())).thenCallRealMethod();
-    when(ds.processBatch(anyObject(), anyList(), anyObject())).thenCallRealMethod();
-    documentDB = new DocumentDB(ds);
-    List<String> path = ImmutableList.of("a", "b", "c");
-    Map<String, Object> map = documentDB.newBindMap(path, 1L);
-    map.put("bool_value", null);
-    map.put("dbl_value", 3.0);
-    map.put("text_value", null);
-    List<Object[]> vars = new ArrayList<>();
-    vars.add(map.values().toArray());
-    documentDB.insertBatchIfNotExists("keyspace", "table", "key", vars);
-
-    List<PreparedStatement> expectedStmts = new ArrayList<>();
-    expectedStmts.add(
-        new TestPreparedStatement(
-            "INSERT INTO \"keyspace\".\"table\" (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf) VALUES (:key, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'DOCROOT-a9fb1f04-0394-4c74-b77b-49b4e0ef7900') IF NOT EXISTS"));
-    expectedStmts.add(
-        new TestPreparedStatement(
-            "INSERT INTO \"keyspace\".\"table\" (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (:key, :p0, :p1, :p2, :p3, :p4, :p5, :p6, :p7, :p8, :p9, :p10, :p11, :p12, :p13, :p14, :p15, :p16, :p17, :p18, :p19, :p20, :p21, :p22, :p23, :p24, :p25, :p26, :p27, :p28, :p29, :p30, :p31, :p32, :p33, :p34, :p35, :p36, :p37, :p38, :p39, :p40, :p41, :p42, :p43, :p44, :p45, :p46, :p47, :p48, :p49, :p50, :p51, :p52, :p53, :p54, :p55, :p56, :p57, :p58, :p59, :p60, :p61, :p62, :p63, :leaf, :text_value, :dbl_value, :bool_value) USING TIMESTAMP ?"));
     verify(ds, times(1))
         .processBatch(expectedStmts, vars, Optional.of(ConsistencyLevel.LOCAL_QUORUM));
   }
