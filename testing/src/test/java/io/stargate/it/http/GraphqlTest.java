@@ -83,6 +83,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -232,6 +233,11 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         .isTrue();
 
     initAuth();
+  }
+
+  @AfterEach
+  private void teardown() {
+    session.close();
   }
 
   private void initAuth() throws IOException {
