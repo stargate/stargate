@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A query interceptor that echos back the public IPs from the proxy protocol from `system.local`.
- * The goal is to populate `system.peers` with A-records from a provided DNS name.
+ * `system.peers` is populated with A-records from a provided DNS name.
  */
 public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   public static final String PROXY_DNS_NAME =
@@ -62,7 +62,19 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   private static final Logger logger = LoggerFactory.getLogger(ProxyProtocolQueryInterceptor.class);
   private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
+  /**
+   * A class that takes a name and resolves {@link InetAddress}s. This interface exists to
+   * facilitate testing.
+   */
   public interface Resolver {
+
+    /**
+     * Resolve {@link InetAddress}s from a provided name.
+     *
+     * @param name
+     * @return Resolved address for the name.
+     * @throws UnknownHostException
+     */
     Set<InetAddress> resolve(String name) throws UnknownHostException;
   }
 
@@ -88,6 +100,8 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   public void initialize() {
     String ttl = Security.getProperty("networkaddress.cache.ttl");
     if (Strings.isNullOrEmpty(ttl)) {
+      logger.info(
+          "DNS cache TTL (property \"networkaddress.cache.ttl\") not explicitly set. Setting to 60 seconds.");
       Security.setProperty("networkaddress.cache.ttl", "60");
     }
     resolvePeers();
@@ -146,11 +160,13 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   }
 
   private void resolvePeers() {
-    if (!Strings.isNullOrEmpty(PROXY_DNS_NAME)) {
+    if (!Strings.isNullOrEmpty(proxyDnsName)) {
       try {
         Set<InetAddress> resolved = resolver.resolve(proxyDnsName);
 
         if (!peers.equals(resolved)) {
+          // Generate subscriber events based on the differences between this and the previous
+          // resolved peers.
           Sets.SetView<InetAddress> added = Sets.difference(resolved, peers);
           Sets.SetView<InetAddress> removed = Sets.difference(peers, resolved);
 
@@ -171,6 +187,14 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
     }
   }
 
+  /**
+   * Creates {@link ByteBuffer} value for a given column name. Unhandled names and aggregates return a null value.
+   *
+   * @param name
+   * @param publicAddress
+   * @param publicPort
+   * @return A {@link ByteBuffer} value for a given system local/peers column.
+   */
   private static ByteBuffer buildColumnValue(
       String name, InetAddress publicAddress, int publicPort) {
     switch (name) {
@@ -225,6 +249,16 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
     }
   }
 
+  /**
+   * Builds a row using the {@link CQLStatement}'s result metadata. This doesn't handles special
+   * cases like aggregates, null is returned in those cases, but it should be good enough for
+   * handling system tables.
+   *
+   * @param metadata
+   * @param publicAddress
+   * @param publicPort
+   * @return A list of {@link ByteBuffer} values for a system local/peers row.
+   */
   private static List<ByteBuffer> buildRow(
       ResultMetadata metadata, InetAddress publicAddress, int publicPort) {
     List<ByteBuffer> row = Lists.newArrayListWithCapacity(metadata.names.size());
