@@ -16,11 +16,6 @@ cd /workspace
 cp -R . /tmp/$PERSISTENCE_BACKEND
 cd /tmp/$PERSISTENCE_BACKEND
 
-#git clone --branch master --single-branch https://github.com/riptano/ccm.git
-#pushd ccm || exit
-#sudo python setup.py install
-#popd
-
 PROFILE=""
 case "$PERSISTENCE_BACKEND" in
   "cassandra-3.11") PROFILE="it-cassandra-3.11"  ;;
