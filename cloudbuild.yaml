@@ -22,6 +22,13 @@ steps:
     args: [ 'ci/test.sh' ]
     env:
       - 'PERSISTENCE_BACKEND=cassandra-4.0'
-timeout: 1800s
+  - id: 'dse-6.8'
+    waitFor: [ 'build' ]
+    name: 'ubuntu:bionic'
+    entrypoint: 'bash'
+    args: [ 'ci/test.sh' ]
+    env:
+      - 'PERSISTENCE_BACKEND=dse-6.8'
+timeout: 3600s
 options:
   machineType: 'N1_HIGHCPU_32'
