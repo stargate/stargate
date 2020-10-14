@@ -6,10 +6,6 @@ import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemPeers
 import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemPeersV2;
 
 import com.google.common.collect.Sets;
-import io.stargate.db.QueryOptions;
-import io.stargate.db.QueryState;
-import io.stargate.db.Result;
-import io.stargate.db.cassandra.impl.Conversion;
 import io.stargate.db.cassandra.impl.StargateSystemKeyspace;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -17,7 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.cassandra.cql3.CQLStatement;
-import org.apache.cassandra.cql3.QueryHandler;
+import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.gms.ApplicationState;
@@ -29,6 +25,7 @@ import org.apache.cassandra.locator.InetAddressAndPort;
 import org.apache.cassandra.schema.Schema;
 import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.service.IEndpointLifecycleSubscriber;
+import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.messages.ResultMessage;
 
 /**
@@ -37,6 +34,7 @@ import org.apache.cassandra.transport.messages.ResultMessage;
  * for both `system.local` and `system.peers` tables.
  */
 public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointStateChangeSubscriber {
+
   private final List<IEndpointLifecycleSubscriber> subscribers = new CopyOnWriteArrayList<>();
   private final Set<InetAddressAndPort> liveStargateNodes = Sets.newConcurrentHashSet();
 
@@ -49,8 +47,7 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
   }
 
   @Override
-  public Result interceptQuery(
-      QueryHandler handler,
+  public ResultMessage interceptQuery(
       CQLStatement statement,
       QueryState state,
       QueryOptions options,
@@ -60,11 +57,26 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
       return null;
     }
 
-    org.apache.cassandra.service.QueryState internalState = Conversion.toInternal(state);
-    org.apache.cassandra.cql3.QueryOptions internalOptions = Conversion.toInternal(options);
-    return Conversion.toResult(
-        interceptSystemLocalOrPeers(statement, internalState, internalOptions, queryStartNanoTime),
-        internalOptions.getProtocolVersion());
+    SelectStatement selectStatement = (SelectStatement) statement;
+    TableMetadata tableMetadata = StargateSystemKeyspace.Local;
+    if (isSystemPeers(selectStatement)) tableMetadata = StargateSystemKeyspace.Peers;
+    else if (isSystemPeersV2(selectStatement)) tableMetadata = StargateSystemKeyspace.PeersV2;
+    SelectStatement interceptStatement =
+        new SelectStatement(
+            tableMetadata,
+            selectStatement.bindVariables,
+            selectStatement.parameters,
+            selectStatement.getSelection(),
+            selectStatement.getRestrictions(),
+            false,
+            null,
+            null,
+            null,
+            null);
+
+    ResultMessage.Rows rows = interceptStatement.execute(state, options, queryStartNanoTime);
+    return new ResultMessage.Rows(
+        new ResultSet(selectStatement.getResultMetadata(), rows.result.rows));
   }
 
   @Override
@@ -118,31 +130,5 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     }
 
     for (IEndpointLifecycleSubscriber subscriber : subscribers) subscriber.onJoinCluster(endpoint);
-  }
-
-  private static ResultMessage.Rows interceptSystemLocalOrPeers(
-      CQLStatement statement,
-      org.apache.cassandra.service.QueryState state,
-      org.apache.cassandra.cql3.QueryOptions options,
-      long queryStartNanoTime) {
-    SelectStatement selectStatement = (SelectStatement) statement;
-    TableMetadata tableMetadata = StargateSystemKeyspace.Local;
-    if (isSystemPeers(selectStatement)) tableMetadata = StargateSystemKeyspace.Peers;
-    else if (isSystemPeersV2(selectStatement)) tableMetadata = StargateSystemKeyspace.PeersV2;
-    SelectStatement interceptStatement =
-        new SelectStatement(
-            tableMetadata,
-            selectStatement.bindVariables,
-            selectStatement.parameters,
-            selectStatement.getSelection(),
-            selectStatement.getRestrictions(),
-            false,
-            null,
-            null,
-            null,
-            null);
-    ResultMessage.Rows rows = interceptStatement.execute(state, options, queryStartNanoTime);
-    return new ResultMessage.Rows(
-        new ResultSet(selectStatement.getResultMetadata(), rows.result.rows));
   }
 }

@@ -26,6 +26,11 @@ import java.util.Set;
 
 public class NameMapping {
   private final BiMap<Table, String> entityName = HashBiMap.create();
+  // TODO: using Column as map key is a bit dodgy. First, because Column objects are currently
+  //   abused a bit by Result.Rows (in the persistence-api module), which can lead to subtle
+  //   issues easily. Second because in general, Column's equality is a tad complex and include
+  //   things like the type, which could possibly change over time for a given "column" (in the
+  //   sense of "defined in a table"). Using the column name here would be more reliable.
   private final Map<Table, BiMap<Column, String>> columnName;
 
   public NameMapping(Set<Table> tables) {

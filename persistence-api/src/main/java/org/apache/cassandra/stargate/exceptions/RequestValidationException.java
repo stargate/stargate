@@ -17,7 +17,7 @@
  */
 package org.apache.cassandra.stargate.exceptions;
 
-public abstract class RequestValidationException extends CassandraException {
+public abstract class RequestValidationException extends PersistenceException {
   protected RequestValidationException(ExceptionCode code, String msg) {
     super(code, msg);
   }
