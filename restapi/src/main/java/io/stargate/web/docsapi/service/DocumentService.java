@@ -233,36 +233,6 @@ public class DocumentService {
     return ImmutablePair.of(bindVariableList, firstLevelKeys);
   }
 
-  /*
-   * Unlike putAtPath, which handles all other updates, putAtRoot only handles root document PUTs.
-   * The PUT only succeeds if a document with the provided @param id does not yet exist.
-   * @return a boolean detailing success
-   */
-  public boolean putAtRoot(
-      String authToken, String keyspace, String collection, String id, String payload, Db dbFactory)
-      throws UnauthorizedException {
-    DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
-
-    JsonSurfer surfer = JsonSurferGson.INSTANCE;
-
-    db.maybeCreateTable(keyspace, collection);
-
-    long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
-
-    List<Object[]> bindVariableList =
-        shredPayload(surfer, db, new ArrayList<>(), id, payload, now, false).left;
-
-    if (bindVariableList.size() == 0) {
-      throw new DocumentAPIRequestException(
-          "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: "
-              + payload
-              + "\nHint: update the parent path with a defined object instead.");
-    }
-
-    logger.debug("Bind {}", bindVariableList.size());
-    return db.insertBatchIfNotExists(keyspace, collection, id, bindVariableList);
-  }
-
   public void putAtPath(
       String authToken,
       String keyspace,

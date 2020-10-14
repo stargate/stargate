@@ -193,43 +193,18 @@ public class DocumentResourceV2Test {
   }
 
   @Test
-  public void postDoc_success() throws UnauthorizedException, JsonProcessingException {
+  public void postDoc_success() throws JsonProcessingException {
     HttpHeaders headers = mock(HttpHeaders.class);
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
     String keyspace = "keyspace";
     String collection = "collection";
     String payload = "{}";
-
-    PowerMockito.when(
-            documentServiceMock.putAtRoot(
-                anyString(), anyString(), anyString(), anyString(), anyString(), anyObject()))
-        .thenReturn(true);
 
     Response r = documentResourceV2.postDoc(headers, ui, authToken, keyspace, collection, payload);
 
     assertThat(r.getStatus()).isEqualTo(201);
     mapper.readTree((String) r.getEntity()).requiredAt("/documentId");
-  }
-
-  @Test
-  public void postDoc_idCollision() throws UnauthorizedException {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String payload = "{}";
-
-    PowerMockito.when(
-            documentServiceMock.putAtRoot(
-                anyString(), anyString(), anyString(), anyString(), anyString(), anyObject()))
-        .thenReturn(false);
-
-    Response r = documentResourceV2.postDoc(headers, ui, authToken, keyspace, collection, payload);
-
-    assertThat(r.getStatus()).isEqualTo(500);
-    assertThat((String) r.getEntity()).startsWith("Fatal ID collision, try once more: ");
   }
 
   @Test
@@ -242,39 +217,11 @@ public class DocumentResourceV2Test {
     String id = "id";
     String payload = "{}";
 
-    PowerMockito.when(
-            documentServiceMock.putAtRoot(
-                anyString(), anyString(), anyString(), anyString(), anyString(), anyObject()))
-        .thenReturn(true);
-
     Response r =
         documentResourceV2.putDoc(headers, ui, authToken, keyspace, collection, id, payload);
 
     assertThat(r.getStatus()).isEqualTo(200);
     mapper.readTree((String) r.getEntity()).requiredAt("/documentId");
-  }
-
-  @Test
-  public void putDoc_idCollision() throws UnauthorizedException, JsonProcessingException {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String id = "id";
-    String payload = "{}";
-
-    PowerMockito.when(
-            documentServiceMock.putAtRoot(
-                anyString(), anyString(), anyString(), anyString(), anyString(), anyObject()))
-        .thenReturn(false);
-
-    Response r =
-        documentResourceV2.putDoc(headers, ui, authToken, keyspace, collection, id, payload);
-
-    assertThat(r.getStatus()).isEqualTo(409);
-    assertThat((String) r.getEntity())
-        .startsWith("Document id already exists in collection collection");
   }
 
   @Test
