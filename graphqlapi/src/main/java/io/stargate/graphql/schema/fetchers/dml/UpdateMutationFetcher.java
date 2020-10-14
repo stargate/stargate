@@ -49,18 +49,6 @@ public class UpdateMutationFetcher extends MutationFetcher {
       update = update.ifExists();
     }
 
-    if (environment.containsArgument("options") && environment.getArgument("options") != null) {
-      Map<String, Object> options = environment.getArgument("options");
-      if (options.containsKey("consistency") && options.get("consistency") != null) {
-        //
-        // update.setConsistencyLevel(ConsistencyLevel.valueOf(options.get("consistency").toString()));
-      }
-      if (options.containsKey("serialConsistency") && options.get("consistency") != null) {
-        //
-        // update.setSerialConsistencyLevel(ConsistencyLevel.valueOf(options.get("serialConsistency").toString()));
-      }
-    }
-
     return update.asCql();
   }
 

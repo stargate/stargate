@@ -71,17 +71,6 @@ public class QueryFetcher extends DmlFetcher {
       if (options.containsKey("limit")) {
         select = select.limit((Integer) options.get("limit"));
       }
-      if (options.containsKey("pageSize")) {
-        //                    from.setFetchSize((Integer)options.get("pageSize"));
-      }
-      if (options.containsKey("pageState")) {
-        //                    select =
-        // select.whereRaw(PagingState.fromString((String)options.get("pageState")));
-      }
-      if (options.containsKey("consistency")) {
-        //
-        // select.setConsistencyLevel(ConsistencyLevel.valueOf((String)options.get("pageState")));
-      }
     }
 
     return select.asCql();

@@ -33,18 +33,6 @@ public class DeleteMutationFetcher extends MutationFetcher {
       delete = delete.ifExists();
     }
 
-    if (environment.containsArgument("options") && environment.getArgument("options") != null) {
-      Map<String, Object> options = environment.getArgument("options");
-      if (options.containsKey("consistency")) {
-        //
-        // delete.setConsistencyLevel(ConsistencyLevel.valueOf(options.get("consistency").toString()));
-      }
-      if (options.containsKey("serialConsistency")) {
-        //
-        // delete.setSerialConsistencyLevel(ConsistencyLevel.valueOf(options.get("serialConsistency").toString()));
-      }
-    }
-
     return delete.asCql();
   }
 }
