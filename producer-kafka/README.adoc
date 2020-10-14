@@ -30,8 +30,8 @@ Once the record is created, it is sent to the Apache Kafka topic.
 image::documentation/Kafka_CDC_architecture.png[Kafka CDC architecture]
 
 Let's recap the basics of architecture. The CDC connector is working within a Stargate node. The stargate node sends the TableMetadata when the schema is changed, OR the Stargate node is restarted.
-It constructs the schema and registers it in the schema registry. When the new CDC event occurs, the Stargate is propagating
-this change to the CDC extension via the send() method. The send() retrieves the schema form schema registry (or a local cache), constructs the Avro record, and sends it to Kafka.
+It constructs the schema and registers it in the schema registry. When the new CDC event occurs, Stargate propagates
+this change to the CDC extension via the send() method. The send() method retrieves the schema from the schema registry (or a local cache), constructs the Avro record, and then sends it to Kafka.
 
 == Configuration
 
