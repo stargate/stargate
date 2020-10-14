@@ -185,8 +185,7 @@ public class KeyspacesResource {
                       + "         { \"name\": \"dc2\", \"replicas\": 3 },\n"
                       + "      ],\n"
                       + "}\n"
-                      + "```",
-              defaultValue = "false")
+                      + "```")
           String payload) {
     return RequestHandler.handle(
         () -> {
@@ -216,7 +215,7 @@ public class KeyspacesResource {
             replication =
                 String.format(
                     "{ 'class' : 'SimpleStrategy', 'replication_factor' : %s }",
-                    requestBody.get("replicas"));
+                    requestBody.getOrDefault("replicas", 1));
           }
 
           localDB

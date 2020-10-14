@@ -176,7 +176,7 @@ public class NamespacesResource {
                   "A map representing a namespace with SimpleStrategy or NetworkTopologyStrategy \n"
                       + "Simple:\n"
                       + "```json\n"
-                      + "{ \"name\": \"killrvideo\", \"replicas\": 1}\n"
+                      + "{ \"name\": \"killrvideo\", \"replicas\": 1 // default }\n"
                       + "````\n"
                       + "Network Topology:\n"
                       + "```json\n"
@@ -184,12 +184,11 @@ public class NamespacesResource {
                       + "  \"name\": \"killrvideo\",\n"
                       + "   \"datacenters\":\n"
                       + "      [\n"
-                      + "         { \"name\": \"dc1\", \"replicas\": 3 },\n"
+                      + "         { \"name\": \"dc1\", \"replicas\": 3 // default },\n"
                       + "         { \"name\": \"dc2\", \"replicas\": 3 },\n"
                       + "      ],\n"
                       + "}\n"
-                      + "```",
-              defaultValue = "false")
+                      + "```")
           String payload) {
     return RequestHandler.handle(
         () -> {
@@ -219,7 +218,7 @@ public class NamespacesResource {
             replication =
                 String.format(
                     "{ 'class' : 'SimpleStrategy', 'replication_factor' : %s }",
-                    requestBody.get("replicas"));
+                    requestBody.getOrDefault("replicas", 1));
           }
 
           localDB
