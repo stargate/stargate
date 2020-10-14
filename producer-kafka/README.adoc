@@ -1,11 +1,11 @@
 = Using the Kafka CDC Producer
 
 This extension provides support for sending Change Data Capture(CDC) events to an Apache Kafka®.
-It is designed to work with the DataStax Stargate.
+It is designed to work with the Stargate.
 
 == Kafka CDC - Stargate integration
 
-This extension is designed to integrate with Stargate. It uses a link:https://www.osgi.org/[OSGi] framework for registering the extension within the Stargate.
+This extension is designed to integrate with Stargate. It uses the link:https://www.osgi.org/[OSGi] framework for registering the extension within the Stargate.
 The `KafkaProducerActivator` class handles the registration process. When you will put the `producer-kafka-{version}.jar` in the
 `/stargate-lib` directory it will be automatically picked, and the activator logic is invoked.
 
