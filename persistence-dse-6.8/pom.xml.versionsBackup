@@ -1,22 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <!-- inherit common settings -->
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.17-SNAPSHOT</version>
+    <version>0.0.16-SNAPSHOT</version>
   </parent>
-  <groupId>io.stargate.db.cassandra</groupId>
-  <artifactId>persistence-cassandra-4.0</artifactId>
+  <groupId>io.stargate.db.dse</groupId>
+  <artifactId>persistence-dse-6.8</artifactId>
   <properties>
-    <cassandra.version>4.0-beta1</cassandra.version>
+    <dse.version>6.8.2-69139b3</dse.version>
   </properties>
+  <repositories>
+    <repository>
+      <id>central</id>
+      <url>https://repo.maven.apache.org/maven2</url>
+    </repository>
+    <repository>
+      <id>artifactory-snapshots</id>
+      <url>https://repo.datastax.com/datastax-snapshots-local</url>
+    </repository>
+    <repository>
+      <id>artifactory-releases</id>
+      <url>https://repo.datastax.com/datastax-releases-local</url>
+    </repository>
+  </repositories>
   <dependencies>
     <dependency>
-      <groupId>org.immutables</groupId>
-      <artifactId>value</artifactId>
-      <version>2.8.8</version>
-      <scope>provided</scope>
+      <groupId>io.stargate.db</groupId>
+      <artifactId>persistence-common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.db</groupId>
+      <artifactId>persistence-test</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.db</groupId>
@@ -25,26 +45,54 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>io.stargate.db</groupId>
-      <artifactId>persistence-common</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.cassandra</groupId>
-      <artifactId>cassandra-all</artifactId>
-      <version>${cassandra.version}</version>
+      <groupId>com.datastax.dse</groupId>
+      <artifactId>dse-core</artifactId>
+      <version>${dse.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.gridkit.jvmtool</groupId>
+          <artifactId>sjk-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.cryptsoft</groupId>
+          <artifactId>kmip</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.eclipse.jetty.aggregate</groupId>
+          <artifactId>jetty-all</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.datastax.logging</groupId>
+          <artifactId>cassandra-log4j-appender</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.datastax.oss</groupId>
+          <artifactId>java-driver-core</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.dse</groupId>
+      <artifactId>dse-commons</artifactId>
+      <version>${dse.version}</version>
       <exclusions>
         <exclusion>
           <groupId>org.gridkit.jvmtool</groupId>
           <artifactId>sjk-core</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.immutables</groupId>
+      <artifactId>value</artifactId>
+      <version>2.8.8</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.gridkit.jvmtool</groupId>
@@ -84,19 +132,14 @@
       <version>1.2</version>
     </dependency>
     <dependency>
-      <groupId>com.datastax.oss</groupId>
-      <artifactId>java-driver-core</artifactId>
-      <version>${driver.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.reactivex.rxjava2</groupId>
-      <artifactId>rxjava</artifactId>
-      <version>2.2.15</version>
-    </dependency>
-    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+        </exclusion>
+      </exclusions>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -105,15 +148,9 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.stargate.db</groupId>
-      <artifactId>persistence-test</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
-      <version>2.6</version>
+      <groupId>com.datastax.dse</groupId>
+      <artifactId>dse-java-driver-core</artifactId>
+      <version>1.10.0-dse+20200217</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -134,7 +171,8 @@
           <reuseForks>false</reuseForks>
           <forkCount>1</forkCount>
           <systemPropertyVariables>
-            <ccm.version>4.0-beta2</ccm.version>
+            <ccm.dse>true</ccm.dse>
+            <ccm.version>6.8.4</ccm.version>
           </systemPropertyVariables>
         </configuration>
       </plugin>
@@ -205,10 +243,10 @@
         <configuration>
           <unpackBundle>true</unpackBundle>
           <instructions>
-            <Bundle-Name>Cassandra-Persistence</Bundle-Name>
-            <Bundle-Description>Cassandra DB component for project</Bundle-Description>
-            <Bundle-SymbolicName>io.stargate.db.cassandra</Bundle-SymbolicName>
-            <Bundle-Activator>io.stargate.db.cassandra.CassandraPersistenceActivator</Bundle-Activator>
+            <Bundle-Name>DSE-Persistence</Bundle-Name>
+            <Bundle-Description>DSE DB component for project</Bundle-Description>
+            <Bundle-SymbolicName>io.stargate.db.dse</Bundle-SymbolicName>
+            <Bundle-Activator>io.stargate.db.dse.DsePersistenceActivator</Bundle-Activator>
             <Import-Package><![CDATA[
               org.osgi.framework,
               io.stargate.db,
@@ -219,7 +257,7 @@
               io.stargate.core,
               com.codahale.metrics,
             ]]></Import-Package>
-            <Export-Package>io.stargate.db.cassandra</Export-Package>
+            <Export-Package>io.stargate.db.dse</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
             <Bundle-ClassPath>.,sjk-core-0.14.jar,{maven-dependencies}</Bundle-ClassPath>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
@@ -240,7 +278,7 @@
   </build>
   <profiles>
     <profile>
-      <id>it-cassandra-4.0</id>
+      <id>it-dse-6.8</id>
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
@@ -250,7 +288,7 @@
             <artifactId>maven-failsafe-plugin</artifactId>
             <executions>
               <execution>
-                <id>cassandra-4.0</id>
+                <id>dse-6.8</id>
                 <goals>
                   <goal>integration-test</goal>
                   <goal>verify</goal>
