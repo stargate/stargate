@@ -146,7 +146,7 @@ public class CassandraPersistenceActivator implements BundleActivator, ServiceLi
       throw new RuntimeException(ise);
     }
 
-    Persistence cassandraDB = new CassandraPersistence();
+    CassandraPersistence cassandraDB = new CassandraPersistence();
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "CassandraPersistence");
 

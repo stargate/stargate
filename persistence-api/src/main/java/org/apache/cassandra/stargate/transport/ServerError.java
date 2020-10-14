@@ -18,19 +18,15 @@
 package org.apache.cassandra.stargate.transport;
 
 import org.apache.cassandra.stargate.exceptions.ExceptionCode;
-import org.apache.cassandra.stargate.exceptions.TransportException;
+import org.apache.cassandra.stargate.exceptions.PersistenceException;
 
-/** Exceptions thrown when a client didn't respect the protocol. */
-public class ServerError extends RuntimeException implements TransportException {
+/** Exception thrown when an unexpected server side error occurs. */
+public class ServerError extends PersistenceException {
   public ServerError(Throwable e) {
-    super(e.toString());
+    super(ExceptionCode.SERVER_ERROR, "Unexpected persistence error: " + e.getMessage(), e);
   }
 
   public ServerError(String msg) {
-    super(msg);
-  }
-
-  public ExceptionCode code() {
-    return ExceptionCode.SERVER_ERROR;
+    super(ExceptionCode.SERVER_ERROR, msg);
   }
 }

@@ -24,7 +24,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.db.datastore.Row;
-import io.stargate.db.datastore.query.ImmutableValue;
 import io.stargate.db.datastore.query.ImmutableWhereCondition;
 import io.stargate.db.datastore.query.Value;
 import io.stargate.db.datastore.query.WhereCondition;
@@ -72,7 +71,7 @@ public class Converters {
     final Map<String, Object> map = new HashMap<>(defs.size());
     for (final Column column : defs) {
 
-      map.put(column.name(), transformObjectToJavaObject(row.getValue(column.name())));
+      map.put(column.name(), transformObjectToJavaObject(row.getObject(column.name())));
     }
     return map;
   }
@@ -108,7 +107,7 @@ public class Converters {
       valueObj = typeForStringValue(type, value);
     }
 
-    return ImmutableValue.builder().column(name).value(valueObj).build();
+    return Value.create(name, valueObj);
   }
 
   public static Object typeForStringValue(Column.ColumnType type, String value) {
@@ -259,7 +258,7 @@ public class Converters {
       value = typeForValue(type, entry.getValue());
     }
 
-    return ImmutableValue.builder().column(name).value(value).build();
+    return Value.create(name, value);
   }
 
   public static Object typeForValue(Column.ColumnType type, String value) {

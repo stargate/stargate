@@ -18,6 +18,8 @@ package io.stargate.web.resources.v2.schemas;
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
+import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.ClusteringExpression;
 import io.stargate.web.models.ColumnDefinition;
@@ -39,7 +41,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
@@ -252,10 +253,7 @@ public class TablesResource {
                   Converters.maybeQuote(tableAdd.getName()),
                   columnDefinitions.toString(),
                   tableOptions);
-          localDB
-              .query(
-                  query.trim(), Optional.of(ConsistencyLevel.LOCAL_QUORUM), Collections.emptyList())
-              .get();
+          localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM).get();
 
           return Response.status(Response.Status.CREATED)
               .entity(
@@ -317,8 +315,7 @@ public class TablesResource {
                       Converters.maybeQuote(keyspaceName),
                       Converters.maybeQuote(tableName),
                       tableOptions),
-                  Optional.of(ConsistencyLevel.LOCAL_QUORUM),
-                  Collections.emptyList())
+                  ConsistencyLevel.LOCAL_QUORUM)
               .get();
 
           return Response.status(Response.Status.CREATED)
@@ -372,13 +369,13 @@ public class TablesResource {
     final List<ColumnDefinition> columnDefinitions =
         tableMetadata.columns().stream()
             .map(
-                (col) ->
-                    new ColumnDefinition(
-                        col.name(),
-                        Objects.requireNonNull(col.type()).isParameterized()
-                            ? null
-                            : Objects.requireNonNull(col.type()).name(),
-                        col.kind() == Column.Kind.Static))
+                (col) -> {
+                  ColumnType type = col.type();
+                  return new ColumnDefinition(
+                      col.name(),
+                      type == null ? null : type.cqlDefinition(),
+                      col.kind() == Kind.Static);
+                })
             .collect(Collectors.toList());
 
     final List<String> partitionKey =

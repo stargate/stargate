@@ -45,7 +45,6 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -198,7 +197,7 @@ public class RowResource {
                   .execute();
 
           final List<Map<String, Object>> rows =
-              r.rows().stream().map(Converters::row2Map).collect(Collectors.toList());
+              r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
 
           String newPagingState =
               r.getPagingState() != null
@@ -310,12 +309,11 @@ public class RowResource {
                   "SELECT %s FROM %s.%s WHERE %s %s",
                   returnColumns, keyspaceName, tableName, expression, orderByExpression);
           CompletableFuture<ResultSet> selectQuery =
-              localDB.query(
-                  query.trim(), Optional.of(ConsistencyLevel.LOCAL_QUORUM), values.toArray());
+              localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM, values.toArray());
 
           ResultSet r = selectQuery.get();
           final List<Map<String, Object>> rows =
-              r.rows().stream().map(Converters::row2Map).collect(Collectors.toList());
+              r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
 
           String newPagingState =
               r.getPagingState() != null
