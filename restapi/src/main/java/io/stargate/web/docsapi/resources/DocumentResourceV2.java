@@ -3,14 +3,14 @@ package io.stargate.web.docsapi.resources;
 import com.datastax.oss.driver.api.core.NoNodeAvailableException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.examples.*;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
-import io.stargate.web.models.ResponseWrapper;
+import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.resources.Db;
 import io.swagger.annotations.*;
 import java.net.URI;
@@ -37,31 +37,7 @@ public class DocumentResourceV2 {
   private static final ObjectMapper mapper = new ObjectMapper();
   private final DocumentService documentService = new DocumentService();
   private final int DEFAULT_PAGE_SIZE = 100;
-
-  private JsonNode wrapResponse(JsonNode node, String id) {
-    ObjectNode wrapperNode = mapper.createObjectNode();
-
-    if (id != null) {
-      wrapperNode.set("documentId", TextNode.valueOf(id));
-    }
-    if (node != null) {
-      wrapperNode.set("data", node);
-    }
-    return wrapperNode;
-  }
-
-  private JsonNode wrapResponse(JsonNode node, String id, String pagingState) {
-    ObjectNode wrapperNode = mapper.createObjectNode();
-
-    if (id != null) {
-      wrapperNode.set("documentId", TextNode.valueOf(id));
-    }
-    if (node != null) {
-      wrapperNode.set("data", node);
-    }
-    wrapperNode.set("pageState", TextNode.valueOf(pagingState));
-    return wrapperNode;
-  }
+  private final List<String> allowedFilters = FilterOp.allRawValues();
 
   @POST
   @ApiOperation(
@@ -72,7 +48,8 @@ public class DocumentResourceV2 {
         @ApiResponse(
             code = 201,
             message = "Created",
-            responseHeaders = @ResponseHeader(name = "Location")),
+            responseHeaders = @ResponseHeader(name = "Location"),
+            response = WriteDocResponse.class),
         @ApiResponse(code = 400, message = "Bad request"),
         @ApiResponse(code = 401, message = "Unauthorized"),
         @ApiResponse(code = 403, message = "Forbidden"),
@@ -95,44 +72,33 @@ public class DocumentResourceV2 {
           String namespace,
       @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
           String collection,
-      String payload) {
+      @ApiParam(value = "The JSON document", required = true) String payload) {
     // This route does nearly the same thing as PUT, except that it assigns an ID for the requester
     // And returns it as a Location header/in JSON body
     logger.debug("Post: Collection = {}", collection);
     String newId = UUID.randomUUID().toString();
     return handle(
         () -> {
-          boolean success =
-              documentService.putAtRoot(
-                  authToken, namespace, collection, newId, payload, dbFactory);
+          putDocPath(
+              headers, ui, authToken, namespace, collection, newId, new ArrayList<>(), payload);
 
-          if (success) {
-            return Response.created(
-                    URI.create(
-                        String.format(
-                            "/v2/namespaces/%s/collections/%s/%s", namespace, collection, newId)))
-                .entity(mapper.writeValueAsString(wrapResponse(null, newId)))
-                .build();
-          } else {
-            // This should really never happen, just being defensive
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(String.format("Fatal ID collision, try once more: %s", newId))
-                .build();
-          }
+          return Response.created(
+                  URI.create(
+                      String.format(
+                          "/v2/namespaces/%s/collections/%s/%s", namespace, collection, newId)))
+              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(newId, null, null)))
+              .build();
         });
   }
 
   @PUT
-  @ApiOperation(
-      value = "Create a new document with a provided document-id",
-      notes = "Rejects the request if a document with that document-id already exists.")
+  @ApiOperation(value = "Create or update a document with the provided document-id")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK"),
+        @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
         @ApiResponse(code = 400, message = "Bad request"),
         @ApiResponse(code = 401, message = "Unauthorized"),
         @ApiResponse(code = 403, message = "Forbidden"),
-        @ApiResponse(code = 409, message = "Conflict: document already exists"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}")
@@ -154,23 +120,12 @@ public class DocumentResourceV2 {
           String collection,
       @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
           String id,
-      String payload) {
+      @ApiParam(value = "The JSON document", required = true) String payload) {
     logger.debug("Put: Collection = {}, id = {}", collection, id);
-
     return handle(
-        () -> {
-          boolean success =
-              documentService.putAtRoot(authToken, namespace, collection, id, payload, dbFactory);
-
-          if (success) {
-            return Response.ok().entity(mapper.writeValueAsString(wrapResponse(null, id))).build();
-          } else {
-            return Response.status(Response.Status.CONFLICT)
-                .entity(
-                    String.format("Document %s already exists in collection %s", id, collection))
-                .build();
-          }
-        });
+        () ->
+            putDocPath(
+                headers, ui, authToken, namespace, collection, id, new ArrayList<>(), payload));
   }
 
   @PUT
@@ -179,7 +134,7 @@ public class DocumentResourceV2 {
       notes = "Removes whatever was previously present at the path")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK"),
+        @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
         @ApiResponse(code = 400, message = "Bad request"),
         @ApiResponse(code = 401, message = "Unauthorized"),
         @ApiResponse(code = 403, message = "Forbidden"),
@@ -208,14 +163,15 @@ public class DocumentResourceV2 {
       @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
           @PathParam("document-path")
           List<PathSegment> path,
-      String payload) {
+      @ApiParam(value = "The JSON document", required = true) String payload) {
     logger.debug("Put: Collection = {}, id = {}, path = {}", collection, id, path);
-
     return handle(
         () -> {
           documentService.putAtPath(
               authToken, namespace, collection, id, payload, path, false, dbFactory);
-          return Response.ok().entity(mapper.writeValueAsString(wrapResponse(null, id))).build();
+          return Response.ok()
+              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
+              .build();
         });
   }
 
@@ -225,7 +181,7 @@ public class DocumentResourceV2 {
       notes = "Merges data at the root with requested data.")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK"),
+        @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
         @ApiResponse(code = 400, message = "Bad request"),
         @ApiResponse(code = 401, message = "Unauthorized"),
         @ApiResponse(code = 403, message = "Forbidden"),
@@ -250,14 +206,15 @@ public class DocumentResourceV2 {
           String collection,
       @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
           String id,
-      String payload) {
+      @ApiParam(value = "The JSON document", required = true) String payload) {
     logger.debug("Patch: Collection = {}, id = {}", collection, id);
-
     return handle(
         () -> {
           documentService.putAtPath(
               authToken, namespace, collection, id, payload, new ArrayList<>(), true, dbFactory);
-          return Response.ok().entity(mapper.writeValueAsString(wrapResponse(null, id))).build();
+          return Response.ok()
+              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
+              .build();
         });
   }
 
@@ -268,7 +225,7 @@ public class DocumentResourceV2 {
           "Merges data at the path with requested data, assumes that the data at the path is already an object.")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK"),
+        @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
         @ApiResponse(code = 400, message = "Bad request"),
         @ApiResponse(code = 401, message = "Unauthorized"),
         @ApiResponse(code = 403, message = "Forbidden"),
@@ -297,14 +254,15 @@ public class DocumentResourceV2 {
       @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
           @PathParam("document-path")
           List<PathSegment> path,
-      String payload) {
+      @ApiParam(value = "The JSON document", required = true) String payload) {
     logger.debug("Patch: Collection = {}, id = {}, path = {}", collection, id, path);
-
     return handle(
         () -> {
           documentService.putAtPath(
               authToken, namespace, collection, id, payload, path, true, dbFactory);
-          return Response.ok().entity(mapper.writeValueAsString(wrapResponse(null, id))).build();
+          return Response.ok()
+              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
+              .build();
         });
   }
 
@@ -378,7 +336,6 @@ public class DocumentResourceV2 {
           @PathParam("document-path")
           List<PathSegment> path) {
     logger.debug("Delete: Collection = {}, id = {}, path = {}", collection, id, path);
-
     return handle(
         () -> {
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
@@ -390,11 +347,10 @@ public class DocumentResourceV2 {
   @GET
   @ApiOperation(
       value = "Get a document",
-      notes = "Retrieve the JSON representation of the document",
-      response = ResponseWrapper.class)
+      notes = "Retrieve the JSON representation of the document")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
+        @ApiResponse(code = 200, message = "OK", response = DocumentResponseWrapper.class),
         @ApiResponse(code = 204, message = "No Content"),
         @ApiResponse(code = 400, message = "Bad Request"),
         @ApiResponse(code = 401, message = "Unauthorized"),
@@ -420,7 +376,10 @@ public class DocumentResourceV2 {
           String collection,
       @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
           String id,
-      @ApiParam(value = "a JSON blob with the search filters", required = false)
+      @ApiParam(
+              value =
+                  "a JSON blob with search filters, allowed operators: $eq, $ne, $in, $nin, $gt, $lt, $gte, $lte, $exists",
+              required = false)
           @QueryParam("where")
           String where,
       @ApiParam(
@@ -459,10 +418,10 @@ public class DocumentResourceV2 {
       value = "Get a path in a document",
       notes =
           "Retrieve the JSON representation of the document at a provided path, with optional search parameters.",
-      response = ResponseWrapper.class)
+      response = DocumentResponseWrapper.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
+        @ApiResponse(code = 200, message = "OK", response = DocumentResponseWrapper.class),
         @ApiResponse(code = 204, message = "No Content"),
         @ApiResponse(code = 400, message = "Bad Request"),
         @ApiResponse(code = 401, message = "Unauthorized"),
@@ -492,7 +451,10 @@ public class DocumentResourceV2 {
       @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
           @PathParam("document-path")
           List<PathSegment> path,
-      @ApiParam(value = "a JSON blob with the search filters", required = false)
+      @ApiParam(
+              value =
+                  "a JSON blob with search filters, allowed operators: $eq, $ne, $in, $nin, $gt, $lt, $gte, $lte, $exists",
+              required = false)
           @QueryParam("where")
           String where,
       @ApiParam(
@@ -551,11 +513,12 @@ public class DocumentResourceV2 {
               return Response.noContent().build();
             }
 
+            String json;
             if (raw == null || !raw) {
-              node = wrapResponse(node, id);
+              json = mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, node));
+            } else {
+              json = mapper.writeValueAsString(node);
             }
-
-            String json = mapper.writeValueAsString(node);
 
             logger.debug(json);
             return Response.ok(json).build();
@@ -576,17 +539,19 @@ public class DocumentResourceV2 {
               return Response.noContent().build();
             }
 
+            String json;
+
             if (raw == null || !raw) {
               String pagingStateStr =
                   result.right != null
                       ? Base64.getEncoder().encodeToString(result.right.array())
                       : null;
-              node = wrapResponse(result.left, id, pagingStateStr);
+              json =
+                  mapper.writeValueAsString(
+                      new DocumentResponseWrapper<>(id, pagingStateStr, result.left));
             } else {
-              node = result.left;
+              json = mapper.writeValueAsString(result.left);
             }
-
-            String json = mapper.writeValueAsString(node);
 
             logger.debug(json);
             return Response.ok(json).build();
@@ -599,10 +564,10 @@ public class DocumentResourceV2 {
       value = "Search documents in a collection",
       notes =
           "Page over documents in a collection, with optional search parameters. Does not perform well for large documents.",
-      response = ResponseWrapper.class)
+      response = DocumentResponseWrapper.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
+        @ApiResponse(code = 200, message = "OK", response = DocumentResponseWrapper.class),
         @ApiResponse(code = 204, message = "No Content"),
         @ApiResponse(code = 400, message = "Bad Request"),
         @ApiResponse(code = 401, message = "Unauthorized"),
@@ -625,7 +590,11 @@ public class DocumentResourceV2 {
           String namespace,
       @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
           String collection,
-      @ApiParam(value = "a JSON blob with the search filters") @QueryParam("where") String where,
+      @ApiParam(
+              value =
+                  "a JSON blob with search filters, allowed operators: $eq, $ne, $in, $nin, $gt, $lt, $gte, $lte, $exists")
+          @QueryParam("where")
+          String where,
       @ApiParam(
               value = "the field names that you want to restrict the results to",
               required = false)
@@ -720,11 +689,14 @@ public class DocumentResourceV2 {
                   ? Base64.getEncoder().encodeToString(results.right.array())
                   : null;
 
+          String json;
           if (raw == null || !raw) {
-            docsResult = wrapResponse(docsResult, null, pagingStateStr);
+            json =
+                mapper.writeValueAsString(
+                    new DocumentResponseWrapper<>(null, pagingStateStr, docsResult));
+          } else {
+            json = mapper.writeValueAsString(docsResult);
           }
-
-          String json = mapper.writeValueAsString(docsResult);
 
           logger.debug(json);
           return Response.ok(json).build();

@@ -107,7 +107,7 @@ class DataTypeMapping {
     if (itemType.isCollection()) {
       Collection<?> dbCollection = (Collection<?>) dbValue;
       return dbCollection.stream()
-          .map(item -> toDbValue(itemType, item))
+          .map(item -> toGraphQLValue(itemType, item))
           .collect(Collectors.toList());
     }
 
