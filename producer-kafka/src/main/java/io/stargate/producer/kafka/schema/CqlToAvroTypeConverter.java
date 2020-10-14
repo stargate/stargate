@@ -50,7 +50,7 @@ public class CqlToAvroTypeConverter {
 
   private CqlToAvroTypeConverter() {}
 
-	static {
+  static {
     // register custom logical types
     LogicalTypes.register(ShortLogicalType.SHORT_LOGICAL_TYPE_NAME, new ShortTypeFactory());
     LogicalTypes.register(ByteLogicalType.BYTE_LOGICAL_TYPE_NAME, new ByteTypeFactory());
@@ -65,7 +65,8 @@ public class CqlToAvroTypeConverter {
     SCHEMA_PER_NATIVE_TYPE.put(
         Native.DATE, LogicalTypes.date().addToSchema(Schema.create(Type.INT)));
     SCHEMA_PER_NATIVE_TYPE.put(
-        Native.DECIMAL, LogicalTypes.decimal(DEFAULT_DECIMAL_PRECISION).addToSchema(Schema.create(Type.BYTES)));
+        Native.DECIMAL,
+        LogicalTypes.decimal(DEFAULT_DECIMAL_PRECISION).addToSchema(Schema.create(Type.BYTES)));
     SCHEMA_PER_NATIVE_TYPE.put(Native.DOUBLE, Schema.create(Type.DOUBLE));
     SCHEMA_PER_NATIVE_TYPE.put(
         Native.DURATION,
