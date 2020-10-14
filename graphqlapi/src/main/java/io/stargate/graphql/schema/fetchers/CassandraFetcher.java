@@ -31,29 +31,37 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
     String token = httpAwareContext.getAuthToken();
     StoredCredentials storedCredentials = authenticationService.validateToken(token);
 
-    ImmutableParameters.Builder parameters  = Parameters.builder();
-
+    Parameters parameters;
     if (environment.containsArgument("options")) {
+      ImmutableParameters.Builder builder = Parameters.builder();
       Map<String, Object> options = environment.getArgument("options");
+
       Object consistency = options.containsKey("consistency");
       if (consistency != null) {
-        parameters.consistencyLevel(ConsistencyLevel.valueOf((String)consistency));
+        builder.consistencyLevel(ConsistencyLevel.valueOf((String)consistency));
       }
+
       Object serialConsistency =  options.get("serialConsistency");
       if (serialConsistency != null) {
-        parameters.serialConsistencyLevel(ConsistencyLevel.valueOf((String)options.get("serialConsistencyLevel")));
+        builder.serialConsistencyLevel(ConsistencyLevel.valueOf((String)options.get("serialConsistencyLevel")));
       }
+
       Object pageSize = options.get("pageSize");
       if (pageSize != null) {
-        parameters.pageSize(Integer.valueOf((String)pageSize));
+        builder.pageSize(Integer.valueOf((String)pageSize));
       }
+
       Object pageState = options.get("pageState");
       if (pageSize != null) {
-        parameters.pagingState(PagingState.fromString((String)pageState).getRawPagingState());
+        builder.pagingState(PagingState.fromString((String)pageState).getRawPagingState());
       }
+
+      parameters = builder.build();
+    } else {
+      parameters = Parameters.defaults();
     }
 
-    DataStore dataStore = DataStore.create(persistence, storedCredentials.getRoleName(), parameters.build());
+    DataStore dataStore = DataStore.create(persistence, storedCredentials.getRoleName(), parameters);
     return get(environment, dataStore);
   }
 
