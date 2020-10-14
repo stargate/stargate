@@ -27,22 +27,17 @@ cd /workspace
 cp -R . /tmp/$PERSISTENCE_BACKEND
 cd /tmp/$PERSISTENCE_BACKEND
 
-C3="!"
-C4="!"
-DSE="!"
+PROFILE=""
 case "$PERSISTENCE_BACKEND" in
-  "cassandra-3.11") C3=""  ;;
-  "cassandra-4.0")  C4=""  ;;
-  "dse-6.8")        DSE="" ;;
+  "cassandra-3.11") PROFILE="it-cassandra-3.11"  ;;
+  "cassandra-4.0")  PROFILE="it-cassandra-4.0"  ;;
+  "dse-6.8")        PROFILE="dse,it-dse-6.8" ;;
 esac
 
 echo "Using backend $PERSISTENCE_BACKEND"
 
 export CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
-mvn -B verify --file pom.xml \
--P "${C4}it-cassandra-4.0" \
--P "${C3}it-cassandra-3.11" \
--P "${DSE}dse" -P "${DSE}it-dse-6.8" \
+mvn -B verify --file pom.xml -P "${PROFILE}" \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 EOF
 
