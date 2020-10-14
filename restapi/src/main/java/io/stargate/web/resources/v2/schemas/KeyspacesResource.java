@@ -170,7 +170,7 @@ public class KeyspacesResource {
           String token,
       @ApiParam(
               value =
-                  "A map representing a keyspace with SimpleStrategy or NetworkTopologyStrategy \n"
+                  "A map representing a keyspace with SimpleStrategy or NetworkTopologyStrategy with default replicas of 1 and 3 respectively \n"
                       + "Simple:\n"
                       + "```json\n"
                       + "{ \"name\": \"killrvideo\", \"replicas\": 1}\n"

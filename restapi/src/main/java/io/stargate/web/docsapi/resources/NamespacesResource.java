@@ -173,10 +173,10 @@ public class NamespacesResource {
           String token,
       @ApiParam(
               value =
-                  "A map representing a namespace with SimpleStrategy or NetworkTopologyStrategy \n"
+                  "A map representing a namespace with SimpleStrategy or NetworkTopologyStrategy with default replicas of 1 and 3 respectively \n"
                       + "Simple:\n"
                       + "```json\n"
-                      + "{ \"name\": \"killrvideo\", \"replicas\": 1 // default }\n"
+                      + "{ \"name\": \"killrvideo\", \"replicas\": 1 }\n"
                       + "````\n"
                       + "Network Topology:\n"
                       + "```json\n"
@@ -184,7 +184,7 @@ public class NamespacesResource {
                       + "  \"name\": \"killrvideo\",\n"
                       + "   \"datacenters\":\n"
                       + "      [\n"
-                      + "         { \"name\": \"dc1\", \"replicas\": 3 // default },\n"
+                      + "         { \"name\": \"dc1\", \"replicas\": 3 },\n"
                       + "         { \"name\": \"dc2\", \"replicas\": 3 },\n"
                       + "      ],\n"
                       + "}\n"
