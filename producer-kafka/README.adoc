@@ -22,7 +22,7 @@ It implements the SchemaAwareCDCProducer interface that serves as an integration
 This method is responsible for constructing the Avro schema based on the `TableMetadata` and registering the schema in link:https://docs.confluent.io/current/schema-registry/index.html[schema registry].
 It is also invoked if any schema change on a CDC-enabled table is made. The detailed process of schema creation is described in <<Schema Creation>>
 
-3. `send()` - it is responsible for creating a link:https://avro.apache.org/docs/1.10.0/api/java/org/apache/avro/generic/GenericRecord.html[GenericRecord] based on the Avro schema created in the previous step.
+3. `send()` - it is responsible to create a link:https://avro.apache.org/docs/1.10.0/api/java/org/apache/avro/generic/GenericRecord.html[GenericRecord] based on the Avro schema created in the previous step.
 Once the record is created, it is sent to the Apache Kafka topic.
 
 4. `close()` - it flushes all pending records from the underlying Kafka producer and closes it.
