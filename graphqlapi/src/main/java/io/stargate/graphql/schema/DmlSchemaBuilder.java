@@ -388,7 +388,7 @@ class DmlSchemaBuilder {
                 .name(nameMapping.getColumnNames(table).get(columnMetadata))
                 .type(
                     new GraphQLTypeReference(
-                        nameMapping.getUdtNames().get(type.frozen(false)) + "Input"))
+                        nameMapping.getUdtNames().get(type.frozen(false)) + "FilterInput"))
                 .build());
       } else if (filterInputTypes.get(type) != null) {
         fields.add(
@@ -410,15 +410,23 @@ class DmlSchemaBuilder {
   }
 
   private static GraphQLInputObjectType filterInputType(GraphQLScalarType type) {
+    return filterInputType(type.getName() + "FilterInput", type);
+  }
+
+  private static GraphQLInputObjectType filterInputType(
+      String filterInputTypeName, GraphQLInputType elementType) {
     return GraphQLInputObjectType.newInputObject()
-        .name(type.getName() + "FilterInput")
-        .field(GraphQLInputObjectField.newInputObjectField().name("eq").type(type))
-        .field(GraphQLInputObjectField.newInputObjectField().name("notEq").type(type))
-        .field(GraphQLInputObjectField.newInputObjectField().name("gt").type(type))
-        .field(GraphQLInputObjectField.newInputObjectField().name("gte").type(type))
-        .field(GraphQLInputObjectField.newInputObjectField().name("lt").type(type))
-        .field(GraphQLInputObjectField.newInputObjectField().name("lte").type(type))
-        .field(GraphQLInputObjectField.newInputObjectField().name("in").type(new GraphQLList(type)))
+        .name(filterInputTypeName)
+        .field(GraphQLInputObjectField.newInputObjectField().name("eq").type(elementType))
+        .field(GraphQLInputObjectField.newInputObjectField().name("notEq").type(elementType))
+        .field(GraphQLInputObjectField.newInputObjectField().name("gt").type(elementType))
+        .field(GraphQLInputObjectField.newInputObjectField().name("gte").type(elementType))
+        .field(GraphQLInputObjectField.newInputObjectField().name("lt").type(elementType))
+        .field(GraphQLInputObjectField.newInputObjectField().name("lte").type(elementType))
+        .field(
+            GraphQLInputObjectField.newInputObjectField()
+                .name("in")
+                .type(new GraphQLList(elementType)))
         .build();
   }
 
@@ -549,8 +557,9 @@ class DmlSchemaBuilder {
 
   private Set<GraphQLType> buildTypesForUdt(UserDefinedType udt) {
 
-    GraphQLObjectType.Builder outputType =
-        GraphQLObjectType.newObject().name(nameMapping.getUdtNames().get(udt));
+    String typeNameBase = nameMapping.getUdtNames().get(udt.frozen(false));
+
+    GraphQLObjectType.Builder outputType = GraphQLObjectType.newObject().name(typeNameBase);
     for (Column column : udt.columns()) {
       try {
         outputType.field(
@@ -564,7 +573,7 @@ class DmlSchemaBuilder {
     }
 
     GraphQLInputObjectType.Builder inputType =
-        GraphQLInputObjectType.newInputObject().name(nameMapping.getUdtNames().get(udt) + "Input");
+        GraphQLInputObjectType.newInputObject().name(typeNameBase + "Input");
     for (Column column : udt.columns()) {
       try {
         inputType.field(
@@ -576,8 +585,11 @@ class DmlSchemaBuilder {
         log.error(String.format("Input type for %s could not be created", column.name()), e);
       }
     }
+    GraphQLInputObjectType filterInputType =
+        filterInputType(
+            typeNameBase + "FilterInput", new GraphQLTypeReference(typeNameBase + "Input"));
 
-    return ImmutableSet.of(outputType.build(), inputType.build());
+    return ImmutableSet.of(outputType.build(), inputType.build(), filterInputType);
   }
 
   private GraphQLType getGraphQLType(Column.ColumnType type, boolean isInput) {
@@ -641,10 +653,7 @@ class DmlSchemaBuilder {
             getGraphQLType(type.parameters().get(1), isInput, typeCache, nameMapping);
         return new GqlMapBuilder(keyType, valueType, isInput, typeCache).build();
       case UDT:
-        UserDefinedType udt = (UserDefinedType) type;
-        if (udt.isFrozen()) {
-          udt = udt.frozen(false);
-        }
+        UserDefinedType udt = (UserDefinedType) type.frozen(false);
         return new GraphQLTypeReference(
             nameMapping.getUdtNames().get(udt) + (isInput ? "Input" : ""));
       default:
