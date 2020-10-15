@@ -18,7 +18,7 @@ package io.stargate.producer.kafka.configuration;
 import java.util.Map;
 
 public interface ConfigLoader {
-  String CDC_TOPIC_PREFIX_NAME = "cdc.topic.prefix-name";
+  String CDC_TOPIC_PREFIX_NAME = "cdc.kafka.topic.prefix-name";
   String CDC_KAFKA_PRODUCER_SETTING_PREFIX = "cdc.kafka.producer";
   String SCHEMA_REGISTRY_URL_SETTING_NAME = "schema.registry.url";
   String METRICS_ENABLED_SETTING_NAME = "cdc.kafka.metrics.enabled";
