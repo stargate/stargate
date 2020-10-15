@@ -64,6 +64,8 @@ steps:
       - '-m'
       - 'rsync'
       - '-r'
+      - '-x'
+      - '/cache/.m2/repository/io/stargate'
       - '/cache/.m2'
       - 'gs://${_BUCKET}/cache/.m2/'
     volumes:
