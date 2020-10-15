@@ -9,7 +9,7 @@ chown -R ubuntu:ubuntu /cache/
 
 # Need to switch users since we can't pass the right flag to allow running Cassandra as root
 sudo -i -u ubuntu bash << EOF
-echoinfo() { echo "[$(date -Is)] - $@" 1>&2; }
+echoinfo() { echo "[\$(date -Is)] - \$@" 1>&2; }
 export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
 export PATH=$PATH:$JAVA_HOME/bin
 export MAVEN_OPTS="-Dmaven.repo.local=/cache/.m2"
