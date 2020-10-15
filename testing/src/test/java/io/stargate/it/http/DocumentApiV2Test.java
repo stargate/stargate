@@ -147,6 +147,62 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testUnauthorized() throws IOException {
+    JsonNode obj =
+        objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
+
+    // Missing token header
+    Response r = post("/v2/namespaces/" + keyspace + "/collections/collection", obj, null);
+    assertThat(r.code()).isEqualTo(401);
+    r.close();
+
+    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj, null);
+    assertThat(r.code()).isEqualTo(401);
+    r.close();
+
+    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj, null);
+    assertThat(r.code()).isEqualTo(401);
+    r.close();
+
+    r = delete("/v2/namespaces/" + keyspace + "/collections/collection/1", null);
+    assertThat(r.code()).isEqualTo(401);
+    r.close();
+
+    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1", null);
+    assertThat(r.code()).isEqualTo(401);
+    r.close();
+
+    r = get("/v2/namespaces/" + keyspace + "/collections/collection", null);
+    assertThat(r.code()).isEqualTo(401);
+    r.close();
+
+    // Bad token header
+    r = post("/v2/namespaces/" + keyspace + "/collections/collection", obj, "garbage");
+    assertThat(r.code()).isEqualTo(401);
+    r.close();
+
+    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj, "garbage");
+    assertThat(r.code()).isEqualTo(401);
+    r.close();
+
+    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj, "garbage");
+    assertThat(r.code()).isEqualTo(401);
+    r.close();
+
+    r = delete("/v2/namespaces/" + keyspace + "/collections/collection/1", "garbage");
+    assertThat(r.code()).isEqualTo(401);
+    r.close();
+
+    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1", "garbage");
+    assertThat(r.code()).isEqualTo(401);
+    r.close();
+
+    r = get("/v2/namespaces/" + keyspace + "/collections/collection", "garbage");
+    assertThat(r.code()).isEqualTo(401);
+    r.close();
+  }
+
+  @Test
   public void testInvalidKeyspaceAndTable() throws IOException {
     JsonNode obj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
@@ -2198,6 +2254,77 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             .build();
 
     return client.newCall(request).execute();
+  }
+
+  private Response get(String path, String token) throws IOException {
+    Request.Builder request =
+        new Request.Builder()
+            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
+            .get();
+
+    if (token != null) {
+      request = request.addHeader("X-Cassandra-Token", token);
+    }
+
+    return client.newCall(request.build()).execute();
+  }
+
+  private Response post(String path, Object arg, String token) throws IOException {
+    Request.Builder request =
+        new Request.Builder()
+            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
+            .post(
+                RequestBody.create(
+                    MediaType.parse("application/json"), objectMapper.writeValueAsString(arg)));
+
+    if (token != null) {
+      request = request.addHeader("X-Cassandra-Token", token);
+    }
+
+    return client.newCall(request.build()).execute();
+  }
+
+  private Response put(String path, Object arg, String token) throws IOException {
+    Request.Builder request =
+        new Request.Builder()
+            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
+            .put(
+                RequestBody.create(
+                    MediaType.parse("application/json"), objectMapper.writeValueAsString(arg)));
+
+    if (token != null) {
+      request = request.addHeader("X-Cassandra-Token", token);
+    }
+
+    return client.newCall(request.build()).execute();
+  }
+
+  private Response patch(String path, Object arg, String token) throws IOException {
+    Request.Builder request =
+        new Request.Builder()
+            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
+            .patch(
+                RequestBody.create(
+                    MediaType.parse("application/json"), objectMapper.writeValueAsString(arg)));
+
+    if (token != null) {
+      request = request.addHeader("X-Cassandra-Token", token);
+    }
+
+    return client.newCall(request.build()).execute();
+  }
+
+  private Response delete(String path, String token) throws IOException {
+    Request.Builder request =
+        new Request.Builder()
+            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
+            .delete();
+
+    if (token != null) {
+      request = request.addHeader("X-Cassandra-Token", token);
+    }
+
+    return client.newCall(request.build()).execute();
   }
 
   private JsonNode wrapResponse(JsonNode node, String id, String pagingState) {
