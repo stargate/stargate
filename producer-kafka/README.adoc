@@ -198,7 +198,7 @@ The absence of change is presented as a null union value. For example, if `col_1
 [source,json]
 ----
 {
-   "op":"d",
+   "op":"u",
    "ts_ms":0,
    "data":{
       "pk_1":{
@@ -218,7 +218,7 @@ If the `col_1` was cleared, meaning that it was deleted or set to null, the resu
 [source,json]
 ----
 {
-   "op":"d",
+   "op":"u",
    "ts_ms":0,
    "data":{
       "pk_1":{
@@ -242,7 +242,7 @@ The resulting CDC event will contain the value with a change:
 [source,json]
 ----
 {
-   "op":"d",
+   "op":"u",
    "ts_ms":0,
    "data":{
       "pk_1":{
