@@ -36,7 +36,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
       ImmutableParameters.Builder builder = Parameters.builder();
       Map<String, Object> options = environment.getArgument("options");
 
-      Object consistency = options.containsKey("consistency");
+      Object consistency = options.get("consistency");
       if (consistency != null) {
         builder.consistencyLevel(ConsistencyLevel.valueOf((String) consistency));
       }
@@ -49,11 +49,11 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
 
       Object pageSize = options.get("pageSize");
       if (pageSize != null) {
-        builder.pageSize(Integer.valueOf((String) pageSize));
+        builder.pageSize((Integer)pageSize);
       }
 
       Object pageState = options.get("pageState");
-      if (pageSize != null) {
+      if (pageState != null) {
         builder.pagingState(PagingState.fromString((String) pageState).getRawPagingState());
       }
 
