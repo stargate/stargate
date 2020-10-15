@@ -34,7 +34,7 @@ export CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
 mvn -B failsafe:integration-test --file pom.xml -P "${PROFILE}" \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
-echoinfo "Test complete
+echoinfo "Test complete"
 EOF
 
 
