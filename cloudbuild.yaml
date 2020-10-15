@@ -9,7 +9,7 @@ steps:
       - 'rsync'
       - '-r'
       - '-x'
-      - '/cache/.m2/repository/io/stargate
+      - '/cache/.m2/repository/io/stargate'
       - 'gs://${_BUCKET}/cache/.m2'
       - '/cache/.m2'
     volumes:
