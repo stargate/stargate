@@ -21,17 +21,23 @@ cp -R . /tmp/$PERSISTENCE_BACKEND
 cd /tmp/$PERSISTENCE_BACKEND
 echoinfo "Copied directory"
 
-PROFILE=""
+C3="!"
+C4="!"
+DSE="!"
 case "$PERSISTENCE_BACKEND" in
-  "cassandra-3.11") PROFILE="it-cassandra-3.11,!it-cassandra-4.0"  ;;
-  "cassandra-4.0")  PROFILE="it-cassandra-4.0,!it-cassandra-3.11"  ;;
-  "dse-6.8")        PROFILE="dse,it-dse-6.8,!it-cassandra-4.0,!it-cassandra-3.11" ;;
+  "cassandra-3.11") C3=""  ;;
+  "cassandra-4.0")  C4=""  ;;
+  "dse-6.8")        DSE="" ;;
 esac
+
 
 echoinfo "Using backend $PERSISTENCE_BACKEND"
 
 export CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
-mvn -B failsafe:integration-test --file pom.xml -P "${PROFILE}" \
+mvn -B failsafe:integration-test --file pom.xml \
+-P \${C3}it-cassandra-3.11 \
+-P \${C4}it-cassandra-4.0 \
+-P \${DSE}dse -P \${DSE}it-dse-6.8 \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
 echoinfo "Test complete"
