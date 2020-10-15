@@ -551,15 +551,15 @@ class DmlSchemaBuilder {
 
     GraphQLObjectType.Builder outputType =
         GraphQLObjectType.newObject().name(nameMapping.getUdtNames().get(udt));
-    for (Column columnMetadata : udt.columns()) {
+    for (Column column : udt.columns()) {
       try {
         outputType.field(
             new GraphQLFieldDefinition.Builder()
-                .name(nameMapping.getFieldNames(udt).get(columnMetadata))
-                .type((GraphQLOutputType) getGraphQLType(columnMetadata.type(), false))
+                .name(nameMapping.getFieldNames(udt).get(column))
+                .type((GraphQLOutputType) getGraphQLType(column.type(), false))
                 .build());
       } catch (Exception e) {
-        log.error(String.format("Type for %s could not be created", columnMetadata.name()), e);
+        log.error(String.format("Type for %s could not be created", column.name()), e);
       }
     }
 

@@ -66,8 +66,6 @@ public class SampleKeyspaces {
             .build();
     return ImmutableKeyspace.builder()
         .name("udts")
-        // We deliberately order our UDTs so that the outer type will come before the inner type
-        // that it references, to make sure that our schema parsing code handles this properly.
         .addUserDefinedTypes(aType, bType)
         .addTables(
             ImmutableTable.builder()
