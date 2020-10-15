@@ -2,7 +2,6 @@ package io.stargate.graphql.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -48,6 +47,8 @@ public abstract class GraphQlTestBase {
 
   @Captor protected ArgumentCaptor<String> queryCaptor;
 
+  @Captor protected ArgumentCaptor<Parameters> parametersCaptor;
+
   private MockedStatic<DataStore> dataStoreCreateMock;
 
   @BeforeEach
@@ -63,7 +64,7 @@ public abstract class GraphQlTestBase {
       when(storedCredentials.getRoleName()).thenReturn(roleName);
       dataStoreCreateMock = mockStatic(DataStore.class);
       dataStoreCreateMock
-          .when(() -> DataStore.create(eq(persistence), eq(roleName), any(Parameters.class)))
+          .when(() -> DataStore.create(eq(persistence), eq(roleName), parametersCaptor.capture()))
           .thenReturn(dataStore);
     } catch (Exception e) {
       fail("Unexpected exception while mocking authentication", e);

@@ -1,6 +1,5 @@
 package io.stargate.graphql.schema.fetchers;
 
-import com.datastax.oss.driver.api.core.cql.PagingState;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
@@ -10,6 +9,8 @@ import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
+import java.nio.ByteBuffer;
+import java.util.Base64;
 import java.util.Map;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
@@ -32,9 +33,9 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
     StoredCredentials storedCredentials = authenticationService.validateToken(token);
 
     Parameters parameters;
-    if (environment.containsArgument("options")) {
+    Map<String, Object> options = environment.getArgument("options");
+    if (options != null) {
       ImmutableParameters.Builder builder = Parameters.builder();
-      Map<String, Object> options = environment.getArgument("options");
 
       Object consistency = options.get("consistency");
       if (consistency != null) {
@@ -43,8 +44,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
 
       Object serialConsistency = options.get("serialConsistency");
       if (serialConsistency != null) {
-        builder.serialConsistencyLevel(
-            ConsistencyLevel.valueOf((String) options.get("serialConsistencyLevel")));
+        builder.serialConsistencyLevel(ConsistencyLevel.valueOf((String) serialConsistency));
       }
 
       Object pageSize = options.get("pageSize");
@@ -54,7 +54,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
 
       Object pageState = options.get("pageState");
       if (pageState != null) {
-        builder.pagingState(PagingState.fromString((String) pageState).getRawPagingState());
+        builder.pagingState(ByteBuffer.wrap(Base64.getDecoder().decode((String) pageState)));
       }
 
       parameters = builder.build();
