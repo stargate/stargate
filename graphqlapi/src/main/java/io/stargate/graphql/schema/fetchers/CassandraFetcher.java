@@ -49,7 +49,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
 
       Object pageSize = options.get("pageSize");
       if (pageSize != null) {
-        builder.pageSize((Integer)pageSize);
+        builder.pageSize((Integer) pageSize);
       }
 
       Object pageState = options.get("pageState");
