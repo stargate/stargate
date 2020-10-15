@@ -401,7 +401,7 @@ link:https://kafka.apache.org/documentation/#allow.auto.create.topics[allow.auto
 It is enabled by default. **NOTE**: you should be careful with this setting since Kafka will automatically create the topic with the default replication factor and number of partitions.
 You should check if the link:https://kafka.apache.org/documentation/#num.partitions[default number of partitions]
 and link:https://kafka.apache.org/documentation/#default.replication.factor[replicas] settings are optimal for your cluster.
-Otherwise, you may end up with a topic that has enough replicas. It may degrade the performance of the CDC producer substantially.
+Otherwise, you may end up with a topic that does not have enough replicas which may degrade the performance of the CDC producer substantially.
 
 You may consider disabling the `allow.auto.create.topics`, but in that case, you will need to create every topic manually according to <<Prefix Name>>.
 It also means that you need to create the topic manually before any CDC event is sent to this producer.
