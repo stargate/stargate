@@ -19,4 +19,9 @@ RUN git clone --branch master --single-branch https://github.com/riptano/ccm.git
 cd ccm && \
 sudo python setup.py install
 
+# Create clusters to pre-download necessary artifacts
+RUN ccm create -v 4.0-beta1 -b -n 1:0 -i 127.0.0. stargate_40 && ccm remove stargate_40
+RUN ccm create -v 3.11.6 -b -n 1:0 -i 127.0.0. stargate_311 && ccm remove stargate_311
+RUN ccm create -v 6.8.0 --dse -b -n 1:0 -i 127.0.0. stargate_dse68 && ccm remove stargate_dse68
+
 CMD ["/bin/bash"]
