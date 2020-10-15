@@ -273,7 +273,6 @@ Let's take a look at a list of supported native types:
 - `Native.ASCII` is serialized as avro `Type.STRING`.
 - `Native.BIGINT` is serialized as avro `Type.LONG`.
 - `Native.BLOB` is serialized as avro `Type.BYTES`.
-- `Native.BLOB` is serialized as avro `Type.BYTES`.
 - `Native.BOOLEAN` is serialized as avro `Type.BOOLEAN`.
 - `Native.COUNTER` is serialized as avro `Type.LONG`.
 - `Native.DATE` is serialized as avro logical `date` type with underlying `Type.INT` representation.
