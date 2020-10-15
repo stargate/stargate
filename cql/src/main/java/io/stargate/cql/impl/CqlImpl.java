@@ -26,7 +26,6 @@ import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.internal.Server;
@@ -40,7 +39,6 @@ public class CqlImpl {
 
   private Collection<Server> servers = Collections.emptyList();
   private final EventLoopGroup workerGroup;
-  private final AtomicBoolean isRpcReady = new AtomicBoolean(false);
 
   public CqlImpl(Config config) {
     TransportDescriptor.daemonInitialization(config);
@@ -67,26 +65,23 @@ public class CqlImpl {
             .withHost(nativeAddr);
 
     if (!TransportDescriptor.getNativeProtocolEncryptionOptions().enabled) {
-      servers =
-          Collections.singleton(builder.withSSL(false).withPort(nativePort).build(isRpcReady));
+      servers = Collections.singleton(builder.withSSL(false).withPort(nativePort).build());
     } else {
       if (nativePort != nativePortSSL) {
         // user asked for dedicated ssl port for supporting both non-ssl and ssl connections
         servers =
             Collections.unmodifiableList(
                 Arrays.asList(
-                    builder.withSSL(false).withPort(nativePort).build(isRpcReady),
-                    builder.withSSL(true).withPort(nativePortSSL).build(isRpcReady)));
+                    builder.withSSL(false).withPort(nativePort).build(),
+                    builder.withSSL(true).withPort(nativePortSSL).build()));
       } else {
         // ssl only mode using configured native port
-        servers =
-            Collections.singleton(builder.withSSL(true).withPort(nativePort).build(isRpcReady));
+        servers = Collections.singleton(builder.withSSL(true).withPort(nativePort).build());
       }
     }
 
     ClientMetrics.instance.init(servers, metrics.getRegistry("cql"));
     servers.forEach(Server::start);
-    isRpcReady.set(true);
   }
 
   public void stop() {

@@ -17,27 +17,27 @@ public class EventListenerWrapper extends SchemaChangeListener
 
   @Override
   public void onJoinCluster(InetAddressAndPort endpoint) {
-    wrapped.onJoinCluster(endpoint.address);
+    wrapped.onJoinCluster(Conversion.toExternal(endpoint));
   }
 
   @Override
   public void onLeaveCluster(InetAddressAndPort endpoint) {
-    wrapped.onLeaveCluster(endpoint.address);
+    wrapped.onLeaveCluster(Conversion.toExternal(endpoint));
   }
 
   @Override
   public void onUp(InetAddressAndPort endpoint) {
-    wrapped.onUp(endpoint.address);
+    wrapped.onUp(Conversion.toExternal(endpoint));
   }
 
   @Override
   public void onDown(InetAddressAndPort endpoint) {
-    wrapped.onDown(endpoint.address);
+    wrapped.onDown(Conversion.toExternal(endpoint));
   }
 
   @Override
   public void onMove(InetAddressAndPort endpoint) {
-    wrapped.onMove(endpoint.address);
+    wrapped.onMove(Conversion.toExternal(endpoint));
   }
 
   @Override

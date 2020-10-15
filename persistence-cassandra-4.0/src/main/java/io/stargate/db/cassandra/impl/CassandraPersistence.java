@@ -54,6 +54,7 @@ import org.apache.cassandra.service.ClientWarn;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.stargate.exceptions.PersistenceException;
+import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.transport.Message;
 import org.apache.cassandra.transport.Message.Request;
@@ -187,6 +188,11 @@ public class CassandraPersistence
     EventListenerWrapper wrapper = new EventListenerWrapper(listener);
     Schema.instance.registerListener(wrapper);
     interceptor.register(wrapper);
+  }
+
+  @Override
+  public boolean isRpcReady(InetAddressAndPort endpoint) {
+    return StorageService.instance.isRpcReady(Conversion.toInternal(endpoint));
   }
 
   @Override
