@@ -8,7 +8,7 @@ steps:
       - '-m'
       - 'rsync'
       - '-r'
-      - '--exclude'
+      - '-x'
       - '/cache/.m2/repository/io/stargate
       - 'gs://${_BUCKET}/cache/.m2'
       - '/cache/.m2'
