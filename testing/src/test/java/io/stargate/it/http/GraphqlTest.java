@@ -1093,7 +1093,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
               .build());
     }
 
-    Set<String> names = new HashSet<>();
+    List<String> names = new ArrayList<>();
 
     Optional<Products> products = Optional.empty();
     do {
