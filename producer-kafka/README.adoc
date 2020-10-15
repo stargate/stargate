@@ -398,7 +398,7 @@ Currently, the class name form `Custom#getClassName()` is not propagated in the 
 == New Topic Creation
 When a mutation event for a topic that does not exist in Kafka arrives, the producer will create the topic automatically if
 link:https://kafka.apache.org/documentation/#allow.auto.create.topics[allow.auto.create.topics] on the Kafka broker is enabled.
-It is enabled on default. It would be best if you were careful because Kafka will automatically create the topic with the default replication factor and number of partitions.
+It is enabled by default. **NOTE**: you should be careful with this setting since Kafka will automatically create the topic with the default replication factor and number of partitions.
 You need to assure that the link:https://kafka.apache.org/documentation/#num.partitions[default number of partitions]
 and link:https://kafka.apache.org/documentation/#default.replication.factor[replicas] settings are optimal for your cluster.
 Otherwise, you may end up with a topic that has enough replicas. It may degrade the performance of the CDC producer substantially.
