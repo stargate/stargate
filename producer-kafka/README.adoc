@@ -396,7 +396,7 @@ responsibility to deserialize it correctly.
 Currently, the class name form `Custom#getClassName()` is not propagated in the avro message.
 
 == New Topic Creation
-When the mutation event for a topic that does not exists in Kafka arrives, the producer will create the topic automatically if
+When a mutation event for a topic that does not exist in Kafka arrives, the producer will create the topic automatically if
 link:https://kafka.apache.org/documentation/#allow.auto.create.topics[allow.auto.create.topics] on the Kafka broker is enabled.
 It is enabled on default. It would be best if you were careful because Kafka will automatically create the topic with the default replication factor and number of partitions.
 You need to assure that the link:https://kafka.apache.org/documentation/#num.partitions[default number of partitions]
