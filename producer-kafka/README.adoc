@@ -291,7 +291,7 @@ Let's take a look at a list of supported native types:
 - `Native.TINYINT` is serialized as avro logical `byte` type with underlying `Type.INT` representation.
 - `Native.UUID` is serialized as avro logical `uuid` type with underlying `Type.STRING` representation.
 - `Native.VARCHAR` is serialized as avro `Type.STRING`.
-- `Native.TIMESTAMP` is serialized as avro logical `bigInteger` type with underlying `Type.BYTES` representation.
+- `Native.VARINT` is serialized as avro logical `bigInteger` type with underlying `Type.BYTES` representation.
 
 ==== Map Type
 Avro assumes that every key is of a string type and automatically converts every key to a
