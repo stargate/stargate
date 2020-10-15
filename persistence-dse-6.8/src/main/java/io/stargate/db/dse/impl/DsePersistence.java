@@ -55,7 +55,6 @@ import org.apache.cassandra.service.ClientWarn;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.stargate.exceptions.PersistenceException;
-import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.transport.Message.Request;
 import org.apache.cassandra.transport.ServerConnection;
@@ -199,19 +198,18 @@ public class DsePersistence
 
   @Override
   public void registerEventListener(EventListener listener) {
-    EventListenerWrapper wrapper = new EventListenerWrapper(listener);
-    SchemaManager.instance.registerListener(wrapper);
-    interceptor.register(wrapper);
-  }
-
-  @Override
-  public boolean isRpcReady(InetAddressAndPort endpoint) {
-    return StorageService.instance.isRpcReady(endpoint.address);
+    SchemaManager.instance.registerListener(new EventListenerWrapper(listener));
+    interceptor.register(listener);
   }
 
   @Override
   public Authenticator getAuthenticator() {
     return authenticator;
+  }
+
+  @Override
+  public void setRpcReady(boolean status) {
+    StorageService.instance.setNativeTransportReady(status);
   }
 
   @Override

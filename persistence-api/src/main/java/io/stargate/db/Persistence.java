@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
-import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 
 /**
  * A persistence layer that can be queried.
@@ -46,9 +45,9 @@ public interface Persistence {
    */
   void registerEventListener(EventListener listener);
 
-  boolean isRpcReady(InetAddressAndPort endpoint);
-
   Authenticator getAuthenticator();
+
+  void setRpcReady(boolean status);
 
   /**
    * Creates a new connection for an "external" client identified by the provided info.

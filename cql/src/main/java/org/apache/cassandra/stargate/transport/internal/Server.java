@@ -61,7 +61,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -591,12 +590,6 @@ public class Server implements CassandraDaemon.Server {
     // since StorageService may send duplicate notifications (CASSANDRA-7816, CASSANDRA-8236,
     // CASSANDRA-9156)
     private final Map<InetAddressAndPort, LatestEvent> latestEvents = new ConcurrentHashMap<>();
-    // We also want to delay delivering a NEW_NODE notification until the new node has set its RPC
-    // ready
-    // state. This tracks the endpoints which have joined, but not yet signalled they're ready for
-    // clients
-    private final Set<InetAddressAndPort> endpointsPendingJoinedNotification =
-        ConcurrentHashMap.newKeySet();
 
     private EventNotifier(Server server) {
       this.server = server;
@@ -622,13 +615,9 @@ public class Server implements CassandraDaemon.Server {
       server.connectionTracker.send(event);
     }
 
-    // TODO(mpenick): Filter out storage nodes for status/topology events, clients don't need to
-    // "see" non-stargate node events
-
     @Override
     public void onJoinCluster(InetAddressAndPort endpoint) {
-      if (server.persistence.isRpcReady(endpoint)) endpointsPendingJoinedNotification.add(endpoint);
-      else onTopologyChange(endpoint, Event.TopologyChange.newNode(endpoint));
+      onTopologyChange(endpoint, Event.TopologyChange.newNode(endpoint));
     }
 
     @Override
@@ -642,14 +631,13 @@ public class Server implements CassandraDaemon.Server {
     }
 
     @Override
-    public void onUp(InetAddressAndPort endpoint) {
-      if (endpointsPendingJoinedNotification.remove(endpoint)) onJoinCluster(endpoint);
-
-      onStatusChange(endpoint, Event.StatusChange.nodeUp(endpoint));
-    }
-
     public void onDown(InetAddressAndPort endpoint) {
       onStatusChange(endpoint, Event.StatusChange.nodeDown(endpoint));
+    }
+
+    @Override
+    public void onUp(InetAddressAndPort endpoint) {
+      onStatusChange(endpoint, Event.StatusChange.nodeUp(endpoint));
     }
 
     private void onTopologyChange(InetAddressAndPort endpoint, Event.TopologyChange event) {

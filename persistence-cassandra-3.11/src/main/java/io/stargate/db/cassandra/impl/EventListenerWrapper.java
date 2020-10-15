@@ -16,46 +16,15 @@
 package io.stargate.db.cassandra.impl;
 
 import io.stargate.db.EventListener;
-import java.net.InetAddress;
 import java.util.List;
 import org.apache.cassandra.db.marshal.AbstractType;
-import org.apache.cassandra.service.IEndpointLifecycleSubscriber;
 import org.apache.cassandra.service.MigrationListener;
-import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 
-public class EventListenerWrapper extends MigrationListener
-    implements IEndpointLifecycleSubscriber {
+public class EventListenerWrapper extends MigrationListener {
   private EventListener wrapped;
 
   EventListenerWrapper(EventListener wrapped) {
     this.wrapped = wrapped;
-  }
-
-  // TODO: Pass correct port up to CQL for events
-
-  @Override
-  public void onJoinCluster(InetAddress endpoint) {
-    wrapped.onJoinCluster(InetAddressAndPort.getByAddressOverrideDefaults(endpoint, 9042));
-  }
-
-  @Override
-  public void onLeaveCluster(InetAddress endpoint) {
-    wrapped.onLeaveCluster(InetAddressAndPort.getByAddressOverrideDefaults(endpoint, 9042));
-  }
-
-  @Override
-  public void onUp(InetAddress endpoint) {
-    wrapped.onUp(InetAddressAndPort.getByAddressOverrideDefaults(endpoint, 9042));
-  }
-
-  @Override
-  public void onDown(InetAddress endpoint) {
-    wrapped.onDown(InetAddressAndPort.getByAddressOverrideDefaults(endpoint, 9042));
-  }
-
-  @Override
-  public void onMove(InetAddress endpoint) {
-    wrapped.onMove(InetAddressAndPort.getByAddressOverrideDefaults(endpoint, 9042));
   }
 
   @Override

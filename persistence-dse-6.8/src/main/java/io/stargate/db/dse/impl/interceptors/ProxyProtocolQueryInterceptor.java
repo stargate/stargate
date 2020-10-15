@@ -11,6 +11,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.reactivex.Single;
+import io.stargate.db.EventListener;
 import io.stargate.db.dse.impl.ClientStateWithPublicAddress;
 import io.stargate.db.dse.impl.StargateSystemKeyspace;
 import java.net.InetAddress;
@@ -42,7 +43,6 @@ import org.apache.cassandra.db.marshal.SetType;
 import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.db.marshal.UUIDType;
 import org.apache.cassandra.service.ClientState;
-import org.apache.cassandra.service.IEndpointLifecycleSubscriber;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.transport.messages.ResultMessage;
@@ -81,7 +81,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   private final Resolver resolver;
   private final String proxyDnsName;
   private final long resolveDelaySecs;
-  private final List<IEndpointLifecycleSubscriber> subscribers = new CopyOnWriteArrayList<>();
+  private final List<EventListener> listeners = new CopyOnWriteArrayList<>();
   private volatile Set<InetAddress> peers = Collections.emptySet();
 
   public ProxyProtocolQueryInterceptor() {
@@ -155,8 +155,8 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   }
 
   @Override
-  public void register(IEndpointLifecycleSubscriber subscriber) {
-    subscribers.add(subscriber);
+  public void register(EventListener listener) {
+    listeners.add(listener);
   }
 
   private void resolvePeers() {
@@ -165,17 +165,17 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
         Set<InetAddress> resolved = resolver.resolve(proxyDnsName);
 
         if (!peers.equals(resolved)) {
-          // Generate subscriber events based on the differences between this and the previous
+          // Generate listener events based on the differences between this and the previous
           // resolved peers.
           Sets.SetView<InetAddress> added = Sets.difference(resolved, peers);
           Sets.SetView<InetAddress> removed = Sets.difference(peers, resolved);
 
-          for (IEndpointLifecycleSubscriber subscriber : subscribers) {
+          for (EventListener listener : listeners) {
             for (InetAddress peer : added) {
-              subscriber.onJoinCluster(peer);
+              listener.onJoinCluster(peer);
             }
             for (InetAddress peer : removed) {
-              subscriber.onLeaveCluster(peer);
+              listener.onLeaveCluster(peer);
             }
           }
           peers = resolved;

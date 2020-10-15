@@ -66,19 +66,17 @@ public class CqlActivator implements BundleActivator {
     if (cql != null) { // Already started
       return;
     }
-
-    cql = new CqlImpl(makeConfig());
-    cql.start(persistence, metrics, authentication);
+    cql = new CqlImpl(makeConfig(), persistence, metrics, authentication);
     log.info("Starting CQL");
+    cql.start();
   }
 
   private synchronized void maybeStopService() {
-    CqlImpl c = cql;
-    if (c != null) {
-      log.info(("Stopping CQL"));
-      c.stop();
+    if (cql != null) { // Not started
+      return;
     }
-
+    log.info(("Stopping CQL"));
+    cql.stop();
     cql = null;
   }
 

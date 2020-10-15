@@ -6,11 +6,15 @@ import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemPeers
 import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemPeersV2;
 
 import com.google.common.collect.Sets;
+import io.stargate.db.EventListener;
+import io.stargate.db.cassandra.impl.Conversion;
 import io.stargate.db.cassandra.impl.StargateSystemKeyspace;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryOptions;
@@ -24,9 +28,11 @@ import org.apache.cassandra.gms.VersionedValue;
 import org.apache.cassandra.locator.InetAddressAndPort;
 import org.apache.cassandra.schema.Schema;
 import org.apache.cassandra.schema.TableMetadata;
-import org.apache.cassandra.service.IEndpointLifecycleSubscriber;
 import org.apache.cassandra.service.QueryState;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.transport.messages.ResultMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A default interceptor implementation that returns only stargate nodes for `system.peers` queries,
@@ -34,9 +40,16 @@ import org.apache.cassandra.transport.messages.ResultMessage;
  * for both `system.local` and `system.peers` tables.
  */
 public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointStateChangeSubscriber {
+  private static final Logger logger = LoggerFactory.getLogger(DefaultQueryInterceptor.class);
 
-  private final List<IEndpointLifecycleSubscriber> subscribers = new CopyOnWriteArrayList<>();
+  private final List<EventListener> listeners = new CopyOnWriteArrayList<>();
   private final Set<InetAddressAndPort> liveStargateNodes = Sets.newConcurrentHashSet();
+
+  // We also want to delay delivering a NEW_NODE notification until the new node has set its RPC
+  // ready state. This tracks the endpoints which have joined, but not yet signalled they're ready
+  // for clients.
+  private final Set<InetAddressAndPort> endpointsPendingJoinedNotification =
+      ConcurrentHashMap.newKeySet();
 
   @Override
   public void initialize() {
@@ -80,13 +93,16 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
   }
 
   @Override
-  public void register(IEndpointLifecycleSubscriber subscriber) {
-    subscribers.add(subscriber);
+  public void register(EventListener listener) {
+    listeners.add(listener);
   }
 
   @Override
   public void onJoin(InetAddressAndPort endpoint, EndpointState epState) {
-    addStargateNode(endpoint, epState);
+    if (!isStargateNode(epState)) {
+      return;
+    }
+    maybeJoinCluster(endpoint);
   }
 
   @Override
@@ -98,37 +114,122 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
 
   @Override
   public void onChange(InetAddressAndPort endpoint, ApplicationState state, VersionedValue value) {
+    if (state == ApplicationState.STATUS || state == ApplicationState.STATUS_WITH_PORT) {
+      return;
+    }
+
     EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(endpoint);
     if (epState == null || Gossiper.instance.isDeadState(epState)) {
       return;
     }
 
-    addStargateNode(endpoint, epState);
-  }
-
-  @Override
-  public void onAlive(InetAddressAndPort endpoint, EndpointState state) {}
-
-  @Override
-  public void onDead(InetAddressAndPort endpoint, EndpointState state) {}
-
-  @Override
-  public void onRemove(InetAddressAndPort endpoint) {
-    if (!liveStargateNodes.remove(endpoint)) {
+    if (!isStargateNode(epState)) {
       return;
     }
 
-    for (IEndpointLifecycleSubscriber subscriber : subscribers) subscriber.onLeaveCluster(endpoint);
+    maybeJoinCluster(endpoint);
+
+    if (state == ApplicationState.RPC_READY) {
+      notifyRpcChange(endpoint);
+    }
+  }
+
+  @Override
+  public void onAlive(InetAddressAndPort endpoint, EndpointState state) {
+    if (!isStargateNode(state)) {
+      return;
+    }
+    notifyUp(endpoint);
+  }
+
+  @Override
+  public void onDead(InetAddressAndPort endpoint, EndpointState state) {
+    if (!isStargateNode(state)) {
+      return;
+    }
+    notifyDown(endpoint);
+  }
+
+  @Override
+  public void onRemove(InetAddressAndPort endpoint) {
+    leaveCluster(endpoint);
   }
 
   @Override
   public void onRestart(InetAddressAndPort endpoint, EndpointState state) {}
 
-  private void addStargateNode(InetAddressAndPort endpoint, EndpointState epState) {
-    if (!isStargateNode(epState) || !liveStargateNodes.add(endpoint)) {
+  private void maybeJoinCluster(InetAddressAndPort endpoint) {
+    if (StorageService.instance.isRpcReady(endpoint)) {
+      joinCluster(endpoint);
+    } else {
+      endpointsPendingJoinedNotification.add(endpoint);
+    }
+  }
+
+  private void joinCluster(InetAddressAndPort endpoint) {
+    if (!liveStargateNodes.add(endpoint)) {
+      return;
+    }
+    org.apache.cassandra.stargate.locator.InetAddressAndPort nativeAddress =
+        getNativeAddress(endpoint);
+    for (EventListener listener : listeners) {
+      listener.onJoinCluster(nativeAddress);
+    }
+  }
+
+  private void leaveCluster(InetAddressAndPort endpoint) {
+    if (!liveStargateNodes.remove(endpoint)) {
+      return;
+    }
+    org.apache.cassandra.stargate.locator.InetAddressAndPort nativeAddress =
+        getNativeAddress(endpoint);
+    for (EventListener listener : listeners) {
+      listener.onLeaveCluster(nativeAddress);
+    }
+  }
+
+  private void notifyRpcChange(InetAddressAndPort endpoint) {
+    if (StorageService.instance.isRpcReady(endpoint)) {
+      notifyUp(endpoint);
+    } else {
+      notifyDown(endpoint);
+    }
+  }
+
+  private void notifyUp(InetAddressAndPort endpoint) {
+    if (!StorageService.instance.isRpcReady(endpoint) || !Gossiper.instance.isAlive(endpoint)) {
       return;
     }
 
-    for (IEndpointLifecycleSubscriber subscriber : subscribers) subscriber.onJoinCluster(endpoint);
+    if (endpointsPendingJoinedNotification.remove(endpoint)) {
+      joinCluster(endpoint);
+    }
+
+    org.apache.cassandra.stargate.locator.InetAddressAndPort nativeAddress =
+        getNativeAddress(endpoint);
+    for (EventListener listener : listeners) {
+      listener.onUp(nativeAddress);
+    }
+  }
+
+  private void notifyDown(InetAddressAndPort endpoint) {
+    org.apache.cassandra.stargate.locator.InetAddressAndPort nativeAddress =
+        getNativeAddress(endpoint);
+    for (EventListener listener : listeners) {
+      listener.onDown(nativeAddress);
+    }
+  }
+
+  private org.apache.cassandra.stargate.locator.InetAddressAndPort getNativeAddress(
+      InetAddressAndPort endpoint) {
+    try {
+      return org.apache.cassandra.stargate.locator.InetAddressAndPort.getByName(
+          StorageService.instance.getNativeaddress(endpoint, true));
+    } catch (UnknownHostException e) {
+      // That should not happen, so log an error, but return the
+      // endpoint address since there's a good change this is right
+      logger.error("Problem retrieving RPC address for {}", endpoint, e);
+      return Conversion.toExternal(endpoint);
+    }
   }
 }
