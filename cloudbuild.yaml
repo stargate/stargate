@@ -2,7 +2,7 @@ steps:
   - id: 'pull image'
     name: 'gcr.io/stargateio/stargate-builder:v1.0.1'
     entrypoint: 'bash'
-    args: [ 'echo', 'pulled builder' ]
+    args: [ '-c', 'echo pulled builder' ]
   - id: 'fetch_secret'
     waitFor: [ '-' ]
     name: gcr.io/cloud-builders/gcloud
