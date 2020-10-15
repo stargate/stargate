@@ -1397,7 +1397,7 @@ public class DocumentServiceTest {
     when(dbMock.executeSelectAll(anyString(), anyString())).thenReturn(rsMock);
     when(dbMock.executeSelect(anyString(), anyString(), anyObject(), anyBoolean()))
         .thenReturn(rsMock);
-    when(rsMock.rows()).thenReturn(rows);
+    when(rsMock.currentPageRows()).thenReturn(rows);
 
     List<FilterCondition> filters =
         ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$eq", true));
