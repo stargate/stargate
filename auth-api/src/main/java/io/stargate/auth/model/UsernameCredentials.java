@@ -18,13 +18,16 @@ package io.stargate.auth.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModelProperty;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class UsernameCredentials {
-
   String username;
 
+  @ApiModelProperty(
+      required = true,
+      value = "The username of the user within the database to generate a token for.")
   @JsonProperty("username")
   public String getUsername() {
     return username;

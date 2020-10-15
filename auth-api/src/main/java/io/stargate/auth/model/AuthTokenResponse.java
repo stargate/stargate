@@ -17,6 +17,7 @@ package io.stargate.auth.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModelProperty;
 import java.util.Objects;
 
 /** AuthTokenResponse contains an authentication token to be used for future requests. */
@@ -30,6 +31,9 @@ public class AuthTokenResponse {
   }
 
   @JsonProperty("authToken")
+  @ApiModelProperty(
+      required = true,
+      value = "The authentication token to use for authorizing other requests.")
   public String getAuthToken() {
     return authToken;
   }

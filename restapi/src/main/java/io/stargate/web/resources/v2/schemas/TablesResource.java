@@ -157,7 +157,8 @@ public class TablesResource {
   @ApiOperation(
       value = "Create a table",
       notes = "Add a table in a specific keyspace.",
-      response = Map.class)
+      response = Map.class,
+      code = 201)
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = Map.class),
