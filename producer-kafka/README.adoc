@@ -95,9 +95,9 @@ By doing so, you will break the consumers of the Kafka topic. You are allowed to
 
 
 === Value Schema
-The value schema is more complicated because it must allow three states for any non-Primary Key field.
-The first state is an actual value denoting that this value changed. The second state is the absence of a value, meaning no change for a given field.
-The third state that it should allow is null value for a given field. This denotes clearing of the specific value (due to either being deleted or set to null explicitly).
+The value schema is more complicated because it must allow three states for any Non-Primary Key field.
+A given column of a row can have a new value during a database mutation, it can be cleared (set to null) or left unchanged.
+In the same way, for a given field, the Value schema can contain the new value, the null value, or the absence of the value.
 Let's take a look at a simple value schema with three fields: the primary key of a string type, the clustering key that is an int, and the normal column value that is a string:
 [source,json]
 ----
