@@ -26,23 +26,16 @@ import graphql.schema.GraphQLNonNull;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLOutputType;
 import graphql.schema.GraphQLType;
-import java.util.Map;
 
 public class GqlMapBuilder {
   private final GraphQLType keyType;
   private final GraphQLType valueType;
   private final boolean isInput;
-  private final Map<String, GraphQLType> typeCache;
 
-  public GqlMapBuilder(
-      GraphQLType keyType,
-      GraphQLType valueType,
-      boolean isInput,
-      Map<String, GraphQLType> typeCache) {
+  public GqlMapBuilder(GraphQLType keyType, GraphQLType valueType, boolean isInput) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.isInput = isInput;
-    this.typeCache = typeCache;
   }
 
   public GraphQLType build() {
@@ -57,16 +50,7 @@ public class GqlMapBuilder {
         String.format("%sKey%sValue%s", isInput ? "Input" : "", keyTypeName, valueTypeName);
 
     // Maps composed of the same sub types should be the same type
-    return typeCache.computeIfAbsent(
-        name,
-        n -> {
-          // There's no public interfaces, it has to be done in 2 separate implementations
-          if (isInput) {
-            return buildInputType(n);
-          }
-
-          return buildOutputType(n);
-        });
+    return isInput ? buildInputType(name) : buildOutputType(name);
   }
 
   private GraphQLInputType buildInputType(String name) {

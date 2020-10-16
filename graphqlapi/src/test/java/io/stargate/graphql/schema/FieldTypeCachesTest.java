@@ -1,6 +1,5 @@
 package io.stargate.graphql.schema;
 
-import static io.stargate.graphql.schema.DmlSchemaBuilder.getGraphQLType;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -19,11 +18,10 @@ import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchemaElement;
 import graphql.schema.GraphQLType;
 import io.stargate.db.schema.Column;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -32,14 +30,23 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class DmlSchemaBuilderTest {
-  private Map<String, GraphQLType> typeCache = new HashMap<>();
+public class FieldTypeCachesTest {
   @Mock private NameMapping nameMapping;
+
+  private FieldInputTypeCache fieldInputTypes;
+  private FieldOutputTypeCache fieldOutputTypes;
+
+  @BeforeEach
+  public void setup() {
+    fieldInputTypes = new FieldInputTypeCache(nameMapping);
+    fieldOutputTypes = new FieldOutputTypeCache(nameMapping);
+  }
 
   @ParameterizedTest
   @MethodSource("getScalarTypes")
   public void getGraphQLTypeShouldSupportScalarTypes(
       Column.Type dbType, GraphQLScalarType gqlType) {
+
     assertThat(getInputType(dbType)).isEqualTo(gqlType);
   }
 
@@ -107,15 +114,13 @@ public class DmlSchemaBuilderTest {
   @MethodSource("getMapArgs")
   public void getGraphQLTypeShouldReuseTheSameInstanceForMaps(
       Column.ColumnType keyDbType, Column.ColumnType valueDbType) {
-    Map<String, GraphQLType> typeCache = new HashMap<>();
     Column.ColumnType mapDbType = Column.Type.Map.of(keyDbType, valueDbType);
-    GraphQLType graphTypeParentType = getGraphQLType(mapDbType, false, typeCache, nameMapping);
+    GraphQLType graphTypeParentType = getOutputType(mapDbType);
     assertThat(graphTypeParentType).isInstanceOf(GraphQLList.class);
     GraphQLSchemaElement childObjectType = graphTypeParentType.getChildren().get(0);
 
     // Following calls should yield the same instance
-    assertThat(childObjectType)
-        .isSameAs(getGraphQLType(mapDbType, false, typeCache, nameMapping).getChildren().get(0));
+    assertThat(childObjectType).isSameAs(getOutputType(mapDbType).getChildren().get(0));
   }
 
   @ParameterizedTest
@@ -209,15 +214,11 @@ public class DmlSchemaBuilderTest {
 
   /** Gets a GraphQL input type using the shared cache */
   private GraphQLInputType getInputType(Column.ColumnType dbType) {
-    GraphQLType result = getGraphQLType(dbType, true, typeCache, nameMapping);
-    assertThat(result).isInstanceOf(GraphQLInputType.class);
-    return (GraphQLInputType) result;
+    return fieldInputTypes.get(dbType);
   }
 
   /** Gets a GraphQL output type using the shared cache */
   private GraphQLOutputType getOutputType(Column.ColumnType dbType) {
-    GraphQLType result = getGraphQLType(dbType, false, typeCache, nameMapping);
-    assertThat(result).isInstanceOf(GraphQLOutputType.class);
-    return (GraphQLOutputType) result;
+    return fieldOutputTypes.get(dbType);
   }
 }

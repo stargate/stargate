@@ -31,9 +31,8 @@ public class DmlSchemaBuilderUdtTest extends DmlTestBase {
     assertThat(aInputType.getFields()).hasSize(1);
     assertThat(aInputType.getField("b").getType()).isEqualTo(bInputType);
 
-    GraphQLInputObjectType bFilterInputType =
-        ((GraphQLInputObjectType) graphQlSchema.getType("BUdtFilterInput"));
-    assertFilterInput(bFilterInputType, bInputType);
+    // Note that there is no BUdtFilterInput, because it is not reference directly by a column, only
+    // as a nested field of a.
 
     GraphQLInputObjectType aFilterInputType =
         ((GraphQLInputObjectType) graphQlSchema.getType("AUdtFilterInput"));
