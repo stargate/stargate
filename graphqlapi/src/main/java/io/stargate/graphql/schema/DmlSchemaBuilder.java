@@ -21,6 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import graphql.Scalars;
 import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLEnumType;
@@ -41,11 +42,12 @@ import io.stargate.db.Persistence;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
+import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.schema.fetchers.dml.DeleteMutationFetcher;
-import io.stargate.graphql.schema.fetchers.dml.GqlMapBuilder;
 import io.stargate.graphql.schema.fetchers.dml.InsertMutationFetcher;
 import io.stargate.graphql.schema.fetchers.dml.QueryFetcher;
 import io.stargate.graphql.schema.fetchers.dml.UpdateMutationFetcher;
+import io.stargate.graphql.schema.types.GqlMapBuilder;
 import io.stargate.graphql.util.CaseUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -65,7 +67,7 @@ class DmlSchemaBuilder {
   private final Map<Table, GraphQLOutputType> entityResultMap = new HashMap<>();
   private final Map<String, GraphQLType> typeCache = new HashMap<>();
   private final NameMapping nameMapping;
-  private Set<Table> tables;
+  private final Keyspace keyspace;
 
   private GraphQLInputType mutationOptions =
       GraphQLInputObjectType.newInputObject()
@@ -103,20 +105,24 @@ class DmlSchemaBuilder {
       Persistence persistence, AuthenticationService authenticationService, Keyspace keyspace) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
-    this.tables = keyspace.tables();
+    this.keyspace = keyspace;
 
-    this.nameMapping = new NameMapping(tables);
+    this.nameMapping = new NameMapping(keyspace.tables(), keyspace.userDefinedTypes());
     this.filterInputTypes = buildFilterInputTypes();
   }
 
   GraphQLSchema build() {
     GraphQLSchema.Builder builder = new GraphQLSchema.Builder();
 
+    for (UserDefinedType udt : keyspace.userDefinedTypes()) {
+      builder.additionalTypes(buildTypesForUdt(udt));
+    }
+
     List<GraphQLFieldDefinition> queryFields = new ArrayList<>();
     List<GraphQLFieldDefinition> mutationFields = new ArrayList<>();
 
     // Tables must be iterated one at a time. If a table is unfulfillable, it is skipped
-    for (Table table : tables) {
+    for (Table table : keyspace.tables()) {
       Set<GraphQLType> additionalTypes;
       List<GraphQLFieldDefinition> tableQueryField;
       List<GraphQLFieldDefinition> tableMutationFields;
@@ -190,20 +196,21 @@ class DmlSchemaBuilder {
                 GraphQLArgument.newArgument()
                     .name("value")
                     .type(
-                        new GraphQLTypeReference(nameMapping.getEntityName().get(table) + "Input")))
+                        new GraphQLTypeReference(
+                            nameMapping.getEntityNames().get(table) + "Input")))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("filter")
                     .type(
                         new GraphQLTypeReference(
-                            nameMapping.getEntityName().get(table) + "FilterInput")))
+                            nameMapping.getEntityNames().get(table) + "FilterInput")))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("orderBy")
                     .type(
                         new GraphQLList(
                             new GraphQLTypeReference(
-                                nameMapping.getEntityName().get(table) + "Order"))))
+                                nameMapping.getEntityNames().get(table) + "Order"))))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("options")
@@ -221,14 +228,14 @@ class DmlSchemaBuilder {
                     .name("filter")
                     .type(
                         new GraphQLTypeReference(
-                            nameMapping.getEntityName().get(table) + "FilterInput")))
+                            nameMapping.getEntityNames().get(table) + "FilterInput")))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("orderBy")
                     .type(
                         new GraphQLList(
                             new GraphQLTypeReference(
-                                nameMapping.getEntityName().get(table) + "Order"))))
+                                nameMapping.getEntityNames().get(table) + "Order"))))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("options")
@@ -262,30 +269,30 @@ class DmlSchemaBuilder {
 
   private GraphQLType buildFilterInput(Table table) {
     return GraphQLInputObjectType.newInputObject()
-        .name(nameMapping.getEntityName().get(table) + "FilterInput")
+        .name(nameMapping.getEntityNames().get(table) + "FilterInput")
         .fields(buildFilterInputFields(table))
         .build();
   }
 
   private GraphQLFieldDefinition buildUpdate(Table table) {
     return GraphQLFieldDefinition.newFieldDefinition()
-        .name("update" + nameMapping.getEntityName().get(table))
+        .name("update" + nameMapping.getEntityNames().get(table))
         .argument(
             GraphQLArgument.newArgument()
                 .name("value")
                 .type(
                     new GraphQLNonNull(
                         new GraphQLTypeReference(
-                            nameMapping.getEntityName().get(table) + "Input"))))
+                            nameMapping.getEntityNames().get(table) + "Input"))))
         .argument(GraphQLArgument.newArgument().name("ifExists").type(Scalars.GraphQLBoolean))
         .argument(
             GraphQLArgument.newArgument()
                 .name("ifCondition")
                 .type(
                     new GraphQLTypeReference(
-                        nameMapping.getEntityName().get(table) + "FilterInput")))
+                        nameMapping.getEntityNames().get(table) + "FilterInput")))
         .argument(GraphQLArgument.newArgument().name("options").type(mutationOptions))
-        .type(new GraphQLTypeReference(nameMapping.getEntityName().get(table) + "MutationResult"))
+        .type(new GraphQLTypeReference(nameMapping.getEntityNames().get(table) + "MutationResult"))
         .dataFetcher(
             new UpdateMutationFetcher(table, nameMapping, persistence, authenticationService))
         .build();
@@ -293,17 +300,17 @@ class DmlSchemaBuilder {
 
   private GraphQLFieldDefinition buildInsert(Table table) {
     return GraphQLFieldDefinition.newFieldDefinition()
-        .name("insert" + nameMapping.getEntityName().get(table))
+        .name("insert" + nameMapping.getEntityNames().get(table))
         .argument(
             GraphQLArgument.newArgument()
                 .name("value")
                 .type(
                     new GraphQLNonNull(
                         new GraphQLTypeReference(
-                            nameMapping.getEntityName().get(table) + "Input"))))
+                            nameMapping.getEntityNames().get(table) + "Input"))))
         .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
         .argument(GraphQLArgument.newArgument().name("options").type(mutationOptions))
-        .type(new GraphQLTypeReference(nameMapping.getEntityName().get(table) + "MutationResult"))
+        .type(new GraphQLTypeReference(nameMapping.getEntityNames().get(table) + "MutationResult"))
         .dataFetcher(
             new InsertMutationFetcher(table, nameMapping, persistence, authenticationService))
         .build();
@@ -311,23 +318,23 @@ class DmlSchemaBuilder {
 
   private GraphQLFieldDefinition buildDelete(Table table) {
     return GraphQLFieldDefinition.newFieldDefinition()
-        .name("delete" + nameMapping.getEntityName().get(table))
+        .name("delete" + nameMapping.getEntityNames().get(table))
         .argument(
             GraphQLArgument.newArgument()
                 .name("value")
                 .type(
                     new GraphQLNonNull(
                         new GraphQLTypeReference(
-                            nameMapping.getEntityName().get(table) + "Input"))))
+                            nameMapping.getEntityNames().get(table) + "Input"))))
         .argument(GraphQLArgument.newArgument().name("ifExists").type(Scalars.GraphQLBoolean))
         .argument(
             GraphQLArgument.newArgument()
                 .name("ifCondition")
                 .type(
                     new GraphQLTypeReference(
-                        nameMapping.getEntityName().get(table) + "FilterInput")))
+                        nameMapping.getEntityNames().get(table) + "FilterInput")))
         .argument(GraphQLArgument.newArgument().name("options").type(mutationOptions))
-        .type(new GraphQLTypeReference(nameMapping.getEntityName().get(table) + "MutationResult"))
+        .type(new GraphQLTypeReference(nameMapping.getEntityNames().get(table) + "MutationResult"))
         .dataFetcher(
             new DeleteMutationFetcher(table, nameMapping, persistence, authenticationService))
         .build();
@@ -373,11 +380,21 @@ class DmlSchemaBuilder {
   private List<GraphQLInputObjectField> buildFilterInputFields(Table table) {
     List<GraphQLInputObjectField> fields = new ArrayList<>();
     for (Column columnMetadata : table.columns()) {
-      if (filterInputTypes.get(columnMetadata.type()) != null) {
+      Column.ColumnType type = columnMetadata.type();
+      if (type != null && type.isUserDefined()) {
+        assert type instanceof UserDefinedType;
         fields.add(
             GraphQLInputObjectField.newInputObjectField()
-                .name(nameMapping.getColumnName(table).get(columnMetadata))
-                .type(getFilterInputTypeRef(columnMetadata.type()))
+                .name(nameMapping.getColumnNames(table).get(columnMetadata))
+                .type(
+                    new GraphQLTypeReference(
+                        nameMapping.getUdtNames().get(type.frozen(false)) + "FilterInput"))
+                .build());
+      } else if (filterInputTypes.get(type) != null) {
+        fields.add(
+            GraphQLInputObjectField.newInputObjectField()
+                .name(nameMapping.getColumnNames(table).get(columnMetadata))
+                .type(getFilterInputTypeRef(type))
                 .build());
       }
     }
@@ -393,21 +410,29 @@ class DmlSchemaBuilder {
   }
 
   private static GraphQLInputObjectType filterInputType(GraphQLScalarType type) {
+    return filterInputType(type.getName() + "FilterInput", type);
+  }
+
+  private static GraphQLInputObjectType filterInputType(
+      String filterInputTypeName, GraphQLInputType elementType) {
     return GraphQLInputObjectType.newInputObject()
-        .name(type.getName() + "FilterInput")
-        .field(GraphQLInputObjectField.newInputObjectField().name("eq").type(type))
-        .field(GraphQLInputObjectField.newInputObjectField().name("notEq").type(type))
-        .field(GraphQLInputObjectField.newInputObjectField().name("gt").type(type))
-        .field(GraphQLInputObjectField.newInputObjectField().name("gte").type(type))
-        .field(GraphQLInputObjectField.newInputObjectField().name("lt").type(type))
-        .field(GraphQLInputObjectField.newInputObjectField().name("lte").type(type))
-        .field(GraphQLInputObjectField.newInputObjectField().name("in").type(new GraphQLList(type)))
+        .name(filterInputTypeName)
+        .field(GraphQLInputObjectField.newInputObjectField().name("eq").type(elementType))
+        .field(GraphQLInputObjectField.newInputObjectField().name("notEq").type(elementType))
+        .field(GraphQLInputObjectField.newInputObjectField().name("gt").type(elementType))
+        .field(GraphQLInputObjectField.newInputObjectField().name("gte").type(elementType))
+        .field(GraphQLInputObjectField.newInputObjectField().name("lt").type(elementType))
+        .field(GraphQLInputObjectField.newInputObjectField().name("lte").type(elementType))
+        .field(
+            GraphQLInputObjectField.newInputObjectField()
+                .name("in")
+                .type(new GraphQLList(elementType)))
         .build();
   }
 
   private GraphQLOutputType buildMutationResult(Table table) {
     return GraphQLObjectType.newObject()
-        .name(nameMapping.getEntityName().get(table) + "MutationResult")
+        .name(nameMapping.getEntityNames().get(table) + "MutationResult")
         .field(
             GraphQLFieldDefinition.newFieldDefinition()
                 .name("applied")
@@ -415,7 +440,7 @@ class DmlSchemaBuilder {
         .field(
             GraphQLFieldDefinition.newFieldDefinition()
                 .name("value")
-                .type(new GraphQLTypeReference(nameMapping.getEntityName().get(table))))
+                .type(new GraphQLTypeReference(nameMapping.getEntityNames().get(table))))
         .build();
   }
 
@@ -456,10 +481,10 @@ class DmlSchemaBuilder {
 
   private GraphQLType buildOrderType(Table table) {
     GraphQLEnumType.Builder input =
-        GraphQLEnumType.newEnum().name(nameMapping.getEntityName().get(table) + "Order");
+        GraphQLEnumType.newEnum().name(nameMapping.getEntityNames().get(table) + "Order");
     for (Column columnMetadata : table.columns()) {
-      input.value(nameMapping.getColumnName(table).get(columnMetadata) + "_DESC");
-      input.value(nameMapping.getColumnName(table).get(columnMetadata) + "_ASC");
+      input.value(nameMapping.getColumnNames(table).get(columnMetadata) + "_DESC");
+      input.value(nameMapping.getColumnNames(table).get(columnMetadata) + "_ASC");
     }
     return input.build();
   }
@@ -467,12 +492,12 @@ class DmlSchemaBuilder {
   private GraphQLType buildInputType(Table table) {
     GraphQLInputObjectType.Builder input =
         GraphQLInputObjectType.newInputObject()
-            .name(nameMapping.getEntityName().get(table) + "Input");
+            .name(nameMapping.getEntityNames().get(table) + "Input");
     for (Column columnMetadata : table.columns()) {
       try {
         GraphQLInputObjectField field =
             GraphQLInputObjectField.newInputObjectField()
-                .name(nameMapping.getColumnName(table).get(columnMetadata))
+                .name(nameMapping.getColumnNames(table).get(columnMetadata))
                 .type((GraphQLInputType) getGraphQLType(columnMetadata.type(), true))
                 .build();
         input.field(field);
@@ -491,7 +516,7 @@ class DmlSchemaBuilder {
 
     GraphQLOutputType entityResultType =
         GraphQLObjectType.newObject()
-            .name(nameMapping.getEntityName().get(table) + "Result")
+            .name(nameMapping.getEntityNames().get(table) + "Result")
             .field(
                 GraphQLFieldDefinition.newFieldDefinition().name("pageState").type(GraphQLString))
             .field(
@@ -500,7 +525,8 @@ class DmlSchemaBuilder {
                     .type(
                         new GraphQLList(
                             new GraphQLNonNull(
-                                new GraphQLTypeReference(nameMapping.getEntityName().get(table))))))
+                                new GraphQLTypeReference(
+                                    nameMapping.getEntityNames().get(table))))))
             .build();
 
     entityResultMap.put(table, entityResultType);
@@ -510,7 +536,7 @@ class DmlSchemaBuilder {
 
   public GraphQLObjectType buildType(Table table) {
     GraphQLObjectType.Builder builder =
-        GraphQLObjectType.newObject().name(nameMapping.getEntityName().get(table));
+        GraphQLObjectType.newObject().name(nameMapping.getEntityNames().get(table));
     for (Column columnMetadata : table.columns()) {
       try {
         GraphQLFieldDefinition.Builder fieldBuilder = buildOutputField(table, columnMetadata);
@@ -525,17 +551,57 @@ class DmlSchemaBuilder {
 
   private GraphQLFieldDefinition.Builder buildOutputField(Table table, Column columnMetadata) {
     return new GraphQLFieldDefinition.Builder()
-        .name(nameMapping.getColumnName(table).get(columnMetadata))
+        .name(nameMapping.getColumnNames(table).get(columnMetadata))
         .type((GraphQLOutputType) getGraphQLType(columnMetadata.type(), false));
   }
 
+  private Set<GraphQLType> buildTypesForUdt(UserDefinedType udt) {
+
+    String typeNameBase = nameMapping.getUdtNames().get(udt.frozen(false));
+
+    GraphQLObjectType.Builder outputType = GraphQLObjectType.newObject().name(typeNameBase);
+    for (Column column : udt.columns()) {
+      try {
+        outputType.field(
+            new GraphQLFieldDefinition.Builder()
+                .name(nameMapping.getFieldNames(udt).get(column))
+                .type((GraphQLOutputType) getGraphQLType(column.type(), false))
+                .build());
+      } catch (Exception e) {
+        log.error(String.format("Type for %s could not be created", column.name()), e);
+      }
+    }
+
+    GraphQLInputObjectType.Builder inputType =
+        GraphQLInputObjectType.newInputObject().name(typeNameBase + "Input");
+    for (Column column : udt.columns()) {
+      try {
+        inputType.field(
+            GraphQLInputObjectField.newInputObjectField()
+                .name(nameMapping.getFieldNames(udt).get(column))
+                .type((GraphQLInputType) getGraphQLType(column.type(), true))
+                .build());
+      } catch (Exception e) {
+        log.error(String.format("Input type for %s could not be created", column.name()), e);
+      }
+    }
+    GraphQLInputObjectType filterInputType =
+        filterInputType(
+            typeNameBase + "FilterInput", new GraphQLTypeReference(typeNameBase + "Input"));
+
+    return ImmutableSet.of(outputType.build(), inputType.build(), filterInputType);
+  }
+
   private GraphQLType getGraphQLType(Column.ColumnType type, boolean isInput) {
-    return getGraphQLType(type, isInput, typeCache);
+    return getGraphQLType(type, isInput, typeCache, nameMapping);
   }
 
   @VisibleForTesting
   static GraphQLType getGraphQLType(
-      Column.ColumnType type, boolean isInput, Map<String, GraphQLType> typeCache) {
+      Column.ColumnType type,
+      boolean isInput,
+      Map<String, GraphQLType> typeCache,
+      NameMapping nameMapping) {
     switch (type.rawType()) {
       case Ascii:
         return CustomScalar.ASCII.getGraphQLScalar();
@@ -560,13 +626,12 @@ class DmlSchemaBuilder {
       case Tinyint:
         return Scalars.GraphQLInt;
       case Text:
+      case Varchar:
         return Scalars.GraphQLString;
       case Timestamp:
         return CustomScalar.TIMESTAMP.getGraphQLScalar();
       case Uuid:
         return CustomScalar.UUID.getGraphQLScalar();
-      case Varchar:
-        return Scalars.GraphQLString;
       case Varint:
         return CustomScalar.VARINT.getGraphQLScalar();
       case Timeuuid:
@@ -579,11 +644,18 @@ class DmlSchemaBuilder {
         return CustomScalar.TIME.getGraphQLScalar();
       case List:
       case Set:
-        return new GraphQLList(getGraphQLType(type.parameters().get(0), isInput, typeCache));
+        return new GraphQLList(
+            getGraphQLType(type.parameters().get(0), isInput, typeCache, nameMapping));
       case Map:
-        GraphQLType keyType = getGraphQLType(type.parameters().get(0), isInput, typeCache);
-        GraphQLType valueType = getGraphQLType(type.parameters().get(1), isInput, typeCache);
+        GraphQLType keyType =
+            getGraphQLType(type.parameters().get(0), isInput, typeCache, nameMapping);
+        GraphQLType valueType =
+            getGraphQLType(type.parameters().get(1), isInput, typeCache, nameMapping);
         return new GqlMapBuilder(keyType, valueType, isInput, typeCache).build();
+      case UDT:
+        UserDefinedType udt = (UserDefinedType) type.frozen(false);
+        return new GraphQLTypeReference(
+            nameMapping.getUdtNames().get(udt) + (isInput ? "Input" : ""));
       default:
         break;
     }
