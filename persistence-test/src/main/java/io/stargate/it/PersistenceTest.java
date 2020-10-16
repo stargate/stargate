@@ -51,19 +51,19 @@ import static io.stargate.db.schema.Column.Type.Varint;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.fail;
 
+import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
-import io.stargate.db.ClientState;
+import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
+import io.stargate.db.Result;
+import io.stargate.db.SimpleStatement;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.ExecutionInfo;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
-import io.stargate.db.datastore.query.Parameter;
 import io.stargate.db.datastore.query.Value;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableTupleType;
@@ -114,6 +114,13 @@ import org.slf4j.LoggerFactory;
 public abstract class PersistenceTest {
   private static final Logger logger = LoggerFactory.getLogger(PersistenceTest.class);
 
+  static {
+    // Required by the testWarnings() so a warning is generated (rather than a rejection). Unlikely
+    // to ever influence another test. This needs to be really early, before the concrete
+    // implementations initialize their persistence so it gets picked up.
+    System.setProperty("cassandra.expiration_date_overflow_policy", "CAP");
+  }
+
   protected static final int KEYSPACE_NAME_MAX_LENGTH = 48;
 
   private DataStore dataStore;
@@ -129,11 +136,8 @@ public abstract class PersistenceTest {
   public void setup(TestInfo testInfo, ClusterConnectionInfo backend) {
     this.backend = backend;
 
-    Persistence persistence = persistence();
-    ClientState clientState = persistence.newClientState("");
-    QueryState queryState = persistence.newQueryState(clientState);
-    dataStore = persistence.newDataStore(queryState, null);
-    logger.info("{} {} {}", clientState, queryState, dataStore);
+    dataStore = DataStore.create(persistence());
+    logger.info("{}", dataStore);
 
     Optional<String> name = testInfo.getTestMethod().map(Method::getName);
     assertThat(name).isPresent();
@@ -167,11 +171,9 @@ public abstract class PersistenceTest {
     assertThat(row.getString("data_center")).isEqualTo(backend.datacenter());
 
     rs = dataStore.query().select().column("data_center").from("system", "peers").future();
-    row = rs.get().one();
-
-    logger.info(String.valueOf(row));
-    assertThat(row).isNotNull();
-    assertThat(row.columns().get(0).name()).isEqualTo("data_center");
+    // As our modified local/peers table only include stargate nodes, we shouldn't have anyone
+    // in peers.
+    assertThat(rs.get().hasNoMoreFetchedRows()).isTrue();
   }
 
   @Test
@@ -423,7 +425,7 @@ public abstract class PersistenceTest {
               .execute()
               .one();
 
-      assertThat(row.getValue(columnName(pair.getValue0()))).isEqualTo(pair.getValue1());
+      assertThat(row.getObject(columnName(pair.getValue0()))).isEqualTo(pair.getValue1());
     }
   }
 
@@ -487,7 +489,7 @@ public abstract class PersistenceTest {
                     .execute()
                     .one();
             assertThat(row).isNotNull();
-            assertThat(row.getValue(c)).isEqualTo(v);
+            assertThat(row.getObject(c.name())).isEqualTo(v);
           } catch (Exception e) {
             fail(e.getMessage());
           }
@@ -580,7 +582,7 @@ public abstract class PersistenceTest {
         dataStore.query().select().star().from(ks.name(), table).where("x", Eq, 1).execute().rows();
     assertThat(rows).isNotEmpty();
     Row row = rows.get(0);
-    TupleValue tupleValue = row.getTuple("my_tuple");
+    TupleValue tupleValue = row.getTupleValue("my_tuple");
     assertThat(tupleValue).isNotNull();
     for (int i = 0; i < columns.size(); i++) {
       Column column = columns.get(i);
@@ -793,7 +795,7 @@ public abstract class PersistenceTest {
         .isInstanceOf(ExecutionException.class)
         .hasCauseExactlyInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(
-            "Wrong value type provided for column 'name'. "
+            "Wrong value provided for column 'name'. "
                 + "Provided type 'Integer' is not compatible with expected CQL type 'varchar'.");
   }
 
@@ -891,33 +893,20 @@ public abstract class PersistenceTest {
     ResultSet resultSet = dataStore.query().select().star().from(keyspace, table).execute();
 
     Iterator<Row> it = resultSet.iterator();
-    iterateOverResults(resultSet, it, knownValues, pageSize, totalResultSize); // page 1
-    iterateOverResults(resultSet, it, knownValues, pageSize, totalResultSize - pageSize); // page 2
-    iterateOverResults(resultSet, it, knownValues, 3, totalResultSize - (pageSize * 2)); // page 3
+    iterateOverResults(it, knownValues, pageSize); // page 1
+    iterateOverResults(it, knownValues, pageSize); // page 2
+    iterateOverResults(it, knownValues, 3); // page 3
 
-    if (dataStore.getClass().getSimpleName().equalsIgnoreCase("InternalDataStore")) {
-      // page should be exhausted at the end
-      assertThat(resultSet.size()).isEqualTo(0);
-    }
+    assertThat(it).isExhausted();
 
     // we should have seen all values
     assertThat(knownValues).isEmpty();
   }
 
-  private void iterateOverResults(
-      ResultSet resultSet,
-      Iterator<Row> it,
-      Set<Integer> knownValues,
-      int pageSize,
-      int totalResultSize) {
+  private void iterateOverResults(Iterator<Row> it, Set<Integer> knownValues, int pageSize) {
     for (int i = 1; i <= pageSize; i++) {
       assertThat(knownValues.remove(it.next().getInt("a"))).isTrue();
-      // for internal paging the size is totalSize - elementsAlreadyFetched
-      assertThat(resultSet.size()).isEqualTo(totalResultSize - i);
     }
-
-    // for internal paging it will be totalSize - elementsAlreadyFetched
-    assertThat(resultSet.size()).isEqualTo(totalResultSize - pageSize);
   }
 
   @Test
@@ -959,7 +948,7 @@ public abstract class PersistenceTest {
         .query(
             String.format("insert into %s.%s (a,b) values (?,?)", tbl.cqlKeyspace(), tbl.cqlName()),
             23,
-            Parameter.UNSET)
+            DataStore.UNSET)
         .get();
 
     ResultSet resultSet =
@@ -997,7 +986,7 @@ public abstract class PersistenceTest {
 
     row = dataStore.query().select().star().from(keyspace, table).execute().one();
     assertThat(row.getBoolean("graph")).isTrue();
-    assertThat(row.has("name")).isEqualTo(false);
+    assertThat(row.isNull("name")).isEqualTo(true);
   }
 
   @Test
@@ -1119,14 +1108,6 @@ public abstract class PersistenceTest {
     java.util.List<Row> rows = resultSet.rows();
     assertThat(rows).isNotEmpty();
     assertThat(rows.size()).isEqualTo(1);
-
-    ExecutionInfo executionInfo = resultSet.getExecutionInfo();
-    assertThat(executionInfo).isNotNull();
-    assertThat(executionInfo.count()).isEqualTo(1);
-    assertThat(executionInfo.durationNanos()).isGreaterThan(1);
-    Table tbl = dataStore.schema().keyspace(ks.name()).table(this.table);
-    assertThat(executionInfo.preparedCQL())
-        .isEqualTo(String.format("SELECT * FROM %s.%s WHERE x = ?", ks.cqlName(), tbl.cqlName()));
   }
 
   @Test
@@ -1148,7 +1129,7 @@ public abstract class PersistenceTest {
     ResultSet select = dataStore.query().select().star().from(keyspace, table).execute();
     assertThat(select.waitedForSchemaAgreement()).isFalse();
 
-    assertThat(select.isEmpty()).isFalse();
+    assertThat(select.hasNoMoreFetchedRows()).isFalse();
     assertThat(select.one().getBoolean("graph")).isTrue();
   }
 
@@ -1176,5 +1157,41 @@ public abstract class PersistenceTest {
     dataStore.waitForSchemaAgreement();
 
     return keyspace;
+  }
+
+  private static Result execute(
+      Persistence.Connection connection, String query, ByteBuffer... values)
+      throws ExecutionException, InterruptedException {
+    return connection
+        .execute(
+            new SimpleStatement(query, Arrays.asList(values)),
+            Parameters.defaults(),
+            System.nanoTime())
+        .get();
+  }
+
+  @Test
+  public void testWarnings() throws ExecutionException, InterruptedException {
+    // This test is admittedly a bit fragile, because the exact warnings that may or may not be
+    // raised are not strongly defined. Here, we pick the warning on TTL too large, because it's
+    // currently raised by all our persistence implementation, it's easy to trigger, and it feels
+    // like it'll probably stay for a while. But if this test start failing on some persistence
+    // implementation, we may have to adapt.
+    Keyspace ks = createKeyspace();
+
+    Persistence.Connection conn = persistence().newConnection();
+
+    execute(conn, "USE " + ks.cqlName());
+    execute(conn, "CREATE TABLE t (k int PRIMARY KEY)");
+
+    persistence().waitForSchemaAgreement();
+
+    // TTLs have a hard cap to 20 years, so we can't pass a bigger one that that or it will hard
+    // throw rather than warn (and cap the TTL).
+    ByteBuffer ttl = Int.codec().encode(20 * 365 * 24 * 60 * 60, ProtocolVersion.DEFAULT);
+    Result result = execute(conn, "INSERT INTO t(k) VALUES (0) USING TTL ?", ttl);
+
+    assertThat(result.getWarnings()).hasSize(1);
+    assertThat(result.getWarnings().get(0)).contains("exceeds maximum supported expiration");
   }
 }

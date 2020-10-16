@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 public class DsePersistenceActivator implements BundleActivator, ServiceListener {
   private static final Logger logger = LoggerFactory.getLogger(DsePersistenceActivator.class);
-  private Persistence dseDB;
+  private DsePersistence dseDB;
   private File baseDir;
   private volatile BundleContext context;
 

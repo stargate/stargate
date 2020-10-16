@@ -31,6 +31,6 @@ public interface Authenticator {
 
     boolean isComplete();
 
-    AuthenticatedUser<?> getAuthenticatedUser() throws AuthenticationException;
+    AuthenticatedUser getAuthenticatedUser() throws AuthenticationException;
   }
 }

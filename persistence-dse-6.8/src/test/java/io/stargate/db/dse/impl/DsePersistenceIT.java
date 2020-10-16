@@ -6,6 +6,7 @@ import io.stargate.it.PersistenceTest;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -39,6 +40,13 @@ public class DsePersistenceIT extends PersistenceTest {
     System.setProperty("stargate.cluster_name", backend.clusterName());
     System.setProperty("stargate.datacenter", backend.datacenter());
     System.setProperty("stargate.rack", backend.rack());
+    ClassLoader classLoader = DsePersistenceIT.class.getClassLoader();
+    URL resource = classLoader.getResource("logback-test.xml");
+
+    if (resource != null) {
+      File file = new File(resource.getFile());
+      System.setProperty("logback.configurationFile", file.getAbsolutePath());
+    }
 
     persistence = new DsePersistence();
     persistence.initialize(DsePersistenceActivator.makeConfig(baseDir));
