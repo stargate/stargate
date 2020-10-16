@@ -44,6 +44,7 @@ import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.db.marshal.UUIDType;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.QueryState;
+import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.slf4j.Logger;
@@ -56,6 +57,9 @@ import org.slf4j.LoggerFactory;
 public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   public static final String PROXY_DNS_NAME =
       System.getProperty("stargate.proxy_protocol.dns_name");
+  public static final int PROXY_PORT =
+      Integer.getInteger(
+          "stargate.proxy_protocol.port", DatabaseDescriptor.getNativeTransportPort());
   public static final long RESOLVE_DELAY_SECS =
       Long.getLong("stargate.proxy_protocol.resolve_delay_secs", 10);
 
@@ -80,19 +84,21 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
 
   private final Resolver resolver;
   private final String proxyDnsName;
+  private final int proxyPort;
   private final long resolveDelaySecs;
   private final List<EventListener> listeners = new CopyOnWriteArrayList<>();
   private volatile Set<InetAddress> peers = Collections.emptySet();
 
   public ProxyProtocolQueryInterceptor() {
-    this(new DefaultResolver(), PROXY_DNS_NAME, RESOLVE_DELAY_SECS);
+    this(new DefaultResolver(), PROXY_DNS_NAME, PROXY_PORT, RESOLVE_DELAY_SECS);
   }
 
   @VisibleForTesting
   public ProxyProtocolQueryInterceptor(
-      Resolver resolver, String proxyDnsName, long resolveDelaySecs) {
+      Resolver resolver, String proxyDnsName, int proxyPort, long resolveDelaySecs) {
     this.resolver = resolver;
     this.proxyDnsName = proxyDnsName;
+    this.proxyPort = proxyPort;
     this.resolveDelaySecs = resolveDelaySecs;
   }
 
@@ -137,17 +143,14 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
               : Lists.newArrayListWithCapacity(currentPeers.size() - 1);
       for (InetAddress peer : currentPeers) {
         if (!peer.equals(publicAddress.getAddress())) {
-          rows.add(buildRow(selectStatement.getResultMetadata(), peer, publicAddress.getPort()));
+          rows.add(buildRow(selectStatement.getResultMetadata(), peer));
         }
       }
     } else {
       assert tableName.equals(LocalNodeSystemView.NAME);
       rows =
           Collections.singletonList(
-              buildRow(
-                  selectStatement.getResultMetadata(),
-                  publicAddress.getAddress(),
-                  publicAddress.getPort()));
+              buildRow(selectStatement.getResultMetadata(), publicAddress.getAddress()));
     }
 
     ResultSet resultSet = new ResultSet(selectStatement.getResultMetadata(), rows);
@@ -172,10 +175,15 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
 
           for (EventListener listener : listeners) {
             for (InetAddress peer : added) {
-              listener.onJoinCluster(peer);
+              InetAddressAndPort endpoint =
+                  InetAddressAndPort.getByAddressOverrideDefaults(peer, proxyPort);
+              listener.onJoinCluster(endpoint);
+              listener.onUp(endpoint);
             }
             for (InetAddress peer : removed) {
-              listener.onLeaveCluster(peer);
+              InetAddressAndPort endpoint =
+                  InetAddressAndPort.getByAddressOverrideDefaults(peer, proxyPort);
+              listener.onLeaveCluster(endpoint);
             }
           }
           peers = resolved;
@@ -236,7 +244,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
                     DatabaseDescriptor.getPartitioner().getMinimumToken().toString()));
       case "native_transport_port": // Fallthrough intentional
       case "native_transport_port_ssl":
-        return Int32Type.instance.decompose(publicPort);
+        return Int32Type.instance.decompose(PROXY_PORT);
       case "storage_port":
         return Int32Type.instance.decompose(DatabaseDescriptor.getStoragePort());
       case "storage_port_ssl":
@@ -257,14 +265,12 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
    *
    * @param metadata
    * @param publicAddress
-   * @param publicPort
    * @return A list of {@link ByteBuffer} values for a system local/peers row.
    */
-  private static List<ByteBuffer> buildRow(
-      ResultMetadata metadata, InetAddress publicAddress, int publicPort) {
+  private List<ByteBuffer> buildRow(ResultMetadata metadata, InetAddress publicAddress) {
     List<ByteBuffer> row = Lists.newArrayListWithCapacity(metadata.names.size());
     metadata.names.forEach(
-        column -> row.add(buildColumnValue(column.name.toString(), publicAddress, publicPort)));
+        column -> row.add(buildColumnValue(column.name.toString(), publicAddress, proxyPort)));
     return row;
   }
 

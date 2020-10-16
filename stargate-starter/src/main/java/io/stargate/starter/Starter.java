@@ -177,12 +177,19 @@ public class Starter {
 
   @Order(value = 14)
   @Option(
+      name = {"--proxy-port"},
+      description =
+          "Used with the proxy protocol flag to specify the proxy's listening port for the CQL protocol")
+  private int proxyPort = cqlPort;
+
+  @Order(value = 15)
+  @Option(
       name = {"--emulate-dbaas-defaults"},
       description =
           "Updated defaults reflect those of DataStax Astra at the time of the currently used DSE release")
   private boolean emulateDbaasDefaults = false;
 
-  @Order(value = 15)
+  @Order(value = 16)
   @Option(
       name = {"--developer-mode"},
       description =
@@ -191,19 +198,19 @@ public class Starter {
               + "requiring additional nodes or existing cluster")
   boolean developerMode = false;
 
-  @Order(value = 16)
+  @Order(value = 17)
   @Option(
       name = {"--bind-to-listen-address"},
       description = "When set, it binds web services to listen address only")
   boolean bindToListenAddressOnly = false;
 
-  @Order(value = 17)
+  @Order(value = 18)
   @Option(
       name = {"--jmx-port"},
       description = "The port on which JMX should start")
   int jmxPort = 7199;
 
-  @Order(value = 18)
+  @Order(value = 19)
   @Option(
       name = {
         "--disable-dynamic-snitch",
@@ -211,7 +218,7 @@ public class Starter {
       })
   boolean disableDynamicSnitch = false;
 
-  @Order(value = 19)
+  @Order(value = 20)
   @Option(
       name = {"--disable-mbean-registration", "Whether the mbean registration should be disabled"})
   boolean disableMBeanRegistration = false;
@@ -306,6 +313,7 @@ public class Starter {
     if (proxyDnsName != null) {
       System.setProperty("stargate.proxy_protocol.dns_name", proxyDnsName);
     }
+    System.setProperty("stargate.proxy_protocol.port", String.valueOf(proxyPort));
     System.setProperty("stargate.emulate_dbaas_defaults", emulateDbaasDefaults ? "true" : "false");
     System.setProperty("stargate.developer_mode", String.valueOf(developerMode));
     System.setProperty("stargate.bind_to_listen_address", String.valueOf(bindToListenAddressOnly));
