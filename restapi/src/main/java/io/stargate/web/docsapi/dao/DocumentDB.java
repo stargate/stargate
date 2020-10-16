@@ -4,6 +4,8 @@ import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.Uninterruptibles;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.PreparedStatement;
 import io.stargate.db.datastore.ResultSet;
@@ -17,6 +19,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
@@ -126,9 +129,23 @@ public class DocumentDB {
                   String.join(", ", allPathColumnNames)))
           .get();
 
-      dataStore
-          .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(leaf)", keyspaceName, tableName))
-          .get();
+      // After creating the table, it can take up to 2 seconds for permissions cache to be updated,
+      // So retry this first index creation until it succeeds.  The other index creations should not
+      // need this behavior.
+      boolean success = false;
+      while (!success) {
+        try {
+          Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
+          dataStore
+              .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(leaf)", keyspaceName, tableName))
+              .get();
+          success = true;
+        } catch (ExecutionException e) {
+          if (!(e.getCause() instanceof UnauthorizedException)) {
+            throw e;
+          }
+        }
+      }
 
       dataStore
           .query(
