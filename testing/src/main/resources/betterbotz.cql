@@ -43,3 +43,8 @@ CREATE TABLE IF NOT EXISTS betterbotz.collections_nested (
     map_value1 frozen<map<uuid, frozen<map<bigint, text>>>>
 );
 
+CREATE TYPE betterbotz.b(i int);
+
+CREATE TYPE betterbotz.a(b frozen<b>);
+
+CREATE TABLE betterbotz.udts(a frozen<a> PRIMARY KEY, bs list<frozen<b>>);

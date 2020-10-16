@@ -212,6 +212,28 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void getTableComplex() throws IOException {
+    String tableName = "tbl_gettable_" + System.currentTimeMillis();
+    createComplexTable(tableName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/tables/%s", host, keyspace, tableName),
+            HttpStatus.SC_OK);
+
+    TableResponse table = objectMapper.readValue(body, new TypeReference<TableResponse>() {});
+    assertThat(table.getName()).isEqualTo(tableName);
+
+    List<ColumnDefinition> columnDefinitions = table.getColumnDefinitions();
+    assertThat(columnDefinitions.size()).isEqualTo(4);
+    columnDefinitions.sort(Comparator.comparing(ColumnDefinition::getName));
+    assertThat(columnDefinitions.get(0).getName()).isEqualTo("col1");
+    assertThat(columnDefinitions.get(0).getTypeDefinition())
+        .isEqualTo("frozen<map<date, varchar>>");
+  }
+
+  @Test
   public void deleteTable() throws IOException {
     String tableName = "tbl_deletetable_" + System.currentTimeMillis();
     createTable(tableName);
@@ -647,6 +669,48 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     assertThat(rowsResponse.getSuccess()).isTrue();
 
     getRow(tableName, rowIdentifier);
+  }
+
+  @Test
+  public void addRowWithList() throws IOException {
+    String tableName = "tbl_addrowlist_" + System.currentTimeMillis();
+    createTestTable(
+        tableName,
+        Arrays.asList("name text", "email list<text>"),
+        Collections.singletonList("name"),
+        null);
+
+    RowAdd rowAdd = new RowAdd();
+
+    List<ColumnModel> columns = new ArrayList<>();
+
+    ColumnModel nameColumn = new ColumnModel();
+    nameColumn.setName("name");
+    nameColumn.setValue("alice");
+    columns.add(nameColumn);
+
+    ColumnModel emailColumn = new ColumnModel();
+    emailColumn.setName("email");
+    emailColumn.setValue("[foo@example.com,bar@example.com]");
+    columns.add(emailColumn);
+
+    rowAdd.setColumns(columns);
+
+    String body =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            objectMapper.writeValueAsString(rowAdd),
+            HttpStatus.SC_CREATED);
+
+    RowsResponse rowsResponse = objectMapper.readValue(body, new TypeReference<RowsResponse>() {});
+    assertThat(rowsResponse.getRowsModified()).isEqualTo(1);
+    assertThat(rowsResponse.getSuccess()).isTrue();
+
+    String emails = getRow(tableName, "alice");
+    assertThat(emails)
+        .isEqualTo(
+            "{\"count\":1,\"rows\":[{\"name\":\"alice\",\"email\":[\"foo@example.com\",\"bar@example.com\"]}]}");
   }
 
   @Test
@@ -1277,7 +1341,9 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     PrimaryKey primaryKey = new PrimaryKey();
     primaryKey.setPartitionKey(partitionKey);
-    primaryKey.setClusteringKey(clusteringKey);
+    if (clusteringKey != null) {
+      primaryKey.setClusteringKey(clusteringKey);
+    }
     tableAdd.setPrimaryKey(primaryKey);
 
     String body =
