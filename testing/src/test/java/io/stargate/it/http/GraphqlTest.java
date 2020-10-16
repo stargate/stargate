@@ -32,6 +32,8 @@ import com.example.graphql.client.betterbotz.products.DeleteProductsMutation;
 import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery;
 import com.example.graphql.client.betterbotz.products.InsertProductsMutation;
 import com.example.graphql.client.betterbotz.products.UpdateProductsMutation;
+import com.example.graphql.client.betterbotz.type.AUdtInput;
+import com.example.graphql.client.betterbotz.type.BUdtInput;
 import com.example.graphql.client.betterbotz.type.CollectionsNestedInput;
 import com.example.graphql.client.betterbotz.type.CollectionsSimpleInput;
 import com.example.graphql.client.betterbotz.type.CustomType;
@@ -45,7 +47,10 @@ import com.example.graphql.client.betterbotz.type.ProductsInput;
 import com.example.graphql.client.betterbotz.type.QueryConsistency;
 import com.example.graphql.client.betterbotz.type.QueryOptions;
 import com.example.graphql.client.betterbotz.type.StringFilterInput;
+import com.example.graphql.client.betterbotz.type.UdtsInput;
 import com.example.graphql.client.betterbotz.type.UuidFilterInput;
+import com.example.graphql.client.betterbotz.udts.GetUdtsQuery;
+import com.example.graphql.client.betterbotz.udts.InsertUdtsMutation;
 import com.example.graphql.client.schema.AlterTableAddMutation;
 import com.example.graphql.client.schema.AlterTableDropMutation;
 import com.example.graphql.client.schema.CreateKeyspaceMutation;
@@ -214,6 +219,13 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                 + ")",
             keyspace, "collections_nested"));
 
+    session.execute(String.format("CREATE TYPE IF NOT EXISTS %s.b(i int)", keyspace));
+    session.execute(String.format("CREATE TYPE IF NOT EXISTS %s.a(b frozen<b>)", keyspace));
+    session.execute(
+        String.format(
+            "CREATE TABLE IF NOT EXISTS %s.udts(a frozen<a> PRIMARY KEY, bs list<frozen<b>>)",
+            keyspace));
+
     PreparedStatement insert =
         session.prepare(
             String.format(
@@ -255,8 +267,10 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   }
 
   @AfterEach
-  private void teardown() {
-    session.close();
+  public void teardown() {
+    if (session != null) {
+      session.close();
+    }
   }
 
   private void initAuth() throws IOException {
@@ -1133,6 +1147,49 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         .first()
         .extracting(i -> i.getKey(), i -> i.getValue().get())
         .containsExactly(expectedMapValue.key(), expectedMapValue.value());
+  }
+
+  @Test
+  @DisplayName("Should insert and read back UDTs")
+  public void udtsTest() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+
+    InsertUdtsMutation insert =
+        InsertUdtsMutation.builder()
+            .value(
+                UdtsInput.builder()
+                    .a(AUdtInput.builder().b(BUdtInput.builder().i(1).build()).build())
+                    .bs(
+                        ImmutableList.of(
+                            BUdtInput.builder().i(2).build(), BUdtInput.builder().i(3).build()))
+                    .build())
+            .build();
+    mutateAndGet(client, insert);
+
+    GetUdtsQuery select =
+        GetUdtsQuery.builder()
+            .value(
+                UdtsInput.builder()
+                    .a(AUdtInput.builder().b(BUdtInput.builder().i(1).build()).build())
+                    .build())
+            .build();
+    List<GetUdtsQuery.Value> values =
+        getObservable(client.query(select))
+            .getUdts()
+            .flatMap(GetUdtsQuery.Udts::getValues)
+            .orElseThrow(AssertionError::new);
+    assertThat(values).hasSize(1);
+    GetUdtsQuery.Value result = values.get(0);
+    assertThat(result.getA().flatMap(GetUdtsQuery.A::getB))
+        .flatMap(GetUdtsQuery.B::getI)
+        .hasValue(1);
+    assertThat(result.getBs())
+        .hasValueSatisfying(
+            bs -> {
+              assertThat(bs).hasSize(2);
+              assertThat(bs.get(0).getI()).hasValue(2);
+              assertThat(bs.get(1).getI()).hasValue(3);
+            });
   }
 
   private void assertCollectionsSimple(

@@ -73,7 +73,7 @@ public class UpdateMutationFetcher extends MutationFetcher {
       if (table.partitionKeyColumns().contains(column)
           || table.clusteringKeyColumns().contains(column)) {
         relations.add(
-            Relation.column(column.name()).isEqualTo(toDbLiteral(column, entry.getValue())));
+            Relation.column(column.name()).isEqualTo(toCqlTerm(column, entry.getValue())));
       }
     }
     return relations;
@@ -86,7 +86,7 @@ public class UpdateMutationFetcher extends MutationFetcher {
       Column column = getColumn(table, entry.getKey());
       if (!(table.partitionKeyColumns().contains(column)
           || table.clusteringKeyColumns().contains(column))) {
-        assignments.add(Assignment.setColumn(column.name(), toDbLiteral(column, entry.getValue())));
+        assignments.add(Assignment.setColumn(column.name(), toCqlTerm(column, entry.getValue())));
       }
     }
     return assignments;
