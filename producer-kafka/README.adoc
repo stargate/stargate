@@ -14,7 +14,7 @@ This extension has one service required: `Metrics` - this is provided by the `Co
 == Architecture
 
 The main entry point for this CDC connector is a link:../producer-kafka/src/main/java/io/stargate/producer/kafka/KafkaCDCProducer.java[KafkaCDCProducer].
-It implements the SchemaAwareCDCProducer interface that serves as an integration layer between Stargate's persistence and CDC extension.
+It extends the `SchemaAwareCDCProducer` interface that serves as an integration layer between Stargate's persistence and CDC extension.
 
 1. `init()` - takes the map of configuration settings that are passed from Stargate to the CDC connector. The configuration settings are described in <<Configuration>>
 
