@@ -4,6 +4,7 @@ import graphql.Scalars;
 import graphql.schema.GraphQLScalarType;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
+import io.stargate.db.schema.ImmutableListType;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,7 +26,21 @@ abstract class FieldTypeCache<GraphqlT> {
   }
 
   GraphqlT get(ColumnType type) {
+    type = normalize(type);
     return types.computeIfAbsent(type, this::compute);
+  }
+
+  private ColumnType normalize(ColumnType type) {
+    // Frozen-ness does not matter. We want frozen and non-frozen versions of a CQL type to be
+    // mapped to the same GraphQL type.
+    type = type.frozen(false);
+
+    // CQL set and list are both converted to GraphQL list. Avoid creating duplicate types.
+    if (type.isSet()) {
+      type = ImmutableListType.builder().addAllParameters(type.parameters()).build();
+    }
+
+    return type;
   }
 
   /**

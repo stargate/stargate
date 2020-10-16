@@ -33,18 +33,14 @@ class FieldInputTypeCache extends FieldTypeCache<GraphQLInputType> {
 
   @Override
   protected GraphQLInputType compute(Column.ColumnType columnType) {
-    if (columnType.isCollection()) {
-      if (columnType.isMap()) {
-        GraphQLType keyType = get(columnType.parameters().get(0));
-        GraphQLType valueType = get(columnType.parameters().get(1));
-        return ((GraphQLInputType) new GqlMapBuilder(keyType, valueType, true).build());
-      } else if (columnType.isList() || columnType.isSet()) {
-        return new GraphQLList(get(columnType.parameters().get(0)));
-      } else {
-        throw new IllegalArgumentException("Unsupported collection type " + columnType);
-      }
+    if (columnType.isMap()) {
+      GraphQLType keyType = get(columnType.parameters().get(0));
+      GraphQLType valueType = get(columnType.parameters().get(1));
+      return ((GraphQLInputType) new GqlMapBuilder(keyType, valueType, true).build());
+    } else if (columnType.isList() || columnType.isSet()) {
+      return new GraphQLList(get(columnType.parameters().get(0)));
     } else if (columnType.isUserDefined()) {
-      UserDefinedType udt = (UserDefinedType) columnType.frozen(false);
+      UserDefinedType udt = (UserDefinedType) columnType;
       return computeUdt(udt);
     } else if (columnType.isTuple()) {
       throw new UnsupportedOperationException("Tuples are not implemented yet");

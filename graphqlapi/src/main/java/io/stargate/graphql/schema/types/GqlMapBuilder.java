@@ -47,7 +47,7 @@ public class GqlMapBuilder {
     String keyTypeName = getTypeName(keyType);
     String valueTypeName = getTypeName(valueType);
     String name =
-        String.format("%sKey%sValue%s", isInput ? "Input" : "", keyTypeName, valueTypeName);
+        String.format("Entry%sKey%sValue%s", keyTypeName, valueTypeName, isInput ? "Input" : "");
 
     // Maps composed of the same sub types should be the same type
     return isInput ? buildInputType(name) : buildOutputType(name);

@@ -74,7 +74,7 @@ public class FieldTypeCachesTest {
     GraphQLSchemaElement graphType = graphTypeParentType.getChildren().get(0);
     assertThat(graphType).isInstanceOf(GraphQLInputType.class);
     GraphQLNamedInputType graphQLInputType = (GraphQLNamedInputType) graphType;
-    assertThat(graphQLInputType.getName()).isEqualTo("Input" + name);
+    assertThat(graphQLInputType.getName()).isEqualTo(name + "Input");
     assertThat(graphQLInputType.getChildren()).hasSize(2);
     List<GraphQLInputObjectField> fields =
         graphQLInputType.getChildren().stream()
@@ -188,14 +188,18 @@ public class FieldTypeCachesTest {
 
   public static Stream<Arguments> getMapArgs() {
     return Stream.of(
-        arguments(Column.Type.Text, Column.Type.Uuid, "KeyStringValueUuid"),
-        arguments(Column.Type.Int, Column.Type.Timeuuid, "KeyIntValueTimeUuid"),
-        arguments(Column.Type.Timeuuid, Column.Type.Bigint, "KeyTimeUuidValueBigInt"),
-        arguments(Column.Type.Timestamp, Column.Type.Inet, "KeyTimestampValueInet"),
+        arguments(Column.Type.Text, Column.Type.Uuid, "EntryStringKeyUuidValue"),
+        arguments(Column.Type.Int, Column.Type.Timeuuid, "EntryIntKeyTimeUuidValue"),
+        arguments(Column.Type.Timeuuid, Column.Type.Bigint, "EntryTimeUuidKeyBigIntValue"),
+        arguments(Column.Type.Timestamp, Column.Type.Inet, "EntryTimestampKeyInetValue"),
         arguments(
-            Column.Type.Uuid, Column.Type.List.of(Column.Type.Float), "KeyUuidValueListFloat32"),
+            Column.Type.Uuid,
+            Column.Type.List.of(Column.Type.Float),
+            "EntryUuidKeyListFloat32Value"),
         arguments(
-            Column.Type.Smallint, Column.Type.Set.of(Column.Type.Double), "KeyIntValueListFloat"));
+            Column.Type.Smallint,
+            Column.Type.Set.of(Column.Type.Double),
+            "EntryIntKeyListFloatValue"));
   }
 
   public static Stream<Arguments> getMapNestedArgs() {
@@ -203,13 +207,13 @@ public class FieldTypeCachesTest {
         arguments(
             Column.Type.Tinyint,
             Column.Type.Map.of(Column.Type.Uuid, Column.Type.Int),
-            "InputKeyIntValueListInputKeyUuidValueInt",
-            "KeyIntValueListKeyUuidValueInt"),
+            "EntryIntKeyListEntryUuidKeyIntValueInputValueInput",
+            "EntryIntKeyListEntryUuidKeyIntValueValue"),
         arguments(
             Column.Type.Map.of(Column.Type.Text, Column.Type.Bigint),
             Column.Type.Set.of(Column.Type.Double),
-            "InputKeyListInputKeyStringValueBigIntValueListFloat",
-            "KeyListKeyStringValueBigIntValueListFloat"));
+            "EntryListEntryStringKeyBigIntValueInputKeyListFloatValueInput",
+            "EntryListEntryStringKeyBigIntValueKeyListFloatValue"));
   }
 
   /** Gets a GraphQL input type using the shared cache */
