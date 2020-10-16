@@ -166,12 +166,18 @@ public class SchemaBuilderImpl {
 
   @DSLAction
   public void column(String name, Column.ColumnType type, Column.Kind kind) {
+    column(name, type, kind, kind == Column.Kind.Clustering ? Column.Order.Asc : null);
+  }
+
+  @DSLAction
+  public void column(String name, Column.ColumnType type, Column.Kind kind, Column.Order order) {
     checkIndexOnColumn(name);
     checkMvOnColumn(name);
 
-    Column.Order order = kind == Column.Kind.Clustering ? Column.Order.Asc : null;
     columns.add(
         ImmutableColumn.builder()
+            .keyspace(keyspaceName)
+            .table(tableName)
             .name(name)
             .type(type.dereference(udtKeyspace()))
             .kind(kind)
@@ -180,20 +186,8 @@ public class SchemaBuilderImpl {
   }
 
   @DSLAction
-  public void column(String name, Column.ColumnType type, Column.Kind kind, Column.Order order) {
-    checkIndexOnColumn(name);
-    checkMvOnColumn(name);
-
-    columns.add(ImmutableColumn.builder().name(name).type(type).kind(kind).order(order).build());
-  }
-
-  @DSLAction
   public void column(String name, Class type, Column.Kind kind) {
-    checkIndexOnColumn(name);
-    checkMvOnColumn(name);
-
-    Column.Order order = kind == Column.Kind.Clustering ? Column.Order.Asc : null;
-    columns.add(ImmutableColumn.builder().name(name).type(type).kind(kind).order(order).build());
+    column(name, type, kind, kind == Column.Kind.Clustering ? Column.Order.Asc : null);
   }
 
   @DSLAction
@@ -201,7 +195,15 @@ public class SchemaBuilderImpl {
     checkIndexOnColumn(name);
     checkMvOnColumn(name);
 
-    columns.add(ImmutableColumn.builder().name(name).type(type).kind(kind).order(order).build());
+    columns.add(
+        ImmutableColumn.builder()
+            .keyspace(keyspaceName)
+            .table(tableName)
+            .name(name)
+            .type(type)
+            .kind(kind)
+            .order(order)
+            .build());
   }
 
   @DSLAction
@@ -213,7 +215,13 @@ public class SchemaBuilderImpl {
         "This overload of 'column' can only be used with materialized views");
     Column.Order order = kind == Column.Kind.Clustering ? Column.Order.Asc : null;
     materializedViewColumns.add(
-        ImmutableColumn.builder().name(name).kind(kind).order(order).build());
+        ImmutableColumn.builder()
+            .keyspace(keyspaceName)
+            .table(tableName)
+            .name(name)
+            .kind(kind)
+            .order(order)
+            .build());
   }
 
   @DSLAction
@@ -227,7 +235,13 @@ public class SchemaBuilderImpl {
         kind == Column.Kind.Clustering, "Order can only be specified for clustering columns");
     Preconditions.checkArgument(order != null, "Clustering order may not be null");
     materializedViewColumns.add(
-        ImmutableColumn.builder().name(name).kind(kind).order(order).build());
+        ImmutableColumn.builder()
+            .keyspace(keyspaceName)
+            .table(tableName)
+            .name(name)
+            .kind(kind)
+            .order(order)
+            .build());
   }
 
   @DSLAction
@@ -247,6 +261,8 @@ public class SchemaBuilderImpl {
         "This overload of 'column' can only be used with tables or udts");
     columns.add(
         ImmutableColumn.builder()
+            .keyspace(keyspaceName)
+            .table(tableName)
             .name(name)
             .type(type.dereference(udtKeyspace()))
             .kind(Column.Kind.Regular)
@@ -261,7 +277,14 @@ public class SchemaBuilderImpl {
     Preconditions.checkState(
         materializedViewName == null && secondaryIndexName == null,
         "This overload of 'column' can only be used with tables");
-    columns.add(ImmutableColumn.builder().name(name).type(type).kind(Column.Kind.Regular).build());
+    columns.add(
+        ImmutableColumn.builder()
+            .keyspace(keyspaceName)
+            .table(tableName)
+            .name(name)
+            .type(type)
+            .kind(Column.Kind.Regular)
+            .build());
   }
 
   @DSLAction
@@ -273,7 +296,12 @@ public class SchemaBuilderImpl {
       secondaryIndexColumn = Column.reference(name);
     } else if (materializedViewName != null) {
       materializedViewColumns.add(
-          ImmutableColumn.builder().name(name).kind(Column.Kind.Regular).build());
+          ImmutableColumn.builder()
+              .keyspace(keyspaceName)
+              .table(tableName)
+              .name(name)
+              .kind(Column.Kind.Regular)
+              .build());
     }
   }
 

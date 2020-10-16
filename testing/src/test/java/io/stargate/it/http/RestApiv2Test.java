@@ -30,6 +30,7 @@ import io.stargate.web.models.GetResponseWrapper;
 import io.stargate.web.models.Keyspace;
 import io.stargate.web.models.PrimaryKey;
 import io.stargate.web.models.ResponseWrapper;
+import io.stargate.web.models.SuccessResponse;
 import io.stargate.web.models.TableAdd;
 import io.stargate.web.models.TableOptions;
 import io.stargate.web.models.TableResponse;
@@ -43,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -274,6 +276,33 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     assertThat(table.getKeyspace()).isEqualTo("system");
     assertThat(table.getName()).isEqualTo("local");
     assertThat(table.getColumnDefinitions()).isNotNull();
+  }
+
+  @Test
+  public void getTableComplex() throws IOException {
+    createKeyspace(keyspaceName);
+    createComplexTable(keyspaceName, tableName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/schemas/keyspaces/%s/tables/%s", host, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    TableResponse table = objectMapper.convertValue(response.getData(), TableResponse.class);
+    assertThat(table.getKeyspace()).isEqualTo(keyspaceName);
+    assertThat(table.getName()).isEqualTo(tableName);
+    assertThat(table.getColumnDefinitions()).isNotNull();
+    ColumnDefinition columnDefinition =
+        table.getColumnDefinitions().stream()
+            .filter(c -> c.getName().equals("col1"))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("Column not found"));
+    assertThat(columnDefinition)
+        .isEqualToComparingFieldByField(
+            new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
   }
 
   @Test
@@ -749,6 +778,39 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     Map<String, Object> rowResponse =
         objectMapper.readValue(body, new TypeReference<Map<String, Object>>() {});
     assertThat(rowResponse.get("id")).isEqualTo(rowIdentifier);
+  }
+
+  @Test
+  public void addRowWithList() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("name text", "email list<text>"),
+        Collections.singletonList("name"),
+        null);
+
+    Map<String, String> row = new HashMap<>();
+    row.put("name", "alice");
+    row.put("email", "[foo@example.com,bar@example.com]");
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true", host, keyspaceName, tableName, "alice"),
+            HttpStatus.SC_OK);
+
+    List<Map<String, Object>> data =
+        objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(data.get(0).get("name")).isEqualTo("alice");
+    assertThat(data.get(0).get("email"))
+        .isEqualTo(Arrays.asList("foo@example.com", "bar@example.com"));
   }
 
   @Test
@@ -1575,6 +1637,38 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
+  }
+
+  private void createTestTable(
+      String tableName, List<String> columns, List<String> partitionKey, List<String> clusteringKey)
+      throws IOException {
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName(tableName);
+
+    List<ColumnDefinition> columnDefinitions =
+        columns.stream()
+            .map(x -> x.split(" "))
+            .map(y -> new ColumnDefinition(y[0], y[1]))
+            .collect(Collectors.toList());
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(partitionKey);
+    if (clusteringKey != null) {
+      primaryKey.setClusteringKey(clusteringKey);
+    }
+    tableAdd.setPrimaryKey(primaryKey);
+
+    String body =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+            objectMapper.writeValueAsString(tableAdd),
+            HttpStatus.SC_CREATED);
+
+    SuccessResponse successResponse =
+        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
+    assertThat(successResponse.getSuccess()).isTrue();
   }
 
   private void createComplexTable(String keyspaceName, String tableName) throws IOException {

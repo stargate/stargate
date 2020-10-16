@@ -34,7 +34,7 @@ public class InsertMutationFetcher extends MutationFetcher {
   public InsertMutationFetcher(
       Table table,
       NameMapping nameMapping,
-      Persistence<?, ?, ?> persistence,
+      Persistence persistence,
       AuthenticationService authenticationService) {
     super(table, nameMapping, persistence, authenticationService);
   }
@@ -75,7 +75,7 @@ public class InsertMutationFetcher extends MutationFetcher {
     Map<String, Term> insertMap = new LinkedHashMap<>();
     for (Map.Entry<String, Object> entry : value.entrySet()) {
       Column column = getColumn(table, entry.getKey());
-      insertMap.put(column.name(), toDbLiteral(column, entry.getValue()));
+      insertMap.put(column.name(), toCqlTerm(column, entry.getValue()));
     }
     return insertMap;
   }

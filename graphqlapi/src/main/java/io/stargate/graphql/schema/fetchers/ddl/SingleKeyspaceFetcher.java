@@ -26,7 +26,7 @@ import java.util.Map;
 public class SingleKeyspaceFetcher extends CassandraFetcher<Map<String, Object>> {
 
   public SingleKeyspaceFetcher(
-      Persistence<?, ?, ?> persistence, AuthenticationService authenticationService) {
+      Persistence persistence, AuthenticationService authenticationService) {
     super(persistence, authenticationService);
   }
 

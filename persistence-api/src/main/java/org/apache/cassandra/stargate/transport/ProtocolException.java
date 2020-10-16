@@ -18,10 +18,10 @@
 package org.apache.cassandra.stargate.transport;
 
 import org.apache.cassandra.stargate.exceptions.ExceptionCode;
-import org.apache.cassandra.stargate.exceptions.TransportException;
+import org.apache.cassandra.stargate.exceptions.PersistenceException;
 
 /** Exceptions thrown when a client didn't respect the protocol. */
-public class ProtocolException extends RuntimeException implements TransportException {
+public class ProtocolException extends PersistenceException {
   private final ProtocolVersion forcedProtocolVersion;
 
   public ProtocolException(String msg) {
@@ -29,12 +29,8 @@ public class ProtocolException extends RuntimeException implements TransportExce
   }
 
   public ProtocolException(String msg, ProtocolVersion forcedProtocolVersion) {
-    super(msg);
+    super(ExceptionCode.PROTOCOL_ERROR, msg);
     this.forcedProtocolVersion = forcedProtocolVersion;
-  }
-
-  public ExceptionCode code() {
-    return ExceptionCode.PROTOCOL_ERROR;
   }
 
   public ProtocolVersion getForcedProtocolVersion() {

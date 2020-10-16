@@ -28,6 +28,8 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.web.RestApiActivator;
 import io.stargate.web.config.ApplicationConfiguration;
+import io.stargate.web.docsapi.resources.DocumentResourceV2;
+import io.stargate.web.docsapi.resources.NamespacesResource;
 import io.stargate.web.resources.ColumnResource;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.HealthResource;
@@ -44,6 +46,7 @@ import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
 import io.swagger.jaxrs.listing.ApiListingResource;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
+import java.io.IOException;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
@@ -91,7 +94,8 @@ public class Server extends Application<ApplicationConfiguration> {
 
   @Override
   public void run(
-      final ApplicationConfiguration applicationConfiguration, final Environment environment) {
+      final ApplicationConfiguration applicationConfiguration, final Environment environment)
+      throws IOException {
     final Db db = new Db(persistence, authenticationService);
 
     environment.getObjectMapper().configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
@@ -116,6 +120,10 @@ public class Server extends Application<ApplicationConfiguration> {
     environment.jersey().register(KeyspacesResource.class);
     environment.jersey().register(ColumnsResource.class);
 
+    // Documents API
+    environment.jersey().register(DocumentResourceV2.class);
+    environment.jersey().register(NamespacesResource.class);
+
     environment.jersey().register(ApiListingResource.class);
     environment.jersey().register(SwaggerSerializers.class);
 
@@ -130,7 +138,6 @@ public class Server extends Application<ApplicationConfiguration> {
             });
 
     environment.jersey().register(SwaggerUIResource.class);
-
     enableCors(environment);
   }
 

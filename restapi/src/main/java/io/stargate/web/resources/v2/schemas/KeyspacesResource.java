@@ -170,7 +170,7 @@ public class KeyspacesResource {
           String token,
       @ApiParam(
               value =
-                  "A map representing a keyspace with SimpleStrategy or NetworkTopologyStrategy \n"
+                  "A map representing a keyspace with SimpleStrategy or NetworkTopologyStrategy with default replicas of 1 and 3 respectively \n"
                       + "Simple:\n"
                       + "```json\n"
                       + "{ \"name\": \"killrvideo\", \"replicas\": 1}\n"
@@ -185,8 +185,7 @@ public class KeyspacesResource {
                       + "         { \"name\": \"dc2\", \"replicas\": 3 },\n"
                       + "      ],\n"
                       + "}\n"
-                      + "```",
-              defaultValue = "false")
+                      + "```")
           String payload) {
     return RequestHandler.handle(
         () -> {
@@ -216,7 +215,7 @@ public class KeyspacesResource {
             replication =
                 String.format(
                     "{ 'class' : 'SimpleStrategy', 'replication_factor' : %s }",
-                    requestBody.get("replicas"));
+                    requestBody.getOrDefault("replicas", 1));
           }
 
           localDB
