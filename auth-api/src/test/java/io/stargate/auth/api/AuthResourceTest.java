@@ -8,6 +8,7 @@ import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.auth.model.Credentials;
 import io.stargate.auth.model.Secret;
 import io.stargate.auth.model.UsernameCredentials;
+import io.stargate.auth.model.Error;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,6 +62,7 @@ class AuthResourceTest {
                 .post(Entity.entity(secret, MediaType.APPLICATION_JSON));
 
         assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(401);
+        assertThat(response.readEntity(Error.class).getDescription()).isEqualTo("Failed to create token: null");
     }
 
     @Test
@@ -73,6 +75,7 @@ class AuthResourceTest {
                 .post(Entity.entity(secret, MediaType.APPLICATION_JSON));
 
         assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(500);
+        assertThat(response.readEntity(Error.class).getDescription()).isEqualTo("Failed to create token: null");
     }
 
     @Test
@@ -82,6 +85,7 @@ class AuthResourceTest {
                 .post(null);
 
         assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
+        assertThat(response.readEntity(Error.class).getDescription()).isEqualTo("Must provide a body to the request");
     }
 
     @Test
@@ -93,6 +97,7 @@ class AuthResourceTest {
                 .post(Entity.entity(secret, MediaType.APPLICATION_JSON));
 
         assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
+        assertThat(response.readEntity(Error.class).getDescription()).isEqualTo("Must provide key in request");
     }
 
     @Test
@@ -104,6 +109,7 @@ class AuthResourceTest {
                 .post(Entity.entity(secret, MediaType.APPLICATION_JSON));
 
         assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
+        assertThat(response.readEntity(Error.class).getDescription()).isEqualTo("Must provide secret in request");
     }
 
     @Test
@@ -128,6 +134,7 @@ class AuthResourceTest {
                 .post(Entity.entity(credentials, MediaType.APPLICATION_JSON));
 
         assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(401);
+        assertThat(response.readEntity(Error.class).getDescription()).isEqualTo("Failed to create token: null");
     }
 
     @Test
@@ -140,6 +147,7 @@ class AuthResourceTest {
                 .post(Entity.entity(credentials, MediaType.APPLICATION_JSON));
 
         assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(500);
+        assertThat(response.readEntity(Error.class).getDescription()).isEqualTo("Failed to create token: null");
     }
 
     @Test
@@ -149,6 +157,7 @@ class AuthResourceTest {
                 .post(null);
 
         assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
+        assertThat(response.readEntity(Error.class).getDescription()).isEqualTo("Must provide a body to the request");
     }
 
     @Test
@@ -160,6 +169,7 @@ class AuthResourceTest {
                 .post(Entity.entity(credentials, MediaType.APPLICATION_JSON));
 
         assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
+        assertThat(response.readEntity(Error.class).getDescription()).isEqualTo("Must provide username in request");
     }
 
     @Test
@@ -171,6 +181,7 @@ class AuthResourceTest {
                 .post(Entity.entity(credentials, MediaType.APPLICATION_JSON));
 
         assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
+        assertThat(response.readEntity(Error.class).getDescription()).isEqualTo("Must provide password in request");
     }
 
     @Test
@@ -195,6 +206,7 @@ class AuthResourceTest {
                 .post(Entity.entity(username, MediaType.APPLICATION_JSON));
 
         assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
+        assertThat(response.readEntity(Error.class).getDescription()).isEqualTo("Generating a token for a username is not allowed");
     }
 
     @Test
@@ -207,6 +219,7 @@ class AuthResourceTest {
                 .post(Entity.entity(username, MediaType.APPLICATION_JSON));
 
         assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(401);
+        assertThat(response.readEntity(Error.class).getDescription()).isEqualTo("Failed to create token: null");
     }
 
     @Test
@@ -219,26 +232,29 @@ class AuthResourceTest {
                 .post(Entity.entity(username, MediaType.APPLICATION_JSON));
 
         assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(500);
+        assertThat(response.readEntity(Error.class).getDescription()).isEqualTo("Failed to create token: null");
     }
 
     @Test
     void createTokenFromUsernameNoPayload() {
-        Response response = resourceWithUsernameTokenDisabled.target("/v1/admin/auth/usernametoken")
+        Response response = resourceWithUsernameTokenEnabled.target("/v1/admin/auth/usernametoken")
                 .request()
                 .post(null);
 
         assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
+        assertThat(response.readEntity(Error.class).getDescription()).isEqualTo("Must provide a body to the request");
     }
 
     @Test
     void createTokenFromUsernameEmptyUsername() {
         UsernameCredentials username = new UsernameCredentials("");
 
-        Response response = resourceWithUsernameTokenDisabled.target("/v1/admin/auth/usernametoken")
+        Response response = resourceWithUsernameTokenEnabled.target("/v1/admin/auth/usernametoken")
                 .request()
                 .post(Entity.entity(username, MediaType.APPLICATION_JSON));
 
         assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
+        assertThat(response.readEntity(Error.class).getDescription()).isEqualTo("Must provide username in request");
     }
 
 }
