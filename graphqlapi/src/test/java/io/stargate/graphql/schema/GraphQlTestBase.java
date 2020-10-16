@@ -35,6 +35,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 public abstract class GraphQlTestBase {
 
   protected GraphQL graphQl;
+  protected GraphQLSchema graphQlSchema;
 
   @Mock protected Persistence persistence;
   @Mock protected AuthenticationService authenticationService;
@@ -77,7 +78,8 @@ public abstract class GraphQlTestBase {
     when(dataStore.query(queryCaptor.capture()))
         .thenReturn(CompletableFuture.completedFuture(resultSet));
 
-    graphQl = GraphQL.newGraphQL(createGraphQlSchema()).build();
+    graphQlSchema = createGraphQlSchema();
+    graphQl = GraphQL.newGraphQL(graphQlSchema).build();
   }
 
   @AfterEach
