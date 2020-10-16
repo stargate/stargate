@@ -31,6 +31,7 @@ import io.stargate.graphql.schema.NameMapping;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,15 +55,19 @@ public class QueryFetcher extends DmlFetcher {
     CompletableFuture<ResultSet> rs = dataStore.query(statement);
     ResultSet resultSet = rs.get();
 
-    ByteBuffer pageState = resultSet.getPagingState();
-
-    return ImmutableMap.of(
+    Map<String, Object> result = new HashMap<>();
+    result.put(
         "values",
         resultSet.currentPageRows().stream()
             .map(row -> DataTypeMapping.toGraphQLValue(nameMapping, table, row))
-            .collect(Collectors.toList()),
-        "pageState",
-        pageState == null ? "" : Base64.getEncoder().encodeToString(pageState.array()));
+            .collect(Collectors.toList()));
+
+    ByteBuffer pageState = resultSet.getPagingState();
+    if (pageState != null) {
+      result.put("pageState", Base64.getEncoder().encodeToString(pageState.array()));
+    }
+
+    return result;
   }
 
   private String buildQuery(DataFetchingEnvironment environment) {
