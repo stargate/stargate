@@ -78,14 +78,20 @@ public enum CustomScalar {
       "BigInt",
       "The `BIGINT` scalar type represents a CQL bigint (64-bit signed integer) as a string.",
       e -> {
+        if (e instanceof String) {
+          return new Long((String) e);
+        }
         if (e instanceof Long) {
-          return BigInteger.valueOf((Long) e);
-        } else if (e instanceof BigInteger) {
           return e;
         }
-        return null;
+        if (e instanceof Integer) {
+          return ((Integer) e).longValue();
+        }
+        throw new NumberFormatException(
+            String.format(
+                "Expected string for bigint scalar, obtained %s", e.getClass().getName()));
       },
-      e -> e.toString()),
+      Object::toString),
   COUNTER(
       "Counter",
       "The `COUNTER` scalar type represents a CQL counter (64-bit signed integer) as a string.",

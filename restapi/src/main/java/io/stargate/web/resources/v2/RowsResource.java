@@ -39,6 +39,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import io.swagger.jaxrs.PATCH;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,7 +54,6 @@ import javax.inject.Inject;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
-import javax.ws.rs.PATCH;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -519,7 +519,7 @@ public class RowsResource {
             .execute();
 
     List<Map<String, Object>> rows =
-        r.rows().stream().map(Converters::row2Map).collect(Collectors.toList());
+        r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
     String newPagingState =
         r.getPagingState() != null
             ? Base64.getEncoder().encodeToString(r.getPagingState().array())

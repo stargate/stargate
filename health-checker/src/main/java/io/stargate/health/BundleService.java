@@ -43,7 +43,7 @@ public class BundleService {
 
       try {
         Persistence persistence = (Persistence) context.getService(persistenceReference);
-        DataStore dataStore = persistence.newDataStore(null, null);
+        DataStore dataStore = DataStore.create(persistence);
 
         Future<ResultSet> rs =
             dataStore
@@ -56,7 +56,7 @@ public class BundleService {
 
         Row row = rs.get().one();
         String clusterName = row.getString("cluster_name");
-        UUID schemaVersion = row.getUUID("schema_version");
+        UUID schemaVersion = row.getUuid("schema_version");
         return clusterName != null && !"".equals(clusterName) && schemaVersion != null;
       } catch (Exception e) {
         logger.warn("checkIsReady failed with", e);

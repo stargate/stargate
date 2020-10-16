@@ -21,9 +21,11 @@ import io.stargate.it.storage.ClusterConnectionInfo;
 import io.stargate.it.storage.ClusterSpec;
 import io.stargate.it.storage.ExternalStorage;
 import io.stargate.starter.Starter;
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,6 +51,14 @@ public class BaseOsgiIntegrationTest {
   public static final Integer numberOfStargateNodes = Integer.getInteger("stargate.test.nodes", 3);
 
   static {
+    ClassLoader classLoader = BaseOsgiIntegrationTest.class.getClassLoader();
+    URL resource = classLoader.getResource("logback-test.xml");
+
+    if (resource != null) {
+      File file = new File(resource.getFile());
+      System.setProperty("logback.configurationFile", file.getAbsolutePath());
+    }
+
     for (int i = 1; i <= numberOfStargateNodes; i++) {
       int portSuffix = 10 + i;
       stargateHosts.add("127.0.0." + portSuffix);

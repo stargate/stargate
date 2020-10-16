@@ -18,9 +18,8 @@
 package org.apache.cassandra.stargate.transport.internal.messages;
 
 import io.netty.buffer.ByteBuf;
-import io.stargate.db.ClientState;
-import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
+import io.stargate.db.Authenticator;
+import io.stargate.db.DriverInfo;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -69,8 +68,7 @@ public class StartupMessage extends Message.Request {
   }
 
   @Override
-  protected CompletableFuture<? extends Response> execute(
-      Persistence persistence, QueryState state, long queryStartNanoTime) {
+  protected CompletableFuture<? extends Response> execute(long queryStartNanoTime) {
     String cqlVersion = options.get(CQL_VERSION);
     if (cqlVersion == null)
       throw new ProtocolException("Missing value CQL_VERSION in STARTUP message");
@@ -101,16 +99,15 @@ public class StartupMessage extends Message.Request {
 
     connection.setThrowOnOverload("1".equals(options.get(THROW_ON_OVERLOAD)));
 
-    ClientState clientState = state.getClientState();
     String driverName = options.get(DRIVER_NAME);
     if (null != driverName) {
-      clientState.setDriverName(driverName);
-      clientState.setDriverVersion(options.get(DRIVER_VERSION));
+      clientInfo().registerDriverInfo(DriverInfo.of(driverName, options.get(DRIVER_VERSION)));
     }
 
-    if (persistence.getAuthenticator().requireAuthentication())
+    Authenticator authenticator = persistence().getAuthenticator();
+    if (authenticator.requireAuthentication())
       return CompletableFuture.completedFuture(
-          new AuthenticateMessage(persistence.getAuthenticator().getInternalClassName()));
+          new AuthenticateMessage(authenticator.getInternalClassName()));
     else return CompletableFuture.completedFuture(new ReadyMessage());
   }
 

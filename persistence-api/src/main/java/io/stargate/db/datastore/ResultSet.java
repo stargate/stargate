@@ -47,12 +47,12 @@ public interface ResultSet extends Iterable<Row> {
     }
 
     @Override
-    public int size() {
-      return 0;
+    public List<Row> currentPageRows() {
+      return Collections.emptyList();
     }
 
     @Override
-    public boolean isEmpty() {
+    public boolean hasNoMoreFetchedRows() {
       return true;
     }
 
@@ -82,12 +82,6 @@ public interface ResultSet extends Iterable<Row> {
   Iterator<Row> iterator();
 
   /**
-   * @return the number of rows not yet iterated in the current page, without trying to fetch any
-   *     additional pages.
-   */
-  int size();
-
-  /**
    * @return the next row in the current page. This is the same as calling the {@link #iterator()}}
    *     next method, and will attempt to fetch another page if the current page is exhausted.
    */
@@ -100,24 +94,19 @@ public interface ResultSet extends Iterable<Row> {
    */
   List<Row> rows();
 
+  /** @return the rows of the currently fetched page. */
+  List<Row> currentPageRows();
+
   /**
    * @return true if no more rows are available in the current page, without trying to fetch any
    *     additional pages.
    */
-  boolean isEmpty();
+  boolean hasNoMoreFetchedRows();
 
   ByteBuffer getPagingState();
 
-  /**
-   * Returns true of this request waited for schema agreement.
-   *
-   * @return
-   */
+  /** Returns true of this request waited for schema agreement. */
   default boolean waitedForSchemaAgreement() {
     return false;
-  }
-
-  default ExecutionInfo getExecutionInfo() {
-    return ExecutionInfo.EMPTY;
   }
 }

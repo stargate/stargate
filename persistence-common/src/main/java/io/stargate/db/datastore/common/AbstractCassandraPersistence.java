@@ -1,7 +1,14 @@
 package io.stargate.db.datastore.common;
 
+import com.google.common.base.Joiner;
+import io.stargate.db.AuthenticatedUser;
+import io.stargate.db.ClientInfo;
 import io.stargate.db.Persistence;
 import io.stargate.db.schema.Schema;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,8 +20,6 @@ import org.slf4j.LoggerFactory;
  * between the persistence layers for various C* versions.
  *
  * @param <Config>
- * @param <ClientState>
- * @param <QueryState>
  * @param <K> the concrete class for keyspace metadata in the persistence layer.
  * @param <T> the concrete class for table metadata in the persistence layer.
  * @param <C> the concrete class for column metadata in the persistence layer.
@@ -22,9 +27,8 @@ import org.slf4j.LoggerFactory;
  * @param <I> the concrete class for secondary indexes metadata in the persistence layer.
  * @param <V> the concrete class for materialized views metadata in the persistence layer.
  */
-public abstract class AbstractCassandraPersistence<
-        Config, ClientState, QueryState, K, T, C, U, I, V>
-    implements Persistence<Config, ClientState, QueryState> {
+public abstract class AbstractCassandraPersistence<Config, K, T, C, U, I, V>
+    implements Persistence {
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractCassandraPersistence.class);
 
@@ -39,11 +43,11 @@ public abstract class AbstractCassandraPersistence<
 
   protected AbstractCassandraPersistence(String name) {
     this.name = name;
-    this.schemaConverter = schemaConverter();
+    this.schemaConverter = newSchemaConverter();
   }
 
   /** Creates a new, stateless, converter for the schema of the concrete persistence layer. */
-  protected abstract AbstractCassandraSchemaConverter<K, T, C, U, I, V> schemaConverter();
+  protected abstract AbstractCassandraSchemaConverter<K, T, C, U, I, V> newSchemaConverter();
 
   /** The current schema of the concrete persistence layer. */
   protected abstract Iterable<K> currentInternalSchema();
@@ -92,7 +96,6 @@ public abstract class AbstractCassandraPersistence<
     return schema;
   }
 
-  @Override
   public final void initialize(Config config) {
     logger.info("Initializing {}", name);
 
@@ -110,9 +113,55 @@ public abstract class AbstractCassandraPersistence<
     return schemaConverter.convertCassandraSchema(currentInternalSchema());
   }
 
-  @Override
   public final void destroy() {
     destroyPersistence();
     unregisterInternalSchemaListener();
+  }
+
+  @Override
+  public String toString() {
+    return name();
+  }
+
+  protected abstract static class AbstractConnection implements Connection {
+    private final @Nullable ClientInfo clientInfo;
+    private volatile @Nullable AuthenticatedUser loggedUser;
+
+    protected AbstractConnection(@Nullable ClientInfo clientInfo) {
+      this.clientInfo = clientInfo;
+    }
+
+    @Override
+    public Optional<ClientInfo> clientInfo() {
+      return Optional.ofNullable(clientInfo);
+    }
+
+    protected abstract void loginInternally(AuthenticatedUser user);
+
+    @Override
+    public void login(AuthenticatedUser user) {
+      // Note that we do the actual login first, so that if it fails, loggedUser remains null
+      loginInternally(user);
+      this.loggedUser = user;
+    }
+
+    @Override
+    public Optional<AuthenticatedUser> loggedUser() {
+      return Optional.ofNullable(loggedUser);
+    }
+
+    @Override
+    public String toString() {
+      Map<String, String> params = new LinkedHashMap<>();
+      params.put("persistence", persistence().toString());
+      if (clientInfo != null) {
+        params.put("client", clientInfo.toString());
+      }
+      if (loggedUser != null) {
+        params.put("logged", loggedUser.name());
+      }
+      return String.format(
+          "Connection[%s]", Joiner.on(",").withKeyValueSeparator("=").join(params));
+    }
   }
 }

@@ -20,7 +20,10 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.uuid.Uuids;
+import com.example.graphql.client.betterbotz.collections.GetCollectionsNestedQuery;
 import com.example.graphql.client.betterbotz.collections.GetCollectionsSimpleQuery;
+import com.example.graphql.client.betterbotz.collections.InsertCollectionsNestedMutation;
 import com.example.graphql.client.betterbotz.collections.InsertCollectionsSimpleMutation;
 import com.example.graphql.client.betterbotz.collections.UpdateCollectionsSimpleMutation;
 import com.example.graphql.client.betterbotz.orders.GetOrdersByValueQuery;
@@ -29,9 +32,14 @@ import com.example.graphql.client.betterbotz.products.DeleteProductsMutation;
 import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery;
 import com.example.graphql.client.betterbotz.products.InsertProductsMutation;
 import com.example.graphql.client.betterbotz.products.UpdateProductsMutation;
+import com.example.graphql.client.betterbotz.type.AUdtInput;
+import com.example.graphql.client.betterbotz.type.BUdtInput;
+import com.example.graphql.client.betterbotz.type.CollectionsNestedInput;
 import com.example.graphql.client.betterbotz.type.CollectionsSimpleInput;
 import com.example.graphql.client.betterbotz.type.CustomType;
+import com.example.graphql.client.betterbotz.type.InputKeyBigIntValueString;
 import com.example.graphql.client.betterbotz.type.InputKeyIntValueString;
+import com.example.graphql.client.betterbotz.type.InputKeyUuidValueListInputKeyBigIntValueString;
 import com.example.graphql.client.betterbotz.type.OrdersFilterInput;
 import com.example.graphql.client.betterbotz.type.OrdersInput;
 import com.example.graphql.client.betterbotz.type.ProductsFilterInput;
@@ -39,7 +47,10 @@ import com.example.graphql.client.betterbotz.type.ProductsInput;
 import com.example.graphql.client.betterbotz.type.QueryConsistency;
 import com.example.graphql.client.betterbotz.type.QueryOptions;
 import com.example.graphql.client.betterbotz.type.StringFilterInput;
+import com.example.graphql.client.betterbotz.type.UdtsInput;
 import com.example.graphql.client.betterbotz.type.UuidFilterInput;
+import com.example.graphql.client.betterbotz.udts.GetUdtsQuery;
+import com.example.graphql.client.betterbotz.udts.InsertUdtsMutation;
 import com.example.graphql.client.schema.AlterTableAddMutation;
 import com.example.graphql.client.schema.AlterTableDropMutation;
 import com.example.graphql.client.schema.CreateKeyspaceMutation;
@@ -90,6 +101,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * To update these tests:
@@ -108,6 +121,7 @@ import org.junit.jupiter.params.provider.MethodSource;
  */
 @NotThreadSafe
 public class GraphqlTest extends BaseOsgiIntegrationTest {
+  private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
 
   private CqlSession session;
   private String keyspace;
@@ -195,6 +209,23 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                 + "map_value2 frozen<map<uuid, bigint>>,)",
             keyspace, "collections_simple"));
 
+    session.execute(
+        String.format(
+            "CREATE TABLE IF NOT EXISTS %s.%s (\n"
+                + "    id uuid PRIMARY KEY,\n"
+                + "    list_value1 frozen<list<frozen<map<int, text>>>>,\n"
+                + "    set_value1 frozen<list<frozen<set<uuid>>>>,\n"
+                + "    map_value1 frozen<map<uuid, frozen<map<bigint, text>>>>\n"
+                + ")",
+            keyspace, "collections_nested"));
+
+    session.execute(String.format("CREATE TYPE IF NOT EXISTS %s.b(i int)", keyspace));
+    session.execute(String.format("CREATE TYPE IF NOT EXISTS %s.a(b frozen<b>)", keyspace));
+    session.execute(
+        String.format(
+            "CREATE TABLE IF NOT EXISTS %s.udts(a frozen<a> PRIMARY KEY, bs list<frozen<b>>)",
+            keyspace));
+
     PreparedStatement insert =
         session.prepare(
             String.format(
@@ -236,8 +267,10 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   }
 
   @AfterEach
-  private void teardown() {
-    session.close();
+  public void teardown() {
+    if (session != null) {
+      session.close();
+    }
   }
 
   private void initAuth() throws IOException {
@@ -926,8 +959,11 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(mapResponse.get("errors")).isInstanceOf(List.class);
     List<Map<String, Object>> errors = (List<Map<String, Object>>) mapResponse.get("errors");
     assertThat(errors)
-        .hasOnlyOneElementSatisfying(
-            item -> assertThat(item.get("message")).asString().contains(message1, message2));
+        .hasSize(1)
+        .first()
+        .extracting(i -> i.get("message"))
+        .asString()
+        .contains(message1, message2);
     response.close();
   }
 
@@ -986,16 +1022,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                     .id(id)
                     .listValue1(list)
                     .setValue1(set)
-                    .mapValue1(
-                        map.stream()
-                            .map(m -> m.entrySet().stream().findFirst().get())
-                            .map(
-                                e ->
-                                    InputKeyIntValueString.builder()
-                                        .key(e.getKey())
-                                        .value(e.getValue())
-                                        .build())
-                            .collect(Collectors.toList()))
+                    .mapValue1(toInputKeyIntValueStringList(map))
                     .build())
             .build();
 
@@ -1015,22 +1042,154 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                     .id(id)
                     .listValue1(list)
                     .setValue1(set)
-                    .mapValue1(
-                        map.stream()
-                            .map(m -> m.entrySet().stream().findFirst().get())
-                            .map(
-                                e ->
-                                    InputKeyIntValueString.builder()
-                                        .key(e.getKey())
-                                        .value(e.getValue())
-                                        .build())
-                            .collect(Collectors.toList()))
+                    .mapValue1(toInputKeyIntValueStringList(map))
                     .build())
             .build();
 
     UpdateCollectionsSimpleMutation.Data updateResult = mutateAndGet(client, updateMutation);
     assertThat(updateResult.getUpdateCollectionsSimple()).isPresent();
     assertCollectionsSimple(client, id, list, set, map);
+  }
+
+  @Test
+  public void shouldInsertAndUpdateNestedListSetsAndMaps() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    UUID id = UUID.randomUUID();
+
+    List<List<InputKeyIntValueString>> list =
+        Collections.singletonList(
+            toInputKeyIntValueStringList(
+                Collections.singletonList(
+                    ImmutableMap.<Integer, String>builder().put(3, "three").build())));
+    List<List<Object>> set =
+        Collections.singletonList(
+            ImmutableList.builder()
+                .add(Uuids.timeBased().toString(), Uuids.timeBased().toString())
+                .build());
+
+    List<InputKeyUuidValueListInputKeyBigIntValueString> map =
+        Collections.singletonList(
+            InputKeyUuidValueListInputKeyBigIntValueString.builder()
+                .key(Uuids.random().toString())
+                .value(
+                    Collections.singletonList(
+                        InputKeyBigIntValueString.builder()
+                            .key("123")
+                            .value("one-two-three")
+                            .build()))
+                .build());
+
+    InsertCollectionsNestedMutation insertMutation =
+        InsertCollectionsNestedMutation.builder()
+            .value(
+                CollectionsNestedInput.builder()
+                    .id(id)
+                    .listValue1(list)
+                    .setValue1(set)
+                    .mapValue1(map)
+                    .build())
+            .build();
+
+    InsertCollectionsNestedMutation.Data insertResult =
+        getObservable(client.mutate(insertMutation));
+    assertThat(insertResult.getInsertCollectionsNested()).isPresent();
+    assertCollectionsNested(client, id, list, set, map);
+  }
+
+  private static List<InputKeyIntValueString> toInputKeyIntValueStringList(
+      List<Map<Integer, String>> map) {
+    return map.stream()
+        .map(m -> m.entrySet().stream().findFirst().get())
+        .map(e -> InputKeyIntValueString.builder().key(e.getKey()).value(e.getValue()).build())
+        .collect(Collectors.toList());
+  }
+
+  private void assertCollectionsNested(
+      ApolloClient client,
+      UUID id,
+      List<List<InputKeyIntValueString>> list,
+      List<List<Object>> set,
+      List<InputKeyUuidValueListInputKeyBigIntValueString> map) {
+    GetCollectionsNestedQuery getQuery =
+        GetCollectionsNestedQuery.builder()
+            .value(CollectionsNestedInput.builder().id(id).build())
+            .build();
+    GetCollectionsNestedQuery.Data result = getObservable(client.query(getQuery));
+    assertThat(result.getCollectionsNested()).isPresent();
+    assertThat(result.getCollectionsNested().get().getValues()).isPresent();
+    assertThat(result.getCollectionsNested().get().getValues().get()).hasSize(1);
+    GetCollectionsNestedQuery.Value item =
+        result.getCollectionsNested().get().getValues().get().get(0);
+
+    // Assert list
+    assertThat(item.getListValue1()).isPresent();
+    assertThat(item.getListValue1().get()).hasSize(list.size());
+    InputKeyIntValueString expectedListItem = list.get(0).get(0);
+    assertThat(item.getListValue1().get().get(0))
+        .hasSize(list.get(0).size())
+        .first()
+        .extracting(i -> i.getKey(), i -> i.getValue().get())
+        .containsExactly(expectedListItem.key(), expectedListItem.value());
+
+    // Assert set
+    assertThat(item.getSetValue1()).isPresent();
+    assertThat(item.getSetValue1().get()).isEqualTo(set);
+
+    // Assert map
+    assertThat(item.getMapValue1()).isPresent();
+    assertThat(item.getMapValue1().get()).hasSize(map.size());
+    InputKeyUuidValueListInputKeyBigIntValueString expectedMapItem = map.get(0);
+    GetCollectionsNestedQuery.MapValue1 actualMapItem = item.getMapValue1().get().get(0);
+    assertThat(actualMapItem.getKey()).isEqualTo(expectedMapItem.key());
+    InputKeyBigIntValueString expectedMapValue = expectedMapItem.value().get(0);
+    assertThat(actualMapItem.getValue().get())
+        .hasSize(1)
+        .first()
+        .extracting(i -> i.getKey(), i -> i.getValue().get())
+        .containsExactly(expectedMapValue.key(), expectedMapValue.value());
+  }
+
+  @Test
+  @DisplayName("Should insert and read back UDTs")
+  public void udtsTest() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+
+    InsertUdtsMutation insert =
+        InsertUdtsMutation.builder()
+            .value(
+                UdtsInput.builder()
+                    .a(AUdtInput.builder().b(BUdtInput.builder().i(1).build()).build())
+                    .bs(
+                        ImmutableList.of(
+                            BUdtInput.builder().i(2).build(), BUdtInput.builder().i(3).build()))
+                    .build())
+            .build();
+    mutateAndGet(client, insert);
+
+    GetUdtsQuery select =
+        GetUdtsQuery.builder()
+            .value(
+                UdtsInput.builder()
+                    .a(AUdtInput.builder().b(BUdtInput.builder().i(1).build()).build())
+                    .build())
+            .build();
+    List<GetUdtsQuery.Value> values =
+        getObservable(client.query(select))
+            .getUdts()
+            .flatMap(GetUdtsQuery.Udts::getValues)
+            .orElseThrow(AssertionError::new);
+    assertThat(values).hasSize(1);
+    GetUdtsQuery.Value result = values.get(0);
+    assertThat(result.getA().flatMap(GetUdtsQuery.A::getB))
+        .flatMap(GetUdtsQuery.B::getI)
+        .hasValue(1);
+    assertThat(result.getBs())
+        .hasValueSatisfying(
+            bs -> {
+              assertThat(bs).hasSize(2);
+              assertThat(bs.get(0).getI()).hasValue(2);
+              assertThat(bs.get(1).getI()).hasValue(3);
+            });
   }
 
   private void assertCollectionsSimple(
@@ -1137,6 +1296,9 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         }
 
         if (response.getErrors() != null && response.getErrors().size() > 0) {
+          logger.info(
+              "GraphQL error found in test: {}",
+              response.getErrors().stream().map(Error::getMessage).collect(Collectors.toList()));
           future.completeExceptionally(
               new GraphQLTestException("GraphQL error response", response.getErrors()));
           return;

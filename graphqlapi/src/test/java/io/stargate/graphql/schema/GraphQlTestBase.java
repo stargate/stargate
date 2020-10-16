@@ -3,6 +3,7 @@ package io.stargate.graphql.schema;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 import static org.mockito.quality.Strictness.LENIENT;
 
@@ -13,19 +14,19 @@ import graphql.GraphQLError;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
-import io.stargate.db.ClientState;
 import io.stargate.db.Persistence;
-import io.stargate.db.QueryState;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 
@@ -34,23 +35,18 @@ import org.mockito.junit.jupiter.MockitoSettings;
 public abstract class GraphQlTestBase {
 
   protected GraphQL graphQl;
+  protected GraphQLSchema graphQlSchema;
 
-  @Mock protected Persistence<?, ?, ?> persistence;
+  @Mock protected Persistence persistence;
   @Mock protected AuthenticationService authenticationService;
   @Mock protected HTTPAwareContextImpl context;
   @Mock protected DataStore dataStore;
 
   @Mock private StoredCredentials storedCredentials;
 
-  @SuppressWarnings("rawtypes")
-  @Mock
-  private ClientState clientState;
-
-  @SuppressWarnings("rawtypes")
-  @Mock
-  private QueryState queryState;
-
   @Captor protected ArgumentCaptor<String> queryCaptor;
+
+  private MockedStatic<DataStore> dataStoreCreateMock;
 
   @BeforeEach
   @SuppressWarnings("unchecked")
@@ -63,9 +59,8 @@ public abstract class GraphQlTestBase {
       when(context.getAuthToken()).thenReturn(token);
       when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
       when(storedCredentials.getRoleName()).thenReturn(roleName);
-      when(persistence.newClientState(roleName)).thenReturn(clientState);
-      when(persistence.newQueryState(clientState)).thenReturn(queryState);
-      when(persistence.newDataStore(queryState, null)).thenReturn(dataStore);
+      dataStoreCreateMock = mockStatic(DataStore.class);
+      dataStoreCreateMock.when(() -> DataStore.create(persistence, roleName)).thenReturn(dataStore);
     } catch (Exception e) {
       fail("Unexpected exception while mocking authentication", e);
     }
@@ -83,7 +78,13 @@ public abstract class GraphQlTestBase {
     when(dataStore.query(queryCaptor.capture()))
         .thenReturn(CompletableFuture.completedFuture(resultSet));
 
-    graphQl = GraphQL.newGraphQL(createGraphQlSchema()).build();
+    graphQlSchema = createGraphQlSchema();
+    graphQl = GraphQL.newGraphQL(graphQlSchema).build();
+  }
+
+  @AfterEach
+  public void resetMocks() {
+    dataStoreCreateMock.close();
   }
 
   protected abstract GraphQLSchema createGraphQlSchema();
