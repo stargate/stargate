@@ -2,6 +2,7 @@ package io.stargate.graphql.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -14,6 +15,7 @@ import graphql.GraphQLError;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
+import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
@@ -35,6 +37,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 public abstract class GraphQlTestBase {
 
   protected GraphQL graphQl;
+  protected GraphQLSchema graphQlSchema;
 
   @Mock protected Persistence persistence;
   @Mock protected AuthenticationService authenticationService;
@@ -44,6 +47,8 @@ public abstract class GraphQlTestBase {
   @Mock private StoredCredentials storedCredentials;
 
   @Captor protected ArgumentCaptor<String> queryCaptor;
+
+  @Captor protected ArgumentCaptor<Parameters> parametersCaptor;
 
   private MockedStatic<DataStore> dataStoreCreateMock;
 
@@ -59,7 +64,9 @@ public abstract class GraphQlTestBase {
       when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
       when(storedCredentials.getRoleName()).thenReturn(roleName);
       dataStoreCreateMock = mockStatic(DataStore.class);
-      dataStoreCreateMock.when(() -> DataStore.create(persistence, roleName)).thenReturn(dataStore);
+      dataStoreCreateMock
+          .when(() -> DataStore.create(eq(persistence), eq(roleName), parametersCaptor.capture()))
+          .thenReturn(dataStore);
     } catch (Exception e) {
       fail("Unexpected exception while mocking authentication", e);
     }
@@ -77,7 +84,8 @@ public abstract class GraphQlTestBase {
     when(dataStore.query(queryCaptor.capture()))
         .thenReturn(CompletableFuture.completedFuture(resultSet));
 
-    graphQl = GraphQL.newGraphQL(createGraphQlSchema()).build();
+    graphQlSchema = createGraphQlSchema();
+    graphQl = GraphQL.newGraphQL(graphQlSchema).build();
   }
 
   @AfterEach

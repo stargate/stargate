@@ -55,14 +55,6 @@ public class InsertMutationFetcher extends MutationFetcher {
       if (options.containsKey("ttl") && options.get("ttl") != null) {
         insert = insert.usingTtl((Integer) options.get("ttl"));
       }
-      if (options.containsKey("consistency") && options.get("consistency") != null) {
-        //
-        // insert.setConsistencyLevel(ConsistencyLevel.valueOf(options.get("consistency").toString()));
-      }
-      if (options.containsKey("serialConsistency") && options.get("serialConsistency") != null) {
-        //
-        // insert.setSerialConsistencyLevel(ConsistencyLevel.valueOf(options.get("serialConsistency").toString()));
-      }
     }
 
     return insert.asCql();
@@ -75,7 +67,7 @@ public class InsertMutationFetcher extends MutationFetcher {
     Map<String, Term> insertMap = new LinkedHashMap<>();
     for (Map.Entry<String, Object> entry : value.entrySet()) {
       Column column = getColumn(table, entry.getKey());
-      insertMap.put(column.name(), toDbLiteral(column, entry.getValue()));
+      insertMap.put(column.name(), toCqlTerm(column, entry.getValue()));
     }
     return insertMap;
   }

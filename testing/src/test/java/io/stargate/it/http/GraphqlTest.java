@@ -30,8 +30,12 @@ import com.example.graphql.client.betterbotz.orders.GetOrdersByValueQuery;
 import com.example.graphql.client.betterbotz.orders.GetOrdersWithFilterQuery;
 import com.example.graphql.client.betterbotz.products.DeleteProductsMutation;
 import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery;
+import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery.Products;
+import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery.Value;
 import com.example.graphql.client.betterbotz.products.InsertProductsMutation;
 import com.example.graphql.client.betterbotz.products.UpdateProductsMutation;
+import com.example.graphql.client.betterbotz.type.AUdtInput;
+import com.example.graphql.client.betterbotz.type.BUdtInput;
 import com.example.graphql.client.betterbotz.type.CollectionsNestedInput;
 import com.example.graphql.client.betterbotz.type.CollectionsSimpleInput;
 import com.example.graphql.client.betterbotz.type.CustomType;
@@ -45,7 +49,10 @@ import com.example.graphql.client.betterbotz.type.ProductsInput;
 import com.example.graphql.client.betterbotz.type.QueryConsistency;
 import com.example.graphql.client.betterbotz.type.QueryOptions;
 import com.example.graphql.client.betterbotz.type.StringFilterInput;
+import com.example.graphql.client.betterbotz.type.UdtsInput;
 import com.example.graphql.client.betterbotz.type.UuidFilterInput;
+import com.example.graphql.client.betterbotz.udts.GetUdtsQuery;
+import com.example.graphql.client.betterbotz.udts.InsertUdtsMutation;
 import com.example.graphql.client.schema.AlterTableAddMutation;
 import com.example.graphql.client.schema.AlterTableDropMutation;
 import com.example.graphql.client.schema.CreateKeyspaceMutation;
@@ -72,13 +79,7 @@ import java.math.BigDecimal;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -214,6 +215,13 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                 + ")",
             keyspace, "collections_nested"));
 
+    session.execute(String.format("CREATE TYPE IF NOT EXISTS %s.b(i int)", keyspace));
+    session.execute(String.format("CREATE TYPE IF NOT EXISTS %s.a(b frozen<b>)", keyspace));
+    session.execute(
+        String.format(
+            "CREATE TABLE IF NOT EXISTS %s.udts(a frozen<a> PRIMARY KEY, bs list<frozen<b>>)",
+            keyspace));
+
     PreparedStatement insert =
         session.prepare(
             String.format(
@@ -255,8 +263,10 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   }
 
   @AfterEach
-  private void teardown() {
-    session.close();
+  public void teardown() {
+    if (session != null) {
+      session.close();
+    }
   }
 
   private void initAuth() throws IOException {
@@ -736,8 +746,8 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(value.getCustomerName()).hasValue("Janice Evernathy");
     assertThat(value.getAddress()).hasValue("2101 Everplace Ave 3116");
     assertThat(value.getDescription()).hasValue("Ordering some more arms for my construction bot.");
-    assertThat(value.getPrice()).hasValue((float) 3199.99);
-    assertThat(value.getSellPrice()).hasValue((float) 3119.99);
+    assertThat(value.getPrice()).hasValue(3199.99f);
+    assertThat(value.getSellPrice()).hasValue(3119.99f);
   }
 
   @Test
@@ -777,8 +787,8 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(value.getCustomerName()).hasValue("John Doe");
     assertThat(value.getAddress()).hasValue("123 Main St 67890");
     assertThat(value.getDescription()).hasValue("Ordering replacement CPUs.");
-    assertThat(value.getPrice()).hasValue((float) 899.99);
-    assertThat(value.getSellPrice()).hasValue((float) 900.82);
+    assertThat(value.getPrice()).hasValue(899.99f);
+    assertThat(value.getSellPrice()).hasValue(900.82f);
   }
 
   @Test
@@ -790,7 +800,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         ProductsInput.builder()
             .id(productId)
             .name("Shiny Legs")
-            .price((float) 3199.99)
+            .price(3199.99f)
             .created(Instant.now())
             .description("Normal legs but shiny.")
             .build();
@@ -842,7 +852,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         ProductsInput.builder()
             .id(productId)
             .name("Shiny Legs")
-            .price((float) 3199.99)
+            .price(3199.99f)
             .created(Instant.now())
             .description("Normal legs but shiny.")
             .build();
@@ -879,7 +889,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         ProductsInput.builder()
             .id(productId)
             .name("Shiny Legs")
-            .price((float) 3199.99)
+            .price(3199.99f)
             .created(Instant.now())
             .description("Normal legs but shiny.")
             .build();
@@ -1082,6 +1092,71 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertCollectionsNested(client, id, list, set, map);
   }
 
+  @Test
+  public void queryWithPaging() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+
+    for (String name : ImmutableList.of("a", "b", "c")) {
+      insertProduct(
+          client,
+          ProductsInput.builder()
+              .id(UUID.randomUUID().toString())
+              .name(name)
+              .price(1.f)
+              .created(Instant.now())
+              .build());
+    }
+
+    List<String> names = new ArrayList<>();
+
+    Optional<Products> products = Optional.empty();
+    do {
+      products = getProducts(client, 1, products.flatMap(r -> r.getPageState()));
+      products.ifPresent(
+          p -> {
+            p.getValues()
+                .ifPresent(
+                    values -> {
+                      for (Value value : values) {
+                        value.getName().ifPresent(names::add);
+                      }
+                    });
+          });
+    } while (products
+        .map(p -> p.getValues().map(v -> !v.isEmpty()).orElse(false))
+        .orElse(false)); // Continue if there are still values
+
+    assertThat(names).containsExactlyInAnyOrder("a", "b", "c");
+  }
+
+  private static Optional<Products> getProducts(
+      ApolloClient client, int pageSize, Optional<String> pageState) {
+    ProductsFilterInput filterInput = ProductsFilterInput.builder().build();
+
+    QueryOptions.Builder optionsBuilder =
+        QueryOptions.builder().pageSize(pageSize).consistency(QueryConsistency.LOCAL_QUORUM);
+
+    pageState.ifPresent(optionsBuilder::pageState);
+    QueryOptions options = optionsBuilder.build();
+
+    GetProductsWithFilterQuery query =
+        GetProductsWithFilterQuery.builder().filter(filterInput).options(options).build();
+
+    GetProductsWithFilterQuery.Data result = getObservable(client.query(query));
+
+    assertThat(result.getProducts())
+        .hasValueSatisfying(
+            products -> {
+              assertThat(products.getValues())
+                  .hasValueSatisfying(
+                      values -> {
+                        assertThat(values).hasSizeLessThanOrEqualTo(pageSize);
+                      });
+            });
+
+    return result.getProducts();
+  }
+
   private static List<InputKeyIntValueString> toInputKeyIntValueStringList(
       List<Map<Integer, String>> map) {
     return map.stream()
@@ -1133,6 +1208,49 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         .first()
         .extracting(i -> i.getKey(), i -> i.getValue().get())
         .containsExactly(expectedMapValue.key(), expectedMapValue.value());
+  }
+
+  @Test
+  @DisplayName("Should insert and read back UDTs")
+  public void udtsTest() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+
+    InsertUdtsMutation insert =
+        InsertUdtsMutation.builder()
+            .value(
+                UdtsInput.builder()
+                    .a(AUdtInput.builder().b(BUdtInput.builder().i(1).build()).build())
+                    .bs(
+                        ImmutableList.of(
+                            BUdtInput.builder().i(2).build(), BUdtInput.builder().i(3).build()))
+                    .build())
+            .build();
+    mutateAndGet(client, insert);
+
+    GetUdtsQuery select =
+        GetUdtsQuery.builder()
+            .value(
+                UdtsInput.builder()
+                    .a(AUdtInput.builder().b(BUdtInput.builder().i(1).build()).build())
+                    .build())
+            .build();
+    List<GetUdtsQuery.Value> values =
+        getObservable(client.query(select))
+            .getUdts()
+            .flatMap(GetUdtsQuery.Udts::getValues)
+            .orElseThrow(AssertionError::new);
+    assertThat(values).hasSize(1);
+    GetUdtsQuery.Value result = values.get(0);
+    assertThat(result.getA().flatMap(GetUdtsQuery.A::getB))
+        .flatMap(GetUdtsQuery.B::getI)
+        .hasValue(1);
+    assertThat(result.getBs())
+        .hasValueSatisfying(
+            bs -> {
+              assertThat(bs).hasSize(2);
+              assertThat(bs.get(0).getI()).hasValue(2);
+              assertThat(bs.get(1).getI()).hasValue(3);
+            });
   }
 
   private void assertCollectionsSimple(
