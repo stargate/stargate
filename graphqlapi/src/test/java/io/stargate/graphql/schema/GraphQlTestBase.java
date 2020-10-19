@@ -45,7 +45,6 @@ public abstract class GraphQlTestBase {
 
   @Mock protected Persistence persistence;
   @Mock protected AuthenticationService authenticationService;
-  @Mock protected DataStore dataStore;
 
   @Mock private StoredCredentials storedCredentials;
 
@@ -55,22 +54,11 @@ public abstract class GraphQlTestBase {
 
   private MockedStatic<DataStore> dataStoreCreateMock;
 
+  // Stores the parameters of the last batch execution
+  protected Parameters batchParameters;
+
   @BeforeEach
   public void setupEnvironment() {
-
-    // Mock authentication:
-    try {
-      String roleName = "mock role name";
-      when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
-      when(storedCredentials.getRoleName()).thenReturn(roleName);
-      dataStoreCreateMock = mockStatic(DataStore.class);
-      dataStoreCreateMock
-          .when(() -> DataStore.create(eq(persistence), eq(roleName), parametersCaptor.capture()))
-          .thenReturn(dataStore);
-    } catch (Exception e) {
-      fail("Unexpected exception while mocking dataStore", e);
-    }
-
     // Make every query return an empty result set.
     // At the time of writing, this is enough to execute all of our fetchers without failure. It
     // might have to evolve in the future if queries start checking particular elements in the
@@ -81,10 +69,34 @@ public abstract class GraphQlTestBase {
     // a bit overkill and brittle. The integration tests in the 'testing' module fill that gap.
     ResultSet resultSet = mock(ResultSet.class);
     when(resultSet.rows()).thenReturn(Collections.emptyList());
-    when(dataStore.query(queryCaptor.capture()))
-        .thenReturn(CompletableFuture.completedFuture(resultSet));
-    when(dataStore.batch(batchCaptor.capture()))
-        .thenReturn(CompletableFuture.completedFuture(resultSet));
+
+    try {
+      String roleName = "mock role name";
+      when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
+      when(storedCredentials.getRoleName()).thenReturn(roleName);
+      dataStoreCreateMock = mockStatic(DataStore.class);
+      dataStoreCreateMock
+          .when(() -> DataStore.create(eq(persistence), eq(roleName), parametersCaptor.capture()))
+          .then(
+              i -> {
+                DataStore dataStore = mock(DataStore.class);
+                when(dataStore.query(queryCaptor.capture()))
+                    .thenReturn(CompletableFuture.completedFuture(resultSet));
+
+                // Batches use multiple data store instances, one per each mutation
+                // We need to capture the parameters provided at dataStore creation
+                Parameters dataStoreParameters = i.getArgument(2, Parameters.class);
+                when(dataStore.batch(batchCaptor.capture()))
+                    .then(
+                        batchInvoke -> {
+                          batchParameters = dataStoreParameters;
+                          return CompletableFuture.completedFuture(mock(ResultSet.class));
+                        });
+                return dataStore;
+              });
+    } catch (Exception e) {
+      fail("Unexpected exception while mocking dataStore", e);
+    }
 
     graphQlSchema = createGraphQlSchema();
     graphQl =

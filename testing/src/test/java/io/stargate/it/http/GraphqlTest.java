@@ -45,6 +45,8 @@ import com.example.graphql.client.betterbotz.type.CustomType;
 import com.example.graphql.client.betterbotz.type.InputKeyBigIntValueString;
 import com.example.graphql.client.betterbotz.type.InputKeyIntValueString;
 import com.example.graphql.client.betterbotz.type.InputKeyUuidValueListInputKeyBigIntValueString;
+import com.example.graphql.client.betterbotz.type.MutationConsistency;
+import com.example.graphql.client.betterbotz.type.MutationOptions;
 import com.example.graphql.client.betterbotz.type.OrdersFilterInput;
 import com.example.graphql.client.betterbotz.type.OrdersInput;
 import com.example.graphql.client.betterbotz.type.ProductsFilterInput;
@@ -1042,6 +1044,44 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         .extracting(Error::getMessage)
         .asString()
         .contains("Some clustering keys are missing");
+  }
+
+  @Test
+  @DisplayName("Multiple options with atomic directive should return error response")
+  public void multipleOptionsWithAtomicDirectiveShouldReturnErrorResponse() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+
+    ProductsAndOrdersMutation mutation =
+        ProductsAndOrdersMutation.builder()
+            .productValue(
+                ProductsInput.builder()
+                    .id(Uuids.random().toString())
+                    .prodName("prod 1")
+                    .price(1f)
+                    .name("prod1")
+                    .created(Instant.now())
+                    .build())
+            .orderValue(
+                OrdersInput.builder()
+                    .prodName("prod 1")
+                    .customerName("cust 1")
+                    .description("my description")
+                    .build())
+            .options(MutationOptions.builder().consistency(MutationConsistency.ALL).build())
+            .build();
+
+    GraphQLTestException ex =
+        catchThrowableOfType(
+            () -> getObservable(client.mutate(mutation)), GraphQLTestException.class);
+
+    assertThat(ex).isNotNull();
+    assertThat(ex.errors)
+        // One error per query
+        .hasSize(2)
+        .first()
+        .extracting(Error::getMessage)
+        .asString()
+        .contains("options can only de defined once in an @atomic mutation selection");
   }
 
   @Test

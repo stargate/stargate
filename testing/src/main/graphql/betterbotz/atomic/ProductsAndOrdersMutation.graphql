@@ -13,7 +13,7 @@ mutation ProductsAndOrdersMutation(
             description
         }
     },
-    orderMutation: updateOrders(value: $orderValue) {
+    orderMutation: updateOrders(value: $orderValue, options: $options) {
         applied
         value {
             id
