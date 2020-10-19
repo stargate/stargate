@@ -103,7 +103,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
     } else if (batchContext.add(statement) == selections) {
       // All the statements were added successfully
       // Use the dataStore containing the options
-      DataStore batchDataStore = batchContext.getDataStoreOrDefault(dataStore);
+      DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
       batchContext.setExecutionResult(batchDataStore.batch(batchContext.getStatements()));
     }
 

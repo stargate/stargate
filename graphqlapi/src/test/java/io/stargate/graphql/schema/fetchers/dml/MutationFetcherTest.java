@@ -88,7 +88,7 @@ public class MutationFetcherTest extends DmlTestBase {
     assertThat(result.getErrors()).isEmpty();
     assertThat(batchCaptor.getValue()).containsExactly(queries);
     assertThat(batchParameters)
-        .extracting(p -> p.consistencyLevel(),  p-> p.serialConsistencyLevel().get())
+        .extracting(p -> p.consistencyLevel(), p -> p.serialConsistencyLevel().get())
         .containsExactly(ConsistencyLevel.valueOf(cl), ConsistencyLevel.LOCAL_SERIAL);
   }
 

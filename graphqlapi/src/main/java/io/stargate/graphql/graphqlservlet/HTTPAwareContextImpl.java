@@ -22,7 +22,6 @@ import io.jsonwebtoken.impl.DefaultClaims;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -122,38 +121,42 @@ public class HTTPAwareContextImpl implements GraphQLContext {
    * executed in a batch.
    */
   public static class BatchContext {
-    private final List<String> statements = Collections.synchronizedList(new ArrayList<>());
-    private final AtomicInteger statementCounter = new AtomicInteger();
-    private final CompletableFuture<ResultSet> future = new CompletableFuture<>();
+    private final List<String> statements = new ArrayList<>();
+    private final Object statementsLock = new Object();
+    private final CompletableFuture<ResultSet> executionFuture = new CompletableFuture<>();
     private volatile DataStore dataStore;
     private final AtomicInteger dataStoreCounter = new AtomicInteger();
 
     public CompletableFuture<ResultSet> getExecutionFuture() {
-      return future;
+      return executionFuture;
     }
 
     public List<String> getStatements() {
-      return statements;
+      synchronized (statementsLock) {
+        return statements;
+      }
     }
 
     public void setExecutionResult(CompletableFuture<ResultSet> result) {
       result.whenComplete(
           (r, e) -> {
             if (e != null) {
-              future.completeExceptionally(e);
+              executionFuture.completeExceptionally(e);
             } else {
-              future.complete(r);
+              executionFuture.complete(r);
             }
           });
     }
 
     public void setExecutionResult(Exception ex) {
-      future.completeExceptionally(ex);
+      executionFuture.completeExceptionally(ex);
     }
 
     public int add(String query) {
-      statements.add(query);
-      return statementCounter.incrementAndGet();
+      synchronized (statementsLock) {
+        statements.add(query);
+        return statements.size();
+      }
     }
 
     public int setDataStore(DataStore dataStore) {
@@ -161,9 +164,8 @@ public class HTTPAwareContextImpl implements GraphQLContext {
       return dataStoreCounter.incrementAndGet();
     }
 
-    public DataStore getDataStoreOrDefault(DataStore defaultDataStore) {
-      DataStore result = this.dataStore;
-      return result != null ? result : defaultDataStore;
+    public Optional<DataStore> getDataStore() {
+      return Optional.ofNullable(this.dataStore);
     }
   }
 }
