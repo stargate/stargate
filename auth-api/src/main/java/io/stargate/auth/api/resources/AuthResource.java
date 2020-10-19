@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.auth.api;
+package io.stargate.auth.api.resources;
 
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.UnauthorizedException;
@@ -22,6 +22,11 @@ import io.stargate.auth.model.Credentials;
 import io.stargate.auth.model.Error;
 import io.stargate.auth.model.Secret;
 import io.stargate.auth.model.UsernameCredentials;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -31,7 +36,13 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Api(
+    produces = MediaType.APPLICATION_JSON,
+    consumes = MediaType.APPLICATION_JSON,
+    tags = {"auth"})
 @Path("/v1")
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
 public class AuthResource {
 
   private static final Logger logger = LoggerFactory.getLogger(AuthResource.class);
@@ -50,9 +61,19 @@ public class AuthResource {
 
   @POST
   @Path("/auth/token/generate")
-  @Consumes(MediaType.APPLICATION_JSON)
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response createToken(Secret secret) {
+  @ApiOperation(
+      value = "Generate Token",
+      notes = "Generate an authorization token to authenticate and perform requests.",
+      response = AuthTokenResponse.class,
+      code = 201)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 201, message = "resource created", response = AuthTokenResponse.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
+  public Response createToken(@ApiParam(value = "", required = true) Secret secret) {
     if (secret == null) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide a body to the request"))
@@ -92,9 +113,19 @@ public class AuthResource {
 
   @POST
   @Path("/auth")
-  @Consumes(MediaType.APPLICATION_JSON)
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response createToken(Credentials credentials) {
+  @ApiOperation(
+      value = "Create Token",
+      notes = "Create an authorization token to authenticate and perform requests.",
+      response = AuthTokenResponse.class,
+      code = 201)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 201, message = "resource created", response = AuthTokenResponse.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
+  public Response createToken(@ApiParam(value = "", required = true) Credentials credentials) {
     if (credentials == null) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide a body to the request"))
@@ -147,9 +178,24 @@ public class AuthResource {
    */
   @POST
   @Path("/admin/auth/usernametoken")
-  @Consumes(MediaType.APPLICATION_JSON)
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response createTokenFromUsername(UsernameCredentials usernameCredentials) {
+  @ApiOperation(
+      value = "Create Token from Username",
+      notes =
+          "Generate an authorization token to authenticate and perform requests. \n NOTE: This method is "
+              + "intended to be used in conjunction with another authentication service. For example, "
+              + "the request has already been authenticated through a proxy but a token is still needed "
+              + "to make requests to Stargate.",
+      response = AuthTokenResponse.class,
+      code = 201)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 201, message = "resource created", response = AuthTokenResponse.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
+  public Response createTokenFromUsername(
+      @ApiParam(value = "", required = true) UsernameCredentials usernameCredentials) {
     if (!shouldEnableUsernameToken) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Generating a token for a username is not allowed"))

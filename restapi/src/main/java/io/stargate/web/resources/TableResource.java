@@ -113,7 +113,8 @@ public class TableResource {
   @ApiOperation(
       value = "Add a table",
       notes = "Add a table in a specific keyspace.",
-      response = SuccessResponse.class)
+      response = SuccessResponse.class,
+      code = 201)
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = SuccessResponse.class),

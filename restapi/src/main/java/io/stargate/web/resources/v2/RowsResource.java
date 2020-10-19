@@ -251,7 +251,8 @@ public class RowsResource {
       notes =
           "Add a row to a table in your database. If the new row has the same primary key as that of an existing row, the database processes it as an update to the existing row.",
       response = String.class,
-      responseContainer = "Map")
+      responseContainer = "Map",
+      code = 201)
   @ApiResponses(
       value = {
         @ApiResponse(

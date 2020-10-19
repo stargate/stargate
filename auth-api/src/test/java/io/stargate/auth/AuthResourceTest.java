@@ -1,4 +1,4 @@
-package io.stargate.auth.api;
+package io.stargate.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -7,8 +7,7 @@ import static org.mockito.Mockito.when;
 
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import io.dropwizard.testing.junit5.ResourceExtension;
-import io.stargate.auth.AuthenticationService;
-import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.api.resources.AuthResource;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.auth.model.Credentials;
 import io.stargate.auth.model.Error;

@@ -331,7 +331,8 @@ public class RowResource {
       value = "Add row",
       notes =
           "Add a row to a table in your database. If the new row has the same primary key as that of an existing row, the database processes it as an update to the existing row.",
-      response = RowsResponse.class)
+      response = RowsResponse.class,
+      code = 201)
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = RowsResponse.class),

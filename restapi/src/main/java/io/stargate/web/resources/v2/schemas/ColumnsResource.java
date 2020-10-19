@@ -131,7 +131,8 @@ public class ColumnsResource {
   @ApiOperation(
       value = "Create a column",
       notes = "Add a single column to a table.",
-      response = Map.class)
+      response = Map.class,
+      code = 201)
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = Map.class),
