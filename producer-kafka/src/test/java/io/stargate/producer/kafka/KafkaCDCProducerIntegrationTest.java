@@ -83,12 +83,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
 
     // when
     // schema change event
-    when(tableMetadata.getPartitionKeys())
-        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
-    when(tableMetadata.getClusteringKeys())
-        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
-    when(tableMetadata.getColumns())
-        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
+    mockOnePKOneCKOneColumn(tableMetadata);
     kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
 
     // send actual event
@@ -129,12 +124,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
 
     // when
     // schema change event
-    when(tableMetadata.getPartitionKeys())
-        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
-    when(tableMetadata.getClusteringKeys())
-        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
-    when(tableMetadata.getColumns())
-        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
+    mockOnePKOneCKOneColumn(tableMetadata);
     kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
     kafkaCDCProducer.createTableSchemaAsync(tableMetadata);
 
@@ -175,12 +165,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
 
     // when
     // schema change event
-    when(tableMetadata.getPartitionKeys())
-        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
-    when(tableMetadata.getClusteringKeys())
-        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
-    when(tableMetadata.getColumns())
-        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
+    mockOnePKOneCKOneColumn(tableMetadata);
     kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
     try {
       // send actual event
@@ -204,11 +189,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
       verifyReceivedByKafka(expectedKey, expectedValue, topicName);
 
       // when change schema
-      when(tableMetadata.getPartitionKeys())
-          .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
-      when(tableMetadata.getClusteringKeys())
-          .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
-      when(tableMetadata.getColumns()).thenReturn(metadataAfterChange);
+      mockOnePKOneCKAndColumns(tableMetadata, metadataAfterChange);
       kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
 
       // and send event with a new column
@@ -249,11 +230,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
 
     // when
     // schema change event
-    when(tableMetadata.getPartitionKeys())
-        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
-    when(tableMetadata.getClusteringKeys())
-        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
-    when(tableMetadata.getColumns()).thenReturn(columnMetadata);
+    mockOnePKOneCKAndColumns(tableMetadata, columnMetadata);
     kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
     try {
       // send actual event
@@ -394,11 +371,7 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
 
     // when
     // schema change event
-    when(tableMetadata.getPartitionKeys())
-        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
-    when(tableMetadata.getClusteringKeys())
-        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
-    when(tableMetadata.getColumns()).thenReturn(columnMetadata);
+    mockOnePKOneCKAndColumns(tableMetadata, columnMetadata);
     kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
     try {
       // send actual event
@@ -487,6 +460,90 @@ class KafkaCDCProducerIntegrationTest extends IntegrationTestBase {
     } finally {
       kafkaCDCProducer.close().get();
     }
+  }
+
+  @Test
+  public void shouldSendUpdateEventToNTopicsBasedOnTheTableMetadata() throws Exception {
+    // given
+    TableMetadata tableMetadataFirst = mockTableMetadata();
+    TableMetadata tableMetadataSecond = mockTableMetadata();
+    String topicNameFirst = createTopicName(tableMetadataFirst);
+    String topicNameSecond = createTopicName(tableMetadataFirst);
+
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
+    Map<String, Object> properties = createKafkaProducerSettings();
+    kafkaCDCProducer.init(properties).get();
+
+    // when
+    // schema change event for two independent topics - both have different schema
+    mockOnePKOneCKAndColumns(
+        tableMetadataFirst, Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
+    kafkaCDCProducer.createTableSchemaAsync(tableMetadataFirst).get();
+
+    mockOnePKOneCKAndColumns(
+        tableMetadataSecond, Collections.singletonList(column(COLUMN_NAME_2, Native.INT)));
+    kafkaCDCProducer.createTableSchemaAsync(tableMetadataSecond).get();
+
+    // send events to two independent topics
+    RowUpdateEvent rowMutationEventFirstTopic =
+        createRowUpdateEvent(
+            PARTITION_KEY_VALUE,
+            partitionKey(PARTITION_KEY_NAME, Native.TEXT),
+            "col_value",
+            column(COLUMN_NAME, Native.TEXT),
+            CLUSTERING_KEY_VALUE,
+            clusteringKey(CLUSTERING_KEY_NAME, Native.INT),
+            tableMetadataFirst,
+            1000);
+    kafkaCDCProducer.send(rowMutationEventFirstTopic).get();
+
+    RowUpdateEvent rowMutationEventSecondTopic =
+        createRowUpdateEvent(
+            PARTITION_KEY_VALUE,
+            partitionKey(PARTITION_KEY_NAME, Native.TEXT),
+            123456,
+            column(COLUMN_NAME_2, Native.INT),
+            CLUSTERING_KEY_VALUE,
+            clusteringKey(CLUSTERING_KEY_NAME, Native.INT),
+            tableMetadataSecond,
+            1000);
+    kafkaCDCProducer.send(rowMutationEventSecondTopic).get();
+
+    // then
+    GenericRecord expectedKeyFirstTopic =
+        kafkaCDCProducer.keyValueConstructor.constructKey(
+            rowMutationEventFirstTopic, topicNameFirst);
+    GenericRecord expectedValueFirstTopic =
+        kafkaCDCProducer.keyValueConstructor.constructValue(
+            rowMutationEventFirstTopic, topicNameFirst);
+
+    GenericRecord expectedKeySecondTopic =
+        kafkaCDCProducer.keyValueConstructor.constructKey(
+            rowMutationEventFirstTopic, topicNameSecond);
+    GenericRecord expectedValueSecondTopic =
+        kafkaCDCProducer.keyValueConstructor.constructValue(
+            rowMutationEventFirstTopic, topicNameSecond);
+
+    try {
+      verifyReceivedByKafka(expectedKeyFirstTopic, expectedValueFirstTopic, topicNameFirst);
+      verifyReceivedByKafka(expectedKeySecondTopic, expectedValueSecondTopic, topicNameSecond);
+    } finally {
+      kafkaCDCProducer.close().get();
+    }
+  }
+
+  private void mockOnePKOneCKOneColumn(TableMetadata tableMetadata) {
+    mockOnePKOneCKAndColumns(
+        tableMetadata, Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
+  }
+
+  private void mockOnePKOneCKAndColumns(
+      TableMetadata tableMetadata, List<ColumnMetadata> columnMetadata) {
+    when(tableMetadata.getPartitionKeys())
+        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
+    when(tableMetadata.getClusteringKeys())
+        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
+    when(tableMetadata.getColumns()).thenReturn(columnMetadata);
   }
 
   @SuppressWarnings("unchecked")
