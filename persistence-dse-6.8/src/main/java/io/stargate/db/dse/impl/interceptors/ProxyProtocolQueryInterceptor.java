@@ -45,6 +45,7 @@ import org.apache.cassandra.db.marshal.UUIDType;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
+import org.apache.cassandra.stargate.transport.ServerError;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.slf4j.Logger;
@@ -66,6 +67,13 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   private static final Logger logger = LoggerFactory.getLogger(ProxyProtocolQueryInterceptor.class);
   private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
+  private final Resolver resolver;
+  private final String proxyDnsName;
+  private final int proxyPort;
+  private final long resolveDelaySecs;
+  private final List<EventListener> listeners = new CopyOnWriteArrayList<>();
+  private volatile Set<InetAddress> peers = Collections.emptySet();
+
   /**
    * A class that takes a name and resolves {@link InetAddress}s. This interface exists to
    * facilitate testing.
@@ -81,13 +89,6 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
      */
     Set<InetAddress> resolve(String name) throws UnknownHostException;
   }
-
-  private final Resolver resolver;
-  private final String proxyDnsName;
-  private final int proxyPort;
-  private final long resolveDelaySecs;
-  private final List<EventListener> listeners = new CopyOnWriteArrayList<>();
-  private volatile Set<InetAddress> peers = Collections.emptySet();
 
   public ProxyProtocolQueryInterceptor() {
     this(new DefaultResolver(), PROXY_DNS_NAME, PROXY_PORT, RESOLVE_DELAY_SECS);
@@ -131,7 +132,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
     assert clientState instanceof ClientStateWithPublicAddress;
     InetSocketAddress publicAddress = ((ClientStateWithPublicAddress) clientState).publicAddress();
     if (publicAddress == null) {
-      throw new RuntimeException(
+      throw new ServerError(
           "Unable to intercept proxy protocol system query without a valid public address");
     }
     String tableName = selectStatement.table();
@@ -189,7 +190,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
           peers = resolved;
         }
       } catch (UnknownHostException e) {
-        throw new RuntimeException("Unable to resolve DNS for proxy protocol peers table", e);
+        throw new ServerError("Unable to resolve DNS for proxy protocol peers table", e);
       }
       scheduler.schedule(this::resolvePeers, resolveDelaySecs, TimeUnit.SECONDS);
     }

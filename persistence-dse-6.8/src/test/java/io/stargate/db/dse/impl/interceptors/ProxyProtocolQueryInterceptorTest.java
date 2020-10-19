@@ -54,6 +54,12 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
   private static final InetAddress PUBLIC_ADDRESS2;
   private static final InetAddress PUBLIC_ADDRESS3;
 
+  private final String PROXY_DNS_NAME = "stargate-test";
+  private final int PROXY_PORT = 9042;
+
+  private final InetSocketAddress REMOTE_SOCKET_ADDRESS =
+      new InetSocketAddress(REMOTE_ADDRESS, 1234);
+
   static {
     try {
       REMOTE_ADDRESS = InetAddress.getByName("192.0.2.1");
@@ -61,15 +67,9 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
       PUBLIC_ADDRESS2 = InetAddress.getByName("192.51.100.2");
       PUBLIC_ADDRESS3 = InetAddress.getByName("192.51.100.3");
     } catch (UnknownHostException e) {
-      throw new RuntimeException("Unable to initialize addresses", e);
+      throw new AssertionError("Unable to initialize test addresses", e);
     }
   }
-
-  private final String PROXY_DNS_NAME = "stargate-test";
-  private final int PROXY_PORT = 9042;
-
-  private final InetSocketAddress REMOTE_SOCKET_ADDRESS =
-      new InetSocketAddress(REMOTE_ADDRESS, 1234);
 
   private static final Map<String, AbstractType<?>> TYPES =
       ImmutableMap.<String, AbstractType<?>>builder()
