@@ -8,6 +8,11 @@ steps:
     name: gcr.io/cloud-builders/gcloud
     entrypoint: 'bash'
     args: [ '-c', "gcloud secrets versions access latest --secret=stargate-artifactory --format='get(payload.data)' | tr '_-' '/+' | base64 -d > /workspace/ci/custom-settings.xml" ]
+  - id: 'fetch codacy secret'
+    waitFor: [ '-' ]
+    name: gcr.io/cloud-builders/gcloud
+    entrypoint: 'bash'
+    args: [ '-c', "gcloud secrets versions access latest --secret=codacy-project-token --format='get(payload.data)' | tr '_-' '/+' | base64 -d > /workspace/ci/codacy-project-token" ]
   - id: 'init_cache'
     name: 'gcr.io/cloud-builders/gsutil'
     waitFor: [ '-' ]

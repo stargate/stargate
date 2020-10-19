@@ -41,6 +41,19 @@ mvn -B verify --file pom.xml \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
 echoinfo "Test complete"
+
+echoinfo "Uploading test results"
+
+export CODACY_PROJECT_TOKEN="$(cat /workspace/ci/codacy-project-token | sed -e 's/\n//g')"
+for f in $(find . -type f -name 'jacoco.xml'); do
+    bash <(curl -Ls https://coverage.codacy.com/get.sh) report -l Java -r $f --partial
+done
+
+if [[ -n $(find . -type f -name 'jacoco.xml') ]]
+then
+    bash <(curl -Ls https://coverage.codacy.com/get.sh) final
+fi
+
 EOF
 
 

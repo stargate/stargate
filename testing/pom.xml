@@ -11,6 +11,8 @@
   <properties>
     <airline.version>2.7.0</airline.version>
     <kotlin.version>1.3.72</kotlin.version>
+    <code.coverage.project.folder>${basedir}/../</code.coverage.project.folder>
+    <code.coverage.overall.data.folder>${basedir}/../target/</code.coverage.overall.data.folder>
   </properties>
   <dependencies>
     <dependency>
@@ -220,11 +222,80 @@
           <forkCount>1</forkCount>
           <systemPropertyVariables>
             <stargate.libdir>${basedir}/../stargate-lib</stargate.libdir>
+            <jacoco-agent.destfile>${project.build.directory}/jacoco-it.exec</jacoco-agent.destfile>
+            <jacoco-agent.args>${failsafe.jacoco.args}</jacoco-agent.args>
           </systemPropertyVariables>
+          <argLine>${failsafe.jacoco.args}</argLine>
           <includes>
             <include>**/*.java</include>
           </includes>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>report-aggregate</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report-aggregate</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>merge-results</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>merge</goal>
+            </goals>
+            <configuration>
+              <fileSets>
+                <fileSet>
+                  <directory>${code.coverage.project.folder}</directory>
+                  <includes>
+                    <include>**/target/*.exec</include>
+                  </includes>
+                </fileSet>
+              </fileSets>
+              <destFile>${code.coverage.overall.data.folder}/aggregate.exec</destFile>
+            </configuration>
+          </execution>
+          <execution>
+            <id>post-merge-report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include></include>
+              </includes>
+              <dataFile>${code.coverage.overall.data.folder}/aggregate.exec</dataFile>
+              <outputDirectory>${code.coverage.overall.data.folder}/jacoco</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Unpack all classes for all stargate dependencies, otherwise jacoco ignores classes it cant find in this module -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>unpack</id>
+            <phase>package</phase>
+            <goals>
+              <goal>unpack-dependencies</goal>
+            </goals>
+            <configuration>
+              <includes>**/io/stargate/**/*.class</includes>
+              <excludes>**/*.properties</excludes>
+              <outputDirectory>${project.build.directory}/classes</outputDirectory>
+              <overWriteReleases>false</overWriteReleases>
+              <overWriteSnapshots>true</overWriteSnapshots>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
