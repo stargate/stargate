@@ -152,7 +152,11 @@ public class KeyspacesResource {
 
   @Timed
   @POST
-  @ApiOperation(value = "Create a keyspace", notes = "Create a new keyspace.", response = Map.class)
+  @ApiOperation(
+      value = "Create a keyspace",
+      notes = "Create a new keyspace.",
+      response = Map.class,
+      code = 201)
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = Map.class),

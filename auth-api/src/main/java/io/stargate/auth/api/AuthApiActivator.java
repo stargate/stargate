@@ -16,7 +16,8 @@
 package io.stargate.auth.api;
 
 import io.stargate.auth.AuthenticationService;
-import io.stargate.auth.server.AuthApiServer;
+import io.stargate.auth.api.impl.WebImpl;
+import io.stargate.core.metrics.api.Metrics;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
@@ -30,18 +31,21 @@ public class AuthApiActivator implements BundleActivator, ServiceListener {
   private static final Logger log = LoggerFactory.getLogger(AuthApiActivator.class);
 
   private BundleContext context;
-  private final AuthApiServer apiServer = new AuthApiServer();
+  private final WebImpl web = new WebImpl();
   private ServiceReference authenticationServiceReference;
+  private ServiceReference<?> metricsReference;
 
   static String AUTH_IDENTIFIER = System.getProperty("stargate.auth_id", "AuthTableBasedService");
 
   @Override
-  public void start(BundleContext context) throws InvalidSyntaxException {
+  public void start(BundleContext context) throws Exception {
     this.context = context;
     log.info("Starting apiServer....");
-    synchronized (apiServer) {
+    synchronized (web) {
       try {
-        context.addServiceListener(this, String.format("(AuthIdentifier=%s)", AUTH_IDENTIFIER));
+        String authFilter = String.format("(AuthIdentifier=%s)", AUTH_IDENTIFIER);
+        String metricsFilter = String.format("(objectClass=%s)", Metrics.class.getName());
+        context.addServiceListener(this, String.format("(|%s%s)", authFilter, metricsFilter));
       } catch (InvalidSyntaxException ise) {
         throw new RuntimeException(ise);
       }
@@ -55,11 +59,25 @@ public class AuthApiActivator implements BundleActivator, ServiceListener {
           if (service instanceof AuthenticationService
               && ref.getProperty("AuthIdentifier") != null
               && ref.getProperty("AuthIdentifier").equals(AUTH_IDENTIFIER)) {
-            this.apiServer.setAuthService((AuthenticationService) service);
-            this.apiServer.start();
-            log.info("Started authApiServer....");
+            log.info("Setting authenticationService in AuthApiActivator");
+            this.web.setAuthenticationService((AuthenticationService) service);
             break;
           }
+        }
+      }
+
+      metricsReference = context.getServiceReference(Metrics.class.getName());
+      if (metricsReference != null) {
+        log.info("Setting metrics in AuthApiActivator");
+        this.web.setMetrics((Metrics) context.getService(metricsReference));
+      }
+
+      if (this.web.getAuthenticationService() != null && this.web.getMetrics() != null) {
+        try {
+          this.web.start();
+          log.info("Started authApiServer....");
+        } catch (Exception e) {
+          log.error("Failed", e);
         }
       }
     }
@@ -70,13 +88,17 @@ public class AuthApiActivator implements BundleActivator, ServiceListener {
     if (authenticationServiceReference != null) {
       context.ungetService(authenticationServiceReference);
     }
+
+    if (metricsReference != null) {
+      context.ungetService(metricsReference);
+    }
   }
 
   @Override
   public void serviceChanged(ServiceEvent serviceEvent) {
     int type = serviceEvent.getType();
     String[] objectClass = (String[]) serviceEvent.getServiceReference().getProperty("objectClass");
-    synchronized (apiServer) {
+    synchronized (web) {
       switch (type) {
         case (ServiceEvent.REGISTERED):
           log.info("Service of type " + objectClass[0] + " registered.");
@@ -89,14 +111,20 @@ public class AuthApiActivator implements BundleActivator, ServiceListener {
                   .getProperty("AuthIdentifier")
                   .equals(AUTH_IDENTIFIER)) {
             log.info("Setting authenticationService in AuthApiActivator");
-            this.apiServer.setAuthService((AuthenticationService) service);
+            this.web.setAuthenticationService((AuthenticationService) service);
+          } else if (service instanceof Metrics) {
+            log.info("Setting metrics in AuthApiActivator");
+            this.web.setMetrics(((Metrics) service));
           }
 
-          if (this.apiServer.getAuthService() != null) {
-            this.apiServer.start();
-            log.info("Started authApiServer....");
+          if (this.web.getAuthenticationService() != null && this.web.getMetrics() != null) {
+            try {
+              this.web.start();
+              log.info("Started authApiServer.... (via svc changed)");
+            } catch (Exception e) {
+              log.error("Failed", e);
+            }
           }
-
           break;
         case (ServiceEvent.UNREGISTERING):
           log.info("Service of type " + objectClass[0] + " unregistered.");
