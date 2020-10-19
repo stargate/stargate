@@ -12,4 +12,6 @@
   <root level="${stargate.logging.level.root:-INFO}">
     <appender-ref ref="STDOUT"/>
   </root>
+  <logger name="org.apache.cassandra" level="${stargate.logging.level.cassandra:-INFO}"/>
+  <logger name="com.datastax.bdp.db" level="${stargate.logging.level.dse:-INFO}"/>
 </configuration>

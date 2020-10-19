@@ -155,7 +155,8 @@ public class NamespacesResource {
   @ApiOperation(
       value = "Create a namespace",
       notes = "Create a new namespace.",
-      response = Map.class)
+      response = Map.class,
+      code = 201)
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = Map.class),

@@ -46,6 +46,7 @@ import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
 import io.swagger.jaxrs.listing.ApiListingResource;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
+import java.io.IOException;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
@@ -93,7 +94,8 @@ public class Server extends Application<ApplicationConfiguration> {
 
   @Override
   public void run(
-      final ApplicationConfiguration applicationConfiguration, final Environment environment) {
+      final ApplicationConfiguration applicationConfiguration, final Environment environment)
+      throws IOException {
     final Db db = new Db(persistence, authenticationService);
 
     environment.getObjectMapper().configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
@@ -136,7 +138,6 @@ public class Server extends Application<ApplicationConfiguration> {
             });
 
     environment.jersey().register(SwaggerUIResource.class);
-
     enableCors(environment);
   }
 

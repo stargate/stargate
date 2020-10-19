@@ -5,22 +5,46 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.dao.DocumentDB;
-import io.stargate.web.docsapi.examples.*;
+import io.stargate.web.docsapi.examples.WriteDocResponse;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.resources.Db;
-import io.swagger.annotations.*;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.ResponseHeader;
+import io.swagger.jaxrs.PATCH;
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.PathSegment;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +66,8 @@ public class DocumentResourceV2 {
   @POST
   @ApiOperation(
       value = "Create a new document",
-      notes = "Auto-generates an ID for the newly created document")
+      notes = "Auto-generates an ID for the newly created document",
+      code = 201)
   @ApiResponses(
       value = {
         @ApiResponse(
@@ -79,8 +104,15 @@ public class DocumentResourceV2 {
     String newId = UUID.randomUUID().toString();
     return handle(
         () -> {
-          putDocPath(
-              headers, ui, authToken, namespace, collection, newId, new ArrayList<>(), payload);
+          documentService.putAtPath(
+              authToken,
+              namespace,
+              collection,
+              newId,
+              payload,
+              new ArrayList<>(),
+              false,
+              dbFactory);
 
           return Response.created(
                   URI.create(
@@ -123,9 +155,13 @@ public class DocumentResourceV2 {
       @ApiParam(value = "The JSON document", required = true) String payload) {
     logger.debug("Put: Collection = {}, id = {}", collection, id);
     return handle(
-        () ->
-            putDocPath(
-                headers, ui, authToken, namespace, collection, id, new ArrayList<>(), payload));
+        () -> {
+          documentService.putAtPath(
+              authToken, namespace, collection, id, payload, new ArrayList<>(), false, dbFactory);
+          return Response.ok()
+              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
+              .build();
+        });
   }
 
   @PUT
@@ -707,7 +743,9 @@ public class DocumentResourceV2 {
     try {
       return action.call();
     } catch (UnauthorizedException ue) {
-      return Response.status(Response.Status.UNAUTHORIZED).build();
+      return Response.status(Response.Status.UNAUTHORIZED)
+          .entity("You are not permitted to perform this action. Did you authenticate?")
+          .build();
     } catch (DocumentAPIRequestException sre) {
       return Response.status(Response.Status.BAD_REQUEST).entity(sre.getLocalizedMessage()).build();
     } catch (NoNodeAvailableException e) {
