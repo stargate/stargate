@@ -54,7 +54,8 @@ class AuthResourceTest {
   @Test
   void createTokenFromSecretUnauthorized() throws UnauthorizedException {
     Secret secret = new Secret("key", "secret");
-    when(authService.createToken("key", "secret")).thenThrow(UnauthorizedException.class);
+    when(authService.createToken("key", "secret"))
+        .thenThrow(new UnauthorizedException("unauthorized"));
 
     Response response =
         resourceWithUsernameTokenDisabled
@@ -64,13 +65,13 @@ class AuthResourceTest {
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(401);
     assertThat(response.readEntity(Error.class).getDescription())
-        .isEqualTo("Failed to create token: null");
+        .isEqualTo("Failed to create token: unauthorized");
   }
 
   @Test
   void createTokenFromSecretInternalServerError() throws UnauthorizedException {
     Secret secret = new Secret("key", "secret");
-    when(authService.createToken("key", "secret")).thenThrow(RuntimeException.class);
+    when(authService.createToken("key", "secret")).thenThrow(new RuntimeException("error"));
 
     Response response =
         resourceWithUsernameTokenDisabled
@@ -80,7 +81,7 @@ class AuthResourceTest {
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(500);
     assertThat(response.readEntity(Error.class).getDescription())
-        .isEqualTo("Failed to create token: null");
+        .isEqualTo("Failed to create token: error");
   }
 
   @Test
@@ -140,7 +141,8 @@ class AuthResourceTest {
   @Test
   void createTokenFromCredentialsUnauthorized() throws UnauthorizedException {
     Credentials credentials = new Credentials("username", "password");
-    when(authService.createToken("username", "password")).thenThrow(UnauthorizedException.class);
+    when(authService.createToken("username", "password"))
+        .thenThrow(new UnauthorizedException("unauthorized"));
 
     Response response =
         resourceWithUsernameTokenDisabled
@@ -150,13 +152,13 @@ class AuthResourceTest {
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(401);
     assertThat(response.readEntity(Error.class).getDescription())
-        .isEqualTo("Failed to create token: null");
+        .isEqualTo("Failed to create token: unauthorized");
   }
 
   @Test
   void createTokenFromCredentialsInternalServerError() throws UnauthorizedException {
     Credentials credentials = new Credentials("username", "password");
-    when(authService.createToken("username", "password")).thenThrow(RuntimeException.class);
+    when(authService.createToken("username", "password")).thenThrow(new RuntimeException("error"));
 
     Response response =
         resourceWithUsernameTokenDisabled
@@ -166,7 +168,7 @@ class AuthResourceTest {
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(500);
     assertThat(response.readEntity(Error.class).getDescription())
-        .isEqualTo("Failed to create token: null");
+        .isEqualTo("Failed to create token: error");
   }
 
   @Test
@@ -241,7 +243,7 @@ class AuthResourceTest {
   @Test
   void createTokenFromUsernameUnauthorized() throws UnauthorizedException {
     UsernameCredentials username = new UsernameCredentials("username");
-    when(authService.createToken("username")).thenThrow(UnauthorizedException.class);
+    when(authService.createToken("username")).thenThrow(new UnauthorizedException("unauthorized"));
 
     Response response =
         resourceWithUsernameTokenEnabled
@@ -251,13 +253,13 @@ class AuthResourceTest {
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(401);
     assertThat(response.readEntity(Error.class).getDescription())
-        .isEqualTo("Failed to create token: null");
+        .isEqualTo("Failed to create token: unauthorized");
   }
 
   @Test
   void createTokenFromUsernameInternalServerError() throws UnauthorizedException {
     UsernameCredentials username = new UsernameCredentials("username");
-    when(authService.createToken("username")).thenThrow(RuntimeException.class);
+    when(authService.createToken("username")).thenThrow(new RuntimeException("error"));
 
     Response response =
         resourceWithUsernameTokenEnabled
@@ -267,7 +269,7 @@ class AuthResourceTest {
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(500);
     assertThat(response.readEntity(Error.class).getDescription())
-        .isEqualTo("Failed to create token: null");
+        .isEqualTo("Failed to create token: error");
   }
 
   @Test
