@@ -19,39 +19,67 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
+import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.util.CaseUtil;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class NameMapping {
-  private final BiMap<Table, String> entityName = HashBiMap.create();
-  private final Map<Table, BiMap<Column, String>> columnName;
+  private final BiMap<Table, String> entityNames = HashBiMap.create();
+  // TODO: using Column as map key is a bit dodgy. First, because Column objects are currently
+  //   abused a bit by Result.Rows (in the persistence-api module), which can lead to subtle
+  //   issues easily. Second because in general, Column's equality is a tad complex and include
+  //   things like the type, which could possibly change over time for a given "column" (in the
+  //   sense of "defined in a table"). Using the column name here would be more reliable.
+  private final Map<Table, BiMap<Column, String>> columnNames;
+  private final BiMap<UserDefinedType, String> udtNames = HashBiMap.create();
+  private final Map<UserDefinedType, BiMap<Column, String>> fieldNames;
 
-  public NameMapping(Set<Table> tables) {
-    columnName = new HashMap<>();
+  public NameMapping(Set<Table> tables, List<UserDefinedType> udts) {
+    columnNames = new HashMap<>();
     buildNames(tables);
+    fieldNames = new HashMap<>();
+    buildNames(udts);
   }
 
   private void buildNames(Set<Table> tables) {
     for (Table table : tables) {
-      entityName.put(table, CaseUtil.toCamel(table.name()));
-      buildColumnNames(table);
+      entityNames.put(table, CaseUtil.toCamel(table.name()));
+      columnNames.put(table, buildColumnNames(table.columns()));
     }
   }
 
-  private void buildColumnNames(Table tableMetadata) {
-    BiMap<Column, String> map = columnName.computeIfAbsent(tableMetadata, k -> HashBiMap.create());
-    for (Column column : tableMetadata.columns()) {
+  private void buildNames(List<UserDefinedType> udts) {
+    for (UserDefinedType udt : udts) {
+      // CQL allows tables and UDTs with the same name, append a suffix to avoid clashes.
+      udtNames.put(udt, CaseUtil.toCamel(udt.name()) + "Udt");
+      fieldNames.put(udt, buildColumnNames(udt.columns()));
+    }
+  }
+
+  private BiMap<Column, String> buildColumnNames(List<Column> columns) {
+    BiMap<Column, String> map = HashBiMap.create();
+    for (Column column : columns) {
       map.put(column, CaseUtil.toLowerCamel(column.name()));
     }
+    return map;
   }
 
-  public BiMap<Table, String> getEntityName() {
-    return entityName;
+  public BiMap<Table, String> getEntityNames() {
+    return entityNames;
   }
 
-  public BiMap<Column, String> getColumnName(Table table) {
-    return columnName.get(table);
+  public BiMap<Column, String> getColumnNames(Table table) {
+    return columnNames.get(table);
+  }
+
+  public BiMap<UserDefinedType, String> getUdtNames() {
+    return udtNames;
+  }
+
+  public BiMap<Column, String> getFieldNames(UserDefinedType udt) {
+    return fieldNames.get(udt);
   }
 }

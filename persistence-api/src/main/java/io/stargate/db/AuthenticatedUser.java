@@ -15,8 +15,13 @@
  */
 package io.stargate.db;
 
-public interface AuthenticatedUser<T> {
-  String getName();
+import org.immutables.value.Value;
 
-  T getWrapped();
+@Value.Immutable
+public interface AuthenticatedUser {
+  String name();
+
+  static AuthenticatedUser of(String userName) {
+    return ImmutableAuthenticatedUser.builder().name(userName).build();
+  }
 }

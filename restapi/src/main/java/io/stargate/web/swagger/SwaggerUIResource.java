@@ -1,13 +1,18 @@
 package io.stargate.web.swagger;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -23,12 +28,26 @@ import org.slf4j.LoggerFactory;
 @Path("/swagger-ui")
 @Produces({MediaType.TEXT_HTML, "text/css", "image/png"})
 public class SwaggerUIResource {
+
   private static final Logger logger = LoggerFactory.getLogger(SwaggerUIResource.class);
 
   private static Pattern fileExtensionPattern =
       Pattern.compile("([^\\s]+(\\.(?i)(css|png|js|map|html))$)");
 
-  @Inject private Bundle bundle;
+  private Bundle bundle;
+  private String indexFile;
+
+  @Inject
+  public SwaggerUIResource(Bundle bundle) throws IOException {
+    this.bundle = bundle;
+    URL entry = bundle.getEntry("/swagger-ui-cust/index.html");
+
+    // Save the templated file away for later so that we only have to do this conversion once.
+    indexFile =
+        new BufferedReader(new InputStreamReader(entry.openConnection().getInputStream()))
+            .lines()
+            .collect(Collectors.joining("\n"));
+  }
 
   /**
    * Due to how class loading works, we can't use the standard {@code
@@ -52,13 +71,20 @@ public class SwaggerUIResource {
 
   @GET
   @Path("/")
-  public Response get(@Context UriInfo uriInfo) {
+  public Response get(@Context UriInfo uriInfo, @HeaderParam("X-Cassandra-Token") String token) {
     // Redirect ".../swagger-ui" to ".../swagger-ui/" so that relative resources e.g. "./XXXX.css"
     // in "index.html" work correctly.
     if (!uriInfo.getAbsolutePath().getPath().endsWith("/")) {
       return Response.temporaryRedirect(uriInfo.getAbsolutePathBuilder().path("/").build()).build();
     }
-    return serveFile("index.html");
+
+    // Using an HTML file with templated text that's been read in as a String. Yes,  we could use
+    // something like Velocity but that feels overkill for a single field.
+    String formattedIndexFile =
+        indexFile.replaceFirst("AUTHENTICATION_TOKEN", token == null ? "" : token);
+    return Response.ok(new ByteArrayInputStream(formattedIndexFile.getBytes()))
+        .type(MediaType.TEXT_HTML)
+        .build();
   }
 
   private Response serveFile(String fileName) {

@@ -60,7 +60,7 @@ public class GraphqlActivator implements BundleActivator {
   }
 
   private synchronized void maybeStartService(
-      Persistence<?, ?, ?> persistence, Metrics metrics, AuthenticationService authentication) {
+      Persistence persistence, Metrics metrics, AuthenticationService authentication) {
     if (web == null) {
       try {
         web = new WebImpl(persistence, metrics, authentication);
@@ -85,7 +85,7 @@ public class GraphqlActivator implements BundleActivator {
 
   private class Tracker extends ServiceTracker<Object, Object> {
 
-    private Persistence<?, ?, ?> persistence;
+    private Persistence persistence;
     private Metrics metrics;
     private AuthenticationService authentication;
 

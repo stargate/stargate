@@ -30,8 +30,7 @@ import java.util.Map;
  */
 public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
 
-  protected DdlQueryFetcher(
-      Persistence<?, ?, ?> persistence, AuthenticationService authenticationService) {
+  protected DdlQueryFetcher(Persistence persistence, AuthenticationService authenticationService) {
     super(persistence, authenticationService);
   }
 

@@ -53,8 +53,8 @@ public class ColumnTest {
     assertThat(Type.Text.fromString("2")).isEqualTo("2");
     assertThat(Type.Time.fromString("2")).isEqualTo(LocalTime.ofNanoOfDay(2));
 
-    Instant now = Instant.now();
-    assertThat(Type.Timestamp.fromString(now.toString())).isEqualTo(now);
+    Instant instant = Instant.parse("2020-10-10T10:34:34.664Z");
+    assertThat(Type.Timestamp.fromString(instant.toString())).isEqualTo(instant);
 
     UUID uuid = UUID.fromString("50554d6e-29bb-11e5-b345-feff819cdc9f");
     assertThat(Type.Timeuuid.fromString(uuid.toString())).isEqualTo(uuid);
