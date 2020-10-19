@@ -24,11 +24,13 @@ import static io.stargate.producer.kafka.configuration.ConfigLoader.SCHEMA_REGIS
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.dropwizard.kafka.metrics.DropwizardMetricsReporter;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.junit.jupiter.api.Test;
 
 class DefaultConfigTest {
@@ -165,7 +167,7 @@ class DefaultConfigTest {
 
     // then
     assertThat(config.getKafkaProducerSettings())
-        .containsExactly(
+        .containsOnly(
             new SimpleEntry<>("setting-a", 1),
             new SimpleEntry<>("setting-b", "a"),
             new SimpleEntry<>(SCHEMA_REGISTRY_URL_SETTING_NAME, "schema-url"),
@@ -174,7 +176,11 @@ class DefaultConfigTest {
                 CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG,
                 DropwizardMetricsReporter.class.getName()),
             new SimpleEntry<>(DropwizardMetricsReporter.METRICS_NAME_CONFIG, "producer-prefix"),
-            new SimpleEntry<>(DropwizardMetricsReporter.SHOULD_INCLUDE_TAGS_CONFIG, "true"));
+            new SimpleEntry<>(DropwizardMetricsReporter.SHOULD_INCLUDE_TAGS_CONFIG, "true"),
+            new SimpleEntry<>(
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class),
+            new SimpleEntry<>(
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class));
     assertThat(config.getSchemaRegistryUrl()).isEqualTo("schema-url");
     assertThat(config.getTopicPrefixName()).isEqualTo("prefix");
     assertThat(config.getMetricsConfig())

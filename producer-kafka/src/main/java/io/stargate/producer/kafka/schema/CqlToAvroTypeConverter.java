@@ -45,6 +45,7 @@ import org.apache.cassandra.stargate.schema.CQLType.UserDefined;
 import org.apache.commons.lang.StringUtils;
 
 public class CqlToAvroTypeConverter {
+  private static final int DEFAULT_DECIMAL_PRECISION = 10;
   private static final Map<Native, Schema> SCHEMA_PER_NATIVE_TYPE = new HashMap<>();
 
   private CqlToAvroTypeConverter() {}
@@ -64,7 +65,8 @@ public class CqlToAvroTypeConverter {
     SCHEMA_PER_NATIVE_TYPE.put(
         Native.DATE, LogicalTypes.date().addToSchema(Schema.create(Type.INT)));
     SCHEMA_PER_NATIVE_TYPE.put(
-        Native.DECIMAL, LogicalTypes.decimal(10).addToSchema(Schema.create(Type.BYTES)));
+        Native.DECIMAL,
+        LogicalTypes.decimal(DEFAULT_DECIMAL_PRECISION).addToSchema(Schema.create(Type.BYTES)));
     SCHEMA_PER_NATIVE_TYPE.put(Native.DOUBLE, Schema.create(Type.DOUBLE));
     SCHEMA_PER_NATIVE_TYPE.put(
         Native.DURATION,
@@ -138,7 +140,7 @@ public class CqlToAvroTypeConverter {
   }
 
   /**
-   * The Tuple is a Record type in Avro. For example, such an Tuple type:
+   * The Tuple is a Record type in Avro. For example, such a Tuple type:
    *
    * <pre>
    *     new Tuple(Native.INT, new Collection(Kind.LIST, Native.TEXT));

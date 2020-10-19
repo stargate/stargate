@@ -24,7 +24,6 @@ import static org.testcontainers.containers.KafkaContainer.ZOOKEEPER_PORT;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
-import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.stargate.producer.kafka.configuration.ConfigLoader;
 import io.stargate.producer.kafka.schema.EmbeddedSchemaRegistryServer;
 import java.net.ServerSocket;
@@ -103,11 +102,6 @@ public class IntegrationTestBase {
     properties.put(
         withCDCPrefixPrefix(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG),
         kafkaContainer.getBootstrapServers());
-    properties.put(
-        withCDCPrefixPrefix(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG), KafkaAvroSerializer.class);
-    properties.put(
-        withCDCPrefixPrefix(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG),
-        KafkaAvroSerializer.class);
     // lower the max.block to allow faster failure scenario testing
     properties.put(withCDCPrefixPrefix(ProducerConfig.MAX_BLOCK_MS_CONFIG), "2000");
 

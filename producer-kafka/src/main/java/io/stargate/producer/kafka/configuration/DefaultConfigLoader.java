@@ -16,6 +16,7 @@
 package io.stargate.producer.kafka.configuration;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.dropwizard.kafka.metrics.DropwizardMetricsReporter;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Map;
@@ -25,6 +26,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.producer.ProducerConfig;
 
 public class DefaultConfigLoader implements ConfigLoader {
 
@@ -38,8 +40,20 @@ public class DefaultConfigLoader implements ConfigLoader {
     MetricsConfig metricsConfig = loadMetricsConfig(options);
     registerMetricsIfEnabled(kafkaProducerSettings, metricsConfig);
     String schemaRegistryUrl = getSchemaRegistryUrl(kafkaProducerSettings);
+    putProducerSerializersConfig(kafkaProducerSettings);
     return new CDCKafkaConfig(
         topicPrefixName, schemaRegistryUrl, kafkaProducerSettings, metricsConfig);
+  }
+
+  /**
+   * The CDC connector uses avro for serializing, it should not be configured by the client. Both
+   * `key.serializer` and `value.serializer` are set to {@link KafkaAvroSerializer}.
+   */
+  private void putProducerSerializersConfig(Map<String, Object> kafkaProducerSettings) {
+    kafkaProducerSettings.put(
+        ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class);
+    kafkaProducerSettings.put(
+        ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class);
   }
 
   /**
