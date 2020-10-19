@@ -201,11 +201,9 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
    *
    * @param name
    * @param publicAddress
-   * @param publicPort
    * @return A {@link ByteBuffer} value for a given system local/peers column.
    */
-  private static ByteBuffer buildColumnValue(
-      String name, InetAddress publicAddress, int publicPort) {
+  private static ByteBuffer buildColumnValue(String name, InetAddress publicAddress) {
     switch (name) {
       case "key":
         return UTF8Type.instance.decompose("local");
@@ -270,7 +268,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   private List<ByteBuffer> buildRow(ResultMetadata metadata, InetAddress publicAddress) {
     List<ByteBuffer> row = Lists.newArrayListWithCapacity(metadata.names.size());
     metadata.names.forEach(
-        column -> row.add(buildColumnValue(column.name.toString(), publicAddress, proxyPort)));
+        column -> row.add(buildColumnValue(column.name.toString(), publicAddress)));
     return row;
   }
 

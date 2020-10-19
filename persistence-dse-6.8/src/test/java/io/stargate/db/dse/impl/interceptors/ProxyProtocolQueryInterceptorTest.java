@@ -66,6 +66,7 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
   }
 
   private final String PROXY_DNS_NAME = "stargate-test";
+  private final int PROXY_PORT = 9042;
 
   private final InetSocketAddress REMOTE_SOCKET_ADDRESS =
       new InetSocketAddress(REMOTE_ADDRESS, 1234);
@@ -119,7 +120,7 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
         .thenReturn(ImmutableSet.of(PUBLIC_ADDRESS1, PUBLIC_ADDRESS2, PUBLIC_ADDRESS3));
 
     ProxyProtocolQueryInterceptor interceptor =
-        new ProxyProtocolQueryInterceptor(resolver, PROXY_DNS_NAME, 1);
+        new ProxyProtocolQueryInterceptor(resolver, PROXY_DNS_NAME, PROXY_PORT, 1);
 
     Rows result = (Rows) interceptQuery(interceptor, "SELECT * FROM system.peers", local);
     assertThat(collect(result, "rpc_address")).isEqualTo(peers);
@@ -150,7 +151,7 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
         .thenReturn(ImmutableSet.of(PUBLIC_ADDRESS1, PUBLIC_ADDRESS2));
 
     ProxyProtocolQueryInterceptor interceptor =
-        new ProxyProtocolQueryInterceptor(resolver, PROXY_DNS_NAME, 1);
+        new ProxyProtocolQueryInterceptor(resolver, PROXY_DNS_NAME, PROXY_PORT, 1);
 
     Rows result = (Rows) interceptQuery(interceptor, "SELECT * FROM system.peers", PUBLIC_ADDRESS2);
     assertThat(collect(result, name)).containsExactlyInAnyOrder(value);
@@ -203,7 +204,7 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
         .thenReturn(ImmutableSet.of(PUBLIC_ADDRESS1, PUBLIC_ADDRESS2, PUBLIC_ADDRESS3));
 
     ProxyProtocolQueryInterceptor interceptor =
-        new ProxyProtocolQueryInterceptor(resolver, PROXY_DNS_NAME, 1);
+        new ProxyProtocolQueryInterceptor(resolver, PROXY_DNS_NAME, PROXY_PORT, 1);
 
     Rows resultBefore =
         (Rows) interceptQuery(interceptor, "SELECT * FROM system.peers", PUBLIC_ADDRESS1);
@@ -228,7 +229,7 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
         .thenReturn(ImmutableSet.of(PUBLIC_ADDRESS1, PUBLIC_ADDRESS2));
 
     ProxyProtocolQueryInterceptor interceptor =
-        new ProxyProtocolQueryInterceptor(resolver, PROXY_DNS_NAME, 1);
+        new ProxyProtocolQueryInterceptor(resolver, PROXY_DNS_NAME, PROXY_PORT, 1);
 
     Rows resultBefore =
         (Rows) interceptQuery(interceptor, "SELECT * FROM system.peers", PUBLIC_ADDRESS1);
