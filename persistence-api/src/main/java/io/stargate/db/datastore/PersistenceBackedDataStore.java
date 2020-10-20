@@ -5,6 +5,7 @@ import io.stargate.db.Batch;
 import io.stargate.db.BatchType;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
+import io.stargate.db.SimpleStatement;
 import io.stargate.db.Statement;
 import io.stargate.db.datastore.PersistenceBackedPreparedStatement.PreparedInfo;
 import io.stargate.db.datastore.PreparedStatement.Bound;
@@ -59,6 +60,14 @@ class PersistenceBackedDataStore implements DataStore {
   }
 
   @Override
+  public CompletableFuture<ResultSet> batch(List<String> queries) {
+    long queryStartNanos = System.nanoTime();
+    List<Statement> persistenceStatements =
+        queries.stream().map(SimpleStatement::new).collect(Collectors.toList());
+    return batch(persistenceStatements, BatchType.LOGGED, parameters, queryStartNanos);
+  }
+
+  @Override
   public CompletableFuture<ResultSet> batch(
       List<Bound> statements, BatchType batchType, UnaryOperator<Parameters> parametersModifier) {
     long queryStartNanos = System.nanoTime();
@@ -67,8 +76,17 @@ class PersistenceBackedDataStore implements DataStore {
         statements.stream()
             .map(b -> b.toPersistenceStatement(executeParameters.protocolVersion()))
             .collect(Collectors.toList());
+    return batch(persistenceStatements, batchType, executeParameters, queryStartNanos);
+  }
+
+  private CompletableFuture<ResultSet> batch(
+      List<Statement> statements,
+      BatchType batchType,
+      Parameters executeParameters,
+      long queryStartNanos) {
+
     return connection
-        .batch(new Batch(batchType, persistenceStatements), executeParameters, queryStartNanos)
+        .batch(new Batch(batchType, statements), executeParameters, queryStartNanos)
         .thenApply(r -> PersistenceBackedResultSet.create(connection, r, null, executeParameters));
   }
 

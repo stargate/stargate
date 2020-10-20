@@ -33,6 +33,26 @@ public class SampleKeyspaces {
                           .kind(Column.Kind.Regular)
                           .build())
                   .build())
+          .addTables(
+              ImmutableTable.builder()
+                  .keyspace("library")
+                  .name("authors")
+                  .addColumns(
+                      ImmutableColumn.builder()
+                          .keyspace("library")
+                          .table("books")
+                          .name("author")
+                          .type(Column.Type.Text)
+                          .kind(Column.Kind.PartitionKey)
+                          .build(),
+                      ImmutableColumn.builder()
+                          .keyspace("library")
+                          .table("books")
+                          .name("title")
+                          .type(Column.Type.Text)
+                          .kind(Column.Kind.Clustering)
+                          .build())
+                  .build())
           .build();
 
   public static final Keyspace UDTS = buildUdts();

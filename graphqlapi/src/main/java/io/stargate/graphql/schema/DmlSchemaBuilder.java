@@ -23,7 +23,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import graphql.Scalars;
+import graphql.introspection.Introspection;
 import graphql.schema.GraphQLArgument;
+import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLEnumType;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLInputObjectField;
@@ -97,7 +99,6 @@ class DmlSchemaBuilder {
               GraphQLInputObjectField.newInputObjectField()
                   .name("ttl")
                   .type(Scalars.GraphQLInt)
-                  .defaultValue(-1)
                   .build())
           .build();
 
@@ -111,6 +112,7 @@ class DmlSchemaBuilder {
     this.filterInputTypes = buildFilterInputTypes();
   }
 
+  @SuppressWarnings("deprecation")
   GraphQLSchema build() {
     GraphQLSchema.Builder builder = new GraphQLSchema.Builder();
 
@@ -140,6 +142,13 @@ class DmlSchemaBuilder {
       queryFields.addAll(tableQueryField);
       mutationFields.addAll(tableMutationFields);
     }
+
+    builder.additionalDirective(
+        GraphQLDirective.newDirective()
+            .validLocation(Introspection.DirectiveLocation.MUTATION)
+            .name(SchemaConstants.ATOMIC_DIRECTIVE)
+            .description("Instructs the server to apply the mutations in a LOGGED batch")
+            .build());
 
     if (queryFields.isEmpty()) {
       GraphQLFieldDefinition emptyQueryField =

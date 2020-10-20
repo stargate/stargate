@@ -2088,8 +2088,7 @@
                 "kind": "SCALAR",
                 "name": "Int",
                 "ofType": null
-              },
-              "defaultValue": "-1"
+              }
             }
           ],
           "interfaces": null,
