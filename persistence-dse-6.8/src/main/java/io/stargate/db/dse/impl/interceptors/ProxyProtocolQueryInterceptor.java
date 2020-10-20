@@ -44,7 +44,6 @@ import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.db.marshal.UUIDType;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.QueryState;
-import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.transport.ServerError;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.transport.messages.ResultMessage;
@@ -176,15 +175,11 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
 
           for (EventListener listener : listeners) {
             for (InetAddress peer : added) {
-              InetAddressAndPort endpoint =
-                  InetAddressAndPort.getByAddressOverrideDefaults(peer, proxyPort);
-              listener.onJoinCluster(endpoint);
-              listener.onUp(endpoint);
+              listener.onJoinCluster(peer, proxyPort);
+              listener.onUp(peer, proxyPort);
             }
             for (InetAddress peer : removed) {
-              InetAddressAndPort endpoint =
-                  InetAddressAndPort.getByAddressOverrideDefaults(peer, proxyPort);
-              listener.onLeaveCluster(endpoint);
+              listener.onLeaveCluster(peer, proxyPort);
             }
           }
           peers = resolved;

@@ -4,15 +4,10 @@ import static java.lang.String.format;
 import static org.apache.cassandra.cql3.QueryProcessor.executeInternal;
 import static org.apache.cassandra.cql3.QueryProcessor.executeOnceInternal;
 
-import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListenableFuture;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.config.DatabaseDescriptor;
@@ -24,19 +19,12 @@ import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.db.commitlog.CommitLogPosition;
 import org.apache.cassandra.db.marshal.UTF8Type;
-import org.apache.cassandra.gms.ApplicationState;
-import org.apache.cassandra.gms.EndpointState;
-import org.apache.cassandra.gms.Gossiper;
-import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
-import org.apache.cassandra.gms.VersionedValue;
 import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.locator.InetAddressAndPort;
 import org.apache.cassandra.schema.ColumnMetadata;
 import org.apache.cassandra.schema.Functions;
 import org.apache.cassandra.schema.KeyspaceMetadata;
 import org.apache.cassandra.schema.KeyspaceParams;
-import org.apache.cassandra.schema.MigrationManager;
-import org.apache.cassandra.schema.Schema;
 import org.apache.cassandra.schema.SchemaConstants;
 import org.apache.cassandra.schema.TableId;
 import org.apache.cassandra.schema.TableMetadata;
@@ -46,12 +34,8 @@ import org.apache.cassandra.schema.Views;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.commons.lang3.ArrayUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class StargateSystemKeyspace {
-  private static final Logger logger = LoggerFactory.getLogger(StargateSystemKeyspace.class);
-
   public static final String SYSTEM_KEYSPACE_NAME = "stargate_system";
   public static final String LOCAL_TABLE_NAME = "local";
   public static final String PEERS_TABLE_NAME = "peers";
@@ -220,11 +204,6 @@ public class StargateSystemKeyspace {
     return false;
   }
 
-  public static boolean isStargateNode(EndpointState epState) {
-    VersionedValue value = epState.getApplicationState(ApplicationState.X10);
-    return value != null && value.value.equals("stargate");
-  }
-
   public static synchronized void updatePeerInfo(
       InetAddressAndPort ep, String columnName, Object value) {
     if (ep.equals(FBUtilities.getBroadcastAddressAndPort())) return;
@@ -279,119 +258,6 @@ public class StargateSystemKeyspace {
         futures.add(Keyspace.open(SYSTEM_KEYSPACE_NAME).getColumnFamilyStore(cfname).forceFlush());
       }
       FBUtilities.waitOnFutures(futures);
-    }
-  }
-
-  public static class PeersUpdater implements IEndpointStateChangeSubscriber {
-    private final Set<InetAddressAndPort> liveStargateNodes = Sets.newConcurrentHashSet();
-
-    @Override
-    public void onJoin(InetAddressAndPort endpoint, EndpointState epState) {
-      if (!isStargateNode(epState)) {
-        return;
-      }
-
-      updateTokens(endpoint);
-
-      for (Map.Entry<ApplicationState, VersionedValue> entry : epState.states()) {
-        applyState(endpoint, entry.getKey(), entry.getValue(), epState);
-      }
-    }
-
-    @Override
-    public void beforeChange(
-        InetAddressAndPort endpoint,
-        EndpointState currentState,
-        ApplicationState newStateKey,
-        VersionedValue newValue) {}
-
-    @Override
-    public void onChange(
-        InetAddressAndPort endpoint, ApplicationState state, VersionedValue value) {
-      if (state == ApplicationState.STATUS || state == ApplicationState.STATUS_WITH_PORT) {
-        return;
-      }
-
-      EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(endpoint);
-      if (epState == null || Gossiper.instance.isDeadState(epState)) {
-        logger.debug("Ignoring state change for dead or unknown endpoint: {}", endpoint);
-        return;
-      }
-
-      // We only want stargate nodes
-      if (FBUtilities.getLocalAddressAndPort().equals(endpoint) || !isStargateNode(epState)) {
-        return;
-      }
-
-      if (liveStargateNodes.add(endpoint)) onJoin(endpoint, epState);
-      else applyState(endpoint, state, value, epState);
-    }
-
-    @Override
-    public void onAlive(InetAddressAndPort endpoint, EndpointState state) {}
-
-    @Override
-    public void onDead(InetAddressAndPort endpoint, EndpointState state) {}
-
-    @Override
-    public void onRemove(InetAddressAndPort endpoint) {
-      liveStargateNodes.remove(endpoint);
-      removeEndpoint(endpoint);
-    }
-
-    @Override
-    public void onRestart(InetAddressAndPort endpoint, EndpointState state) {}
-
-    private void applyState(
-        InetAddressAndPort endpoint,
-        ApplicationState state,
-        VersionedValue value,
-        EndpointState epState) {
-      switch (state) {
-        case RELEASE_VERSION:
-          updatePeerInfo(endpoint, "release_version", value.value);
-          break;
-        case DC:
-          updatePeerInfo(endpoint, "data_center", value.value);
-          break;
-        case RACK:
-          updatePeerInfo(endpoint, "rack", value.value);
-          break;
-        case RPC_ADDRESS:
-          try {
-            updatePeerInfo(endpoint, "rpc_address", InetAddress.getByName(value.value));
-          } catch (UnknownHostException e) {
-            throw new RuntimeException(e);
-          }
-          break;
-        case NATIVE_ADDRESS_AND_PORT:
-          try {
-            InetAddressAndPort address = InetAddressAndPort.getByName(value.value);
-            updatePeerNativeAddress(endpoint, address);
-          } catch (UnknownHostException e) {
-            throw new RuntimeException(e);
-          }
-          break;
-        case SCHEMA:
-          // Use a fix schema version for all peers (always in agreement) because stargate waits
-          // for DDL queries to reach agreement before returning.
-          updatePeerInfo(endpoint, "schema_version", Schema.instance.getVersion());
-
-          // This fix schedules a schema pull for the non-member node and is required because
-          // `StorageService.onChange()` doesn't do this for non-member nodes.
-          MigrationManager.instance.scheduleSchemaPull(endpoint, epState);
-          break;
-        case HOST_ID:
-          updatePeerInfo(endpoint, "host_id", UUID.fromString(value.value));
-          break;
-      }
-    }
-
-    private void updateTokens(InetAddressAndPort endpoint) {
-      updatePeerInfo(
-          endpoint,
-          "tokens",
-          Collections.singleton(DatabaseDescriptor.getPartitioner().getMinimumToken().toString()));
     }
   }
 }

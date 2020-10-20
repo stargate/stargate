@@ -616,28 +616,38 @@ public class Server implements CassandraDaemon.Server {
     }
 
     @Override
-    public void onJoinCluster(InetAddressAndPort endpoint) {
-      onTopologyChange(endpoint, Event.TopologyChange.newNode(endpoint));
+    public void onJoinCluster(InetAddress endpoint, int port) {
+      InetAddressAndPort endpointWithPort = addPort(endpoint, port);
+      onTopologyChange(endpointWithPort, Event.TopologyChange.newNode(endpointWithPort));
     }
 
     @Override
-    public void onLeaveCluster(InetAddressAndPort endpoint) {
-      onTopologyChange(endpoint, Event.TopologyChange.removedNode(endpoint));
+    public void onLeaveCluster(InetAddress endpoint, int port) {
+      InetAddressAndPort endpointWithPort = addPort(endpoint, port);
+      onTopologyChange(endpointWithPort, Event.TopologyChange.removedNode(endpointWithPort));
     }
 
     @Override
-    public void onMove(InetAddressAndPort endpoint) {
-      onTopologyChange(endpoint, Event.TopologyChange.movedNode(endpoint));
+    public void onMove(InetAddress endpoint, int port) {
+      InetAddressAndPort endpointWithPort = addPort(endpoint, port);
+      onTopologyChange(endpointWithPort, Event.TopologyChange.movedNode(endpointWithPort));
     }
 
     @Override
-    public void onDown(InetAddressAndPort endpoint) {
-      onStatusChange(endpoint, Event.StatusChange.nodeDown(endpoint));
+    public void onDown(InetAddress endpoint, int port) {
+      InetAddressAndPort endpointWithPort = addPort(endpoint, port);
+      onStatusChange(endpointWithPort, Event.StatusChange.nodeDown(endpointWithPort));
     }
 
     @Override
-    public void onUp(InetAddressAndPort endpoint) {
-      onStatusChange(endpoint, Event.StatusChange.nodeUp(endpoint));
+    public void onUp(InetAddress endpoint, int port) {
+      InetAddressAndPort endpointWithPort = addPort(endpoint, port);
+      onStatusChange(endpointWithPort, Event.StatusChange.nodeUp(endpointWithPort));
+    }
+
+    private InetAddressAndPort addPort(InetAddress endpoint, int port) {
+      return InetAddressAndPort.getByAddressOverrideDefaults(
+          endpoint, port == NO_PORT ? server.socket.getPort() : port);
     }
 
     private void onTopologyChange(InetAddressAndPort endpoint, Event.TopologyChange event) {

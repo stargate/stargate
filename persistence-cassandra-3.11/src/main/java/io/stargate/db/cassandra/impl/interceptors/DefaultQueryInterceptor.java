@@ -1,6 +1,5 @@
 package io.stargate.db.cassandra.impl.interceptors;
 
-import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isStargateNode;
 import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemLocal;
 import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemLocalOrPeers;
 
@@ -10,11 +9,16 @@ import io.stargate.db.cassandra.impl.StargateSystemKeyspace;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import org.apache.cassandra.concurrent.Stage;
+import org.apache.cassandra.concurrent.StageManager;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.cql3.CQLStatement;
@@ -26,9 +30,9 @@ import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
 import org.apache.cassandra.gms.VersionedValue;
+import org.apache.cassandra.service.MigrationManager;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageService;
-import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +56,6 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
   @Override
   public void initialize() {
     Schema.instance.load(StargateSystemKeyspace.metadata());
-    Gossiper.instance.register(new StargateSystemKeyspace.PeersUpdater());
     Gossiper.instance.register(this);
     StargateSystemKeyspace.persistLocalMetadata();
   }
@@ -94,11 +97,12 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
   }
 
   @Override
-  public void onJoin(InetAddress endpoint, EndpointState epState) {
-    if (!isStargateNode(epState)) {
+  public void onJoin(InetAddress endpoint, EndpointState state) {
+    if (!isStargateNode(state)) {
       return;
     }
-    maybeJoinCluster(endpoint);
+
+    joinCluster(endpoint, state);
   }
 
   @Override
@@ -123,10 +127,8 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
       return;
     }
 
-    maybeJoinCluster(endpoint);
-
-    if (state == ApplicationState.RPC_READY) {
-      notifyRpcChange(endpoint);
+    if (!joinCluster(endpoint, epState)) {
+      applyState(endpoint, state, value, epState);
     }
   }
 
@@ -154,36 +156,46 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
   @Override
   public void onRestart(InetAddress endpoint, EndpointState state) {}
 
-  private void maybeJoinCluster(InetAddress endpoint) {
+  private boolean joinCluster(InetAddress endpoint, EndpointState state) {
+    if (!liveStargateNodes.add(endpoint)) {
+      return false;
+    }
+
+    updateTokens(endpoint);
+
+    for (Map.Entry<ApplicationState, VersionedValue> entry : state.states()) {
+      applyState(endpoint, entry.getKey(), entry.getValue(), state);
+    }
+
     if (StorageService.instance.isRpcReady(endpoint)) {
-      joinCluster(endpoint);
+      notifyJoinCluster(endpoint);
     } else {
       endpointsPendingJoinedNotification.add(endpoint);
     }
-  }
 
-  private void joinCluster(InetAddress endpoint) {
-    if (!liveStargateNodes.add(endpoint)) {
-      return;
-    }
-    InetAddressAndPort nativeAddress = getNativeAddress(endpoint);
-    for (EventListener listener : listeners) {
-      listener.onJoinCluster(nativeAddress);
-    }
+    return true;
   }
 
   private void leaveCluster(InetAddress endpoint) {
     if (!liveStargateNodes.remove(endpoint)) {
       return;
     }
-    InetAddressAndPort nativeAddress = getNativeAddress(endpoint);
+    StargateSystemKeyspace.removeEndpoint(endpoint);
+    InetAddress nativeAddress = getNativeAddress(endpoint);
     for (EventListener listener : listeners) {
-      listener.onLeaveCluster(nativeAddress);
+      listener.onLeaveCluster(nativeAddress, EventListener.NO_PORT);
     }
   }
 
-  private void notifyRpcChange(InetAddress endpoint) {
-    if (StorageService.instance.isRpcReady(endpoint)) {
+  private void notifyJoinCluster(InetAddress endpoint) {
+    InetAddress nativeAddress = getNativeAddress(endpoint);
+    for (EventListener listener : listeners) {
+      listener.onJoinCluster(nativeAddress, EventListener.NO_PORT);
+    }
+  }
+
+  private void notifyRpcChange(InetAddress endpoint, boolean isReady) {
+    if (isReady) {
       notifyUp(endpoint);
     } else {
       notifyDown(endpoint);
@@ -196,31 +208,85 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     }
 
     if (endpointsPendingJoinedNotification.remove(endpoint)) {
-      joinCluster(endpoint);
+      notifyJoinCluster(endpoint);
     }
 
-    InetAddressAndPort nativeAddress = getNativeAddress(endpoint);
+    InetAddress nativeAddress = getNativeAddress(endpoint);
     for (EventListener listener : listeners) {
-      listener.onUp(nativeAddress);
+      listener.onUp(nativeAddress, EventListener.NO_PORT);
     }
+  }
+
+  private void applyState(
+      InetAddress endpoint, ApplicationState state, VersionedValue value, EndpointState epState) {
+    final ExecutorService executor = StageManager.getStage(Stage.MUTATION);
+    switch (state) {
+      case RELEASE_VERSION:
+        StargateSystemKeyspace.updatePeerInfo(endpoint, "release_version", value.value, executor);
+        break;
+      case DC:
+        StargateSystemKeyspace.updatePeerInfo(endpoint, "data_center", value.value, executor);
+        break;
+      case RACK:
+        StargateSystemKeyspace.updatePeerInfo(endpoint, "rack", value.value, executor);
+        break;
+      case RPC_ADDRESS:
+        try {
+          StargateSystemKeyspace.updatePeerInfo(
+              endpoint, "rpc_address", InetAddress.getByName(value.value), executor);
+        } catch (UnknownHostException e) {
+          throw new RuntimeException(e);
+        }
+        break;
+      case SCHEMA:
+        // Use a fix schema version for all peers (always in agreement) because stargate waits
+        // for DDL queries to reach agreement before returning.
+        StargateSystemKeyspace.updatePeerInfo(
+            endpoint, "schema_version", StargateSystemKeyspace.SCHEMA_VERSION, executor);
+
+        // This fix schedules a schema pull for the non-member node and is required because
+        // `StorageService.onChange()` doesn't do this for non-member nodes.
+        MigrationManager.instance.scheduleSchemaPull(endpoint, epState);
+        break;
+      case HOST_ID:
+        StargateSystemKeyspace.updatePeerInfo(
+            endpoint, "host_id", UUID.fromString(value.value), executor);
+        break;
+      case RPC_READY:
+        notifyRpcChange(endpoint, epState.isRpcReady());
+        break;
+    }
+  }
+
+  private void updateTokens(InetAddress endpoint) {
+    final ExecutorService executor = StageManager.getStage(Stage.MUTATION);
+    StargateSystemKeyspace.updatePeerInfo(
+        endpoint,
+        "tokens",
+        Collections.singleton(DatabaseDescriptor.getPartitioner().getMinimumToken().toString()),
+        executor);
   }
 
   private void notifyDown(InetAddress endpoint) {
-    InetAddressAndPort nativeAddress = getNativeAddress(endpoint);
+    InetAddress nativeAddress = getNativeAddress(endpoint);
     for (EventListener listener : listeners) {
-      listener.onDown(nativeAddress);
+      listener.onDown(nativeAddress, EventListener.NO_PORT);
     }
   }
 
-  private InetAddressAndPort getNativeAddress(InetAddress endpoint) {
+  private InetAddress getNativeAddress(InetAddress endpoint) {
     try {
-      return InetAddressAndPort.getByName(StorageService.instance.getRpcaddress(endpoint));
+      return InetAddress.getByName(StorageService.instance.getRpcaddress(endpoint));
     } catch (UnknownHostException e) {
       // That should not happen, so log an error, but return the
       // endpoint address since there's a good change this is right
       logger.error("Problem retrieving RPC address for {}", endpoint, e);
-      return InetAddressAndPort.getByAddressOverrideDefaults(
-          endpoint, DatabaseDescriptor.getNativeTransportPort());
+      return endpoint;
     }
+  }
+
+  private static boolean isStargateNode(EndpointState epState) {
+    VersionedValue value = epState.getApplicationState(ApplicationState.X10);
+    return value != null && value.value.equals("stargate");
   }
 }
