@@ -50,7 +50,7 @@ public class AuthResource {
   private final AuthenticationService authService;
   private final boolean shouldEnableUsernameToken;
 
-//  @Inject
+  //  @Inject
   public AuthResource(AuthenticationService authService) {
     this(authService, Boolean.getBoolean("stargate.auth_api_enable_username_token"));
   }
