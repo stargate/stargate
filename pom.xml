@@ -381,6 +381,11 @@
         <version>${junit.version}</version>
       </dependency>
       <dependency>
+        <groupId>io.dropwizard</groupId>
+        <artifactId>dropwizard-testing</artifactId>
+        <version>${dropwizard.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-inline</artifactId>
         <version>${mockito.version}</version>
