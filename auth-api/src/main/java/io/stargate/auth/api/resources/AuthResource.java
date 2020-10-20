@@ -27,7 +27,6 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -51,7 +50,7 @@ public class AuthResource {
   private final AuthenticationService authService;
   private final boolean shouldEnableUsernameToken;
 
-  @Inject
+//  @Inject
   public AuthResource(AuthenticationService authService) {
     this(authService, Boolean.getBoolean("stargate.auth_api_enable_username_token"));
   }
