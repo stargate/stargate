@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class QueryFetcher extends DmlFetcher {
+public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
 
   public QueryFetcher(
       Table table,

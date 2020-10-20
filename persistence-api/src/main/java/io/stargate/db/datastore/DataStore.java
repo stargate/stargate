@@ -198,6 +198,14 @@ public interface DataStore {
       UnaryOperator<Parameters> parametersModifier);
 
   /**
+   * Executes the provided queries as a logged batch against this data store.
+   *
+   * @param queries the queries to execute as a batch.
+   * @return a future with a {@link ResultSet} object to access the result of the query.
+   */
+  CompletableFuture<ResultSet> batch(List<String> queries);
+
+  /**
    * Returns the current schema.
    *
    * @return The current schema.

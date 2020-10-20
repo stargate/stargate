@@ -1,0 +1,15 @@
+mutation InsertOrdersWithAtomic($value: OrdersInput!, $options: MutationOptions) @atomic {
+    insertOrders(value: $value, options: $options) {
+        applied
+        value {
+            id
+            prodId
+            prodName
+            customerName
+            address
+            description
+            price
+            sellPrice
+        }
+    }
+}

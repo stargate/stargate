@@ -356,6 +356,14 @@ public class DocumentDBTest {
     }
 
     @Override
+    public CompletableFuture<ResultSet> batch(List<String> queries) {
+      CompletableFuture<ResultSet> f = new CompletableFuture<>();
+      f.completeExceptionally(
+          new RuntimeException("Call to batch() was not faked in TestDataStore"));
+      return f;
+    }
+
+    @Override
     public Schema schema() {
       return null;
     }
