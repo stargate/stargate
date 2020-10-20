@@ -108,7 +108,7 @@ public class MutationEventHelper {
   public static RowUpdateEvent createRowUpdateEvent(
       String partitionKeyValue,
       ColumnMetadata partitionKeyMetadata,
-      String columnValue,
+      Object columnValue,
       ColumnMetadata columnMetadata,
       Integer clusteringKeyValue,
       ColumnMetadata clusteringKeyMetadata,

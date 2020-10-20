@@ -102,8 +102,6 @@ public class IntegrationTestBase {
     properties.put(
         withCDCPrefixPrefix(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG),
         kafkaContainer.getBootstrapServers());
-    // lower the max.block to allow faster failure scenario testing
-    properties.put(withCDCPrefixPrefix(ProducerConfig.MAX_BLOCK_MS_CONFIG), "2000");
 
     properties.put(
         withCDCPrefixPrefix("schema.registry.url"), schemaRegistry.getSchemaRegistryUrl());
