@@ -87,11 +87,11 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
 
     if (environment.getArgument("options") != null) {
       // Users should specify query options once in the batch
-      int counter = batchContext.setDataStore(dataStore);
+      boolean dataStoreAlreadySet = batchContext.setDataStore(dataStore);
 
-      if (counter > 1) {
+      if (dataStoreAlreadySet) {
         // DataStore can be set at most once.
-        // The instance used is the one that came from the user options (if any).
+        // The instance that should be used should contain the user options (if any).
         buildException =
             new GraphQLException(
                 "options can only de defined once in an @atomic mutation selection");

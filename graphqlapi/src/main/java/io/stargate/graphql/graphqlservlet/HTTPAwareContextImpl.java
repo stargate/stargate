@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -124,8 +124,7 @@ public class HTTPAwareContextImpl implements GraphQLContext {
     private final List<String> statements = new ArrayList<>();
     private final Object statementsLock = new Object();
     private final CompletableFuture<ResultSet> executionFuture = new CompletableFuture<>();
-    private volatile DataStore dataStore;
-    private final AtomicInteger dataStoreCounter = new AtomicInteger();
+    private AtomicReference<DataStore> dataStore = new AtomicReference<>();
 
     public CompletableFuture<ResultSet> getExecutionFuture() {
       return executionFuture;
@@ -159,13 +158,13 @@ public class HTTPAwareContextImpl implements GraphQLContext {
       }
     }
 
-    public int setDataStore(DataStore dataStore) {
-      this.dataStore = dataStore;
-      return dataStoreCounter.incrementAndGet();
+    /** Sets the data store and returns whether it was already set */
+    public boolean setDataStore(DataStore dataStore) {
+      return this.dataStore.getAndSet(dataStore) != null;
     }
 
     public Optional<DataStore> getDataStore() {
-      return Optional.ofNullable(this.dataStore);
+      return Optional.ofNullable(this.dataStore.get());
     }
   }
 }
