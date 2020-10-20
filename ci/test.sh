@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 echoinfo() { echo "[$(date -Is)] - $@" 1>&2; }
 
 echoinfo "Starting test"
