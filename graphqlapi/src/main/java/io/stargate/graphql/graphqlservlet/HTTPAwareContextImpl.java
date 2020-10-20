@@ -122,7 +122,6 @@ public class HTTPAwareContextImpl implements GraphQLContext {
    */
   public static class BatchContext {
     private final List<String> statements = new ArrayList<>();
-    private final Object statementsLock = new Object();
     private final CompletableFuture<ResultSet> executionFuture = new CompletableFuture<>();
     private AtomicReference<DataStore> dataStore = new AtomicReference<>();
 
@@ -130,10 +129,8 @@ public class HTTPAwareContextImpl implements GraphQLContext {
       return executionFuture;
     }
 
-    public List<String> getStatements() {
-      synchronized (statementsLock) {
-        return statements;
-      }
+    public synchronized List<String> getStatements() {
+      return statements;
     }
 
     public void setExecutionResult(CompletableFuture<ResultSet> result) {
@@ -151,11 +148,9 @@ public class HTTPAwareContextImpl implements GraphQLContext {
       executionFuture.completeExceptionally(ex);
     }
 
-    public int add(String query) {
-      synchronized (statementsLock) {
-        statements.add(query);
-        return statements.size();
-      }
+    public synchronized int add(String query) {
+      statements.add(query);
+      return statements.size();
     }
 
     /** Sets the data store and returns whether it was already set */
