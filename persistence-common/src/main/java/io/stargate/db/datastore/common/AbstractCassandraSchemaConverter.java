@@ -88,7 +88,7 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
   /** The target of the provided internal index, that is the content of it's "target" option. */
   protected abstract String indexTarget(I index);
 
-  /** Whether the given index has is of the "CUSTOM" kind. */
+  /** Whether the given index is of the "CUSTOM" kind. */
   protected abstract boolean isCustom(I index);
 
   /**
