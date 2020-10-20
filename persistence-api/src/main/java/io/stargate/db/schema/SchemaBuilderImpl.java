@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
       @SubExpr(
           name = "table",
           definedAs =
-              "table (column)+ (secondaryIndex column (indexKeys|indexValues|indexEntries|indexFull)?)* <materializedView>*"),
+              "table (column)+ (secondaryIndex column (indexKeys|indexValues|indexEntries|indexFull|indexCustom)?)* <materializedView>*"),
       @SubExpr(name = "materializedView", definedAs = "materializedView (column)+"),
       @SubExpr(name = "type", definedAs = "type (column)+"),
     })
