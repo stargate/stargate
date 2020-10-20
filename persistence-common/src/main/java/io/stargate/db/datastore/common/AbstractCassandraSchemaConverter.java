@@ -88,6 +88,9 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
   /** The target of the provided internal index, that is the content of it's "target" option. */
   protected abstract String indexTarget(I index);
 
+  /** Whether the given index has is of the "CUSTOM" kind. */
+  protected abstract boolean isCustom(I index);
+
   /**
    * Returns the fields of the provided internal user type as columns (of kind {@link
    * Column.Kind#Regular}).
@@ -190,7 +193,8 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
           baseTableColumns);
       return null;
     }
-    return SecondaryIndex.create(keyspaceName, indexName(index), col.get(), result.getValue1());
+    return SecondaryIndex.create(
+        keyspaceName, indexName(index), col.get(), result.getValue1(), isCustom(index));
   }
 
   /**

@@ -67,6 +67,7 @@ public class SchemaBuilderImpl {
   private boolean indexValues;
   private boolean indexEntries;
   private boolean indexFull;
+  private boolean indexCustom;
   private String edgeLabel;
   private String vertexLabel;
   private String fromVertex;
@@ -339,6 +340,11 @@ public class SchemaBuilderImpl {
   }
 
   @DSLAction
+  public void indexCustom() {
+    indexCustom = true;
+  }
+
+  @DSLAction
   public void from(String fromVertex) {
     this.fromVertex = fromVertex;
   }
@@ -467,7 +473,8 @@ public class SchemaBuilderImpl {
                   .indexKeys(indexKeys)
                   .indexValues(indexValues)
                   .indexFull(indexFull)
-                  .build()));
+                  .build(),
+              indexCustom));
 
       secondaryIndexColumn = null;
       secondaryIndexName = null;
