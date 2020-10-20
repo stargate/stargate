@@ -39,7 +39,7 @@ import org.apache.cassandra.stargate.schema.CQLType.Native;
 import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.junit.jupiter.api.Test;
 
-public class KafkaCDCProducerMetricsIntegrationTest extends IntegrationTestBase {
+public class KafkaCDCProducerMetricsIT extends IntegrationTestBase {
 
   @Test
   public void shouldRegisterMetricsWhenMetricsAreEnabled() throws Exception {
