@@ -182,10 +182,10 @@
           <execution>
             <goals>
               <goal>integration-test</goal>
-                <goal>verify</goal>
+              <goal>verify</goal>
             </goals>
           </execution>
-		</executions>
+        </executions>
         <configuration>
           <parallel>suites</parallel>
           <threadCountSuites>1</threadCountSuites>
