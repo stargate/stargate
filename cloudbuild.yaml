@@ -50,6 +50,7 @@ steps:
     env:
       - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
       - 'PERSISTENCE_BACKEND=cassandra-3.11'
+      - 'COMMIT_ID=$COMMIT_SHA'
   - id: 'cassandra-4.0'
     waitFor: [ 'build' ]
     name: 'gcr.io/stargateio/stargate-builder:v1.0.2'
@@ -61,6 +62,7 @@ steps:
     env:
       - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
       - 'PERSISTENCE_BACKEND=cassandra-4.0'
+      - 'COMMIT_ID=$COMMIT_SHA'
   - id: 'dse-6.8'
     waitFor: [ 'build' ]
     name: 'gcr.io/stargateio/stargate-builder:v1.0.2'
@@ -72,6 +74,7 @@ steps:
     env:
       - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
       - 'PERSISTENCE_BACKEND=dse-6.8'
+      - 'COMMIT_ID=$COMMIT_SHA'
   - name: 'gcr.io/cloud-builders/gsutil'
     args:
       - '-m'
