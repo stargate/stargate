@@ -47,6 +47,11 @@ public interface Persistence {
 
   Authenticator getAuthenticator();
 
+  /**
+   * Notify the other stargate nodes whether RPC is or is not ready on this node.
+   *
+   * @param status true means that RPC is ready, otherwise RPC is not ready.
+   */
   void setRpcReady(boolean status);
 
   /**

@@ -277,7 +277,7 @@ public class DsePersistence
 
   private static ClientState clientStateForExternalCalls(@Nonnull ClientInfo clientInfo) {
     if (clientInfo.publicAddress().isPresent()) {
-      new ClientStateWithPublicAddress(
+      return new ClientStateWithPublicAddress(
           clientInfo.remoteAddress(), clientInfo.publicAddress().get());
     }
     return ClientState.forExternalCalls(clientInfo.remoteAddress(), null);
