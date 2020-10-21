@@ -105,6 +105,9 @@ public class CollectionsResource {
         () -> {
           DocumentDB docDB = db.getDocDataStoreForToken(token);
           DocCollection info = mapper.readValue(payload, DocCollection.class);
+          if (info.getName() == null) {
+            throw new IllegalArgumentException("`name` is required to create a collection");
+          }
           boolean res =
               collectionService.createCollection(namespace, info.getName(), docDB, db.isDse());
           if (res) {
@@ -199,7 +202,9 @@ public class CollectionsResource {
           }
           DocCollection request = mapper.readValue(payload, DocCollection.class);
           DocCollection info = collectionService.getCollectionInfo(table, db);
-          if (!info.getUpgradeAvailable() || info.getUpgradeType() != request.getUpgradeType()) {
+          if (request.getUpgradeType() == null
+              || !info.getUpgradeAvailable()
+              || info.getUpgradeType() != request.getUpgradeType()) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity("That collection cannot be upgraded in that manner")
                 .build();

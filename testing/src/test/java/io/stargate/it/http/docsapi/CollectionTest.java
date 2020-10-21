@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 public class CollectionTest extends BaseOsgiIntegrationTest {
   private String keyspace;
   private CqlSession session;
+  private boolean isDse;
   private static String authToken;
   private static String host = "http://" + getStargateHost();
   private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -38,7 +39,8 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
 
   @BeforeEach
   public void setup(ClusterConnectionInfo cluster) throws IOException {
-    keyspace = "ks_docs_" + System.currentTimeMillis();
+    keyspace = "ks_collection_" + System.currentTimeMillis();
+    isDse = cluster.isDse();
     session =
         CqlSession.builder()
             .withConfigLoader(
@@ -96,5 +98,113 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void testIt() throws IOException {}
+  public void testGet() throws IOException {
+    Response r = http.get("/v2/namespaces/" + keyspace + "/collections?raw=false");
+    String expected = "{\"data\": []}";
+    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(objectMapper.readTree(expected));
+
+    r = http.get("/v2/namespaces/" + keyspace + "/collections?raw=true");
+    expected = "[]";
+    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(objectMapper.readTree(expected));
+  }
+
+  @Test
+  public void testPost() throws IOException {
+    Response r = http.get("/v2/namespaces/" + keyspace + "/collections?raw=true");
+    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(objectMapper.readTree("[]"));
+
+    // Create a brand new collection
+    String newColl = "{\"name\": \"newcollection\"}";
+    r = http.post("/v2/namespaces/" + keyspace + "/collections", objectMapper.readTree(newColl));
+    assertThat(r.code()).isEqualTo(201);
+    r.close();
+
+    r = http.get("/v2/namespaces/" + keyspace + "/collections?raw=true");
+    String expected = "[{\"name\": \"newcollection\", \"upgradeAvailable\": false}]";
+
+    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(objectMapper.readTree(expected));
+  }
+
+  @Test
+  public void testInvalidPost() throws IOException {
+    Response r = http.get("/v2/namespaces/" + keyspace + "/collections?raw=true");
+    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(objectMapper.readTree("[]"));
+
+    // Create a brand new collection
+    String newColl = "{}";
+    r = http.post("/v2/namespaces/" + keyspace + "/collections", objectMapper.readTree(newColl));
+    assertThat(r.code()).isEqualTo(400);
+    assertThat(r.body().string()).isEqualTo("`name` is required to create a collection");
+  }
+
+  @Test
+  public void testDelete() throws IOException {
+    Response r = http.get("/v2/namespaces/" + keyspace + "/collections?raw=true");
+    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(objectMapper.readTree("[]"));
+
+    // Create a brand new collection
+    String newColl = "{\"name\": \"newcollection\"}";
+    r = http.post("/v2/namespaces/" + keyspace + "/collections", objectMapper.readTree(newColl));
+    assertThat(r.code()).isEqualTo(201);
+    r.close();
+
+    // Delete it
+    r = http.delete("/v2/namespaces/" + keyspace + "/collections/newcollection");
+    assertThat(r.code()).isEqualTo(204);
+    r.close();
+
+    // Delete it again, not found
+    r = http.delete("/v2/namespaces/" + keyspace + "/collections/newcollection");
+    assertThat(r.code()).isEqualTo(404);
+    r.close();
+  }
+
+  @Test
+  public void testUpgrade() throws IOException {
+    if (isDse) {
+      // Create a brand new collection, it should already have SAI so it requires no upgrade
+      String newColl = "{\"name\": \"newcollection\"}";
+      Response r =
+          http.post("/v2/namespaces/" + keyspace + "/collections", objectMapper.readTree(newColl));
+      assertThat(r.code()).isEqualTo(201);
+      r.close();
+
+      // Illegal, as the collection is already in its most upgraded state (with SAI)
+      String upgradeAction = "{\"upgradeType\": \"SAI_INDEX_UPGRADE\"}";
+      r =
+          http.post(
+              "/v2/namespaces/" + keyspace + "/collections/upgrade",
+              objectMapper.readTree(upgradeAction));
+      assertThat(r.code()).isEqualTo(400);
+      assertThat(r.body().string()).isEqualTo("That collection cannot be upgraded in that manner");
+
+      // Drop all the relevant indexes to simulate "downgrading"
+      dropIndexes("newcollection");
+
+      // Now do the upgrade to add SAI
+      r =
+          http.post(
+              "/v2/namespaces/" + keyspace + "/collections/upgrade",
+              objectMapper.readTree(upgradeAction));
+      assertThat(r.code()).isEqualTo(200);
+      String expected = "{\"name\":\"newcollection\",\"upgradeAvailable\":false}";
+      assertThat(objectMapper.readTree(r.body().string()))
+          .isEqualTo(objectMapper.readTree(expected));
+    }
+  }
+
+  private void dropIndexes(String collection) {
+    session.execute(String.format("DROP INDEX \"%s\".\"%s\"", keyspace, collection + "_leaf_idx"));
+
+    session.execute(
+        String.format("DROP INDEX \"%s\".\"%s\"", keyspace, collection + "_text_value_idx"));
+
+    session.execute(
+        String.format(
+            "DROP INDEX IF EXISTS \"%s\".\"%s\"", keyspace, collection + "_dbl_value_idx"));
+
+    session.execute(
+        String.format(
+            "DROP INDEX IF EXISTS \"%s\".\"%s\"", keyspace, collection + "_bool_value_idx"));
+  }
 }

@@ -48,7 +48,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Path("/v2/namespaces")
+@Path("/v2/namespaces/{namespace-id: [a-zA-Z_0-9]+}")
 @Api(
     produces = MediaType.APPLICATION_JSON,
     consumes = MediaType.APPLICATION_JSON,
@@ -78,7 +78,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}")
+  @Path("collections/{collection-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response postDoc(
@@ -131,7 +131,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}")
+  @Path("collections/{collection-id}/{document-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response putDoc(
@@ -174,8 +174,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path(
-      "{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}/{document-path: .*}")
+  @Path("collections/{collection-id}/{document-id}/{document-path: .*}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response putDocPath(
@@ -221,7 +220,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}")
+  @Path("collections/{collection-id}/{document-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response patchDoc(
@@ -265,8 +264,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path(
-      "{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}/{document-path: .*}")
+  @Path("collections/{collection-id}/{document-id}/{document-path: .*}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response patchDocPath(
@@ -309,7 +307,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
+  @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response deleteDoc(
@@ -346,8 +344,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path(
-      "{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
+  @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response deleteDocPath(
@@ -391,7 +388,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
+  @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response getDoc(
@@ -462,8 +459,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path(
-      "{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
+  @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response getDocPath(
@@ -608,7 +604,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}")
+  @Path("collections/{collection-id: [a-zA-Z_0-9]+}")
   @Produces("application/json")
   public Response searchDoc(
       @Context HttpHeaders headers,

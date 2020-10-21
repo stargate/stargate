@@ -193,6 +193,13 @@ public class DocumentDB {
               String.format(
                   "DROP INDEX IF EXISTS \"%s\".\"%s\"", keyspaceName, tableName + "_dbl_value_idx"))
           .get();
+
+      dataStore
+          .query(
+              String.format(
+                  "DROP INDEX IF EXISTS \"%s\".\"%s\"",
+                  keyspaceName, tableName + "_bool_value_idx"))
+          .get();
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException("Unable to drop indexes in preparation for upgrade", e);
     }
@@ -238,6 +245,11 @@ public class DocumentDB {
             String.format(
                 "CREATE CUSTOM INDEX ON \"%s\".\"%s\"(dbl_value) USING 'StorageAttachedIndex'",
                 keyspaceName, tableName))
+        .get();
+
+    // SAI doesn't support booleans, so add a non-SAI index here.
+    dataStore
+        .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(bool_value)", keyspaceName, tableName))
         .get();
   }
 
