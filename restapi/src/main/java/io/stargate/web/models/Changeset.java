@@ -19,8 +19,8 @@ import io.swagger.annotations.ApiModelProperty;
 
 public class Changeset {
 
-  String column;
-  String value;
+  private String column;
+  private String value;
 
   @ApiModelProperty(example = "firstName", required = true, value = "Name of the column to update.")
   public String getColumn() {

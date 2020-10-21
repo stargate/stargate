@@ -23,11 +23,12 @@ import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TableResponse {
-  String name;
-  String keyspace;
-  List<ColumnDefinition> columnDefinitions;
-  PrimaryKey primaryKey;
-  TableOptions tableOptions;
+
+  private final String name;
+  private final String keyspace;
+  private final List<ColumnDefinition> columnDefinitions;
+  private final PrimaryKey primaryKey;
+  private final TableOptions tableOptions;
 
   @JsonCreator
   public TableResponse(

@@ -24,8 +24,9 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class RowResponse {
-  int count;
-  List<Map<String, Object>> rows;
+
+  private final int count;
+  private final List<Map<String, Object>> rows;
 
   @ApiModelProperty(value = "Number of records being returned by the request.")
   public int getCount() {
