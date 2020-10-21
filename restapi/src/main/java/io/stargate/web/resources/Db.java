@@ -102,4 +102,8 @@ public class Db {
     return new DocumentDB(
         DataStore.create(persistence, storedCredentials.getRoleName(), parameters));
   }
+
+  public boolean isDse() {
+    return persistence.name().equals("DataStax Enterprise");
+  }
 }

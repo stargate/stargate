@@ -61,7 +61,6 @@ public class DocumentResourceV2 {
   private static final ObjectMapper mapper = new ObjectMapper();
   private final DocumentService documentService = new DocumentService();
   private final int DEFAULT_PAGE_SIZE = 100;
-  private final List<String> allowedFilters = FilterOp.allRawValues();
 
   @POST
   @ApiOperation(

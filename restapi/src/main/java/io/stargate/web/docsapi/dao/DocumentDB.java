@@ -141,30 +141,96 @@ public class DocumentDB {
     }
   }
 
-  public void maybeCreateTableIndexes(String keyspaceName, String tableName) {
+  public boolean maybeCreateTableIndexes(String keyspaceName, String tableName, boolean isDse) {
+    try {
+      if (isDse) {
+        createSAIIndexes(keyspaceName, tableName);
+      } else {
+        createDefaultIndexes(keyspaceName, tableName);
+      }
+      return true;
+    } catch (AlreadyExistsException e) {
+      return false;
+    } catch (InterruptedException | ExecutionException e) {
+      throw new RuntimeException("Unable to create indexes for collection " + tableName, e);
+    }
+  }
+
+  public boolean upgradeTableIndexes(String keyspaceName, String tableName, boolean isDse) {
+    if (!isDse) {
+      // No index upgrade is required
+      return false;
+    }
+
+    dropTableIndexes(keyspaceName, tableName);
+    return maybeCreateTableIndexes(keyspaceName, tableName, true);
+  }
+
+  /**
+   * Drops indexes of `tableName` in preparation for replacing them with SAI. Note that the boolean column index
+   * does not get altered, this is because SAI doesn't support booleans.
+   * @param keyspaceName
+   * @param tableName
+   */
+  public void dropTableIndexes(String keyspaceName, String tableName) {
     try {
       dataStore
-          .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(leaf)", keyspaceName, tableName))
-          .get();
+              .query(String.format("DROP INDEX IF EXISTS \"%s\".\"%s\"", keyspaceName, tableName + "_leaf_idx"))
+              .get();
 
       dataStore
-          .query(
-              String.format("CREATE INDEX ON \"%s\".\"%s\"(text_value)", keyspaceName, tableName))
-          .get();
+              .query(String.format("DROP INDEX IF EXISTS \"%s\".\"%s\"", keyspaceName, tableName + "_text_value_idx"))
+              .get();
 
       dataStore
-          .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(dbl_value)", keyspaceName, tableName))
-          .get();
-
-      dataStore
-          .query(
-              String.format("CREATE INDEX ON \"%s\".\"%s\"(bool_value)", keyspaceName, tableName))
-          .get();
-    } catch (AlreadyExistsException e) {
-      // fine
+              .query(String.format("DROP INDEX IF EXISTS \"%s\".\"%s\"", keyspaceName, tableName + "_dbl_value_idx"))
+              .get();
     } catch (InterruptedException | ExecutionException e) {
-      throw new RuntimeException("Unable to create schema for collection", e);
+      throw new RuntimeException("Unable to drop indexes in preparation for upgrade", e);
     }
+  }
+
+  private void createDefaultIndexes(String keyspaceName, String tableName) throws InterruptedException, ExecutionException {
+    dataStore
+            .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(leaf)", keyspaceName, tableName))
+            .get();
+
+    dataStore
+            .query(
+                    String.format("CREATE INDEX ON \"%s\".\"%s\"(text_value)", keyspaceName, tableName))
+            .get();
+
+    dataStore
+            .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(dbl_value)", keyspaceName, tableName))
+            .get();
+
+    dataStore
+            .query(
+                    String.format("CREATE INDEX ON \"%s\".\"%s\"(bool_value)", keyspaceName, tableName))
+            .get();
+  }
+
+  private void createSAIIndexes(String keyspaceName, String tableName) throws InterruptedException, ExecutionException {
+    dataStore
+            .query(
+                    String.format(
+                            "CREATE CUSTOM INDEX ON \"%s\".\"%s\"(leaf) USING 'StorageAttachedIndex'",
+                            keyspaceName, tableName))
+            .get();
+
+    dataStore
+            .query(
+                    String.format(
+                            "CREATE CUSTOM INDEX ON \"%s\".\"%s\"(text_value) USING 'StorageAttachedIndex'",
+                            keyspaceName, tableName))
+            .get();
+
+    dataStore
+            .query(
+                    String.format(
+                            "CREATE CUSTOM INDEX ON \"%s\".\"%s\"(dbl_value) USING 'StorageAttachedIndex'",
+                            keyspaceName, tableName))
+            .get();
   }
 
   public ResultSet executeSelect(String keyspace, String collection, List<Where<Object>> predicates)
