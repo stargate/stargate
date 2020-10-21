@@ -1,4 +1,4 @@
-package io.stargate.it.http;
+package io.stargate.it.http.docsapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import io.stargate.web.models.Keyspace;
@@ -34,13 +35,9 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @NotThreadSafe
 public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
-  private static Logger logger = LoggerFactory.getLogger(DocumentApiV2Test.class);
-
   private String keyspace;
   private CqlSession session;
   private static String authToken;
@@ -48,6 +45,9 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final OkHttpClient client =
       new OkHttpClient().newBuilder().readTimeout(3, TimeUnit.MINUTES).build();
+
+  private static final DocsHttpClient http =
+      new DocsHttpClient(host, authToken, client, objectMapper);
 
   public DocumentApiV2Test(ClusterConnectionInfo backend) {
     super(backend);
@@ -121,21 +121,21 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testIt() throws IOException {
     JsonNode obj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(wrapResponse(obj.requiredAt("/quiz/maths"), "1", null));
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?where={\"products.electronics.Pixel_3a.price\":{\"$lt\": 800}}");
@@ -152,52 +152,52 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
 
     // Missing token header
-    Response r = post("/v2/namespaces/" + keyspace + "/collections/collection", obj, null);
+    Response r = http.post("/v2/namespaces/" + keyspace + "/collections/collection", obj, null);
     assertThat(r.code()).isEqualTo(401);
     r.close();
 
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj, null);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj, null);
     assertThat(r.code()).isEqualTo(401);
     r.close();
 
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj, null);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj, null);
     assertThat(r.code()).isEqualTo(401);
     r.close();
 
-    r = delete("/v2/namespaces/" + keyspace + "/collections/collection/1", null);
+    r = http.delete("/v2/namespaces/" + keyspace + "/collections/collection/1", null);
     assertThat(r.code()).isEqualTo(401);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1", null);
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1", null);
     assertThat(r.code()).isEqualTo(401);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection", null);
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection", null);
     assertThat(r.code()).isEqualTo(401);
     r.close();
 
     // Bad token header
-    r = post("/v2/namespaces/" + keyspace + "/collections/collection", obj, "garbage");
+    r = http.post("/v2/namespaces/" + keyspace + "/collections/collection", obj, "garbage");
     assertThat(r.code()).isEqualTo(401);
     r.close();
 
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj, "garbage");
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj, "garbage");
     assertThat(r.code()).isEqualTo(401);
     r.close();
 
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj, "garbage");
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj, "garbage");
     assertThat(r.code()).isEqualTo(401);
     r.close();
 
-    r = delete("/v2/namespaces/" + keyspace + "/collections/collection/1", "garbage");
+    r = http.delete("/v2/namespaces/" + keyspace + "/collections/collection/1", "garbage");
     assertThat(r.code()).isEqualTo(401);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1", "garbage");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1", "garbage");
     assertThat(r.code()).isEqualTo(401);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection", "garbage");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection", "garbage");
     assertThat(r.code()).isEqualTo(401);
     r.close();
   }
@@ -206,12 +206,12 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testInvalidKeyspaceAndTable() throws IOException {
     JsonNode obj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = put("/v2/namespaces/unknown_keyspace_1337/collections/collection/1", obj);
+    Response r = http.put("/v2/namespaces/unknown_keyspace_1337/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo("Unknown namespace unknown_keyspace_1337, you must create it first.");
 
-    r = put("/v2/namespaces/" + keyspace + "/collections/invalid-character/1", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/invalid-character/1", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo(
@@ -222,35 +222,35 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testInvalidKeyPut() throws IOException {
     JsonNode obj = objectMapper.readTree("{ \"square[]braces\": \"are not allowed\" }");
 
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo(
             "The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field square[]braces");
 
     obj = objectMapper.readTree("{ \"commas,\": \"are not allowed\" }");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo(
             "The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field commas,");
 
     obj = objectMapper.readTree("{ \"periods.\": \"are not allowed\" }");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo(
             "The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field periods.");
 
     obj = objectMapper.readTree("{ \"'quotes'\": \"are not allowed\" }");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo(
             "The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field 'quotes'");
 
     obj = objectMapper.readTree("{ \"*asterisks*\": \"are not allowed\" }");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo(
@@ -260,83 +260,83 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   @Test
   public void testWeirdButAllowedKeys() throws IOException {
     JsonNode obj = objectMapper.readTree("{ \"$\": \"weird but allowed\" }");
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"$30\": \"not as weird\" }");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"@\": \"weird but allowed\" }");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"meet me @ the place\": \"not as weird\" }");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"?\": \"weird but allowed\" }");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"spac es\": \"weird but allowed\" }");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"3\": [\"totally allowed\"] }");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/path/3/[0]");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path/3/[0]");
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(wrapResponse(objectMapper.readTree("\"totally allowed\""), "1", null));
 
     obj = objectMapper.readTree("{ \"-1\": \"totally allowed\" }");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/path/-1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path/-1");
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(wrapResponse(objectMapper.readTree("\"totally allowed\""), "1", null));
 
     obj = objectMapper.readTree("{ \"Eric says \\\"hello\\\"\": \"totally allowed\" }");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
   }
 
@@ -344,12 +344,12 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testInvalidDepthAndLength() throws IOException {
     JsonNode obj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("tooDeep.json"));
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string()).isEqualTo("Max depth of 64 exceeded");
 
     obj = objectMapper.readTree("{ \"some\": \"json\" }");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/[1000000]", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/[1000000]", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string()).isEqualTo("Max array length of 1000000 exceeded.");
   }
@@ -358,17 +358,19 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testArrayGet() throws IOException {
     JsonNode obj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
     assertThat(r.code()).isEqualTo(200);
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths/q1/options/[0]");
+    r =
+        http.get(
+            "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths/q1/options/[0]");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(wrapResponse(obj.requiredAt("/quiz/maths/q1/options/0"), "1", null));
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/1/quiz/maths/q1/options/[0]?raw=true");
@@ -377,7 +379,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         .isEqualTo(obj.requiredAt("/quiz/maths/q1/options/0"));
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/1/quiz/nests/q1/options/[3]/this");
@@ -390,18 +392,18 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testInvalidPathGet() throws IOException {
     JsonNode obj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
     assertThat(r.code()).isEqualTo(200);
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/nonexistent/path");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/nonexistent/path");
     assertThat(r.code()).isEqualTo(204);
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/nonexistent/path/[1]");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/nonexistent/path/[1]");
     assertThat(r.code()).isEqualTo(204);
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/1/quiz/maths/q1/options/[9999]"); // out of bounds
@@ -411,54 +413,54 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   @Test
   public void testPutNullsAndEmpties() throws IOException {
     JsonNode obj = objectMapper.readTree("{\"abc\": null}");
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{\"abc\": {}}");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/2", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/2", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/2");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/2");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "2", null));
 
     obj = objectMapper.readTree("{\"abc\": []}");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/3", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/3", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/3");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/3");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "3", null));
 
     obj =
         objectMapper.readTree(
             "{\"abc\": [], \"bcd\": {}, \"cde\": null, \"abcd\": { \"nest1\": [], \"nest2\": {}}}");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/4", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/4", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/4");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/4");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "4", null));
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/4/abc");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/4/abc");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(wrapResponse(objectMapper.createArrayNode(), "4", null));
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/4/bcd");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/4/bcd");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(wrapResponse(objectMapper.createObjectNode(), "4", null));
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/4/abcd/nest1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/4/abcd/nest1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(wrapResponse(objectMapper.createArrayNode(), "4", null));
@@ -468,26 +470,26 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testPutReplacingObject() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
     assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
     assertThat(r.code()).isEqualTo(200);
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(wrapResponse(fullObj, "1", null));
 
     JsonNode obj;
     obj = objectMapper.readTree("{\"q5000\": \"hello?\"}");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
 
     ObjectNode sportNode = objectMapper.createObjectNode();
@@ -503,11 +505,11 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testPutReplacingArrayElement() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
     assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
     assertThat(r.code()).isEqualTo(200);
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(wrapResponse(fullObj, "1", null));
@@ -515,17 +517,19 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode obj;
     obj = objectMapper.readTree("{\"q5000\": \"hello?\"}");
     r =
-        put(
+        http.put(
             "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1/options/[0]",
             obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1/options/[0]");
+    r =
+        http.get(
+            "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1/options/[0]");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
 
     ObjectNode optionNode = objectMapper.createObjectNode();
@@ -541,34 +545,34 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testPutReplacingWithArray() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
     assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
     assertThat(r.code()).isEqualTo(200);
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(wrapResponse(fullObj, "1", null));
 
     JsonNode obj = objectMapper.readTree("[{\"array\": \"at\"}, \"sub\", \"doc\"]");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("[0, \"a\", \"2\", true]");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     ObjectNode nestsNode =
         (ObjectNode) objectMapper.readTree("{\"nests\":{\"q1\":[0,\"a\",\"2\",true]}}");
     ObjectNode fullObjNode = (ObjectNode) fullObj;
@@ -580,20 +584,20 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(r.code()).isEqualTo(200);
 
     obj = objectMapper.readTree("[{\"array\": \"at\"}, \"\", \"doc\"]");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{\"we\": {\"are\": \"done\"}}");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
   }
@@ -602,39 +606,39 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testInvalidPuts() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
     assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
     assertThat(r.code()).isEqualTo(200);
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(wrapResponse(fullObj, "1", null));
 
     JsonNode obj;
     obj = objectMapper.readTree("3");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3\nHint: update the parent path with a defined object instead.");
 
     obj = objectMapper.readTree("true");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: true\nHint: update the parent path with a defined object instead.");
 
     obj = objectMapper.readTree("null");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: null\nHint: update the parent path with a defined object instead.");
 
     obj = objectMapper.readTree("\"Eric\"");
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport", obj);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo(
@@ -645,33 +649,35 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testDelete() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
     assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
     assertThat(r.code()).isEqualTo(200);
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(wrapResponse(fullObj, "1", null));
 
-    r = delete("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport/q1/question");
+    r =
+        http.delete(
+            "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport/q1/question");
     assertThat(r.code()).isEqualTo(204);
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport/q1/question");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport/q1/question");
     assertThat(r.code()).isEqualTo(204);
 
-    r = delete("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths");
+    r = http.delete("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths");
     assertThat(r.code()).isEqualTo(204);
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths");
     assertThat(r.code()).isEqualTo(204);
 
     r =
-        delete(
+        http.delete(
             "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1/options/[0]");
     assertThat(r.code()).isEqualTo(204);
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1/options");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1/options");
     assertThat(r.code()).isEqualTo(200);
     String responseBody = r.body().string();
     assertThat(objectMapper.readTree(responseBody))
@@ -682,10 +688,10 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 "1",
                 null));
 
-    r = delete("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.delete("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(204);
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(204);
   }
 
@@ -693,7 +699,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testPost() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response resp = post("/v2/namespaces/" + keyspace + "/collections/collection", fullObj);
+    Response resp = http.post("/v2/namespaces/" + keyspace + "/collections/collection", fullObj);
     assertThat(resp.code()).isEqualTo(201);
 
     String newLocation = resp.header("location");
@@ -701,7 +707,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     String newId = objectMapper.readTree(body).requiredAt("/documentId").asText();
     assertThat(newId).isNotNull();
 
-    resp = get(newLocation.replace(host + ":8082", ""));
+    resp = http.get(newLocation.replace(host + ":8082", ""));
     assertThat(resp.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(resp.body().string()))
         .isEqualTo(wrapResponse(fullObj, newId, null));
@@ -710,30 +716,30 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   @Test
   public void testRootDocumentPatch() throws IOException {
     JsonNode obj = objectMapper.readTree("{\"abc\": 1}");
-    Response r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    Response r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": true}");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(wrapResponse(objectMapper.readTree("{ \"abc\": 1, \"bcd\": true }"), "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": {\"a\": {\"b\": 0 }}}");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(
@@ -741,22 +747,22 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 objectMapper.readTree("{ \"abc\": 1, \"bcd\": {\"a\": {\"b\": 0 }} }"), "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": [1,2,3,4]}");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(
             wrapResponse(objectMapper.readTree("{ \"abc\": 1, \"bcd\": [1,2,3,4] }"), "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": [5,{\"a\": 23},7,8]}");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(
@@ -764,11 +770,11 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 objectMapper.readTree("{ \"abc\": 1, \"bcd\": [5,{\"a\": 23},7,8] }"), "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(
@@ -779,11 +785,11 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 null));
 
     obj = objectMapper.readTree("{\"bcd\": {\"replace\": \"array\"}}");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(
@@ -793,11 +799,11 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 null));
 
     obj = objectMapper.readTree("{\"done\": \"done\"}");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(
@@ -811,31 +817,31 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   @Test
   public void testRootDocumentPatchNulls() throws IOException {
     JsonNode obj = objectMapper.readTree("{\"abc\": null}");
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": null}");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(
             wrapResponse(objectMapper.readTree("{ \"abc\": null, \"bcd\": null }"), "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": {\"a\": {\"b\": null }}}");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(
@@ -845,11 +851,11 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 null));
 
     obj = objectMapper.readTree("{\"bcd\": [null,2,null,4]}");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(
@@ -857,11 +863,11 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 objectMapper.readTree("{ \"abc\": null, \"bcd\": [null,2,null,4] }"), "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": [1,{\"a\": null},3,4]}");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(
@@ -871,22 +877,22 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 null));
 
     obj = objectMapper.readTree("{\"bcd\": [null]}");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(
             wrapResponse(objectMapper.readTree("{ \"abc\": null, \"bcd\": [null] }"), "1", null));
 
     obj = objectMapper.readTree("{\"null\": null}");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(
@@ -900,51 +906,51 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testInvalidPatches() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
     assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
     assertThat(r.code()).isEqualTo(200);
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
     assertThat(r.code()).isEqualTo(200);
     assertThat(objectMapper.readTree(r.body().string()))
         .isEqualTo(wrapResponse(fullObj, "1", null));
 
     JsonNode obj;
     obj = objectMapper.readTree("[{\"array\": \"at\"}, \"root\", \"doc\"]");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo("A patch operation must be done with a JSON object, not an array.");
 
     // For patching, you must use an object, so arrays even patched to sub-paths are not allowed.
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport/q1", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport/q1", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo("A patch operation must be done with a JSON object, not an array.");
 
     obj = objectMapper.readTree("3");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3\nHint: update the parent path with a defined object instead.");
 
     obj = objectMapper.readTree("true");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: true\nHint: update the parent path with a defined object instead.");
 
     obj = objectMapper.readTree("null");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: null\nHint: update the parent path with a defined object instead.");
 
     obj = objectMapper.readTree("\"Eric\"");
-    r = patch("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport", obj);
+    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport", obj);
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string())
         .isEqualTo(
@@ -956,13 +962,13 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
     Response r =
-        put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
+        http.put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
     // EQ
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}");
@@ -974,7 +980,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"price\": {\"$eq\": 600}}&raw=true");
@@ -983,7 +989,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // LT
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lt\": 600}}&raw=true");
@@ -996,7 +1002,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // LTE
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lte\": 600}}");
@@ -1009,7 +1015,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // GT
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gt\": 600}}&raw=true");
@@ -1021,7 +1027,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // GTE
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gte\": 600}}&raw=true");
@@ -1034,7 +1040,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // EXISTS
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$exists\": true}}&raw=true");
@@ -1055,13 +1061,13 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
     Response r =
-        put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
+        http.put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
     // EQ
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}&fields=[\"name\", \"price\", \"model\", \"manufacturer\"]");
@@ -1074,7 +1080,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // LT
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lt\": 600}}&fields=[\"name\", \"price\", \"model\"]&raw=true");
@@ -1087,7 +1093,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // LTE
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lte\": 600}}&fields=[\"price\", \"sku\"]");
@@ -1100,7 +1106,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // GT
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gt\": 600}}&fields=[\"price\", \"throwaway\"]&raw=true");
@@ -1112,7 +1118,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // GTE
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gte\": 600}}&fields=[\"price\"]&raw=true");
@@ -1125,7 +1131,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // EXISTS
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$exists\": true}}&fields=[\"price\", \"name\", \"manufacturer\", \"model\", \"sku\"]&raw=true");
@@ -1146,13 +1152,13 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
     Response r =
-        put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
+        http.put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
     // NE with String
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$ne\": \"3a\"}}");
@@ -1165,7 +1171,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // NE with Boolean
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"quiz.nests.q1.options.[3].this\": {\"$ne\": false}}");
@@ -1178,7 +1184,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // NE with integer compared to double
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"quiz.maths.q1.answer\": {\"$ne\": 12}}");
@@ -1190,7 +1196,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // NE with double compared to integer
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"quiz.maths.q2.answer\": {\"$ne\": 4.0}}");
@@ -1198,7 +1204,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // NE with null
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.food.*.sku\": {\"$ne\": null}}");
@@ -1214,13 +1220,13 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
     Response r =
-        put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
+        http.put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
     // IN with String
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"]}}");
@@ -1233,7 +1239,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // IN with int
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$in\": [600, 900]}}");
@@ -1246,7 +1252,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // IN with double
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$in\": [0.99, 0.89]}}");
@@ -1259,7 +1265,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // IN with null
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.*.*.sku\": {\"$in\": [null]}}");
@@ -1275,13 +1281,13 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
     Response r =
-        put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
+        http.put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
     // NIN with String
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"12\"]}}");
@@ -1294,7 +1300,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // NIN with int
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$nin\": [600, 900]}}");
@@ -1307,7 +1313,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // NIN with double
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$nin\": [0.99, 0.89]}}");
@@ -1320,7 +1326,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // NIN with null
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.*.*.sku\": {\"$nin\": [null]}}");
@@ -1336,13 +1342,13 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
     Response r =
-        put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
+        http.put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
     // NIN (limited support) with GT (full support)
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"11\"], \"$gt\": \"\"}}");
@@ -1355,7 +1361,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // IN (limited support) with NE (limited support)
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"], \"$ne\": \"11\"}}");
@@ -1369,16 +1375,19 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   @Test
   public void testInvalidSearch() throws IOException {
     Response r =
-        get("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id?where=hello");
+        http.get(
+            "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id?where=hello");
     assertThat(r.code()).isEqualTo(500);
     r.close();
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id?where=[\"a\"]}");
+    r =
+        http.get(
+            "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id?where=[\"a\"]}");
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string()).isEqualTo("Search was expecting a JSON object as input.");
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": true}}");
@@ -1387,7 +1396,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         .isEqualTo("Search entry for field a was expecting a JSON object as input.");
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$exists\": false}}}");
@@ -1395,7 +1404,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(r.body().string()).isEqualTo("$exists only supports the value `true`");
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": {\"exists\": true}}}");
@@ -1403,7 +1412,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(r.body().string()).startsWith("Invalid operator: exists, valid operators are:");
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": null}}}");
@@ -1412,7 +1421,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         .isEqualTo("Value entry for field a, operation $eq was expecting a non-null value");
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": {}}}}");
@@ -1421,7 +1430,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         .isEqualTo("Value entry for field a, operation $eq was expecting a non-null value");
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": []}}}");
@@ -1430,7 +1439,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         .isEqualTo("Value entry for field a, operation $eq was expecting a non-null value");
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$in\": 2}}}");
@@ -1439,7 +1448,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         .isEqualTo("Value entry for field a, operation $in was expecting an array");
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": 300}, \"b\": {\"$lt\": 500}}");
@@ -1448,7 +1457,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         .contains("Conditions across multiple fields are not yet supported");
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"a.b\": {\"$eq\": 300}, \"c.b\": {\"$lt\": 500}}");
@@ -1457,7 +1466,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         .contains("Conditions across multiple fields are not yet supported");
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$in\": [1]}}&fields=[\"b\"]");
@@ -1466,7 +1475,9 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         .contains(
             "When selecting `fields`, the field referenced by `where` must be in the selection.");
 
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id?fields=[\"b\"]");
+    r =
+        http.get(
+            "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id?fields=[\"b\"]");
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string()).contains("Selecting fields is not allowed without `where`");
   }
@@ -1476,13 +1487,13 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
     Response r =
-        put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
+        http.put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
     // Multiple operators
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"products.food.Orange.info.price\": {\"$gt\": 600, \"$lt\": 600.05}}&raw=true");
@@ -1495,7 +1506,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // Array paths
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"quiz.maths.q1.options.[0]\": {\"$lt\": 13.3}}&raw=true");
@@ -1505,7 +1516,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         .isEqualTo(objectMapper.readTree(searchResultStr));
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"quiz.nests.q2.options.*.this.that.them\": {\"$eq\": false}}&raw=true");
@@ -1517,7 +1528,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // Multi-path
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"quiz.nests.q1,q2.options.[0]\": {\"$eq\": \"nest\"}}&raw=true");
@@ -1532,7 +1543,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // Multi-path...and glob?!?
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"quiz.nests.q2,q3.options.*.this.them\": {\"$eq\": false}}&raw=true");
@@ -1548,13 +1559,13 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));
     Response r =
-        put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
+        http.put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
     // With default page size
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 0}}");
@@ -1567,7 +1578,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     String pageState = responseBody1.requiredAt("/pageState").requireNonNull().asText();
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 0}}&page-state="
@@ -1592,7 +1603,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // With provided page size, and a filter
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=50");
@@ -1605,7 +1616,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     pageState = responseBody1.requiredAt("/pageState").requireNonNull().asText();
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=50&page-state="
@@ -1644,18 +1655,18 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     Set<String> docsSeen = new HashSet<>();
 
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", doc1);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", doc1);
     assertThat(r.code()).isEqualTo(200);
     r.close();
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/2", doc2);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/2", doc2);
     assertThat(r.code()).isEqualTo(200);
     r.close();
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/3", doc3);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/3", doc3);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
     // page-size defaults to 1 document when excluded
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection");
     assertThat(r.code()).isEqualTo(200);
     JsonNode resp = objectMapper.readTree(r.body().string());
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
@@ -1667,7 +1678,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen.add(key);
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?page-state="
@@ -1685,7 +1696,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen.add(key);
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?page-state="
@@ -1707,7 +1718,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     docsSeen = new HashSet<>();
     // set page-size to 2
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection?page-size=2");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection?page-size=2");
     body = r.body().string();
     assertThat(body).startsWith("{");
     assertThat(r.code()).isEqualTo(200);
@@ -1725,7 +1736,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen.add(key);
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?page-size=2&page-state="
@@ -1748,7 +1759,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen = new HashSet<>();
 
     // set page-size to 4
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection?page-size=4");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection?page-size=4");
     body = r.body().string();
     assertThat(body).startsWith("{");
     assertThat(r.code()).isEqualTo(200);
@@ -1783,18 +1794,18 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     Set<String> docsSeen = new HashSet<>();
 
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", doc1);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", doc1);
     assertThat(r.code()).isEqualTo(200);
     r.close();
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/2", doc2);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/2", doc2);
     assertThat(r.code()).isEqualTo(200);
     r.close();
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/3", doc3);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/3", doc3);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
     // page-size defaults to 1 document when excluded
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection?fields=[\"a\"]");
+    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection?fields=[\"a\"]");
     assertThat(r.code()).isEqualTo(200);
     JsonNode resp = objectMapper.readTree(r.body().string());
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
@@ -1814,7 +1825,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen.add(key);
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?fields=[\"a\"]&page-state="
@@ -1839,7 +1850,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen.add(key);
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?fields=[\"a\"]&page-state="
@@ -1868,7 +1879,9 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     docsSeen = new HashSet<>();
     // set page-size to 2
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection?fields=[\"a\"]&page-size=2");
+    r =
+        http.get(
+            "/v2/namespaces/" + keyspace + "/collections/collection?fields=[\"a\"]&page-size=2");
     body = r.body().string();
     assertThat(body).startsWith("{");
     assertThat(r.code()).isEqualTo(200);
@@ -1900,7 +1913,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen.add(key);
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?fields=[\"a\"]&page-size=2&page-state="
@@ -1930,7 +1943,9 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen = new HashSet<>();
 
     // set page-size to 4
-    r = get("/v2/namespaces/" + keyspace + "/collections/collection?fields=[\"a\"]&page-size=4");
+    r =
+        http.get(
+            "/v2/namespaces/" + keyspace + "/collections/collection?fields=[\"a\"]&page-size=4");
     body = r.body().string();
     assertThat(body).startsWith("{");
     assertThat(r.code()).isEqualTo(200);
@@ -1973,19 +1988,19 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     Set<String> docsSeen = new HashSet<>();
 
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", doc1);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", doc1);
     assertThat(r.code()).isEqualTo(200);
     r.close();
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/2", doc2);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/2", doc2);
     assertThat(r.code()).isEqualTo(200);
     r.close();
-    r = put("/v2/namespaces/" + keyspace + "/collections/collection/3", doc3);
+    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/3", doc3);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
     // page-size defaults to 1 document when excluded
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?where={\"b.value\": {\"$eq\": 2}}&fields=[\"a\"]");
@@ -2003,7 +2018,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     // Return all documents where quiz.sport.q1.question exists, but only the `quiz` field on each
     // doc
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]");
@@ -2027,7 +2042,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen.add(key);
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]&page-state="
@@ -2055,7 +2070,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidFullDocPageSize() throws IOException {
-    Response r = get("/v2/namespaces/" + keyspace + "/collections/collection?page-size=21");
+    Response r = http.get("/v2/namespaces/" + keyspace + "/collections/collection?page-size=21");
     assertThat(r.code()).isEqualTo(400);
     assertThat(r.body().string()).isEqualTo("The parameter `page-size` is limited to 20.");
   }
@@ -2064,12 +2079,12 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testPaginationDisallowedLimitedSupport() throws IOException {
     JsonNode doc1 =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));
-    Response r = put("/v2/namespaces/" + keyspace + "/collections/collection/1", doc1);
+    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", doc1);
     assertThat(r.code()).isEqualTo(200);
     r.close();
 
     r =
-        get(
+        http.get(
             "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/1?where={\"*.value\":{\"$nin\": [3]}}page-size=5");
@@ -2193,138 +2208,6 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         authToken,
         String.format("%s:8082/v2/schemas/namespaces/%s", host, keyspaceName),
         HttpStatus.SC_NOT_FOUND);
-  }
-
-  private Response get(String path) throws IOException {
-    Request request =
-        new Request.Builder()
-            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
-            .get()
-            .addHeader("X-Cassandra-Token", authToken)
-            .build();
-
-    return client.newCall(request).execute();
-  }
-
-  private Response post(String path, Object arg) throws IOException {
-    Request request =
-        new Request.Builder()
-            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
-            .post(
-                RequestBody.create(
-                    MediaType.parse("application/json"), objectMapper.writeValueAsString(arg)))
-            .addHeader("X-Cassandra-Token", authToken)
-            .build();
-
-    return client.newCall(request).execute();
-  }
-
-  private Response put(String path, Object arg) throws IOException {
-    Request request =
-        new Request.Builder()
-            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
-            .put(
-                RequestBody.create(
-                    MediaType.parse("application/json"), objectMapper.writeValueAsString(arg)))
-            .addHeader("X-Cassandra-Token", authToken)
-            .build();
-
-    return client.newCall(request).execute();
-  }
-
-  private Response patch(String path, Object arg) throws IOException {
-    Request request =
-        new Request.Builder()
-            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
-            .patch(
-                RequestBody.create(
-                    MediaType.parse("application/json"), objectMapper.writeValueAsString(arg)))
-            .addHeader("X-Cassandra-Token", authToken)
-            .build();
-
-    return client.newCall(request).execute();
-  }
-
-  private Response delete(String path) throws IOException {
-    Request request =
-        new Request.Builder()
-            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
-            .delete()
-            .addHeader("X-Cassandra-Token", authToken)
-            .build();
-
-    return client.newCall(request).execute();
-  }
-
-  private Response get(String path, String token) throws IOException {
-    Request.Builder request =
-        new Request.Builder()
-            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
-            .get();
-
-    if (token != null) {
-      request = request.addHeader("X-Cassandra-Token", token);
-    }
-
-    return client.newCall(request.build()).execute();
-  }
-
-  private Response post(String path, Object arg, String token) throws IOException {
-    Request.Builder request =
-        new Request.Builder()
-            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
-            .post(
-                RequestBody.create(
-                    MediaType.parse("application/json"), objectMapper.writeValueAsString(arg)));
-
-    if (token != null) {
-      request = request.addHeader("X-Cassandra-Token", token);
-    }
-
-    return client.newCall(request.build()).execute();
-  }
-
-  private Response put(String path, Object arg, String token) throws IOException {
-    Request.Builder request =
-        new Request.Builder()
-            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
-            .put(
-                RequestBody.create(
-                    MediaType.parse("application/json"), objectMapper.writeValueAsString(arg)));
-
-    if (token != null) {
-      request = request.addHeader("X-Cassandra-Token", token);
-    }
-
-    return client.newCall(request.build()).execute();
-  }
-
-  private Response patch(String path, Object arg, String token) throws IOException {
-    Request.Builder request =
-        new Request.Builder()
-            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
-            .patch(
-                RequestBody.create(
-                    MediaType.parse("application/json"), objectMapper.writeValueAsString(arg)));
-
-    if (token != null) {
-      request = request.addHeader("X-Cassandra-Token", token);
-    }
-
-    return client.newCall(request.build()).execute();
-  }
-
-  private Response delete(String path, String token) throws IOException {
-    Request.Builder request =
-        new Request.Builder()
-            .url(String.format("%s:8082%s%s", host, path.startsWith("/") ? "" : "/", path))
-            .delete();
-
-    if (token != null) {
-      request = request.addHeader("X-Cassandra-Token", token);
-    }
-
-    return client.newCall(request.build()).execute();
   }
 
   private JsonNode wrapResponse(JsonNode node, String id, String pagingState) {
