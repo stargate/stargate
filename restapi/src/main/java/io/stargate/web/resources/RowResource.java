@@ -502,7 +502,7 @@ public class RowResource {
   private String buildExpressionFromOperators(List<Filter> filters) {
     StringBuilder expression = new StringBuilder();
     for (Filter filter : filters) {
-      if (!expression.toString().equals("")) {
+      if (expression.length() != 0) {
         expression.append(" AND ");
       }
 

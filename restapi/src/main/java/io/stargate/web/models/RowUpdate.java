@@ -19,7 +19,7 @@ import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 
 public class RowUpdate {
-  List<Changeset> changeset;
+  private List<Changeset> changeset;
 
   @ApiModelProperty(
       required = true,

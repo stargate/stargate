@@ -21,8 +21,8 @@ import io.swagger.annotations.ApiModelProperty;
 
 public class ColumnModel {
 
-  String name;
-  String value;
+  private String name;
+  private String value;
 
   @ApiModelProperty(
       example = "emailaddress",

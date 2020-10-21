@@ -45,8 +45,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Api(
     produces = MediaType.APPLICATION_JSON,
@@ -55,9 +53,6 @@ import org.slf4j.LoggerFactory;
 @Path("/v1/keyspaces/{keyspaceName}/tables/{tableName}/columns")
 @Produces(MediaType.APPLICATION_JSON)
 public class ColumnResource {
-
-  private static final Logger logger = LoggerFactory.getLogger(ColumnResource.class);
-
   @Inject private Db db;
 
   @Timed
