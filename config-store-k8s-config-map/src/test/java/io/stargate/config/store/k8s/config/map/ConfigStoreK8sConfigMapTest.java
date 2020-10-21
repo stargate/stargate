@@ -107,7 +107,7 @@ class ConfigStoreK8sConfigMapTest {
   }
 
   @Test
-  public void shouldAddSettingToExistingConfigMapProgrammatically() {
+  public void shouldAddSettingsToExistingConfigMapProgrammatically() {
     // given
     NamespacedKubernetesClient client = server.getClient();
     String namespace = "ns1";
