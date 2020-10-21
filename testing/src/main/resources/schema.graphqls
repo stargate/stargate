@@ -180,7 +180,6 @@ enum MutationConsistency {
 input MutationOptions {
     consistency: MutationConsistency
     serialConsistency: SerialConsistency
-    ttl: Int = -1
 }
 
 type Orders {

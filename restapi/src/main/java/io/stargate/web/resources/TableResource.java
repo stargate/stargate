@@ -50,8 +50,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Api(
     produces = MediaType.APPLICATION_JSON,
@@ -61,9 +59,6 @@ import org.slf4j.LoggerFactory;
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class TableResource {
-
-  private static final Logger logger = LoggerFactory.getLogger(TableResource.class);
-
   @Inject private Db db;
 
   @Timed
@@ -113,7 +108,8 @@ public class TableResource {
   @ApiOperation(
       value = "Add a table",
       notes = "Add a table in a specific keyspace.",
-      response = SuccessResponse.class)
+      response = SuccessResponse.class,
+      code = 201)
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = SuccessResponse.class),

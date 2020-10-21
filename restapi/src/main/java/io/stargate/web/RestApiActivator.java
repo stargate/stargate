@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 /** Activator for the restapi bundle */
 public class RestApiActivator implements BundleActivator, ServiceListener {
+
   private static final Logger log = LoggerFactory.getLogger(RestApiActivator.class);
 
   private BundleContext context;
@@ -38,8 +39,9 @@ public class RestApiActivator implements BundleActivator, ServiceListener {
   private ServiceReference authenticationReference;
   private ServiceReference<?> metricsReference;
 
-  static String AUTH_IDENTIFIER = System.getProperty("stargate.auth_id", "AuthTableBasedService");
-  static String PERSISTENCE_IDENTIFIER =
+  private static String AUTH_IDENTIFIER =
+      System.getProperty("stargate.auth_id", "AuthTableBasedService");
+  private static String PERSISTENCE_IDENTIFIER =
       System.getProperty("stargate.persistence_id", "CassandraPersistence");
 
   @Override
@@ -107,6 +109,10 @@ public class RestApiActivator implements BundleActivator, ServiceListener {
 
     if (authenticationReference != null) {
       context.ungetService(authenticationReference);
+    }
+
+    if (metricsReference != null) {
+      context.ungetService(metricsReference);
     }
   }
 

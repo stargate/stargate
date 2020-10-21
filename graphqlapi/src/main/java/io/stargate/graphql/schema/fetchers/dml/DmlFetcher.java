@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public abstract class DmlFetcher extends CassandraFetcher<Map<String, Object>> {
+public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
   protected final Table table;
   protected final NameMapping nameMapping;

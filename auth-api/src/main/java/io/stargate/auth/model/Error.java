@@ -17,6 +17,7 @@ package io.stargate.auth.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModelProperty;
 import java.util.Objects;
 
 /** A description of an error state */
@@ -40,6 +41,10 @@ public class Error {
     return this;
   }
 
+  @ApiModelProperty(
+      example =
+          "Invalid STRING constant (8be6d514-3436-4e04-a5fc-0ffbefa4c1fe) for \"id\" of type uuid",
+      value = "A human readable description of the error state")
   @JsonProperty("description")
   public String getDescription() {
     return description;
@@ -55,6 +60,7 @@ public class Error {
     return this;
   }
 
+  @ApiModelProperty(example = "2200", value = "The internal number referencing the error state")
   @JsonProperty("internalCode")
   public String getInternalCode() {
     return internalCode;

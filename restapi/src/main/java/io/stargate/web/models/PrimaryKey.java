@@ -25,8 +25,8 @@ import java.util.List;
         "Defines a column list for the primary key. Can be either a single column, compound primary key, or composite partition key. Provide multiple columns for the partition key to define a composite partition key.")
 public class PrimaryKey {
 
-  List<String> partitionKey = new ArrayList<>();
-  List<String> clusteringKey = new ArrayList<>();
+  private List<String> partitionKey = new ArrayList<>();
+  private List<String> clusteringKey = new ArrayList<>();
 
   public PrimaryKey() {}
 
