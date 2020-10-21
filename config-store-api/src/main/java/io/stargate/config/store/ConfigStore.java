@@ -1,8 +1,10 @@
 package io.stargate.config.store;
 
+import java.io.Closeable;
 import java.util.Map;
 
-public interface ConfigStore {
+public interface ConfigStore extends Closeable {
 
-  Map<String, Object> getConfigForExtension(String extensionName);
+  Map<String, String> getConfigForExtension(String extensionName);
+
 }
