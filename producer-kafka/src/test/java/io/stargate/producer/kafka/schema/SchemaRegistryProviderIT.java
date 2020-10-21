@@ -23,13 +23,11 @@ import static io.stargate.producer.kafka.schema.SchemasTestConstants.COLUMN_NAME
 import static io.stargate.producer.kafka.schema.SchemasTestConstants.PARTITION_KEY_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.testcontainers.containers.KafkaContainer.ZOOKEEPER_PORT;
 
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.stargate.producer.kafka.IntegrationTestBase;
 import io.stargate.producer.kafka.mapping.DefaultMappingService;
-import java.net.ServerSocket;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
@@ -38,40 +36,12 @@ import java.util.stream.Stream;
 import org.apache.cassandra.stargate.schema.CQLType.Native;
 import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.Network;
 
-public class SchemaRegistryProviderIntegrationTest {
-  private static KafkaContainer kafkaContainer;
-  private static EmbeddedSchemaRegistryServer schemaRegistry;
-
-  @BeforeAll
-  public static void setup() throws Exception {
-    Network network = Network.newNetwork();
-    kafkaContainer = new KafkaContainer().withNetwork(network).withEmbeddedZookeeper();
-    kafkaContainer.start();
-    try (ServerSocket serverSocket = new ServerSocket(0)) {
-
-      schemaRegistry =
-          new EmbeddedSchemaRegistryServer(
-              String.format("http://localhost:%s", serverSocket.getLocalPort()),
-              String.format("localhost:%s", ZOOKEEPER_PORT),
-              kafkaContainer.getBootstrapServers());
-    }
-    schemaRegistry.startSchemaRegistry();
-  }
-
-  @AfterAll
-  public static void cleanup() {
-    kafkaContainer.stop();
-    schemaRegistry.close();
-  }
+public class SchemaRegistryProviderIT extends IntegrationTestBase {
 
   @Test
   public void shouldAllowUpdatingTheSameSchema() {
@@ -358,10 +328,8 @@ public class SchemaRegistryProviderIntegrationTest {
                 })); // rename clustering column
   }
 
-  private TableMetadata mockTableMetadata() {
-    TableMetadata tableMetadata = mock(TableMetadata.class);
-    when(tableMetadata.getKeyspace()).thenReturn("keyspaceName");
-    when(tableMetadata.getName()).thenReturn("tableName");
+  public TableMetadata mockTableMetadata() {
+    TableMetadata tableMetadata = super.mockTableMetadata();
     when(tableMetadata.getPartitionKeys())
         .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
     when(tableMetadata.getClusteringKeys())
