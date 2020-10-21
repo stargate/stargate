@@ -75,8 +75,7 @@ public class FieldFilterInputTypeCache extends FieldTypeCache<GraphQLInputType> 
     // or entries(m), so if we enable the operators depending on the context, we might want to
     // consider that).
     builder.field(GraphQLInputObjectField.newInputObjectField().name("containsKey").type(keyType));
-    builder.field(
-        GraphQLInputObjectField.newInputObjectField().name("containsValue").type(valueType));
+    builder.field(GraphQLInputObjectField.newInputObjectField().name("contains").type(valueType));
     builder.field(
         GraphQLInputObjectField.newInputObjectField().name("containsEntry").type(entryType));
 

@@ -109,7 +109,7 @@ public class QueryFetcherCollectionsTest extends DmlTestBase {
           "regularMapTable(filter: { m: {containsKey: 1 } }) { values { m{key,value} } }",
           "SELECT m FROM collections.regular_map_table WHERE m CONTAINS KEY 1"),
       arguments(
-          "regularMapTable(filter: { m: {containsValue: \"a\" } }) { values { m{key,value} } }",
+          "regularMapTable(filter: { m: {contains: \"a\" } }) { values { m{key,value} } }",
           "SELECT m FROM collections.regular_map_table WHERE m CONTAINS 'a'"),
       arguments(
           "regularMapTable(filter: { m: {containsEntry: {key: 1,value:\"a\"} } }) { values { m{key,value} } }",
@@ -124,8 +124,7 @@ public class QueryFetcherCollectionsTest extends DmlTestBase {
               + "{ values { k } }",
           "SELECT k FROM collections.nested_collections WHERE c={1:[{'a'},{'b'}],2:[{'c'},{'d'}]}"),
       arguments(
-          "nestedCollections(filter: { c: { containsValue: [[\"a\"],[\"b\"]] } })"
-              + "{ values { k } }",
+          "nestedCollections(filter: { c: { contains: [[\"a\"],[\"b\"]] } })" + "{ values { k } }",
           "SELECT k FROM collections.nested_collections WHERE c CONTAINS [{'a'},{'b'}]"),
       arguments(
           "nestedCollections(filter: { c: { containsEntry: {key: 1, value:[[\"a\"],[\"b\"]]} } })"

@@ -49,7 +49,7 @@ public class SchemaAssertions {
 
     assertThat(actualFilterType.getField("containsEntry").getType()).isEqualTo(entryInputType);
     assertThat(actualFilterType.getField("containsKey").getType()).isEqualTo(expectedKeyType);
-    assertThat(actualFilterType.getField("containsValue").getType()).isEqualTo(expectedValueType);
+    assertThat(actualFilterType.getField("contains").getType()).isEqualTo(expectedValueType);
   }
 
   private static void assertBasicComparisons(

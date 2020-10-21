@@ -105,8 +105,6 @@ public abstract class DmlFetcher extends CassandraFetcher<Map<String, Object>> {
           relation = relationStart.contains(toCqlElementTerm(column, condition.getValue()));
         } else if (condition.getKey().equals("containsKey")) {
           relation = relationStart.containsKey(toCqlKeyTerm(column, condition.getValue()));
-        } else if (condition.getKey().equals("containsValue")) {
-          relation = relationStart.contains(toCqlValueTerm(column, condition.getValue()));
         } else if (condition.getKey().equals("containsEntry")) {
           Column.ColumnType mapType = column.type();
           assert mapType != null && mapType.isMap();
@@ -183,8 +181,8 @@ public abstract class DmlFetcher extends CassandraFetcher<Map<String, Object>> {
 
   private Term toCqlElementTerm(Column column, Object value) {
     Column.ColumnType collectionType = column.type();
-    assert collectionType != null && (collectionType.isList() || collectionType.isSet());
-    Column.ColumnType elementType = collectionType.parameters().get(0);
+    assert collectionType != null && collectionType.isCollection();
+    Column.ColumnType elementType = collectionType.parameters().get(collectionType.isMap() ? 1 : 0);
     return toCqlTerm(elementType, value);
   }
 
@@ -193,13 +191,6 @@ public abstract class DmlFetcher extends CassandraFetcher<Map<String, Object>> {
     assert mapType != null && mapType.isMap();
     Column.ColumnType keyType = mapType.parameters().get(0);
     return toCqlTerm(keyType, value);
-  }
-
-  private Term toCqlValueTerm(Column column, Object value) {
-    Column.ColumnType mapType = column.type();
-    assert mapType != null && mapType.isMap();
-    Column.ColumnType valueType = mapType.parameters().get(1);
-    return toCqlTerm(valueType, value);
   }
 
   private Term toCqlTerm(Column.ColumnType type, Object value) {
