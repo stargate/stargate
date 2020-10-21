@@ -28,6 +28,7 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.web.RestApiActivator;
 import io.stargate.web.config.ApplicationConfiguration;
+import io.stargate.web.docsapi.resources.CollectionsResource;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
 import io.stargate.web.docsapi.resources.NamespacesResource;
 import io.stargate.web.resources.ColumnResource;
@@ -119,6 +120,7 @@ public class Server extends Application<ApplicationConfiguration> {
 
     // Documents API
     environment.jersey().register(DocumentResourceV2.class);
+    environment.jersey().register(CollectionsResource.class);
     environment.jersey().register(NamespacesResource.class);
 
     environment.jersey().register(ApiListingResource.class);

@@ -10,7 +10,6 @@ import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
-import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.resources.Db;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

@@ -22,40 +22,43 @@ import io.swagger.annotations.ApiModelProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DocCollection {
-    @JsonProperty("name")
-    String name;
+  @JsonProperty("name")
+  String name;
 
-    @JsonProperty("upgradeAvailable")
-    boolean upgradeAvailable;
+  @JsonProperty("upgradeAvailable")
+  boolean upgradeAvailable;
 
-    @JsonProperty("upgradeType")
-    CollectionUpgradeType upgradeType;
+  @JsonProperty("upgradeType")
+  CollectionUpgradeType upgradeType;
 
-    @ApiModelProperty(required = true, value = "The name of the collection.")
-    @JsonProperty("name")
-    public String getName() {
-        return name;
-    }
+  @ApiModelProperty(required = true, value = "The name of the collection.")
+  @JsonProperty("name")
+  public String getName() {
+    return name;
+  }
 
-    @ApiModelProperty(required = true, value = "Whether an upgrade is available. Use the 'upgrade a collection' endpoint with the upgrade type to perform upgrade.")
-    @JsonProperty("upgradeAvailable")
-    public boolean getUpgradeAvailable() {
-        return upgradeAvailable;
-    }
+  @ApiModelProperty(
+      required = true,
+      value =
+          "Whether an upgrade is available. Use the 'upgrade a collection' endpoint with the upgrade type to perform upgrade.")
+  @JsonProperty("upgradeAvailable")
+  public boolean getUpgradeAvailable() {
+    return upgradeAvailable;
+  }
 
-    @ApiModelProperty(value = "The upgrade type, if an upgrade is available.")
-    @JsonProperty("upgradeType")
-    public CollectionUpgradeType getUpgradeType() {
-        return upgradeType;
-    }
+  @ApiModelProperty(value = "The upgrade type, if an upgrade is available.")
+  @JsonProperty("upgradeType")
+  public CollectionUpgradeType getUpgradeType() {
+    return upgradeType;
+  }
 
-    @JsonCreator
-    public DocCollection(
-            @JsonProperty("name") String name,
-            @JsonProperty("upgradeAvailable") boolean upgradeAvailable,
-            @JsonProperty("upgradeType") CollectionUpgradeType upgradeType) {
-        this.name = name;
-        this.upgradeAvailable = upgradeAvailable;
-        this.upgradeType = upgradeType;
-    }
+  @JsonCreator
+  public DocCollection(
+      @JsonProperty("name") String name,
+      @JsonProperty("upgradeAvailable") boolean upgradeAvailable,
+      @JsonProperty("upgradeType") CollectionUpgradeType upgradeType) {
+    this.name = name;
+    this.upgradeAvailable = upgradeAvailable;
+    this.upgradeType = upgradeType;
+  }
 }

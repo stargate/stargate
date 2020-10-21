@@ -2,77 +2,230 @@ package io.stargate.web.docsapi.resources;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.schema.Index;
 import io.stargate.db.schema.Table;
+import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.models.DocCollection;
+import io.stargate.web.docsapi.service.CollectionService;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
+import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.Set;
-import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Api(
-        produces = MediaType.APPLICATION_JSON,
-        consumes = MediaType.APPLICATION_JSON,
-        tags = {"documents"})
-@Path("/v2/schemas/namespaces/{namespace-id: [a-zA-Z_0-9]+}")
+    produces = MediaType.APPLICATION_JSON,
+    consumes = MediaType.APPLICATION_JSON,
+    tags = {"documents"})
+@Path("/v2/namespaces/{namespace-id: [a-zA-Z_0-9]+}")
 @Produces(MediaType.APPLICATION_JSON)
 public class CollectionsResource {
-    private static final Logger logger = LoggerFactory.getLogger(CollectionsResource.class);
+  private static final Logger logger = LoggerFactory.getLogger(CollectionsResource.class);
 
-    @Inject
-    private Db db;
-    private static final ObjectMapper mapper = new ObjectMapper();
+  @Inject private Db db;
+  private static final ObjectMapper mapper = new ObjectMapper();
+  private static final CollectionService collectionService = new CollectionService();
 
-    @GET
-    @ApiOperation(
-            value = "List collections in namespace")
-    @ApiResponses(
-            value = {
-                    @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
-                    @ApiResponse(code = 401, message = "Unauthorized"),
-                    @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
-            })
-    @Path("collections")
-    @Consumes("application/json")
-    @Produces("application/json")
-    public Response getCollections(
-            @ApiParam(
-                    value =
-                            "The token returned from the authorization endpoint. Use this token in each request.",
-                    required = true)
-            @HeaderParam("X-Cassandra-Token")
-                    String token,
-            @ApiParam(value = "the namespace to fetch collections for", required = true)
-            @PathParam("namespace-id")
-                    String namespace,
-            @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
-            final boolean raw) {
+  @GET
+  @ApiOperation(value = "List collections in namespace")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
+  @Path("collections")
+  @Consumes("application/json")
+  @Produces("application/json")
+  public Response getCollections(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "the namespace to fetch collections for", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
+          final boolean raw) {
+    return RequestHandler.handle(
         () -> {
-            DataStore localDB = db.getDataStoreForToken(token);
-            Set<Table> tables =
-                    localDB.schema().keyspace(namespace).tables();
-            tables.stream().map(table -> {
-                if (db.isDse()) {
-                    List<Index> indexes = table.indexes();
-                } else {
-                    return new DocCollection(table.name(), false, null);
-                }
-            })
+          DataStore localDB = db.getDataStoreForToken(token);
+          Set<Table> tables = localDB.schema().keyspace(namespace).tables();
+          List<DocCollection> result =
+              tables.stream()
+                  .map(table -> collectionService.getCollectionInfo(table, db))
+                  .collect(Collectors.toList());
 
-            Object response = raw ? namespaces : new ResponseWrapper(namespaces);
-            return Response.status(Response.Status.OK)
-                    .entity(Converters.writeResponse(response))
-                    .build();
+          Object response = raw ? result : new ResponseWrapper(result);
+          return Response.status(Response.Status.OK)
+              .entity(Converters.writeResponse(response))
+              .build();
         });
-    }
+  }
+
+  @POST
+  @ApiOperation(value = "Create a new empty collection in a namespace")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 201, message = "Created"),
+        @ApiResponse(code = 409, message = "Conflict", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
+  @Path("collections")
+  @Consumes("application/json")
+  @Produces("application/json")
+  public Response createCollection(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "the namespace to create the collection in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(
+              value = "JSON with the name of the collection",
+              required = true,
+              example = "{\"name\": \"example\"}")
+          String payload) {
+    return RequestHandler.handle(
+        () -> {
+          DocumentDB docDB = db.getDocDataStoreForToken(token);
+          DocCollection info = mapper.readValue(payload, DocCollection.class);
+          boolean res =
+              collectionService.createCollection(namespace, info.getName(), docDB, db.isDse());
+          if (res) {
+            return Response.status(Response.Status.CREATED).build();
+          } else {
+            return Response.status(Response.Status.CONFLICT)
+                .entity(
+                    String.format("Create failed: collection %s already exists", info.getName()))
+                .build();
+          }
+        });
+  }
+
+  @DELETE
+  @ApiOperation(value = "Delete a collection in a namespace")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 404, message = "Not Found"),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
+  @Path("collections/{collection-id}")
+  @Consumes("application/json")
+  @Produces("application/json")
+  public Response deleteCollection(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "the namespace containing the collection to delete", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the collection to delete", required = true) @PathParam("collection-id")
+          String collection) {
+    return RequestHandler.handle(
+        () -> {
+          DataStore localDB = db.getDataStoreForToken(token);
+          Table toDelete = localDB.schema().keyspace(namespace).table(collection);
+          if (toDelete == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                .entity(String.format("Collection %s not found", collection))
+                .build();
+          }
+          collectionService.deleteCollection(namespace, collection, new DocumentDB(localDB));
+          return Response.status(Response.Status.NO_CONTENT).build();
+        });
+  }
+
+  @POST
+  @ApiOperation(value = "Upgrade a collection in a namespace")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
+        @ApiResponse(code = 400, message = "Bad Request"),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 404, message = "Collection not found"),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
+  @Path("collections/{collection-id}/upgrade")
+  @Consumes("application/json")
+  @Produces("application/json")
+  public Response upgradeCollection(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "the namespace containing the collection to upgrade", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the collection to upgrade", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
+          final boolean raw,
+      @ApiParam(
+              value = "JSON with the upgrade type",
+              required = true,
+              example = "{\"upgradeType\": \"SAI_INDEX_UPGRADE\"}")
+          String payload) {
+    return RequestHandler.handle(
+        () -> {
+          DataStore localDB = db.getDataStoreForToken(token);
+          Table table = localDB.schema().keyspace(namespace).table(collection);
+          if (table == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                .entity("Collection not found")
+                .build();
+          }
+          DocCollection request = mapper.readValue(payload, DocCollection.class);
+          DocCollection info = collectionService.getCollectionInfo(table, db);
+          if (!info.getUpgradeAvailable() || info.getUpgradeType() != request.getUpgradeType()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity("That collection cannot be upgraded in that manner")
+                .build();
+          }
+
+          boolean success =
+              collectionService.upgradeCollection(
+                  namespace,
+                  collection,
+                  new DocumentDB(localDB),
+                  request.getUpgradeType(),
+                  db.isDse());
+
+          if (success) {
+            table = localDB.schema().keyspace(namespace).table(collection);
+            info = collectionService.getCollectionInfo(table, db);
+
+            Object response = raw ? info : new ResponseWrapper(info);
+            return Response.status(Response.Status.OK)
+                .entity(Converters.writeResponse(response))
+                .build();
+          } else {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity("Collection was not upgraded. Are you sure it was possible to upgrade?")
+                .build();
+          }
+        });
+  }
 }
