@@ -41,7 +41,10 @@ public abstract class SecondaryIndex implements Index, QualifiedSchemaEntity {
 
   public abstract CollectionIndexingType indexingType();
 
-  public abstract boolean isCustom();
+  @Value.Default
+  public boolean isCustom() {
+    return false;
+  }
 
   public static SecondaryIndex create(String keyspace, String name, Column column) {
     return ImmutableSecondaryIndex.builder()
