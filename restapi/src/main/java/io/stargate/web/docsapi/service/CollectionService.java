@@ -23,7 +23,7 @@ public class CollectionService {
               .map(i -> (SecondaryIndex) i)
               .collect(Collectors.toList());
       boolean upgradeAvailable =
-          secondaryIndexes.size() == 0 || secondaryIndexes.stream().anyMatch(i -> !i.isCustom());
+          secondaryIndexes.size() == 0 || secondaryIndexes.stream().allMatch(i -> !i.isCustom());
       return new DocCollection(
           table.name(),
           upgradeAvailable,
