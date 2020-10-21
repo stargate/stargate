@@ -15,7 +15,7 @@ public class CollectionService {
   public DocCollection getCollectionInfo(Table table, Db db) {
     if (db.isDse()) {
       List<Index> indexes = table.indexes();
-      // If any secondary indexes are not SAI or there are no secondary indexes,
+      // If all secondary indexes are not SAI or there are no secondary indexes,
       // then an upgrade is available.
       List<SecondaryIndex> secondaryIndexes =
           indexes.stream()

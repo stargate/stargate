@@ -46,8 +46,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   private static final OkHttpClient client =
       new OkHttpClient().newBuilder().readTimeout(3, TimeUnit.MINUTES).build();
 
-  private static final DocsHttpClient http =
-      new DocsHttpClient(host, authToken, client, objectMapper);
+  private static DocsHttpClient http;
 
   public DocumentApiV2Test(ClusterConnectionInfo backend) {
     super(backend);
@@ -86,6 +85,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         .isTrue();
 
     initAuth();
+    http = new DocsHttpClient(host, authToken, client, objectMapper);
   }
 
   @AfterEach

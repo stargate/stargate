@@ -30,8 +30,7 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final OkHttpClient client =
       new OkHttpClient().newBuilder().readTimeout(3, TimeUnit.MINUTES).build();
-  private static final DocsHttpClient http =
-      new DocsHttpClient(host, authToken, client, objectMapper);
+  private static DocsHttpClient http;
 
   public CollectionTest(ClusterConnectionInfo backend) {
     super(backend);
@@ -71,6 +70,7 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
         .isTrue();
 
     initAuth();
+    http = new DocsHttpClient(host, authToken, client, objectMapper);
   }
 
   private void initAuth() throws IOException {
@@ -134,7 +134,7 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
     String newColl = "{}";
     r = http.post("/v2/namespaces/" + keyspace + "/collections", objectMapper.readTree(newColl));
     assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string()).isEqualTo("`name` is required to create a collection");
+    assertThat(r.body().string()).contains("`name` is required to create a collection");
   }
 
   @Test
@@ -200,11 +200,9 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
         String.format("DROP INDEX \"%s\".\"%s\"", keyspace, collection + "_text_value_idx"));
 
     session.execute(
-        String.format(
-            "DROP INDEX IF EXISTS \"%s\".\"%s\"", keyspace, collection + "_dbl_value_idx"));
+        String.format("DROP INDEX \"%s\".\"%s\"", keyspace, collection + "_dbl_value_idx"));
 
     session.execute(
-        String.format(
-            "DROP INDEX IF EXISTS \"%s\".\"%s\"", keyspace, collection + "_bool_value_idx"));
+        String.format("DROP INDEX \"%s\".\"%s\"", keyspace, collection + "_bool_value_idx"));
   }
 }

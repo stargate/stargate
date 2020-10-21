@@ -135,6 +135,7 @@ public class DocumentDB {
           .get();
       return true;
     } catch (AlreadyExistsException e) {
+      logger.warn("Table already exists, skipping creation", e);
       return false;
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException("Unable to create schema for collection", e);
@@ -150,6 +151,7 @@ public class DocumentDB {
       }
       return true;
     } catch (AlreadyExistsException e) {
+      logger.warn("Indexes already exist, skipping creation", e);
       return false;
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException("Unable to create indexes for collection " + tableName, e);
@@ -158,7 +160,7 @@ public class DocumentDB {
 
   public boolean upgradeTableIndexes(String keyspaceName, String tableName, boolean isDse) {
     if (!isDse) {
-      // No index upgrade is required
+      logger.warn("Upgrade was attempted on a non-DSE setup.");
       return false;
     }
 
