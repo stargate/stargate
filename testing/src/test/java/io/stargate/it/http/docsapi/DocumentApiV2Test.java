@@ -46,11 +46,12 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   private String keyspace;
   private CqlSession session;
   private static String authToken;
-  private String host;
-  private String hostWithPort;
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final OkHttpClient client =
       new OkHttpClient().newBuilder().readTimeout(3, TimeUnit.MINUTES).build();
+
+  private String host;
+  private String hostWithPort;
 
   @BeforeEach
   public void setup(StargateConnectionInfo cluster) throws IOException {

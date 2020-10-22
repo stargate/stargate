@@ -17,21 +17,29 @@ package io.stargate.it.storage;
 
 import com.datastax.oss.driver.api.core.Version;
 import com.datastax.oss.driver.api.testinfra.ccm.CcmBridge;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.commons.exec.LogOutputStream;
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.extension.BeforeTestExecutionCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
+import org.junit.jupiter.api.extension.TestExecutionExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** JUnit 5 extension for tests that need a backend database cluster managed by {@code ccm}. */
 public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStorage.Cluster>
-    implements ParameterResolver, BeforeTestExecutionCallback {
+    implements ParameterResolver, BeforeTestExecutionCallback, TestExecutionExceptionHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalStorage.class);
 
@@ -101,6 +109,13 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
         getResource(context).map(Cluster::clusterVersion).orElse("[missing]"));
   }
 
+  @Override
+  public void handleTestExecutionException(ExtensionContext context, Throwable throwable)
+      throws Throwable {
+    getResource(context).ifPresent(Cluster::markError);
+    throw throwable;
+  }
+
   protected static class Cluster extends ExternalResource.Holder
       implements ClusterConnectionInfo, AutoCloseable {
 
@@ -109,6 +124,7 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
     private final String initSite;
     private final CcmBridge ccm;
     private final AtomicBoolean removed = new AtomicBoolean();
+    private final AtomicBoolean dumpLogs = new AtomicBoolean();
 
     private Cluster(ClusterSpec spec, String displayName) {
       this.spec = spec;
@@ -146,6 +162,7 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
 
         try {
           if (removed.compareAndSet(false, true)) {
+            dumpLogs();
             ccm.remove();
             LOG.info(
                 "Storage cluster (version {}) that was requested by {} has been removed.",
@@ -157,6 +174,47 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
           LOG.warn("Exception during CCM cluster shutdown: {}", e.toString(), e);
         }
       }
+    }
+
+    private void dumpLogs() {
+      if (!dumpLogs.get()) {
+        return;
+      }
+
+      LOG.warn("Dumping storage logs due to previous test failures.");
+
+      Path configDir;
+      try {
+        Field f = ccm.getClass().getDeclaredField("configDirectory");
+        f.setAccessible(true);
+        configDir = (Path) f.get(ccm);
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
+      }
+
+      Collection<File> files = FileUtils.listFiles(configDir.toFile(), new String[] {"log"}, true);
+      for (File file : files) {
+        String relPath = configDir.relativize(file.toPath()).toString();
+        if (!relPath.contains(File.separator + "logs" + File.separator)) {
+          continue;
+        }
+
+        try (LogOutputStream dumper =
+            new LogOutputStream() {
+              @Override
+              protected void processLine(String line, int logLevel) {
+                LOG.info("storage log: {}>> {}", relPath, line);
+              }
+            }) {
+          FileUtils.copyFile(file, dumper);
+        } catch (IOException e) {
+          throw new IllegalStateException(e);
+        }
+      }
+    }
+
+    private void markError() {
+      dumpLogs.set(true);
     }
 
     @Override
