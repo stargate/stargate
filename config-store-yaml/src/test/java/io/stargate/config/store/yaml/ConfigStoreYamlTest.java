@@ -31,10 +31,10 @@ class ConfigStoreYamlTest {
   @Test
   public void shouldGetSettingFromConfigYaml() {
     // given
-    ClassLoader classLoader = getClass().getClassLoader();
     Path path =
         Paths.get(
-            Objects.requireNonNull(classLoader.getResource("stargate-config.yaml")).getPath());
+            Objects.requireNonNull(getClass().getClassLoader().getResource("stargate-config.yaml"))
+                .getPath());
     ConfigStoreYaml configStoreYaml = new ConfigStoreYaml(path);
 
     // when
@@ -52,10 +52,10 @@ class ConfigStoreYamlTest {
   public void
       shouldThrowExtensionSettingsMissingExceptionWhenExtensionDoesNotHaveSettingsDefined() {
     // given
-    ClassLoader classLoader = getClass().getClassLoader();
     Path path =
         Paths.get(
-            Objects.requireNonNull(classLoader.getResource("stargate-config.yaml")).getPath());
+            Objects.requireNonNull(getClass().getClassLoader().getResource("stargate-config.yaml"))
+                .getPath());
     ConfigStoreYaml configStoreYaml = new ConfigStoreYaml(path);
 
     // when, then

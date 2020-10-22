@@ -40,6 +40,22 @@
         <version>3.17.2</version>
         <scope>test</scope>
       </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>log4j-over-slf4j</artifactId>
+        <version>1.7.30</version>
+        <scope>runtime</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>3.5.10</version>
+        <scope>test</scope>
+      </dependency>
     </dependencies>
 	<build>
 		<plugins>
