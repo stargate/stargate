@@ -15,12 +15,11 @@
  */
 package io.stargate.config.store;
 
-import java.io.Closeable;
 import java.util.Map;
 
-public interface ConfigStore extends Closeable {
+public interface ConfigStore {
 
-  Map<String, String> getConfigForExtension(String extensionName);
-
-  void addOrReplaceConfigValueForExtension(String extensionName, String key, String value);
+  /** It retrieves the generic {@code Map<String, Object>} for a given extension name. */
+  Map<String, Object> getConfigForExtension(String extensionName)
+      throws MissingExtensionSettingsException;
 }
