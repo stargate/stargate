@@ -22,12 +22,10 @@ import java.nio.file.Paths;
 import java.util.Hashtable;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceEvent;
-import org.osgi.framework.ServiceListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ConfigStoreActivator implements BundleActivator, ServiceListener {
+public class ConfigStoreActivator implements BundleActivator {
   private static final Logger logger = LoggerFactory.getLogger(ConfigStoreActivator.class);
 
   private static final String CONFIG_YAML_LOCATION =
@@ -52,10 +50,5 @@ public class ConfigStoreActivator implements BundleActivator, ServiceListener {
   @Override
   public void stop(BundleContext context) {
     // no-op
-  }
-
-  @Override
-  public void serviceChanged(ServiceEvent event) {
-    // no-op because ConfigStoreYaml does not depend on any other service
   }
 }
