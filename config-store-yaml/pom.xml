@@ -152,11 +152,9 @@
 						<Bundle-SymbolicName>io.stargate.config.store.yaml</Bundle-SymbolicName>
 						<Bundle-Activator>io.stargate.config.store.yaml.ConfigStoreActivator</Bundle-Activator>
 						<Import-Package><![CDATA[
-              org.osgi.framework,
-              io.stargate.config.store,
-              !com.codahale.metrics.graphite.*,
-              com.codahale.metrics,
-              ]]>
+                                        org.osgi.framework,
+                                        io.stargate.config.store,
+                                        ]]>
 						</Import-Package>
 						<DynamicImport-Package>*</DynamicImport-Package>
 						<Bundle-ClassPath>.,sjk-core-0.14.jar,{maven-dependencies}</Bundle-ClassPath>
