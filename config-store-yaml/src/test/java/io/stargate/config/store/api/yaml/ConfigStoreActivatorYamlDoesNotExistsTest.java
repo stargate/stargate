@@ -37,10 +37,10 @@ class ConfigStoreActivatorYamlDoesNotExistsTest {
   public void shouldNotRegisterConfigStoreWhenYamlLocationHasNotExistingStargateConfig() {
     // given
     BundleContext bundleContext = mock(BundleContext.class);
-    ConfigStoreActivator kafkaProducerActivator = new ConfigStoreActivator();
+    ConfigStoreActivator activator = new ConfigStoreActivator();
 
     // when
-    kafkaProducerActivator.start(bundleContext);
+    activator.start(bundleContext);
 
     // then
     verify(bundleContext, times(0))
