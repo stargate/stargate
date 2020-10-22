@@ -8,8 +8,8 @@
 		<version>0.0.18-SNAPSHOT</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
-    <groupId>io.stargate.config.store.k8s.config.map</groupId>
-	<artifactId>config-store-k8s-config-map</artifactId>
+    <groupId>io.stargate.config.store.yaml</groupId>
+	<artifactId>config-store-yaml</artifactId>
 	<dependencies>
       <dependency>
         <groupId>io.stargate.config-store</groupId>
@@ -131,10 +131,10 @@
 				<configuration>
 					<unpackBundle>true</unpackBundle>
 					<instructions>
-						<Bundle-Name>Config-Store-k8s-Config-Map</Bundle-Name>
-						<Bundle-Description>Config store k8s config map implementation</Bundle-Description>
-						<Bundle-SymbolicName>io.stargate.config.store.k8s.config.map</Bundle-SymbolicName>
-						<Bundle-Activator>io.stargate.config.store.k8s.config.map.ConfigStoreActivator</Bundle-Activator>
+						<Bundle-Name>Config-Store-Yaml</Bundle-Name>
+						<Bundle-Description>Config store YAML implementation</Bundle-Description>
+						<Bundle-SymbolicName>io.stargate.config.store.yaml</Bundle-SymbolicName>
+						<Bundle-Activator>io.stargate.config.store.yaml.ConfigStoreActivator</Bundle-Activator>
 						<Import-Package><![CDATA[
               org.osgi.framework,
               io.stargate.config.store,

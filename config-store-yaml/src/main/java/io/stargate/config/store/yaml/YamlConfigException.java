@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.config.store;
+package io.stargate.config.store.yaml;
 
-/** Denotes that the underlying config-store does not have any setting for a given extension. */
-public class MissingExtensionSettingsException extends RuntimeException {
-  public MissingExtensionSettingsException(String message) {
-    super(message);
+import java.io.IOException;
+
+public class YamlConfigException extends RuntimeException {
+
+  public YamlConfigException(String message, IOException e) {
+    super(message, e);
   }
 }
