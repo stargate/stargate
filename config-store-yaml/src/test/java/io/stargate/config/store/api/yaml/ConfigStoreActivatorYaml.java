@@ -25,35 +25,43 @@ import io.stargate.config.store.api.ConfigStore;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.osgi.framework.BundleContext;
 
-class ConfigStoreActivatorYamlExistsTest {
-
-  @BeforeAll
-  public static void setup() {
-    Path path =
-        Paths.get(
-            Objects.requireNonNull(
-                    ConfigStoreActivatorYamlExistsTest.class
-                        .getClassLoader()
-                        .getResource("stargate-config.yaml"))
-                .getPath());
-    System.setProperty("stargate.config_store.yaml.location", path.toFile().getAbsolutePath());
-  }
+class ConfigStoreActivatorYaml {
 
   @Test
   public void shouldRegisterConfigStoreWhenYamlLocationHasExistingStargateConfig() {
     // given
     BundleContext bundleContext = mock(BundleContext.class);
-    ConfigStoreActivator activator = new ConfigStoreActivator();
+    Path path =
+        Paths.get(
+            Objects.requireNonNull(
+                    ConfigStoreActivatorYaml.class
+                        .getClassLoader()
+                        .getResource("stargate-config.yaml"))
+                .getPath());
+    ConfigStoreActivator activator = new ConfigStoreActivator(path.toFile().getAbsolutePath());
 
     // when
     activator.start(bundleContext);
 
     // then
     verify(bundleContext, times(1))
+        .registerService(eq(ConfigStore.class), any(ConfigStoreYaml.class), any());
+  }
+
+  @Test
+  public void shouldNotRegisterConfigStoreWhenYamlLocationHasNotExistingStargateConfig() {
+    // given
+    BundleContext bundleContext = mock(BundleContext.class);
+    ConfigStoreActivator activator = new ConfigStoreActivator("non_existing");
+
+    // when
+    activator.start(bundleContext);
+
+    // then
+    verify(bundleContext, times(0))
         .registerService(eq(ConfigStore.class), any(ConfigStoreYaml.class), any());
   }
 }

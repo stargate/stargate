@@ -27,15 +27,23 @@ import org.slf4j.LoggerFactory;
 
 public class ConfigStoreActivator implements BundleActivator {
   private static final Logger logger = LoggerFactory.getLogger(ConfigStoreActivator.class);
+  private final String configYamlLocation;
 
-  private static final String CONFIG_YAML_LOCATION =
-      System.getProperty(
-          "stargate.config_store.yaml.location", "/etc/stargate/stargate-config.yaml");
+  // for testing purpose
+  public ConfigStoreActivator(String configYamlLocation) {
+    this.configYamlLocation = configYamlLocation;
+  }
+
+  public ConfigStoreActivator() {
+    this(
+        System.getProperty(
+            "stargate.config_store.yaml.location", "/etc/stargate/stargate-config.yaml"));
+  }
 
   @Override
   public void start(BundleContext context) {
     logger.info("Starting Config Store YAML...");
-    Path yamlFilePath = Paths.get(CONFIG_YAML_LOCATION);
+    Path yamlFilePath = Paths.get(configYamlLocation);
     if (!Files.exists(yamlFilePath)) {
       logger.error(
           "The yaml file does not exists, please check the path: {}. The ConfigStoreYaml will not be registered.",
