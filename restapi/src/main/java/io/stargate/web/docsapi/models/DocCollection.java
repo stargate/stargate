@@ -23,13 +23,13 @@ import io.swagger.annotations.ApiModelProperty;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DocCollection {
   @JsonProperty("name")
-  String name;
+  private String name;
 
   @JsonProperty("upgradeAvailable")
-  boolean upgradeAvailable;
+  private boolean upgradeAvailable;
 
   @JsonProperty("upgradeType")
-  CollectionUpgradeType upgradeType;
+  private CollectionUpgradeType upgradeType;
 
   @ApiModelProperty(required = true, value = "The name of the collection.")
   @JsonProperty("name")
@@ -60,5 +60,11 @@ public class DocCollection {
     this.name = name;
     this.upgradeAvailable = upgradeAvailable;
     this.upgradeType = upgradeType;
+  }
+
+  public String toString() {
+    return String.format(
+        "DocCollection(name=%s, upgradeAvailable=%s, upgradeType=%s)",
+        name, upgradeAvailable, upgradeType);
   }
 }

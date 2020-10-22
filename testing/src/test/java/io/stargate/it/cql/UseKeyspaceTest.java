@@ -35,5 +35,6 @@ public class UseKeyspaceTest extends JavaDriverTestBase {
     unloggedSession.execute(String.format("USE %s", keyspaceId.asCql(false)));
     Row row = unloggedSession.execute("SELECT * FROM TEST WHERE k=1").one();
     assertThat(row).isNull();
+    unloggedSession.close();
   }
 }

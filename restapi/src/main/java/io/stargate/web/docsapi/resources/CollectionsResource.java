@@ -19,8 +19,6 @@ import javax.inject.Inject;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Api(
     produces = MediaType.APPLICATION_JSON,
@@ -29,8 +27,6 @@ import org.slf4j.LoggerFactory;
 @Path("/v2/namespaces/{namespace-id: [a-zA-Z_0-9]+}")
 @Produces(MediaType.APPLICATION_JSON)
 public class CollectionsResource {
-  private static final Logger logger = LoggerFactory.getLogger(CollectionsResource.class);
-
   @Inject private Db db;
   private static final ObjectMapper mapper = new ObjectMapper();
   private static final CollectionService collectionService = new CollectionService();

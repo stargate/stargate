@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.*;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -97,6 +98,11 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
     assertThat(authToken).isNotNull();
   }
 
+  @AfterEach
+  public void teardown() {
+    session.close();
+  }
+
   @Test
   public void testGet() throws IOException {
     Response r = http.get("/v2/namespaces/" + keyspace + "/collections?raw=false");
@@ -173,7 +179,7 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
       String upgradeAction = "{\"upgradeType\": \"SAI_INDEX_UPGRADE\"}";
       r =
           http.post(
-              "/v2/namespaces/" + keyspace + "/collections/upgrade",
+              "/v2/namespaces/" + keyspace + "/collections/newcollection/upgrade",
               objectMapper.readTree(upgradeAction));
       assertThat(r.code()).isEqualTo(400);
       assertThat(r.body().string()).isEqualTo("That collection cannot be upgraded in that manner");
@@ -184,7 +190,7 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
       // Now do the upgrade to add SAI
       r =
           http.post(
-              "/v2/namespaces/" + keyspace + "/collections/upgrade",
+              "/v2/namespaces/" + keyspace + "/collections/newcollection/upgrade?raw=true",
               objectMapper.readTree(upgradeAction));
       assertThat(r.code()).isEqualTo(200);
       String expected = "{\"name\":\"newcollection\",\"upgradeAvailable\":false}";
