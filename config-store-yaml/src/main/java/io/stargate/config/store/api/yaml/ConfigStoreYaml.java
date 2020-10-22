@@ -21,6 +21,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.config.store.api.MissingExtensionSettingsException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -56,7 +57,8 @@ public class ConfigStoreYaml implements ConfigStore {
       }
       return result.get(extensionName);
     } catch (IOException e) {
-      throw new YamlConfigException("Problem when processing yaml file from: " + configFilePath, e);
+      throw new UncheckedIOException(
+          "Problem when processing yaml file from: " + configFilePath, e);
     }
   }
 }

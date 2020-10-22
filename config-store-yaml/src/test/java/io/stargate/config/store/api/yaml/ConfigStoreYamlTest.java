@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.stargate.config.store.api.MissingExtensionSettingsException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.AbstractMap.SimpleEntry;
@@ -73,7 +74,7 @@ class ConfigStoreYamlTest {
 
     // when, then
     assertThatThrownBy(() -> configStoreYaml.getConfigForExtension("non_existing_extension"))
-        .isInstanceOf(YamlConfigException.class)
+        .isInstanceOf(UncheckedIOException.class)
         .hasMessageContaining("Problem when processing yaml file from: non-existing");
   }
 }
