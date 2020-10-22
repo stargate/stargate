@@ -5,7 +5,7 @@ This extension provides support for loading stargate configuration from a YAML f
 == YAML File Location
 
 When the `ConfigStoreYaml` is activated (registered in the OSGi), it will try to lookup the stargate config
-in the `/etc/config/stargate-config.yaml` location. Please note that the name of the actual YAML file is `stargate-config.yaml`
+in the `/etc/stargate/stargate-config.yaml` location. Please note that the name of the actual YAML file is `stargate-config.yaml`
 If it does not exists, the error log is produced, and `ConfigStoreYaml` is not registered.
 You can modify the location where the config store lookup for config using the `stargate.config_store.yaml.location` system property that takes the absolute path to the stargate config YAML file.
 
@@ -58,7 +58,7 @@ spec:
       image: k8s.gcr.io/busybox
       volumeMounts:
       - name: config-volume
-        mountPath: /etc/config
+        mountPath: /etc/stargate
   volumes:
     - name: config-volume
       configMap:
@@ -70,5 +70,5 @@ spec:
 ----
 
 === Config Store YAML
-Finally, when it is mounted into a file system, the `ConfigStoreActivator` can locate the file under: `/etc/config/stargate-config.yaml`
+Finally, when it is mounted into a file system, the `ConfigStoreActivator` can locate the file under: `/etc/stargate/stargate-config.yaml`
 and start the `ConfigStoreYaml` service.

@@ -31,7 +31,8 @@ public class ConfigStoreActivator implements BundleActivator, ServiceListener {
   private static final Logger logger = LoggerFactory.getLogger(ConfigStoreActivator.class);
 
   private static final String CONFIG_YAML_LOCATION =
-      System.getProperty("stargate.config_store.yaml.location", "/etc/config/stargate-config.yaml");
+      System.getProperty(
+          "stargate.config_store.yaml.location", "/etc/stargate/stargate-config.yaml");
 
   @Override
   public void start(BundleContext context) {
