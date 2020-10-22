@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.config.store.yaml;
+package io.stargate.config.store.api.yaml;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -21,30 +21,20 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import io.stargate.config.store.ConfigStore;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Objects;
+import io.stargate.config.store.api.ConfigStore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.osgi.framework.BundleContext;
 
-class ConfigStoreActivatorYamlExistsTest {
+class ConfigStoreActivatorYamlDoesNotExistsTest {
 
   @BeforeAll
   public static void setup() {
-    Path path =
-        Paths.get(
-            Objects.requireNonNull(
-                    ConfigStoreActivatorYamlExistsTest.class
-                        .getClassLoader()
-                        .getResource("stargate-config.yaml"))
-                .getPath());
-    System.setProperty("stargate.config_store.yaml.location", path.toFile().getAbsolutePath());
+    System.setProperty("stargate.config_store.yaml.location", "non_existing_path");
   }
 
   @Test
-  public void shouldRegisterConfigStoreWhenYamlLocationHasExistingStargateConfig() {
+  public void shouldNotRegisterConfigStoreWhenYamlLocationHasNotExistingStargateConfig() {
     // given
     BundleContext bundleContext = mock(BundleContext.class);
     ConfigStoreActivator kafkaProducerActivator = new ConfigStoreActivator();
@@ -53,7 +43,7 @@ class ConfigStoreActivatorYamlExistsTest {
     kafkaProducerActivator.start(bundleContext);
 
     // then
-    verify(bundleContext, times(1))
+    verify(bundleContext, times(0))
         .registerService(eq(ConfigStore.class), any(ConfigStoreYaml.class), any());
   }
 }

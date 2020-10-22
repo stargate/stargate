@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.config.store.yaml;
+package io.stargate.config.store.api.yaml;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.stargate.config.store.MissingExtensionSettingsException;
+import io.stargate.config.store.api.MissingExtensionSettingsException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.AbstractMap.SimpleEntry;

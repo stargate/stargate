@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.config.store.yaml;
+package io.stargate.config.store.api.yaml;
 
-import io.stargate.config.store.ConfigStore;
+import io.stargate.config.store.api.ConfigStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;

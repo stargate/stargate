@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.config.store.yaml;
+package io.stargate.config.store.api.yaml;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.MapType;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import io.stargate.config.store.ConfigStore;
-import io.stargate.config.store.MissingExtensionSettingsException;
+import io.stargate.config.store.api.ConfigStore;
+import io.stargate.config.store.api.MissingExtensionSettingsException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;

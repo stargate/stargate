@@ -21,9 +21,9 @@
 					<instructions>
 						<Bundle-Name>Config-Store-API</Bundle-Name>
 						<Bundle-Description>API for Config Store</Bundle-Description>
-						<Bundle-SymbolicName>io.stargate.config.store</Bundle-SymbolicName>
+						<Bundle-SymbolicName>io.stargate.config.store.api</Bundle-SymbolicName>
 						<Import-Package>org.osgi.framework</Import-Package>
-						<Export-Package>io.stargate.config.store</Export-Package>
+						<Export-Package>io.stargate.config.store.api</Export-Package>
 						<DynamicImport-Package>*</DynamicImport-Package>
 						<Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
 						<Embed-Transitive>true</Embed-Transitive>
