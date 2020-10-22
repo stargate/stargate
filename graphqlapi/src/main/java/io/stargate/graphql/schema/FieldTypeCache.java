@@ -40,6 +40,12 @@ abstract class FieldTypeCache<GraphqlT> {
       type = ImmutableListType.builder().addAllParameters(type.parameters()).build();
     }
 
+    if (type == Type.Varchar) {
+      // Currently field type cache does not tolerate 2 different column types (Text and Varchar)
+      // using the same graphql type, workaround by using a single column type
+      type = Type.Text;
+    }
+
     return type;
   }
 
