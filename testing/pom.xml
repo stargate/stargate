@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.18-SNAPSHOT</version>
+    <version>0.0.19-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.it</groupId>
   <artifactId>testing</artifactId>
@@ -268,7 +268,7 @@
             </goals>
             <configuration>
               <includes>
-                <include></include>
+                <include />
               </includes>
               <dataFile>${code.coverage.overall.data.folder}/aggregate.exec</dataFile>
               <outputDirectory>${code.coverage.overall.data.folder}/jacoco</outputDirectory>
