@@ -42,9 +42,9 @@ import com.example.graphql.client.betterbotz.type.BUdtInput;
 import com.example.graphql.client.betterbotz.type.CollectionsNestedInput;
 import com.example.graphql.client.betterbotz.type.CollectionsSimpleInput;
 import com.example.graphql.client.betterbotz.type.CustomType;
-import com.example.graphql.client.betterbotz.type.InputKeyBigIntValueString;
-import com.example.graphql.client.betterbotz.type.InputKeyIntValueString;
-import com.example.graphql.client.betterbotz.type.InputKeyUuidValueListInputKeyBigIntValueString;
+import com.example.graphql.client.betterbotz.type.EntryBigIntKeyStringValueInput;
+import com.example.graphql.client.betterbotz.type.EntryIntKeyStringValueInput;
+import com.example.graphql.client.betterbotz.type.EntryUuidKeyListEntryBigIntKeyStringValueInputValueInput;
 import com.example.graphql.client.betterbotz.type.MutationConsistency;
 import com.example.graphql.client.betterbotz.type.MutationOptions;
 import com.example.graphql.client.betterbotz.type.OrdersFilterInput;
@@ -1227,7 +1227,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     ApolloClient client = getApolloClient("/graphql/betterbotz");
     UUID id = UUID.randomUUID();
 
-    List<List<InputKeyIntValueString>> list =
+    List<List<EntryIntKeyStringValueInput>> list =
         Collections.singletonList(
             toInputKeyIntValueStringList(
                 Collections.singletonList(
@@ -1238,13 +1238,13 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                 .add(Uuids.timeBased().toString(), Uuids.timeBased().toString())
                 .build());
 
-    List<InputKeyUuidValueListInputKeyBigIntValueString> map =
+    List<EntryUuidKeyListEntryBigIntKeyStringValueInputValueInput> map =
         Collections.singletonList(
-            InputKeyUuidValueListInputKeyBigIntValueString.builder()
+            EntryUuidKeyListEntryBigIntKeyStringValueInputValueInput.builder()
                 .key(Uuids.random().toString())
                 .value(
                     Collections.singletonList(
-                        InputKeyBigIntValueString.builder()
+                        EntryBigIntKeyStringValueInput.builder()
                             .key("123")
                             .value("one-two-three")
                             .build()))
@@ -1332,20 +1332,20 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     return result.getProducts();
   }
 
-  private static List<InputKeyIntValueString> toInputKeyIntValueStringList(
+  private static List<EntryIntKeyStringValueInput> toInputKeyIntValueStringList(
       List<Map<Integer, String>> map) {
     return map.stream()
         .map(m -> m.entrySet().stream().findFirst().get())
-        .map(e -> InputKeyIntValueString.builder().key(e.getKey()).value(e.getValue()).build())
+        .map(e -> EntryIntKeyStringValueInput.builder().key(e.getKey()).value(e.getValue()).build())
         .collect(Collectors.toList());
   }
 
   private void assertCollectionsNested(
       ApolloClient client,
       UUID id,
-      List<List<InputKeyIntValueString>> list,
+      List<List<EntryIntKeyStringValueInput>> list,
       List<List<Object>> set,
-      List<InputKeyUuidValueListInputKeyBigIntValueString> map) {
+      List<EntryUuidKeyListEntryBigIntKeyStringValueInputValueInput> map) {
     GetCollectionsNestedQuery getQuery =
         GetCollectionsNestedQuery.builder()
             .value(CollectionsNestedInput.builder().id(id).build())
@@ -1360,7 +1360,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     // Assert list
     assertThat(item.getListValue1()).isPresent();
     assertThat(item.getListValue1().get()).hasSize(list.size());
-    InputKeyIntValueString expectedListItem = list.get(0).get(0);
+    EntryIntKeyStringValueInput expectedListItem = list.get(0).get(0);
     assertThat(item.getListValue1().get().get(0))
         .hasSize(list.get(0).size())
         .first()
@@ -1374,10 +1374,11 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     // Assert map
     assertThat(item.getMapValue1()).isPresent();
     assertThat(item.getMapValue1().get()).hasSize(map.size());
-    InputKeyUuidValueListInputKeyBigIntValueString expectedMapItem = map.get(0);
+
+    EntryUuidKeyListEntryBigIntKeyStringValueInputValueInput expectedMapItem = map.get(0);
     GetCollectionsNestedQuery.MapValue1 actualMapItem = item.getMapValue1().get().get(0);
     assertThat(actualMapItem.getKey()).isEqualTo(expectedMapItem.key());
-    InputKeyBigIntValueString expectedMapValue = expectedMapItem.value().get(0);
+    EntryBigIntKeyStringValueInput expectedMapValue = expectedMapItem.value().get(0);
     assertThat(actualMapItem.getValue().get())
         .hasSize(1)
         .first()
