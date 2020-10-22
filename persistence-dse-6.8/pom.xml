@@ -182,7 +182,7 @@
           <forkCount>1</forkCount>
           <systemPropertyVariables>
             <ccm.dse>true</ccm.dse>
-            <ccm.version>6.8.4</ccm.version>
+            <ccm.version>6.8.5</ccm.version>
           </systemPropertyVariables>
         </configuration>
       </plugin>
