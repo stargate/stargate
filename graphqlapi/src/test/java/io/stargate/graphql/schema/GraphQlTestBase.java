@@ -22,7 +22,6 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl.BatchContext;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.AfterEach;
@@ -45,7 +44,7 @@ public abstract class GraphQlTestBase {
 
   @Mock protected Persistence persistence;
   @Mock protected AuthenticationService authenticationService;
-
+  @Mock protected ResultSet resultSet;
   @Mock private StoredCredentials storedCredentials;
 
   @Captor protected ArgumentCaptor<String> queryCaptor;
@@ -59,17 +58,6 @@ public abstract class GraphQlTestBase {
 
   @BeforeEach
   public void setupEnvironment() {
-    // Make every query return an empty result set.
-    // At the time of writing, this is enough to execute all of our fetchers without failure. It
-    // might have to evolve in the future if queries start checking particular elements in the
-    // response (like the '[applied]' column for LWTs).
-    //
-    // As a consequence, our unit tests do not cover the conversion of CQL results back to GraphQL.
-    // We would have to mock the entire result API (ResultSet, Row, Column, ColumnType...), which is
-    // a bit overkill and brittle. The integration tests in the 'testing' module fill that gap.
-    ResultSet resultSet = mock(ResultSet.class);
-    when(resultSet.rows()).thenReturn(Collections.emptyList());
-
     try {
       String roleName = "mock role name";
       when(authenticationService.validateToken(token)).thenReturn(storedCredentials);

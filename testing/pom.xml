@@ -193,7 +193,6 @@
               <introspectionFile>${project.basedir}/src/main/graphql/betterbotz/schema.json</introspectionFile>
               <sourceDirName>${project.basedir}/src/main/graphql/betterbotz</sourceDirName>
               <customTypeMap>
-                <Decimal>java.lang.Float</Decimal>
                 <Timestamp>java.time.Instant</Timestamp>
               </customTypeMap>
             </configuration>

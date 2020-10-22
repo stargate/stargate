@@ -182,8 +182,8 @@ public class FieldTypeCachesTest {
         arguments(Column.Type.Inet, CustomScalar.INET.getGraphQLScalar()),
         arguments(Column.Type.Date, CustomScalar.DATE.getGraphQLScalar()),
         arguments(Column.Type.Time, CustomScalar.TIME.getGraphQLScalar()),
-        arguments(Column.Type.Smallint, Scalars.GraphQLInt),
-        arguments(Column.Type.Tinyint, Scalars.GraphQLInt));
+        arguments(Column.Type.Smallint, CustomScalar.SMALLINT.getGraphQLScalar()),
+        arguments(Column.Type.Tinyint, CustomScalar.TINYINT.getGraphQLScalar()));
   }
 
   public static Stream<Arguments> getMapArgs() {
@@ -199,7 +199,7 @@ public class FieldTypeCachesTest {
         arguments(
             Column.Type.Smallint,
             Column.Type.Set.of(Column.Type.Double),
-            "EntryIntKeyListFloatValue"));
+            "EntrySmallIntKeyListFloatValue"));
   }
 
   public static Stream<Arguments> getMapNestedArgs() {
@@ -207,8 +207,8 @@ public class FieldTypeCachesTest {
         arguments(
             Column.Type.Tinyint,
             Column.Type.Map.of(Column.Type.Uuid, Column.Type.Int),
-            "EntryIntKeyListEntryUuidKeyIntValueInputValueInput",
-            "EntryIntKeyListEntryUuidKeyIntValueValue"),
+            "EntryTinyIntKeyListEntryUuidKeyIntValueInputValueInput",
+            "EntryTinyIntKeyListEntryUuidKeyIntValueValue"),
         arguments(
             Column.Type.Map.of(Column.Type.Text, Column.Type.Bigint),
             Column.Type.Set.of(Column.Type.Double),

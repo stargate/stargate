@@ -64,13 +64,19 @@ abstract class FieldTypeCache<GraphqlT> {
       case Decimal:
         return CustomScalar.DECIMAL.getGraphQLScalar();
       case Double:
+        // GraphQL's Float is a signed double‐precision fractional value
         return Scalars.GraphQLFloat;
+      case Duration:
+        return CustomScalar.DURATION.getGraphQLScalar();
       case Float:
+        // Use a custom scalar named "Float32"
         return CustomScalar.FLOAT.getGraphQLScalar();
       case Int:
-      case Tinyint:
-      case Smallint:
         return Scalars.GraphQLInt;
+      case Smallint:
+        return CustomScalar.SMALLINT.getGraphQLScalar();
+      case Tinyint:
+        return CustomScalar.TINYINT.getGraphQLScalar();
       case Text:
       case Varchar:
         return Scalars.GraphQLString;

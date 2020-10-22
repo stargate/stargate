@@ -760,8 +760,8 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(value.getCustomerName()).hasValue("Janice Evernathy");
     assertThat(value.getAddress()).hasValue("2101 Everplace Ave 3116");
     assertThat(value.getDescription()).hasValue("Ordering some more arms for my construction bot.");
-    assertThat(value.getPrice()).hasValue(3199.99f);
-    assertThat(value.getSellPrice()).hasValue(3119.99f);
+    assertThat(value.getPrice()).hasValue("3199.99");
+    assertThat(value.getSellPrice()).hasValue("3119.99");
   }
 
   @Test
@@ -801,8 +801,8 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(value.getCustomerName()).hasValue("John Doe");
     assertThat(value.getAddress()).hasValue("123 Main St 67890");
     assertThat(value.getDescription()).hasValue("Ordering replacement CPUs.");
-    assertThat(value.getPrice()).hasValue(899.99f);
-    assertThat(value.getSellPrice()).hasValue(900.82f);
+    assertThat(value.getPrice()).hasValue("899.99");
+    assertThat(value.getSellPrice()).hasValue("900.82");
   }
 
   @Test
@@ -814,7 +814,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         ProductsInput.builder()
             .id(productId)
             .name("Shiny Legs")
-            .price(3199.99f)
+            .price("3199.99")
             .created(Instant.now())
             .description("Normal legs but shiny.")
             .build();
@@ -866,7 +866,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         ProductsInput.builder()
             .id(productId)
             .name("Shiny Legs")
-            .price(3199.99f)
+            .price("3199.99")
             .created(Instant.now())
             .description("Normal legs but shiny.")
             .build();
@@ -903,7 +903,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         ProductsInput.builder()
             .id(productId)
             .name("Shiny Legs")
-            .price(3199.99f)
+            .price(new BigDecimal("3199.99"))
             .created(Instant.now())
             .description("Normal legs but shiny.")
             .build();
@@ -933,7 +933,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     UUID id = UUID.randomUUID();
     String productName = "prod " + id;
     String customer = "cust " + id;
-    float price = 123f;
+    BigDecimal price = new BigDecimal("123");
     String description = "desc " + id;
 
     ApolloClient client = getApolloClient("/graphql/betterbotz");
@@ -996,7 +996,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                 OrdersInput.builder()
                     .prodName(productName)
                     .customerName(customer)
-                    .price(456f)
+                    .price(new BigDecimal("456"))
                     .description(description)
                     .build())
             .build();
@@ -1057,7 +1057,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                 ProductsInput.builder()
                     .id(Uuids.random().toString())
                     .prodName("prod 1")
-                    .price(1f)
+                    .price(new BigDecimal("1"))
                     .name("prod1")
                     .created(Instant.now())
                     .build())
@@ -1277,7 +1277,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
           ProductsInput.builder()
               .id(UUID.randomUUID().toString())
               .name(name)
-              .price(1.f)
+              .price(new BigDecimal("1.0"))
               .created(Instant.now())
               .build());
     }
