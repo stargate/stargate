@@ -18,7 +18,7 @@ package io.stargate.config.store.api.yaml;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.stargate.config.store.api.MissingExtensionSettingsException;
+import io.stargate.config.store.api.MissingModuleSettingsException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,19 +40,18 @@ class ConfigStoreYamlTest {
     ConfigStoreYaml configStoreYaml = new ConfigStoreYaml(path);
 
     // when
-    Map<String, Object> configForExtension1 = configStoreYaml.getConfigForExtension("extension-1");
-    Map<String, Object> configForExtension2 = configStoreYaml.getConfigForExtension("extension-2");
+    Map<String, Object> configForModule1 = configStoreYaml.getConfigForModule("extension-1");
+    Map<String, Object> configForModule2 = configStoreYaml.getConfigForModule("extension-2");
 
     // then
-    assertThat(configForExtension1)
+    assertThat(configForModule1)
         .containsOnly(new SimpleEntry<>("a", 1), new SimpleEntry<>("b", "value"));
-    assertThat(configForExtension2)
+    assertThat(configForModule2)
         .containsOnly(new SimpleEntry<>("a", 2), new SimpleEntry<>("b", Arrays.asList("a", "b")));
   }
 
   @Test
-  public void
-      shouldThrowExtensionSettingsMissingExceptionWhenExtensionDoesNotHaveSettingsDefined() {
+  public void shouldThrowModuleSettingsMissingExceptionWhenModuleDoesNotHaveSettingsDefined() {
     // given
     Path path =
         Paths.get(
@@ -61,10 +60,9 @@ class ConfigStoreYamlTest {
     ConfigStoreYaml configStoreYaml = new ConfigStoreYaml(path);
 
     // when, then
-    assertThatThrownBy(() -> configStoreYaml.getConfigForExtension("non_existing_extension"))
-        .isInstanceOf(MissingExtensionSettingsException.class)
-        .hasMessageContaining(
-            "does not contain settings from a given extension: non_existing_extension");
+    assertThatThrownBy(() -> configStoreYaml.getConfigForModule("non_existing_module"))
+        .isInstanceOf(MissingModuleSettingsException.class)
+        .hasMessageContaining("does not contain settings from a given module: non_existing_module");
   }
 
   @Test
@@ -74,7 +72,7 @@ class ConfigStoreYamlTest {
     ConfigStoreYaml configStoreYaml = new ConfigStoreYaml(path);
 
     // when, then
-    assertThatThrownBy(() -> configStoreYaml.getConfigForExtension("non_existing_extension"))
+    assertThatThrownBy(() -> configStoreYaml.getConfigForModule("non_existing_module"))
         .isInstanceOf(UncheckedIOException.class)
         .hasMessageContaining("Problem when processing yaml file from: non-existing");
   }

@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.MapType;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.stargate.config.store.api.ConfigStore;
-import io.stargate.config.store.api.MissingExtensionSettingsException;
+import io.stargate.config.store.api.MissingModuleSettingsException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
@@ -44,18 +44,18 @@ public class ConfigStoreYaml implements ConfigStore {
   }
 
   @Override
-  public Map<String, Object> getConfigForExtension(String extensionName)
-      throws MissingExtensionSettingsException {
+  public Map<String, Object> getConfigForModule(String moduleName)
+      throws MissingModuleSettingsException {
     try {
       Map<String, Map<String, Object>> result =
           mapper.readValue(configFilePath.toFile(), yamlConfigType);
-      if (!result.containsKey(extensionName)) {
-        throw new MissingExtensionSettingsException(
+      if (!result.containsKey(moduleName)) {
+        throw new MissingModuleSettingsException(
             String.format(
-                "The loaded configuration map: %s, does not contain settings from a given extension: %s",
-                result, extensionName));
+                "The loaded configuration map: %s, does not contain settings from a given module: %s",
+                result, moduleName));
       }
-      return result.get(extensionName);
+      return result.get(moduleName);
     } catch (IOException e) {
       throw new UncheckedIOException(
           "Problem when processing yaml file from: " + configFilePath, e);
