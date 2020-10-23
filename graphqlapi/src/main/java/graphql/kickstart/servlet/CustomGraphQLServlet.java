@@ -56,7 +56,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
   private final AuthenticationService authenticationService;
   private final String defaultKeyspace;
 
-  private final ConcurrentMap<String, HttpRequestHandler> keyspaceHandlers;
+  private final ConcurrentMap<String, RequestHandlerReference> keyspaceHandlers;
 
   public CustomGraphQLServlet(
       Persistence persistence, AuthenticationService authenticationService) {
@@ -85,10 +85,19 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
       // Do not reflect back the value, to avoid XSS attacks
       response.setStatus(500);
     } else {
-      HttpRequestHandler requestHandler = keyspaceHandlers.get(keyspaceName);
-      if (requestHandler == null) {
+      RequestHandlerReference requestHandlerRef = keyspaceHandlers.get(keyspaceName);
+      if (requestHandlerRef == null) {
         failOnUnknownKeyspace(keyspaceName, response);
       } else {
+        HttpRequestHandler requestHandler;
+        try {
+          requestHandler = requestHandlerRef.get();
+        } catch (Exception e) {
+          LOG.error("Error initializing the GraphQL schema", e);
+          keyspaceHandlers.remove(keyspaceName, requestHandlerRef);
+          response.setStatus(500);
+          return;
+        }
         try {
           requestHandler.handle(request, response);
         } catch (Exception e) {
@@ -164,22 +173,17 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
     }
   }
 
-  private static ConcurrentMap<String, HttpRequestHandler> initKeyspaceHandlers(
+  private static ConcurrentMap<String, RequestHandlerReference> initKeyspaceHandlers(
       Persistence persistence, DataStore dataStore, AuthenticationService authenticationService) {
 
-    ConcurrentMap<String, HttpRequestHandler> map = new ConcurrentHashMap<>();
+    ConcurrentMap<String, RequestHandlerReference> map = new ConcurrentHashMap<>();
 
     for (Keyspace keyspace : dataStore.schema().keyspaces()) {
       // TODO not sure about toLowerCase, check how case sensitive keyspaces are handled
       String keyspaceName = keyspace.name().toLowerCase();
-      try {
-        HttpRequestHandler handler =
-            buildKeyspaceHandler(keyspace, persistence, authenticationService);
-        map.put(keyspaceName, handler);
-        LOG.debug("Added handler for {}", keyspaceName);
-      } catch (Exception e) {
-        LOG.warn("Could not create handler for " + keyspaceName, e);
-      }
+      LOG.debug("Prepare handler for {}", keyspaceName);
+      map.put(
+          keyspaceName, new RequestHandlerReference(keyspace, persistence, authenticationService));
     }
     return map;
   }
@@ -201,32 +205,13 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
         keyspaceHandlers.remove(keyspaceName);
       } else {
         keyspaceHandlers.put(
-            keyspaceName, buildKeyspaceHandler(keyspace, persistence, authenticationService));
+            keyspaceName,
+            new RequestHandlerReference(keyspace, persistence, authenticationService));
       }
       LOG.debug("Done refreshing handler for keyspace {}", keyspaceName);
     } catch (Exception e) {
       LOG.error("Error while refreshing handler for keyspace {}", keyspaceName, e);
     }
-  }
-
-  private static HttpRequestHandler buildKeyspaceHandler(
-      Keyspace keyspace, Persistence persistence, AuthenticationService authenticationService) {
-    GraphQLSchema schema = SchemaFactory.newDmlSchema(persistence, authenticationService, keyspace);
-    GraphQLConfiguration configuration =
-        GraphQLConfiguration.with(schema)
-            .with(
-                // Queries and mutations within the same request run in parallel
-                GraphQLQueryInvoker.newBuilder()
-                    .withExecutionStrategyProvider(
-                        new DefaultExecutionStrategyProvider(new AsyncExecutionStrategy()))
-                    .build())
-            .with(new GraphqlCustomContextBuilder())
-            .with(
-                GraphQLObjectMapper.newBuilder()
-                    .withGraphQLErrorHandler(new StargateGraphqlErrorHandler())
-                    .build())
-            .build();
-    return new HttpRequestHandlerImpl(configuration);
   }
 
   // Schema change callbacks: we refresh a keyspace whenever it gets created or dropped, or anything
@@ -242,7 +227,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
   public void onDropKeyspace(String keyspaceName) {
     // Note that if the keyspace contained any children, we probably already removed the handler
     // while processing those children's DROP events.
-    HttpRequestHandler removed = keyspaceHandlers.remove(keyspaceName);
+    RequestHandlerReference removed = keyspaceHandlers.remove(keyspaceName);
     if (removed != null) {
       LOG.debug("Removing handler for keyspace {} because it was dropped", keyspaceName);
     }
@@ -321,5 +306,57 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
   @Override
   public void onDropAggregate(String keyspaceName, String aggregate, List<String> argumentTypes) {
     addOrReplaceKeyspaceHandler(keyspaceName, "aggregate %s was dropped", aggregate);
+  }
+
+  /**
+   * Holds an {@link HttpRequestHandlerImpl} instance lazily: the construction of the GraphQL schema
+   * will only happen the first time the keyspace is queried.
+   */
+  static class RequestHandlerReference {
+    private final Keyspace keyspace;
+    private final Persistence persistence;
+    private final AuthenticationService authenticationService;
+
+    private volatile HttpRequestHandlerImpl handler;
+
+    RequestHandlerReference(
+        Keyspace keyspace, Persistence persistence, AuthenticationService authenticationService) {
+      this.keyspace = keyspace;
+      this.persistence = persistence;
+      this.authenticationService = authenticationService;
+    }
+
+    HttpRequestHandler get() {
+      // Double-checked locking
+      HttpRequestHandlerImpl result = handler;
+      if (handler == null) {
+        synchronized (this) {
+          if (handler == null) {
+            handler = result = computeHandler();
+          }
+        }
+      }
+      return result;
+    }
+
+    private HttpRequestHandlerImpl computeHandler() {
+      GraphQLSchema schema =
+          SchemaFactory.newDmlSchema(persistence, authenticationService, keyspace);
+      GraphQLConfiguration configuration =
+          GraphQLConfiguration.with(schema)
+              .with(
+                  // Queries and mutations within the same request run in parallel
+                  GraphQLQueryInvoker.newBuilder()
+                      .withExecutionStrategyProvider(
+                          new DefaultExecutionStrategyProvider(new AsyncExecutionStrategy()))
+                      .build())
+              .with(new GraphqlCustomContextBuilder())
+              .with(
+                  GraphQLObjectMapper.newBuilder()
+                      .withGraphQLErrorHandler(new StargateGraphqlErrorHandler())
+                      .build())
+              .build();
+      return new HttpRequestHandlerImpl(configuration);
+    }
   }
 }
