@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import io.stargate.config.store.api.ConfigStore;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Hashtable;
 import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import org.osgi.framework.BundleContext;
@@ -46,9 +47,11 @@ class ConfigStoreActivatorYaml {
     // when
     activator.start(bundleContext);
 
+    Hashtable<String, String> expectedProps = new Hashtable<>();
+    expectedProps.put("Identifier", ConfigStoreActivator.CONFIG_STORE_YAML_IDENTIFIER);
     // then
     verify(bundleContext, times(1))
-        .registerService(eq(ConfigStore.class), any(ConfigStoreYaml.class), any());
+        .registerService(eq(ConfigStore.class), any(ConfigStoreYaml.class), eq(expectedProps));
   }
 
   @Test

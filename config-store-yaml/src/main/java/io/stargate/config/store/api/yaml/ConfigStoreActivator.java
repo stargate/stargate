@@ -26,7 +26,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ConfigStoreActivator implements BundleActivator {
+
   private static final Logger logger = LoggerFactory.getLogger(ConfigStoreActivator.class);
+
+  public static final String CONFIG_STORE_YAML_IDENTIFIER = "ConfigStoreYaml";
   private final String configYamlLocation;
 
   // for testing purpose
@@ -50,8 +53,12 @@ public class ConfigStoreActivator implements BundleActivator {
           yamlFilePath);
       return;
     }
+
+    Hashtable<String, String> props = new Hashtable<>();
+    props.put("Identifier", CONFIG_STORE_YAML_IDENTIFIER);
+
     ConfigStoreYaml configStoreYaml = new ConfigStoreYaml(yamlFilePath);
-    context.registerService(ConfigStore.class, configStoreYaml, new Hashtable<>());
+    context.registerService(ConfigStore.class, configStoreYaml, props);
     logger.info("Started Config Store YAML....");
   }
 
