@@ -15,6 +15,7 @@
  */
 package graphql.kickstart.servlet;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import graphql.execution.AsyncExecutionStrategy;
 import graphql.kickstart.execution.GraphQLObjectMapper;
 import graphql.kickstart.execution.GraphQLQueryInvoker;
@@ -218,6 +219,10 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
             .with(
                 GraphQLObjectMapper.newBuilder()
                     .withGraphQLErrorHandler(new StargateGraphqlErrorHandler())
+                    .withObjectMapperConfigurer(
+                        mapper ->
+                            mapper.configure(
+                                DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true))
                     .build())
             .build();
     return new HttpRequestHandlerImpl(configuration);
