@@ -152,7 +152,12 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .withConfigLoader(
                 DriverConfigLoader.programmaticBuilder()
                     .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
-                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(20))
+                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(180))
+                    .withDuration(
+                        DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT,
+                        Duration.ofSeconds(180))
+                    .withDuration(
+                        DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
                     .build())
             .withAuthCredentials("cassandra", "cassandra")
             .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
@@ -1491,6 +1496,10 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
 
   private OkHttpClient getHttpClient() {
     return new OkHttpClient.Builder()
+        .connectTimeout(Duration.ofSeconds(180))
+        .callTimeout(Duration.ofSeconds(180))
+        .readTimeout(Duration.ofSeconds(180))
+        .writeTimeout(Duration.ofSeconds(180))
         .addInterceptor(
             chain ->
                 chain.proceed(
