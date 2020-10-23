@@ -764,11 +764,11 @@ public class QueryBuilderImpl {
     parameters.add(this.ttl);
   }
 
-  CompletableFuture<MixinPreparedStatement> prepare() {
+  CompletableFuture<PreparedStatement> prepare() {
     return createStatement();
   }
 
-  protected CompletableFuture<MixinPreparedStatement> createStatement() {
+  protected CompletableFuture<PreparedStatement> createStatement() {
     schema = dataStore.schema();
     if (isKeyspace && isCreate) {
       return createKeyspace();
@@ -830,7 +830,7 @@ public class QueryBuilderImpl {
     throw new AssertionError("Unknown query type");
   }
 
-  private CompletableFuture<MixinPreparedStatement> createType() {
+  private CompletableFuture<PreparedStatement> createType() {
     query.append("CREATE TYPE ");
     if (ifNotExists) {
       query.append("IF NOT EXISTS ");
@@ -846,13 +846,13 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  protected CompletableFuture<MixinPreparedStatement> prepareInternal(String cql) {
+  protected CompletableFuture<PreparedStatement> prepareInternal(String cql) {
     return dataStore
         .prepare(cql)
         .thenApply(prepared -> new MixinPreparedStatement(prepared, parameters));
   }
 
-  private CompletableFuture<MixinPreparedStatement> dropType() {
+  private CompletableFuture<PreparedStatement> dropType() {
     query.append("DROP TYPE ");
     if (ifExists) {
       query.append("IF EXISTS ");
@@ -883,7 +883,7 @@ public class QueryBuilderImpl {
         type.name());
   }
 
-  private CompletableFuture<MixinPreparedStatement> dropKeyspace() {
+  private CompletableFuture<PreparedStatement> dropKeyspace() {
     query.append("DROP KEYSPACE ");
     if (ifExists) {
       query.append("IF EXISTS ");
@@ -894,7 +894,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private CompletableFuture<MixinPreparedStatement> alterKeyspace() {
+  private CompletableFuture<PreparedStatement> alterKeyspace() {
     checkKeyspace();
     query.append("ALTER KEYSPACE ");
     query.append(keyspace.cqlName());
@@ -914,7 +914,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private CompletableFuture<MixinPreparedStatement> createKeyspace() {
+  private CompletableFuture<PreparedStatement> createKeyspace() {
     query.append("CREATE KEYSPACE ");
     if (ifNotExists) {
       query.append("IF NOT EXISTS ");
@@ -933,7 +933,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private CompletableFuture<MixinPreparedStatement> deleteQuery() {
+  private CompletableFuture<PreparedStatement> deleteQuery() {
     checkTable();
     query.append("DELETE ");
 
@@ -954,7 +954,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private CompletableFuture<MixinPreparedStatement> insertQuery() {
+  private CompletableFuture<PreparedStatement> insertQuery() {
     checkTable();
     query.append("INSERT INTO ");
     qualifiedName(keyspace, table);
@@ -972,7 +972,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private CompletableFuture<MixinPreparedStatement> updateQuery() {
+  private CompletableFuture<PreparedStatement> updateQuery() {
     checkTable();
     query.append("UPDATE ");
     qualifiedName(keyspace, table);
@@ -996,7 +996,7 @@ public class QueryBuilderImpl {
     return Integer.compare(left.priority(), right.priority());
   }
 
-  protected CompletableFuture<MixinPreparedStatement> selectQuery() {
+  protected CompletableFuture<PreparedStatement> selectQuery() {
     checkKeyspace();
     setTableOrMaterializedView();
     AbstractTable queryable = getTableOrMaterializedView();
@@ -1023,7 +1023,7 @@ public class QueryBuilderImpl {
     return ImmutableAndWhere.builder().addAllChildren((List) wheres).build();
   }
 
-  private CompletableFuture<MixinPreparedStatement> createSelectQuery(
+  private CompletableFuture<PreparedStatement> createSelectQuery(
       Table table, Optional<Index> selectedIndex) {
     AbstractTable queryable =
         selectedIndex
@@ -1235,7 +1235,7 @@ public class QueryBuilderImpl {
         .findFirst();
   }
 
-  private CompletableFuture<MixinPreparedStatement> dropMaterializedView() {
+  private CompletableFuture<PreparedStatement> dropMaterializedView() {
     checkKeyspace();
     query.append("DROP MATERIALIZED VIEW ");
     if (ifExists) {
@@ -1248,7 +1248,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private CompletableFuture<MixinPreparedStatement> createMaterializedView() {
+  private CompletableFuture<PreparedStatement> createMaterializedView() {
     checkColumns();
     checkTable();
     Table sourceTable = schema.keyspace(keyspace.name()).table(this.table.name());
@@ -1396,7 +1396,7 @@ public class QueryBuilderImpl {
     }
   }
 
-  private CompletableFuture<MixinPreparedStatement> dropIndex() {
+  private CompletableFuture<PreparedStatement> dropIndex() {
     checkKeyspace();
     query.append("DROP INDEX ");
     if (ifExists) {
@@ -1408,7 +1408,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private CompletableFuture<MixinPreparedStatement> createIndex() {
+  private CompletableFuture<PreparedStatement> createIndex() {
     checkColumns();
     Column c = columns.get(0);
     checkIndexTypeIfCollection(c);
@@ -1455,7 +1455,7 @@ public class QueryBuilderImpl {
     }
   }
 
-  private CompletableFuture<MixinPreparedStatement> dropTable() {
+  private CompletableFuture<PreparedStatement> dropTable() {
     checkKeyspace();
     query.append("DROP TABLE ");
     if (ifExists) {
@@ -1467,7 +1467,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private CompletableFuture<MixinPreparedStatement> truncateTable() {
+  private CompletableFuture<PreparedStatement> truncateTable() {
     checkKeyspace();
     checkTable();
     query.append("TRUNCATE ");
@@ -1475,7 +1475,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private CompletableFuture<MixinPreparedStatement> alterTable() {
+  private CompletableFuture<PreparedStatement> alterTable() {
     checkTable();
     query.append("ALTER TABLE ");
     qualifiedName(keyspace, table);
@@ -1514,7 +1514,7 @@ public class QueryBuilderImpl {
     return "writetime(" + writeTimeColumnName + ")";
   }
 
-  private CompletableFuture<MixinPreparedStatement> renameGraphLabel() {
+  private CompletableFuture<PreparedStatement> renameGraphLabel() {
     query.append(" RENAME ");
     if (isRenameVertexLabel) {
       query.append("VERTEX LABEL");
@@ -1529,7 +1529,7 @@ public class QueryBuilderImpl {
     return prepareInternal(query.toString());
   }
 
-  private CompletableFuture<MixinPreparedStatement> createTable() {
+  private CompletableFuture<PreparedStatement> createTable() {
     checkKeyspace();
     query.append("CREATE TABLE ");
     if (ifNotExists) {
