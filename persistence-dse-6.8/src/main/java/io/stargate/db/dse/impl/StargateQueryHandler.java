@@ -19,7 +19,7 @@ import org.apache.cassandra.utils.MD5Digest;
 public class StargateQueryHandler implements QueryHandler {
   private final List<QueryInterceptor> interceptors = new CopyOnWriteArrayList<>();
 
-  void register(QueryInterceptor interceptor) {
+  public void register(QueryInterceptor interceptor) {
     this.interceptors.add(interceptor);
   }
 
