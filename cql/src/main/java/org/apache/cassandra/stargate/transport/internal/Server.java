@@ -646,8 +646,19 @@ public class Server implements CassandraDaemon.Server {
     }
 
     private InetAddressAndPort addPort(InetAddress endpoint, int port) {
-      return InetAddressAndPort.getByAddressOverrideDefaults(
-          endpoint, port == NO_PORT ? server.socket.getPort() : port);
+      return InetAddressAndPort.getByAddressOverrideDefaults(endpoint, getPortOrDefault(port));
+    }
+
+    /**
+     * If no explicit port is specified then use the server socket's listening port. An explicit
+     * port is provided for Cassandra 4.0 peers and when using proxy protocol.
+     *
+     * @param port An explicit port to use or {@link EventListener#NO_PORT}
+     * @return The server socket's listening port when {@link EventListener#NO_PORT} is provided;
+     *     otherwise, the original port value is returned.
+     */
+    private int getPortOrDefault(int port) {
+      return port == NO_PORT ? server.socket.getPort() : port;
     }
 
     private void onTopologyChange(InetAddressAndPort endpoint, Event.TopologyChange event) {

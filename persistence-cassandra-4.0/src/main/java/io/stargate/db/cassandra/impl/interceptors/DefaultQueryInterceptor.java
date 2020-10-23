@@ -22,6 +22,7 @@ import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.SelectStatement;
+import org.apache.cassandra.dht.Token.TokenFactory;
 import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
@@ -271,10 +272,12 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
   }
 
   private void updateTokens(InetAddressAndPort endpoint) {
+    TokenFactory factory = StorageService.instance.getTokenFactory();
     StargateSystemKeyspace.updatePeerInfo(
         endpoint,
         "tokens",
-        Collections.singleton(DatabaseDescriptor.getPartitioner().getMinimumToken().toString()));
+        Collections.singleton(
+            factory.toString(DatabaseDescriptor.getPartitioner().getMinimumToken())));
   }
 
   private void notifyDown(InetAddressAndPort endpoint) {

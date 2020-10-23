@@ -72,10 +72,10 @@ public class CqlActivator implements BundleActivator {
   }
 
   private synchronized void maybeStopService() {
-    if (cql != null) { // Not started
+    if (cql == null) { // Not started
       return;
     }
-    log.info(("Stopping CQL"));
+    log.info("Stopping CQL");
     cql.stop();
     cql = null;
   }
