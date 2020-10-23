@@ -17,7 +17,6 @@ package io.stargate.api.sql.server.avatica;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 
 import com.datastax.oss.driver.api.core.uuid.Uuids;
@@ -27,7 +26,9 @@ import io.stargate.api.sql.AbstractDataStoreTest;
 import io.stargate.api.sql.schema.TypeUtils;
 import io.stargate.api.sql.server.avatica.SerializingTestDriver.SerializationParams;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import java.sql.Connection;
 import java.sql.Date;
@@ -56,20 +57,22 @@ import org.mockito.Mockito;
 
 public class StargateMetaTest extends AbstractDataStoreTest {
 
-  private static final String TEST_PASSWORD = "test_password";
+  private static final String TEST_USER = "test_validated_user";
+  private static final String TEST_PASSWORD = "test_token";
+  private static final String JDBC_TOKEN_USER = "token";
 
   private final AuthenticationService authenticator;
   private StargateMeta stargateMeta;
 
   public StargateMetaTest() throws Exception {
     authenticator = Mockito.mock(AuthenticationService.class);
-    Mockito.when(authenticator.createToken(Mockito.anyString(), Mockito.eq(TEST_PASSWORD)))
-        .thenReturn("token");
+    Mockito.when(authenticator.validateToken(Mockito.eq(TEST_PASSWORD)))
+        .thenReturn(new StoredCredentials().roleName(TEST_USER));
   }
 
   @BeforeEach
   public void createMeta() {
-    stargateMeta = new StargateMeta(dataStore, authenticator);
+    stargateMeta = new StargateMeta(this::dataStore, authenticator);
   }
 
   public static Stream<Arguments> allColumnParams() {
@@ -83,11 +86,11 @@ public class StargateMetaTest extends AbstractDataStoreTest {
 
   private Connection newConnection(SerializationParams serialization, AtomicLong roundTripCounter)
       throws SQLException {
-    return newConnection(serialization, "test_" + serialization, TEST_PASSWORD, roundTripCounter);
+    return newConnection(serialization, JDBC_TOKEN_USER, TEST_PASSWORD, roundTripCounter);
   }
 
   private Connection newConnection(SerializationParams serialization) throws SQLException {
-    return newConnection(serialization, "test_" + serialization, TEST_PASSWORD);
+    return newConnection(serialization, JDBC_TOKEN_USER, TEST_PASSWORD);
   }
 
   private Connection newConnection(SerializationParams ser, String user, String password)
@@ -101,6 +104,11 @@ public class StargateMetaTest extends AbstractDataStoreTest {
     return SerializingTestDriver.newConnection(ser, stargateMeta, user, password, roundTripCounter);
   }
 
+  private DataStore dataStore(String username) {
+    assertThat(username).isEqualTo(TEST_USER);
+    return dataStore;
+  }
+
   @ParameterizedTest
   @EnumSource(SerializationParams.class)
   public void openConnection(SerializationParams ser) throws SQLException {
@@ -110,10 +118,12 @@ public class StargateMetaTest extends AbstractDataStoreTest {
   @ParameterizedTest
   @EnumSource(SerializationParams.class)
   public void openConnectionWithWrongCredentials(SerializationParams ser) throws Exception {
-    Mockito.when(authenticator.createToken(anyString(), eq("bad_password")))
+    Mockito.when(authenticator.validateToken(eq("bad_token")))
         .thenThrow(new UnauthorizedException("test-message"));
-    assertThatThrownBy(() -> newConnection(ser, "test_user", "bad_password"))
+    assertThatThrownBy(() -> newConnection(ser, JDBC_TOKEN_USER, "bad_token"))
         .hasMessageContaining("test-message");
+    assertThatThrownBy(() -> newConnection(ser, "some_user", "bad_token"))
+        .hasMessageContaining("Unexpected user name for token authentication: some_user");
     assertThatThrownBy(() -> newConnection(ser, "test_user", null))
         .hasMessageContaining("Missing credentials in connection properties");
     assertThatThrownBy(() -> newConnection(ser, null, TEST_PASSWORD))

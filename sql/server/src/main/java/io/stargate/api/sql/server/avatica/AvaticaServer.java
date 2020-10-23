@@ -42,7 +42,7 @@ public class AvaticaServer {
   private final HttpServer server;
 
   public AvaticaServer(Persistence backend, AuthenticationService authenticator) {
-    Meta meta = new StargateMeta(DataStore.create(backend), authenticator);
+    Meta meta = new StargateMeta(user -> DataStore.create(backend, user), authenticator);
     Service service = new LocalService(meta);
 
     ServerCustomizer<Server> customizer =

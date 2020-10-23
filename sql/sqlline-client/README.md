@@ -24,8 +24,15 @@ sqlline>
 
 ### Connecting to Stargate
 
+Obtain an authentication token.
+```shell
+$ curl -X POST http://localhost:8081/v1/auth/token/generate -H "accept: application/json" -H "Content-Type: application/json" -d '{"key":"cassandra", "secret":"cassandra"}'
+{"authToken":"846854d7-45f8-4525-be9d-7d207d7e09e4"}
 ```
-sqlline> !connect jdbc:avatica:remote:url=http://localhost:8765;serialization=PROTOBUF cassandra cassandra
+
+Use the returned token as the JDBC password to connect in `sqlline`.
+```
+sqlline> !connect jdbc:avatica:remote:url=http://localhost:8765;serialization=PROTOBUF token 846854d7-45f8-4525-be9d-7d207d7e09e4
 Transaction isolation level TRANSACTION_REPEATABLE_READ is not supported. Default (TRANSACTION_NONE) will be used instead.
 0: jdbc:avatica:remote:url=http://localhost:8>
 ```

@@ -17,21 +17,48 @@ package io.stargate.it.sql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.cql.JavaDriverTestBase;
+import io.stargate.it.http.RestUtils;
+import io.stargate.it.http.models.Credentials;
+import io.stargate.it.storage.StargateConnectionInfo;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.apache.calcite.avatica.remote.Driver;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class AvaticaJdbcTest extends JavaDriverTestBase {
 
+  private static String authToken;
+
   @BeforeAll
   public static void loadJdbcDriver() throws ClassNotFoundException {
     Class.forName(Driver.class.getName()); // force the Driver class to initialize
+  }
+
+  @BeforeAll
+  public static void obtainAuthToken(StargateConnectionInfo stargate) throws IOException {
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    String body =
+        RestUtils.post(
+            "",
+            String.format("http://%s:8081/v1/auth/token/generate", stargate.seedAddress()),
+            objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
+            HttpStatus.SC_CREATED);
+
+    AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
+    authToken = authTokenResponse.getAuthToken();
+    assertThat(authToken).isNotNull();
   }
 
   @Test
@@ -43,8 +70,8 @@ public class AvaticaJdbcTest extends JavaDriverTestBase {
             String.format(
                 "jdbc:avatica:remote:url=http://%s:8765;serialization=%s",
                 stargate.seedAddress(), Driver.Serialization.PROTOBUF.name()),
-            "cassandra",
-            "cassandra");
+            "token",
+            authToken);
 
     PreparedStatement p =
         c.prepareStatement(String.format("select x from %s.sql_test", keyspaceId.asCql(false)));

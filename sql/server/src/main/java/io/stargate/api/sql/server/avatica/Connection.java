@@ -27,11 +27,13 @@ import org.apache.calcite.avatica.NoSuchStatementException;
 
 public class Connection {
 
+  private final DataStore dataStore;
   private final Meta.ConnectionHandle ch;
   private final AtomicInteger statementSeq = new AtomicInteger();
   private final ConcurrentMap<Integer, StatementHolder> statements = new ConcurrentHashMap<>();
 
-  public Connection(Meta.ConnectionHandle ch) {
+  public Connection(DataStore dataStore, Meta.ConnectionHandle ch) {
+    this.dataStore = dataStore;
     this.ch = ch;
   }
 
@@ -44,11 +46,11 @@ public class Connection {
     return statements.computeIfAbsent(id, builder);
   }
 
-  public StatementHolder newStatement(String sql, DataStore dataStore) {
+  public StatementHolder newStatement(String sql) {
     return newStatementHandle(id -> StatementHolder.prepare(ch.id, id, sql, dataStore));
   }
 
-  public StatementHolder newStatement(DataStore dataStore) {
+  public StatementHolder newStatement() {
     return newStatementHandle(id -> StatementHolder.empty(ch.id, id, dataStore));
   }
 
