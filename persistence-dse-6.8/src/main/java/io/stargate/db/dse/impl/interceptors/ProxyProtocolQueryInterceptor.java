@@ -55,6 +55,7 @@ import org.slf4j.LoggerFactory;
  * `system.peers` is populated with A-records from a provided DNS name.
  */
 public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
+
   public static final String PROXY_DNS_NAME =
       System.getProperty("stargate.proxy_protocol.dns_name");
   public static final int PROXY_PORT =
@@ -120,15 +121,16 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
       QueryOptions options,
       Map<String, ByteBuffer> customPayload,
       long queryStartNanoTime) {
-    if (!isSystemLocalOrPeers(statement)) {
+
+    ClientState clientState = state.getClientState();
+    if (!isSystemLocalOrPeers(statement)
+        || !(clientState instanceof ClientStateWithPublicAddress)) {
       return null;
     }
 
     SelectStatement selectStatement = (SelectStatement) statement;
 
     List<List<ByteBuffer>> rows;
-    ClientState clientState = state.getClientState();
-    assert clientState instanceof ClientStateWithPublicAddress;
     InetSocketAddress publicAddress = ((ClientStateWithPublicAddress) clientState).publicAddress();
     if (publicAddress == null) {
       throw new ServerError(
@@ -269,6 +271,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   }
 
   private static class DefaultResolver implements Resolver {
+
     @Override
     public Set<InetAddress> resolve(String name) throws UnknownHostException {
       return Arrays.stream(InetAddress.getAllByName(name)).collect(Collectors.toSet());
