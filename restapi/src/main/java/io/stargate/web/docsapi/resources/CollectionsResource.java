@@ -156,7 +156,10 @@ public class CollectionsResource {
   }
 
   @POST
-  @ApiOperation(value = "Upgrade a collection in a namespace")
+  @ApiOperation(
+      value = "Upgrade a collection in a namespace",
+      notes =
+          "WARNING: This endpoint is expected to cause some down-time for the collection you choose.")
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
@@ -223,8 +226,8 @@ public class CollectionsResource {
                 .entity(Converters.writeResponse(response))
                 .build();
           } else {
-            return Response.status(Response.Status.BAD_REQUEST)
-                .entity("Collection was not upgraded. Are you sure it was possible to upgrade?")
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity("Collection was not upgraded.")
                 .build();
           }
         });

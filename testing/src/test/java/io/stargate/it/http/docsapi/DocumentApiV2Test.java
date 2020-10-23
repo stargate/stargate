@@ -42,11 +42,10 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   private CqlSession session;
   private static String authToken;
   private static String host = "http://" + getStargateHost();
+  private static String hostWithPort = host + ":8082";
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final OkHttpClient client =
       new OkHttpClient().newBuilder().readTimeout(3, TimeUnit.MINUTES).build();
-
-  private static DocsHttpClient http;
 
   public DocumentApiV2Test(ClusterConnectionInfo backend) {
     super(backend);
@@ -85,7 +84,6 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         .isTrue();
 
     initAuth();
-    http = new DocsHttpClient(host, authToken, client, objectMapper);
   }
 
   @AfterEach
@@ -121,99 +119,107 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testIt() throws IOException {
     JsonNode obj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    String resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
+
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths",
+            200);
+    assertThat(objectMapper.readTree(resp))
         .isEqualTo(wrapResponse(obj.requiredAt("/quiz/maths"), "1", null));
 
-    r =
-        http.get(
-            "/v2/namespaces/"
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?where={\"products.electronics.Pixel_3a.price\":{\"$lt\": 800}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection?where={\"products.electronics.Pixel_3a.price\":{\"$lt\": 800}}",
+            200);
     ObjectNode expected = objectMapper.createObjectNode();
     expected.set("1", obj);
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(wrapResponse(expected, null, null));
+    assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(expected, null, null));
   }
 
   @Test
   public void testUnauthorized() throws IOException {
-    JsonNode obj =
-        objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    String data =
+        objectMapper
+            .readTree(this.getClass().getClassLoader().getResource("example.json"))
+            .toString();
 
     // Missing token header
-    Response r = http.post("/v2/namespaces/" + keyspace + "/collections/collection", obj, null);
-    assertThat(r.code()).isEqualTo(401);
-    r.close();
-
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj, null);
-    assertThat(r.code()).isEqualTo(401);
-    r.close();
-
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj, null);
-    assertThat(r.code()).isEqualTo(401);
-    r.close();
-
-    r = http.delete("/v2/namespaces/" + keyspace + "/collections/collection/1", null);
-    assertThat(r.code()).isEqualTo(401);
-    r.close();
-
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1", null);
-    assertThat(r.code()).isEqualTo(401);
-    r.close();
-
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection", null);
-    assertThat(r.code()).isEqualTo(401);
-    r.close();
+    RestUtils.post(
+        null, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection", data, 401);
+    RestUtils.put(
+        null, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", data, 401);
+    RestUtils.patch(
+        null, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", data, 401);
+    RestUtils.delete(
+        null, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", 401);
+    RestUtils.get(
+        null, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", 401);
+    RestUtils.get(
+        null, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection", 401);
 
     // Bad token header
-    r = http.post("/v2/namespaces/" + keyspace + "/collections/collection", obj, "garbage");
-    assertThat(r.code()).isEqualTo(401);
-    r.close();
-
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj, "garbage");
-    assertThat(r.code()).isEqualTo(401);
-    r.close();
-
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj, "garbage");
-    assertThat(r.code()).isEqualTo(401);
-    r.close();
-
-    r = http.delete("/v2/namespaces/" + keyspace + "/collections/collection/1", "garbage");
-    assertThat(r.code()).isEqualTo(401);
-    r.close();
-
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1", "garbage");
-    assertThat(r.code()).isEqualTo(401);
-    r.close();
-
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection", "garbage");
-    assertThat(r.code()).isEqualTo(401);
-    r.close();
+    RestUtils.post(
+        "garbage",
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection",
+        data,
+        401);
+    RestUtils.put(
+        "garbage",
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        data,
+        401);
+    RestUtils.patch(
+        "garbage",
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        data,
+        401);
+    RestUtils.delete(
+        "garbage", hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", 401);
+    RestUtils.get(
+        "garbage", hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", 401);
+    RestUtils.get(
+        "garbage", hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection", 401);
   }
 
   @Test
   public void testInvalidKeyspaceAndTable() throws IOException {
     JsonNode obj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = http.put("/v2/namespaces/unknown_keyspace_1337/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+    String data = obj.toString();
+    String resp =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/unknown_keyspace_1337/collections/collection/1",
+            data,
+            400);
+    assertThat(resp)
         .isEqualTo("Unknown namespace unknown_keyspace_1337, you must create it first.");
 
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/invalid-character/1", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+    resp =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/invalid-character/1",
+            data,
+            400);
+    assertThat(resp)
         .isEqualTo(
             "Could not create collection invalid-character, it has invalid characters. Valid characters are alphanumeric and underscores.");
   }
@@ -222,37 +228,57 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testInvalidKeyPut() throws IOException {
     JsonNode obj = objectMapper.readTree("{ \"square[]braces\": \"are not allowed\" }");
 
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+    String resp =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            obj.toString(),
+            400);
+    assertThat(resp)
         .isEqualTo(
             "The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field square[]braces");
 
     obj = objectMapper.readTree("{ \"commas,\": \"are not allowed\" }");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+    resp =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            obj.toString(),
+            400);
+    assertThat(resp)
         .isEqualTo(
             "The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field commas,");
 
     obj = objectMapper.readTree("{ \"periods.\": \"are not allowed\" }");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+    resp =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            obj.toString(),
+            400);
+    assertThat(resp)
         .isEqualTo(
             "The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field periods.");
 
     obj = objectMapper.readTree("{ \"'quotes'\": \"are not allowed\" }");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+    resp =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            obj.toString(),
+            400);
+    assertThat(resp)
         .isEqualTo(
             "The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field 'quotes'");
 
     obj = objectMapper.readTree("{ \"*asterisks*\": \"are not allowed\" }");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+    resp =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            obj.toString(),
+            400);
+    assertThat(resp)
         .isEqualTo(
             "The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field *asterisks*");
   }
@@ -260,131 +286,212 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   @Test
   public void testWeirdButAllowedKeys() throws IOException {
     JsonNode obj = objectMapper.readTree("{ \"$\": \"weird but allowed\" }");
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    String resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            200);
+    assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"$30\": \"not as weird\" }");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            200);
+    assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"@\": \"weird but allowed\" }");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            200);
+    assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"meet me @ the place\": \"not as weird\" }");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            200);
+    assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"?\": \"weird but allowed\" }");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            200);
+    assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"spac es\": \"weird but allowed\" }");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            200);
+    assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"3\": [\"totally allowed\"] }");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            200);
+    assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path/3/[0]");
-    assertThat(objectMapper.readTree(r.body().string()))
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path/3/[0]",
+            200);
+    assertThat(objectMapper.readTree(resp))
         .isEqualTo(wrapResponse(objectMapper.readTree("\"totally allowed\""), "1", null));
 
     obj = objectMapper.readTree("{ \"-1\": \"totally allowed\" }");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            200);
+    assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path/-1");
-    assertThat(objectMapper.readTree(r.body().string()))
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path/-1",
+            200);
+    assertThat(objectMapper.readTree(resp))
         .isEqualTo(wrapResponse(objectMapper.readTree("\"totally allowed\""), "1", null));
 
     obj = objectMapper.readTree("{ \"Eric says \\\"hello\\\"\": \"totally allowed\" }");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/path", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/path");
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            200);
+    assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
   }
 
   @Test
   public void testInvalidDepthAndLength() throws IOException {
     JsonNode obj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("tooDeep.json"));
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string()).isEqualTo("Max depth of 64 exceeded");
+    String resp =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            obj.toString(),
+            400);
+    assertThat(resp).isEqualTo("Max depth of 64 exceeded");
 
     obj = objectMapper.readTree("{ \"some\": \"json\" }");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/[1000000]", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string()).isEqualTo("Max array length of 1000000 exceeded.");
+    resp =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/[1000000]",
+            obj.toString(),
+            400);
+    assertThat(resp).isEqualTo("Max array length of 1000000 exceeded.");
   }
 
   @Test
   public void testArrayGet() throws IOException {
     JsonNode obj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
-    assertThat(r.code()).isEqualTo(200);
+    String resp =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            obj.toString(),
+            200);
+    assertThat(resp).isEqualTo("{\"documentId\":\"1\"}");
 
-    r =
-        http.get(
-            "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths/q1/options/[0]");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection/1/quiz/maths/q1/options/[0]",
+            200);
+    assertThat(objectMapper.readTree(resp))
         .isEqualTo(wrapResponse(obj.requiredAt("/quiz/maths/q1/options/0"), "1", null));
 
-    r =
-        http.get(
-            "/v2/namespaces/"
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/1/quiz/maths/q1/options/[0]?raw=true");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(obj.requiredAt("/quiz/maths/q1/options/0"));
+                + "/collections/collection/1/quiz/maths/q1/options/[0]?raw=true",
+            200);
+    assertThat(objectMapper.readTree(resp)).isEqualTo(obj.requiredAt("/quiz/maths/q1/options/0"));
 
-    r =
-        http.get(
-            "/v2/namespaces/"
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/1/quiz/nests/q1/options/[3]/this");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+                + "/collections/collection/1/quiz/nests/q1/options/[3]/this",
+            200);
+    assertThat(objectMapper.readTree(resp))
         .isEqualTo(wrapResponse(obj.requiredAt("/quiz/nests/q1/options/3/this"), "1", null));
   }
 
@@ -392,77 +499,118 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testInvalidPathGet() throws IOException {
     JsonNode obj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
-    assertThat(r.code()).isEqualTo(200);
+    String resp =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            obj.toString(),
+            200);
+    assertThat(resp).isEqualTo("{\"documentId\":\"1\"}");
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/nonexistent/path");
-    assertThat(r.code()).isEqualTo(204);
+    RestUtils.get(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/nonexistent/path",
+        204);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/nonexistent/path/[1]");
-    assertThat(r.code()).isEqualTo(204);
+    RestUtils.get(
+        authToken,
+        hostWithPort
+            + "/v2/namespaces/"
+            + keyspace
+            + "/collections/collection/1/nonexistent/path/[1]",
+        204);
 
-    r =
-        http.get(
-            "/v2/namespaces/"
-                + keyspace
-                + "/collections/collection/1/quiz/maths/q1/options/[9999]"); // out of bounds
-    assertThat(r.code()).isEqualTo(204);
+    RestUtils.get(
+        authToken,
+        hostWithPort
+            + "/v2/namespaces/"
+            + keyspace
+            + "/collections/collection/1/quiz/maths/q1/options/[9999]",
+        204); // out of bounds
   }
 
   @Test
   public void testPutNullsAndEmpties() throws IOException {
     JsonNode obj = objectMapper.readTree("{\"abc\": null}");
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    String resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{\"abc\": {}}");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/2", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/2",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/2");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "2", null));
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/2",
+            200);
+    assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "2", null));
 
     obj = objectMapper.readTree("{\"abc\": []}");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/3", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/3",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/3");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "3", null));
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/3",
+            200);
+    assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "3", null));
 
     obj =
         objectMapper.readTree(
             "{\"abc\": [], \"bcd\": {}, \"cde\": null, \"abcd\": { \"nest1\": [], \"nest2\": {}}}");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/4", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/4",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/4");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "4", null));
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/4",
+            200);
+    assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "4", null));
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/4/abc");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/4/abc",
+            200);
+    assertThat(objectMapper.readTree(resp))
         .isEqualTo(wrapResponse(objectMapper.createArrayNode(), "4", null));
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/4/bcd");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/4/bcd",
+            200);
+    assertThat(objectMapper.readTree(resp))
         .isEqualTo(wrapResponse(objectMapper.createObjectNode(), "4", null));
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/4/abcd/nest1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/4/abcd/nest1",
+            200);
+    assertThat(objectMapper.readTree(resp))
         .isEqualTo(wrapResponse(objectMapper.createArrayNode(), "4", null));
   }
 
@@ -470,177 +618,252 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testPutReplacingObject() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
-    assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
-    assertThat(r.code()).isEqualTo(200);
+    String r =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            fullObj.toString(),
+            200);
+    assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(wrapResponse(fullObj, "1", null));
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
     JsonNode obj;
     obj = objectMapper.readTree("{\"q5000\": \"hello?\"}");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport",
+            200);
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
 
     ObjectNode sportNode = objectMapper.createObjectNode();
     sportNode.set("q5000", TextNode.valueOf("hello?"));
 
     ObjectNode fullObjNode = (ObjectNode) fullObj;
     ((ObjectNode) fullObjNode.get("quiz")).set("sport", sportNode);
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(wrapResponse(fullObjNode, "1", null));
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(fullObjNode, "1", null));
   }
 
   @Test
   public void testPutReplacingArrayElement() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
-    assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
-    assertThat(r.code()).isEqualTo(200);
+    String r =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            fullObj.toString(),
+            200);
+    assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(wrapResponse(fullObj, "1", null));
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
     JsonNode obj;
     obj = objectMapper.readTree("{\"q5000\": \"hello?\"}");
-    r =
-        http.put(
-            "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1/options/[0]",
-            obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort
+            + "/v2/namespaces/"
+            + keyspace
+            + "/collections/collection/1/quiz/nests/q1/options/[0]",
+        obj.toString(),
+        200);
 
     r =
-        http.get(
-            "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1/options/[0]");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection/1/quiz/nests/q1/options/[0]",
+            200);
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
 
     ObjectNode optionNode = objectMapper.createObjectNode();
     optionNode.set("q5000", TextNode.valueOf("hello?"));
 
     ObjectNode fullObjNode = (ObjectNode) fullObj;
     ((ArrayNode) fullObjNode.at("/quiz/nests/q1/options")).set(0, optionNode);
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(wrapResponse(fullObjNode, "1", null));
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(fullObjNode, "1", null));
   }
 
   @Test
   public void testPutReplacingWithArray() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
-    assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
-    assertThat(r.code()).isEqualTo(200);
+    String r =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            fullObj.toString(),
+            200);
+    assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(wrapResponse(fullObj, "1", null));
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
     JsonNode obj = objectMapper.readTree("[{\"array\": \"at\"}, \"sub\", \"doc\"]");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+            200);
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("[0, \"a\", \"2\", true]");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1",
+            200);
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
     ObjectNode nestsNode =
         (ObjectNode) objectMapper.readTree("{\"nests\":{\"q1\":[0,\"a\",\"2\",true]}}");
     ObjectNode fullObjNode = (ObjectNode) fullObj;
     fullObjNode.set("quiz", nestsNode);
-
-    String body = r.body().string();
-    assertThat(body).startsWith("{");
-    assertThat(objectMapper.readTree(body)).isEqualTo(wrapResponse(fullObjNode, "1", null));
-    assertThat(r.code()).isEqualTo(200);
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(fullObjNode, "1", null));
 
     obj = objectMapper.readTree("[{\"array\": \"at\"}, \"\", \"doc\"]");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+            200);
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{\"we\": {\"are\": \"done\"}}");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+            200);
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
   }
 
   @Test
   public void testInvalidPuts() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
-    assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
-    assertThat(r.code()).isEqualTo(200);
+    String r =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            fullObj.toString(),
+            200);
+    assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(wrapResponse(fullObj, "1", null));
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
     JsonNode obj;
     obj = objectMapper.readTree("3");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+    r =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            obj.toString(),
+            400);
+    assertThat(r)
         .isEqualTo(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3\nHint: update the parent path with a defined object instead.");
 
     obj = objectMapper.readTree("true");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+    r =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+            obj.toString(),
+            400);
+    assertThat(r)
         .isEqualTo(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: true\nHint: update the parent path with a defined object instead.");
 
     obj = objectMapper.readTree("null");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+    r =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+            obj.toString(),
+            400);
+    assertThat(r)
         .isEqualTo(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: null\nHint: update the parent path with a defined object instead.");
 
     obj = objectMapper.readTree("\"Eric\"");
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+    r =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport",
+            obj.toString(),
+            400);
+    assertThat(r)
         .isEqualTo(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: \"Eric\"\nHint: update the parent path with a defined object instead.");
   }
@@ -649,38 +872,65 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testDelete() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
-    assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
-    assertThat(r.code()).isEqualTo(200);
-
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(wrapResponse(fullObj, "1", null));
-
-    r =
-        http.delete(
-            "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport/q1/question");
-    assertThat(r.code()).isEqualTo(204);
-
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport/q1/question");
-    assertThat(r.code()).isEqualTo(204);
-
-    r = http.delete("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths");
-    assertThat(r.code()).isEqualTo(204);
-
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths");
-    assertThat(r.code()).isEqualTo(204);
+    String r =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            fullObj.toString(),
+            200);
+    assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
 
     r =
-        http.delete(
-            "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1/options/[0]");
-    assertThat(r.code()).isEqualTo(204);
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1/options");
-    assertThat(r.code()).isEqualTo(200);
-    String responseBody = r.body().string();
-    assertThat(objectMapper.readTree(responseBody))
+    RestUtils.delete(
+        authToken,
+        hostWithPort
+            + "/v2/namespaces/"
+            + keyspace
+            + "/collections/collection/1/quiz/sport/q1/question",
+        204);
+
+    RestUtils.get(
+        authToken,
+        hostWithPort
+            + "/v2/namespaces/"
+            + keyspace
+            + "/collections/collection/1/quiz/sport/q1/question",
+        204);
+
+    RestUtils.delete(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths",
+        204);
+
+    RestUtils.get(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths",
+        204);
+
+    r =
+        RestUtils.delete(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection/1/quiz/nests/q1/options/[0]",
+            204);
+
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection/1/quiz/nests/q1/options",
+            200);
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(
             wrapResponse(
                 objectMapper.readTree(
@@ -688,95 +938,126 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 "1",
                 null));
 
-    r = http.delete("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(204);
+    RestUtils.delete(
+        authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", 204);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(204);
+    RestUtils.get(
+        authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", 204);
   }
 
   @Test
   public void testPost() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response resp = http.post("/v2/namespaces/" + keyspace + "/collections/collection", fullObj);
-    assertThat(resp.code()).isEqualTo(201);
-
+    Response resp =
+        RestUtils.postRaw(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection",
+            fullObj.toString(),
+            201);
     String newLocation = resp.header("location");
     String body = resp.body().string();
     String newId = objectMapper.readTree(body).requiredAt("/documentId").asText();
     assertThat(newId).isNotNull();
 
-    resp = http.get(newLocation.replace(host + ":8082", ""));
-    assertThat(resp.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(resp.body().string()))
-        .isEqualTo(wrapResponse(fullObj, newId, null));
+    String r = RestUtils.get(authToken, newLocation, 200);
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(fullObj, newId, null));
   }
 
   @Test
   public void testRootDocumentPatch() throws IOException {
     JsonNode obj = objectMapper.readTree("{\"abc\": 1}");
-    Response r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.patch(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": true}");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.patch(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree("{ \"abc\": 1, \"bcd\": true }"), "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": {\"a\": {\"b\": 0 }}}");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.patch(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(
             wrapResponse(
                 objectMapper.readTree("{ \"abc\": 1, \"bcd\": {\"a\": {\"b\": 0 }} }"), "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": [1,2,3,4]}");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.patch(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(
             wrapResponse(objectMapper.readTree("{ \"abc\": 1, \"bcd\": [1,2,3,4] }"), "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": [5,{\"a\": 23},7,8]}");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.patch(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(
             wrapResponse(
                 objectMapper.readTree("{ \"abc\": 1, \"bcd\": [5,{\"a\": 23},7,8] }"), "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.patch(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(
             wrapResponse(
                 objectMapper.readTree(
@@ -785,13 +1066,18 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 null));
 
     obj = objectMapper.readTree("{\"bcd\": {\"replace\": \"array\"}}");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.patch(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(
             wrapResponse(
                 objectMapper.readTree("{ \"abc\": 1, \"bcd\": {\"replace\": \"array\"} }"),
@@ -799,13 +1085,18 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 null));
 
     obj = objectMapper.readTree("{\"done\": \"done\"}");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.patch(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(
             wrapResponse(
                 objectMapper.readTree(
@@ -817,33 +1108,48 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   @Test
   public void testRootDocumentPatchNulls() throws IOException {
     JsonNode obj = objectMapper.readTree("{\"abc\": null}");
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string())).isEqualTo(wrapResponse(obj, "1", null));
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": null}");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.patch(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(
             wrapResponse(objectMapper.readTree("{ \"abc\": null, \"bcd\": null }"), "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": {\"a\": {\"b\": null }}}");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.patch(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(
             wrapResponse(
                 objectMapper.readTree("{ \"abc\": null, \"bcd\": {\"a\": {\"b\": null }} }"),
@@ -851,25 +1157,35 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 null));
 
     obj = objectMapper.readTree("{\"bcd\": [null,2,null,4]}");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.patch(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(
             wrapResponse(
                 objectMapper.readTree("{ \"abc\": null, \"bcd\": [null,2,null,4] }"), "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": [1,{\"a\": null},3,4]}");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.patch(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(
             wrapResponse(
                 objectMapper.readTree("{ \"abc\": null, \"bcd\": [1,{\"a\": null},3,4] }"),
@@ -877,24 +1193,34 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 null));
 
     obj = objectMapper.readTree("{\"bcd\": [null]}");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.patch(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(
             wrapResponse(objectMapper.readTree("{ \"abc\": null, \"bcd\": [null] }"), "1", null));
 
     obj = objectMapper.readTree("{\"null\": null}");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.patch(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        obj.toString(),
+        200);
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(
             wrapResponse(
                 objectMapper.readTree("{ \"abc\": null, \"bcd\": [null], \"null\": null }"),
@@ -906,53 +1232,81 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testInvalidPatches() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", fullObj);
-    assertThat(r.body().string()).isEqualTo("{\"documentId\":\"1\"}");
-    assertThat(r.code()).isEqualTo(200);
+    String r =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            fullObj.toString(),
+            200);
+    assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
 
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection/1");
-    assertThat(r.code()).isEqualTo(200);
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(wrapResponse(fullObj, "1", null));
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
     JsonNode obj;
     obj = objectMapper.readTree("[{\"array\": \"at\"}, \"root\", \"doc\"]");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
-        .isEqualTo("A patch operation must be done with a JSON object, not an array.");
+    r =
+        RestUtils.patch(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            obj.toString(),
+            400);
+    assertThat(r).isEqualTo("A patch operation must be done with a JSON object, not an array.");
 
     // For patching, you must use an object, so arrays even patched to sub-paths are not allowed.
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport/q1", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
-        .isEqualTo("A patch operation must be done with a JSON object, not an array.");
+    r =
+        RestUtils.patch(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport/q1",
+            obj.toString(),
+            400);
+    assertThat(r).isEqualTo("A patch operation must be done with a JSON object, not an array.");
 
     obj = objectMapper.readTree("3");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+    r =
+        RestUtils.patch(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            obj.toString(),
+            400);
+    assertThat(r)
         .isEqualTo(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3\nHint: update the parent path with a defined object instead.");
 
     obj = objectMapper.readTree("true");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+    r =
+        RestUtils.patch(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+            obj.toString(),
+            400);
+    assertThat(r)
         .isEqualTo(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: true\nHint: update the parent path with a defined object instead.");
 
     obj = objectMapper.readTree("null");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+    r =
+        RestUtils.patch(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+            obj.toString(),
+            400);
+    assertThat(r)
         .isEqualTo(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: null\nHint: update the parent path with a defined object instead.");
 
     obj = objectMapper.readTree("\"Eric\"");
-    r = http.patch("/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport", obj);
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+    r =
+        RestUtils.patch(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport",
+            obj.toString(),
+            400);
+    assertThat(r)
         .isEqualTo(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: \"Eric\"\nHint: update the parent path with a defined object instead.");
   }
@@ -961,90 +1315,100 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testBasicSearch() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r =
-        http.put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        fullObj.toString(),
+        200);
 
     // EQ
-    r =
-        http.get(
-            "/v2/namespaces/"
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}",
+            200);
 
     String searchResultStr =
         "[{\"products\": {\"electronics\": {\"Pixel_3a\": {\"price\": 600}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
 
-    r =
-        http.get(
-            "/v2/namespaces/"
-                + keyspace
-                + "/collections/collection/cool-search-id?where={\"price\": {\"$eq\": 600}}&raw=true");
-    assertThat(r.code()).isEqualTo(204);
-    r.close();
+    RestUtils.get(
+        authToken,
+        hostWithPort
+            + "/v2/namespaces/"
+            + keyspace
+            + "/collections/collection/cool-search-id?where={\"price\": {\"$eq\": 600}}&raw=true",
+        204);
 
     // LT
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lt\": 600}}&raw=true");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lt\": 600}}&raw=true",
+            200);
 
     searchResultStr =
         "[{\"products\": {\"food\": {\"Apple\": {\"price\": 0.99}}}}, {\"products\": {\"food\": { \"Pear\": {\"price\": 0.89}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(objectMapper.readTree(searchResultStr));
+    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(searchResultStr));
 
     // LTE
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lte\": 600}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lte\": 600}}",
+            200);
 
     searchResultStr =
         "[{\"products\": {\"food\": {\"Apple\": {\"price\": 0.99}}}}, {\"products\": {\"food\": { \"Pear\": {\"price\": 0.89}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
 
     // GT
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gt\": 600}}&raw=true");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gt\": 600}}&raw=true",
+            200);
 
     searchResultStr = "[{\"products\": {\"electronics\": {\"iPhone_11\": {\"price\": 900}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(objectMapper.readTree(searchResultStr));
+    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(searchResultStr));
 
     // GTE
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gte\": 600}}&raw=true");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gte\": 600}}&raw=true",
+            200);
 
     searchResultStr =
         "[{\"products\": {\"electronics\": {\"Pixel_3a\": {\"price\": 600}}}}, {\"products\": {\"electronics\": { \"iPhone_11\": {\"price\": 900}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(objectMapper.readTree(searchResultStr));
+    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(searchResultStr));
 
     // EXISTS
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$exists\": true}}&raw=true");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$exists\": true}}&raw=true",
+            200);
     searchResultStr =
         "["
             + "{\"products\":{\"electronics\":{\"Pixel_3a\":{\"price\":600}}}},"
@@ -1052,90 +1416,99 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             + "{\"products\":{\"food\":{\"Apple\":{\"price\":0.99}}}},"
             + "{\"products\":{\"food\":{\"Pear\":{\"price\":0.89}}}}"
             + "]";
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(objectMapper.readTree(searchResultStr));
+    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(searchResultStr));
   }
 
   @Test
   public void testBasicSearchSelectionSet() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r =
-        http.put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        fullObj.toString(),
+        200);
 
     // EQ
-    r =
-        http.get(
-            "/v2/namespaces/"
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}&fields=[\"name\", \"price\", \"model\", \"manufacturer\"]");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}&fields=[\"name\", \"price\", \"model\", \"manufacturer\"]",
+            200);
 
     String searchResultStr =
         "[{\"products\": {\"electronics\": {\"Pixel_3a\": {\"name\": \"Pixel\", \"manufacturer\": \"Google\", \"model\": \"3a\", \"price\": 600}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
 
     // LT
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lt\": 600}}&fields=[\"name\", \"price\", \"model\"]&raw=true");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lt\": 600}}&fields=[\"name\", \"price\", \"model\"]&raw=true",
+            200);
 
     searchResultStr =
         "[{\"products\": {\"food\": {\"Apple\": {\"name\": \"apple\", \"price\": 0.99}}}}, {\"products\": {\"food\": { \"Pear\": {\"name\": \"pear\", \"price\": 0.89}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(objectMapper.readTree(searchResultStr));
+    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(searchResultStr));
 
     // LTE
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lte\": 600}}&fields=[\"price\", \"sku\"]");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lte\": 600}}&fields=[\"price\", \"sku\"]",
+            200);
 
     searchResultStr =
         "[{\"products\": {\"food\": {\"Apple\": {\"price\": 0.99, \"sku\": \"100100010101001\"}}}}, {\"products\": {\"food\": { \"Pear\": {\"price\": 0.89, \"sku\": null}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
 
     // GT
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gt\": 600}}&fields=[\"price\", \"throwaway\"]&raw=true");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gt\": 600}}&fields=[\"price\", \"throwaway\"]&raw=true",
+            200);
 
     searchResultStr = "[{\"products\": {\"electronics\": {\"iPhone_11\": {\"price\": 900}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(objectMapper.readTree(searchResultStr));
+    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(searchResultStr));
 
     // GTE
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gte\": 600}}&fields=[\"price\"]&raw=true");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gte\": 600}}&fields=[\"price\"]&raw=true",
+            200);
 
     searchResultStr =
         "[{\"products\": {\"electronics\": {\"Pixel_3a\": {\"price\": 600}}}}, {\"products\": {\"electronics\": { \"iPhone_11\": {\"price\": 900}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(objectMapper.readTree(searchResultStr));
+    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(searchResultStr));
 
     // EXISTS
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$exists\": true}}&fields=[\"price\", \"name\", \"manufacturer\", \"model\", \"sku\"]&raw=true");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$exists\": true}}&fields=[\"price\", \"name\", \"manufacturer\", \"model\", \"sku\"]&raw=true",
+            200);
     searchResultStr =
         "["
             + "{\"products\":{\"electronics\":{\"Pixel_3a\":{\"price\":600, \"name\":\"Pixel\", \"manufacturer\":\"Google\", \"model\":\"3a\"}}}},"
@@ -1143,75 +1516,84 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             + "{\"products\":{\"food\":{\"Apple\":{\"name\": \"apple\", \"price\":0.99, \"sku\": \"100100010101001\"}}}},"
             + "{\"products\":{\"food\":{\"Pear\":{\"name\": \"pear\", \"price\":0.89, \"sku\": null}}}}"
             + "]";
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(objectMapper.readTree(searchResultStr));
+    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(searchResultStr));
   }
 
   @Test
   public void testSearchNotEquals() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r =
-        http.put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        fullObj.toString(),
+        200);
 
     // NE with String
-    r =
-        http.get(
-            "/v2/namespaces/"
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$ne\": \"3a\"}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$ne\": \"3a\"}}",
+            200);
 
     String searchResultStr =
         "[{\"products\": {\"electronics\": { \"iPhone_11\": {\"model\": \"11\"}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
 
     // NE with Boolean
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"quiz.nests.q1.options.[3].this\": {\"$ne\": false}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"quiz.nests.q1.options.[3].this\": {\"$ne\": false}}",
+            200);
 
     searchResultStr =
         "[{\"quiz\": {\"nests\": { \"q1\": {\"options\": {\"[3]\": {\"this\": true}}}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
 
     // NE with integer compared to double
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"quiz.maths.q1.answer\": {\"$ne\": 12}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"quiz.maths.q1.answer\": {\"$ne\": 12}}",
+            200);
 
     searchResultStr = "[{\"quiz\": {\"maths\": { \"q1\": {\"answer\": 12.2}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
 
     // NE with double compared to integer
-    r =
-        http.get(
-            "/v2/namespaces/"
-                + keyspace
-                + "/collections/collection/cool-search-id?where={\"quiz.maths.q2.answer\": {\"$ne\": 4.0}}");
-    assertThat(r.code()).isEqualTo(204);
+    RestUtils.get(
+        authToken,
+        hostWithPort
+            + "/v2/namespaces/"
+            + keyspace
+            + "/collections/collection/cool-search-id?where={\"quiz.maths.q2.answer\": {\"$ne\": 4.0}}",
+        204);
 
     // NE with null
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.food.*.sku\": {\"$ne\": null}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.food.*.sku\": {\"$ne\": null}}",
+            200);
 
     searchResultStr = "[{\"products\": {\"food\": { \"Apple\": {\"sku\": \"100100010101001\"}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
   }
 
@@ -1219,60 +1601,69 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testSearchIn() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r =
-        http.put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        fullObj.toString(),
+        200);
 
     // IN with String
-    r =
-        http.get(
-            "/v2/namespaces/"
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"]}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"]}}",
+            200);
 
     String searchResultStr =
         "[{\"products\": {\"electronics\": { \"Pixel_3a\": {\"model\": \"3a\"}}}}, {\"products\": {\"electronics\": { \"iPhone_11\": {\"model\": \"11\"}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
 
     // IN with int
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$in\": [600, 900]}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$in\": [600, 900]}}",
+            200);
 
     searchResultStr =
         "[{\"products\": {\"electronics\": { \"Pixel_3a\": {\"price\": 600}}}}, {\"products\": {\"electronics\": { \"iPhone_11\": {\"price\": 900}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
 
     // IN with double
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$in\": [0.99, 0.89]}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$in\": [0.99, 0.89]}}",
+            200);
 
     searchResultStr =
         "[{\"products\": {\"food\": { \"Apple\": {\"price\": 0.99}}}}, {\"products\": {\"food\": { \"Pear\": {\"price\": 0.89}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
 
     // IN with null
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.*.*.sku\": {\"$in\": [null]}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.*.*.sku\": {\"$in\": [null]}}",
+            200);
 
     searchResultStr = "[{\"products\": {\"food\": { \"Pear\": {\"sku\": null}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
   }
 
@@ -1280,60 +1671,69 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testSearchNotIn() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r =
-        http.put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        fullObj.toString(),
+        200);
 
     // NIN with String
-    r =
-        http.get(
-            "/v2/namespaces/"
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"12\"]}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"12\"]}}",
+            200);
 
     String searchResultStr =
         "[{\"products\": {\"electronics\": { \"Pixel_3a\": {\"model\": \"3a\"}}}}, {\"products\": {\"electronics\": { \"iPhone_11\": {\"model\": \"11\"}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
 
     // NIN with int
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$nin\": [600, 900]}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$nin\": [600, 900]}}",
+            200);
 
     searchResultStr =
         "[{\"products\": {\"food\": { \"Apple\": {\"price\": 0.99}}}}, {\"products\": {\"food\": { \"Pear\": {\"price\": 0.89}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
 
     // NIN with double
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$nin\": [0.99, 0.89]}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$nin\": [0.99, 0.89]}}",
+            200);
 
     searchResultStr =
         "[{\"products\": {\"electronics\": { \"Pixel_3a\": {\"price\": 600}}}}, {\"products\": {\"electronics\": { \"iPhone_11\": {\"price\": 900}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
 
     // NIN with null
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.*.*.sku\": {\"$nin\": [null]}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.*.*.sku\": {\"$nin\": [null]}}",
+            200);
 
     searchResultStr = "[{\"products\": {\"food\": { \"Apple\": {\"sku\": \"100100010101001\"}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
   }
 
@@ -1341,252 +1741,290 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testFilterCombos() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r =
-        http.put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        fullObj.toString(),
+        200);
 
     // NIN (limited support) with GT (full support)
-    r =
-        http.get(
-            "/v2/namespaces/"
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"11\"], \"$gt\": \"\"}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"11\"], \"$gt\": \"\"}}",
+            200);
 
     String searchResultStr =
         "[{\"products\": {\"electronics\": { \"Pixel_3a\": {\"model\": \"3a\"}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
 
     // IN (limited support) with NE (limited support)
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"], \"$ne\": \"11\"}}");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"], \"$ne\": \"11\"}}",
+            200);
 
     searchResultStr = "[{\"products\": {\"electronics\": { \"Pixel_3a\": {\"model\": \"3a\"}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
+    assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
   }
 
   @Test
   public void testInvalidSearch() throws IOException {
-    Response r =
-        http.get(
-            "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id?where=hello");
-    assertThat(r.code()).isEqualTo(500);
-    r.close();
+    RestUtils.get(
+        authToken,
+        hostWithPort
+            + "/v2/namespaces/"
+            + keyspace
+            + "/collections/collection/cool-search-id?where=hello",
+        500);
 
-    r =
-        http.get(
-            "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id?where=[\"a\"]}");
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string()).isEqualTo("Search was expecting a JSON object as input.");
-
-    r =
-        http.get(
-            "/v2/namespaces/"
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"a\": true}}");
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
-        .isEqualTo("Search entry for field a was expecting a JSON object as input.");
+                + "/collections/collection/cool-search-id?where=[\"a\"]}",
+            400);
+    assertThat(r).isEqualTo("Search was expecting a JSON object as input.");
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"a\": {\"$exists\": false}}}");
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string()).isEqualTo("$exists only supports the value `true`");
+                + "/collections/collection/cool-search-id?where={\"a\": true}}",
+            400);
+    assertThat(r).isEqualTo("Search entry for field a was expecting a JSON object as input.");
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"a\": {\"exists\": true}}}");
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string()).startsWith("Invalid operator: exists, valid operators are:");
+                + "/collections/collection/cool-search-id?where={\"a\": {\"$exists\": false}}}",
+            400);
+    assertThat(r).isEqualTo("$exists only supports the value `true`");
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": null}}}");
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+                + "/collections/collection/cool-search-id?where={\"a\": {\"exists\": true}}}",
+            400);
+    assertThat(r).startsWith("Invalid operator: exists, valid operators are:");
+
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": null}}}",
+            400);
+    assertThat(r)
         .isEqualTo("Value entry for field a, operation $eq was expecting a non-null value");
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": {}}}}");
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+                + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": {}}}}",
+            400);
+    assertThat(r)
         .isEqualTo("Value entry for field a, operation $eq was expecting a non-null value");
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": []}}}");
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+                + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": []}}}",
+            400);
+    assertThat(r)
         .isEqualTo("Value entry for field a, operation $eq was expecting a non-null value");
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"a\": {\"$in\": 2}}}");
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
-        .isEqualTo("Value entry for field a, operation $in was expecting an array");
+                + "/collections/collection/cool-search-id?where={\"a\": {\"$in\": 2}}}",
+            400);
+    assertThat(r).isEqualTo("Value entry for field a, operation $in was expecting an array");
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": 300}, \"b\": {\"$lt\": 500}}");
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
-        .contains("Conditions across multiple fields are not yet supported");
+                + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": 300}, \"b\": {\"$lt\": 500}}",
+            400);
+    assertThat(r).contains("Conditions across multiple fields are not yet supported");
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"a.b\": {\"$eq\": 300}, \"c.b\": {\"$lt\": 500}}");
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
-        .contains("Conditions across multiple fields are not yet supported");
+                + "/collections/collection/cool-search-id?where={\"a.b\": {\"$eq\": 300}, \"c.b\": {\"$lt\": 500}}",
+            400);
+    assertThat(r).contains("Conditions across multiple fields are not yet supported");
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"a\": {\"$in\": [1]}}&fields=[\"b\"]");
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+                + "/collections/collection/cool-search-id?where={\"a\": {\"$in\": [1]}}&fields=[\"b\"]",
+            400);
+    assertThat(r)
         .contains(
             "When selecting `fields`, the field referenced by `where` must be in the selection.");
 
     r =
-        http.get(
-            "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id?fields=[\"b\"]");
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string()).contains("Selecting fields is not allowed without `where`");
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection/cool-search-id?fields=[\"b\"]",
+            400);
+    assertThat(r).contains("Selecting fields is not allowed without `where`");
   }
 
   @Test
   public void testMultiSearch() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response r =
-        http.put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        fullObj.toString(),
+        200);
 
     // Multiple operators
-    r =
-        http.get(
-            "/v2/namespaces/"
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.food.Orange.info.price\": {\"$gt\": 600, \"$lt\": 600.05}}&raw=true");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"products.food.Orange.info.price\": {\"$gt\": 600, \"$lt\": 600.05}}&raw=true",
+            200);
 
     String searchResultStr =
         "[{\"products\": {\"food\": {\"Orange\": {\"info\": {\"price\": 600.01}}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(objectMapper.readTree(searchResultStr));
+    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(searchResultStr));
 
     // Array paths
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"quiz.maths.q1.options.[0]\": {\"$lt\": 13.3}}&raw=true");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"quiz.maths.q1.options.[0]\": {\"$lt\": 13.3}}&raw=true",
+            200);
     searchResultStr = "[{\"quiz\":{\"maths\":{\"q1\":{\"options\":{\"[0]\":10.2}}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(objectMapper.readTree(searchResultStr));
+    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(searchResultStr));
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"quiz.nests.q2.options.*.this.that.them\": {\"$eq\": false}}&raw=true");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"quiz.nests.q2.options.*.this.that.them\": {\"$eq\": false}}&raw=true",
+            200);
     searchResultStr =
         "[{\"quiz\":{\"nests\":{\"q2\":{\"options\":{\"[3]\":{\"this\":{\"that\":{\"them\":false}}}}}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(objectMapper.readTree(searchResultStr));
+    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(searchResultStr));
 
     // Multi-path
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"quiz.nests.q1,q2.options.[0]\": {\"$eq\": \"nest\"}}&raw=true");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"quiz.nests.q1,q2.options.[0]\": {\"$eq\": \"nest\"}}&raw=true",
+            200);
     searchResultStr =
         "["
             + "{\"quiz\":{\"nests\":{\"q1\":{\"options\":{\"[0]\":\"nest\"}}}}},"
             + "{\"quiz\":{\"nests\":{\"q2\":{\"options\":{\"[0]\":\"nest\"}}}}}"
             + "]";
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(objectMapper.readTree(searchResultStr));
+    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(searchResultStr));
 
     // Multi-path...and glob?!?
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"quiz.nests.q2,q3.options.*.this.them\": {\"$eq\": false}}&raw=true");
-    assertThat(r.code()).isEqualTo(200);
+                + "/collections/collection/cool-search-id?where={\"quiz.nests.q2,q3.options.*.this.them\": {\"$eq\": false}}&raw=true",
+            200);
     searchResultStr =
         "[{\"quiz\":{\"nests\":{\"q3\":{\"options\":{\"[2]\":{\"this\":{\"them\":false}}}}}}}]";
-    assertThat(objectMapper.readTree(r.body().string()))
-        .isEqualTo(objectMapper.readTree(searchResultStr));
+    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(searchResultStr));
   }
 
   @Test
   public void testPaginationSingleDocSearch() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));
-    Response r =
-        http.put("/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id", fullObj);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        fullObj.toString(),
+        200);
 
     // With default page size
-    r =
-        http.get(
-            "/v2/namespaces/"
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 0}}");
-    String responseBody = r.body().string();
-    assertThat(responseBody).startsWith("{");
-    assertThat(r.code()).isEqualTo(200);
-    JsonNode responseBody1 = objectMapper.readTree(responseBody);
+                + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 0}}",
+            200);
+    JsonNode responseBody1 = objectMapper.readTree(r);
 
     assertThat(responseBody1.requiredAt("/data").size()).isEqualTo(100);
     String pageState = responseBody1.requiredAt("/pageState").requireNonNull().asText();
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 0}}&page-state="
-                + URLEncoder.encode(pageState, "UTF-8"));
-    responseBody = r.body().string();
-    assertThat(responseBody).startsWith("{");
-    assertThat(r.code()).isEqualTo(200);
-    JsonNode responseBody2 = objectMapper.readTree(responseBody);
+                + URLEncoder.encode(pageState, "UTF-8"),
+            200);
+    JsonNode responseBody2 = objectMapper.readTree(r);
 
     assertThat(responseBody2.requiredAt("/data").size()).isEqualTo(5);
     assertThat(responseBody2.at("/pageState").isMissingNode()).isTrue();
@@ -1603,28 +2041,28 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // With provided page size, and a filter
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=50");
-    responseBody = r.body().string();
-    assertThat(responseBody).startsWith("{");
-    assertThat(r.code()).isEqualTo(200);
-    responseBody1 = objectMapper.readTree(responseBody);
+                + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=50",
+            200);
+    responseBody1 = objectMapper.readTree(r);
 
     assertThat(responseBody1.requiredAt("/data").size()).isEqualTo(50);
     pageState = responseBody1.requiredAt("/pageState").requireNonNull().asText();
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=50&page-state="
-                + URLEncoder.encode(pageState, "UTF-8"));
-    responseBody = r.body().string();
-    assertThat(responseBody).startsWith("{");
-    assertThat(r.code()).isEqualTo(200);
-    responseBody2 = objectMapper.readTree(responseBody);
+                + URLEncoder.encode(pageState, "UTF-8"),
+            200);
+    responseBody2 = objectMapper.readTree(r);
 
     assertThat(responseBody2.requiredAt("/data").size()).isEqualTo(34);
     assertThat(responseBody2.at("/pageState").isMissingNode()).isTrue();
@@ -1655,20 +2093,29 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     Set<String> docsSeen = new HashSet<>();
 
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", doc1);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/2", doc2);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/3", doc3);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        doc1.toString(),
+        200);
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/2",
+        doc2.toString(),
+        200);
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/3",
+        doc3.toString(),
+        200);
 
     // page-size defaults to 1 document when excluded
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection");
-    assertThat(r.code()).isEqualTo(200);
-    JsonNode resp = objectMapper.readTree(r.body().string());
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection",
+            200);
+    JsonNode resp = objectMapper.readTree(r);
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
     JsonNode data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
@@ -1678,15 +2125,15 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen.add(key);
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?page-state="
-                + URLEncoder.encode(pageState, "UTF-8"));
-    String body = r.body().string();
-    assertThat(body).startsWith("{");
-    assertThat(r.code()).isEqualTo(200);
-    resp = objectMapper.readTree(body);
+                + URLEncoder.encode(pageState, "UTF-8"),
+            200);
+    resp = objectMapper.readTree(r);
     pageState = resp.requiredAt("/pageState").requireNonNull().asText();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
@@ -1696,15 +2143,15 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen.add(key);
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?page-state="
-                + URLEncoder.encode(pageState, "UTF-8"));
-    body = r.body().string();
-    assertThat(body).startsWith("{");
-    assertThat(r.code()).isEqualTo(200);
-    resp = objectMapper.readTree(body);
+                + URLEncoder.encode(pageState, "UTF-8"),
+            200);
+    resp = objectMapper.readTree(r);
     assertThat(resp.at("/pageState").isMissingNode()).isTrue();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
@@ -1718,11 +2165,12 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     docsSeen = new HashSet<>();
     // set page-size to 2
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection?page-size=2");
-    body = r.body().string();
-    assertThat(body).startsWith("{");
-    assertThat(r.code()).isEqualTo(200);
-    resp = objectMapper.readTree(body);
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection?page-size=2",
+            200);
+    resp = objectMapper.readTree(r);
     pageState = resp.requiredAt("/pageState").requireNonNull().asText();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(2);
@@ -1736,15 +2184,15 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen.add(key);
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?page-size=2&page-state="
-                + URLEncoder.encode(pageState, "UTF-8"));
-    body = r.body().string();
-    assertThat(body).startsWith("{");
-    assertThat(r.code()).isEqualTo(200);
-    resp = objectMapper.readTree(body);
+                + URLEncoder.encode(pageState, "UTF-8"),
+            200);
+    resp = objectMapper.readTree(r);
     assertThat(resp.at("/pageState").isMissingNode()).isTrue();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
@@ -1759,11 +2207,12 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen = new HashSet<>();
 
     // set page-size to 4
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection?page-size=4");
-    body = r.body().string();
-    assertThat(body).startsWith("{");
-    assertThat(r.code()).isEqualTo(200);
-    resp = objectMapper.readTree(body);
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection?page-size=4",
+            200);
+    resp = objectMapper.readTree(r);
     assertThat(resp.at("/pageState").isMissingNode()).isTrue();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(3);
@@ -1794,20 +2243,29 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     Set<String> docsSeen = new HashSet<>();
 
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", doc1);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/2", doc2);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/3", doc3);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        doc1.toString(),
+        200);
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/2",
+        doc2.toString(),
+        200);
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/3",
+        doc3.toString(),
+        200);
 
     // page-size defaults to 1 document when excluded
-    r = http.get("/v2/namespaces/" + keyspace + "/collections/collection?fields=[\"a\"]");
-    assertThat(r.code()).isEqualTo(200);
-    JsonNode resp = objectMapper.readTree(r.body().string());
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection?fields=[\"a\"]",
+            200);
+    JsonNode resp = objectMapper.readTree(r);
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
     JsonNode data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
@@ -1825,15 +2283,15 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen.add(key);
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?fields=[\"a\"]&page-state="
-                + URLEncoder.encode(pageState, "UTF-8"));
-    String body = r.body().string();
-    assertThat(body).startsWith("{");
-    assertThat(r.code()).isEqualTo(200);
-    resp = objectMapper.readTree(body);
+                + URLEncoder.encode(pageState, "UTF-8"),
+            200);
+    resp = objectMapper.readTree(r);
     pageState = resp.requiredAt("/pageState").requireNonNull().asText();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
@@ -1850,15 +2308,15 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen.add(key);
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?fields=[\"a\"]&page-state="
-                + URLEncoder.encode(pageState, "UTF-8"));
-    body = r.body().string();
-    assertThat(body).startsWith("{");
-    assertThat(r.code()).isEqualTo(200);
-    resp = objectMapper.readTree(body);
+                + URLEncoder.encode(pageState, "UTF-8"),
+            200);
+    resp = objectMapper.readTree(r);
     assertThat(resp.at("/pageState").isMissingNode()).isTrue();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
@@ -1880,12 +2338,14 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen = new HashSet<>();
     // set page-size to 2
     r =
-        http.get(
-            "/v2/namespaces/" + keyspace + "/collections/collection?fields=[\"a\"]&page-size=2");
-    body = r.body().string();
-    assertThat(body).startsWith("{");
-    assertThat(r.code()).isEqualTo(200);
-    resp = objectMapper.readTree(body);
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?fields=[\"a\"]&page-size=2",
+            200);
+    resp = objectMapper.readTree(r);
     pageState = resp.requiredAt("/pageState").requireNonNull().asText();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(2);
@@ -1913,15 +2373,15 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen.add(key);
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?fields=[\"a\"]&page-size=2&page-state="
-                + URLEncoder.encode(pageState, "UTF-8"));
-    body = r.body().string();
-    assertThat(body).startsWith("{");
-    assertThat(r.code()).isEqualTo(200);
-    resp = objectMapper.readTree(body);
+                + URLEncoder.encode(pageState, "UTF-8"),
+            200);
+    resp = objectMapper.readTree(r);
     assertThat(resp.at("/pageState").isMissingNode()).isTrue();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
@@ -1944,12 +2404,14 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // set page-size to 4
     r =
-        http.get(
-            "/v2/namespaces/" + keyspace + "/collections/collection?fields=[\"a\"]&page-size=4");
-    body = r.body().string();
-    assertThat(body).startsWith("{");
-    assertThat(r.code()).isEqualTo(200);
-    resp = objectMapper.readTree(body);
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?fields=[\"a\"]&page-size=4",
+            200);
+    resp = objectMapper.readTree(r);
     assertThat(resp.at("/pageState").isMissingNode()).isTrue();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(3);
@@ -1988,24 +2450,32 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     Set<String> docsSeen = new HashSet<>();
 
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", doc1);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/2", doc2);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
-    r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/3", doc3);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        doc1.toString(),
+        200);
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/2",
+        doc2.toString(),
+        200);
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/3",
+        doc3.toString(),
+        200);
 
     // page-size defaults to 1 document when excluded
-    r =
-        http.get(
-            "/v2/namespaces/"
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?where={\"b.value\": {\"$eq\": 2}}&fields=[\"a\"]");
-    assertThat(r.code()).isEqualTo(200);
-    JsonNode resp = objectMapper.readTree(r.body().string());
+                + "/collections/collection?where={\"b.value\": {\"$eq\": 2}}&fields=[\"a\"]",
+            200);
+    JsonNode resp = objectMapper.readTree(r);
     assertThat(resp.at("/pageState").isMissingNode()).isTrue();
     JsonNode data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
@@ -2018,12 +2488,14 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     // Return all documents where quiz.sport.q1.question exists, but only the `quiz` field on each
     // doc
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]");
-    assertThat(r.code()).isEqualTo(200);
-    resp = objectMapper.readTree(r.body().string());
+                + "/collections/collection?where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]",
+            200);
+    resp = objectMapper.readTree(r);
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
@@ -2042,13 +2514,15 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen.add(key);
 
     r =
-        http.get(
-            "/v2/namespaces/"
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]&page-state="
-                + URLEncoder.encode(pageState, "UTF-8"));
-    assertThat(r.code()).isEqualTo(200);
-    resp = objectMapper.readTree(r.body().string());
+                + URLEncoder.encode(pageState, "UTF-8"),
+            200);
+    resp = objectMapper.readTree(r);
     assertThat(resp.at("/pageState").isMissingNode()).isTrue();
     data = resp.requiredAt("/data");
     assertThat(data.size()).isEqualTo(1);
@@ -2070,26 +2544,33 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidFullDocPageSize() throws IOException {
-    Response r = http.get("/v2/namespaces/" + keyspace + "/collections/collection?page-size=21");
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string()).isEqualTo("The parameter `page-size` is limited to 20.");
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection?page-size=21",
+            400);
+    assertThat(r).isEqualTo("The parameter `page-size` is limited to 20.");
   }
 
   @Test
   public void testPaginationDisallowedLimitedSupport() throws IOException {
     JsonNode doc1 =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));
-    Response r = http.put("/v2/namespaces/" + keyspace + "/collections/collection/1", doc1);
-    assertThat(r.code()).isEqualTo(200);
-    r.close();
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        doc1.toString(),
+        200);
 
-    r =
-        http.get(
-            "/v2/namespaces/"
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/1?where={\"*.value\":{\"$nin\": [3]}}page-size=5");
-    assertThat(r.code()).isEqualTo(400);
-    assertThat(r.body().string())
+                + "/collections/collection/1?where={\"*.value\":{\"$nin\": [3]}}page-size=5",
+            400);
+    assertThat(r)
         .isEqualTo(
             "The results as requested must fit in one page, try increasing the `page-size` parameter.");
   }

@@ -38,7 +38,6 @@ public class DocCollection {
   }
 
   @ApiModelProperty(
-      required = true,
       value =
           "Whether an upgrade is available. Use the 'upgrade a collection' endpoint with the upgrade type to perform upgrade.")
   @JsonProperty("upgradeAvailable")

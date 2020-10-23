@@ -135,7 +135,7 @@ public class DocumentDB {
           .get();
       return true;
     } catch (AlreadyExistsException e) {
-      logger.warn("Table already exists, skipping creation", e);
+      logger.info("Table already exists, skipping creation", e);
       return false;
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException("Unable to create schema for collection", e);
@@ -151,16 +151,23 @@ public class DocumentDB {
       }
       return true;
     } catch (AlreadyExistsException e) {
-      logger.warn("Indexes already exist, skipping creation", e);
+      logger.info("Indexes already exist, skipping creation", e);
       return false;
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException("Unable to create indexes for collection " + tableName, e);
     }
   }
 
+  /**
+   * Drops indexes for `tableName` and adds SAI indexes in their place. Only works if `isDse` is
+   * true.
+   *
+   * <p>This could cause performance degradation and/or disrupt in-flight requests, since indexes
+   * are being dropped and re-created.
+   */
   public boolean upgradeTableIndexes(String keyspaceName, String tableName, boolean isDse) {
     if (!isDse) {
-      logger.warn("Upgrade was attempted on a non-DSE setup.");
+      logger.info("Upgrade was attempted on a non-DSE setup.");
       return false;
     }
 
