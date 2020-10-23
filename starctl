@@ -128,7 +128,7 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
     fi
 
     if [[ ! -z "$PROXY_PORT" ]]; then
-        STARGATE_ARGS+=("--proxy-dns-name" "$PROXY_PORT")
+        STARGATE_ARGS+=("--proxy-port" "$PROXY_PORT")
     fi
 
     if [[ ! -z "$DEVELOPER_MODE" ]]; then
