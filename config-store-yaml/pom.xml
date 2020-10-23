@@ -69,9 +69,7 @@
 						<Bundle-Activator>io.stargate.config.store.api.yaml.ConfigStoreActivator</Bundle-Activator>
 						<Import-Package><![CDATA[
                                         org.osgi.framework,
-                                        io.stargate.config.store.api,
-                                        !ch.qos.logback.classic.*,
-                            			!ch.qos.logback.core.*
+                                        io.stargate.config.store.api
                                         ]]>
 						</Import-Package>
 						<DynamicImport-Package>*</DynamicImport-Package>
