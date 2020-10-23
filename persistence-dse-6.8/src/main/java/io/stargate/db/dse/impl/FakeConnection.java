@@ -37,7 +37,7 @@ import org.apache.cassandra.transport.ServerConnection;
 // even without that, the tracing code that call that method probably shouldn't: instead they
 // should reach into the QueryState that they have access to, as done by the C* code an plenty
 // other places.
-class FakeConnection extends ServerConnection {
+public class FakeConnection extends ServerConnection {
   public FakeConnection(InetSocketAddress remoteAddress, ProtocolVersion version) {
     super(new FakeChannel(remoteAddress), version, new FakeTracker(), false);
   }
