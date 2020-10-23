@@ -20,9 +20,10 @@ import java.util.List;
 import javax.validation.constraints.NotNull;
 
 public class TableAdd {
-  @NotNull String name;
-  @NotNull PrimaryKey primaryKey;
-  @NotNull List<ColumnDefinition> columnDefinitions;
+
+  @NotNull private String name;
+  @NotNull private PrimaryKey primaryKey;
+  @NotNull private List<ColumnDefinition> columnDefinitions;
 
   boolean ifNotExists = false;
   TableOptions tableOptions = new TableOptions();

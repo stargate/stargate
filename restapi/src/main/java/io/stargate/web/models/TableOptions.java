@@ -24,8 +24,9 @@ import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TableOptions {
-  Integer defaultTimeToLive;
-  List<ClusteringExpression> clusteringExpression = new ArrayList<>();
+
+  private Integer defaultTimeToLive;
+  private List<ClusteringExpression> clusteringExpression = new ArrayList<>();
 
   @JsonCreator
   public TableOptions(

@@ -34,6 +34,9 @@ import org.apache.cassandra.stargate.locator.InetAddressAndPort;
  */
 public interface Persistence {
 
+  int SCHEMA_AGREEMENT_WAIT_RETRIES =
+      Integer.getInteger("stargate.persistence.schema.agreement.wait.retries", 900);
+
   /** Name describing the persistence implementation. */
   String name();
 
@@ -81,13 +84,16 @@ public interface Persistence {
 
   /** Wait for schema to agree across the cluster */
   default void waitForSchemaAgreement() {
-    for (int count = 0; count < 100; count++) {
+    for (int count = 0; count < SCHEMA_AGREEMENT_WAIT_RETRIES; count++) {
       if (isInSchemaAgreement()) {
         return;
       }
       Uninterruptibles.sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
     }
-    throw new IllegalStateException("Failed to reach schema agreement after 20 seconds.");
+    throw new IllegalStateException(
+        "Failed to reach schema agreement after "
+            + (200 * SCHEMA_AGREEMENT_WAIT_RETRIES)
+            + " milliseconds.");
   }
 
   /**

@@ -17,13 +17,12 @@ package io.stargate.graphql.schema;
 
 import static graphql.Scalars.GraphQLString;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import graphql.Scalars;
+import graphql.introspection.Introspection;
 import graphql.schema.GraphQLArgument;
+import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLEnumType;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLInputObjectField;
@@ -33,7 +32,6 @@ import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLNonNull;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLOutputType;
-import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeReference;
@@ -42,12 +40,10 @@ import io.stargate.db.Persistence;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
-import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.schema.fetchers.dml.DeleteMutationFetcher;
 import io.stargate.graphql.schema.fetchers.dml.InsertMutationFetcher;
 import io.stargate.graphql.schema.fetchers.dml.QueryFetcher;
 import io.stargate.graphql.schema.fetchers.dml.UpdateMutationFetcher;
-import io.stargate.graphql.schema.types.GqlMapBuilder;
 import io.stargate.graphql.util.CaseUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -63,43 +59,12 @@ class DmlSchemaBuilder {
 
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
-  private final Map<Column.ColumnType, GraphQLInputObjectType> filterInputTypes;
   private final Map<Table, GraphQLOutputType> entityResultMap = new HashMap<>();
-  private final Map<String, GraphQLType> typeCache = new HashMap<>();
+  private final FieldInputTypeCache fieldInputTypes;
+  private final FieldOutputTypeCache fieldOutputTypes;
+  private final FieldFilterInputTypeCache fieldFilterInputTypes;
   private final NameMapping nameMapping;
   private final Keyspace keyspace;
-
-  private GraphQLInputType mutationOptions =
-      GraphQLInputObjectType.newInputObject()
-          .name("MutationOptions")
-          .field(
-              GraphQLInputObjectField.newInputObjectField()
-                  .name("consistency")
-                  .type(
-                      GraphQLEnumType.newEnum()
-                          .name("MutationConsistency")
-                          .value("LOCAL_ONE")
-                          .value("LOCAL_QUORUM")
-                          .value("ALL")
-                          .build())
-                  .build())
-          .field(
-              GraphQLInputObjectField.newInputObjectField()
-                  .name("serialConsistency")
-                  .type(
-                      GraphQLEnumType.newEnum()
-                          .name("SerialConsistency")
-                          .value("SERIAL")
-                          .value("LOCAL_SERIAL")
-                          .build())
-                  .build())
-          .field(
-              GraphQLInputObjectField.newInputObjectField()
-                  .name("ttl")
-                  .type(Scalars.GraphQLInt)
-                  .defaultValue(-1)
-                  .build())
-          .build();
 
   DmlSchemaBuilder(
       Persistence persistence, AuthenticationService authenticationService, Keyspace keyspace) {
@@ -108,15 +73,15 @@ class DmlSchemaBuilder {
     this.keyspace = keyspace;
 
     this.nameMapping = new NameMapping(keyspace.tables(), keyspace.userDefinedTypes());
-    this.filterInputTypes = buildFilterInputTypes();
+    this.fieldInputTypes = new FieldInputTypeCache(this.nameMapping);
+    this.fieldOutputTypes = new FieldOutputTypeCache(this.nameMapping);
+    this.fieldFilterInputTypes =
+        new FieldFilterInputTypeCache(this.fieldInputTypes, this.nameMapping);
   }
 
+  @SuppressWarnings("deprecation")
   GraphQLSchema build() {
     GraphQLSchema.Builder builder = new GraphQLSchema.Builder();
-
-    for (UserDefinedType udt : keyspace.userDefinedTypes()) {
-      builder.additionalTypes(buildTypesForUdt(udt));
-    }
 
     List<GraphQLFieldDefinition> queryFields = new ArrayList<>();
     List<GraphQLFieldDefinition> mutationFields = new ArrayList<>();
@@ -140,6 +105,13 @@ class DmlSchemaBuilder {
       queryFields.addAll(tableQueryField);
       mutationFields.addAll(tableMutationFields);
     }
+
+    builder.additionalDirective(
+        GraphQLDirective.newDirective()
+            .validLocation(Introspection.DirectiveLocation.MUTATION)
+            .name(SchemaConstants.ATOMIC_DIRECTIVE)
+            .description("Instructs the server to apply the mutations in a LOGGED batch")
+            .build());
 
     if (queryFields.isEmpty()) {
       GraphQLFieldDefinition emptyQueryField =
@@ -291,7 +263,7 @@ class DmlSchemaBuilder {
                 .type(
                     new GraphQLTypeReference(
                         nameMapping.getEntityNames().get(table) + "FilterInput")))
-        .argument(GraphQLArgument.newArgument().name("options").type(mutationOptions))
+        .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
         .type(new GraphQLTypeReference(nameMapping.getEntityNames().get(table) + "MutationResult"))
         .dataFetcher(
             new UpdateMutationFetcher(table, nameMapping, persistence, authenticationService))
@@ -309,7 +281,7 @@ class DmlSchemaBuilder {
                         new GraphQLTypeReference(
                             nameMapping.getEntityNames().get(table) + "Input"))))
         .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
-        .argument(GraphQLArgument.newArgument().name("options").type(mutationOptions))
+        .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
         .type(new GraphQLTypeReference(nameMapping.getEntityNames().get(table) + "MutationResult"))
         .dataFetcher(
             new InsertMutationFetcher(table, nameMapping, persistence, authenticationService))
@@ -333,101 +305,27 @@ class DmlSchemaBuilder {
                 .type(
                     new GraphQLTypeReference(
                         nameMapping.getEntityNames().get(table) + "FilterInput")))
-        .argument(GraphQLArgument.newArgument().name("options").type(mutationOptions))
+        .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
         .type(new GraphQLTypeReference(nameMapping.getEntityNames().get(table) + "MutationResult"))
         .dataFetcher(
             new DeleteMutationFetcher(table, nameMapping, persistence, authenticationService))
         .build();
   }
 
-  private Map<Column.ColumnType, GraphQLInputObjectType> buildFilterInputTypes() {
-    GraphQLInputObjectType stringFilterInput = filterInputType(Scalars.GraphQLString);
-    GraphQLInputObjectType intFilterInput = filterInputType(Scalars.GraphQLInt);
-    GraphQLInputObjectType floatFilterInput = filterInputType(Scalars.GraphQLFloat);
-    GraphQLInputObjectType uuidFilterInput = filterInputType(CustomScalar.UUID.getGraphQLScalar());
-    GraphQLInputObjectType timestampFilterInput =
-        filterInputType(CustomScalar.TIMESTAMP.getGraphQLScalar());
-    GraphQLInputObjectType timeUUIDFilterInput =
-        filterInputType(CustomScalar.TIMEUUID.getGraphQLScalar());
-    GraphQLInputObjectType inetFilterInput = filterInputType(CustomScalar.INET.getGraphQLScalar());
-    GraphQLInputObjectType bigIntFilterInput =
-        filterInputType(CustomScalar.BIGINT.getGraphQLScalar());
-    GraphQLInputObjectType decimalFilterInput =
-        filterInputType(CustomScalar.DECIMAL.getGraphQLScalar());
-    GraphQLInputObjectType varintFilterInput =
-        filterInputType(CustomScalar.VARINT.getGraphQLScalar());
-    GraphQLInputObjectType blobFilterInput = filterInputType(CustomScalar.BLOB.getGraphQLScalar());
-
-    return ImmutableMap.<Column.ColumnType, GraphQLInputObjectType>builder()
-        .put(Column.Type.Int, intFilterInput)
-        .put(Column.Type.Smallint, intFilterInput)
-        .put(Column.Type.Tinyint, intFilterInput)
-        .put(Column.Type.Text, stringFilterInput)
-        .put(Column.Type.Varchar, stringFilterInput)
-        .put(Column.Type.Float, floatFilterInput)
-        .put(Column.Type.Double, floatFilterInput)
-        .put(Column.Type.Uuid, uuidFilterInput)
-        .put(Column.Type.Timestamp, timestampFilterInput)
-        .put(Column.Type.Timeuuid, timeUUIDFilterInput)
-        .put(Column.Type.Inet, inetFilterInput)
-        .put(Column.Type.Bigint, bigIntFilterInput)
-        .put(Column.Type.Decimal, decimalFilterInput)
-        .put(Column.Type.Varint, varintFilterInput)
-        .put(Column.Type.Blob, blobFilterInput)
-        .build();
-  }
-
   private List<GraphQLInputObjectField> buildFilterInputFields(Table table) {
     List<GraphQLInputObjectField> fields = new ArrayList<>();
-    for (Column columnMetadata : table.columns()) {
-      Column.ColumnType type = columnMetadata.type();
-      if (type != null && type.isUserDefined()) {
-        assert type instanceof UserDefinedType;
-        fields.add(
-            GraphQLInputObjectField.newInputObjectField()
-                .name(nameMapping.getColumnNames(table).get(columnMetadata))
-                .type(
-                    new GraphQLTypeReference(
-                        nameMapping.getUdtNames().get(type.frozen(false)) + "FilterInput"))
-                .build());
-      } else if (filterInputTypes.get(type) != null) {
-        fields.add(
-            GraphQLInputObjectField.newInputObjectField()
-                .name(nameMapping.getColumnNames(table).get(columnMetadata))
-                .type(getFilterInputTypeRef(type))
-                .build());
-      }
+    for (Column column : table.columns()) {
+      fields.add(
+          GraphQLInputObjectField.newInputObjectField()
+              .name(nameMapping.getColumnNames(table).get(column))
+              .type(fieldFilterInputTypes.get(column.type()))
+              .build());
     }
 
     Preconditions.checkState(
         !fields.isEmpty(), "Could not generate an input type for table, skipping.");
 
     return fields;
-  }
-
-  private GraphQLInputType getFilterInputTypeRef(Column.ColumnType dataType) {
-    return filterInputTypes.get(dataType);
-  }
-
-  private static GraphQLInputObjectType filterInputType(GraphQLScalarType type) {
-    return filterInputType(type.getName() + "FilterInput", type);
-  }
-
-  private static GraphQLInputObjectType filterInputType(
-      String filterInputTypeName, GraphQLInputType elementType) {
-    return GraphQLInputObjectType.newInputObject()
-        .name(filterInputTypeName)
-        .field(GraphQLInputObjectField.newInputObjectField().name("eq").type(elementType))
-        .field(GraphQLInputObjectField.newInputObjectField().name("notEq").type(elementType))
-        .field(GraphQLInputObjectField.newInputObjectField().name("gt").type(elementType))
-        .field(GraphQLInputObjectField.newInputObjectField().name("gte").type(elementType))
-        .field(GraphQLInputObjectField.newInputObjectField().name("lt").type(elementType))
-        .field(GraphQLInputObjectField.newInputObjectField().name("lte").type(elementType))
-        .field(
-            GraphQLInputObjectField.newInputObjectField()
-                .name("in")
-                .type(new GraphQLList(elementType)))
-        .build();
   }
 
   private GraphQLOutputType buildMutationResult(Table table) {
@@ -498,7 +396,7 @@ class DmlSchemaBuilder {
         GraphQLInputObjectField field =
             GraphQLInputObjectField.newInputObjectField()
                 .name(nameMapping.getColumnNames(table).get(columnMetadata))
-                .type((GraphQLInputType) getGraphQLType(columnMetadata.type(), true))
+                .type(fieldInputTypes.get(columnMetadata.type()))
                 .build();
         input.field(field);
       } catch (Exception e) {
@@ -552,114 +450,37 @@ class DmlSchemaBuilder {
   private GraphQLFieldDefinition.Builder buildOutputField(Table table, Column columnMetadata) {
     return new GraphQLFieldDefinition.Builder()
         .name(nameMapping.getColumnNames(table).get(columnMetadata))
-        .type((GraphQLOutputType) getGraphQLType(columnMetadata.type(), false));
+        .type(fieldOutputTypes.get(columnMetadata.type()));
   }
 
-  private Set<GraphQLType> buildTypesForUdt(UserDefinedType udt) {
-
-    String typeNameBase = nameMapping.getUdtNames().get(udt.frozen(false));
-
-    GraphQLObjectType.Builder outputType = GraphQLObjectType.newObject().name(typeNameBase);
-    for (Column column : udt.columns()) {
-      try {
-        outputType.field(
-            new GraphQLFieldDefinition.Builder()
-                .name(nameMapping.getFieldNames(udt).get(column))
-                .type((GraphQLOutputType) getGraphQLType(column.type(), false))
-                .build());
-      } catch (Exception e) {
-        log.error(String.format("Type for %s could not be created", column.name()), e);
-      }
-    }
-
-    GraphQLInputObjectType.Builder inputType =
-        GraphQLInputObjectType.newInputObject().name(typeNameBase + "Input");
-    for (Column column : udt.columns()) {
-      try {
-        inputType.field(
-            GraphQLInputObjectField.newInputObjectField()
-                .name(nameMapping.getFieldNames(udt).get(column))
-                .type((GraphQLInputType) getGraphQLType(column.type(), true))
-                .build());
-      } catch (Exception e) {
-        log.error(String.format("Input type for %s could not be created", column.name()), e);
-      }
-    }
-    GraphQLInputObjectType filterInputType =
-        filterInputType(
-            typeNameBase + "FilterInput", new GraphQLTypeReference(typeNameBase + "Input"));
-
-    return ImmutableSet.of(outputType.build(), inputType.build(), filterInputType);
-  }
-
-  private GraphQLType getGraphQLType(Column.ColumnType type, boolean isInput) {
-    return getGraphQLType(type, isInput, typeCache, nameMapping);
-  }
-
-  @VisibleForTesting
-  static GraphQLType getGraphQLType(
-      Column.ColumnType type,
-      boolean isInput,
-      Map<String, GraphQLType> typeCache,
-      NameMapping nameMapping) {
-    switch (type.rawType()) {
-      case Ascii:
-        return CustomScalar.ASCII.getGraphQLScalar();
-      case Bigint:
-        return CustomScalar.BIGINT.getGraphQLScalar();
-      case Blob:
-        return CustomScalar.BLOB.getGraphQLScalar();
-      case Boolean:
-        return Scalars.GraphQLBoolean;
-      case Counter:
-        return CustomScalar.COUNTER.getGraphQLScalar();
-      case Decimal:
-        return CustomScalar.DECIMAL.getGraphQLScalar();
-      case Double:
-        // GraphQL's Float is a signed double‐precision fractional value
-        return Scalars.GraphQLFloat;
-      case Float:
-        // Use a custom scalar named "Float32"
-        return CustomScalar.FLOAT.getGraphQLScalar();
-      case Int:
-      case Smallint:
-      case Tinyint:
-        return Scalars.GraphQLInt;
-      case Text:
-      case Varchar:
-        return Scalars.GraphQLString;
-      case Timestamp:
-        return CustomScalar.TIMESTAMP.getGraphQLScalar();
-      case Uuid:
-        return CustomScalar.UUID.getGraphQLScalar();
-      case Varint:
-        return CustomScalar.VARINT.getGraphQLScalar();
-      case Timeuuid:
-        return CustomScalar.TIMEUUID.getGraphQLScalar();
-      case Inet:
-        return CustomScalar.INET.getGraphQLScalar();
-      case Date:
-        return CustomScalar.DATE.getGraphQLScalar();
-      case Time:
-        return CustomScalar.TIME.getGraphQLScalar();
-      case List:
-      case Set:
-        return new GraphQLList(
-            getGraphQLType(type.parameters().get(0), isInput, typeCache, nameMapping));
-      case Map:
-        GraphQLType keyType =
-            getGraphQLType(type.parameters().get(0), isInput, typeCache, nameMapping);
-        GraphQLType valueType =
-            getGraphQLType(type.parameters().get(1), isInput, typeCache, nameMapping);
-        return new GqlMapBuilder(keyType, valueType, isInput, typeCache).build();
-      case UDT:
-        UserDefinedType udt = (UserDefinedType) type.frozen(false);
-        return new GraphQLTypeReference(
-            nameMapping.getUdtNames().get(udt) + (isInput ? "Input" : ""));
-      default:
-        break;
-    }
-
-    throw new RuntimeException("Unsupported data type " + type.name());
-  }
+  private static final GraphQLInputType MUTATION_OPTIONS =
+      GraphQLInputObjectType.newInputObject()
+          .name("MutationOptions")
+          .field(
+              GraphQLInputObjectField.newInputObjectField()
+                  .name("consistency")
+                  .type(
+                      GraphQLEnumType.newEnum()
+                          .name("MutationConsistency")
+                          .value("LOCAL_ONE")
+                          .value("LOCAL_QUORUM")
+                          .value("ALL")
+                          .build())
+                  .build())
+          .field(
+              GraphQLInputObjectField.newInputObjectField()
+                  .name("serialConsistency")
+                  .type(
+                      GraphQLEnumType.newEnum()
+                          .name("SerialConsistency")
+                          .value("SERIAL")
+                          .value("LOCAL_SERIAL")
+                          .build())
+                  .build())
+          .field(
+              GraphQLInputObjectField.newInputObjectField()
+                  .name("ttl")
+                  .type(Scalars.GraphQLInt)
+                  .build())
+          .build();
 }

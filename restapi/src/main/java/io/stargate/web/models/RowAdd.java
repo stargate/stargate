@@ -19,7 +19,7 @@ import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 
 public class RowAdd {
-  List<ColumnModel> columns;
+  private List<ColumnModel> columns;
 
   @ApiModelProperty(required = true, value = "The column definitions belonging to the row to add.")
   public List<ColumnModel> getColumns() {

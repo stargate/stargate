@@ -15,7 +15,10 @@
  */
 package graphql.kickstart.servlet;
 
+import graphql.execution.AsyncExecutionStrategy;
 import graphql.kickstart.execution.GraphQLObjectMapper;
+import graphql.kickstart.execution.GraphQLQueryInvoker;
+import graphql.kickstart.execution.config.DefaultExecutionStrategyProvider;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.db.EventListener;
@@ -205,6 +208,12 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
     GraphQLSchema schema = SchemaFactory.newDmlSchema(persistence, authenticationService, keyspace);
     GraphQLConfiguration configuration =
         GraphQLConfiguration.with(schema)
+            .with(
+                // Queries and mutations within the same request run in parallel
+                GraphQLQueryInvoker.newBuilder()
+                    .withExecutionStrategyProvider(
+                        new DefaultExecutionStrategyProvider(new AsyncExecutionStrategy()))
+                    .build())
             .with(new GraphqlCustomContextBuilder())
             .with(
                 GraphQLObjectMapper.newBuilder()
