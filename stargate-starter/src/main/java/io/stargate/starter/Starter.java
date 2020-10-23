@@ -247,7 +247,7 @@ public class Starter {
     this.disableMBeanRegistration = true;
   }
 
-  void setStargateProperties() {
+  protected void setStargateProperties() {
     if (version == null || version.trim().isEmpty() || !NumberUtils.isParsable(version)) {
       throw new IllegalArgumentException("--cluster-version must be a number");
     }
@@ -350,6 +350,26 @@ public class Starter {
     // Install bundles
     context = framework.getBundleContext();
     File[] files = new File(JAR_DIRECTORY).listFiles();
+    List<File> jars = pickBundles(files);
+    framework.start();
+
+    bundleList = new ArrayList<>();
+    // Install bundle JAR files and remember the bundle objects.
+    for (File jar : jars) {
+      System.out.println("Installing bundle " + jar.getName());
+      Bundle b = context.installBundle(jar.toURI().toString());
+      bundleList.add(b);
+    }
+    // Start all installed bundles.
+    for (Bundle bundle : bundleList) {
+      System.out.println("Starting bundle " + bundle.getSymbolicName());
+      bundle.start();
+    }
+
+    if (watchBundles) watchJarDirectory(JAR_DIRECTORY);
+  }
+
+  protected List<File> pickBundles(File[] files) {
     ArrayList<File> jars = new ArrayList<>();
     boolean foundVersion = false;
 
@@ -385,22 +405,7 @@ public class Starter {
           String.format(
               "No persistence backend found for %s %s", (dse ? "dse" : "cassandra"), version));
 
-    framework.start();
-
-    bundleList = new ArrayList<>();
-    // Install bundle JAR files and remember the bundle objects.
-    for (File jar : jars) {
-      System.out.println("Installing bundle " + jar.getName());
-      Bundle b = context.installBundle(jar.toURI().toString());
-      bundleList.add(b);
-    }
-    // Start all installed bundles.
-    for (Bundle bundle : bundleList) {
-      System.out.println("Starting bundle " + bundle.getSymbolicName());
-      bundle.start();
-    }
-
-    if (watchBundles) watchJarDirectory(JAR_DIRECTORY);
+    return jars;
   }
 
   public void stop() throws InterruptedException, BundleException {
