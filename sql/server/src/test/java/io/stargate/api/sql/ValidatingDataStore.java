@@ -85,6 +85,11 @@ public class ValidatingDataStore implements DataStore {
   }
 
   @Override
+  public CompletableFuture<ResultSet> batch(List<String> queries) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public Schema schema() {
     return schema;
   }
