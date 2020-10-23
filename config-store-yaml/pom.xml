@@ -69,7 +69,6 @@
                                         ]]>
 						</Import-Package>
 						<DynamicImport-Package>*</DynamicImport-Package>
-						<Bundle-ClassPath>.,sjk-core-0.14.jar,{maven-dependencies}</Bundle-ClassPath>
 						<Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
 						<Embed-Transitive>true</Embed-Transitive>
 					</instructions>
