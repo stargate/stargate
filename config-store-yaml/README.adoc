@@ -31,7 +31,7 @@ So for example, when using `ConfigStore#getConfigForExtension("extension-1)` it 
 It will allow isolation between settings from various extensions.
 
 If the caller will try to look up the config for an extension that does not have a dedicated section in the YAML file,
-it will throw the `MissingExtensionSettingsException`. This is a `RuntimeException` and it's the caller's responsibility to catch it and handle gracefully or propagate upper in the call stack.
+it will throw the `MissingExtensionSettingsException`. This is a `RuntimeException` and it's the caller's responsibility to catch it and handle gracefully or propagate higher in the call stack.
 
 == Using Config Store Yaml with Kubernetes(K8s)
 This config store needs to have a YAML file in the local file system.
