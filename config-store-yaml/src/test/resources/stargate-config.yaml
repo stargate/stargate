@@ -4,4 +4,4 @@ extension-1:
 
 extension-2:
   a: 2
-  b: "value_2"
+  b: ["a","b"]

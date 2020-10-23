@@ -23,6 +23,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import org.junit.jupiter.api.Test;
@@ -46,7 +47,7 @@ class ConfigStoreYamlTest {
     assertThat(configForExtension1)
         .containsOnly(new SimpleEntry<>("a", 1), new SimpleEntry<>("b", "value"));
     assertThat(configForExtension2)
-        .containsOnly(new SimpleEntry<>("a", 2), new SimpleEntry<>("b", "value_2"));
+        .containsOnly(new SimpleEntry<>("a", 2), new SimpleEntry<>("b", Arrays.asList("a", "b")));
   }
 
   @Test
