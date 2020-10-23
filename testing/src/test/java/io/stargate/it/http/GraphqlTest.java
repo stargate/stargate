@@ -22,6 +22,7 @@ import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
+import com.datastax.oss.driver.shaded.guava.common.base.Charsets;
 import com.example.graphql.client.betterbotz.atomic.InsertOrdersWithAtomicMutation;
 import com.example.graphql.client.betterbotz.atomic.ProductsAndOrdersMutation;
 import com.example.graphql.client.betterbotz.collections.GetCollectionsNestedQuery;
@@ -75,11 +76,15 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.CharStreams;
 import io.stargate.auth.model.AuthTokenResponse;
+import io.stargate.db.schema.Column;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -103,6 +108,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import org.apache.http.HttpStatus;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -134,19 +140,31 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
 
   private CqlSession session;
-  private String keyspace;
-  private static String authToken;
+  private String authToken;
+  private static final String keyspace = "betterbotz";
   private static final ObjectMapper objectMapper = new ObjectMapper();
-  private static String host = "http://" + getStargateHost();
 
   public GraphqlTest(ClusterConnectionInfo backend) {
     super(backend);
   }
 
   @BeforeEach
-  public void setup(ClusterConnectionInfo cluster) throws IOException {
-    keyspace = "betterbotz";
+  public void setup(ClusterConnectionInfo cluster) throws Exception {
+    if (session == null) {
+      createSessionAndSchema(cluster);
 
+      initAuth();
+    }
+  }
+
+  @AfterEach
+  public void teardown() {
+    if (session != null) {
+      session.close();
+    }
+  }
+
+  private void createSessionAndSchema(ClusterConnectionInfo cluster) throws Exception {
     session =
         CqlSession.builder()
             .withConfigLoader(
@@ -159,82 +177,18 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .withLocalDatacenter(cluster.datacenter())
             .build();
 
-    assertThat(
-            session
-                .execute(
-                    String.format(
-                        "create keyspace if not exists %s WITH replication = "
-                            + "{'class': 'SimpleStrategy', 'replication_factor': 1 }",
-                        keyspace))
-                .wasApplied())
-        .isTrue();
+    // Create CQL schema using betterbotz.cql file
+    InputStream inputStream = getClass().getClassLoader().getResourceAsStream("betterbotz.cql");
+    assertThat(inputStream).isNotNull();
+    String queries = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
+    assertThat(queries).isNotNull();
 
-    assertThat(
-            session
-                .execute(
-                    String.format(
-                        "create table if not exists %s.%s "
-                            + " ("
-                            + "id uuid,"
-                            + "name text,"
-                            + "price decimal,"
-                            + "created timestamp,"
-                            + "prod_name text,"
-                            + "customer_name text,"
-                            + "description text,"
-                            + "PRIMARY KEY ((id), name, price, created)"
-                            + ")",
-                        keyspace, "products"))
-                .wasApplied())
-        .isTrue();
-
-    assertThat(
-            session
-                .execute(
-                    String.format(
-                        "create table if not exists %s.%s "
-                            + " ("
-                            + "prod_name text,"
-                            + "customer_name text,"
-                            + "id uuid,"
-                            + "prod_id uuid,"
-                            + "address text,"
-                            + "description text,"
-                            + "price decimal,"
-                            + "sell_price decimal,"
-                            + "PRIMARY KEY ((prod_name), customer_name)"
-                            + ")",
-                        keyspace, "orders"))
-                .wasApplied())
-        .isTrue();
-
-    session.execute(
-        String.format(
-            "CREATE TABLE IF NOT EXISTS %s.%s ("
-                + "id uuid PRIMARY KEY,\n"
-                + "list_value1 frozen<list<int>>,\n"
-                + "list_value2 frozen<list<timeuuid>>,\n"
-                + "set_value1 frozen<set<text>>,\n"
-                + "map_value1 frozen<map<int, text>>,\n"
-                + "map_value2 frozen<map<uuid, bigint>>,)",
-            keyspace, "collections_simple"));
-
-    session.execute(
-        String.format(
-            "CREATE TABLE IF NOT EXISTS %s.%s (\n"
-                + "    id uuid PRIMARY KEY,\n"
-                + "    list_value1 frozen<list<frozen<map<int, text>>>>,\n"
-                + "    set_value1 frozen<list<frozen<set<uuid>>>>,\n"
-                + "    map_value1 frozen<map<uuid, frozen<map<bigint, text>>>>\n"
-                + ")",
-            keyspace, "collections_nested"));
-
-    session.execute(String.format("CREATE TYPE IF NOT EXISTS %s.b(i int)", keyspace));
-    session.execute(String.format("CREATE TYPE IF NOT EXISTS %s.a(b frozen<b>)", keyspace));
-    session.execute(
-        String.format(
-            "CREATE TABLE IF NOT EXISTS %s.udts(a frozen<a> PRIMARY KEY, bs list<frozen<b>>)",
-            keyspace));
+    for (String q : queries.split(";")) {
+      if (q.trim().equals("")) {
+        continue;
+      }
+      session.execute(q);
+    }
 
     PreparedStatement insert =
         session.prepare(
@@ -243,44 +197,27 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                     + "sell_price, customer_name, address) values (?, ?, ?, ?, ?, ?, ?, ?)",
                 keyspace, "orders"));
 
-    assertThat(
-            session
-                .execute(
-                    insert.bind(
-                        UUID.fromString("792d0a56-bb46-4bc2-bc41-5f4a94a83da9"),
-                        UUID.fromString("31047029-2175-43ce-9fdd-b3d568b19bb2"),
-                        "Medium Lift Arms",
-                        "Ordering some more arms for my construction bot.",
-                        BigDecimal.valueOf(3199.99),
-                        BigDecimal.valueOf(3119.99),
-                        "Janice Evernathy",
-                        "2101 Everplace Ave 3116"))
-                .wasApplied())
-        .isTrue();
+    session.execute(
+        insert.bind(
+            UUID.fromString("792d0a56-bb46-4bc2-bc41-5f4a94a83da9"),
+            UUID.fromString("31047029-2175-43ce-9fdd-b3d568b19bb2"),
+            "Medium Lift Arms",
+            "Ordering some more arms for my construction bot.",
+            BigDecimal.valueOf(3199.99),
+            BigDecimal.valueOf(3119.99),
+            "Janice Evernathy",
+            "2101 Everplace Ave 3116"));
 
-    assertThat(
-            session
-                .execute(
-                    insert.bind(
-                        UUID.fromString("dd73afe2-9841-4ce1-b841-575b8be405c1"),
-                        UUID.fromString("31047029-2175-43ce-9fdd-b3d568b19bb5"),
-                        "Basic Task CPU",
-                        "Ordering replacement CPUs.",
-                        BigDecimal.valueOf(899.99),
-                        BigDecimal.valueOf(900.82),
-                        "John Doe",
-                        "123 Main St 67890"))
-                .wasApplied())
-        .isTrue();
-
-    initAuth();
-  }
-
-  @AfterEach
-  public void teardown() {
-    if (session != null) {
-      session.close();
-    }
+    session.execute(
+        insert.bind(
+            UUID.fromString("dd73afe2-9841-4ce1-b841-575b8be405c1"),
+            UUID.fromString("31047029-2175-43ce-9fdd-b3d568b19bb5"),
+            "Basic Task CPU",
+            "Ordering replacement CPUs.",
+            BigDecimal.valueOf(899.99),
+            BigDecimal.valueOf(900.82),
+            "John Doe",
+            "123 Main St 67890"));
   }
 
   private void initAuth() throws IOException {
@@ -289,7 +226,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             "",
-            String.format("%s:8081/v1/auth/token/generate", host),
+            String.format("http://%s:8081/v1/auth/token/generate", getStargateHost()),
             objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
             HttpStatus.SC_CREATED);
 
@@ -1100,9 +1037,6 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     String url = String.format("http://%s:8080%s", getStargateHost(), path);
     HttpUrl.Builder httpBuilder = HttpUrl.parse(url).newBuilder();
     httpBuilder.addQueryParameter("query", query);
-
-    ObjectMapper mapper = new ObjectMapper();
-
     Map<String, Object> formData = new HashMap<>();
     formData.put("query", query);
 
@@ -1116,7 +1050,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                     .build())
             .execute();
     assertThat(response.code()).isEqualTo(HttpStatus.SC_OK);
-    Map<String, Object> result = mapper.readValue(response.body().string(), Map.class);
+    Map<String, Object> result = objectMapper.readValue(response.body().string(), Map.class);
     response.close();
     return result;
   }
@@ -1172,6 +1106,65 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             "query { keyspaces { name, nameInvalid } }",
             "Field 'nameInvalid' in type 'Keyspace' is undefined",
             "Validation error"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("getScalarValues")
+  public void shouldSupportScalar(Column.Type type, Object value) throws IOException {
+    String column = type.name().toLowerCase() + "value";
+    UUID id = UUID.randomUUID();
+    String mutation = "mutation { updateScalars(value: {id: \"%s\", %s: %s}) { applied } }";
+
+    String graphQLValue = value.toString();
+    if (value instanceof String) {
+      graphQLValue = String.format("\"%s\"", value);
+    }
+
+    assertThat(
+            executePost("/graphql/betterbotz", String.format(mutation, id, column, graphQLValue)))
+        .doesNotContainKey("errors");
+
+    String query = "query { scalars(value: {id: \"%s\"}) { values { %s } } }";
+    Map<String, Object> result =
+        executePost("/graphql/betterbotz", String.format(query, id, column));
+
+    assertThat(result).doesNotContainKey("errors");
+    assertThat(result)
+        .extractingByKey("data", InstanceOfAssertFactories.MAP)
+        .extractingByKey("scalars", InstanceOfAssertFactories.MAP)
+        .extractingByKey("values", InstanceOfAssertFactories.LIST)
+        .singleElement()
+        .asInstanceOf(InstanceOfAssertFactories.MAP)
+        .extractingByKey(column)
+        .isEqualTo(value);
+  }
+
+  private static Stream<Arguments> getScalarValues() {
+    return Stream.of(
+        arguments(Column.Type.Ascii, "abc"),
+        arguments(Column.Type.Bigint, "-9223372036854775807"),
+        arguments(Column.Type.Blob, "AQID//7gEiMB"),
+        arguments(Column.Type.Boolean, true),
+        arguments(Column.Type.Boolean, false),
+        arguments(Column.Type.Date, "2005-08-05"),
+        arguments(Column.Type.Decimal, "-0.123456"),
+        arguments(Column.Type.Double, -1D),
+        arguments(Column.Type.Duration, "12h30m"),
+        // Serialized as JSON numbers
+        arguments(Column.Type.Float, 1.1234D),
+        arguments(Column.Type.Inet, "8.8.8.8"),
+        arguments(Column.Type.Int, 1),
+        // Serialized as JSON Number
+        arguments(Column.Type.Smallint, 32_767),
+        arguments(Column.Type.Text, "abc123", "'abc123'"),
+        arguments(Column.Type.Time, "23:59:31.123456789"),
+        arguments(Column.Type.Timestamp, "2007-12-03T10:15:30Z"),
+        arguments(Column.Type.Tinyint, -128),
+        arguments(Column.Type.Tinyint, 1),
+        arguments(Column.Type.Timeuuid, Uuids.timeBased().toString()),
+        arguments(Column.Type.Uuid, "f3abdfbf-479f-407b-9fde-128145bd7bef"),
+        arguments(Column.Type.Varchar, ""),
+        arguments(Column.Type.Varint, "92233720368547758070000"));
   }
 
   @Test

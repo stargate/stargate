@@ -179,7 +179,7 @@ public class ScalarsDmlTest extends DmlTestBase {
         arguments(Column.Type.Inet, "2001:db8:a0b:12f0:0:0:0:1", "'2001:db8:a0b:12f0:0:0:0:1'"),
         arguments(Column.Type.Inet, "8.8.8.8", "'8.8.8.8'"),
         arguments(Column.Type.Inet, "127.0.0.1", "'127.0.0.1'"),
-        arguments(Column.Type.Inet, "127.0.0.1", "'127.0.0.1'"),
+        arguments(Column.Type.Inet, "10.1.2.3", "'10.1.2.3'"),
         arguments(Column.Type.Int, 1, null),
         arguments(Column.Type.Int, -1, null),
         arguments(Column.Type.Int, 0, null),
