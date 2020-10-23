@@ -237,7 +237,9 @@ public class DsePersistence
 
   @Override
   public Connection newConnection() {
-    return new DseConnection();
+    return new DseConnection(
+        new ClientInfo(
+            new InetSocketAddress("127.0.0.1", 0), new InetSocketAddress("127.0.0.1", 0)));
   }
 
   @Override
@@ -295,10 +297,11 @@ public class DsePersistence
 
   private static ClientState clientStateForExternalCalls(@Nonnull ClientInfo clientInfo) {
     if (clientInfo.publicAddress().isPresent()) {
-      new ClientStateWithPublicAddress(
+      return new ClientStateWithPublicAddress(
           clientInfo.remoteAddress(), clientInfo.publicAddress().get());
     }
-    return ClientState.forExternalCalls(clientInfo.remoteAddress(), null);
+    return new ClientStateWithPublicAddress(
+        clientInfo.remoteAddress(), new InetSocketAddress("127.0.0.1", 0));
   }
 
   private class DseConnection extends AbstractConnection {
