@@ -4,7 +4,9 @@ import java.util.Collections;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.db.virtual.AbstractVirtualTable;
 import org.apache.cassandra.db.virtual.DataSet;
+import org.apache.cassandra.dht.Token.TokenFactory;
 import org.apache.cassandra.schema.TableMetadata;
+import org.apache.cassandra.service.StorageService;
 
 public abstract class StargateNodeView extends AbstractVirtualTable {
   StargateNodeView(TableMetadata metadata) {
@@ -12,6 +14,7 @@ public abstract class StargateNodeView extends AbstractVirtualTable {
   }
 
   DataSet.RowBuilder completeRow(DataSet.RowBuilder rowBuilder, StargateNodeInfo info) {
+    TokenFactory factory = StorageService.instance.getTokenFactory();
     return rowBuilder
         // + "rpc_address inet,"
         .addColumn("rpc_address", info::getRpcAddress)
@@ -32,7 +35,7 @@ public abstract class StargateNodeView extends AbstractVirtualTable {
             "tokens",
             () ->
                 Collections.singleton(
-                    DatabaseDescriptor.getPartitioner().getMinimumToken().toString()))
+                    factory.toString(DatabaseDescriptor.getPartitioner().getMinimumToken())))
         // + "native_transport_port int,"
         .addColumn("native_transport_port", info::getNativePort)
         // + "native_transport_port_ssl int,"

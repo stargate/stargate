@@ -17,7 +17,6 @@ import io.stargate.db.datastore.common.AbstractCassandraPersistence;
 import io.stargate.db.dse.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,7 +55,6 @@ import org.apache.cassandra.service.ClientWarn;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.stargate.exceptions.PersistenceException;
-import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.transport.Message.Request;
 import org.apache.cassandra.transport.ServerConnection;
@@ -200,33 +198,18 @@ public class DsePersistence
 
   @Override
   public void registerEventListener(EventListener listener) {
-    EventListenerWrapper wrapper = new EventListenerWrapper(listener);
-    SchemaManager.instance.registerListener(wrapper);
-    interceptor.register(wrapper);
-  }
-
-  @Override
-  public boolean isRpcReady(InetAddressAndPort endpoint) {
-    return StorageService.instance.isRpcReady(endpoint.address);
-  }
-
-  @Override
-  public InetAddressAndPort getNativeAddress(InetAddressAndPort endpoint) {
-    try {
-      return InetAddressAndPort.getByName(
-          StorageService.instance.getNativeTransportAddress(endpoint.address));
-    } catch (UnknownHostException e) {
-      // That should not happen, so log an error, but return the
-      // endpoint address since there's a good change this is right
-      logger.error("Problem retrieving RPC address for {}", endpoint, e);
-      return InetAddressAndPort.getByAddressOverrideDefaults(
-          endpoint.address, DatabaseDescriptor.getNativeTransportPort());
-    }
+    SchemaManager.instance.registerListener(new EventListenerWrapper(listener));
+    interceptor.register(listener);
   }
 
   @Override
   public Authenticator getAuthenticator() {
     return authenticator;
+  }
+
+  @Override
+  public void setRpcReady(boolean status) {
+    StorageService.instance.setNativeTransportReady(status);
   }
 
   @Override
@@ -294,7 +277,7 @@ public class DsePersistence
 
   private static ClientState clientStateForExternalCalls(@Nonnull ClientInfo clientInfo) {
     if (clientInfo.publicAddress().isPresent()) {
-      new ClientStateWithPublicAddress(
+      return new ClientStateWithPublicAddress(
           clientInfo.remoteAddress(), clientInfo.publicAddress().get());
     }
     return ClientState.forExternalCalls(clientInfo.remoteAddress(), null);

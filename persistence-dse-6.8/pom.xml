@@ -158,6 +158,17 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <version>4.0.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>com.datastax.dse</groupId>
       <artifactId>dse-java-driver-core</artifactId>
       <version>1.10.0-dse+20200217</version>

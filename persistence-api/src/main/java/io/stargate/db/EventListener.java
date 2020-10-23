@@ -15,10 +15,12 @@
  */
 package io.stargate.db;
 
+import java.net.InetAddress;
 import java.util.List;
-import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 
 public interface EventListener {
+  public static final int NO_PORT = -1;
+
   default void onCreateKeyspace(String keyspace) {}
 
   default void onCreateTable(String keyspace, String table) {}
@@ -61,13 +63,13 @@ public interface EventListener {
 
   default void onDropAggregate(String keyspace, String aggregate, List<String> argumentTypes) {}
 
-  default void onJoinCluster(InetAddressAndPort endpoint) {}
+  default void onJoinCluster(InetAddress endpoint, int port) {}
 
-  default void onLeaveCluster(InetAddressAndPort endpoint) {}
+  default void onLeaveCluster(InetAddress endpoint, int port) {}
 
-  default void onUp(InetAddressAndPort endpoint) {}
+  default void onUp(InetAddress endpoint, int port) {}
 
-  default void onDown(InetAddressAndPort endpoint) {}
+  default void onDown(InetAddress endpoint, int port) {}
 
-  default void onMove(InetAddressAndPort endpoint) {}
+  default void onMove(InetAddress endpoint, int port) {}
 }

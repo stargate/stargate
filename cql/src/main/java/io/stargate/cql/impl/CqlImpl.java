@@ -40,8 +40,20 @@ public class CqlImpl {
   private Collection<Server> servers = Collections.emptyList();
   private final EventLoopGroup workerGroup;
 
-  public CqlImpl(Config config) {
+  private final Persistence persistence;
+  private final Metrics metrics;
+  private final AuthenticationService authentication;
+
+  public CqlImpl(
+      Config config,
+      Persistence persistence,
+      Metrics metrics,
+      AuthenticationService authentication) {
     TransportDescriptor.daemonInitialization(config);
+
+    this.persistence = persistence;
+    this.metrics = metrics;
+    this.authentication = authentication;
 
     if (useEpoll()) {
       workerGroup = new EpollEventLoopGroup();
@@ -52,8 +64,7 @@ public class CqlImpl {
     }
   }
 
-  public void start(
-      Persistence persistence, Metrics metrics, AuthenticationService authentication) {
+  public void start() {
 
     int nativePort = TransportDescriptor.getNativeTransportPort();
     int nativePortSSL = TransportDescriptor.getNativeTransportPortSSL();
@@ -82,9 +93,11 @@ public class CqlImpl {
 
     ClientMetrics.instance.init(servers, metrics.getRegistry("cql"));
     servers.forEach(Server::start);
+    persistence.setRpcReady(true);
   }
 
   public void stop() {
+    persistence.setRpcReady(false);
     servers.forEach(Server::stop);
   }
 
