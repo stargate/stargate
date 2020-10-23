@@ -17,7 +17,6 @@ import io.stargate.db.datastore.common.AbstractCassandraPersistence;
 import io.stargate.db.dse.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -220,9 +219,7 @@ public class DsePersistence
 
   @Override
   public Connection newConnection() {
-    return new DseConnection(
-        new ClientInfo(
-            new InetSocketAddress("127.0.0.1", 0), new InetSocketAddress("127.0.0.1", 0)));
+    return new DseConnection();
   }
 
   @Override
@@ -283,8 +280,7 @@ public class DsePersistence
       return new ClientStateWithPublicAddress(
           clientInfo.remoteAddress(), clientInfo.publicAddress().get());
     }
-    return new ClientStateWithPublicAddress(
-        clientInfo.remoteAddress(), new InetSocketAddress("127.0.0.1", 0));
+    return ClientState.forExternalCalls(clientInfo.remoteAddress(), null);
   }
 
   private class DseConnection extends AbstractConnection {
@@ -339,10 +335,7 @@ public class DsePersistence
         // at least some user to be present but you cannot login with the "system" user.
         return Single.just(
             new QueryState(
-                new ClientStateWithPublicAddress(
-                    AuthenticatedUser.ANONYMOUS_USER,
-                    new InetSocketAddress("127.0.0.1", 0),
-                    new InetSocketAddress("127.0.0.1", 0)),
+                ClientState.forExternalCalls(AuthenticatedUser.ANONYMOUS_USER),
                 UserRolesAndPermissions.SYSTEM));
       } else {
         return DatabaseDescriptor.getAuthManager()
