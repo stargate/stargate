@@ -195,8 +195,14 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
     try {
       DataStore dataStore = DataStore.create(persistence);
       Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
-      keyspaceHandlers.put(
-          keyspaceName, buildKeyspaceHandler(keyspace, persistence, authenticationService));
+      if (keyspace == null) {
+        // This happens when come from a notification for a keyspace that was just dropped
+        LOG.debug("Removing handler for keyspace {} because it was dropped", keyspaceName);
+        keyspaceHandlers.remove(keyspaceName);
+      } else {
+        keyspaceHandlers.put(
+            keyspaceName, buildKeyspaceHandler(keyspace, persistence, authenticationService));
+      }
       LOG.debug("Done refreshing handler for keyspace {}", keyspaceName);
     } catch (Exception e) {
       LOG.error("Error while refreshing handler for keyspace {}", keyspaceName, e);
@@ -234,14 +240,11 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
 
   @Override
   public void onDropKeyspace(String keyspaceName) {
+    // Note that if the keyspace contained any children, we probably already removed the handler
+    // while processing those children's DROP events.
     HttpRequestHandler removed = keyspaceHandlers.remove(keyspaceName);
     if (removed != null) {
       LOG.debug("Removing handler for keyspace {} because it was dropped", keyspaceName);
-    } else {
-      LOG.warn(
-          "Keyspace {} was dropped, but we didn't have a handler for it,"
-              + "ignoring but that's unexpected",
-          keyspaceName);
     }
   }
 
