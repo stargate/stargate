@@ -61,7 +61,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -591,12 +590,6 @@ public class Server implements CassandraDaemon.Server {
     // since StorageService may send duplicate notifications (CASSANDRA-7816, CASSANDRA-8236,
     // CASSANDRA-9156)
     private final Map<InetAddressAndPort, LatestEvent> latestEvents = new ConcurrentHashMap<>();
-    // We also want to delay delivering a NEW_NODE notification until the new node has set its RPC
-    // ready
-    // state. This tracks the endpoints which have joined, but not yet signalled they're ready for
-    // clients
-    private final Set<InetAddressAndPort> endpointsPendingJoinedNotification =
-        ConcurrentHashMap.newKeySet();
 
     private EventNotifier(Server server) {
       this.server = server;
@@ -622,41 +615,50 @@ public class Server implements CassandraDaemon.Server {
       server.connectionTracker.send(event);
     }
 
-    // TODO(mpenick): Filter out storage nodes for status/topology events, clients don't need to
-    // "see" non-stargate node events
-
     @Override
-    public void onJoinCluster(InetAddressAndPort endpoint) {
-      if (server.persistence.isRpcReady(endpoint)) endpointsPendingJoinedNotification.add(endpoint);
-      else
-        onTopologyChange(
-            endpoint, Event.TopologyChange.newNode(server.persistence.getNativeAddress(endpoint)));
+    public void onJoinCluster(InetAddress endpoint, int port) {
+      InetAddressAndPort endpointWithPort = addPort(endpoint, port);
+      onTopologyChange(endpointWithPort, Event.TopologyChange.newNode(endpointWithPort));
     }
 
     @Override
-    public void onLeaveCluster(InetAddressAndPort endpoint) {
-      onTopologyChange(
-          endpoint,
-          Event.TopologyChange.removedNode(server.persistence.getNativeAddress(endpoint)));
+    public void onLeaveCluster(InetAddress endpoint, int port) {
+      InetAddressAndPort endpointWithPort = addPort(endpoint, port);
+      onTopologyChange(endpointWithPort, Event.TopologyChange.removedNode(endpointWithPort));
     }
 
     @Override
-    public void onMove(InetAddressAndPort endpoint) {
-      onTopologyChange(
-          endpoint, Event.TopologyChange.movedNode(server.persistence.getNativeAddress(endpoint)));
+    public void onMove(InetAddress endpoint, int port) {
+      InetAddressAndPort endpointWithPort = addPort(endpoint, port);
+      onTopologyChange(endpointWithPort, Event.TopologyChange.movedNode(endpointWithPort));
     }
 
     @Override
-    public void onUp(InetAddressAndPort endpoint) {
-      if (endpointsPendingJoinedNotification.remove(endpoint)) onJoinCluster(endpoint);
-
-      onStatusChange(
-          endpoint, Event.StatusChange.nodeUp(server.persistence.getNativeAddress(endpoint)));
+    public void onDown(InetAddress endpoint, int port) {
+      InetAddressAndPort endpointWithPort = addPort(endpoint, port);
+      onStatusChange(endpointWithPort, Event.StatusChange.nodeDown(endpointWithPort));
     }
 
-    public void onDown(InetAddressAndPort endpoint) {
-      onStatusChange(
-          endpoint, Event.StatusChange.nodeDown(server.persistence.getNativeAddress(endpoint)));
+    @Override
+    public void onUp(InetAddress endpoint, int port) {
+      InetAddressAndPort endpointWithPort = addPort(endpoint, port);
+      onStatusChange(endpointWithPort, Event.StatusChange.nodeUp(endpointWithPort));
+    }
+
+    private InetAddressAndPort addPort(InetAddress endpoint, int port) {
+      return InetAddressAndPort.getByAddressOverrideDefaults(endpoint, getPortOrDefault(port));
+    }
+
+    /**
+     * If no explicit port is specified then use the server socket's listening port. An explicit
+     * port is provided for Cassandra 4.0 peers and when using proxy protocol.
+     *
+     * @param port An explicit port to use or {@link EventListener#NO_PORT}
+     * @return The server socket's listening port when {@link EventListener#NO_PORT} is provided;
+     *     otherwise, the original port value is returned.
+     */
+    private int getPortOrDefault(int port) {
+      return port == NO_PORT ? server.socket.getPort() : port;
     }
 
     private void onTopologyChange(InetAddressAndPort endpoint, Event.TopologyChange event) {

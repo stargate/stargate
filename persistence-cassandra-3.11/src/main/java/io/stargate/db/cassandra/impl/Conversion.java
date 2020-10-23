@@ -37,7 +37,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.QueryProcessor;
@@ -233,15 +232,6 @@ public class Conversion {
   public static ProtocolVersion toExternal(
       org.apache.cassandra.transport.ProtocolVersion protocolVersion) {
     return protocolVersion == null ? null : ProtocolVersion.decode(protocolVersion.asInt(), true);
-  }
-
-  public static InetAddressAndPort toExternal(InetAddress internal) {
-    return InetAddressAndPort.getByAddressOverrideDefaults(
-        internal, DatabaseDescriptor.getStoragePort());
-  }
-
-  public static InetAddress toInternal(InetAddressAndPort external) {
-    return external.address;
   }
 
   public static org.apache.cassandra.utils.MD5Digest toInternal(MD5Digest id) {
