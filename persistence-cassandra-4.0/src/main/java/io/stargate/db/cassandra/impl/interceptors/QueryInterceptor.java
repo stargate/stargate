@@ -1,10 +1,10 @@
 package io.stargate.db.cassandra.impl.interceptors;
 
+import io.stargate.db.EventListener;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryOptions;
-import org.apache.cassandra.service.IEndpointLifecycleSubscriber;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.messages.ResultMessage;
 
@@ -22,5 +22,5 @@ public interface QueryInterceptor {
       Map<String, ByteBuffer> customPayload,
       long queryStartNanoTime);
 
-  void register(IEndpointLifecycleSubscriber subscriber);
+  void register(EventListener listener);
 }

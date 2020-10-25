@@ -5,28 +5,50 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.dao.DocumentDB;
-import io.stargate.web.docsapi.examples.*;
+import io.stargate.web.docsapi.examples.WriteDocResponse;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
-import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.resources.Db;
-import io.swagger.annotations.*;
-import io.swagger.jaxrs.PATCH;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.ResponseHeader;
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
+import javax.ws.rs.PATCH;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.PathSegment;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Path("/v2/namespaces")
+@Path("/v2/namespaces/{namespace-id: [a-zA-Z_0-9]+}")
 @Api(
     produces = MediaType.APPLICATION_JSON,
     consumes = MediaType.APPLICATION_JSON,
@@ -38,12 +60,12 @@ public class DocumentResourceV2 {
   private static final ObjectMapper mapper = new ObjectMapper();
   private final DocumentService documentService = new DocumentService();
   private final int DEFAULT_PAGE_SIZE = 100;
-  private final List<String> allowedFilters = FilterOp.allRawValues();
 
   @POST
   @ApiOperation(
       value = "Create a new document",
-      notes = "Auto-generates an ID for the newly created document")
+      notes = "Auto-generates an ID for the newly created document",
+      code = 201)
   @ApiResponses(
       value = {
         @ApiResponse(
@@ -56,7 +78,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}")
+  @Path("collections/{collection-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response postDoc(
@@ -109,7 +131,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}")
+  @Path("collections/{collection-id}/{document-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response putDoc(
@@ -152,8 +174,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path(
-      "{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}/{document-path: .*}")
+  @Path("collections/{collection-id}/{document-id}/{document-path: .*}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response putDocPath(
@@ -199,7 +220,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}")
+  @Path("collections/{collection-id}/{document-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response patchDoc(
@@ -243,8 +264,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path(
-      "{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id}/{document-id}/{document-path: .*}")
+  @Path("collections/{collection-id}/{document-id}/{document-path: .*}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response patchDocPath(
@@ -287,7 +307,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
+  @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response deleteDoc(
@@ -324,8 +344,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path(
-      "{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
+  @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response deleteDocPath(
@@ -369,7 +388,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
+  @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response getDoc(
@@ -440,8 +459,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path(
-      "{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
+  @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
   @Consumes("application/json")
   @Produces("application/json")
   public Response getDocPath(
@@ -586,7 +604,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path("{namespace-id: [a-zA-Z_0-9]+}/collections/{collection-id: [a-zA-Z_0-9]+}")
+  @Path("collections/{collection-id: [a-zA-Z_0-9]+}")
   @Produces("application/json")
   public Response searchDoc(
       @Context HttpHeaders headers,

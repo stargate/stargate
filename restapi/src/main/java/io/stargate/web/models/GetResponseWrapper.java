@@ -23,13 +23,13 @@ import io.swagger.annotations.ApiModelProperty;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GetResponseWrapper<T> {
   @JsonProperty("count")
-  int count;
+  private int count;
 
   @JsonProperty("pageState")
-  String pageState;
+  private String pageState;
 
   @JsonProperty("data")
-  T data;
+  private T data;
 
   @ApiModelProperty(value = "The count of records returned")
   public int getCount() {

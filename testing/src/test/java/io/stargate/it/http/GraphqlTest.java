@@ -20,7 +20,10 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
+import com.example.graphql.client.betterbotz.atomic.InsertOrdersWithAtomicMutation;
+import com.example.graphql.client.betterbotz.atomic.ProductsAndOrdersMutation;
 import com.example.graphql.client.betterbotz.collections.GetCollectionsNestedQuery;
 import com.example.graphql.client.betterbotz.collections.GetCollectionsSimpleQuery;
 import com.example.graphql.client.betterbotz.collections.InsertCollectionsNestedMutation;
@@ -30,6 +33,8 @@ import com.example.graphql.client.betterbotz.orders.GetOrdersByValueQuery;
 import com.example.graphql.client.betterbotz.orders.GetOrdersWithFilterQuery;
 import com.example.graphql.client.betterbotz.products.DeleteProductsMutation;
 import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery;
+import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery.Products;
+import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery.Value;
 import com.example.graphql.client.betterbotz.products.InsertProductsMutation;
 import com.example.graphql.client.betterbotz.products.UpdateProductsMutation;
 import com.example.graphql.client.betterbotz.type.AUdtInput;
@@ -40,6 +45,8 @@ import com.example.graphql.client.betterbotz.type.CustomType;
 import com.example.graphql.client.betterbotz.type.InputKeyBigIntValueString;
 import com.example.graphql.client.betterbotz.type.InputKeyIntValueString;
 import com.example.graphql.client.betterbotz.type.InputKeyUuidValueListInputKeyBigIntValueString;
+import com.example.graphql.client.betterbotz.type.MutationConsistency;
+import com.example.graphql.client.betterbotz.type.MutationOptions;
 import com.example.graphql.client.betterbotz.type.OrdersFilterInput;
 import com.example.graphql.client.betterbotz.type.OrdersInput;
 import com.example.graphql.client.betterbotz.type.ProductsFilterInput;
@@ -80,6 +87,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -90,8 +98,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.HttpUrl;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
@@ -142,7 +152,12 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .withConfigLoader(
                 DriverConfigLoader.programmaticBuilder()
                     .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
-                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(20))
+                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(180))
+                    .withDuration(
+                        DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT,
+                        Duration.ofSeconds(180))
+                    .withDuration(
+                        DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
                     .build())
             .withAuthCredentials("cassandra", "cassandra")
             .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
@@ -750,8 +765,8 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(value.getCustomerName()).hasValue("Janice Evernathy");
     assertThat(value.getAddress()).hasValue("2101 Everplace Ave 3116");
     assertThat(value.getDescription()).hasValue("Ordering some more arms for my construction bot.");
-    assertThat(value.getPrice()).hasValue((float) 3199.99);
-    assertThat(value.getSellPrice()).hasValue((float) 3119.99);
+    assertThat(value.getPrice()).hasValue(3199.99f);
+    assertThat(value.getSellPrice()).hasValue(3119.99f);
   }
 
   @Test
@@ -791,8 +806,8 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(value.getCustomerName()).hasValue("John Doe");
     assertThat(value.getAddress()).hasValue("123 Main St 67890");
     assertThat(value.getDescription()).hasValue("Ordering replacement CPUs.");
-    assertThat(value.getPrice()).hasValue((float) 899.99);
-    assertThat(value.getSellPrice()).hasValue((float) 900.82);
+    assertThat(value.getPrice()).hasValue(899.99f);
+    assertThat(value.getSellPrice()).hasValue(900.82f);
   }
 
   @Test
@@ -804,7 +819,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         ProductsInput.builder()
             .id(productId)
             .name("Shiny Legs")
-            .price((float) 3199.99)
+            .price(3199.99f)
             .created(Instant.now())
             .description("Normal legs but shiny.")
             .build();
@@ -856,7 +871,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         ProductsInput.builder()
             .id(productId)
             .name("Shiny Legs")
-            .price((float) 3199.99)
+            .price(3199.99f)
             .created(Instant.now())
             .description("Normal legs but shiny.")
             .build();
@@ -893,7 +908,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         ProductsInput.builder()
             .id(productId)
             .name("Shiny Legs")
-            .price((float) 3199.99)
+            .price(3199.99f)
             .created(Instant.now())
             .description("Normal legs but shiny.")
             .build();
@@ -918,6 +933,163 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  @DisplayName("Should execute multiple mutations with atomic directive")
+  public void shouldSupportMultipleMutationsWithAtomicDirective() {
+    UUID id = UUID.randomUUID();
+    String productName = "prod " + id;
+    String customer = "cust " + id;
+    float price = 123f;
+    String description = "desc " + id;
+
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ProductsAndOrdersMutation mutation =
+        ProductsAndOrdersMutation.builder()
+            .productValue(
+                ProductsInput.builder()
+                    .id(id.toString())
+                    .prodName(productName)
+                    .price(price)
+                    .name(productName)
+                    .customerName(customer)
+                    .created(Instant.now())
+                    .description(description)
+                    .build())
+            .orderValue(
+                OrdersInput.builder()
+                    .prodName(productName)
+                    .customerName(customer)
+                    .price(price)
+                    .description(description)
+                    .build())
+            .build();
+
+    getObservable(client.mutate(mutation));
+
+    assertThat(
+            session
+                .execute(
+                    SimpleStatement.newInstance(
+                        "SELECT * FROM betterbotz.products WHERE id = ?", id))
+                .one())
+        .isNotNull()
+        .extracting(r -> r.getString("prod_name"), r -> r.getString("description"))
+        .containsExactly(productName, description);
+
+    assertThat(
+            session
+                .execute(
+                    SimpleStatement.newInstance(
+                        "SELECT * FROM betterbotz.orders WHERE prod_name = ?", productName))
+                .one())
+        .isNotNull()
+        .extracting(r -> r.getString("customer_name"), r -> r.getString("description"))
+        .containsExactly(customer, description);
+  }
+
+  @Test
+  @DisplayName("Should execute single mutation with atomic directive")
+  public void shouldSupportSingleMutationWithAtomicDirective() {
+    UUID id = UUID.randomUUID();
+    String productName = "prod " + id;
+    String description = "desc " + id;
+    String customer = "cust 1";
+
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    InsertOrdersWithAtomicMutation mutation =
+        InsertOrdersWithAtomicMutation.builder()
+            .value(
+                OrdersInput.builder()
+                    .prodName(productName)
+                    .customerName(customer)
+                    .price(456f)
+                    .description(description)
+                    .build())
+            .build();
+
+    getObservable(client.mutate(mutation));
+
+    assertThat(
+            session
+                .execute(
+                    SimpleStatement.newInstance(
+                        "SELECT * FROM betterbotz.orders WHERE prod_name = ?", productName))
+                .one())
+        .isNotNull()
+        .extracting(r -> r.getString("customer_name"), r -> r.getString("description"))
+        .containsExactly(customer, description);
+  }
+
+  @Test
+  @DisplayName(
+      "When invalid, multiple mutations with atomic directive should return error response")
+  public void multipleMutationsWithAtomicDirectiveShouldReturnErrorResponse() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ProductsAndOrdersMutation mutation =
+        ProductsAndOrdersMutation.builder()
+            .productValue(
+                // The mutation is invalid as parts of the primary key are missing
+                ProductsInput.builder()
+                    .id(UUID.randomUUID().toString())
+                    .prodName("prodName sample")
+                    .customerName("customer name")
+                    .build())
+            .orderValue(
+                OrdersInput.builder().prodName("a").customerName("b").description("c").build())
+            .build();
+
+    GraphQLTestException ex =
+        catchThrowableOfType(
+            () -> getObservable(client.mutate(mutation)), GraphQLTestException.class);
+
+    assertThat(ex).isNotNull();
+    assertThat(ex.errors)
+        // One error per query
+        .hasSize(2)
+        .first()
+        .extracting(Error::getMessage)
+        .asString()
+        .contains("Some clustering keys are missing");
+  }
+
+  @Test
+  @DisplayName("Multiple options with atomic directive should return error response")
+  public void multipleOptionsWithAtomicDirectiveShouldReturnErrorResponse() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+
+    ProductsAndOrdersMutation mutation =
+        ProductsAndOrdersMutation.builder()
+            .productValue(
+                ProductsInput.builder()
+                    .id(Uuids.random().toString())
+                    .prodName("prod 1")
+                    .price(1f)
+                    .name("prod1")
+                    .created(Instant.now())
+                    .build())
+            .orderValue(
+                OrdersInput.builder()
+                    .prodName("prod 1")
+                    .customerName("cust 1")
+                    .description("my description")
+                    .build())
+            .options(MutationOptions.builder().consistency(MutationConsistency.ALL).build())
+            .build();
+
+    GraphQLTestException ex =
+        catchThrowableOfType(
+            () -> getObservable(client.mutate(mutation)), GraphQLTestException.class);
+
+    assertThat(ex).isNotNull();
+    assertThat(ex.errors)
+        // One error per query
+        .hasSize(2)
+        .first()
+        .extracting(Error::getMessage)
+        .asString()
+        .contains("options can only de defined once in an @atomic mutation selection");
+  }
+
+  @Test
   public void invalidTypeMappingReturnsErrorResponse() {
     ApolloClient client = getApolloClient("/graphql/betterbotz");
     // Expected UUID format
@@ -928,33 +1100,38 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   }
 
   @SuppressWarnings("unchecked")
+  private Map<String, Object> executePost(String path, String query) throws IOException {
+    OkHttpClient okHttpClient = getHttpClient();
+    String url = String.format("http://%s:8080%s", getStargateHost(), path);
+    HttpUrl.Builder httpBuilder = HttpUrl.parse(url).newBuilder();
+    httpBuilder.addQueryParameter("query", query);
+
+    ObjectMapper mapper = new ObjectMapper();
+
+    Map<String, Object> formData = new HashMap<>();
+    formData.put("query", query);
+
+    MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+    okhttp3.Response response =
+        okHttpClient
+            .newCall(
+                new Request.Builder()
+                    .post(RequestBody.create(JSON, objectMapper.writeValueAsBytes(formData)))
+                    .url(httpBuilder.build())
+                    .build())
+            .execute();
+    assertThat(response.code()).isEqualTo(HttpStatus.SC_OK);
+    Map<String, Object> result = mapper.readValue(response.body().string(), Map.class);
+    response.close();
+    return result;
+  }
+
   @ParameterizedTest
   @MethodSource("getInvalidQueries")
   @DisplayName("Invalid GraphQL queries and mutations should return error response")
   public void invalidGraphQLParametersReturnsErrorResponse(
       String path, String query, String message1, String message2) throws IOException {
-
-    OkHttpClient okHttpClient =
-        new OkHttpClient.Builder()
-            .addInterceptor(
-                chain ->
-                    chain.proceed(
-                        chain
-                            .request()
-                            .newBuilder()
-                            .addHeader("X-Cassandra-Token", authToken)
-                            .addHeader("content-type", "application/json")
-                            .build()))
-            .build();
-
-    String url = String.format("http://%s:8080%s", getStargateHost(), path);
-    HttpUrl.Builder httpBuilder = HttpUrl.parse(url).newBuilder();
-    httpBuilder.addQueryParameter("query", query);
-    okhttp3.Response response =
-        okHttpClient.newCall(new Request.Builder().url(httpBuilder.build()).build()).execute();
-    assertThat(response.code()).isEqualTo(HttpStatus.SC_OK);
-    ObjectMapper mapper = new ObjectMapper();
-    Map<String, Object> mapResponse = mapper.readValue(response.body().string(), Map.class);
+    Map<String, Object> mapResponse = executePost(path, query);
     assertThat(mapResponse).containsKey("errors");
     assertThat(mapResponse.get("errors")).isInstanceOf(List.class);
     List<Map<String, Object>> errors = (List<Map<String, Object>>) mapResponse.get("errors");
@@ -964,7 +1141,6 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         .extracting(i -> i.get("message"))
         .asString()
         .contains(message1, message2);
-    response.close();
   }
 
   public static Stream<Arguments> getInvalidQueries() {
@@ -1094,6 +1270,71 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         getObservable(client.mutate(insertMutation));
     assertThat(insertResult.getInsertCollectionsNested()).isPresent();
     assertCollectionsNested(client, id, list, set, map);
+  }
+
+  @Test
+  public void queryWithPaging() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+
+    for (String name : ImmutableList.of("a", "b", "c")) {
+      insertProduct(
+          client,
+          ProductsInput.builder()
+              .id(UUID.randomUUID().toString())
+              .name(name)
+              .price(1.f)
+              .created(Instant.now())
+              .build());
+    }
+
+    List<String> names = new ArrayList<>();
+
+    Optional<Products> products = Optional.empty();
+    do {
+      products = getProducts(client, 1, products.flatMap(r -> r.getPageState()));
+      products.ifPresent(
+          p -> {
+            p.getValues()
+                .ifPresent(
+                    values -> {
+                      for (Value value : values) {
+                        value.getName().ifPresent(names::add);
+                      }
+                    });
+          });
+    } while (products
+        .map(p -> p.getValues().map(v -> !v.isEmpty()).orElse(false))
+        .orElse(false)); // Continue if there are still values
+
+    assertThat(names).containsExactlyInAnyOrder("a", "b", "c");
+  }
+
+  private static Optional<Products> getProducts(
+      ApolloClient client, int pageSize, Optional<String> pageState) {
+    ProductsFilterInput filterInput = ProductsFilterInput.builder().build();
+
+    QueryOptions.Builder optionsBuilder =
+        QueryOptions.builder().pageSize(pageSize).consistency(QueryConsistency.LOCAL_QUORUM);
+
+    pageState.ifPresent(optionsBuilder::pageState);
+    QueryOptions options = optionsBuilder.build();
+
+    GetProductsWithFilterQuery query =
+        GetProductsWithFilterQuery.builder().filter(filterInput).options(options).build();
+
+    GetProductsWithFilterQuery.Data result = getObservable(client.query(query));
+
+    assertThat(result.getProducts())
+        .hasValueSatisfying(
+            products -> {
+              assertThat(products.getValues())
+                  .hasValueSatisfying(
+                      values -> {
+                        assertThat(values).hasSizeLessThanOrEqualTo(pageSize);
+                      });
+            });
+
+    return result.getProducts();
   }
 
   private static List<InputKeyIntValueString> toInputKeyIntValueStringList(
@@ -1253,22 +1494,23 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     return getObservable((ApolloMutationCall<Optional<D>>) client.mutate(mutation));
   }
 
-  private ApolloClient getApolloClient(String path) {
-    OkHttpClient okHttpClient =
-        new OkHttpClient.Builder()
-            .addInterceptor(
-                chain ->
-                    chain.proceed(
-                        chain
-                            .request()
-                            .newBuilder()
-                            .addHeader("X-Cassandra-Token", authToken)
-                            .build()))
-            .build();
+  private OkHttpClient getHttpClient() {
+    return new OkHttpClient.Builder()
+        .connectTimeout(Duration.ofSeconds(180))
+        .callTimeout(Duration.ofSeconds(180))
+        .readTimeout(Duration.ofSeconds(180))
+        .writeTimeout(Duration.ofSeconds(180))
+        .addInterceptor(
+            chain ->
+                chain.proceed(
+                    chain.request().newBuilder().addHeader("X-Cassandra-Token", authToken).build()))
+        .build();
+  }
 
+  private ApolloClient getApolloClient(String path) {
     return ApolloClient.builder()
         .serverUrl(String.format("http://%s:8080%s", getStargateHost(), path))
-        .okHttpClient(okHttpClient)
+        .okHttpClient(getHttpClient())
         .addCustomTypeAdapter(
             CustomType.TIMESTAMP,
             new CustomTypeAdapter<Instant>() {
@@ -1290,17 +1532,17 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     return new ApolloCall.Callback<Optional<U>>() {
       @Override
       public void onResponse(@NotNull Response<Optional<U>> response) {
-        if (response.getData().isPresent()) {
-          future.complete(response.getData().get());
-          return;
-        }
-
         if (response.getErrors() != null && response.getErrors().size() > 0) {
           logger.info(
               "GraphQL error found in test: {}",
               response.getErrors().stream().map(Error::getMessage).collect(Collectors.toList()));
           future.completeExceptionally(
               new GraphQLTestException("GraphQL error response", response.getErrors()));
+          return;
+        }
+
+        if (response.getData().isPresent()) {
+          future.complete(response.getData().get());
           return;
         }
 

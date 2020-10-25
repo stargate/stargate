@@ -22,8 +22,9 @@ import io.swagger.annotations.ApiModelProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class RowsResponse {
-  boolean success = true;
-  int rowsModified = 0;
+
+  private final boolean success;
+  private final int rowsModified;
 
   @JsonCreator
   public RowsResponse(

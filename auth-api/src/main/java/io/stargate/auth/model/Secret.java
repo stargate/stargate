@@ -18,6 +18,7 @@ package io.stargate.auth.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModelProperty;
 import java.util.Objects;
 
 /** Secret contains the key and secret for authentication */
@@ -26,6 +27,7 @@ public class Secret {
   private String key = null;
   private String secret = null;
 
+  @ApiModelProperty(required = true, value = "The key to authenticate with.")
   @JsonProperty("key")
   public String getKey() {
     return key;
@@ -35,6 +37,7 @@ public class Secret {
     this.key = key;
   }
 
+  @ApiModelProperty(required = true, value = "Secret to authenticate with.")
   @JsonProperty("secret")
   public String getSecret() {
     return secret;

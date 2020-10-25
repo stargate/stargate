@@ -22,8 +22,12 @@ import org.apache.cassandra.stargate.exceptions.PersistenceException;
 
 /** Exception thrown when an unexpected server side error occurs. */
 public class ServerError extends PersistenceException {
+  public ServerError(String msg, Throwable e) {
+    super(ExceptionCode.SERVER_ERROR, msg, e);
+  }
+
   public ServerError(Throwable e) {
-    super(ExceptionCode.SERVER_ERROR, "Unexpected persistence error: " + e.getMessage(), e);
+    this("Unexpected persistence error: " + e.getMessage(), e);
   }
 
   public ServerError(String msg) {

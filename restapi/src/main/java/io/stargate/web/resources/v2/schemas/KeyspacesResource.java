@@ -48,8 +48,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Api(
     produces = MediaType.APPLICATION_JSON,
@@ -58,9 +56,6 @@ import org.slf4j.LoggerFactory;
 @Path("/v2/schemas/keyspaces")
 @Produces(MediaType.APPLICATION_JSON)
 public class KeyspacesResource {
-
-  private static final Logger logger = LoggerFactory.getLogger(KeyspacesResource.class);
-
   @Inject private Db db;
   private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -152,7 +147,11 @@ public class KeyspacesResource {
 
   @Timed
   @POST
-  @ApiOperation(value = "Create a keyspace", notes = "Create a new keyspace.", response = Map.class)
+  @ApiOperation(
+      value = "Create a keyspace",
+      notes = "Create a new keyspace.",
+      response = Map.class,
+      code = 201)
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = Map.class),

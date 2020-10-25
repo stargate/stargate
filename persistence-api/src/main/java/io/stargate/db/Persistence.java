@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
-import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 
 /**
  * A persistence layer that can be queried.
@@ -33,6 +32,9 @@ import org.apache.cassandra.stargate.locator.InetAddressAndPort;
  * underlying store, and thus the one interface that persistence extensions must implement.
  */
 public interface Persistence {
+
+  int SCHEMA_AGREEMENT_WAIT_RETRIES =
+      Integer.getInteger("stargate.persistence.schema.agreement.wait.retries", 900);
 
   /** Name describing the persistence implementation. */
   String name();
@@ -46,11 +48,14 @@ public interface Persistence {
    */
   void registerEventListener(EventListener listener);
 
-  boolean isRpcReady(InetAddressAndPort endpoint);
-
-  InetAddressAndPort getNativeAddress(InetAddressAndPort endpoint);
-
   Authenticator getAuthenticator();
+
+  /**
+   * Notify the other stargate nodes whether RPC is or is not ready on this node.
+   *
+   * @param status true means that RPC is ready, otherwise RPC is not ready.
+   */
+  void setRpcReady(boolean status);
 
   /**
    * Creates a new connection for an "external" client identified by the provided info.
@@ -81,13 +86,16 @@ public interface Persistence {
 
   /** Wait for schema to agree across the cluster */
   default void waitForSchemaAgreement() {
-    for (int count = 0; count < 100; count++) {
+    for (int count = 0; count < SCHEMA_AGREEMENT_WAIT_RETRIES; count++) {
       if (isInSchemaAgreement()) {
         return;
       }
       Uninterruptibles.sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
     }
-    throw new IllegalStateException("Failed to reach schema agreement after 20 seconds.");
+    throw new IllegalStateException(
+        "Failed to reach schema agreement after "
+            + (200 * SCHEMA_AGREEMENT_WAIT_RETRIES)
+            + " milliseconds.");
   }
 
   /**

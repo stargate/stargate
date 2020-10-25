@@ -21,8 +21,8 @@ import io.swagger.annotations.ApiModelProperty;
 
 public class ClusteringExpression {
 
-  final String column;
-  final String order;
+  private final String column;
+  private final String order;
 
   @JsonCreator
   public ClusteringExpression(

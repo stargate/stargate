@@ -29,8 +29,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Api(
     produces = MediaType.APPLICATION_JSON,
@@ -39,9 +37,6 @@ import org.slf4j.LoggerFactory;
 @Path("/v1/keyspaces")
 @Produces(MediaType.APPLICATION_JSON)
 public class KeyspaceResource {
-
-  private static final Logger logger = LoggerFactory.getLogger(KeyspaceResource.class);
-
   @Inject private Db db;
 
   @Timed

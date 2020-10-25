@@ -34,8 +34,13 @@ public class RestUtils {
       throws IOException {
     OkHttpClient client = new OkHttpClient().newBuilder().build();
 
-    Request request =
-        new Request.Builder().url(path).get().addHeader("X-Cassandra-Token", authToken).build();
+    Request request;
+    if (authToken != null) {
+      request =
+          new Request.Builder().url(path).get().addHeader("X-Cassandra-Token", authToken).build();
+    } else {
+      request = new Request.Builder().url(path).get().build();
+    }
 
     Response response = client.newCall(request).execute();
     assertStatusCode(response, expectedStatusCode);
@@ -51,12 +56,21 @@ public class RestUtils {
       throws IOException {
     OkHttpClient client = new OkHttpClient().newBuilder().build();
 
-    Request request =
-        new Request.Builder()
-            .url(path)
-            .post(RequestBody.create(MediaType.parse("application/json"), requestBody))
-            .addHeader("X-Cassandra-Token", authToken)
-            .build();
+    Request request;
+    if (authToken != null) {
+      request =
+          new Request.Builder()
+              .url(path)
+              .post(RequestBody.create(MediaType.parse("application/json"), requestBody))
+              .addHeader("X-Cassandra-Token", authToken)
+              .build();
+    } else {
+      request =
+          new Request.Builder()
+              .url(path)
+              .post(RequestBody.create(MediaType.parse("application/json"), requestBody))
+              .build();
+    }
 
     Response response = client.newCall(request).execute();
     assertStatusCode(response, expectedStatusCode);
@@ -67,17 +81,53 @@ public class RestUtils {
     return body.string();
   }
 
+  public static Response postRaw(
+      String authToken, String path, String requestBody, int expectedStatusCode)
+      throws IOException {
+    OkHttpClient client = new OkHttpClient().newBuilder().build();
+
+    Request request;
+    if (authToken != null) {
+      request =
+          new Request.Builder()
+              .url(path)
+              .post(RequestBody.create(MediaType.parse("application/json"), requestBody))
+              .addHeader("X-Cassandra-Token", authToken)
+              .build();
+    } else {
+      request =
+          new Request.Builder()
+              .url(path)
+              .post(RequestBody.create(MediaType.parse("application/json"), requestBody))
+              .build();
+    }
+
+    Response response = client.newCall(request).execute();
+    assertStatusCode(response, expectedStatusCode);
+
+    return response;
+  }
+
   public static String put(
       String authToken, String path, String requestBody, int expectedStatusCode)
       throws IOException {
     OkHttpClient client = new OkHttpClient().newBuilder().build();
 
-    Request request =
-        new Request.Builder()
-            .url(path)
-            .put(RequestBody.create(MediaType.parse("application/json"), requestBody))
-            .addHeader("X-Cassandra-Token", authToken)
-            .build();
+    Request request;
+    if (authToken != null) {
+      request =
+          new Request.Builder()
+              .url(path)
+              .put(RequestBody.create(MediaType.parse("application/json"), requestBody))
+              .addHeader("X-Cassandra-Token", authToken)
+              .build();
+    } else {
+      request =
+          new Request.Builder()
+              .url(path)
+              .put(RequestBody.create(MediaType.parse("application/json"), requestBody))
+              .build();
+    }
 
     Response response = client.newCall(request).execute();
     assertStatusCode(response, expectedStatusCode);
@@ -93,12 +143,21 @@ public class RestUtils {
       throws IOException {
     OkHttpClient client = new OkHttpClient().newBuilder().build();
 
-    Request request =
-        new Request.Builder()
-            .url(path)
-            .patch(RequestBody.create(MediaType.parse("application/json"), requestBody))
-            .addHeader("X-Cassandra-Token", authToken)
-            .build();
+    Request request;
+    if (authToken != null) {
+      request =
+          new Request.Builder()
+              .url(path)
+              .patch(RequestBody.create(MediaType.parse("application/json"), requestBody))
+              .addHeader("X-Cassandra-Token", authToken)
+              .build();
+    } else {
+      request =
+          new Request.Builder()
+              .url(path)
+              .patch(RequestBody.create(MediaType.parse("application/json"), requestBody))
+              .build();
+    }
 
     Response response = client.newCall(request).execute();
     assertStatusCode(response, expectedStatusCode);
@@ -113,8 +172,17 @@ public class RestUtils {
       throws IOException {
     OkHttpClient client = new OkHttpClient().newBuilder().build();
 
-    Request request =
-        new Request.Builder().url(path).delete().addHeader("X-Cassandra-Token", authToken).build();
+    Request request;
+    if (authToken != null) {
+      request =
+          new Request.Builder()
+              .url(path)
+              .delete()
+              .addHeader("X-Cassandra-Token", authToken)
+              .build();
+    } else {
+      request = new Request.Builder().url(path).delete().build();
+    }
 
     Response response = client.newCall(request).execute();
     assertStatusCode(response, expectedStatusCode);

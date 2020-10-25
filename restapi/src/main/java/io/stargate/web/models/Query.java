@@ -19,11 +19,12 @@ import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 
 public class Query {
-  List<String> columnNames;
-  List<Filter> filters;
-  ClusteringExpression orderBy;
-  Integer pageSize;
-  String pageState;
+
+  private List<String> columnNames;
+  private List<Filter> filters;
+  private ClusteringExpression orderBy;
+  private Integer pageSize;
+  private String pageState;
 
   @ApiModelProperty(
       value =

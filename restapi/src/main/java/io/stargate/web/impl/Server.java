@@ -28,6 +28,7 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.web.RestApiActivator;
 import io.stargate.web.config.ApplicationConfiguration;
+import io.stargate.web.docsapi.resources.CollectionsResource;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
 import io.stargate.web.docsapi.resources.NamespacesResource;
 import io.stargate.web.resources.ColumnResource;
@@ -54,14 +55,11 @@ import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Server extends Application<ApplicationConfiguration> {
-  private static final Logger logger = LoggerFactory.getLogger(Server.class);
 
-  Persistence persistence;
-  AuthenticationService authenticationService;
+  private final Persistence persistence;
+  private final AuthenticationService authenticationService;
   private final Metrics metrics;
 
   public Server(
@@ -122,6 +120,7 @@ public class Server extends Application<ApplicationConfiguration> {
 
     // Documents API
     environment.jersey().register(DocumentResourceV2.class);
+    environment.jersey().register(CollectionsResource.class);
     environment.jersey().register(NamespacesResource.class);
 
     environment.jersey().register(ApiListingResource.class);

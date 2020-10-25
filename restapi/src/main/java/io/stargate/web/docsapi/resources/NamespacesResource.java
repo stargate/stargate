@@ -48,8 +48,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Api(
     produces = MediaType.APPLICATION_JSON,
@@ -58,9 +56,6 @@ import org.slf4j.LoggerFactory;
 @Path("/v2/schemas/namespaces")
 @Produces(MediaType.APPLICATION_JSON)
 public class NamespacesResource {
-
-  private static final Logger logger = LoggerFactory.getLogger(NamespacesResource.class);
-
   @Inject private Db db;
   private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -155,7 +150,8 @@ public class NamespacesResource {
   @ApiOperation(
       value = "Create a namespace",
       notes = "Create a new namespace.",
-      response = Map.class)
+      response = Map.class,
+      code = 201)
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = Map.class),
