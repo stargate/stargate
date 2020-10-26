@@ -6,6 +6,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import graphql.Scalars;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLInputObjectField;
+import graphql.schema.GraphQLInputObjectType;
 import graphql.schema.GraphQLInputType;
 import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLNamedInputType;
@@ -13,11 +14,14 @@ import graphql.schema.GraphQLNamedOutputType;
 import graphql.schema.GraphQLNamedSchemaElement;
 import graphql.schema.GraphQLNamedType;
 import graphql.schema.GraphQLNonNull;
+import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLOutputType;
 import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchemaElement;
 import graphql.schema.GraphQLType;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
+import io.stargate.db.schema.Column.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -129,10 +133,7 @@ public class FieldTypeCachesTest {
   @ParameterizedTest
   @MethodSource("getMapNestedArgs")
   public void getGraphQLTypeShouldSupportMapNestedInput(
-      Column.ColumnType keyDbType,
-      Column.ColumnType valueDbType,
-      String nameInput,
-      String nameOutput) {
+      Column.ColumnType keyDbType, Column.ColumnType valueDbType, String nameInput) {
 
     Column.ColumnType mapDbType = Column.Type.Map.of(keyDbType, valueDbType);
     testNestedMaps(getInputType(mapDbType), nameInput);
@@ -143,11 +144,65 @@ public class FieldTypeCachesTest {
   public void getGraphQLTypeShouldSupportMapNestedOutput(
       Column.ColumnType keyDbType,
       Column.ColumnType valueDbType,
-      String nameInput,
+      @SuppressWarnings("unused") String nameInput,
       String nameOutput) {
 
     Column.ColumnType mapDbType = Column.Type.Map.of(keyDbType, valueDbType);
     testNestedMaps(getOutputType(mapDbType), nameOutput);
+  }
+
+  @ParameterizedTest
+  @MethodSource("getTupleArgs")
+  public void shouldSupportTupleAsOutputType(ColumnType[] subTypes, String name) {
+    GraphQLType type = getOutputType(Type.Tuple.of(subTypes));
+    assertThat(type).isInstanceOf(GraphQLObjectType.class);
+
+    GraphQLObjectType objectType = (GraphQLObjectType) type;
+    assertThat(objectType.getName()).matches(String.format("^Tuple%s$", name));
+
+    List<GraphQLFieldDefinition> fields = objectType.getFieldDefinitions();
+    assertThat(fields)
+        .hasSize(subTypes.length)
+        .first()
+        .matches(d -> d.getName().equals("item0"))
+        .extracting(GraphQLFieldDefinition::getType)
+        // The first item is not null
+        .isInstanceOf(GraphQLNonNull.class)
+        .extracting(t -> t.getChildren().get(0))
+        .isSameAs(getOutputType(subTypes[0]));
+
+    for (int i = 1; i < subTypes.length; i++) {
+      GraphQLFieldDefinition field = fields.get(i);
+      assertThat(field.getName()).isEqualTo("item" + i);
+      assertThat(field.getType()).isEqualTo(getOutputType(subTypes[i]));
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("getTupleArgs")
+  public void shouldSupportTupleAsInputType(ColumnType[] subTypes, String name) {
+    GraphQLType type = getInputType(Type.Tuple.of(subTypes));
+    assertThat(type).isInstanceOf(GraphQLInputObjectType.class);
+
+    GraphQLInputObjectType objectType = (GraphQLInputObjectType) type;
+    assertThat(objectType.getName()).matches(String.format("^Tuple%sInput$", name));
+
+    List<GraphQLInputObjectField> fields = objectType.getFieldDefinitions();
+    assertThat(fields)
+        .hasSize(subTypes.length)
+        .first()
+        .matches(d -> d.getName().equals("item0"))
+        .extracting(GraphQLInputObjectField::getType)
+        // The first item is not null
+        .isInstanceOf(GraphQLNonNull.class)
+        .extracting(t -> t.getChildren().get(0))
+        .isSameAs(getInputType(subTypes[0]));
+
+    for (int i = 1; i < subTypes.length; i++) {
+      GraphQLInputObjectField field = fields.get(i);
+      assertThat(field.getName()).isEqualTo("item" + i);
+      assertThat(field.getType()).isEqualTo(getInputType(subTypes[i]));
+    }
   }
 
   private static void testNestedMaps(GraphQLType parentGraphType, String name) {
@@ -219,13 +274,31 @@ public class FieldTypeCachesTest {
             "EntryListEntryStringKeyBigIntValueKeyListFloatValue"));
   }
 
+  public static Stream<Arguments> getTupleArgs() {
+    return Stream.of(
+        arguments(new ColumnType[] {Type.Text, Type.Uuid}, "StringUuid"),
+        arguments(new ColumnType[] {Type.Uuid, Type.Set.of(Column.Type.Double)}, "UuidListFloat"),
+        arguments(
+            new ColumnType[] {Type.Uuid, Type.Map.of(Type.Timeuuid, Column.Type.Double)},
+            "UuidListEntryTimeUuidKeyFloatValue(Input)?"),
+        arguments(new ColumnType[] {Type.Int, Type.Timeuuid}, "IntTimeUuid"),
+        arguments(new ColumnType[] {Type.Double}, "Float"),
+        arguments(
+            new ColumnType[] {Type.Uuid, Type.Decimal, Type.Timestamp}, "UuidDecimalTimestamp"),
+        arguments(new ColumnType[] {Type.Float, Type.Float}, "Float32Float32"));
+  }
+
   /** Gets a GraphQL input type using the shared cache */
   private GraphQLInputType getInputType(Column.ColumnType dbType) {
-    return fieldInputTypes.get(dbType);
+    GraphQLInputType type = fieldInputTypes.get(dbType);
+    assertThat(type).isInstanceOf(GraphQLInputType.class);
+    return type;
   }
 
   /** Gets a GraphQL output type using the shared cache */
   private GraphQLOutputType getOutputType(Column.ColumnType dbType) {
-    return fieldOutputTypes.get(dbType);
+    GraphQLOutputType type = fieldOutputTypes.get(dbType);
+    assertThat(type).isInstanceOf(GraphQLOutputType.class);
+    return type;
   }
 }

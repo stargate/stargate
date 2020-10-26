@@ -22,8 +22,10 @@ import graphql.schema.GraphQLOutputType;
 import graphql.schema.GraphQLType;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.UserDefinedType;
-import io.stargate.graphql.schema.types.GqlMapBuilder;
+import io.stargate.graphql.schema.types.MapBuilder;
+import io.stargate.graphql.schema.types.TupleBuilder;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Caches GraphQL field output types, for example 'String' in:
@@ -51,14 +53,16 @@ class FieldOutputTypeCache extends FieldTypeCache<GraphQLOutputType> {
     if (columnType.isMap()) {
       GraphQLType keyType = get(columnType.parameters().get(0));
       GraphQLType valueType = get(columnType.parameters().get(1));
-      return ((GraphQLOutputType) new GqlMapBuilder(keyType, valueType, false).build());
+      return new MapBuilder(keyType, valueType, false).build();
     } else if (columnType.isList() || columnType.isSet()) {
       return new GraphQLList(get(columnType.parameters().get(0)));
     } else if (columnType.isUserDefined()) {
       UserDefinedType udt = (UserDefinedType) columnType;
       return computeUdt(udt);
     } else if (columnType.isTuple()) {
-      throw new UnsupportedOperationException("Tuples are not implemented yet");
+      List<GraphQLType> subTypes =
+          columnType.parameters().stream().map(this::get).collect(Collectors.toList());
+      return new TupleBuilder(subTypes).buildOutputType();
     } else {
       return getScalar(columnType.rawType());
     }
