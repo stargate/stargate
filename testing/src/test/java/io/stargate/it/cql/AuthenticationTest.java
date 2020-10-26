@@ -12,33 +12,28 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
-import io.stargate.it.storage.ClusterConnectionInfo;
+import io.stargate.it.storage.StargateConnectionInfo;
+import io.stargate.it.storage.StargateParameters;
+import io.stargate.it.storage.StargateSpec;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-// TODO find a workaround to reenable this test
-@Disabled(
-    "Needs to run in isolation because it relies on a static variable set from a system property")
+@StargateSpec(parametersCustomizer = "buildParameters")
 public class AuthenticationTest extends JavaDriverTestBase {
 
-  public AuthenticationTest(ClusterConnectionInfo backend) {
-    super(backend);
-    enableAuth = true;
+  private StargateConnectionInfo stargate;
+
+  @SuppressWarnings("unused") // referenced in @StargateSpec
+  public static void buildParameters(StargateParameters.Builder builder) {
+    builder.enableAuth(true);
+    builder.putSystemProperties("stargate.cql_use_auth_service", "true");
   }
 
-  @BeforeAll
-  public static void beforeAll() {
-    System.setProperty("stargate.cql_use_auth_service", "true");
-  }
-
-  @AfterAll
-  public static void afterAll() {
-    // Note that this assumes that tests runs serially
-    System.setProperty("stargate.cql_use_auth_service", "false");
+  @BeforeEach
+  public void init(StargateConnectionInfo stargate) {
+    this.stargate = stargate;
   }
 
   @Test
@@ -68,7 +63,7 @@ public class AuthenticationTest extends JavaDriverTestBase {
       String body =
           RestUtils.post(
               "",
-              String.format("%s:8081/v1/auth/token/generate", "http://" + getStargateHost()),
+              String.format("%s:8081/v1/auth/token/generate", "http://" + stargate.seedAddress()),
               objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
               HttpStatus.SC_CREATED);
 

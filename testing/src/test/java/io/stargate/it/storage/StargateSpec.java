@@ -21,18 +21,27 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/** Defines how storage node(s) required by a test should be configured. */
+/** Defines how the Stargate node(s) required by a test should be configured. */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ClusterSpec {
+public @interface StargateSpec {
 
   /**
-   * Indicates whether storage clusters started from this specification can be shared among
+   * Indicates whether Stargate instances started from this specification can be shared among
    * different tests.
    */
   boolean shared() default false;
 
-  /** Defines the number of storage nodes required by the test. */
+  /**
+   * Defines the name of a method (static or instance depending on the target of this annotation)
+   * that will be called one parameter of type {@link StargateParameters.Builder} before starting
+   * Stargate nodes.
+   *
+   * @return method name
+   */
+  String parametersCustomizer() default "";
+
+  /** Defines the number of Stargate nodes required by the test. */
   int nodes() default 1;
 }

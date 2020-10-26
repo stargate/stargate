@@ -12,6 +12,7 @@ import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.ClusterConnectionInfo;
+import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -28,20 +29,21 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
   private CqlSession session;
   private boolean isDse;
   private static String authToken;
-  private static String host = "http://" + getStargateHost();
-  private static String hostWithPort = host + ":8082";
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final OkHttpClient client =
       new OkHttpClient().newBuilder().readTimeout(3, TimeUnit.MINUTES).build();
 
-  public CollectionTest(ClusterConnectionInfo backend) {
-    super(backend);
-  }
+  private String host;
+  private String hostWithPort;
 
   @BeforeEach
-  public void setup(ClusterConnectionInfo cluster) throws IOException {
+  public void setup(ClusterConnectionInfo backend, StargateConnectionInfo stargate)
+      throws IOException {
+    host = "http://" + stargate.seedAddress();
+    hostWithPort = host + ":8082";
+
     keyspace = "ks_collection_" + System.currentTimeMillis();
-    isDse = cluster.isDse();
+    isDse = backend.isDse();
     session =
         CqlSession.builder()
             .withConfigLoader(
@@ -57,8 +59,8 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
                         DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
                     .build())
             .withAuthCredentials("cassandra", "cassandra")
-            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
-            .withLocalDatacenter(cluster.datacenter())
+            .addContactPoint(new InetSocketAddress(stargate.seedAddress(), 9043))
+            .withLocalDatacenter(stargate.datacenter())
             .build();
 
     assertThat(

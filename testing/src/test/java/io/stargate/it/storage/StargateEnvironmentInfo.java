@@ -15,27 +15,11 @@
  */
 package io.stargate.it.storage;
 
-/**
- * Provides data for connecting to storage clusters managed by {@link ExternalStorage}. Instances of
- * this interface are automatically injected into test constructor and method parameters with
- * compatible declared type.
- */
-public interface ClusterConnectionInfo {
+import java.util.List;
+
+public interface StargateEnvironmentInfo {
+
   String id();
 
-  String seedAddress();
-
-  int storagePort();
-
-  int cqlPort();
-
-  String clusterVersion();
-
-  boolean isDse();
-
-  String clusterName();
-
-  String datacenter();
-
-  String rack();
+  List<? extends StargateConnectionInfo> nodes();
 }

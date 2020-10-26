@@ -11,17 +11,12 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.protocol.internal.util.Bytes;
-import io.stargate.it.storage.ClusterConnectionInfo;
 import java.nio.ByteBuffer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class PreparedStatementTest extends JavaDriverTestBase {
-
-  public PreparedStatementTest(ClusterConnectionInfo backend) {
-    super(backend);
-  }
 
   @BeforeEach
   public void setupSchema() {
