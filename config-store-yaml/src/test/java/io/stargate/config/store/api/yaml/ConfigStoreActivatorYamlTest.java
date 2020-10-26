@@ -29,7 +29,7 @@ import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import org.osgi.framework.BundleContext;
 
-class ConfigStoreActivatorYaml {
+class ConfigStoreActivatorYamlTest {
 
   @Test
   public void shouldRegisterConfigStoreWhenYamlLocationHasExistingStargateConfig() {
@@ -38,7 +38,7 @@ class ConfigStoreActivatorYaml {
     Path path =
         Paths.get(
             Objects.requireNonNull(
-                    ConfigStoreActivatorYaml.class
+                    ConfigStoreActivatorYamlTest.class
                         .getClassLoader()
                         .getResource("stargate-config.yaml"))
                 .getPath());
