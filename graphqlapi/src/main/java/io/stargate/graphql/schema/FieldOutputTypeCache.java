@@ -51,12 +51,12 @@ class FieldOutputTypeCache extends FieldTypeCache<GraphQLOutputType> {
 
   private GraphQLOutputType computeUdt(UserDefinedType udt) {
     GraphQLObjectType.Builder builder =
-        GraphQLObjectType.newObject().name(nameMapping.getUdtNames().get(udt));
+        GraphQLObjectType.newObject().name(nameMapping.getGraphqlName(udt));
     for (Column column : udt.columns()) {
       try {
         builder.field(
             new GraphQLFieldDefinition.Builder()
-                .name(nameMapping.getFieldNames(udt).get(column))
+                .name(nameMapping.getGraphqlName(udt, column))
                 .type(get(column.type()))
                 .build());
       } catch (Exception e) {
