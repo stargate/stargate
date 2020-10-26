@@ -30,19 +30,23 @@ abstract class FieldTypeCache<GraphqlT> {
     return types.computeIfAbsent(type, this::compute);
   }
 
+  /**
+   * Different column types can be mapped to the same GraphQL type.
+   * Instead of having to look up if the GraphQL type already exists, we treat those CQL types
+   * as equal for the purpose of cql->graphql type mapping.
+   */
   private ColumnType normalize(ColumnType type) {
     // Frozen-ness does not matter. We want frozen and non-frozen versions of a CQL type to be
     // mapped to the same GraphQL type.
     type = type.frozen(false);
 
-    // CQL set and list are both converted to GraphQL list. Avoid creating duplicate types.
+    // CQL set and list are both converted to GraphQL list.
     if (type.isSet()) {
       type = ImmutableListType.builder().addAllParameters(type.parameters()).build();
     }
 
+    // CQL text and varchar use the same GraphQL type.
     if (type == Type.Varchar) {
-      // Currently field type cache does not tolerate 2 different column types (Text and Varchar)
-      // using the same graphql type, workaround by using a single column type
       type = Type.Text;
     }
 
