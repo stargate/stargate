@@ -31,9 +31,9 @@ abstract class FieldTypeCache<GraphqlT> {
   }
 
   /**
-   * Different column types can be mapped to the same GraphQL type.
-   * Instead of having to look up if the GraphQL type already exists, we treat those CQL types
-   * as equal for the purpose of cql->graphql type mapping.
+   * Different column types can be mapped to the same GraphQL type. Instead of having to look up if
+   * the GraphQL type already exists, we treat those CQL types as equal for the purpose of
+   * cql->graphql type mapping.
    */
   private ColumnType normalize(ColumnType type) {
     // Frozen-ness does not matter. We want frozen and non-frozen versions of a CQL type to be
