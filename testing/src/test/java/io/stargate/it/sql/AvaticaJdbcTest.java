@@ -18,7 +18,6 @@ package io.stargate.it.sql;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.stargate.it.cql.JavaDriverTestBase;
-import io.stargate.it.storage.ClusterConnectionInfo;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -29,10 +28,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class AvaticaJdbcTest extends JavaDriverTestBase {
-
-  public AvaticaJdbcTest(ClusterConnectionInfo backend) {
-    super(backend);
-  }
 
   @BeforeAll
   public static void loadJdbcDriver() throws ClassNotFoundException {
@@ -47,7 +42,7 @@ public class AvaticaJdbcTest extends JavaDriverTestBase {
         DriverManager.getConnection(
             String.format(
                 "jdbc:avatica:remote:url=http://%s:8765;serialization=%s",
-                getStargateHost(), Driver.Serialization.PROTOBUF.name()),
+                stargate.seedAddress(), Driver.Serialization.PROTOBUF.name()),
             "cassandra",
             "cassandra");
 
