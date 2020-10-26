@@ -140,7 +140,10 @@ public class ExternalStorage
   public boolean supportsParameter(
       ParameterContext parameterContext, ExtensionContext extensionContext)
       throws ParameterResolutionException {
-    return parameterContext.getParameter().getType().isAssignableFrom(ClusterConnectionInfo.class);
+    Class<?> parameterType = parameterContext.getParameter().getType();
+    // Resolve only ClusterConnectionInfo instances
+    return parameterType != Object.class
+        && parameterType.isAssignableFrom(ClusterConnectionInfo.class);
   }
 
   @Override
