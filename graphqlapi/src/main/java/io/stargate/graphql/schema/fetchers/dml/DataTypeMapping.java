@@ -121,9 +121,9 @@ class DataTypeMapping {
       } else {
         out.append(',');
       }
-      Column field = nameMapping.getFieldNames(type).inverse().get(entry.getKey());
-      Column.ColumnType fieldType = field.type();
-      out.append('"').append(field.name()).append("\":");
+      String fieldName = nameMapping.getCqlName(type, entry.getKey());
+      Column.ColumnType fieldType = type.fieldType(fieldName);
+      out.append('"').append(fieldName).append("\":");
       format(fieldType, entry.getValue(), nameMapping, out);
     }
     out.append('}');
@@ -136,8 +136,7 @@ class DataTypeMapping {
     for (Column column : columns) {
       if (!row.isNull(column.name())) {
         map.put(
-            nameMapping.getColumnNames(table).get(column),
-            toGraphQLValue(nameMapping, column, row));
+            nameMapping.getGraphqlName(table, column), toGraphQLValue(nameMapping, column, row));
       }
     }
     return map;
@@ -181,7 +180,7 @@ class DataTypeMapping {
       for (Column column : udt.columns()) {
         Object dbFieldValue = udtValue.getObject(CqlIdentifier.fromInternal(column.name()));
         if (dbFieldValue != null) {
-          String graphQlFieldName = nameMapping.getFieldNames(udt).get(column);
+          String graphQlFieldName = nameMapping.getGraphqlName(udt, column);
           Object graphQlFieldValue = toGraphQLValue(nameMapping, column.type(), dbFieldValue);
           result.put(graphQlFieldName, graphQlFieldValue);
         }

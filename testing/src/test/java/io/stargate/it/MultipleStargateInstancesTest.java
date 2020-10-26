@@ -27,7 +27,9 @@ import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.api.core.metrics.DefaultNodeMetric;
 import com.datastax.oss.driver.internal.core.loadbalancing.DcInferringLoadBalancingPolicy;
-import io.stargate.it.storage.ClusterConnectionInfo;
+import io.stargate.it.storage.StargateConnectionInfo;
+import io.stargate.it.storage.StargateEnvironmentInfo;
+import io.stargate.it.storage.StargateSpec;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -44,6 +46,7 @@ import org.junit.jupiter.api.TestInfo;
 
 @NotThreadSafe
 @Disabled("Waiting for fixes on #232 and #250")
+@StargateSpec(nodes = 3)
 public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
 
   private String table;
@@ -54,12 +57,8 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
 
   private int runningStargateNodes;
 
-  public MultipleStargateInstancesTest(ClusterConnectionInfo backend) {
-    super(backend);
-  }
-
   @BeforeEach
-  public void setup(TestInfo testInfo) {
+  public void setup(TestInfo testInfo, StargateEnvironmentInfo stargate) {
     DriverConfigLoader loader =
         DriverConfigLoader.programmaticBuilder()
             .withBoolean(DefaultDriverOption.METADATA_TOKEN_MAP_ENABLED, false)
@@ -79,8 +78,9 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
             .build();
 
     CqlSessionBuilder cqlSessionBuilder = CqlSession.builder().withConfigLoader(loader);
-    for (String host : getStargateHosts()) {
-      cqlSessionBuilder.addContactPoint(new InetSocketAddress(host, 9043));
+
+    for (StargateConnectionInfo node : stargate.nodes()) {
+      cqlSessionBuilder.addContactPoint(new InetSocketAddress(node.seedAddress(), node.cqlPort()));
     }
     session = cqlSessionBuilder.build();
 
@@ -89,7 +89,7 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
     String testName = name.get();
     keyspace = "ks_" + testName;
     table = testName;
-    runningStargateNodes = stargateStarters.size();
+    runningStargateNodes = stargate.nodes().size();
   }
 
   @AfterEach

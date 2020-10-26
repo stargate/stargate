@@ -15,7 +15,6 @@ import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.internal.core.util.concurrent.CompletableFutures;
 import com.datastax.oss.protocol.internal.util.Bytes;
 import com.google.common.collect.ImmutableList;
-import io.stargate.it.storage.ClusterConnectionInfo;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletionStage;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,10 +34,6 @@ import org.junit.jupiter.api.condition.EnabledIf;
  */
 @Disabled("Requires CASSANDRA-15299 on the backend")
 public class PreparedStatementAlterTableTest extends JavaDriverTestBase {
-
-  public PreparedStatementAlterTableTest(ClusterConnectionInfo backend) {
-    super(backend);
-  }
 
   @Override
   protected void customizeConfig(OptionsMap config) {

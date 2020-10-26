@@ -172,7 +172,8 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
   }
 
   protected Column getColumn(Table table, String fieldName) {
-    return nameMapping.getColumnNames(table).inverse().get(fieldName);
+    String columnName = nameMapping.getCqlName(table, fieldName);
+    return table.column(columnName);
   }
 
   protected Term toCqlTerm(Column column, Object value) {

@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
-import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 
 /**
  * A persistence layer that can be queried.
@@ -49,11 +48,14 @@ public interface Persistence {
    */
   void registerEventListener(EventListener listener);
 
-  boolean isRpcReady(InetAddressAndPort endpoint);
-
-  InetAddressAndPort getNativeAddress(InetAddressAndPort endpoint);
-
   Authenticator getAuthenticator();
+
+  /**
+   * Notify the other stargate nodes whether RPC is or is not ready on this node.
+   *
+   * @param status true means that RPC is ready, otherwise RPC is not ready.
+   */
+  void setRpcReady(boolean status);
 
   /**
    * Creates a new connection for an "external" client identified by the provided info.

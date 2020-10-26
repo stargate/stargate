@@ -27,7 +27,6 @@ import com.datastax.oss.protocol.internal.util.Bytes;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.stargate.it.storage.ClusterConnectionInfo;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -48,10 +47,6 @@ import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 
 public class DataTypeTest extends JavaDriverTestBase {
-
-  public DataTypeTest(ClusterConnectionInfo backend) {
-    super(backend);
-  }
 
   @Test
   @DisplayName("Should write and read all data types")

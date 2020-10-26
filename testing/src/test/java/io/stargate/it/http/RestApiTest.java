@@ -26,7 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
-import io.stargate.it.storage.ClusterConnectionInfo;
+import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.models.Changeset;
 import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.models.ColumnModel;
@@ -62,16 +62,14 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static String authToken;
-  private static String host = "http://" + getStargateHost();
+  private String host;
   private String keyspace;
   private CqlSession session;
 
-  public RestApiTest(ClusterConnectionInfo backend) {
-    super(backend);
-  }
-
   @BeforeEach
-  public void setup(ClusterConnectionInfo cluster) throws IOException {
+  public void setup(StargateConnectionInfo cluster) throws IOException {
+    host = "http://" + cluster.seedAddress();
+
     keyspace = "ks_restapitest";
 
     session =
@@ -87,7 +85,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
                         DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
                     .build())
             .withAuthCredentials("cassandra", "cassandra")
-            .addContactPoint(new InetSocketAddress(getStargateHost(), 9043))
+            .addContactPoint(new InetSocketAddress(cluster.seedAddress(), cluster.cqlPort()))
             .withLocalDatacenter(cluster.datacenter())
             .build();
 

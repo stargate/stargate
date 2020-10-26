@@ -21,6 +21,8 @@ package io.stargate.it.storage;
  * compatible declared type.
  */
 public interface ClusterConnectionInfo {
+  String id();
+
   String seedAddress();
 
   int storagePort();

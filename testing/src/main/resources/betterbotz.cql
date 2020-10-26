@@ -43,8 +43,32 @@ CREATE TABLE IF NOT EXISTS betterbotz.collections_nested (
     map_value1 frozen<map<uuid, frozen<map<bigint, text>>>>
 );
 
-CREATE TYPE betterbotz.b(i int);
+CREATE TYPE IF NOT EXISTS betterbotz.b(i int);
 
-CREATE TYPE betterbotz.a(b frozen<b>);
+CREATE TYPE IF NOT EXISTS betterbotz.a(b frozen<b>);
 
-CREATE TABLE betterbotz.udts(a frozen<a> PRIMARY KEY, bs list<frozen<b>>);
+CREATE TABLE IF NOT EXISTS betterbotz.udts(a frozen<a> PRIMARY KEY, bs list<frozen<b>>);
+
+CREATE TABLE IF NOT EXISTS betterbotz.scalars (
+    id uuid PRIMARY KEY,
+    asciivalue ascii,
+    bigintvalue bigint,
+    blobvalue blob,
+    booleanvalue boolean,
+    datevalue date,
+    decimalvalue decimal,
+    doublevalue double,
+    durationvalue duration,
+    floatvalue float,
+    inetvalue inet,
+    intvalue int,
+    smallintvalue smallint,
+    textvalue text,
+    timevalue time,
+    timestampvalue timestamp,
+    timeuuidvalue timeuuid,
+    tinyintvalue tinyint,
+    uuidvalue uuid,
+    varcharvalue varchar,
+    varintvalue varint
+);

@@ -51,12 +51,12 @@ class FieldInputTypeCache extends FieldTypeCache<GraphQLInputType> {
 
   private GraphQLInputType computeUdt(UserDefinedType udt) {
     GraphQLInputObjectType.Builder builder =
-        GraphQLInputObjectType.newInputObject().name(nameMapping.getUdtNames().get(udt) + "Input");
+        GraphQLInputObjectType.newInputObject().name(nameMapping.getGraphqlName(udt) + "Input");
     for (Column column : udt.columns()) {
       try {
         builder.field(
             GraphQLInputObjectField.newInputObjectField()
-                .name(nameMapping.getFieldNames(udt).get(column))
+                .name(nameMapping.getGraphqlName(udt, column))
                 .type(get(column.type()))
                 .build());
       } catch (Exception e) {

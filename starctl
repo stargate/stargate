@@ -123,6 +123,14 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
         STARGATE_ARGS+=("--use-proxy-protocol")
     fi
 
+    if [[ ! -z "$PROXY_DNS_NAME" ]]; then
+        STARGATE_ARGS+=("--proxy-dns-name" "$PROXY_DNS_NAME")
+    fi
+
+    if [[ ! -z "$PROXY_PORT" ]]; then
+        STARGATE_ARGS+=("--proxy-port" "$PROXY_PORT")
+    fi
+
     if [[ ! -z "$DEVELOPER_MODE" ]]; then
         STARGATE_ARGS+=("--developer-mode")
     fi

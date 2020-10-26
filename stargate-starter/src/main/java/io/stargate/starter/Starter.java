@@ -66,8 +66,11 @@ import org.osgi.framework.ServiceReference;
 @Command(name = "Stargate")
 public class Starter {
 
+  public static final String STARTED_MESSAGE = "Finished starting bundles.";
+
   private static final String JAR_DIRECTORY =
       System.getProperty("stargate.libdir", "../stargate-lib");
+  private static final String CACHE_DIRECTORY = System.getProperty("stargate.bundle.cache.dir");
 
   @Retention(RetentionPolicy.RUNTIME)
   public @interface Order {
@@ -170,12 +173,26 @@ public class Starter {
 
   @Order(value = 13)
   @Option(
+      name = {"--proxy-dns-name"},
+      description =
+          "Used with the proxy protocol flag to populate `system.peers` with a proxy's public IP addresses (i.e. A records)")
+  private String proxyDnsName;
+
+  @Order(value = 14)
+  @Option(
+      name = {"--proxy-port"},
+      description =
+          "Used with the proxy protocol flag to specify the proxy's listening port for the CQL protocol")
+  private int proxyPort = cqlPort;
+
+  @Order(value = 15)
+  @Option(
       name = {"--emulate-dbaas-defaults"},
       description =
           "Updated defaults reflect those of DataStax Astra at the time of the currently used DSE release")
   private boolean emulateDbaasDefaults = false;
 
-  @Order(value = 14)
+  @Order(value = 16)
   @Option(
       name = {"--developer-mode"},
       description =
@@ -184,19 +201,19 @@ public class Starter {
               + "requiring additional nodes or existing cluster")
   boolean developerMode = false;
 
-  @Order(value = 15)
+  @Order(value = 17)
   @Option(
       name = {"--bind-to-listen-address"},
       description = "When set, it binds web services to listen address only")
   boolean bindToListenAddressOnly = false;
 
-  @Order(value = 16)
+  @Order(value = 18)
   @Option(
       name = {"--jmx-port"},
       description = "The port on which JMX should start")
   int jmxPort = 7199;
 
-  @Order(value = 17)
+  @Order(value = 19)
   @Option(
       name = {
         "--disable-dynamic-snitch",
@@ -204,7 +221,7 @@ public class Starter {
       })
   boolean disableDynamicSnitch = false;
 
-  @Order(value = 18)
+  @Order(value = 20)
   @Option(
       name = {"--disable-mbean-registration", "Whether the mbean registration should be disabled"})
   boolean disableMBeanRegistration = false;
@@ -247,7 +264,7 @@ public class Starter {
     this.disableMBeanRegistration = true;
   }
 
-  void setStargateProperties() {
+  protected void setStargateProperties() {
     if (version == null || version.trim().isEmpty() || !NumberUtils.isParsable(version)) {
       throw new IllegalArgumentException("--cluster-version must be a number");
     }
@@ -296,6 +313,10 @@ public class Starter {
     System.setProperty("stargate.cql_port", String.valueOf(cqlPort));
     System.setProperty("stargate.enable_auth", enableAuth ? "true" : "false");
     System.setProperty("stargate.use_proxy_protocol", useProxyProtocol ? "true" : "false");
+    if (proxyDnsName != null) {
+      System.setProperty("stargate.proxy_protocol.dns_name", proxyDnsName);
+    }
+    System.setProperty("stargate.proxy_protocol.port", String.valueOf(proxyPort));
     System.setProperty("stargate.emulate_dbaas_defaults", emulateDbaasDefaults ? "true" : "false");
     System.setProperty("stargate.developer_mode", String.valueOf(developerMode));
     System.setProperty("stargate.bind_to_listen_address", String.valueOf(bindToListenAddressOnly));
@@ -342,6 +363,11 @@ public class Starter {
     configMap.put(
         FelixConstants.FRAMEWORK_SYSTEMPACKAGES_EXTRA,
         "sun.misc,sun.nio.ch,com.sun.management,sun.rmi.registry");
+
+    if (CACHE_DIRECTORY != null) {
+      configMap.put(FelixConstants.FRAMEWORK_STORAGE, CACHE_DIRECTORY);
+    }
+
     framework = new Felix(configMap);
     framework.init();
 
@@ -350,6 +376,28 @@ public class Starter {
     // Install bundles
     context = framework.getBundleContext();
     File[] files = new File(JAR_DIRECTORY).listFiles();
+    List<File> jars = pickBundles(files);
+    framework.start();
+
+    bundleList = new ArrayList<>();
+    // Install bundle JAR files and remember the bundle objects.
+    for (File jar : jars) {
+      System.out.println("Installing bundle " + jar.getName());
+      Bundle b = context.installBundle(jar.toURI().toString());
+      bundleList.add(b);
+    }
+    // Start all installed bundles.
+    for (Bundle bundle : bundleList) {
+      System.out.println("Starting bundle " + bundle.getSymbolicName());
+      bundle.start();
+    }
+
+    System.out.println(STARTED_MESSAGE);
+
+    if (watchBundles) watchJarDirectory(JAR_DIRECTORY);
+  }
+
+  protected List<File> pickBundles(File[] files) {
     ArrayList<File> jars = new ArrayList<>();
     boolean foundVersion = false;
 
@@ -385,22 +433,7 @@ public class Starter {
           String.format(
               "No persistence backend found for %s %s", (dse ? "dse" : "cassandra"), version));
 
-    framework.start();
-
-    bundleList = new ArrayList<>();
-    // Install bundle JAR files and remember the bundle objects.
-    for (File jar : jars) {
-      System.out.println("Installing bundle " + jar.getName());
-      Bundle b = context.installBundle(jar.toURI().toString());
-      bundleList.add(b);
-    }
-    // Start all installed bundles.
-    for (Bundle bundle : bundleList) {
-      System.out.println("Starting bundle " + bundle.getSymbolicName());
-      bundle.start();
-    }
-
-    if (watchBundles) watchJarDirectory(JAR_DIRECTORY);
+    return jars;
   }
 
   public void stop() throws InterruptedException, BundleException {
