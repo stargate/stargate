@@ -15,6 +15,7 @@
  */
 package io.stargate.api.sql;
 
+import static io.stargate.db.schema.Column.Kind.Clustering;
 import static io.stargate.db.schema.Column.Kind.PartitionKey;
 import static io.stargate.db.schema.Column.Kind.Regular;
 
@@ -23,6 +24,7 @@ import com.datastax.oss.driver.api.core.uuid.Uuids;
 import io.stargate.api.sql.ValidatingDataStore.QueryExpectation;
 import io.stargate.api.sql.schema.TypeUtils;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableKeyspace;
 import io.stargate.db.schema.ImmutableSchema;
@@ -176,6 +178,20 @@ public class AbstractDataStoreTest {
           // TODO:.addColumns(ImmutableColumn.builder().name("c_varint").type(Column.Type.Varint).build())
           .build();
 
+  protected static final Table table4 =
+      ImmutableTable.builder()
+          .keyspace("test_ks")
+          .name("test4")
+          .addColumns(
+              ImmutableColumn.builder().name("pk").type(Column.Type.Int).kind(PartitionKey).build())
+          .addColumns(
+              ImmutableColumn.builder().name("cc1").type(Column.Type.Int).kind(Clustering).build())
+          .addColumns(
+              ImmutableColumn.builder().name("cc2").type(Type.Text).kind(Clustering).build())
+          .addColumns(
+              ImmutableColumn.builder().name("val").type(Column.Type.Text).kind(Regular).build())
+          .build();
+
   private static final Keyspace keyspace =
       ImmutableKeyspace.builder()
           .name("test_ks")
@@ -183,6 +199,7 @@ public class AbstractDataStoreTest {
           .addTables(table2)
           .addTables(table2a)
           .addTables(table3)
+          .addTables(table4)
           .build();
 
   private static final Schema schema = ImmutableSchema.builder().addKeyspaces(keyspace).build();
