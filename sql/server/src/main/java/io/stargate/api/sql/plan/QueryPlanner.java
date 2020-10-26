@@ -83,12 +83,10 @@ public class QueryPlanner {
   private final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
 
   private static SqlParser.Config makeConfig() {
-    SqlParser.ConfigBuilder parserConfig =
-        SqlParser.configBuilder()
-            .setQuoting(Quoting.DOUBLE_QUOTE)
-            .setQuotedCasing(Casing.UNCHANGED)
-            .setUnquotedCasing(Casing.TO_LOWER);
-    return parserConfig.build();
+    return SqlParser.config()
+        .withQuoting(Quoting.DOUBLE_QUOTE)
+        .withQuotedCasing(Casing.UNCHANGED)
+        .withUnquotedCasing(Casing.TO_LOWER);
   }
 
   public PreparedSqlQuery prepare(String sql, DataStore dataStore, String defaultKeyspace)
@@ -129,7 +127,7 @@ public class QueryPlanner {
             catalogReader,
             cluster,
             StandardConvertletTable.INSTANCE,
-            SqlToRelConverter.Config.DEFAULT);
+            SqlToRelConverter.config());
 
     SqlExplain explain = null;
     if (sqlNode.getKind() == SqlKind.EXPLAIN) {
