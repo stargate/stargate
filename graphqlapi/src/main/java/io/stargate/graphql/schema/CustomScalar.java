@@ -162,7 +162,7 @@ public enum CustomScalar {
   /** Support json numbers and strings as integer literals */
   private static long parseLong(Object v) {
     if (v instanceof String) {
-      return new Long((String) v);
+      return Long.parseLong((String) v);
     }
     if (v instanceof Long) {
       return (long) v;
