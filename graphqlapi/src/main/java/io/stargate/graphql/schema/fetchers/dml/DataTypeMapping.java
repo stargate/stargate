@@ -152,7 +152,7 @@ class DataTypeMapping {
 
         if (hasANullItem) {
           throw new UnsupportedOperationException(
-              "Tuple can not have non-null item after a null item");
+              "Tuple can have a null item followed by a non-null item");
         }
         out.append(',');
       }

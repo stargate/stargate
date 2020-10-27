@@ -1,7 +1,12 @@
 package io.stargate.graphql.schema.fetchers.dml;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.Mockito.when;
 
+import com.datastax.oss.driver.api.core.uuid.Uuids;
+import graphql.ExecutionResult;
+import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
@@ -11,8 +16,14 @@ import io.stargate.db.schema.ImmutableTable;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.DmlTestBase;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -35,7 +46,8 @@ public class TupleDmlTest extends DmlTestBase {
                 .kind(Column.Kind.PartitionKey)
                 .build(),
             getColumn("value0", Type.Float, Type.Float),
-            getColumn("value1", Type.Uuid, Type.Text, Type.Int))
+            getColumn("value1", Type.Uuid, Type.Text, Type.Int),
+            getColumn("value2", Type.Timeuuid, Type.Boolean))
         .build();
   }
 
@@ -66,13 +78,68 @@ public class TupleDmlTest extends DmlTestBase {
     assertSuccess(String.format(mutation, column, toGraphQLValue(values)), expectedCQL);
   }
 
+  @ParameterizedTest
+  @MethodSource("getInvalidValues")
+  public void shouldNotAllowTupleValuesWithNullValuesFollowedByNotNullValues(
+      int tupleIndex, String value, String errorMessage) {
+    String column = String.format("value%d", tupleIndex);
+    String mutation = "mutation { insertTuples(value: { %s:%s, id:1 }) { applied } }";
+
+    assertError(String.format(mutation, column, value), errorMessage);
+  }
+
+  @ParameterizedTest
+  @MethodSource("getValues")
+  public void shouldEncodeTupleValues(int tupleIndex, Object[] values) {
+    Column column = table.column(String.format("value%d", tupleIndex));
+    String query = "query { tuples { values { %s { %s } } } }";
+    String tupleProps =
+        IntStream.range(0, column.type().parameters().size())
+            .mapToObj(i -> "item" + i)
+            .collect(Collectors.joining(","));
+    Row row = createRowForSingleValue(column, values);
+    when(resultSet.currentPageRows()).thenReturn(Collections.singletonList(row));
+    ExecutionResult result = executeGraphQl(String.format(query, column.name(), tupleProps));
+    assertThat(result.getErrors()).isEmpty();
+    assertThat(result.<Map<String, Object>>getData())
+        .extractingByKey("tuples", InstanceOfAssertFactories.MAP)
+        .extractingByKey("values", InstanceOfAssertFactories.LIST)
+        .singleElement()
+        .asInstanceOf(InstanceOfAssertFactories.MAP)
+        .extractingByKey(column.name())
+        // Tuples are returned as an GraphQL Object { item0: v0, item1: v1, ... }
+        // .asInstanceOf(InstanceOfAssertFactories.MAP)
+        .isEqualTo(toMap(values, column));
+  }
+
+  private Row createRowForSingleValue(Column column, Object[] tupleValues) {
+    Map<String, Object> values = new HashMap<>();
+    values.put(column.name(), column.type().create(tupleValues));
+    return createRow(Collections.singletonList(column), values);
+  }
+
   private static Stream<Arguments> getValues() {
     return Stream.of(
         arguments(0, new Object[] {1.3f, -0.9f}),
         arguments(0, new Object[] {-1f}),
         arguments(0, new Object[] {Float.MAX_VALUE, 1f}),
         arguments(1, new Object[] {UUID.randomUUID(), "hello", 1}),
-        arguments(1, new Object[] {UUID.randomUUID(), "second"}));
+        arguments(1, new Object[] {UUID.randomUUID(), "second"}),
+        arguments(1, new Object[] {UUID.randomUUID()}),
+        arguments(2, new Object[] {Uuids.timeBased(), true}));
+  }
+
+  private static Stream<Arguments> getInvalidValues() {
+    String nullError = "Tuple can have a null item followed by a non-null item";
+
+    return Stream.of(
+        arguments(0, "{item1: 1.2}", "missing required field"),
+        arguments(0, "{item0: null, item1: 1.2}", "must not be null"),
+        arguments(1, "{item0: \"425cc127-055c-4d0b-a765-d8e42fa78527\", item2: 1}", nullError),
+        arguments(
+            1,
+            "{item0: \"425cc127-055c-4d0b-a765-d8e42fa78527\", item1: null, item2: 1}",
+            nullError));
   }
 
   private String toGraphQLValue(Object[] values) {
@@ -114,5 +181,21 @@ public class TupleDmlTest extends DmlTestBase {
     }
     builder.append(")");
     return builder.toString();
+  }
+
+  private Map<String, Object> toMap(Object[] values, Column column) {
+    Map<String, Object> result = new HashMap<>();
+    for (int i = 0; i < column.type().parameters().size(); i++) {
+      Object value = null;
+      if (values.length > i) {
+        value = values[i];
+
+        if (value != null && !(value instanceof Number) && !(value instanceof Boolean)) {
+          value = value.toString();
+        }
+      }
+      result.put("item" + i, value);
+    }
+    return result;
   }
 }

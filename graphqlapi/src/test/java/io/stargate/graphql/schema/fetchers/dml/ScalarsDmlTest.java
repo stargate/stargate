@@ -4,10 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.when;
 
-import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import graphql.ExecutionResult;
-import io.stargate.db.datastore.ArrayListBackedRow;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
@@ -26,13 +24,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -260,16 +256,7 @@ public class ScalarsDmlTest extends DmlTestBase {
     return type.name().toLowerCase() + "value";
   }
 
-  private static Row createRow(List<Column> columns, Map<String, Object> data) {
-    List<ByteBuffer> values = new ArrayList<>(columns.size());
-    for (Column column : columns) {
-      Object v = data.get(column.name());
-      values.add(v == null ? null : column.type().codec().encode(v, ProtocolVersion.DEFAULT));
-    }
-    return new ArrayListBackedRow(columns, values, ProtocolVersion.DEFAULT);
-  }
-
-  private static Row createRowForSingleValue(String columnName, Object value) {
+  private Row createRowForSingleValue(String columnName, Object value) {
     Map<String, Object> values = new HashMap<>();
     values.put(columnName, value);
     return createRow(Collections.singletonList(table.column(columnName)), values);
