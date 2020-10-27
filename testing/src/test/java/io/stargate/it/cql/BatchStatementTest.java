@@ -18,6 +18,8 @@ import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.storage.StargateConnectionInfo;
+import io.stargate.it.storage.StargateEnvironmentInfo;
 import java.util.Iterator;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -334,7 +336,7 @@ public class BatchStatementTest extends BaseOsgiIntegrationTest {
 
   @Test
   @DisplayName("Should execute statement with tracing and retrieve trace")
-  public void tracingTest(CqlSession session, TestInfo name) {
+  public void tracingTest(CqlSession session, TestInfo name, StargateEnvironmentInfo stargate) {
     // Build a batch of batchCount simple statements, each with their own positional variables.
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.UNLOGGED);
     for (int i = 0; i < batchCount; i++) {
@@ -352,7 +354,9 @@ public class BatchStatementTest extends BaseOsgiIntegrationTest {
 
     QueryTrace queryTrace = resultSet.getExecutionInfo().getQueryTrace();
     assertThat(queryTrace).isNotNull();
-    assertThat(queryTrace.getCoordinatorAddress().getAddress()).isIn(STARGATE_ADDRESSES);
+    assertThat(stargate.nodes())
+        .extracting(StargateConnectionInfo::seedAddress)
+        .contains(queryTrace.getCoordinatorAddress().getAddress().getHostAddress());
     assertThat(queryTrace.getRequestType()).isEqualTo("Execute batch of CQL3 queries");
     assertThat(queryTrace.getEvents()).isNotEmpty();
   }

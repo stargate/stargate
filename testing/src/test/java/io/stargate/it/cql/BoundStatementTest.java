@@ -18,6 +18,8 @@ import com.datastax.oss.driver.api.core.servererrors.ProtocolError;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.storage.StargateConnectionInfo;
+import io.stargate.it.storage.StargateEnvironmentInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -165,7 +167,7 @@ public class BoundStatementTest extends BaseOsgiIntegrationTest {
 
   @Test
   @DisplayName("Should execute statement with tracing and retrieve trace")
-  public void tracingTest(CqlSession session) {
+  public void tracingTest(CqlSession session, StargateEnvironmentInfo stargate) {
     PreparedStatement prepared = session.prepare("SELECT v FROM test WHERE k=?");
     BoundStatement statement = prepared.bind(KEY);
 
@@ -176,7 +178,9 @@ public class BoundStatementTest extends BaseOsgiIntegrationTest {
     assertThat(executionInfo.getTracingId()).isNotNull();
     QueryTrace queryTrace = executionInfo.getQueryTrace();
     assertThat(queryTrace).isNotNull();
-    assertThat(queryTrace.getCoordinatorAddress().getAddress()).isIn(STARGATE_ADDRESSES);
+    assertThat(stargate.nodes())
+        .extracting(StargateConnectionInfo::seedAddress)
+        .contains(queryTrace.getCoordinatorAddress().getAddress().getHostAddress());
     assertThat(queryTrace.getRequestType()).isEqualTo("Execute CQL3 prepared query");
     assertThat(queryTrace.getEvents()).isNotEmpty();
   }

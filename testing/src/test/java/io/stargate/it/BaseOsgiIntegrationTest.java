@@ -18,16 +18,10 @@ package io.stargate.it;
 import com.datastax.oss.driver.api.core.Version;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import io.stargate.it.storage.ClusterSpec;
-import io.stargate.it.storage.StargateEnvironmentInfo;
 import io.stargate.it.storage.StargateSpec;
 import io.stargate.it.storage.UseStargateContainer;
 import java.io.File;
-import java.net.InetAddress;
 import java.net.URL;
-import java.net.UnknownHostException;
-import java.util.List;
-import java.util.stream.Collectors;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
 /** This class manages starting Stargate OSGi containers. */
@@ -35,8 +29,6 @@ import org.junit.jupiter.api.BeforeEach;
 @ClusterSpec(shared = true)
 @StargateSpec(shared = true)
 public class BaseOsgiIntegrationTest {
-
-  protected static volatile List<InetAddress> STARGATE_ADDRESSES;
 
   protected ClusterConnectionInfo backend;
 
@@ -48,21 +40,6 @@ public class BaseOsgiIntegrationTest {
       File file = new File(resource.getFile());
       System.setProperty("logback.configurationFile", file.getAbsolutePath());
     }
-  }
-
-  @BeforeAll
-  public static void beforeAll(StargateEnvironmentInfo stargate) {
-    STARGATE_ADDRESSES =
-        stargate.nodes().stream()
-            .map(
-                n -> {
-                  try {
-                    return InetAddress.getByName(n.seedAddress());
-                  } catch (UnknownHostException e) {
-                    throw new RuntimeException(e);
-                  }
-                })
-            .collect(Collectors.toList());
   }
 
   @BeforeEach

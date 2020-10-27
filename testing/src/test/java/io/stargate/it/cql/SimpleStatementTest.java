@@ -19,6 +19,8 @@ import com.google.common.collect.ImmutableMap;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.storage.StargateConnectionInfo;
+import io.stargate.it.storage.StargateEnvironmentInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -158,7 +160,7 @@ public class SimpleStatementTest extends BaseOsgiIntegrationTest {
 
   @Test
   @DisplayName("Should execute statement with tracing and retrieve trace")
-  public void tracingTest(CqlSession session) {
+  public void tracingTest(CqlSession session, StargateEnvironmentInfo stargate) {
     SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
 
     ExecutionInfo executionInfo = session.execute(statement).getExecutionInfo();
@@ -168,7 +170,9 @@ public class SimpleStatementTest extends BaseOsgiIntegrationTest {
     assertThat(executionInfo.getTracingId()).isNotNull();
     QueryTrace queryTrace = executionInfo.getQueryTrace();
     assertThat(queryTrace).isNotNull();
-    assertThat(queryTrace.getCoordinatorAddress().getAddress()).isIn(STARGATE_ADDRESSES);
+    assertThat(stargate.nodes())
+        .extracting(StargateConnectionInfo::seedAddress)
+        .contains(queryTrace.getCoordinatorAddress().getAddress().getHostAddress());
     assertThat(queryTrace.getRequestType()).isEqualTo("Execute CQL3 query");
     assertThat(queryTrace.getEvents()).isNotEmpty();
   }
