@@ -15,7 +15,7 @@
  */
 package io.stargate.config.store.api;
 
-/** Denotes that the underlying config-store does not have any setting for a given extension. */
+/** Denotes that the underlying config-store does not have any setting for a given module. */
 public class MissingModuleSettingsException extends RuntimeException {
   public MissingModuleSettingsException(String message) {
     super(message);
