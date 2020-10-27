@@ -186,7 +186,7 @@ is managed manually, use the following options to convey connection information 
 * `-Dstargate.test.backend.cluster_name=<CLUSTER_NAME>`
 * `-Dstargate.test.backend.dc=<DATA_CENTER_NAME>`
 
-When integration test run with debugging options, the related Stargate nodes will also be
+When integration tests run with debugging options, the related Stargate nodes will also be
 started with debugging options (using consecutive ports starting with 5100), for example:
 ```
 -agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=localhost:5100
