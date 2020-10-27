@@ -33,6 +33,7 @@ import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
@@ -135,6 +136,31 @@ public class StargateMetaTest extends AbstractDataStoreTest {
     assertThat(rs.getInt(1)).isEqualTo(20);
 
     assertThat(rs.next()).isFalse();
+  }
+
+  @ParameterizedTest
+  @EnumSource(SerializationParams.class)
+  public void nullableColumnFlags(SerializationParams serialization) throws SQLException {
+    withQuery(table1, "SELECT pk, cc1, cc2, val FROM test_ks.test4").returningNothing();
+
+    Connection connection = newConnection(serialization);
+    PreparedStatement statement =
+        connection.prepareStatement("select pk, cc1, cc2, val from test_ks.test4");
+
+    ResultSetMetaData metaData = statement.getMetaData();
+
+    assertThat(metaData.getColumnName(1)).isEqualTo("pk");
+    assertThat(metaData.isNullable(1)).isEqualTo(ResultSetMetaData.columnNoNulls);
+
+    assertThat(metaData.getColumnName(2)).isEqualTo("cc1");
+    assertThat(metaData.isNullable(2)).isEqualTo(ResultSetMetaData.columnNoNulls);
+    assertThat(metaData.getColumnName(3)).isEqualTo("cc2");
+    assertThat(metaData.isNullable(3)).isEqualTo(ResultSetMetaData.columnNoNulls);
+
+    assertThat(metaData.getColumnName(4)).isEqualTo("val");
+    assertThat(metaData.isNullable(4)).isEqualTo(ResultSetMetaData.columnNullable);
+
+    ignorePreparedExecutions();
   }
 
   @ParameterizedTest

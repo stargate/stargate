@@ -80,7 +80,7 @@ public class StatementHolder extends Meta.StatementHandle {
     for (RelDataTypeField f : fields) {
       RelDataType relType = f.getType();
       int nullable =
-          ResultSetMetaData.columnNullableUnknown; // TODO: nullable columns in result set
+          relType.isNullable() ? ResultSetMetaData.columnNullable : ResultSetMetaData.columnNoNulls;
       int displaySize = Integer.MAX_VALUE;
       String label = f.getName();
       String name = f.getName();

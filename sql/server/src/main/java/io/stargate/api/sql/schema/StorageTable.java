@@ -48,7 +48,7 @@ public abstract class StorageTable extends AbstractTable {
             c ->
                 fieldInfo
                     .add(c.name(), TypeUtils.toCalciteType(c.type()))
-                    .nullable(Objects.requireNonNull(c.kind()).isPrimaryKeyKind()));
+                    .nullable(!Objects.requireNonNull(c.kind()).isPrimaryKeyKind()));
 
     return fieldInfo.build();
   }
