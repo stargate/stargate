@@ -30,28 +30,37 @@ public class ConfigStoreActivator implements BundleActivator {
   private static final Logger logger = LoggerFactory.getLogger(ConfigStoreActivator.class);
 
   public static final String CONFIG_STORE_YAML_IDENTIFIER = "ConfigStoreYaml";
+
+  private boolean configStoreEnabled;
+
   private final String configYamlLocation;
 
   // for testing purpose
-  public ConfigStoreActivator(String configYamlLocation) {
+  public ConfigStoreActivator(boolean configStoreEnabled, String configYamlLocation) {
+    this.configStoreEnabled = configStoreEnabled;
     this.configYamlLocation = configYamlLocation;
   }
 
   public ConfigStoreActivator() {
     this(
+        Boolean.parseBoolean(System.getProperty("stargate.config_store.enabled", "false")),
         System.getProperty(
             "stargate.config_store.yaml.location", "/etc/stargate/stargate-config.yaml"));
   }
 
   @Override
   public void start(BundleContext context) {
+    if (!configStoreEnabled) {
+      logger.info("Config Store YAML disabled - it will not be started");
+      return;
+    }
     logger.info("Starting Config Store YAML...");
     Path yamlFilePath = Paths.get(configYamlLocation);
     if (!Files.exists(yamlFilePath)) {
-      logger.error(
-          "The yaml file does not exists, please check the path: {}. The ConfigStoreYaml will not be registered.",
-          yamlFilePath);
-      return;
+      throw new IllegalArgumentException(
+          String.format(
+              "The yaml file does not exists, please check the path: %s. The ConfigStoreYaml will not be registered.",
+              yamlFilePath));
     }
 
     Hashtable<String, String> props = new Hashtable<>();

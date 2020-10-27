@@ -15,6 +15,7 @@
  */
 package io.stargate.config.store.api.yaml;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -42,7 +43,8 @@ class ConfigStoreActivatorYamlTest {
                         .getClassLoader()
                         .getResource("stargate-config.yaml"))
                 .getPath());
-    ConfigStoreActivator activator = new ConfigStoreActivator(path.toFile().getAbsolutePath());
+    ConfigStoreActivator activator =
+        new ConfigStoreActivator(true, path.toFile().getAbsolutePath());
 
     // when
     activator.start(bundleContext);
@@ -55,10 +57,27 @@ class ConfigStoreActivatorYamlTest {
   }
 
   @Test
-  public void shouldNotRegisterConfigStoreWhenYamlLocationHasNotExistingStargateConfig() {
+  public void shouldNotRegisterConfigStoreAndThrowWhenYamlLocationHasNotExistingStargateConfig() {
     // given
     BundleContext bundleContext = mock(BundleContext.class);
-    ConfigStoreActivator activator = new ConfigStoreActivator("non_existing");
+    ConfigStoreActivator activator = new ConfigStoreActivator(true, "non_existing");
+
+    // when
+    assertThatThrownBy(() -> activator.start(bundleContext))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(
+            "The yaml file does not exists, please check the path: non_existing. The ConfigStoreYaml will not be registered.");
+
+    // then
+    verify(bundleContext, times(0))
+        .registerService(eq(ConfigStore.class), any(ConfigStoreYaml.class), any());
+  }
+
+  @Test
+  public void shouldNotRegisterAndNotThrowIfConfigStoreDisabled() {
+    // given
+    BundleContext bundleContext = mock(BundleContext.class);
+    ConfigStoreActivator activator = new ConfigStoreActivator(false, "non_existing");
 
     // when
     activator.start(bundleContext);

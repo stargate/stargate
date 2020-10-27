@@ -5,6 +5,8 @@ a YAML file.
 
 ## YAML File Location
 
+To enable config-store, set the `stargate.config_store.enabled` system property to true.
+It is disabled by default.
 Before the `ConfigStoreYaml` is registered in the OSGi, it will try to
 lookup the stargate config in the `/etc/stargate/stargate-config.yaml`
 location. Please note that the name of the actual YAML file is
