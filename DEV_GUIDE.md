@@ -247,7 +247,7 @@ the `ExternalStorage` extension by having the `@ExtendWith(ExternalStorage.class
 either directly on the test class or on one of its super-classes.
 
 Integration tests that need both storage and Stargate nodes, should use the `@UseStargateContainer`
-annotation to active both extensions in the right order.
+annotation to activate both extensions in the right order.
 
 The code element holding `@ClustgerSpec` or `@StargateSpec` annotations controls the lifecycle of
 the nodes they define. If the "spec" is present at the class level (inherited), the corresponding 
