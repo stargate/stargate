@@ -39,8 +39,11 @@ public class ConfigWithOverrides {
    *
    * <p>It looks for settings in the following order:
    *
-   * <p>1. Java System property ({@code System.getProperty()} 2. OS environment variable 3.
-   * Underlying config map
+   * <p>1. Java System property ({@code System.getProperty()}
+   *
+   * <p>2. OS environment variable
+   *
+   * <p>3. Underlying config map
    *
    * @return the value with the highest priority or null if there is no value associated with the
    *     given settingName.
