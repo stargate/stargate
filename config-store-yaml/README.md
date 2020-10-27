@@ -5,15 +5,11 @@ a YAML file.
 
 ## YAML File Location
 
-To enable config-store, set the `stargate.config_store.enabled` system property to true.
-It is disabled by default.
 Before the `ConfigStoreYaml` is registered in the OSGi, it will try to
 lookup the stargate config in the `/etc/stargate/stargate-config.yaml`
-location. Please note that the name of the actual YAML file is
-`stargate-config.yaml` If it does not exists, the error log is produced,
-and `ConfigStoreYaml` is not registered. You can modify the location
-where the config store lookup for config using the
-`stargate.config_store.yaml.location` system property that takes the
+location. Please note that the name of the actual YAML file is `stargate-config.yaml`. 
+The Activator does not check if the file exists and always registers the `ConfigStoreYaml`. The validation is postponed to the runtime.
+The config store lookup for config using the `stargate.config_store.yaml.location` system property that takes the
 absolute path to the stargate config YAML file.
 
 ## YAML Config Format
@@ -44,6 +40,9 @@ have a dedicated section in the YAML file, it will throw the
 `MissingModuleSettingsException`. This is a `RuntimeException` and it’s
 the caller’s responsibility to catch it and handle gracefully or
 propagate higher in the call stack.
+
+If the caller tries to load a config file that does not exist, it will throw the
+`UncheckedIOException` with the following message: `Problem when processing YAML file from: path_to_file`. 
 
 ## Using Config Store Yaml with Kubernetes(K8s)
 
