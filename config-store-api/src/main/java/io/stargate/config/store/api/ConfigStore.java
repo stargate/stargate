@@ -15,17 +15,17 @@
  */
 package io.stargate.config.store.api;
 
-import java.util.Map;
-
 public interface ConfigStore {
 
   /**
-   * It retrieves the generic {@code Map<String, Object>} for a given module name.
+   * It retrieves the generic {@code Map<String, Object>} for a given module name. The map is
+   * wrapped in the {@link ConfigWithOverrides} to allow the caller to get the setting value
+   * overridable by system property or environment variable.
    *
    * <p>If the caller will try to look up the config for a module that does not have any setting, it
    * will throw the {@link MissingModuleSettingsException}. This is a {@link RuntimeException} and
    * it's the caller's responsibility to catch it and handle gracefully or propagate upper in the
    * call stack.
    */
-  Map<String, Object> getConfigForModule(String moduleName) throws MissingModuleSettingsException;
+  ConfigWithOverrides getConfigForModule(String moduleName) throws MissingModuleSettingsException;
 }

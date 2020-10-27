@@ -35,9 +35,9 @@ Every module should have its own dedicated section. When client is using
 the `ConfigStore#getConfigForModule(String moduleName)` method to
 retrieve the config for a given module, the `ConfigStoreYaml` returns
 only a dedicated section. So for example, when using
-`ConfigStore#getConfigForModule("extension-1)` it will return Java
-`Map<String, Object>` with two elements: `a:1` and `b:"value"`. It will
-allow isolation between settings from various modules.
+`ConfigStore#getConfigForModule("extension-1)` it will return
+`ConfigWithOverrides` backed by `Map<String, Object>` with two elements: `a:1` and `b:"value"`. 
+It will allow isolation between settings from various modules.
 
 If the caller will try to look up the config for an module that does not
 have a dedicated section in the YAML file, it will throw the

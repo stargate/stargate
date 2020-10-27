@@ -18,13 +18,13 @@ package io.stargate.config.store.api.yaml;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.stargate.config.store.api.ConfigWithOverrides;
 import io.stargate.config.store.api.MissingModuleSettingsException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Objects;
 import org.junit.jupiter.api.Test;
 
@@ -40,13 +40,13 @@ class ConfigStoreYamlTest {
     ConfigStoreYaml configStoreYaml = new ConfigStoreYaml(path);
 
     // when
-    Map<String, Object> configForModule1 = configStoreYaml.getConfigForModule("extension-1");
-    Map<String, Object> configForModule2 = configStoreYaml.getConfigForModule("extension-2");
+    ConfigWithOverrides configForModule1 = configStoreYaml.getConfigForModule("extension-1");
+    ConfigWithOverrides configForModule2 = configStoreYaml.getConfigForModule("extension-2");
 
     // then
-    assertThat(configForModule1)
+    assertThat(configForModule1.getConfigMap())
         .containsOnly(new SimpleEntry<>("a", 1), new SimpleEntry<>("b", "value"));
-    assertThat(configForModule2)
+    assertThat(configForModule2.getConfigMap())
         .containsOnly(new SimpleEntry<>("a", 2), new SimpleEntry<>("b", Arrays.asList("a", "b")));
   }
 

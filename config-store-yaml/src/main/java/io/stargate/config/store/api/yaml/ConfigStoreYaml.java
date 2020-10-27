@@ -18,7 +18,9 @@ package io.stargate.config.store.api.yaml;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.MapType;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.collect.ImmutableMap;
 import io.stargate.config.store.api.ConfigStore;
+import io.stargate.config.store.api.ConfigWithOverrides;
 import io.stargate.config.store.api.MissingModuleSettingsException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -44,7 +46,7 @@ public class ConfigStoreYaml implements ConfigStore {
   }
 
   @Override
-  public Map<String, Object> getConfigForModule(String moduleName)
+  public ConfigWithOverrides getConfigForModule(String moduleName)
       throws MissingModuleSettingsException {
     try {
       Map<String, Map<String, Object>> result =
@@ -55,7 +57,7 @@ public class ConfigStoreYaml implements ConfigStore {
                 "The loaded configuration map: %s, does not contain settings from a given module: %s",
                 result, moduleName));
       }
-      return result.get(moduleName);
+      return new ConfigWithOverrides(ImmutableMap.copyOf(result.get(moduleName)));
     } catch (IOException e) {
       throw new UncheckedIOException(
           "Problem when processing yaml file from: " + configFilePath, e);
