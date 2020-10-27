@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.OptionsMap;
 import com.datastax.oss.driver.api.core.config.TypedDriverOption;
 import com.datastax.oss.driver.api.core.cql.ExecutionInfo;
@@ -15,34 +16,43 @@ import com.datastax.oss.driver.api.core.data.ByteUtils;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.servererrors.ProtocolError;
 import com.google.common.collect.ImmutableMap;
+import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.CqlSessionSpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-public class SimpleStatementTest extends JavaDriverTestBase {
+@ExtendWith(CqlSessionExtension.class)
+@CqlSessionSpec(
+    customOptions = "setPageSize",
+    initQueries = {
+      // table where every column forms the primary key.
+      "CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))",
+      // table with simple primary key, single cell.
+      "CREATE TABLE IF NOT EXISTS test2 (k text primary key, v int)",
+    })
+public class SimpleStatementTest extends BaseOsgiIntegrationTest {
 
   private static final String KEY = "test";
 
-  @Override
-  protected void customizeConfig(OptionsMap config) {
+  public static void setPageSize(OptionsMap config) {
     config.put(TypedDriverOption.REQUEST_PAGE_SIZE, 20);
   }
 
   @BeforeEach
-  public void setupSchema() {
-    // table where every column forms the primary key.
-    session.execute("CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))");
+  public void cleanupData(CqlSession session) {
+    session.execute("TRUNCATE test");
+    session.execute("TRUNCATE test2");
     for (int i = 0; i < 100; i++) {
       session.execute("INSERT INTO test (k, v) VALUES (?, ?)", KEY, i);
     }
-
-    // table with simple primary key, single cell.
-    session.execute("CREATE TABLE IF NOT EXISTS test2 (k text primary key, v int)");
   }
 
   @Test
   @DisplayName("Should execute statement with positional values")
-  public void positionalValuesTest() {
+  public void positionalValuesTest(CqlSession session) {
     SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
     ResultSet resultSet = session.execute(statement);
     assertThat(resultSet).hasSize(100);
@@ -50,7 +60,7 @@ public class SimpleStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should allow nulls in positional values")
-  public void nullPositionalValuesTest() {
+  public void nullPositionalValuesTest(CqlSession session) {
     session.execute("INSERT into test2 (k, v) values (?, ?)", KEY, null);
     Row row = session.execute("select k,v from test2 where k=?", KEY).one();
     assertThat(row).isNotNull();
@@ -59,7 +69,7 @@ public class SimpleStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should fail when too many positional values are provided")
-  public void tooManyPositionalValuesTest() {
+  public void tooManyPositionalValuesTest(CqlSession session) {
     assertThatThrownBy(
             () -> session.execute("INSERT into test2 (k, v) values (?, ?)", KEY, 1, 2, 3))
         .isInstanceOf(InvalidQueryException.class);
@@ -67,7 +77,7 @@ public class SimpleStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should fail when not enough positional values are provided")
-  public void notEnoughPositionalValuesTest() {
+  public void notEnoughPositionalValuesTest(CqlSession session) {
     // For SELECT queries, all values must be filled
     assertThatThrownBy(() -> session.execute("SELECT * from test where k = ? and v = ?", KEY))
         .isInstanceOf(InvalidQueryException.class);
@@ -75,7 +85,7 @@ public class SimpleStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should execute statement with named values")
-  public void namedValuesTest() {
+  public void namedValuesTest(CqlSession session) {
     SimpleStatement statement =
         SimpleStatement.newInstance("SELECT v FROM test WHERE k=:k", ImmutableMap.of("k", KEY));
     ResultSet resultSet = session.execute(statement);
@@ -84,7 +94,7 @@ public class SimpleStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should allow nulls in names values")
-  public void nullNamedValuesTest() {
+  public void nullNamedValuesTest(CqlSession session) {
     session.execute(
         SimpleStatement.builder("INSERT into test2 (k, v) values (:k, :v)")
             .addNamedValue("k", KEY)
@@ -98,7 +108,7 @@ public class SimpleStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should fail if a named value is missing")
-  public void missingNamedValueTest() {
+  public void missingNamedValueTest(CqlSession session) {
     // For SELECT queries, all values must be filled
     assertThatThrownBy(
             () ->
@@ -110,7 +120,7 @@ public class SimpleStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should extract paging state from result and use it on another statement")
-  public void pagingStateTest() {
+  public void pagingStateTest(CqlSession session) {
     SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
     ResultSet resultSet = session.execute(statement);
     assertThat(resultSet.getAvailableWithoutFetching()).isEqualTo(20);
@@ -123,7 +133,7 @@ public class SimpleStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should fail if the paging state is corrupted")
-  public void corruptPagingStateTest() {
+  public void corruptPagingStateTest(CqlSession session) {
     SimpleStatement statement =
         SimpleStatement.builder("SELECT v FROM test WHERE k=?")
             .addPositionalValue(KEY)
@@ -134,7 +144,7 @@ public class SimpleStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should execute statement with custom query timestamp")
-  public void queryTimestampTest() {
+  public void queryTimestampTest(CqlSession session) {
     long timestamp = 10; // whatever
     session.execute(
         SimpleStatement.builder("INSERT INTO test2 (k, v) values ('test', 1)")
@@ -148,7 +158,7 @@ public class SimpleStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should execute statement with tracing and retrieve trace")
-  public void tracingTest() {
+  public void tracingTest(CqlSession session) {
     SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
 
     ExecutionInfo executionInfo = session.execute(statement).getExecutionInfo();
@@ -158,15 +168,14 @@ public class SimpleStatementTest extends JavaDriverTestBase {
     assertThat(executionInfo.getTracingId()).isNotNull();
     QueryTrace queryTrace = executionInfo.getQueryTrace();
     assertThat(queryTrace).isNotNull();
-    assertThat(queryTrace.getCoordinatorAddress().getAddress())
-        .isIn(getStargateInetSocketAddresses());
+    assertThat(queryTrace.getCoordinatorAddress().getAddress()).isIn(STARGATE_ADDRESSES);
     assertThat(queryTrace.getRequestType()).isEqualTo("Execute CQL3 query");
     assertThat(queryTrace.getEvents()).isNotEmpty();
   }
 
   @Test
   @DisplayName("Should execute statement with custom page size")
-  public void pageSizeTest() {
+  public void pageSizeTest(CqlSession session) {
     SimpleStatement statement =
         SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY).setPageSize(10);
     ResultSet resultSet = session.execute(statement);
@@ -175,7 +184,7 @@ public class SimpleStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should use statement-level consistency levels")
-  public void consistencyLevelsTest() {
+  public void consistencyLevelsTest(CqlSession session) {
     SimpleStatement statement =
         SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY).setTracing(true);
     QueryTrace queryTrace = session.execute(statement).getExecutionInfo().getQueryTrace();
