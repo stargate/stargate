@@ -34,6 +34,7 @@ Stargate contains the following components:
 
     - cql: API implementation for the Cassandra Query Language
     - restapi: API implementation for exposing Cassandra data over REST
+    - graphqlapi: API implementation for exposing Cassandra data over GraphQL
 
 - **Persistence Services**: Responsible for implementing the coordination layer to execute requests passed by API services to underlying data storage instances.
 
@@ -54,9 +55,7 @@ Stargate contains the following components:
 
 ## Repositories
 
-- [stargate/stargate](https://github.com/stargate/stargate): This repository is the primary entry point to the project. It contains the core set of modules for a fully functional starter experience.
-- [stargate/api-extensions](https://github.com/stargate/api-extensions): This repository contains API Extensions and is where new API submissions should live (more coming soon). The REST API is in the stargate/stargate repo as a reference and to ease the starter experience.
-- [stargate/persistence-extensions](https://github.com/stargate/persistence-extensions): This repository contains Persistence Extensions and is where new Persistence submissions should live (more coming soon). The Cassandra 3.11 persistence service is in the stargate/stargate repo as a reference and to ease the starter experience.
+- [stargate/stargate](https://github.com/stargate/stargate): This repository is the primary entry point to the project. It contains all of the modules.
 - [stargate/docker-images](https://github.com/stargate/docker-images): This repository contains the Dockerfiles used to create and publish images to https://hub.docker.com/orgs/stargateio
 - [stargate/docs](https://github.com/stargate/docs): This repository contains the user docs hosted on [stargate.io](https://stargate.io)
 - [stargate/website](https://github.com/stargate/website): This repository contains the code for the website hosted on [stargate.io](https://stargate.io)
@@ -68,5 +67,5 @@ You can reference the [CONTRIBUTING.md](CONTRIBUTING.md) for a full description 
 but the short of it is below.
 
 - If you've found a bug (use the bug label) or want to request a new feature (use the enhancement label), file a GitHub issue
-- If you're not sure about it or want to chat, reach out on our [mailing list](https://groups.google.com/a/lists.stargate.io/g/stargate-users)
+- If you're not sure about it or want to chat, reach out on our [Discord](https://discord.gg/nsE6TJx) or [mailing list](https://groups.google.com/a/lists.stargate.io/g/stargate-users)
 - If you want to write some user docs 🎉 head over to the [stargate/docs](https://github.com/stargate/docs) repo, Pull Requests accepted!
