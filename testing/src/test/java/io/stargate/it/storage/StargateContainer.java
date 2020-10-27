@@ -69,13 +69,22 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     implements ParameterResolver {
   private static final Logger LOG = LoggerFactory.getLogger(StargateContainer.class);
 
-  private static final File LIB_DIR = new File(System.getProperty("stargate.libdir"));
+  private static final File LIB_DIR = initLibDir();
   private static final int PROCESS_WAIT_MINUTES =
       Integer.getInteger("stargate.test.process.wait.timeout.minutes", 10);
 
   // the first 10 addresses are reserved for storage nodes
   private static final AtomicInteger stargateAddressStart = new AtomicInteger(11);
   private static final AtomicInteger stargateInstanceSeq = new AtomicInteger();
+
+  private static File initLibDir() {
+    String dir = System.getProperty("stargate.libdir");
+    if (dir == null) {
+      throw new IllegalStateException("stargate.libdir system property is not set.");
+    }
+
+    return new File(dir);
+  }
 
   public StargateContainer() {
     super(StargateSpec.class, "stargate-container", Namespace.GLOBAL);
