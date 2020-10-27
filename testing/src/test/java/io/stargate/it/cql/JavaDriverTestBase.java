@@ -50,6 +50,8 @@ public abstract class JavaDriverTestBase extends BaseOsgiIntegrationTest {
 
     session = newSessionBuilder().build();
 
+    awaitAllNodes(session, stargateEnvironment);
+
     keyspaceId = generateKeyspaceId(testInfo);
     LOG.info("Creating keyspace {}", keyspaceId.asCql(true));
 

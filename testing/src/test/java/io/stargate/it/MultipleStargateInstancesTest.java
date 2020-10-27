@@ -20,8 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.codahale.metrics.Timer;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
-import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
+import com.datastax.oss.driver.api.core.config.OptionsMap;
+import com.datastax.oss.driver.api.core.config.TypedDriverOption;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.metadata.Node;
@@ -40,12 +41,10 @@ import java.util.Optional;
 import net.jcip.annotations.NotThreadSafe;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 @NotThreadSafe
-@Disabled("Waiting for fixes on #232 and #250")
 @StargateSpec(nodes = 3)
 public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
 
@@ -59,30 +58,28 @@ public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
 
   @BeforeEach
   public void setup(TestInfo testInfo, StargateEnvironmentInfo stargate) {
-    DriverConfigLoader loader =
-        DriverConfigLoader.programmaticBuilder()
-            .withBoolean(DefaultDriverOption.METADATA_TOKEN_MAP_ENABLED, false)
-            .withString(
-                DefaultDriverOption.LOAD_BALANCING_POLICY_CLASS,
-                DcInferringLoadBalancingPolicy.class.getName())
-            .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(180))
-            .withDuration(
-                DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT, Duration.ofSeconds(180))
-            .withDuration(
-                DefaultDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(180))
-            .withDuration(DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
-            .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5))
-            .withStringList(
-                DefaultDriverOption.METRICS_NODE_ENABLED,
-                Collections.singletonList(DefaultNodeMetric.CQL_MESSAGES.getPath()))
-            .build();
+    OptionsMap config = OptionsMap.driverDefaults();
+    config.put(TypedDriverOption.METADATA_TOKEN_MAP_ENABLED, false);
+    config.put(
+        TypedDriverOption.LOAD_BALANCING_POLICY_CLASS,
+        DcInferringLoadBalancingPolicy.class.getName());
+    config.put(TypedDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(30));
+    config.put(TypedDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT, Duration.ofSeconds(180));
+    config.put(TypedDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(30));
+    config.put(TypedDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(30));
+    config.put(TypedDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1));
+    config.put(
+        TypedDriverOption.METRICS_NODE_ENABLED,
+        Collections.singletonList(DefaultNodeMetric.CQL_MESSAGES.getPath()));
 
-    CqlSessionBuilder cqlSessionBuilder = CqlSession.builder().withConfigLoader(loader);
+    CqlSessionBuilder cqlSessionBuilder =
+        CqlSession.builder().withConfigLoader(DriverConfigLoader.fromMap(config));
 
     for (StargateConnectionInfo node : stargate.nodes()) {
       cqlSessionBuilder.addContactPoint(new InetSocketAddress(node.seedAddress(), node.cqlPort()));
     }
     session = cqlSessionBuilder.build();
+    awaitAllNodes(session, stargate);
 
     Optional<String> name = testInfo.getTestMethod().map(Method::getName);
     assertThat(name).isPresent();
