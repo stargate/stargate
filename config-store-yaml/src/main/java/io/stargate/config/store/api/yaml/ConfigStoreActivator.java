@@ -16,8 +16,6 @@
 package io.stargate.config.store.api.yaml;
 
 import io.stargate.config.store.api.ConfigStore;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Hashtable;
 import org.osgi.framework.BundleActivator;
@@ -31,42 +29,26 @@ public class ConfigStoreActivator implements BundleActivator {
 
   public static final String CONFIG_STORE_YAML_IDENTIFIER = "ConfigStoreYaml";
 
-  private boolean configStoreEnabled;
-
   private final String configYamlLocation;
 
   // for testing purpose
-  public ConfigStoreActivator(boolean configStoreEnabled, String configYamlLocation) {
-    this.configStoreEnabled = configStoreEnabled;
+  public ConfigStoreActivator(String configYamlLocation) {
     this.configYamlLocation = configYamlLocation;
   }
 
   public ConfigStoreActivator() {
     this(
-        Boolean.parseBoolean(System.getProperty("stargate.config_store.enabled", "false")),
         System.getProperty(
             "stargate.config_store.yaml.location", "/etc/stargate/stargate-config.yaml"));
   }
 
   @Override
   public void start(BundleContext context) {
-    if (!configStoreEnabled) {
-      logger.info("Config Store YAML disabled - it will not be started");
-      return;
-    }
-    logger.info("Starting Config Store YAML...");
-    Path yamlFilePath = Paths.get(configYamlLocation);
-    if (!Files.exists(yamlFilePath)) {
-      throw new IllegalArgumentException(
-          String.format(
-              "The yaml file does not exists, please check the path: %s. The ConfigStoreYaml will not be registered.",
-              yamlFilePath));
-    }
-
+    logger.info("Starting Config Store YAML for config file location:{} ...", configYamlLocation);
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", CONFIG_STORE_YAML_IDENTIFIER);
 
-    ConfigStoreYaml configStoreYaml = new ConfigStoreYaml(yamlFilePath);
+    ConfigStoreYaml configStoreYaml = new ConfigStoreYaml(Paths.get(configYamlLocation));
     context.registerService(ConfigStore.class, configStoreYaml, props);
     logger.info("Started Config Store YAML....");
   }
