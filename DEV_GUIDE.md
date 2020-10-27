@@ -253,7 +253,7 @@ The code element holding `@ClustgerSpec` or `@StargateSpec` annotations controls
 the nodes they define. If the "spec" is present at the class level (inherited), the corresponding 
 nodes will be started/stopped according to `@BeforeAll` / `@AfterAll` JUnit 5 callbacks. Similarly,
 if the spec is present at the method level, the nodes' lifecycle will follow `@BeforeEach` /
-`@AfetrEach` callbacks. An exception to this rule is when the spec has the `shared` property set 
+`@AfterEach` callbacks. An exception to this rule is when the spec has the `shared` property set 
 to `true`, in which case the corresponding nodes will not be stopped until another test is executed
 and that test requests _different_ node parameters (when that happens the old nodes will be stopped,
 and the new node(s) will be started before executing the new test). If the spec annotations are not
