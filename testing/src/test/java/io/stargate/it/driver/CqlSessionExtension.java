@@ -1,5 +1,7 @@
 package io.stargate.it.driver;
 
+import static org.awaitility.Awaitility.await;
+
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
@@ -115,7 +117,9 @@ import org.slf4j.LoggerFactory;
  *       pre-configured to connect to the Stargate cluster. This allows you to create new sessions
  *       with a different configuration in your test methods. Note that such sessions are not
  *       managed by the extension: <b>you must close them explicitly once you are done</b>, to avoid
- *       resource leaks. A try-with-resources block is generally the best way to do that.
+ *       resource leaks. A try-with-resources block is generally the best way to do that. Also, you
+ *       might want to invoke {@link #awaitAllNodes(CqlSession, StargateEnvironmentInfo)} if there
+ *       are multiple Stargate nodes.
  *   <li>a parameter of type {@link CqlIdentifier} <b>AND annotated with {@link TestKeyspace}</b>:
  *       injected with the identifier of the keyspace that was created by the extension. This is
  *       useful if you need to look up schema metadata, use the keyspace from another session or
@@ -230,7 +234,7 @@ public class CqlSessionExtension
     if (cqlSessionSpec.createSession()) {
       LOG.debug("Creating new session for {}", context.getElement());
       session = newSessionBuilder(stargate, context).build();
-      // TODO wait until all Stargate nodes are visible in system.peers (#245)
+      awaitAllNodes(session, stargate);
 
       if (cqlSessionSpec.createKeyspace()) {
         keyspaceId = generateKeyspaceId(context);
@@ -295,6 +299,32 @@ public class CqlSessionExtension
       builder.addContactPoint(new InetSocketAddress(node.seedAddress(), node.cqlPort()));
     }
     return builder;
+  }
+
+  /**
+   * Waits until a CQL session sees all the Stargate nodes in its metadata. The CI environment is
+   * slow and it may take a while until system.peers is up to date.
+   *
+   * <p>Note: this is exposed publicly to be accessible from tests that create their own sessions.
+   */
+  public static void awaitAllNodes(CqlSession session, StargateEnvironmentInfo stargate) {
+    int expectedNodeCount = stargate.nodes().size();
+    if (expectedNodeCount > 1) {
+      await()
+          .atMost(Duration.ofMinutes(10))
+          .pollInterval(Duration.ofSeconds(10))
+          .until(
+              () -> {
+                boolean connected = session.getMetadata().getNodes().size() == expectedNodeCount;
+                LOG.debug(
+                    "Expected: {}, in driver metadata: {}, in system tables: {}",
+                    expectedNodeCount,
+                    session.getMetadata().getNodes().size(),
+                    session.execute("SELECT * FROM system.peers").all().size() + 1);
+
+                return connected;
+              });
+    }
   }
 
   private void maybeCustomizeOptions(

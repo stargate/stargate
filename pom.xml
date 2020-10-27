@@ -519,6 +519,11 @@
         <artifactId>dropwizard-testing</artifactId>
         <version>${dropwizard.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.awaitility</groupId>
+        <artifactId>awaitility</artifactId>
+        <version>4.0.3</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 </project>
