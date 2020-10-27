@@ -37,7 +37,7 @@ public class ConfigWithOverrides {
   /**
    * It returns a specific setting value for settingName.
    *
-   * <p>It looks for settings in the following order:
+   * <p>It looks for a setting value in the following order:
    *
    * <p>1. Java System property ({@code System.getProperty()}
    *
