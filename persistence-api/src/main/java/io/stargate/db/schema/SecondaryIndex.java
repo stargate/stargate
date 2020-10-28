@@ -41,6 +41,11 @@ public abstract class SecondaryIndex implements Index, QualifiedSchemaEntity {
 
   public abstract CollectionIndexingType indexingType();
 
+  @Value.Default
+  public boolean isCustom() {
+    return false;
+  }
+
   public static SecondaryIndex create(String keyspace, String name, Column column) {
     return ImmutableSecondaryIndex.builder()
         .keyspace(keyspace)
@@ -51,12 +56,17 @@ public abstract class SecondaryIndex implements Index, QualifiedSchemaEntity {
   }
 
   public static SecondaryIndex create(
-      String keyspace, String name, Column column, CollectionIndexingType indexingType) {
+      String keyspace,
+      String name,
+      Column column,
+      CollectionIndexingType indexingType,
+      boolean isCustom) {
     return ImmutableSecondaryIndex.builder()
         .keyspace(keyspace)
         .name(name)
         .column(column)
         .indexingType(indexingType)
+        .isCustom(isCustom)
         .build();
   }
 
@@ -113,6 +123,12 @@ public abstract class SecondaryIndex implements Index, QualifiedSchemaEntity {
   }
 
   private boolean predicateAllowed(WhereCondition<?> w) {
+    if (isCustom()) {
+      // We can't predict which operators a custom implementation will use, so be permissive by
+      // default.
+      return true;
+    }
+
     WhereCondition.Predicate predicate = w.predicate();
     if (!ALLOWED_PREDICATES.contains(predicate)) {
       return false;

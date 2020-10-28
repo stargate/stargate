@@ -10,7 +10,6 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
-import io.stargate.it.storage.ClusterConnectionInfo;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -27,10 +26,6 @@ import org.junit.jupiter.api.condition.EnabledIf;
  */
 @Disabled("Requires CASSANDRA-15299 on the backend")
 public class NowInSecondsTest extends JavaDriverTestBase {
-
-  public NowInSecondsTest(ClusterConnectionInfo backend) {
-    super(backend);
-  }
 
   @Override
   protected void customizeConfig(OptionsMap config) {

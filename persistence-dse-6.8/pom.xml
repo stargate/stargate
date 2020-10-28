@@ -5,12 +5,12 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.17-SNAPSHOT</version>
+    <version>0.0.20-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db.dse</groupId>
   <artifactId>persistence-dse-6.8</artifactId>
   <properties>
-    <dse.version>6.8.2-69139b3</dse.version>
+    <dse.version>6.8.5</dse.version>
   </properties>
   <repositories>
     <repository>
@@ -75,6 +75,10 @@
           <groupId>com.datastax.oss</groupId>
           <artifactId>java-driver-core</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>dnsjava</groupId>
+          <artifactId>dnsjava</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -98,6 +102,12 @@
       <groupId>org.gridkit.jvmtool</groupId>
       <artifactId>sjk-core</artifactId>
       <version>0.14</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>dnsjava</groupId>
+      <artifactId>dnsjava</artifactId>
+      <version>2.1.8</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -148,6 +158,17 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <version>4.0.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>com.datastax.dse</groupId>
       <artifactId>dse-java-driver-core</artifactId>
       <version>1.10.0-dse+20200217</version>
@@ -172,7 +193,7 @@
           <forkCount>1</forkCount>
           <systemPropertyVariables>
             <ccm.dse>true</ccm.dse>
-            <ccm.version>6.8.4</ccm.version>
+            <ccm.version>6.8.5</ccm.version>
           </systemPropertyVariables>
         </configuration>
       </plugin>
@@ -211,6 +232,23 @@
               </artifactItems>
             </configuration>
           </execution>
+          <execution>
+            <id>unpack-dnsjava</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>dnsjava</groupId>
+                  <artifactId>dnsjava</artifactId>
+                  <version>2.1.8</version>
+                  <outputDirectory>${project.build.directory}/dnsjava</outputDirectory>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>
@@ -232,6 +270,25 @@
                   <fileset dir="${project.build.directory}/sjk-core" />
                 </jar>
                 <delete dir="${project.build.directory}/sjk-core" />
+              </tasks>
+            </configuration>
+          </execution>
+          <execution>
+            <id>fix-dnsjava</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <tasks>
+                <!-- Remove root package classes -->
+                <delete>
+                  <fileset dir="${project.build.directory}/dnsjava/" includes="*.class" />
+                </delete>
+                <jar destfile="${project.build.directory}/classes/dnsjava-2.1.8.jar">
+                  <fileset dir="${project.build.directory}/dnsjava" />
+                </jar>
+                <delete dir="${project.build.directory}/dnsjava" />
               </tasks>
             </configuration>
           </execution>
@@ -259,7 +316,7 @@
             ]]></Import-Package>
             <Export-Package>io.stargate.db.dse</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
-            <Bundle-ClassPath>.,sjk-core-0.14.jar,{maven-dependencies}</Bundle-ClassPath>
+            <Bundle-ClassPath>.,sjk-core-0.14.jar,dnsjava-2.1.8.jar,{maven-dependencies}</Bundle-ClassPath>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>
           </instructions>

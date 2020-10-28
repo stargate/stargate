@@ -22,7 +22,7 @@ import io.swagger.annotations.ApiModelProperty;
     description = "Changes the name of a primary key column and preserves the existing values.")
 public class ColumnUpdate {
 
-  String newName;
+  private String newName;
 
   public ColumnUpdate() {}
 

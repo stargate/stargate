@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public abstract class DmlFetcher extends CassandraFetcher<Map<String, Object>> {
+public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
   protected final Table table;
   protected final NameMapping nameMapping;
@@ -101,6 +101,19 @@ public abstract class DmlFetcher extends CassandraFetcher<Map<String, Object>> {
         Relation relation;
         if (condition.getKey().equals("in")) {
           relation = relationStart.in(buildListLiterals(column, condition.getValue()));
+        } else if (condition.getKey().equals("contains")) {
+          relation = relationStart.contains(toCqlElementTerm(column, condition.getValue()));
+        } else if (condition.getKey().equals("containsKey")) {
+          relation = relationStart.containsKey(toCqlKeyTerm(column, condition.getValue()));
+        } else if (condition.getKey().equals("containsEntry")) {
+          Column.ColumnType mapType = column.type();
+          assert mapType != null && mapType.isMap();
+          Map<String, Object> entry = (Map<String, Object>) condition.getValue();
+          Column.ColumnType keyType = mapType.parameters().get(0);
+          Term keyTerm = toCqlTerm(keyType, entry.get("key"));
+          Column.ColumnType valueType = mapType.parameters().get(1);
+          Term valueTerm = toCqlTerm(valueType, entry.get("value"));
+          relation = Relation.mapValue(column.name(), keyTerm).isEqualTo(valueTerm);
         } else {
           Term rightTerm = toCqlTerm(column, condition.getValue());
           switch (condition.getKey()) {
@@ -159,10 +172,29 @@ public abstract class DmlFetcher extends CassandraFetcher<Map<String, Object>> {
   }
 
   protected Column getColumn(Table table, String fieldName) {
-    return nameMapping.getColumnNames(table).inverse().get(fieldName);
+    String columnName = nameMapping.getCqlName(table, fieldName);
+    return table.column(columnName);
   }
 
   protected Term toCqlTerm(Column column, Object value) {
-    return DataTypeMapping.toCqlTerm(column.type(), value, nameMapping);
+    return toCqlTerm(column.type(), value);
+  }
+
+  private Term toCqlElementTerm(Column column, Object value) {
+    Column.ColumnType collectionType = column.type();
+    assert collectionType != null && collectionType.isCollection();
+    Column.ColumnType elementType = collectionType.parameters().get(collectionType.isMap() ? 1 : 0);
+    return toCqlTerm(elementType, value);
+  }
+
+  private Term toCqlKeyTerm(Column column, Object value) {
+    Column.ColumnType mapType = column.type();
+    assert mapType != null && mapType.isMap();
+    Column.ColumnType keyType = mapType.parameters().get(0);
+    return toCqlTerm(keyType, value);
+  }
+
+  private Term toCqlTerm(Column.ColumnType type, Object value) {
+    return DataTypeMapping.toCqlTerm(type, value, nameMapping);
   }
 }

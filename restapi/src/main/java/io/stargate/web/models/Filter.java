@@ -32,9 +32,9 @@ public class Filter {
     in,
   }
 
-  String columnName;
-  Operator operator;
-  List<Object> value;
+  private String columnName;
+  private Operator operator;
+  private List<Object> value;
 
   @ApiModelProperty(value = "The column name to apply the filter to.")
   public String getColumnName() {

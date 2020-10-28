@@ -1,0 +1,38 @@
+<assembly
+  xmlns="http://maven.apache.org/ASSEMBLY/2.1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.1.0 http://maven.apache.org/xsd/assembly-2.1.0.xsd">
+  <id>all</id>
+  <formats>
+    <format>jar</format>
+  </formats>
+  <includeBaseDirectory>false</includeBaseDirectory>
+  <fileSets>
+    <fileSet>
+      <directory>${project.build.testOutputDirectory}</directory>
+      <outputDirectory>/</outputDirectory>
+    </fileSet>
+    <fileSet>
+      <directory>${project.build.outputDirectory}</directory>
+      <outputDirectory>/</outputDirectory>
+    </fileSet>
+  </fileSets>
+  <dependencySets>
+    <dependencySet>
+      <scope>runtime</scope>
+      <useTransitiveDependencies/>
+      <unpack>true</unpack>
+      <includes>
+        <include>*:*</include>
+      </includes>
+    </dependencySet>
+    <dependencySet>
+      <scope>test</scope>
+      <useTransitiveDependencies/>
+      <unpack>true</unpack>
+      <includes>
+        <include>*:*</include>
+      </includes>
+    </dependencySet>
+  </dependencySets>
+</assembly>

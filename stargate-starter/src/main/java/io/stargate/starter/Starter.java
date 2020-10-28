@@ -66,15 +66,18 @@ import org.osgi.framework.ServiceReference;
 @Command(name = "Stargate")
 public class Starter {
 
-  private static final String JAR_DIRECTORY =
+  public static final String STARTED_MESSAGE = "Finished starting bundles.";
+
+  protected static final String JAR_DIRECTORY =
       System.getProperty("stargate.libdir", "../stargate-lib");
+  protected static final String CACHE_DIRECTORY = System.getProperty("stargate.bundle.cache.dir");
 
   @Retention(RetentionPolicy.RUNTIME)
   public @interface Order {
     int value();
   }
 
-  @Inject HelpOption<Starter> help;
+  @Inject protected HelpOption<Starter> help;
 
   @Required
   @Order(value = 1)
@@ -83,14 +86,14 @@ public class Starter {
       title = "cluster_name",
       arity = 1,
       description = "Name of backend cluster")
-  String clusterName;
+  protected String clusterName;
 
   @Order(value = 2)
   @Option(
       name = {"--cluster-seed"},
       title = "seed_address",
       description = "Seed node address")
-  List<String> seedList = new ArrayList<>();
+  protected List<String> seedList = new ArrayList<>();
 
   @Required
   @Order(value = 3)
@@ -98,7 +101,7 @@ public class Starter {
       name = {"--cluster-version"},
       title = "version",
       description = "The major version number of the backend cluster (example: 3.11 or 4.0)")
-  String version;
+  protected String version;
 
   @Order(value = 4)
   @Option(
@@ -109,7 +112,7 @@ public class Starter {
   @Pattern(
       pattern = "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$",
       description = "Must be a valid IP address")
-  String listenHostStr = "127.0.0.1";
+  protected String listenHostStr = "127.0.0.1";
 
   @Order(value = 5)
   @Option(
@@ -118,7 +121,7 @@ public class Starter {
       arity = 1,
       description = "Port that seed nodes are listening on (default: 7000)")
   @Port
-  Integer seedPort = 7000;
+  protected Integer seedPort = 7000;
 
   @Order(value = 6)
   @Option(
@@ -126,7 +129,7 @@ public class Starter {
       name = {"--dc"},
       arity = 1,
       description = "Datacenter name of this node (matching backend)")
-  String dc;
+  protected String dc;
 
   @Order(value = 7)
   @Option(
@@ -134,19 +137,19 @@ public class Starter {
       name = {"--rack"},
       arity = 1,
       description = "Rack name of this node (matching backend)")
-  String rack;
+  protected String rack;
 
   @Order(value = 8)
   @Option(
       name = {"--simple-snitch"},
       description = "Set if backend uses the simple snitch")
-  boolean simpleSnitch = false;
+  protected boolean simpleSnitch = false;
 
   @Order(value = 9)
   @Option(
       name = {"--dse"},
       description = "Set if backend is DSE, otherwise Cassandra")
-  boolean dse = false;
+  protected boolean dse = false;
 
   @Order(value = 10)
   @Option(
@@ -154,60 +157,74 @@ public class Starter {
       title = "port",
       description = "CQL Service port (default: 9042)")
   @Port
-  int cqlPort = 9042;
+  protected int cqlPort = 9042;
 
   @Order(value = 11)
   @Option(
       name = {"--enable-auth"},
       description = "Set to enable PasswordAuthenticator")
-  private boolean enableAuth = false;
+  protected boolean enableAuth = false;
 
   @Order(value = 12)
   @Option(
       name = {"--use-proxy-protocol"},
       description = "Use proxy protocol to determine the public address and port of CQL requests")
-  private boolean useProxyProtocol = false;
+  protected boolean useProxyProtocol = false;
 
   @Order(value = 13)
+  @Option(
+      name = {"--proxy-dns-name"},
+      description =
+          "Used with the proxy protocol flag to populate `system.peers` with a proxy's public IP addresses (i.e. A records)")
+  protected String proxyDnsName;
+
+  @Order(value = 14)
+  @Option(
+      name = {"--proxy-port"},
+      description =
+          "Used with the proxy protocol flag to specify the proxy's listening port for the CQL protocol")
+  protected int proxyPort = cqlPort;
+
+  @Order(value = 15)
   @Option(
       name = {"--emulate-dbaas-defaults"},
       description =
           "Updated defaults reflect those of DataStax Astra at the time of the currently used DSE release")
-  private boolean emulateDbaasDefaults = false;
+  protected boolean emulateDbaasDefaults = false;
 
-  @Order(value = 14)
+  @Order(value = 16)
   @Option(
       name = {"--developer-mode"},
       description =
           "Defines whether the stargate node should also behave as a "
               + "regular node, joining the ring with tokens assigned in order to facilitate getting started quickly and not "
               + "requiring additional nodes or existing cluster")
-  boolean developerMode = false;
+  protected boolean developerMode = false;
 
-  @Order(value = 15)
+  @Order(value = 17)
   @Option(
       name = {"--bind-to-listen-address"},
       description = "When set, it binds web services to listen address only")
-  boolean bindToListenAddressOnly = false;
+  protected boolean bindToListenAddressOnly = false;
 
-  @Order(value = 16)
+  @Order(value = 18)
   @Option(
       name = {"--jmx-port"},
       description = "The port on which JMX should start")
-  int jmxPort = 7199;
+  protected int jmxPort = 7199;
 
-  @Order(value = 17)
+  @Order(value = 19)
   @Option(
       name = {
         "--disable-dynamic-snitch",
         "Whether the dynamic snitch should wrap the actual snitch."
       })
-  boolean disableDynamicSnitch = false;
+  protected boolean disableDynamicSnitch = false;
 
-  @Order(value = 18)
+  @Order(value = 20)
   @Option(
       name = {"--disable-mbean-registration", "Whether the mbean registration should be disabled"})
-  boolean disableMBeanRegistration = false;
+  protected boolean disableMBeanRegistration = false;
 
   private BundleContext context;
   private Felix framework;
@@ -247,7 +264,7 @@ public class Starter {
     this.disableMBeanRegistration = true;
   }
 
-  void setStargateProperties() {
+  protected void setStargateProperties() {
     if (version == null || version.trim().isEmpty() || !NumberUtils.isParsable(version)) {
       throw new IllegalArgumentException("--cluster-version must be a number");
     }
@@ -296,6 +313,10 @@ public class Starter {
     System.setProperty("stargate.cql_port", String.valueOf(cqlPort));
     System.setProperty("stargate.enable_auth", enableAuth ? "true" : "false");
     System.setProperty("stargate.use_proxy_protocol", useProxyProtocol ? "true" : "false");
+    if (proxyDnsName != null) {
+      System.setProperty("stargate.proxy_protocol.dns_name", proxyDnsName);
+    }
+    System.setProperty("stargate.proxy_protocol.port", String.valueOf(proxyPort));
     System.setProperty("stargate.emulate_dbaas_defaults", emulateDbaasDefaults ? "true" : "false");
     System.setProperty("stargate.developer_mode", String.valueOf(developerMode));
     System.setProperty("stargate.bind_to_listen_address", String.valueOf(bindToListenAddressOnly));
@@ -334,6 +355,36 @@ public class Starter {
     }
 
     // Initialize Apache Felix Framework
+    framework = new Felix(felixConfig());
+    framework.init();
+
+    System.err.println("JAR DIR: " + JAR_DIRECTORY);
+
+    // Install bundles
+    context = framework.getBundleContext();
+    File[] files = new File(JAR_DIRECTORY).listFiles();
+    List<File> jars = pickBundles(files);
+    framework.start();
+
+    bundleList = new ArrayList<>();
+    // Install bundle JAR files and remember the bundle objects.
+    for (File jar : jars) {
+      System.out.println("Installing bundle " + jar.getName());
+      Bundle b = context.installBundle(jar.toURI().toString());
+      bundleList.add(b);
+    }
+    // Start all installed bundles.
+    for (Bundle bundle : bundleList) {
+      System.out.println("Starting bundle " + bundle.getSymbolicName());
+      bundle.start();
+    }
+
+    System.out.println(STARTED_MESSAGE);
+
+    if (watchBundles) watchJarDirectory(JAR_DIRECTORY);
+  }
+
+  protected Map<String, String> felixConfig() {
     Map<String, String> configMap = new HashMap<>();
     configMap.put(Constants.FRAMEWORK_STORAGE_CLEAN, "onFirstInit");
     configMap.put(
@@ -342,14 +393,15 @@ public class Starter {
     configMap.put(
         FelixConstants.FRAMEWORK_SYSTEMPACKAGES_EXTRA,
         "sun.misc,sun.nio.ch,com.sun.management,sun.rmi.registry");
-    framework = new Felix(configMap);
-    framework.init();
 
-    System.err.println("JAR DIR: " + JAR_DIRECTORY);
+    if (CACHE_DIRECTORY != null) {
+      configMap.put(FelixConstants.FRAMEWORK_STORAGE, CACHE_DIRECTORY);
+    }
 
-    // Install bundles
-    context = framework.getBundleContext();
-    File[] files = new File(JAR_DIRECTORY).listFiles();
+    return configMap;
+  }
+
+  protected List<File> pickBundles(File[] files) {
     ArrayList<File> jars = new ArrayList<>();
     boolean foundVersion = false;
 
@@ -385,22 +437,7 @@ public class Starter {
           String.format(
               "No persistence backend found for %s %s", (dse ? "dse" : "cassandra"), version));
 
-    framework.start();
-
-    bundleList = new ArrayList<>();
-    // Install bundle JAR files and remember the bundle objects.
-    for (File jar : jars) {
-      System.out.println("Installing bundle " + jar.getName());
-      Bundle b = context.installBundle(jar.toURI().toString());
-      bundleList.add(b);
-    }
-    // Start all installed bundles.
-    for (Bundle bundle : bundleList) {
-      System.out.println("Starting bundle " + bundle.getSymbolicName());
-      bundle.start();
-    }
-
-    if (watchBundles) watchJarDirectory(JAR_DIRECTORY);
+    return jars;
   }
 
   public void stop() throws InterruptedException, BundleException {
@@ -476,7 +513,7 @@ public class Starter {
   }
 
   /** Prints help with options in the order specified in {@link Order} */
-  private static void printHelp(SingleCommand c) {
+  protected static void printHelp(SingleCommand c) {
     try {
       new CliCommandUsageGenerator(
               79,
@@ -499,10 +536,10 @@ public class Starter {
     }
   }
 
-  public static void main(String[] args) {
-    SingleCommand<Starter> parser = SingleCommand.singleCommand(Starter.class);
+  protected static void cli(String[] args, Class<? extends Starter> starterClass) {
+    SingleCommand<? extends Starter> parser = SingleCommand.singleCommand(starterClass);
     try {
-      ParseResult<Starter> result = parser.parseWithResult(args);
+      ParseResult<? extends Starter> result = parser.parseWithResult(args);
 
       if (result.wasSuccessful()) {
         // Parsed successfully, so just run the command and exit
@@ -544,5 +581,9 @@ public class Starter {
 
       System.exit(1);
     }
+  }
+
+  public static void main(String[] args) {
+    cli(args, Starter.class);
   }
 }

@@ -22,9 +22,10 @@ import io.swagger.annotations.ApiModelProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ColumnDefinition {
-  String name;
-  String typeDefinition;
-  boolean isStatic;
+
+  private String name;
+  private String typeDefinition;
+  private boolean isStatic;
 
   public ColumnDefinition(final String name, final String typeDefinition) {
     this(name, typeDefinition, false);

@@ -1,10 +1,17 @@
 package io.stargate.graphql.schema.fetchers.dml;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import graphql.ExecutionResult;
+import io.stargate.db.ImmutableParameters;
+import io.stargate.db.Parameters;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.DmlTestBase;
 import io.stargate.graphql.schema.SampleKeyspaces;
+import java.nio.ByteBuffer;
+import java.util.Base64;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -48,6 +55,34 @@ public class QueryFetcherTest extends DmlTestBase {
       arguments(
           "books(options: { limit: 1.0 }) { values { title } }",
           "argument 'options.limit' with value 'FloatValue{value=1.0}' is not a valid 'Int'"),
+    };
+  }
+
+  @ParameterizedTest
+  @MethodSource("operationsWithOptions")
+  @DisplayName("Should execute GraphQL with options passed correctly")
+  public void consistencyAndPagingOptionsTest(
+      String graphQlOperation, Parameters expectedParameters) {
+    ExecutionResult result = executeGraphQl(graphQlOperation);
+    assertThat(result.getErrors()).isEmpty();
+    assertThat(parametersCaptor.getValue()).isEqualTo(expectedParameters);
+  }
+
+  public static Arguments[] operationsWithOptions() {
+    return new Arguments[] {
+      arguments(
+          "query { books(options: { pageSize: 100, pageState: \"AWEA8H////4A\", consistency: LOCAL_QUORUM }) { values { title, author } } }",
+          ImmutableParameters.builder()
+              .pageSize(100)
+              .pagingState(ByteBuffer.wrap(Base64.getDecoder().decode("AWEA8H////4A")))
+              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+              .build()),
+      arguments(
+          "mutation { insertBooks(value: {title:\"a\", author:\"b\"}, options: { consistency: LOCAL_ONE, serialConsistency: SERIAL}) { applied } }",
+          ImmutableParameters.builder()
+              .consistencyLevel(ConsistencyLevel.LOCAL_ONE)
+              .serialConsistencyLevel(ConsistencyLevel.SERIAL)
+              .build())
     };
   }
 }

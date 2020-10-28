@@ -331,7 +331,8 @@ public class RowResource {
       value = "Add row",
       notes =
           "Add a row to a table in your database. If the new row has the same primary key as that of an existing row, the database processes it as an update to the existing row.",
-      response = RowsResponse.class)
+      response = RowsResponse.class,
+      code = 201)
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = RowsResponse.class),
@@ -501,7 +502,7 @@ public class RowResource {
   private String buildExpressionFromOperators(List<Filter> filters) {
     StringBuilder expression = new StringBuilder();
     for (Filter filter : filters) {
-      if (!expression.toString().equals("")) {
+      if (expression.length() != 0) {
         expression.append(" AND ");
       }
 

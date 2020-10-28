@@ -28,14 +28,17 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class QueryFetcher extends DmlFetcher {
+public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
 
   public QueryFetcher(
       Table table,
@@ -52,11 +55,19 @@ public class QueryFetcher extends DmlFetcher {
     CompletableFuture<ResultSet> rs = dataStore.query(statement);
     ResultSet resultSet = rs.get();
 
-    return ImmutableMap.of(
+    Map<String, Object> result = new HashMap<>();
+    result.put(
         "values",
-        resultSet.rows().stream()
+        resultSet.currentPageRows().stream()
             .map(row -> DataTypeMapping.toGraphQLValue(nameMapping, table, row))
             .collect(Collectors.toList()));
+
+    ByteBuffer pageState = resultSet.getPagingState();
+    if (pageState != null) {
+      result.put("pageState", Base64.getEncoder().encodeToString(pageState.array()));
+    }
+
+    return result;
   }
 
   private String buildQuery(DataFetchingEnvironment environment) {
@@ -68,19 +79,9 @@ public class QueryFetcher extends DmlFetcher {
 
     if (environment.containsArgument("options")) {
       Map<String, Object> options = environment.getArgument("options");
-      if (options.containsKey("limit")) {
-        select = select.limit((Integer) options.get("limit"));
-      }
-      if (options.containsKey("pageSize")) {
-        //                    from.setFetchSize((Integer)options.get("pageSize"));
-      }
-      if (options.containsKey("pageState")) {
-        //                    select =
-        // select.whereRaw(PagingState.fromString((String)options.get("pageState")));
-      }
-      if (options.containsKey("consistency")) {
-        //
-        // select.setConsistencyLevel(ConsistencyLevel.valueOf((String)options.get("pageState")));
+      Object limit = options.get("limit");
+      if (limit != null) {
+        select = select.limit((Integer) limit);
       }
     }
 

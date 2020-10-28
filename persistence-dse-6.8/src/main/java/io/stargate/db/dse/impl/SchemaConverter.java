@@ -127,6 +127,11 @@ public class SchemaConverter
   }
 
   @Override
+  protected boolean isCustom(IndexMetadata index) {
+    return index.kind == IndexMetadata.Kind.CUSTOM;
+  }
+
+  @Override
   protected List<Column> userTypeFields(UserType userType) {
     return Conversion.getUDTColumns(userType);
   }

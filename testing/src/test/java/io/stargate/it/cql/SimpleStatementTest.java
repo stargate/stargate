@@ -15,7 +15,6 @@ import com.datastax.oss.driver.api.core.data.ByteUtils;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.servererrors.ProtocolError;
 import com.google.common.collect.ImmutableMap;
-import io.stargate.it.storage.ClusterConnectionInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,10 +22,6 @@ import org.junit.jupiter.api.Test;
 public class SimpleStatementTest extends JavaDriverTestBase {
 
   private static final String KEY = "test";
-
-  public SimpleStatementTest(ClusterConnectionInfo backend) {
-    super(backend);
-  }
 
   @Override
   protected void customizeConfig(OptionsMap config) {

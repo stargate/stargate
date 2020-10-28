@@ -8,7 +8,6 @@ import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
-import java.util.Map;
 
 public class DeleteMutationFetcher extends MutationFetcher {
 
@@ -31,18 +30,6 @@ public class DeleteMutationFetcher extends MutationFetcher {
         && environment.getArgument("ifExists") != null
         && (Boolean) environment.getArgument("ifExists")) {
       delete = delete.ifExists();
-    }
-
-    if (environment.containsArgument("options") && environment.getArgument("options") != null) {
-      Map<String, Object> options = environment.getArgument("options");
-      if (options.containsKey("consistency")) {
-        //
-        // delete.setConsistencyLevel(ConsistencyLevel.valueOf(options.get("consistency").toString()));
-      }
-      if (options.containsKey("serialConsistency")) {
-        //
-        // delete.setSerialConsistencyLevel(ConsistencyLevel.valueOf(options.get("serialConsistency").toString()));
-      }
     }
 
     return delete.asCql();

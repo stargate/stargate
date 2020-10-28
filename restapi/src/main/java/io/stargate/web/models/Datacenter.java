@@ -22,8 +22,9 @@ import io.swagger.annotations.ApiModelProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Datacenter {
-  String name;
-  int replicas;
+
+  private String name;
+  private int replicas;
 
   @ApiModelProperty(required = true, value = "The name of the datacenter.")
   public String getName() {

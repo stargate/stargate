@@ -16,13 +16,23 @@
 package io.stargate.it.storage;
 
 import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.TYPE)
+/** Defines how storage node(s) required by a test should be configured. */
+@Target({ElementType.TYPE, ElementType.METHOD})
+@Inherited
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ClusterSpec {
 
-  ClusterScope scope() default ClusterScope.SHARED;
+  /**
+   * Indicates whether storage clusters started from this specification can be shared among
+   * different tests.
+   */
+  boolean shared() default false;
+
+  /** Defines the number of storage nodes required by the test. */
+  int nodes() default 1;
 }
