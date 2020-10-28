@@ -245,7 +245,13 @@ public class DocumentService {
 
     JsonSurfer surfer = JsonSurferGson.INSTANCE;
 
-    db.maybeCreateTable(keyspace, collection);
+    boolean created = db.maybeCreateTable(keyspace, collection);
+    // After creating the table, it can take up to 2 seconds for permissions cache to be updated,
+    // but we can force the permissions refetch by logging in again.
+    if (created) {
+      db = dbFactory.getDocDataStoreForToken(authToken);
+      db.maybeCreateTableIndexes(keyspace, collection, dbFactory.isDse());
+    }
 
     // Left-pad the path segments that represent arrays
     List<String> convertedPath = new ArrayList<>(path.size());

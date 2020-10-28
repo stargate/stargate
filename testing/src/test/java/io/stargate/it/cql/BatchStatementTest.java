@@ -16,7 +16,6 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
-import io.stargate.it.storage.ClusterConnectionInfo;
 import java.time.Duration;
 import java.util.Iterator;
 import java.util.List;
@@ -29,10 +28,6 @@ import org.junit.jupiter.api.TestInfo;
 public class BatchStatementTest extends JavaDriverTestBase {
 
   private static final int batchCount = 100;
-
-  public BatchStatementTest(ClusterConnectionInfo backend) {
-    super(backend);
-  }
 
   @Override
   protected void customizeConfig(OptionsMap config) {

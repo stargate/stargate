@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema;
 
+import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.google.common.base.Preconditions;
 import graphql.language.ArrayValue;
 import graphql.language.BooleanValue;
@@ -36,6 +37,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -49,17 +51,15 @@ public enum CustomScalar {
   UUID(
       "Uuid",
       "The `Uuid` scalar type represents a CQL uuid as a string.",
-      o -> java.util.UUID.fromString(String.valueOf(o)),
-      Object::toString),
+      o -> java.util.UUID.fromString(String.valueOf(o))),
   TIMEUUID(
       "TimeUuid",
       "The `TimeUuid` scalar type represents a CQL timeuuid as a string.",
-      o -> java.util.UUID.fromString(String.valueOf(o)),
-      Object::toString),
+      o -> java.util.UUID.fromString(String.valueOf(o))),
 
   INET(
       "Inet",
-      "The `Inet` scalar type represents a CQL inet as a string.",
+      "Represents an IP address string in IPv4 or IPv6 format.",
       e -> {
         try {
           return InetAddress.getByName(String.valueOf(e));
@@ -68,50 +68,38 @@ public enum CustomScalar {
         }
       },
       InetAddress::getHostAddress),
-  DATE("Date", "", o -> java.sql.Date.valueOf(o.toString()), Object::toString),
-  //    DURATION("Duration", com.datastax.driver.core.Duration.class, "Represents a duration. A
-  // duration stores separately months, days, and seconds due to the fact that the number of days in
-  // a month varies, and a day can have 23 or 25 hours if a daylight saving is involved.",
-  //            o->com.datastax.driver.core.Duration.from(o.toString()),
-  //            Object::toString),
+  DATE(
+      "Date",
+      "A date without a time-zone in the ISO-8601 calendar system, represented as a string,"
+          + " such as \"2020-10-21\".",
+      o -> LocalDate.parse(o.toString())),
+  DURATION(
+      "Duration",
+      "Represents a duration represented as a string in ISO 8601 format."
+          + " A duration stores separately months, days, and seconds due to"
+          + " the fact that the number of days in a month varies, and a day can have 23 or 25"
+          + " hours if a daylight saving is involved.",
+      o -> CqlDuration.from(o.toString())),
   BIGINT(
       "BigInt",
       "The `BIGINT` scalar type represents a CQL bigint (64-bit signed integer) as a string.",
-      e -> {
-        if (e instanceof String) {
-          return new Long((String) e);
-        }
-        if (e instanceof Long) {
-          return e;
-        }
-        if (e instanceof Integer) {
-          return ((Integer) e).longValue();
-        }
-        throw new NumberFormatException(
-            String.format(
-                "Expected string for bigint scalar, obtained %s", e.getClass().getName()));
-      },
-      Object::toString),
+      CustomScalar::parseLong),
   COUNTER(
       "Counter",
       "The `COUNTER` scalar type represents a CQL counter (64-bit signed integer) as a string.",
-      String::valueOf,
-      Object::toString),
+      CustomScalar::parseLong),
   ASCII(
       "Ascii",
       "The `Ascii` scalar type represents CQL ascii character values as a string.",
-      String::valueOf,
-      Object::toString),
+      String::valueOf),
   DECIMAL(
       "Decimal",
       "The `Decimal` scalar type represents a CQL decimal as a string.",
-      o -> new BigDecimal(o.toString()),
-      Object::toString),
+      o -> new BigDecimal(o.toString())),
   VARINT(
       "Varint",
       "The `Varint` scalar type represents a CQL varint as a string.",
-      o -> new BigInteger(o.toString()),
-      Object::toString),
+      o -> new BigInteger(o.toString())),
   FLOAT(
       "Float32",
       "The `Float32` scalar type represents a CQL float (single-precision floating point values).",
@@ -121,19 +109,33 @@ public enum CustomScalar {
       "Blob",
       "The `Blob` scalar type represents a CQL blob as a base64 encoded byte array.",
       o -> ByteBuffer.wrap(Base64.getDecoder().decode(o.toString())),
-      o -> Base64.getEncoder().encode(o)),
+      o -> Base64.getEncoder().encodeToString(o.array())),
+  SMALLINT(
+      "SmallInt",
+      "The `SmallInt` scalar type represents a CQL smallint (16-bit signed int).",
+      o -> Short.valueOf(o.toString()),
+      e -> e),
+  TINYINT(
+      "TinyInt",
+      "The `TinyInt` scalar type represents a CQL tinyint (8-bit signed int).",
+      o -> Byte.valueOf(o.toString()),
+      e -> e),
   TIMESTAMP(
       "Timestamp",
-      "The `Timestamp` scalar type represents a DateTime.",
-      o -> Instant.parse((String) o),
-      Object::toString),
+      "The `Timestamp` scalar type represents an instantaneous point on the time-line"
+          + "in ISO-8601 instant format, such as \"2007-12-03T10:15:30.00Z\".",
+      o -> Instant.parse((String) o)),
   TIME(
       "Time",
-      "The `Time` scalar type represents a local time.",
-      o -> LocalTime.parse((String) o),
-      Object::toString);
+      "The `Time` scalar type represents a time without a time-zone in the ISO-8601"
+          + " calendar system as a string, such as \"10:15:30.123456789\".",
+      o -> LocalTime.parse((String) o));
 
   private final GraphQLScalarType graphQLScalar;
+
+  <T> CustomScalar(String graphQLName, String description, Function<Object, T> parser) {
+    this(graphQLName, description, parser, Object::toString);
+  }
 
   <T> CustomScalar(
       String graphQLName,
@@ -155,6 +157,18 @@ public enum CustomScalar {
 
   public GraphQLScalarType getGraphQLScalar() {
     return graphQLScalar;
+  }
+
+  /** Support json numbers and strings as integer literals */
+  private static long parseLong(Object v) {
+    if (v instanceof String) {
+      return Long.parseLong((String) v);
+    }
+    if (v instanceof Long) {
+      return (long) v;
+    }
+    throw new NumberFormatException(
+        String.format("Expected string for bigint scalar, obtained %s", v.getClass().getName()));
   }
 
   /**
@@ -203,7 +217,7 @@ public enum CustomScalar {
 
           @Override
           public Object parseLiteral(Object value) throws CoercingParseLiteralException {
-            if (value == null || !(value instanceof Value))
+            if (!(value instanceof Value))
               throw new CoercingParseLiteralException("Invalid value literal provided: " + value);
             try {
               Object o = literalValueToObject((Value) value);
@@ -225,10 +239,15 @@ public enum CustomScalar {
       return ((StringValue) value).getValue();
     }
     if (value instanceof IntValue) {
-      return ((IntValue) value).getValue();
+      // Int scalar type represents a signed 32‐bit numeric non‐fractional value.
+      // But, the JSON Number is a 64-bit double than can represents ints up to 2^53
+      // So we choose to represent it as a long
+      return ((IntValue) value).getValue().longValue();
     }
     if (value instanceof FloatValue) {
-      return ((FloatValue) value).getValue();
+      // The Float scalar type represents signed double‐precision fractional values
+      // as specified by IEEE 754, return it as a double
+      return ((FloatValue) value).getValue().doubleValue();
     }
     if (value instanceof BooleanValue) {
       return ((BooleanValue) value).isValue();

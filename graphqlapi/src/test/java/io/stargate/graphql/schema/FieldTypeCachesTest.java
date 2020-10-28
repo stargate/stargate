@@ -1,6 +1,5 @@
 package io.stargate.graphql.schema;
 
-import static io.stargate.graphql.schema.DmlSchemaBuilder.getGraphQLType;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -19,11 +18,10 @@ import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchemaElement;
 import graphql.schema.GraphQLType;
 import io.stargate.db.schema.Column;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -32,14 +30,23 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class DmlSchemaBuilderTest {
-  private Map<String, GraphQLType> typeCache = new HashMap<>();
+public class FieldTypeCachesTest {
   @Mock private NameMapping nameMapping;
+
+  private FieldInputTypeCache fieldInputTypes;
+  private FieldOutputTypeCache fieldOutputTypes;
+
+  @BeforeEach
+  public void setup() {
+    fieldInputTypes = new FieldInputTypeCache(nameMapping);
+    fieldOutputTypes = new FieldOutputTypeCache(nameMapping);
+  }
 
   @ParameterizedTest
   @MethodSource("getScalarTypes")
   public void getGraphQLTypeShouldSupportScalarTypes(
       Column.Type dbType, GraphQLScalarType gqlType) {
+
     assertThat(getInputType(dbType)).isEqualTo(gqlType);
   }
 
@@ -67,7 +74,7 @@ public class DmlSchemaBuilderTest {
     GraphQLSchemaElement graphType = graphTypeParentType.getChildren().get(0);
     assertThat(graphType).isInstanceOf(GraphQLInputType.class);
     GraphQLNamedInputType graphQLInputType = (GraphQLNamedInputType) graphType;
-    assertThat(graphQLInputType.getName()).isEqualTo("Input" + name);
+    assertThat(graphQLInputType.getName()).isEqualTo(name + "Input");
     assertThat(graphQLInputType.getChildren()).hasSize(2);
     List<GraphQLInputObjectField> fields =
         graphQLInputType.getChildren().stream()
@@ -107,15 +114,13 @@ public class DmlSchemaBuilderTest {
   @MethodSource("getMapArgs")
   public void getGraphQLTypeShouldReuseTheSameInstanceForMaps(
       Column.ColumnType keyDbType, Column.ColumnType valueDbType) {
-    Map<String, GraphQLType> typeCache = new HashMap<>();
     Column.ColumnType mapDbType = Column.Type.Map.of(keyDbType, valueDbType);
-    GraphQLType graphTypeParentType = getGraphQLType(mapDbType, false, typeCache, nameMapping);
+    GraphQLType graphTypeParentType = getOutputType(mapDbType);
     assertThat(graphTypeParentType).isInstanceOf(GraphQLList.class);
     GraphQLSchemaElement childObjectType = graphTypeParentType.getChildren().get(0);
 
     // Following calls should yield the same instance
-    assertThat(childObjectType)
-        .isSameAs(getGraphQLType(mapDbType, false, typeCache, nameMapping).getChildren().get(0));
+    assertThat(childObjectType).isSameAs(getOutputType(mapDbType).getChildren().get(0));
   }
 
   @ParameterizedTest
@@ -177,20 +182,24 @@ public class DmlSchemaBuilderTest {
         arguments(Column.Type.Inet, CustomScalar.INET.getGraphQLScalar()),
         arguments(Column.Type.Date, CustomScalar.DATE.getGraphQLScalar()),
         arguments(Column.Type.Time, CustomScalar.TIME.getGraphQLScalar()),
-        arguments(Column.Type.Smallint, Scalars.GraphQLInt),
-        arguments(Column.Type.Tinyint, Scalars.GraphQLInt));
+        arguments(Column.Type.Smallint, CustomScalar.SMALLINT.getGraphQLScalar()),
+        arguments(Column.Type.Tinyint, CustomScalar.TINYINT.getGraphQLScalar()));
   }
 
   public static Stream<Arguments> getMapArgs() {
     return Stream.of(
-        arguments(Column.Type.Text, Column.Type.Uuid, "KeyStringValueUuid"),
-        arguments(Column.Type.Int, Column.Type.Timeuuid, "KeyIntValueTimeUuid"),
-        arguments(Column.Type.Timeuuid, Column.Type.Bigint, "KeyTimeUuidValueBigInt"),
-        arguments(Column.Type.Timestamp, Column.Type.Inet, "KeyTimestampValueInet"),
+        arguments(Column.Type.Text, Column.Type.Uuid, "EntryStringKeyUuidValue"),
+        arguments(Column.Type.Int, Column.Type.Timeuuid, "EntryIntKeyTimeUuidValue"),
+        arguments(Column.Type.Timeuuid, Column.Type.Bigint, "EntryTimeUuidKeyBigIntValue"),
+        arguments(Column.Type.Timestamp, Column.Type.Inet, "EntryTimestampKeyInetValue"),
         arguments(
-            Column.Type.Uuid, Column.Type.List.of(Column.Type.Float), "KeyUuidValueListFloat32"),
+            Column.Type.Uuid,
+            Column.Type.List.of(Column.Type.Float),
+            "EntryUuidKeyListFloat32Value"),
         arguments(
-            Column.Type.Smallint, Column.Type.Set.of(Column.Type.Double), "KeyIntValueListFloat"));
+            Column.Type.Smallint,
+            Column.Type.Set.of(Column.Type.Double),
+            "EntrySmallIntKeyListFloatValue"));
   }
 
   public static Stream<Arguments> getMapNestedArgs() {
@@ -198,26 +207,22 @@ public class DmlSchemaBuilderTest {
         arguments(
             Column.Type.Tinyint,
             Column.Type.Map.of(Column.Type.Uuid, Column.Type.Int),
-            "InputKeyIntValueListInputKeyUuidValueInt",
-            "KeyIntValueListKeyUuidValueInt"),
+            "EntryTinyIntKeyListEntryUuidKeyIntValueInputValueInput",
+            "EntryTinyIntKeyListEntryUuidKeyIntValueValue"),
         arguments(
             Column.Type.Map.of(Column.Type.Text, Column.Type.Bigint),
             Column.Type.Set.of(Column.Type.Double),
-            "InputKeyListInputKeyStringValueBigIntValueListFloat",
-            "KeyListKeyStringValueBigIntValueListFloat"));
+            "EntryListEntryStringKeyBigIntValueInputKeyListFloatValueInput",
+            "EntryListEntryStringKeyBigIntValueKeyListFloatValue"));
   }
 
   /** Gets a GraphQL input type using the shared cache */
   private GraphQLInputType getInputType(Column.ColumnType dbType) {
-    GraphQLType result = getGraphQLType(dbType, true, typeCache, nameMapping);
-    assertThat(result).isInstanceOf(GraphQLInputType.class);
-    return (GraphQLInputType) result;
+    return fieldInputTypes.get(dbType);
   }
 
   /** Gets a GraphQL output type using the shared cache */
   private GraphQLOutputType getOutputType(Column.ColumnType dbType) {
-    GraphQLType result = getGraphQLType(dbType, false, typeCache, nameMapping);
-    assertThat(result).isInstanceOf(GraphQLOutputType.class);
-    return (GraphQLOutputType) result;
+    return fieldOutputTypes.get(dbType);
   }
 }

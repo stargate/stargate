@@ -231,14 +231,6 @@ public class Conversion {
     return protocolVersion == null ? null : ProtocolVersion.decode(protocolVersion.asInt(), true);
   }
 
-  public static InetAddressAndPort toExternal(InetAddress internal) {
-    return InetAddressAndPort.getByAddress(internal);
-  }
-
-  public static InetAddressAndPort toInternal(InetAddressAndPort external) {
-    return InetAddressAndPort.getByAddressOverrideDefaults(external.address, external.port);
-  }
-
   public static org.apache.cassandra.utils.MD5Digest toInternal(MD5Digest id) {
     return org.apache.cassandra.utils.MD5Digest.wrap(id.bytes);
   }

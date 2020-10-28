@@ -5,7 +5,12 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.cdc.CDCProducer;
 import io.stargate.db.cdc.CDCService;
 import io.stargate.db.cdc.CDCServiceImpl;
-import org.osgi.framework.*;
+import org.osgi.framework.BundleActivator;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceEvent;
+import org.osgi.framework.ServiceListener;
+import org.osgi.framework.ServiceReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +63,9 @@ public class DbActivator implements BundleActivator, ServiceListener {
   }
 
   @Override
-  public synchronized void stop(BundleContext context) {}
+  public synchronized void stop(BundleContext context) {
+    // No way to stop CDC or other services yet
+  }
 
   @Override
   public synchronized void serviceChanged(ServiceEvent serviceEvent) {

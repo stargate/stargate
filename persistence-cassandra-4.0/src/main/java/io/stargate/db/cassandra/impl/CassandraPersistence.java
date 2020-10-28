@@ -18,7 +18,6 @@ import io.stargate.db.cassandra.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import io.stargate.db.datastore.common.AbstractCassandraPersistence;
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,7 +54,6 @@ import org.apache.cassandra.service.ClientWarn;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.stargate.exceptions.PersistenceException;
-import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.transport.Message;
 import org.apache.cassandra.transport.Message.Request;
@@ -186,28 +184,8 @@ public class CassandraPersistence
 
   @Override
   public void registerEventListener(EventListener listener) {
-    EventListenerWrapper wrapper = new EventListenerWrapper(listener);
-    Schema.instance.registerListener(wrapper);
-    interceptor.register(wrapper);
-  }
-
-  @Override
-  public boolean isRpcReady(InetAddressAndPort endpoint) {
-    return StorageService.instance.isRpcReady(Conversion.toInternal(endpoint));
-  }
-
-  @Override
-  public InetAddressAndPort getNativeAddress(InetAddressAndPort endpoint) {
-    try {
-      return InetAddressAndPort.getByName(
-          StorageService.instance.getNativeaddress(Conversion.toInternal(endpoint), true));
-    } catch (UnknownHostException e) {
-      // That should not happen, so log an error, but return the
-      // endpoint address since there's a good change this is right
-      logger.error("Problem retrieving RPC address for {}", endpoint, e);
-      return InetAddressAndPort.getByAddressOverrideDefaults(
-          endpoint.address, DatabaseDescriptor.getNativeTransportPort());
-    }
+    Schema.instance.registerListener(new EventListenerWrapper(listener));
+    interceptor.register(listener);
   }
 
   @Override
@@ -218,6 +196,11 @@ public class CassandraPersistence
   @Override
   public Authenticator getAuthenticator() {
     return authenticator;
+  }
+
+  @Override
+  public void setRpcReady(boolean status) {
+    StorageService.instance.setRpcReady(status);
   }
 
   @Override

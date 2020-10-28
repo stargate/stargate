@@ -74,6 +74,7 @@ import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.it.storage.ClusterConnectionInfo;
+import io.stargate.it.storage.ClusterSpec;
 import io.stargate.it.storage.ExternalStorage;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
@@ -110,6 +111,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @ExtendWith(ExternalStorage.class)
+@ClusterSpec(shared = true)
 @NotThreadSafe
 public abstract class PersistenceTest {
   private static final Logger logger = LoggerFactory.getLogger(PersistenceTest.class);

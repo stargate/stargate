@@ -23,7 +23,7 @@ import io.swagger.annotations.ApiModelProperty;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ResponseWrapper<T> {
   @JsonProperty("data")
-  T data;
+  private T data;
 
   @ApiModelProperty(value = "Response data returned by the request.")
   public T getData() {

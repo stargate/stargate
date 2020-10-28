@@ -2,6 +2,7 @@ package io.stargate.graphql.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -11,14 +12,17 @@ import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.GraphQLError;
+import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
+import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
-import java.util.Collections;
+import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl.BatchContext;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,57 +38,67 @@ import org.mockito.junit.jupiter.MockitoSettings;
 @MockitoSettings(strictness = LENIENT)
 public abstract class GraphQlTestBase {
 
+  private final String token = "mock token";
   protected GraphQL graphQl;
   protected GraphQLSchema graphQlSchema;
 
   @Mock protected Persistence persistence;
   @Mock protected AuthenticationService authenticationService;
-  @Mock protected HTTPAwareContextImpl context;
-  @Mock protected DataStore dataStore;
-
+  @Mock protected ResultSet resultSet;
   @Mock private StoredCredentials storedCredentials;
 
   @Captor protected ArgumentCaptor<String> queryCaptor;
+  @Captor protected ArgumentCaptor<List<String>> batchCaptor;
+  @Captor protected ArgumentCaptor<Parameters> parametersCaptor;
 
   private MockedStatic<DataStore> dataStoreCreateMock;
 
-  @BeforeEach
-  @SuppressWarnings("unchecked")
-  public void setupEnvironment() {
+  // Stores the parameters of the last batch execution
+  protected Parameters batchParameters;
 
-    // Mock authentication:
+  @BeforeEach
+  public void setupEnvironment() {
     try {
-      String token = "mock token";
       String roleName = "mock role name";
-      when(context.getAuthToken()).thenReturn(token);
       when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
       when(storedCredentials.getRoleName()).thenReturn(roleName);
       dataStoreCreateMock = mockStatic(DataStore.class);
-      dataStoreCreateMock.when(() -> DataStore.create(persistence, roleName)).thenReturn(dataStore);
+      dataStoreCreateMock
+          .when(() -> DataStore.create(eq(persistence), eq(roleName), parametersCaptor.capture()))
+          .then(
+              i -> {
+                DataStore dataStore = mock(DataStore.class);
+                when(dataStore.query(queryCaptor.capture()))
+                    .thenReturn(CompletableFuture.completedFuture(resultSet));
+
+                // Batches use multiple data store instances, one per each mutation
+                // We need to capture the parameters provided at dataStore creation
+                Parameters dataStoreParameters = i.getArgument(2, Parameters.class);
+                when(dataStore.batch(batchCaptor.capture()))
+                    .then(
+                        batchInvoke -> {
+                          batchParameters = dataStoreParameters;
+                          return CompletableFuture.completedFuture(mock(ResultSet.class));
+                        });
+                return dataStore;
+              });
     } catch (Exception e) {
-      fail("Unexpected exception while mocking authentication", e);
+      fail("Unexpected exception while mocking dataStore", e);
     }
 
-    // Make every query return an empty result set.
-    // At the time of writing, this is enough to execute all of our fetchers without failure. It
-    // might have to evolve in the future if queries start checking particular elements in the
-    // response (like the '[applied]' column for LWTs).
-    //
-    // As a consequence, our unit tests do not cover the conversion of CQL results back to GraphQL.
-    // We would have to mock the entire result API (ResultSet, Row, Column, ColumnType...), which is
-    // a bit overkill and brittle. The integration tests in the 'testing' module fill that gap.
-    ResultSet resultSet = mock(ResultSet.class);
-    when(resultSet.rows()).thenReturn(Collections.emptyList());
-    when(dataStore.query(queryCaptor.capture()))
-        .thenReturn(CompletableFuture.completedFuture(resultSet));
-
     graphQlSchema = createGraphQlSchema();
-    graphQl = GraphQL.newGraphQL(graphQlSchema).build();
+    graphQl =
+        GraphQL.newGraphQL(graphQlSchema)
+            // Use parallel execution strategy for mutations (serial is default)
+            .mutationExecutionStrategy(new AsyncExecutionStrategy())
+            .build();
   }
 
   @AfterEach
   public void resetMocks() {
-    dataStoreCreateMock.close();
+    if (dataStoreCreateMock != null) {
+      dataStoreCreateMock.close();
+    }
   }
 
   protected abstract GraphQLSchema createGraphQlSchema();
@@ -92,10 +106,17 @@ public abstract class GraphQlTestBase {
   /**
    * Convenience method to execute a GraphQL query.
    *
-   * <p>You can also access {@link #graphQl} directly in subclasses, but don't forget to set {@link
-   * #context} on the execution input.
+   * <p>You can also access {@link #graphQl} directly in subclasses.
    */
   protected ExecutionResult executeGraphQl(String query) {
+    // Use a context mock per execution
+    HTTPAwareContextImpl context = mock(HTTPAwareContextImpl.class);
+
+    // Use a dedicated batch executor per execution
+    BatchContext batchContext = new BatchContext();
+
+    when(context.getAuthToken()).thenReturn(token);
+    when(context.getBatchContext()).thenReturn(batchContext);
     return graphQl.execute(ExecutionInput.newExecutionInput(query).context(context).build());
   }
 

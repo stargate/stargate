@@ -99,7 +99,15 @@ public class DocumentDB {
     return dataStore.query();
   }
 
-  public void maybeCreateTable(String keyspaceName, String tableName) {
+  /**
+   * Creates the table described by @param tableName, in keyspace @keyspaceName, if it doesn't
+   * already exist.
+   *
+   * @param keyspaceName
+   * @param tableName
+   * @return true if the table was created
+   */
+  public boolean maybeCreateTable(String keyspaceName, String tableName) {
     Keyspace ks = dataStore.schema().keyspace(keyspaceName);
 
     if (ks == null)
@@ -113,7 +121,7 @@ public class DocumentDB {
               tableName));
     }
 
-    if (ks.table(tableName) != null) return;
+    if (ks.table(tableName) != null) return false;
 
     try {
       dataStore
@@ -125,29 +133,138 @@ public class DocumentDB {
                   String.join(" text, ", allPathColumnNames),
                   String.join(", ", allPathColumnNames)))
           .get();
-
-      dataStore
-          .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(leaf)", keyspaceName, tableName))
-          .get();
-
-      dataStore
-          .query(
-              String.format("CREATE INDEX ON \"%s\".\"%s\"(text_value)", keyspaceName, tableName))
-          .get();
-
-      dataStore
-          .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(dbl_value)", keyspaceName, tableName))
-          .get();
-
-      dataStore
-          .query(
-              String.format("CREATE INDEX ON \"%s\".\"%s\"(bool_value)", keyspaceName, tableName))
-          .get();
+      return true;
     } catch (AlreadyExistsException e) {
-      // fine
+      logger.info("Table already exists, skipping creation", e);
+      return false;
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException("Unable to create schema for collection", e);
     }
+  }
+
+  public boolean maybeCreateTableIndexes(String keyspaceName, String tableName, boolean isDse) {
+    try {
+      if (isDse) {
+        createSAIIndexes(keyspaceName, tableName);
+      } else {
+        createDefaultIndexes(keyspaceName, tableName);
+      }
+      return true;
+    } catch (AlreadyExistsException e) {
+      logger.info("Indexes already exist, skipping creation", e);
+      return false;
+    } catch (InterruptedException | ExecutionException e) {
+      throw new RuntimeException("Unable to create indexes for collection " + tableName, e);
+    }
+  }
+
+  /**
+   * Drops indexes for `tableName` and adds SAI indexes in their place. Only works if `isDse` is
+   * true.
+   *
+   * <p>This could cause performance degradation and/or disrupt in-flight requests, since indexes
+   * are being dropped and re-created.
+   */
+  public boolean upgradeTableIndexes(String keyspaceName, String tableName, boolean isDse) {
+    if (!isDse) {
+      logger.info("Upgrade was attempted on a non-DSE setup.");
+      return false;
+    }
+
+    dropTableIndexes(keyspaceName, tableName);
+    return maybeCreateTableIndexes(keyspaceName, tableName, true);
+  }
+
+  /**
+   * Drops indexes of `tableName` in preparation for replacing them with SAI. Note that the boolean
+   * column index does not get altered, this is because SAI doesn't support booleans.
+   *
+   * @param keyspaceName
+   * @param tableName
+   */
+  public void dropTableIndexes(String keyspaceName, String tableName) {
+    try {
+      dataStore
+          .query(
+              String.format(
+                  "DROP INDEX IF EXISTS \"%s\".\"%s\"", keyspaceName, tableName + "_leaf_idx"))
+          .get();
+
+      dataStore
+          .query(
+              String.format(
+                  "DROP INDEX IF EXISTS \"%s\".\"%s\"",
+                  keyspaceName, tableName + "_text_value_idx"))
+          .get();
+
+      dataStore
+          .query(
+              String.format(
+                  "DROP INDEX IF EXISTS \"%s\".\"%s\"", keyspaceName, tableName + "_dbl_value_idx"))
+          .get();
+
+      dataStore
+          .query(
+              String.format(
+                  "DROP INDEX IF EXISTS \"%s\".\"%s\"",
+                  keyspaceName, tableName + "_bool_value_idx"))
+          .get();
+    } catch (InterruptedException | ExecutionException e) {
+      throw new RuntimeException("Unable to drop indexes in preparation for upgrade", e);
+    }
+  }
+
+  private void createDefaultIndexes(String keyspaceName, String tableName)
+      throws InterruptedException, ExecutionException {
+    dataStore
+        .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(leaf)", keyspaceName, tableName))
+        .get();
+
+    dataStore
+        .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(text_value)", keyspaceName, tableName))
+        .get();
+
+    dataStore
+        .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(dbl_value)", keyspaceName, tableName))
+        .get();
+
+    dataStore
+        .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(bool_value)", keyspaceName, tableName))
+        .get();
+  }
+
+  private void createSAIIndexes(String keyspaceName, String tableName)
+      throws InterruptedException, ExecutionException {
+    dataStore
+        .query(
+            String.format(
+                "CREATE CUSTOM INDEX ON \"%s\".\"%s\"(leaf) USING 'StorageAttachedIndex'",
+                keyspaceName, tableName))
+        .get();
+
+    dataStore
+        .query(
+            String.format(
+                "CREATE CUSTOM INDEX ON \"%s\".\"%s\"(text_value) USING 'StorageAttachedIndex'",
+                keyspaceName, tableName))
+        .get();
+
+    dataStore
+        .query(
+            String.format(
+                "CREATE CUSTOM INDEX ON \"%s\".\"%s\"(dbl_value) USING 'StorageAttachedIndex'",
+                keyspaceName, tableName))
+        .get();
+
+    // SAI doesn't support booleans, so add a non-SAI index here.
+    dataStore
+        .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(bool_value)", keyspaceName, tableName))
+        .get();
+  }
+
+  public void deleteTable(String keyspaceName, String tableName)
+      throws InterruptedException, ExecutionException {
+    dataStore.query(String.format("DROP TABLE \"%s\".\"%s\"", keyspaceName, tableName)).get();
   }
 
   public ResultSet executeSelect(String keyspace, String collection, List<Where<Object>> predicates)

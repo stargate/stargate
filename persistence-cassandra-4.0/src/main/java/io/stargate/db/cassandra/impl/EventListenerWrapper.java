@@ -1,45 +1,15 @@
 package io.stargate.db.cassandra.impl;
 
-import static io.stargate.db.cassandra.impl.Conversion.toExternal;
-
 import io.stargate.db.EventListener;
 import java.util.List;
 import org.apache.cassandra.db.marshal.AbstractType;
-import org.apache.cassandra.locator.InetAddressAndPort;
 import org.apache.cassandra.schema.SchemaChangeListener;
-import org.apache.cassandra.service.IEndpointLifecycleSubscriber;
 
-public class EventListenerWrapper extends SchemaChangeListener
-    implements IEndpointLifecycleSubscriber {
+public class EventListenerWrapper extends SchemaChangeListener {
   private EventListener wrapped;
 
   EventListenerWrapper(EventListener wrapped) {
     this.wrapped = wrapped;
-  }
-
-  @Override
-  public void onJoinCluster(InetAddressAndPort endpoint) {
-    wrapped.onJoinCluster(toExternal(endpoint));
-  }
-
-  @Override
-  public void onLeaveCluster(InetAddressAndPort endpoint) {
-    wrapped.onLeaveCluster(toExternal(endpoint));
-  }
-
-  @Override
-  public void onUp(InetAddressAndPort endpoint) {
-    wrapped.onUp(toExternal(endpoint));
-  }
-
-  @Override
-  public void onDown(InetAddressAndPort endpoint) {
-    wrapped.onDown(toExternal(endpoint));
-  }
-
-  @Override
-  public void onMove(InetAddressAndPort endpoint) {
-    wrapped.onMove(toExternal(endpoint));
   }
 
   @Override

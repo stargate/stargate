@@ -20,7 +20,7 @@ import io.swagger.annotations.ApiModelProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SuccessResponse {
-  final boolean success = true;
+  private final boolean success = true;
 
   @ApiModelProperty(required = true, value = "Whether the request was successful.")
   public boolean getSuccess() {

@@ -10,7 +10,6 @@ import com.datastax.oss.driver.api.core.metadata.schema.SchemaChangeListener;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
-import io.stargate.it.storage.ClusterConnectionInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,10 +24,6 @@ public class SchemaChangesTest extends JavaDriverTestBase {
   @Mock private SchemaChangeListener schemaChanges;
   @Captor ArgumentCaptor<TableMetadata> tableCaptor;
   @Captor ArgumentCaptor<TableMetadata> previousTableCaptor;
-
-  public SchemaChangesTest(ClusterConnectionInfo backend) {
-    super(backend);
-  }
 
   @Override
   protected void customizeBuilder(CqlSessionBuilder builder) {
