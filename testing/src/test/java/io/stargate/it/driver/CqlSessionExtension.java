@@ -118,12 +118,14 @@ import org.slf4j.LoggerFactory;
  *       with a different configuration in your test methods. Note that such sessions are not
  *       managed by the extension: <b>you must close them explicitly once you are done</b>, to avoid
  *       resource leaks. A try-with-resources block is generally the best way to do that. Also, you
- *       might want to invoke {@link #awaitAllNodes(CqlSession, StargateEnvironmentInfo)} if there
- *       are multiple Stargate nodes.
+ *       might want to use {@link CqlSessionHelper#waitForStargateNodes} if there are multiple
+ *       Stargate nodes.
  *   <li>a parameter of type {@link CqlIdentifier} <b>AND annotated with {@link TestKeyspace}</b>:
  *       injected with the identifier of the keyspace that was created by the extension. This is
  *       useful if you need to look up schema metadata, use the keyspace from another session or
  *       API, etc.
+ *   <li>any parameter of type {@link CqlSessionHelper}: returns an instance of that interface, that
+ *       contains utility methods (see its javadocs).
  * </ul>
  *
  * <h3>Parallel execution</h3>
@@ -190,10 +192,11 @@ public class CqlSessionExtension
       ParameterContext parameterContext, ExtensionContext extensionContext)
       throws ParameterResolutionException {
     Parameter parameter = parameterContext.getParameter();
-    return parameter.getType() == CqlSession.class
-        || parameter.getType() == CqlSessionBuilder.class
-        || (parameter.getType() == CqlIdentifier.class
-            && parameter.getAnnotation(TestKeyspace.class) != null);
+    Class<?> type = parameter.getType();
+    return type == CqlSession.class
+        || type == CqlSessionBuilder.class
+        || type == CqlSessionHelper.class
+        || (type == CqlIdentifier.class && parameter.getAnnotation(TestKeyspace.class) != null);
   }
 
   @Override
@@ -212,6 +215,8 @@ public class CqlSessionExtension
       }
     } else if (type == CqlSessionBuilder.class) {
       return newSessionBuilder(stargate, extensionContext);
+    } else if (type == CqlSessionHelper.class) {
+      return (CqlSessionHelper) this::waitForStargateNodes;
     } else if (type == CqlIdentifier.class) {
       if (keyspaceId == null) {
         throw new IllegalStateException(
@@ -242,7 +247,7 @@ public class CqlSessionExtension
     if (cqlSessionSpec.createSession()) {
       LOG.debug("Creating new session for {}", context.getElement());
       session = newSessionBuilder(stargate, context).build();
-      awaitAllNodes(session, stargate);
+      waitForStargateNodes(session);
 
       if (cqlSessionSpec.createKeyspace()) {
         keyspaceId = generateKeyspaceId(context);
@@ -309,13 +314,8 @@ public class CqlSessionExtension
     return builder;
   }
 
-  /**
-   * Waits until a CQL session sees all the Stargate nodes in its metadata. The CI environment is
-   * slow and it may take a while until system.peers is up to date.
-   *
-   * <p>Note: this is exposed publicly to be accessible from tests that create their own sessions.
-   */
-  public static void awaitAllNodes(CqlSession session, StargateEnvironmentInfo stargate) {
+  /** @see CqlSessionHelper#waitForStargateNodes(CqlSession) */
+  private void waitForStargateNodes(CqlSession session) {
     int expectedNodeCount = stargate.nodes().size();
     if (expectedNodeCount > 1) {
       await()
