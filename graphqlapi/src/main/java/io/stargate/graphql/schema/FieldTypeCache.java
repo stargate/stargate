@@ -5,6 +5,7 @@ import graphql.schema.GraphQLScalarType;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.ImmutableListType;
+import io.stargate.graphql.schema.types.scalars.CustomScalars;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -62,48 +63,48 @@ abstract class FieldTypeCache<GraphqlT> {
   protected GraphQLScalarType getScalar(Type type) {
     switch (type) {
       case Ascii:
-        return CustomScalar.ASCII.getGraphQLScalar();
+        return CustomScalars.ASCII;
       case Bigint:
-        return CustomScalar.BIGINT.getGraphQLScalar();
+        return CustomScalars.BIGINT;
       case Blob:
-        return CustomScalar.BLOB.getGraphQLScalar();
+        return CustomScalars.BLOB;
       case Boolean:
         return Scalars.GraphQLBoolean;
       case Counter:
-        return CustomScalar.COUNTER.getGraphQLScalar();
+        return CustomScalars.COUNTER;
       case Decimal:
-        return CustomScalar.DECIMAL.getGraphQLScalar();
+        return CustomScalars.DECIMAL;
       case Double:
         // GraphQL's Float is a signed double‐precision fractional value
         return Scalars.GraphQLFloat;
       case Duration:
-        return CustomScalar.DURATION.getGraphQLScalar();
+        return CustomScalars.DURATION;
       case Float:
         // Use a custom scalar named "Float32"
-        return CustomScalar.FLOAT.getGraphQLScalar();
+        return CustomScalars.FLOAT;
       case Int:
         return Scalars.GraphQLInt;
       case Smallint:
-        return CustomScalar.SMALLINT.getGraphQLScalar();
+        return CustomScalars.SMALLINT;
       case Tinyint:
-        return CustomScalar.TINYINT.getGraphQLScalar();
+        return CustomScalars.TINYINT;
       case Text:
       case Varchar:
         return Scalars.GraphQLString;
       case Timestamp:
-        return CustomScalar.TIMESTAMP.getGraphQLScalar();
+        return CustomScalars.TIMESTAMP;
       case Uuid:
-        return CustomScalar.UUID.getGraphQLScalar();
+        return CustomScalars.UUID;
       case Varint:
-        return CustomScalar.VARINT.getGraphQLScalar();
+        return CustomScalars.VARINT;
       case Timeuuid:
-        return CustomScalar.TIMEUUID.getGraphQLScalar();
+        return CustomScalars.TIMEUUID;
       case Inet:
-        return CustomScalar.INET.getGraphQLScalar();
+        return CustomScalars.INET;
       case Date:
-        return CustomScalar.DATE.getGraphQLScalar();
+        return CustomScalars.DATE;
       case Time:
-        return CustomScalar.TIME.getGraphQLScalar();
+        return CustomScalars.TIME;
       default:
         throw new IllegalArgumentException("Unsupported primitive type " + type);
     }
