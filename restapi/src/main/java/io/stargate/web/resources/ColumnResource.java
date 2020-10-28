@@ -53,7 +53,13 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 @Path("/v1/keyspaces/{keyspaceName}/tables/{tableName}/columns")
 @Produces(MediaType.APPLICATION_JSON)
 public class ColumnResource {
-  @Inject private Db db;
+
+  private Db db;
+
+  @Inject
+  public ColumnResource(Db db) {
+    this.db = db;
+  }
 
   @Timed
   @GET

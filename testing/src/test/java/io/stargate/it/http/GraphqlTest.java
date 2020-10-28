@@ -110,8 +110,8 @@ import okhttp3.RequestBody;
 import org.apache.http.HttpStatus;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -139,32 +139,28 @@ import org.slf4j.LoggerFactory;
 public class GraphqlTest extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
 
-  private CqlSession session;
-  private String authToken;
+  private static CqlSession session;
+  private static String authToken;
+  private static StargateConnectionInfo stargate;
   private static final String keyspace = "betterbotz";
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
-  private StargateConnectionInfo stargate;
+  @BeforeAll
+  public static void setup(StargateConnectionInfo stargateInfo) throws Exception {
+    stargate = stargateInfo;
 
-  @BeforeEach
-  public void setup(StargateConnectionInfo stargate) throws Exception {
-    this.stargate = stargate;
-
-    if (session == null) {
-      createSessionAndSchema();
-
-      initAuth();
-    }
+    createSessionAndSchema();
+    initAuth();
   }
 
-  @AfterEach
-  public void teardown() {
+  @AfterAll
+  public static void teardown() {
     if (session != null) {
       session.close();
     }
   }
 
-  private void createSessionAndSchema() throws Exception {
+  private static void createSessionAndSchema() throws Exception {
     session =
         CqlSession.builder()
             .withConfigLoader(
@@ -183,7 +179,8 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .build();
 
     // Create CQL schema using betterbotz.cql file
-    InputStream inputStream = getClass().getClassLoader().getResourceAsStream("betterbotz.cql");
+    InputStream inputStream =
+        GraphqlTest.class.getClassLoader().getResourceAsStream("betterbotz.cql");
     assertThat(inputStream).isNotNull();
     String queries = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
     assertThat(queries).isNotNull();
@@ -225,7 +222,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             "123 Main St 67890"));
   }
 
-  private void initAuth() throws IOException {
+  private static void initAuth() throws IOException {
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     String body =
