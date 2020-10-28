@@ -43,7 +43,7 @@ public class ConfigStoreActivator implements BundleActivator {
   }
 
   @Override
-  public void start(BundleContext context) {
+  public synchronized void start(BundleContext context) {
     logger.info("Starting Config Store YAML for config file location:{} ...", configYamlLocation);
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", CONFIG_STORE_YAML_IDENTIFIER);
