@@ -22,12 +22,15 @@ import com.datastax.oss.driver.api.core.Version;
 import io.stargate.it.storage.StargateParameters.Builder;
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.UUID;
@@ -184,6 +187,8 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     private final StargateSpec spec;
     private final StargateParameters parameters;
     private final List<Node> nodes = new ArrayList<>();
+    private final int instanceNum;
+    private final Env env;
 
     private Container(
         ClusterConnectionInfo backend, StargateSpec spec, StargateParameters parameters)
@@ -192,9 +197,9 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
       this.spec = spec;
       this.parameters = parameters;
 
-      int instanceNum = stargateInstanceSeq.getAndIncrement();
+      instanceNum = stargateInstanceSeq.getAndIncrement();
 
-      Env env = new Env(spec.nodes());
+      env = new Env();
       for (int i = 0; i < spec.nodes(); i++) {
         nodes.add(new Node(i, instanceNum, backend, env, parameters));
       }
@@ -245,6 +250,23 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     @Override
     public List<? extends StargateConnectionInfo> nodes() {
       return nodes;
+    }
+
+    @Override
+    public StargateConnectionInfo addNode() throws Exception {
+      Node node = new Node(nodes.size(), instanceNum, backend, env, parameters);
+      nodes.add(node);
+      node.start();
+      node.awaitReady();
+      return node;
+    }
+
+    @Override
+    public void removeNode(StargateConnectionInfo node) {
+      Node internalNode = (Node) node;
+      internalNode.stopNode();
+      internalNode.awaitExit();
+      nodes.remove(node);
     }
   }
 
@@ -465,33 +487,26 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
   }
 
   private static class Env {
-
-    private final List<Integer> ports = new ArrayList<>();
-    private final int addressStart;
-
-    private Env(int nodeCount) throws IOException {
-      // Note: do not reuse addresses
-      addressStart = stargateAddressStart.getAndAdd(nodeCount);
-
-      // Allocate `nodeCount` random ports
-      List<ServerSocket> sockets = new ArrayList<>();
-      for (int i = 0; i < nodeCount; i++) {
-        ServerSocket socket = new ServerSocket(0);
-        sockets.add(socket);
-        ports.add(socket.getLocalPort());
-      }
-
-      for (ServerSocket socket : sockets) {
-        socket.close();
-      }
-    }
+    private final Map<Integer, Integer> jmxPorts = new HashMap<>();
+    private final Map<Integer, String> listenAddresses = new HashMap<>();
 
     private String listenAddress(int index) {
-      return "127.0.0." + (addressStart + index);
+      return listenAddresses.computeIfAbsent(
+          index, i -> "127.0.0." + stargateAddressStart.getAndIncrement());
     }
 
     private int jmxPort(int index) {
-      return ports.get(index);
+      return jmxPorts.computeIfAbsent(
+          index,
+          i -> {
+            try {
+              try (ServerSocket socket = new ServerSocket(0)) {
+                return socket.getLocalPort();
+              }
+            } catch (IOException e) {
+              throw new UncheckedIOException(e);
+            }
+          });
     }
 
     private int cqlPort() {

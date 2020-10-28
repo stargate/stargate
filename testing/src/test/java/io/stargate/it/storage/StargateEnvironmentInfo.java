@@ -22,4 +22,8 @@ public interface StargateEnvironmentInfo {
   String id();
 
   List<? extends StargateConnectionInfo> nodes();
+
+  StargateConnectionInfo addNode() throws Exception;
+
+  void removeNode(StargateConnectionInfo node);
 }
