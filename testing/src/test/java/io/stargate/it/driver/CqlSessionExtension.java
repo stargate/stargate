@@ -125,6 +125,14 @@ import org.slf4j.LoggerFactory;
  *       useful if you need to look up schema metadata, use the keyspace from another session or
  *       API, etc.
  * </ul>
+ *
+ * <h3>Parallel execution</h3>
+ *
+ * JUnit 5 allows parallel execution of test classes, or even parallel execution of test methods
+ * within the same class. This extension is thread-safe and will work in either scenario. Note
+ * however that using a class-level extension with parallel methods can be tricky: the methods will
+ * be accessing the same keyspace concurrently, which can have unintended side effects if they
+ * mutate the same tables. It's probably a good idea to keep parallelism at the class level.
  */
 public class CqlSessionExtension
     implements BeforeAllCallback,
