@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 
 /** This class manages starting Stargate OSGi containers. */
 @UseStargateContainer
-@ClusterSpec(shared = true)
+@ClusterSpec(shared = true, nodes = 3)
 @StargateSpec(shared = true)
 public class BaseOsgiIntegrationTest {
 
