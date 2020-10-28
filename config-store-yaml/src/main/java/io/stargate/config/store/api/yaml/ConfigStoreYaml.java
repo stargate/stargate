@@ -18,22 +18,36 @@ package io.stargate.config.store.api.yaml;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.MapType;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Ticker;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.config.store.api.ConfigWithOverrides;
 import io.stargate.config.store.api.MissingModuleSettingsException;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import javax.annotation.Nonnull;
 
 public class ConfigStoreYaml implements ConfigStore {
   private final ObjectMapper mapper;
   private final Path configFilePath;
   private final MapType yamlConfigType;
+  @VisibleForTesting final LoadingCache<Path, Map<String, Map<String, Object>>> configFileCache;
+  public static final Duration DEFAULT_EVICTION_TIME = Duration.ofSeconds(30);
 
   public ConfigStoreYaml(Path configFilePath) {
+    this(configFilePath, Ticker.systemTicker());
+  }
+
+  @VisibleForTesting
+  public ConfigStoreYaml(Path configFilePath, Ticker ticker) {
     this.configFilePath = configFilePath;
     mapper = new ObjectMapper(new YAMLFactory());
     MapType mapType =
@@ -43,14 +57,27 @@ public class ConfigStoreYaml implements ConfigStore {
             .getTypeFactory()
             .constructMapType(
                 HashMap.class, mapper.getTypeFactory().constructType(String.class), mapType);
+
+    configFileCache =
+        CacheBuilder.newBuilder()
+            .ticker(ticker)
+            .expireAfterAccess(DEFAULT_EVICTION_TIME)
+            .recordStats()
+            .build(
+                new CacheLoader<Path, Map<String, Map<String, Object>>>() {
+                  @Override
+                  public Map<String, Map<String, Object>> load(@Nonnull Path configFilePath)
+                      throws Exception {
+                    return mapper.readValue(configFilePath.toFile(), yamlConfigType);
+                  }
+                });
   }
 
   @Override
   public ConfigWithOverrides getConfigForModule(String moduleName)
       throws MissingModuleSettingsException {
     try {
-      Map<String, Map<String, Object>> result =
-          mapper.readValue(configFilePath.toFile(), yamlConfigType);
+      Map<String, Map<String, Object>> result = configFileCache.get(configFilePath);
       if (!result.containsKey(moduleName)) {
         throw new MissingModuleSettingsException(
             String.format(
@@ -58,8 +85,8 @@ public class ConfigStoreYaml implements ConfigStore {
                 result, moduleName));
       }
       return new ConfigWithOverrides(ImmutableMap.copyOf(result.get(moduleName)));
-    } catch (IOException e) {
-      throw new UncheckedIOException(
+    } catch (ExecutionException e) {
+      throw new UncheckedExecutionException(
           "Problem when processing yaml file from: " + configFilePath, e);
     }
   }
