@@ -96,8 +96,12 @@ class ConfigStoreYamlTest {
     assertThat(configStoreYaml.configFileCache.stats().evictionCount()).isEqualTo(0);
 
     // when
-    ticker.advance(ConfigStoreYaml.DEFAULT_EVICTION_TIME.plus(Duration.ofSeconds(30)));
-    // the eviction is done on the load operation
+    ticker.advance(ConfigStoreYaml.DEFAULT_EVICTION_TIME.minusSeconds(1));
+    // loading value does not refresh eviction time
+    assertThat(configStoreYaml.getConfigForModule("extension-1").getConfigMap()).isNotEmpty();
+    ticker.advance(Duration.ofSeconds(1));
+    // the eviction is done on the load operation - to trigger this we need to call the
+    // getConfigForModule method
     assertThat(configStoreYaml.getConfigForModule("extension-1").getConfigMap()).isNotEmpty();
 
     // then

@@ -61,7 +61,7 @@ public class ConfigStoreYaml implements ConfigStore {
     configFileCache =
         CacheBuilder.newBuilder()
             .ticker(ticker)
-            .expireAfterAccess(DEFAULT_EVICTION_TIME)
+            .expireAfterWrite(DEFAULT_EVICTION_TIME)
             .recordStats()
             .build(
                 new CacheLoader<Path, Map<String, Map<String, Object>>>() {
