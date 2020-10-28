@@ -75,13 +75,12 @@ public abstract class SchemaAwareCDCProducer implements CDCProducer {
   @VisibleForTesting
   static class TableSchemaManager {
     private final Function<TableMetadata, CompletableFuture<Void>> createHandler;
+    private final ConcurrentHashMap<TableIdentityKey, CompletableFuture<Void>> creators =
+        new ConcurrentHashMap<>();
 
     TableSchemaManager(Function<TableMetadata, CompletableFuture<Void>> createHandler) {
       this.createHandler = createHandler;
     }
-
-    private final ConcurrentHashMap<TableIdentityKey, CompletableFuture<Void>> creators =
-        new ConcurrentHashMap<>();
 
     /**
      * Ensures that {@link TableSchemaManager#createHandler} is invoked once per different table
