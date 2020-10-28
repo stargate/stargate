@@ -1,6 +1,10 @@
 package io.stargate.auth.jwt;
 
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.proc.BadJOSEException;
+import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
@@ -13,12 +17,14 @@ public class AuthJwtService implements AuthenticationService {
 
   private static final Logger logger = LoggerFactory.getLogger(AuthJwtService.class);
 
-  private final JwtValidator jwtValidator;
+  //  private final JwtValidator jwtValidator;
   private static final String ROLE_FIELD = "x-stargate-role";
   private static final String CLAIMS_FIELD = "stargate_claims";
 
-  public AuthJwtService(JwtValidator jwtValidator) {
-    this.jwtValidator = jwtValidator;
+  private final ConfigurableJWTProcessor<? extends SecurityContext> jwtProcessor;
+
+  public AuthJwtService(ConfigurableJWTProcessor<? extends SecurityContext> jwtProcessor) {
+    this.jwtProcessor = jwtProcessor;
   }
 
   @Override
@@ -45,13 +51,13 @@ public class AuthJwtService implements AuthenticationService {
    */
   @Override
   public StoredCredentials validateToken(String token) throws UnauthorizedException {
-    JWTClaimsSet claimsSet = jwtValidator.validate(token);
+    JWTClaimsSet claimsSet = validate(token);
     String roleName;
     try {
       roleName = getRoleForJWT(claimsSet.getJSONObjectClaim(CLAIMS_FIELD));
-    } catch (ParseException e) {
-      logger.error("Failed to parse claim from JWT", e);
-      throw new RuntimeException(e);
+    } catch (IllegalArgumentException | ParseException e) {
+      logger.info("Failed to parse claim from JWT", e);
+      throw new UnauthorizedException("Failed to parse claim from JWT", e);
     }
 
     if (roleName == null || roleName.equals("")) {
@@ -63,10 +69,50 @@ public class AuthJwtService implements AuthenticationService {
     return storedCredentials;
   }
 
-  private String getRoleForJWT(Map<String, Object> stargate_claims) throws ParseException {
-    if (stargate_claims == null) {
-      throw new ParseException("Missing field " + ROLE_FIELD + " for JWT", 0);
+  /**
+   * For a given JWT check that it is valid which means
+   *
+   * <p>
+   *
+   * <ol>
+   *   <li>Hasn't expired
+   *   <li>Properly signed
+   *   <li>Isn't malformed
+   * </ol>
+   *
+   * <p>
+   *
+   * @param token The JWT to be validated
+   * @return Will return the {@link JWTClaimsSet} if the token is valid, otherwise an exception will
+   *     be thrown.
+   * @throws UnauthorizedException The exception returned for JWTs that are known invalid such as
+   *     expired or not signed. If an error occurs while parsing a RuntimeException is thrown.
+   */
+  private JWTClaimsSet validate(String token) throws UnauthorizedException {
+    JWTClaimsSet claimsSet;
+    try {
+      claimsSet = jwtProcessor.process(token, null); // context is an optional param so passing null
+    } catch (ParseException | JOSEException e) {
+      logger.info("Failed to process JWT", e);
+      throw new UnauthorizedException("Failed to process JWT: " + e.getMessage(), e);
+    } catch (BadJOSEException badJOSEException) {
+      logger.info("Tried to validate invalid JWT", badJOSEException);
+      throw new UnauthorizedException(
+          "Invalid JWT: " + badJOSEException.getMessage(), badJOSEException);
     }
+
+    return claimsSet;
+  }
+
+  private String getRoleForJWT(Map<String, Object> stargate_claims) {
+    if (stargate_claims == null) {
+      throw new IllegalArgumentException("Missing field " + ROLE_FIELD + " for JWT");
+    }
+
+    if (!(stargate_claims.get(ROLE_FIELD) instanceof String)) {
+      throw new IllegalArgumentException("Field " + ROLE_FIELD + " must be of type String");
+    }
+
     return (String) stargate_claims.get(ROLE_FIELD);
   }
 }
