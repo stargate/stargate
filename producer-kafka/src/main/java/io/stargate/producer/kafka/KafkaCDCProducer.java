@@ -28,6 +28,7 @@ import io.stargate.producer.kafka.producer.CompletableKafkaProducer;
 import io.stargate.producer.kafka.schema.KeyValueConstructor;
 import io.stargate.producer.kafka.schema.SchemaProvider;
 import io.stargate.producer.kafka.schema.SchemaRegistryProvider;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -65,7 +66,6 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
     SharedMetricRegistries.add("default", registry);
   }
 
-  @Override
   public CompletableFuture<Void> init(Map<String, Object> options) {
     CDCKafkaConfig cdcKafkaConfig = configLoader.loadConfig(options);
 
@@ -82,6 +82,12 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   private Consumer<Object> toVoid() {
     return (producer) -> {};
+  }
+
+  // todo plug config-store
+  @Override
+  public CompletableFuture<Void> init() {
+    return init(Collections.emptyMap());
   }
 
   @Override
