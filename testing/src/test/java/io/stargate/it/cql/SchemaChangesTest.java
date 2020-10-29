@@ -11,7 +11,7 @@ import com.datastax.oss.driver.api.core.metadata.schema.SchemaChangeListener;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
-import io.stargate.it.BaseOsgiIntegrationIT;
+import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
@@ -26,7 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(customBuilder = "registerListener")
-public class SchemaChangesIT extends BaseOsgiIntegrationIT {
+public class SchemaChangesTest extends BaseOsgiIntegrationTest {
 
   private static SchemaChangeListener schemaChanges;
   @Captor ArgumentCaptor<TableMetadata> tableCaptor;

@@ -23,20 +23,27 @@ import io.stargate.auth.model.Credentials;
 import io.stargate.auth.model.Error;
 import io.stargate.auth.model.Secret;
 import io.stargate.auth.model.UsernameCredentials;
-import io.stargate.it.BaseOsgiIntegrationIT;
+import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// @NotThreadSafe
-public class AuthApiIT extends BaseOsgiIntegrationIT {
+@Execution(ExecutionMode.CONCURRENT)
+@ResourceLock(
+    value = "io.stargate.it.storage.ExternalStorage.Cluster.ccm",
+    mode = ResourceAccessMode.READ_WRITE)
+public class AuthApiTest extends BaseOsgiIntegrationTest {
 
-  private static final Logger logger = LoggerFactory.getLogger(AuthApiIT.class);
+  private static final Logger logger = LoggerFactory.getLogger(AuthApiTest.class);
 
   private String host;
   private static final ObjectMapper objectMapper = new ObjectMapper();

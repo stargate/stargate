@@ -21,7 +21,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.it.BaseOsgiIntegrationIT;
+import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.models.ColumnDefinition;
@@ -49,13 +49,20 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// @NotThreadSafe
-public class RestApiv2IT extends BaseOsgiIntegrationIT {
+@Execution(ExecutionMode.CONCURRENT)
+@ResourceLock(
+    value = "io.stargate.it.storage.ExternalStorage.Cluster.ccm",
+    mode = ResourceAccessMode.READ_WRITE)
+public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
-  private static final Logger logger = LoggerFactory.getLogger(RestApiv2IT.class);
+  private static final Logger logger = LoggerFactory.getLogger(RestApiv2Test.class);
 
   private String keyspaceName;
   private String tableName;

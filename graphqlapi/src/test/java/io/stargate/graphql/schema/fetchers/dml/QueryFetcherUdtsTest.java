@@ -6,10 +6,13 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.DmlTestBase;
 import io.stargate.graphql.schema.SampleKeyspaces;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+@Execution(ExecutionMode.CONCURRENT)
 public class QueryFetcherUdtsTest extends DmlTestBase {
 
   @Override
@@ -26,15 +29,15 @@ public class QueryFetcherUdtsTest extends DmlTestBase {
 
   public static Arguments[] successfulQueries() {
     return new Arguments[] {
-      arguments(
-          "testTable(value: { a: { b: {i:1} } }) { values { a{b{i}} } }",
-          "SELECT a FROM udts.test_table WHERE a={\"b\":{\"i\":1}}"),
-      arguments(
-          "testTable(filter: { a: {eq: { b: {i:1} } } }) { values { a{b{i}} } }",
-          "SELECT a FROM udts.test_table WHERE a={\"b\":{\"i\":1}}"),
-      arguments(
-          "testTable(filter: { a: {in: [{ b: {i:1} }, { b: {i:2} }] } }) { values { a{b{i}} } }",
-          "SELECT a FROM udts.test_table WHERE a IN ({\"b\":{\"i\":1}},{\"b\":{\"i\":2}})"),
+        arguments(
+            "testTable(value: { a: { b: {i:1} } }) { values { a{b{i}} } }",
+            "SELECT a FROM udts.test_table WHERE a={\"b\":{\"i\":1}}"),
+        arguments(
+            "testTable(filter: { a: {eq: { b: {i:1} } } }) { values { a{b{i}} } }",
+            "SELECT a FROM udts.test_table WHERE a={\"b\":{\"i\":1}}"),
+        arguments(
+            "testTable(filter: { a: {in: [{ b: {i:1} }, { b: {i:2} }] } }) { values { a{b{i}} } }",
+            "SELECT a FROM udts.test_table WHERE a IN ({\"b\":{\"i\":1}},{\"b\":{\"i\":2}})"),
     };
   }
 }

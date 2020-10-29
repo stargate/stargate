@@ -4,10 +4,13 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import io.stargate.graphql.schema.DdlTestBase;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+@Execution(ExecutionMode.CONCURRENT)
 public class CreateTableFetcherTest extends DdlTestBase {
 
   @ParameterizedTest
@@ -19,11 +22,11 @@ public class CreateTableFetcherTest extends DdlTestBase {
 
   public static Arguments[] successfulQueries() {
     return new Arguments[] {
-      arguments(
-          "createTable(keyspaceName:\"library\", tableName:\"books\", "
-              + "partitionKeys: [ { name: \"title\", type: {basic: TEXT} } ] "
-              + "values: [ { name: \"author\", type: {basic: TEXT} } ])",
-          "CREATE TABLE library.books (title text PRIMARY KEY,author text)"),
+        arguments(
+            "createTable(keyspaceName:\"library\", tableName:\"books\", "
+                + "partitionKeys: [ { name: \"title\", type: {basic: TEXT} } ] "
+                + "values: [ { name: \"author\", type: {basic: TEXT} } ])",
+            "CREATE TABLE library.books (title text PRIMARY KEY,author text)"),
     };
   }
 
@@ -36,12 +39,12 @@ public class CreateTableFetcherTest extends DdlTestBase {
 
   public static Arguments[] failingQueries() {
     return new Arguments[] {
-      arguments(
-          "createTable(keyspaceName: \"library\", tableName:\"books\")",
-          "Missing field argument partitionKeys @ 'createTable'"),
-      arguments(
-          "createTable(keyspaceName:\"library\", tableName:\"books\", partitionKeys: [])",
-          "partitionKeys must contain at least one element"),
+        arguments(
+            "createTable(keyspaceName: \"library\", tableName:\"books\")",
+            "Missing field argument partitionKeys @ 'createTable'"),
+        arguments(
+            "createTable(keyspaceName:\"library\", tableName:\"books\", partitionKeys: [])",
+            "partitionKeys must contain at least one element"),
     };
   }
 }

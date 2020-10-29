@@ -24,7 +24,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.it.BaseOsgiIntegrationIT;
+import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.models.Changeset;
@@ -55,9 +55,16 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
-// @NotThreadSafe
-public class RestApiIT extends BaseOsgiIntegrationIT {
+@Execution(ExecutionMode.CONCURRENT)
+@ResourceLock(
+    value = "io.stargate.it.storage.ExternalStorage.Cluster.ccm",
+    mode = ResourceAccessMode.READ_WRITE)
+public class RestApiTest extends BaseOsgiIntegrationTest {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static String authToken;

@@ -7,16 +7,16 @@ import io.stargate.it.driver.CqlSessionSpec;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@CqlSessionSpec(customOptions = "configureSnappy")
-public class SnappyCompressionIT extends AbstractCompressionIT {
+@CqlSessionSpec(customOptions = "configureLz4")
+public class Lz4CompressionTest extends AbstractCompressionTest {
 
-  public static void configureSnappy(OptionsMap config) {
-    config.put(TypedDriverOption.PROTOCOL_COMPRESSION, "snappy");
+  public static void configureLz4(OptionsMap config) {
+    config.put(TypedDriverOption.PROTOCOL_COMPRESSION, "lz4");
   }
 
   @Test
-  @DisplayName("Should connect and execute queries with Snappy compression")
-  public void snappyCompressionTest(CqlSession session) {
+  @DisplayName("Should connect and execute queries with LZ4 compression")
+  public void lz4CompressionTest(CqlSession session) {
     compressionTest(session);
   }
 }

@@ -22,10 +22,13 @@ import java.util.function.BiFunction;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+@Execution(ExecutionMode.CONCURRENT)
 public class PrefixingMetricRegistryTest {
 
   private static final String PREFIX = "test";
@@ -355,22 +358,27 @@ public class PrefixingMetricRegistryTest {
   }
 
   interface GetOrSupplyMethod<MetricT extends Metric> {
+
     MetricT apply(MetricRegistry target, String name, MetricSupplier<MetricT> supplier);
   }
 
   interface ListenerOnAddMethod<MetricT extends Metric> {
+
     void apply(MetricRegistryListener target, String name, MetricT metric);
   }
 
   interface ListenerOnRemoveMethod {
+
     void apply(MetricRegistryListener target, String name);
   }
 
   interface GetByTypeMethod<MetricT extends Metric> {
+
     SortedMap<String, MetricT> apply(MetricRegistry target);
   }
 
   interface GetByTypeWithFilterMethod<MetricT extends Metric> {
+
     SortedMap<String, MetricT> apply(MetricRegistry target, MetricFilter filter);
   }
 }

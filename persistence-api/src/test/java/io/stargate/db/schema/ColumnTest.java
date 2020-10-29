@@ -31,8 +31,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
+@Execution(ExecutionMode.CONCURRENT)
 public class ColumnTest {
+
   @Test
   public void testFromString() throws UnknownHostException {
     assertThat(Type.Ascii.fromString("2")).isEqualTo("2");

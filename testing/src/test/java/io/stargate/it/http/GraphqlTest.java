@@ -79,7 +79,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharStreams;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.db.schema.Column;
-import io.stargate.it.BaseOsgiIntegrationIT;
+import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
@@ -113,6 +113,10 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -134,10 +138,13 @@ import org.slf4j.LoggerFactory;
  *       see generated code in `target/generated-sources/graphql-client`.
  * </ul>
  */
-// @NotThreadSafe
-public class GraphqlIT extends BaseOsgiIntegrationIT {
+@Execution(ExecutionMode.CONCURRENT)
+@ResourceLock(
+    value = "io.stargate.it.storage.ExternalStorage.Cluster.ccm",
+    mode = ResourceAccessMode.READ_WRITE)
+public class GraphqlTest extends BaseOsgiIntegrationTest {
 
-  private static final Logger logger = LoggerFactory.getLogger(GraphqlIT.class);
+  private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
 
   private static CqlSession session;
   private static String authToken;
@@ -180,7 +187,7 @@ public class GraphqlIT extends BaseOsgiIntegrationIT {
 
     // Create CQL schema using betterbotz.cql file
     InputStream inputStream =
-        GraphqlIT.class.getClassLoader().getResourceAsStream("betterbotz.cql");
+        GraphqlTest.class.getClassLoader().getResourceAsStream("betterbotz.cql");
     assertThat(inputStream).isNotNull();
     String queries = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
     assertThat(queries).isNotNull();
