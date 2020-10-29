@@ -20,10 +20,12 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class ConfigWithOverrides {
-  private Map<String, Object> configMap;
+  private final Map<String, Object> configMap;
+  private final String moduleName;
 
-  public ConfigWithOverrides(@Nonnull Map<String, Object> configMap) {
+  public ConfigWithOverrides(@Nonnull Map<String, Object> configMap, String moduleName) {
     this.configMap = configMap;
+    this.moduleName = moduleName;
   }
 
   /**
@@ -45,20 +47,35 @@ public class ConfigWithOverrides {
    *
    * <p>3. Underlying config map
    *
+   * <p>When trying to retrieve the system property and environment variable, it will use the full
+   * setting name. It will add the module name for which this `ConfigWithOverrides` is created.
+   *
+   * <p>For example, if the {@code String moduleName = "m_1"} and you are calling this
+   * getWithOverrides() method for settingName = "s" it will firstly try to {@code
+   * System.getProperty("m_1.s")}, then {@code System.getenv("m_1.s")} and finally get the config
+   * from the underlying map using {@code Map.get("s")}.
+   *
+   * <p>Prefixing with module name is done to avoid conflicts of overrides between modules.
+   *
    * @return the value with the highest priority or null if there is no value associated with the
    *     given settingName.
    */
   @Nullable
   public Object getWithOverrides(String settingName) {
-    String systemProperty = System.getProperty(settingName);
+    String settingNameWithModulePrefix = withModulePrefix(settingName);
+    String systemProperty = System.getProperty(settingNameWithModulePrefix);
     if (systemProperty != null) {
       return systemProperty;
     }
 
-    String envVariable = System.getenv(settingName);
+    String envVariable = System.getenv(settingNameWithModulePrefix);
     if (envVariable != null) {
       return envVariable;
     }
     return configMap.get(settingName);
+  }
+
+  private String withModulePrefix(String settingName) {
+    return String.format("%s.%s", moduleName, settingName);
   }
 }
