@@ -1,13 +1,16 @@
 package io.stargate.db.cdc;
 
-import static io.stargate.db.cdc.CDCTestUtil.invokeParallel;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.stargate.db.cdc.SchemaAwareCDCProducer.TableSchemaManager;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.junit.jupiter.api.Test;
 
@@ -91,5 +94,32 @@ public class TableSchemaManagerTest {
     TableMetadata t = mock(TableMetadata.class);
     when(t.getIdentity()).thenReturn(identity);
     return t;
+  }
+
+  public static <T> List<T> invokeParallel(Callable<T> task, int times) {
+    return invokeParallel(task, times, times);
+  }
+
+  public static <T> List<T> invokeParallel(Callable<T> task, int times, int nThreads) {
+    ExecutorService executor = Executors.newFixedThreadPool(nThreads);
+    List<Callable<T>> list = Collections.nCopies(times, task);
+
+    List<Future<T>> futures = null;
+    try {
+      futures = executor.invokeAll(list);
+    } catch (InterruptedException e) {
+      fail("Tasks interrupted");
+    }
+
+    return futures.stream()
+        .map(
+            tFuture -> {
+              try {
+                return tFuture.get();
+              } catch (Exception e) {
+                throw new RuntimeException("Future could not be got", e);
+              }
+            })
+        .collect(Collectors.toList());
   }
 }

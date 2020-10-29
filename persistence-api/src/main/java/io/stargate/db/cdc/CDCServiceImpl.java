@@ -66,7 +66,7 @@ public final class CDCServiceImpl implements CDCService {
   }
 
   @Override
-  public CompletableFuture<Void> publish(MutationEvent mutation) throws CDCWriteException {
+  public CompletableFuture<Void> publish(MutationEvent mutation) {
     if (!config.isTrackedByCDC(mutation)) {
       return completedFuture;
     }
