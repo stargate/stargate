@@ -15,7 +15,6 @@
  */
 package io.stargate.db.cdc;
 
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.apache.cassandra.stargate.db.MutationEvent;
 
@@ -23,15 +22,15 @@ import org.apache.cassandra.stargate.db.MutationEvent;
 public interface CDCProducer {
   /**
    * Initializes the {@link CDCProducer}. It will be invoked once in the lifetime of the instance
-   * before any calls to send.
-   *
-   * @param options The passthrough options.
+   * before any calls to {@link CDCProducer#publish}.
    */
-  CompletableFuture<Void> init(Map<String, Object> options);
+  CompletableFuture<Void> init();
 
   /**
    * Publishes the mutation event. It will only be invoked for mutations that should be tracked by
    * the CDC.
+   *
+   * <p>Note that implementors should not block the calling thread.
    */
   CompletableFuture<Void> publish(MutationEvent mutation);
 

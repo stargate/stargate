@@ -17,8 +17,7 @@ package io.stargate.db.cdc;
 
 import java.util.concurrent.CompletableFuture;
 import org.apache.cassandra.stargate.db.MutationEvent;
-import org.apache.cassandra.stargate.exceptions.CDCWriteException;
 
 public interface CDCService extends AutoCloseable {
-  CompletableFuture<Void> publish(MutationEvent mutation) throws CDCWriteException;
+  CompletableFuture<Void> publish(MutationEvent mutation);
 }
