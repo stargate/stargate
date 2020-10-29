@@ -16,7 +16,6 @@
 package io.stargate.db.cdc;
 
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,7 +41,7 @@ public abstract class SchemaAwareCDCProducer implements CDCProducer {
       new ConcurrentHashMap<>();
 
   @Override
-  public abstract CompletableFuture<Void> init(Map<String, Object> options);
+  public abstract CompletableFuture<Void> init();
 
   /** Asynchronously publishes the schema of the table. */
   protected abstract CompletableFuture<Void> createTableSchemaAsync(TableMetadata table);
