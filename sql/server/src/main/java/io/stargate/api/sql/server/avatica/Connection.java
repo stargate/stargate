@@ -15,7 +15,9 @@
  */
 package io.stargate.api.sql.server.avatica;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.stargate.db.datastore.DataStore;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -62,5 +64,10 @@ public class Connection {
 
   public void closeStatement(Meta.StatementHandle h) {
     statements.remove(h.id);
+  }
+
+  @VisibleForTesting
+  Map<Integer, StatementHolder> statements() {
+    return statements;
   }
 }

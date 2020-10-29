@@ -15,7 +15,8 @@
  */
 package io.stargate.api.sql.server.avatica;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.annotations.VisibleForTesting;
+import io.stargate.api.sql.server.avatica.StatementHolder.ExecutionResult;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
@@ -24,8 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
 import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.MissingResultsException;
 import org.apache.calcite.avatica.NoSuchStatementException;
 import org.apache.calcite.avatica.QueryState;
 import org.apache.calcite.avatica.remote.TypedValue;
@@ -275,7 +276,7 @@ public class StargateMeta implements Meta {
       Signature signature,
       List<TypedValue> parameters,
       Frame firstFrame) {
-    return firstFrame.rows;
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -303,8 +304,8 @@ public class StargateMeta implements Meta {
       PrepareCallback callback)
       throws NoSuchStatementException {
     StatementHolder statement = statement(h);
-    StatementHolder.Prepared prepared = statement.prepare(sql);
-    MetaResultSet rs = execute(prepared, h, Collections.emptyList());
+    ExecutionResult result = statement.execute(sql, Collections.emptyList());
+    MetaResultSet rs = fetch(result, h, maxRowsInFirstFrame);
     return new ExecuteResult(Collections.singletonList(rs));
   }
 
@@ -320,8 +321,15 @@ public class StargateMeta implements Meta {
   }
 
   @Override
-  public Frame fetch(StatementHandle h, long offset, int fetchMaxRowCount) {
-    throw new UnsupportedOperationException();
+  public Frame fetch(StatementHandle h, long offset, int fetchMaxRowCount)
+      throws NoSuchStatementException, MissingResultsException {
+    StatementHolder statement = statement(h);
+    ExecutionResult result = statement.result();
+    if (result == null) {
+      throw new MissingResultsException(h);
+    }
+
+    return result.fetch(offset, fetchMaxRowCount);
   }
 
   @Override
@@ -330,40 +338,16 @@ public class StargateMeta implements Meta {
     throw new UnsupportedOperationException();
   }
 
-  private MetaResultSet execute(
-      StatementHolder.Prepared prepared, StatementHandle h, List<TypedValue> params) {
-    List<Object> localParams =
-        params.stream().map(TypedValue::toLocal).collect(Collectors.toList());
-    Iterable<Object> results = prepared.query().execute(localParams);
-    if (prepared.signature().statementType.canUpdate()) {
-      long count = updateCount(results);
+  private MetaResultSet fetch(
+      StatementHolder.ExecutionResult result, StatementHandle h, int maxRowsInFrame) {
+    Signature signature = result.prepared().signature();
+    if (result.isUpdate()) {
+      long count = result.updateCount();
       return MetaResultSet.count(h.connectionId, h.id, count);
     } else {
-      Frame frame = fetch(results);
-      return MetaResultSet.create(h.connectionId, h.id, true, prepared.signature(), frame);
+      Frame frame = result.fetch(0, maxRowsInFrame);
+      return MetaResultSet.create(h.connectionId, h.id, true, signature, frame);
     }
-  }
-
-  private long updateCount(Iterable<Object> results) {
-    for (Object result : results) {
-      return ((Number) result).longValue();
-    }
-
-    throw new IllegalStateException("Empty result set");
-  }
-
-  private Frame fetch(Iterable<Object> results) {
-    ImmutableList.Builder<Object> resultRows = ImmutableList.builder();
-
-    for (Object row : results) { // TODO: pagination
-      if (row.getClass().isArray()) {
-        resultRows.add(row);
-      } else {
-        resultRows.add((Object) (new Object[] {row}));
-      }
-    }
-
-    return Frame.create(0, true, resultRows.build());
   }
 
   @Override
@@ -371,7 +355,8 @@ public class StargateMeta implements Meta {
       StatementHandle h, List<TypedValue> parameterValues, int maxRowsInFirstFrame)
       throws NoSuchStatementException {
     StatementHolder s = statement(h);
-    MetaResultSet rs = execute(s.prepared(), h, parameterValues);
+    ExecutionResult result = s.execute(parameterValues);
+    MetaResultSet rs = fetch(result, h, maxRowsInFirstFrame);
     return new ExecuteResult(Collections.singletonList(rs));
   }
 
@@ -397,7 +382,7 @@ public class StargateMeta implements Meta {
 
   @Override
   public void closeConnection(ConnectionHandle ch) {
-    // TODO: closeConnection
+    connections.remove(ch.id);
   }
 
   @Override
@@ -418,5 +403,10 @@ public class StargateMeta implements Meta {
   @Override
   public ConnectionProperties connectionSync(ConnectionHandle ch, ConnectionProperties connProps) {
     return null;
+  }
+
+  @VisibleForTesting
+  Map<String, Connection> connections() {
+    return connections;
   }
 }

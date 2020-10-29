@@ -15,6 +15,7 @@
  */
 package io.stargate.api.sql.server.avatica;
 
+import com.google.common.collect.ImmutableList;
 import io.stargate.api.sql.plan.PreparedSqlQuery;
 import io.stargate.api.sql.plan.QueryPlanner;
 import io.stargate.db.datastore.DataStore;
@@ -22,12 +23,16 @@ import java.lang.reflect.Type;
 import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.Meta.Frame;
+import org.apache.calcite.avatica.remote.TypedValue;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 
@@ -36,6 +41,7 @@ public class StatementHolder extends Meta.StatementHandle {
 
   private final Prepared prepared;
   private final DataStore dataStore;
+  private volatile ExecutionResult result;
 
   private StatementHolder(String connectionId, int id, Prepared prepared, DataStore dataStore) {
     super(connectionId, id, prepared.signature());
@@ -52,12 +58,25 @@ public class StatementHolder extends Meta.StatementHandle {
     return new StatementHolder(connectionId, id, new Prepared(null, null), dataStore);
   }
 
-  public Prepared prepared() {
-    return prepared;
+  public ExecutionResult result() {
+    return result;
   }
 
-  public Prepared prepare(String sql) {
-    return prepare(sql, dataStore);
+  private ExecutionResult execute(Prepared prepared, List<TypedValue> params) {
+    List<Object> localParams =
+        params.stream().map(TypedValue::toLocal).collect(Collectors.toList());
+    Iterable<Object> rows = prepared.query().execute(localParams);
+    ExecutionResult r = new ExecutionResult(prepared, rows.iterator());
+    result = r;
+    return r;
+  }
+
+  public ExecutionResult execute(List<TypedValue> params) {
+    return execute(prepared, params);
+  }
+
+  public ExecutionResult execute(String sql, List<TypedValue> params) {
+    return execute(prepare(sql, dataStore), params);
   }
 
   private static Prepared prepare(String sql, DataStore dataStore) {
@@ -181,6 +200,69 @@ public class StatementHolder extends Meta.StatementHandle {
 
     public Meta.Signature signature() {
       return signature;
+    }
+  }
+
+  public static class ExecutionResult {
+    private final Prepared prepared;
+    private final Iterator<Object> rows;
+    private final AtomicLong offset = new AtomicLong();
+
+    public ExecutionResult(Prepared prepared, Iterator<Object> rows) {
+      this.prepared = prepared;
+      this.rows = rows;
+    }
+
+    public Prepared prepared() {
+      return prepared;
+    }
+
+    public boolean isUpdate() {
+      return prepared.signature.statementType.canUpdate();
+    }
+
+    public long updateCount() {
+      return ((Number) rows.next()).longValue();
+    }
+
+    public Frame fetch(long requestedOffset, int maxRows) {
+      long startOffset = offset.get();
+      long currentOffset = startOffset;
+
+      if (requestedOffset < currentOffset) {
+        throw new IllegalStateException(
+            String.format(
+                "Requested offset (%d) is below current mark (%d)",
+                requestedOffset, currentOffset));
+      }
+
+      ImmutableList.Builder<Object> resultRows = ImmutableList.builder();
+
+      while (rows.hasNext()) {
+        if (maxRows <= 0) {
+          break;
+        }
+
+        Object row = rows.next();
+
+        if (currentOffset++ < requestedOffset) {
+          continue; // skip current row
+        }
+
+        if (row.getClass().isArray()) {
+          resultRows.add(row);
+        } else {
+          resultRows.add((Object) (new Object[] {row}));
+        }
+
+        maxRows--;
+      }
+
+      if (!offset.compareAndSet(startOffset, currentOffset)) {
+        throw new IllegalStateException("Concurrent fetch from the same result set");
+      }
+
+      return Frame.create(0, !rows.hasNext(), resultRows.build());
     }
   }
 }
