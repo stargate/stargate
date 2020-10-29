@@ -39,8 +39,15 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
-// @NotThreadSafe
+@Execution(ExecutionMode.CONCURRENT)
+@ResourceLock(
+    value = "io.stargate.it.storage.ExternalStorage.Cluster.ccm",
+    mode = ResourceAccessMode.READ_WRITE)
 public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   private String keyspace;
