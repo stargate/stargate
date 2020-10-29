@@ -22,11 +22,11 @@ public class CreateTableFetcherTest extends DdlTestBase {
 
   public static Arguments[] successfulQueries() {
     return new Arguments[] {
-        arguments(
-            "createTable(keyspaceName:\"library\", tableName:\"books\", "
-                + "partitionKeys: [ { name: \"title\", type: {basic: TEXT} } ] "
-                + "values: [ { name: \"author\", type: {basic: TEXT} } ])",
-            "CREATE TABLE library.books (title text PRIMARY KEY,author text)"),
+      arguments(
+          "createTable(keyspaceName:\"library\", tableName:\"books\", "
+              + "partitionKeys: [ { name: \"title\", type: {basic: TEXT} } ] "
+              + "values: [ { name: \"author\", type: {basic: TEXT} } ])",
+          "CREATE TABLE library.books (title text PRIMARY KEY,author text)"),
     };
   }
 
@@ -39,12 +39,12 @@ public class CreateTableFetcherTest extends DdlTestBase {
 
   public static Arguments[] failingQueries() {
     return new Arguments[] {
-        arguments(
-            "createTable(keyspaceName: \"library\", tableName:\"books\")",
-            "Missing field argument partitionKeys @ 'createTable'"),
-        arguments(
-            "createTable(keyspaceName:\"library\", tableName:\"books\", partitionKeys: [])",
-            "partitionKeys must contain at least one element"),
+      arguments(
+          "createTable(keyspaceName: \"library\", tableName:\"books\")",
+          "Missing field argument partitionKeys @ 'createTable'"),
+      arguments(
+          "createTable(keyspaceName:\"library\", tableName:\"books\", partitionKeys: [])",
+          "partitionKeys must contain at least one element"),
     };
   }
 }

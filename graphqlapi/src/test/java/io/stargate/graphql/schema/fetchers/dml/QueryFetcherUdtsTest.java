@@ -29,15 +29,15 @@ public class QueryFetcherUdtsTest extends DmlTestBase {
 
   public static Arguments[] successfulQueries() {
     return new Arguments[] {
-        arguments(
-            "testTable(value: { a: { b: {i:1} } }) { values { a{b{i}} } }",
-            "SELECT a FROM udts.test_table WHERE a={\"b\":{\"i\":1}}"),
-        arguments(
-            "testTable(filter: { a: {eq: { b: {i:1} } } }) { values { a{b{i}} } }",
-            "SELECT a FROM udts.test_table WHERE a={\"b\":{\"i\":1}}"),
-        arguments(
-            "testTable(filter: { a: {in: [{ b: {i:1} }, { b: {i:2} }] } }) { values { a{b{i}} } }",
-            "SELECT a FROM udts.test_table WHERE a IN ({\"b\":{\"i\":1}},{\"b\":{\"i\":2}})"),
+      arguments(
+          "testTable(value: { a: { b: {i:1} } }) { values { a{b{i}} } }",
+          "SELECT a FROM udts.test_table WHERE a={\"b\":{\"i\":1}}"),
+      arguments(
+          "testTable(filter: { a: {eq: { b: {i:1} } } }) { values { a{b{i}} } }",
+          "SELECT a FROM udts.test_table WHERE a={\"b\":{\"i\":1}}"),
+      arguments(
+          "testTable(filter: { a: {in: [{ b: {i:1} }, { b: {i:2} }] } }) { values { a{b{i}} } }",
+          "SELECT a FROM udts.test_table WHERE a IN ({\"b\":{\"i\":1}},{\"b\":{\"i\":2}})"),
     };
   }
 }

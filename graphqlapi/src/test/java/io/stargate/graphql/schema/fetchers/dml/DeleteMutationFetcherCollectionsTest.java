@@ -29,17 +29,17 @@ public class DeleteMutationFetcherCollectionsTest extends DmlTestBase {
 
   public static Arguments[] successfulQueries() {
     return new Arguments[] {
-        arguments(
-            "deleteRegularListTable(value: {k: 1}, ifCondition: { l: {notEq: [1,2,3] } }) { applied }",
-            "DELETE FROM collections.regular_list_table WHERE k=1 IF l!=[1,2,3]"),
-        arguments(
-            "deleteRegularSetTable(value: {k: 1}, ifCondition: { s: {notEq: [1,2,3] } }) { applied }",
-            "DELETE FROM collections.regular_set_table WHERE k=1 IF s!={1,2,3}"),
-        arguments(
-            "deleteRegularMapTable(value: {k: 1},"
-                + "  ifCondition: { m: {notEq: [{key: 1,value:\"a\"},{key: 2,value:\"b\"}] } }) "
-                + "{ applied }",
-            "DELETE FROM collections.regular_map_table WHERE k=1 IF m!={1:'a',2:'b'}"),
+      arguments(
+          "deleteRegularListTable(value: {k: 1}, ifCondition: { l: {notEq: [1,2,3] } }) { applied }",
+          "DELETE FROM collections.regular_list_table WHERE k=1 IF l!=[1,2,3]"),
+      arguments(
+          "deleteRegularSetTable(value: {k: 1}, ifCondition: { s: {notEq: [1,2,3] } }) { applied }",
+          "DELETE FROM collections.regular_set_table WHERE k=1 IF s!={1,2,3}"),
+      arguments(
+          "deleteRegularMapTable(value: {k: 1},"
+              + "  ifCondition: { m: {notEq: [{key: 1,value:\"a\"},{key: 2,value:\"b\"}] } }) "
+              + "{ applied }",
+          "DELETE FROM collections.regular_map_table WHERE k=1 IF m!={1:'a',2:'b'}"),
     };
   }
 }

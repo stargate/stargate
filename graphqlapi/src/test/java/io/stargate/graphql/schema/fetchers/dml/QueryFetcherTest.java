@@ -36,13 +36,13 @@ public class QueryFetcherTest extends DmlTestBase {
 
   public static Arguments[] successfulQueries() {
     return new Arguments[] {
-        arguments("books { values { title, author } }", "SELECT title,author FROM library.books"),
-        arguments(
-            "books(options: { limit: 10 }) { values { title, author } }",
-            "SELECT title,author FROM library.books LIMIT 10"),
-        arguments(
-            "books(filter: { title: { eq: \"The Road\" } }) { values { title, author } }",
-            "SELECT title,author FROM library.books WHERE title='The Road'"),
+      arguments("books { values { title, author } }", "SELECT title,author FROM library.books"),
+      arguments(
+          "books(options: { limit: 10 }) { values { title, author } }",
+          "SELECT title,author FROM library.books LIMIT 10"),
+      arguments(
+          "books(filter: { title: { eq: \"The Road\" } }) { values { title, author } }",
+          "SELECT title,author FROM library.books WHERE title='The Road'"),
     };
   }
 
@@ -55,9 +55,9 @@ public class QueryFetcherTest extends DmlTestBase {
 
   public static Arguments[] failingQueries() {
     return new Arguments[] {
-        arguments(
-            "books(options: { limit: 1.0 }) { values { title } }",
-            "argument 'options.limit' with value 'FloatValue{value=1.0}' is not a valid 'Int'"),
+      arguments(
+          "books(options: { limit: 1.0 }) { values { title } }",
+          "argument 'options.limit' with value 'FloatValue{value=1.0}' is not a valid 'Int'"),
     };
   }
 
@@ -73,19 +73,19 @@ public class QueryFetcherTest extends DmlTestBase {
 
   public static Arguments[] operationsWithOptions() {
     return new Arguments[] {
-        arguments(
-            "query { books(options: { pageSize: 100, pageState: \"AWEA8H////4A\", consistency: LOCAL_QUORUM }) { values { title, author } } }",
-            ImmutableParameters.builder()
-                .pageSize(100)
-                .pagingState(ByteBuffer.wrap(Base64.getDecoder().decode("AWEA8H////4A")))
-                .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                .build()),
-        arguments(
-            "mutation { insertBooks(value: {title:\"a\", author:\"b\"}, options: { consistency: LOCAL_ONE, serialConsistency: SERIAL}) { applied } }",
-            ImmutableParameters.builder()
-                .consistencyLevel(ConsistencyLevel.LOCAL_ONE)
-                .serialConsistencyLevel(ConsistencyLevel.SERIAL)
-                .build())
+      arguments(
+          "query { books(options: { pageSize: 100, pageState: \"AWEA8H////4A\", consistency: LOCAL_QUORUM }) { values { title, author } } }",
+          ImmutableParameters.builder()
+              .pageSize(100)
+              .pagingState(ByteBuffer.wrap(Base64.getDecoder().decode("AWEA8H////4A")))
+              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+              .build()),
+      arguments(
+          "mutation { insertBooks(value: {title:\"a\", author:\"b\"}, options: { consistency: LOCAL_ONE, serialConsistency: SERIAL}) { applied } }",
+          ImmutableParameters.builder()
+              .consistencyLevel(ConsistencyLevel.LOCAL_ONE)
+              .serialConsistencyLevel(ConsistencyLevel.SERIAL)
+              .build())
     };
   }
 }

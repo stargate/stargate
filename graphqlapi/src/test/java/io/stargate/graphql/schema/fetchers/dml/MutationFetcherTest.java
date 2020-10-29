@@ -43,9 +43,9 @@ public class MutationFetcherTest extends DmlTestBase {
                 + "}");
     assertThat(result.getErrors()).isEmpty();
     String[] queries = {
-        "UPDATE library.books SET author='G.O.' WHERE title='1984'",
-        "INSERT INTO library.authors (author,title) VALUES ('G.O.','1984')",
-        "DELETE FROM library.books WHERE title='Animal Farm'"
+      "UPDATE library.books SET author='G.O.' WHERE title='1984'",
+      "INSERT INTO library.authors (author,title) VALUES ('G.O.','1984')",
+      "DELETE FROM library.books WHERE title='Animal Farm'"
     };
 
     assertThat(batchCaptor.getValue()).containsExactly(queries);
@@ -67,8 +67,8 @@ public class MutationFetcherTest extends DmlTestBase {
                 cl));
     assertThat(result.getErrors()).isEmpty();
     String[] queries = {
-        "INSERT INTO library.books (title,author) VALUES ('1984','G.O.')",
-        "INSERT INTO library.authors (author,title) VALUES ('G.O.','1984')"
+      "INSERT INTO library.books (title,author) VALUES ('1984','G.O.')",
+      "INSERT INTO library.authors (author,title) VALUES ('G.O.','1984')"
     };
 
     assertThat(batchCaptor.getValue()).containsExactly(queries);
