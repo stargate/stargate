@@ -5,7 +5,7 @@ import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.insertInto;
 import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.literal;
 import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.selectFrom;
 import static com.datastax.oss.driver.api.querybuilder.SchemaBuilder.createTable;
-import static io.stargate.it.cql.DataTypeTest.TypeSample.typeSample;
+import static io.stargate.it.cql.DataTypeIT.TypeSample.typeSample;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
@@ -28,7 +28,7 @@ import com.datastax.oss.protocol.internal.util.Bytes;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseOsgiIntegrationIT;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import java.math.BigDecimal;
@@ -53,7 +53,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 @ExtendWith(CqlSessionExtension.class)
-public class DataTypeTest extends BaseOsgiIntegrationTest {
+public class DataTypeIT extends BaseOsgiIntegrationIT {
 
   private static List<TypeSample<?>> allTypes;
 

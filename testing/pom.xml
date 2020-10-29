@@ -250,7 +250,7 @@
           </dependency>
         </dependencies>
         <configuration>
-          <parallel>methods</parallel>
+          <parallel>classesAndMethods</parallel>
           <threadCount>4</threadCount>
           <reuseForks>true</reuseForks>
           <forkCount>1</forkCount>
@@ -383,7 +383,7 @@
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>
-                  <parallel>methods</parallel>
+                  <parallel>classesAndMethods</parallel>
                   <threadCount>4</threadCount>
                   <reuseForks>true</reuseForks>
                   <forkCount>1</forkCount>

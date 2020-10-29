@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseOsgiIntegrationIT;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateEnvironmentInfo;
@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
-public class SystemTablesTest extends BaseOsgiIntegrationTest {
+public class SystemTablesIT extends BaseOsgiIntegrationIT {
 
   @Test
   @DisplayName("Should expose Stargate address in system.local")

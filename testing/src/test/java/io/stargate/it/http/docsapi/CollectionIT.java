@@ -8,7 +8,7 @@ import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseOsgiIntegrationIT;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.ClusterConnectionInfo;
@@ -28,7 +28,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 // @NotThreadSafe
-public class CollectionTest extends BaseOsgiIntegrationTest {
+public class CollectionIT extends BaseOsgiIntegrationIT {
+
   private String keyspace;
   private CqlSession session;
   private boolean isDse;

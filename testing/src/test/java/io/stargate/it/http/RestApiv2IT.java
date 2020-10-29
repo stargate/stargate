@@ -21,7 +21,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseOsgiIntegrationIT;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.models.ColumnDefinition;
@@ -53,8 +53,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // @NotThreadSafe
-public class RestApiv2Test extends BaseOsgiIntegrationTest {
-  private static final Logger logger = LoggerFactory.getLogger(RestApiv2Test.class);
+public class RestApiv2IT extends BaseOsgiIntegrationIT {
+
+  private static final Logger logger = LoggerFactory.getLogger(RestApiv2IT.class);
 
   private String keyspaceName;
   private String tableName;

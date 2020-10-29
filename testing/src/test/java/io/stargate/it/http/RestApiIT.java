@@ -24,7 +24,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseOsgiIntegrationIT;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.models.Changeset;
@@ -57,7 +57,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 // @NotThreadSafe
-public class RestApiTest extends BaseOsgiIntegrationTest {
+public class RestApiIT extends BaseOsgiIntegrationIT {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static String authToken;

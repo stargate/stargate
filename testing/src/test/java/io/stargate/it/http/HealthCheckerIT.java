@@ -2,7 +2,7 @@ package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseOsgiIntegrationIT;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
 import org.apache.http.HttpStatus;
@@ -12,9 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // @NotThreadSafe
-public class HealthCheckerTest extends BaseOsgiIntegrationTest {
+public class HealthCheckerIT extends BaseOsgiIntegrationIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(HealthCheckerTest.class);
+  private static final Logger logger = LoggerFactory.getLogger(HealthCheckerIT.class);
 
   private static String host;
 

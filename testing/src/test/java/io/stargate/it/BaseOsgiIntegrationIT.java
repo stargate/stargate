@@ -28,12 +28,12 @@ import org.junit.jupiter.api.BeforeEach;
 @UseStargateContainer
 @ClusterSpec(shared = true)
 @StargateSpec(shared = true)
-public class BaseOsgiIntegrationTest {
+public class BaseOsgiIntegrationIT {
 
   protected ClusterConnectionInfo backend;
 
   static {
-    ClassLoader classLoader = BaseOsgiIntegrationTest.class.getClassLoader();
+    ClassLoader classLoader = BaseOsgiIntegrationIT.class.getClassLoader();
     URL resource = classLoader.getResource("logback-test.xml");
 
     if (resource != null) {

@@ -79,7 +79,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharStreams;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.db.schema.Column;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseOsgiIntegrationIT;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
@@ -135,8 +135,9 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 // @NotThreadSafe
-public class GraphqlTest extends BaseOsgiIntegrationTest {
-  private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
+public class GraphqlIT extends BaseOsgiIntegrationIT {
+
+  private static final Logger logger = LoggerFactory.getLogger(GraphqlIT.class);
 
   private static CqlSession session;
   private static String authToken;
@@ -179,7 +180,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
 
     // Create CQL schema using betterbotz.cql file
     InputStream inputStream =
-        GraphqlTest.class.getClassLoader().getResourceAsStream("betterbotz.cql");
+        GraphqlIT.class.getClassLoader().getResourceAsStream("betterbotz.cql");
     assertThat(inputStream).isNotNull();
     String queries = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
     assertThat(queries).isNotNull();
