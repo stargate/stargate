@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
+import io.stargate.config.store.api.ConfigStore;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.cdc.CDCProducer;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,7 @@ import org.osgi.framework.ServiceReference;
 class KafkaProducerActivatorTest {
 
   @Test
-  public void shouldNotStartAndRegisterListenerWhenMetricsServiceNotProvided()
+  public void shouldNotStartAndRegisterListenersWhenMetricsAndConfigStoreServiceNotProvided()
       throws InvalidSyntaxException {
     // given
     BundleContext bundleContext = mock(BundleContext.class);
@@ -45,23 +46,68 @@ class KafkaProducerActivatorTest {
     // when
     kafkaProducerActivator.start(bundleContext);
 
-    // then register service listener and not start
+    // then register service listeners for both config-store and metrics
     verify(bundleContext, times(1))
         .addServiceListener(any(), eq(String.format("(objectClass=%s)", Metrics.class.getName())));
+    verify(bundleContext, times(1))
+        .addServiceListener(
+            any(), eq(String.format("(objectClass=%s)", ConfigStore.class.getName())));
     assertThat(kafkaProducerActivator.started).isFalse();
   }
 
   @Test
-  public void shouldStartAndRegisterServiceAndNotRegisterListenerWhenMetricsServiceProvided()
+  public void shouldNotStartAndRegisterListenerWhenMetricsProvidedButConfigStoreServiceNotProvided()
       throws InvalidSyntaxException {
     // given
     BundleContext bundleContext = mock(BundleContext.class);
     KafkaProducerActivator kafkaProducerActivator = new KafkaProducerActivator();
-    ServiceReference<Metrics> serviceReference = mock(ServiceReference.class);
-    Metrics metrics = mock(Metrics.class);
-    doReturn(serviceReference).when(bundleContext).getServiceReference(Metrics.class.getName());
-    when(bundleContext.getService(serviceReference)).thenReturn(metrics);
-    when(metrics.getRegistry(any())).thenReturn(new MetricRegistry());
+    mockMetrics(bundleContext);
+
+    // when
+    kafkaProducerActivator.start(bundleContext);
+
+    // then register for config-store because it was not provided
+    verify(bundleContext, times(0))
+        .addServiceListener(any(), eq(String.format("(objectClass=%s)", Metrics.class.getName())));
+    verify(bundleContext, times(1))
+        .addServiceListener(
+            any(), eq(String.format("(objectClass=%s)", ConfigStore.class.getName())));
+    assertThat(kafkaProducerActivator.started).isFalse();
+  }
+
+  @Test
+  public void shouldNotStartAndRegisterListenerWhenMetricsNotProvidedButConfigStoreServiceProvided()
+      throws InvalidSyntaxException {
+    // given
+    BundleContext bundleContext = mock(BundleContext.class);
+    KafkaProducerActivator kafkaProducerActivator = new KafkaProducerActivator();
+    mockConfigStore(bundleContext);
+
+    // when
+    kafkaProducerActivator.start(bundleContext);
+
+    // then register for metrics because it was not provided
+    verify(bundleContext, times(1))
+        .addServiceListener(any(), eq(String.format("(objectClass=%s)", Metrics.class.getName())));
+    verify(bundleContext, times(0))
+        .addServiceListener(
+            any(), eq(String.format("(objectClass=%s)", ConfigStore.class.getName())));
+    assertThat(kafkaProducerActivator.started).isFalse();
+  }
+
+  @Test
+  public void
+      shouldStartAndRegisterServiceAndNotRegisterListenersWhenBothMetricsAndConfigStoreServiceProvided()
+          throws InvalidSyntaxException {
+    // given
+    BundleContext bundleContext = mock(BundleContext.class);
+    KafkaProducerActivator kafkaProducerActivator = new KafkaProducerActivator();
+
+    // metrics service provided
+    mockMetrics(bundleContext);
+
+    // config-store service provided
+    mockConfigStore(bundleContext);
 
     // when
     kafkaProducerActivator.start(bundleContext);
@@ -70,9 +116,12 @@ class KafkaProducerActivatorTest {
     verify(bundleContext, times(1))
         .registerService(eq(CDCProducer.class), any(CDCProducer.class), eq(null));
     assertThat(kafkaProducerActivator.started).isTrue();
-    // not register listener
+    // not register listeners
     verify(bundleContext, times(0))
         .addServiceListener(any(), eq(String.format("(objectClass=%s)", Metrics.class.getName())));
+    verify(bundleContext, times(0))
+        .addServiceListener(
+            any(), eq(String.format("(objectClass=%s)", ConfigStore.class.getName())));
   }
 
   @Test
@@ -81,11 +130,11 @@ class KafkaProducerActivatorTest {
     // given
     BundleContext bundleContext = mock(BundleContext.class);
     KafkaProducerActivator kafkaProducerActivator = new KafkaProducerActivator();
-    ServiceReference<Metrics> serviceReference = mock(ServiceReference.class);
-    Metrics metrics = mock(Metrics.class);
-    doReturn(serviceReference).when(bundleContext).getServiceReference(Metrics.class.getName());
-    when(bundleContext.getService(serviceReference)).thenReturn(metrics);
-    when(metrics.getRegistry(any())).thenReturn(new MetricRegistry());
+    // metrics service provided
+    mockMetrics(bundleContext);
+
+    // config-store service provided
+    mockConfigStore(bundleContext);
 
     // when
     kafkaProducerActivator.start(bundleContext);
@@ -103,5 +152,26 @@ class KafkaProducerActivatorTest {
     verify(bundleContext, times(0))
         .registerService(eq(CDCProducer.class), any(CDCProducer.class), eq(null));
     assertThat(kafkaProducerActivator.started).isTrue();
+  }
+
+  @SuppressWarnings("unchecked")
+  private void mockMetrics(BundleContext bundleContext) {
+    ServiceReference<Metrics> metricsServiceReference = mock(ServiceReference.class);
+    Metrics metrics = mock(Metrics.class);
+    doReturn(metricsServiceReference)
+        .when(bundleContext)
+        .getServiceReference(Metrics.class.getName());
+    when(bundleContext.getService(metricsServiceReference)).thenReturn(metrics);
+    when(metrics.getRegistry(any())).thenReturn(new MetricRegistry());
+  }
+
+  @SuppressWarnings("unchecked")
+  private void mockConfigStore(BundleContext bundleContext) {
+    ServiceReference<ConfigStore> configStoreServiceReference = mock(ServiceReference.class);
+    ConfigStore configStore = mock(ConfigStore.class);
+    doReturn(configStoreServiceReference)
+        .when(bundleContext)
+        .getServiceReference(ConfigStore.class.getName());
+    when(bundleContext.getService(configStoreServiceReference)).thenReturn(configStore);
   }
 }
