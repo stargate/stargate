@@ -1,7 +1,7 @@
 package org.apache.cassandra.stargate.db;
 
+import io.stargate.db.schema.Column;
 import java.nio.ByteBuffer;
-import org.apache.cassandra.stargate.schema.ColumnMetadata;
 
 /** Represents a value. */
 public interface CellValue {
@@ -12,5 +12,5 @@ public interface CellValue {
   Object getValueObject();
 
   /** Gets the column information associated with this cell value. */
-  ColumnMetadata getColumn();
+  Column getColumn();
 }
