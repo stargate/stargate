@@ -3,13 +3,9 @@ package io.stargate.it.cql;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
-import com.datastax.oss.driver.api.core.cql.SimpleStatement;
-import com.datastax.oss.driver.api.core.metadata.Node;
 import com.google.common.collect.Streams;
 import io.stargate.it.storage.StargateConnectionInfo;
-import io.stargate.it.storage.StargateSpec;
 import java.net.InetAddress;
 import java.time.Duration;
 import java.util.ArrayList;

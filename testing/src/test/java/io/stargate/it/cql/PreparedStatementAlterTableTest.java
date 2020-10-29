@@ -3,6 +3,7 @@ package io.stargate.it.cql;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.OptionsMap;
 import com.datastax.oss.driver.api.core.config.TypedDriverOption;
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
@@ -15,6 +16,9 @@ import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.internal.core.util.concurrent.CompletableFutures;
 import com.datastax.oss.protocol.internal.util.Bytes;
 import com.google.common.collect.ImmutableList;
+import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.CqlSessionSpec;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletionStage;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +26,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Covers the behavior of prepared statements when a table is altered (CASSANDRA-10786).
@@ -33,16 +38,19 @@ import org.junit.jupiter.api.condition.EnabledIf;
  * <p>TODO reenable when CASSANDRA-15299 is merged
  */
 @Disabled("Requires CASSANDRA-15299 on the backend")
-public class PreparedStatementAlterTableTest extends JavaDriverTestBase {
+@ExtendWith(CqlSessionExtension.class)
+@CqlSessionSpec(customOptions = "customizeOptions")
+public class PreparedStatementAlterTableTest extends BaseOsgiIntegrationTest {
 
-  @Override
-  protected void customizeConfig(OptionsMap config) {
+  public static void customizeOptions(OptionsMap config) {
     config.put(TypedDriverOption.PROTOCOL_VERSION, "V5");
     config.put(TypedDriverOption.REQUEST_PAGE_SIZE, 2);
   }
 
   @BeforeEach
-  public void setupSchema() {
+  public void setupSchema(CqlSession session) {
+    // Recreate every time because the methods alter the schema
+    session.execute("DROP TABLE IF EXISTS prepared_statement_test");
     session.execute("CREATE TABLE prepared_statement_test (a int PRIMARY KEY, b int, c int)");
     session.execute("INSERT INTO prepared_statement_test (a, b, c) VALUES (1, 1, 1)");
     session.execute("INSERT INTO prepared_statement_test (a, b, c) VALUES (2, 2, 2)");
@@ -54,7 +62,7 @@ public class PreparedStatementAlterTableTest extends JavaDriverTestBase {
   @DisplayName(
       "Should update prepared `SELECT *` metadata when table schema changes across executions")
   @EnabledIf("isCassandra4")
-  public void changeBetweenExecutionsTest() {
+  public void changeBetweenExecutionsTest(CqlSession session) {
     // Given
     PreparedStatement ps = session.prepare("SELECT * FROM prepared_statement_test WHERE a = ?");
     ByteBuffer idBefore = ps.getResultMetadataId();
@@ -80,7 +88,7 @@ public class PreparedStatementAlterTableTest extends JavaDriverTestBase {
   @Test
   @DisplayName("Should update prepared `SELECT *` metadata when table schema changes across pages")
   @EnabledIf("isCassandra4")
-  public void changeBetweenPagesTest() {
+  public void changeBetweenPagesTest(CqlSession session) {
     // Given
     PreparedStatement ps = session.prepare("SELECT * FROM prepared_statement_test");
     ByteBuffer idBefore = ps.getResultMetadataId();

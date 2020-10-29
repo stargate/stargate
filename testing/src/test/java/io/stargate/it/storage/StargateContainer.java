@@ -80,6 +80,8 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
   private static final AtomicInteger stargateAddressStart = new AtomicInteger(11);
   private static final AtomicInteger stargateInstanceSeq = new AtomicInteger();
 
+  public static final String STORE_KEY = "stargate-container";
+
   private static File initLibDir() {
     String dir = System.getProperty("stargate.libdir");
     if (dir == null) {
@@ -90,7 +92,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
   }
 
   public StargateContainer() {
-    super(StargateSpec.class, "stargate-container", Namespace.GLOBAL);
+    super(StargateSpec.class, STORE_KEY, Namespace.GLOBAL);
   }
 
   private static StargateParameters parameters(StargateSpec spec, ExtensionContext context)
