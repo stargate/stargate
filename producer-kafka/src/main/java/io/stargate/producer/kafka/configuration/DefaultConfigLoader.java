@@ -45,9 +45,15 @@ public class DefaultConfigLoader implements ConfigLoader {
     MetricsConfig metricsConfig = loadMetricsConfig(options);
     registerMetricsIfEnabled(kafkaProducerSettings, metricsConfig);
     String schemaRegistryUrl = getSchemaRegistryUrl(kafkaProducerSettings);
+    validateBootstrapServersPresent(kafkaProducerSettings);
     putProducerSerializersConfig(kafkaProducerSettings);
     return new CDCKafkaConfig(
         topicPrefixName, schemaRegistryUrl, kafkaProducerSettings, metricsConfig);
+  }
+
+  private void validateBootstrapServersPresent(Map<String, Object> kafkaProducerSettings) {
+    // this should not throw
+    getStringSettingValue(kafkaProducerSettings, ProducerConfig.BOOTSTRAP_SERVERS_CONFIG);
   }
 
   /**

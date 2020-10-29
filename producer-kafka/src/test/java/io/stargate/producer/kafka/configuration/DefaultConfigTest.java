@@ -26,6 +26,7 @@ import static io.stargate.producer.kafka.configuration.MetricsConfig.INCLUDE_TAG
 import static io.stargate.producer.kafka.configuration.MetricsConfig.METRICS_NAME_DEFAULT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -40,9 +41,14 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 
 class DefaultConfigTest {
 
@@ -90,6 +96,42 @@ class DefaultConfigTest {
 
     // then
     assertThat(schemaRegistryUrl).isEqualTo("url");
+  }
+
+  @ParameterizedTest
+  @MethodSource("missingRequiredSettingProvider")
+  public void shouldThrowIfRequiredSettingNotPresent(Map<String, Object> options) {
+    ConfigStore configStore = mock(ConfigStore.class);
+    when(configStore.getConfigForModule(CONFIG_STORE_MODULE_NAME))
+        .thenReturn(new ConfigWithOverrides(options));
+
+    // when
+    assertThatThrownBy(() -> new DefaultConfigLoader().loadConfig(configStore))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("The config value for")
+        .hasMessageContaining("is not present");
+  }
+
+  public static Stream<Arguments> missingRequiredSettingProvider() {
+    return Stream.of(
+        arguments(ImmutableMap.of()),
+        arguments(ImmutableMap.of(CDC_TOPIC_PREFIX_NAME, "prefix")),
+        arguments(ImmutableMap.of(CDC_TOPIC_PREFIX_NAME, "prefix")),
+        arguments(
+            new ImmutableMap.Builder<String, Object>()
+                .put(CDC_TOPIC_PREFIX_NAME, "prefix")
+                .put(METRICS_ENABLED_SETTING_NAME, true)
+                .build()),
+        arguments(
+            new ImmutableMap.Builder<String, Object>()
+                .put(CDC_TOPIC_PREFIX_NAME, "prefix")
+                .put(METRICS_ENABLED_SETTING_NAME, true)
+                .put(
+                    String.format(
+                        "%s.%s",
+                        CDC_KAFKA_PRODUCER_SETTING_PREFIX, SCHEMA_REGISTRY_URL_SETTING_NAME),
+                    "url")
+                .build()));
   }
 
   @Test
@@ -161,6 +203,10 @@ class DefaultConfigTest {
     options.put(
         String.format("%s.%s", CDC_KAFKA_PRODUCER_SETTING_PREFIX, SCHEMA_REGISTRY_URL_SETTING_NAME),
         "schema-url");
+    options.put(
+        String.format(
+            "%s.%s", CDC_KAFKA_PRODUCER_SETTING_PREFIX, ProducerConfig.BOOTSTRAP_SERVERS_CONFIG),
+        "kafka-broker-url");
     options.put(String.format("%s.%s", CDC_KAFKA_PRODUCER_SETTING_PREFIX, "setting-a"), 1);
     options.put(String.format("%s.%s", CDC_KAFKA_PRODUCER_SETTING_PREFIX, "setting-b"), "a");
     options.put(
@@ -186,6 +232,7 @@ class DefaultConfigTest {
             new SimpleEntry<>("setting-a", 1),
             new SimpleEntry<>("setting-b", "a"),
             new SimpleEntry<>(SCHEMA_REGISTRY_URL_SETTING_NAME, "schema-url"),
+            new SimpleEntry<>(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka-broker-url"),
             // metric specific settings
             new SimpleEntry<>(
                 CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG,
