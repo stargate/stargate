@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import net.jcip.annotations.NotThreadSafe;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -41,7 +40,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-@NotThreadSafe
+// @NotThreadSafe
 public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   private String keyspace;
   private CqlSession session;

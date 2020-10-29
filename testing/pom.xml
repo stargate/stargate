@@ -250,8 +250,8 @@
           </dependency>
         </dependencies>
         <configuration>
-          <parallel>suites</parallel>
-          <threadCountSuites>1</threadCountSuites>
+          <parallel>methods</parallel>
+          <threadCount>4</threadCount>
           <reuseForks>true</reuseForks>
           <forkCount>1</forkCount>
           <systemPropertyVariables>
@@ -383,6 +383,10 @@
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>
+                  <parallel>methods</parallel>
+                  <threadCount>4</threadCount>
+                  <reuseForks>true</reuseForks>
+                  <forkCount>1</forkCount>
                   <reportsDirectory>target/failsafe-reports/cassandra-4.0</reportsDirectory>
                   <summaryFile>target/failsafe-reports/summary-cassandra-4.0.xml</summaryFile>
                 </configuration>

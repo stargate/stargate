@@ -26,7 +26,6 @@ import io.stargate.auth.model.UsernameCredentials;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
-import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +33,7 @@ import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@NotThreadSafe
+// @NotThreadSafe
 public class AuthApiTest extends BaseOsgiIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(AuthApiTest.class);

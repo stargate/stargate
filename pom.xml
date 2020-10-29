@@ -234,6 +234,7 @@
           <excludes>
             <exclude>**/integration/**/*.java</exclude>
           </excludes>
+          <parallel>all</parallel>
           <systemPropertyVariables>
             <jacoco-agent.destfile>${project.build.directory}/jacoco-ut.exec</jacoco-agent.destfile>
             <projectRoot>${basedir}/..</projectRoot> <!-- Assumed to run from module -->

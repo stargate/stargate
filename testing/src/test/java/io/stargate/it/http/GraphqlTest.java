@@ -101,7 +101,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import net.jcip.annotations.NotThreadSafe;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -135,7 +134,7 @@ import org.slf4j.LoggerFactory;
  *       see generated code in `target/generated-sources/graphql-client`.
  * </ul>
  */
-@NotThreadSafe
+// @NotThreadSafe
 public class GraphqlTest extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
 

@@ -94,6 +94,10 @@
             <version>${junit.version}</version>
           </dependency>
         </dependencies>
+        <configuration>
+          <parallel>all</parallel>
+          <useUnlimitedThreads>true</useUnlimitedThreads>
+        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>

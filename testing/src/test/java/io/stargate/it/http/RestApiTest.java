@@ -51,13 +51,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-@NotThreadSafe
+// @NotThreadSafe
 public class RestApiTest extends BaseOsgiIntegrationTest {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();

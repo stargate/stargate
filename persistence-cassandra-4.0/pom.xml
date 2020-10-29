@@ -129,8 +129,8 @@
           </dependency>
         </dependencies>
         <configuration>
-          <parallel>suites</parallel>
-          <threadCountSuites>1</threadCountSuites>
+          <parallel>methods</parallel>
+          <threadCountSuites>4</threadCountSuites>
           <reuseForks>false</reuseForks>
           <forkCount>1</forkCount>
           <systemPropertyVariables>
@@ -152,6 +152,10 @@
             <version>${junit.version}</version>
           </dependency>
         </dependencies>
+        <configuration>
+          <parallel>all</parallel>
+          <useUnlimitedThreads>true</useUnlimitedThreads>
+        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
