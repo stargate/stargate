@@ -15,7 +15,7 @@
  */
 package io.stargate.producer.kafka;
 
-import static io.stargate.producer.kafka.KafkaCDCProducer.CONFIG_STORE_MODULE_NAME;
+import static io.stargate.producer.kafka.configuration.DefaultConfigLoader.CONFIG_STORE_MODULE_NAME;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.cell;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.cellValue;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.clusteringKey;

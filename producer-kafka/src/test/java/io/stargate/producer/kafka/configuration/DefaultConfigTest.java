@@ -21,14 +21,25 @@ import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_ENAB
 import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_INCLUDE_TAGS_SETTING_NAME;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_NAME_SETTING_NAME;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.SCHEMA_REGISTRY_URL_SETTING_NAME;
+import static io.stargate.producer.kafka.configuration.DefaultConfigLoader.CONFIG_STORE_MODULE_NAME;
+import static io.stargate.producer.kafka.configuration.MetricsConfig.INCLUDE_TAGS_DEFAULT;
+import static io.stargate.producer.kafka.configuration.MetricsConfig.METRICS_NAME_DEFAULT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.dropwizard.kafka.metrics.DropwizardMetricsReporter;
+import io.stargate.config.store.api.ConfigStore;
+import io.stargate.config.store.api.ConfigWithOverrides;
+import io.stargate.config.store.api.yaml.ConfigStoreYaml;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.junit.jupiter.api.Test;
@@ -138,8 +149,8 @@ class DefaultConfigTest {
 
     // then
     assertThat(metricsConfig.isMetricsEnabled()).isEqualTo(true);
-    assertThat(metricsConfig.getMetricsName()).isEqualTo(MetricsConfig.METRICS_NAME_DEFAULT);
-    assertThat(metricsConfig.isIncludeTags()).isEqualTo(MetricsConfig.INCLUDE_TAGS_DEFAULT);
+    assertThat(metricsConfig.getMetricsName()).isEqualTo(METRICS_NAME_DEFAULT);
+    assertThat(metricsConfig.isIncludeTags()).isEqualTo(INCLUDE_TAGS_DEFAULT);
   }
 
   @Test
@@ -162,8 +173,12 @@ class DefaultConfigTest {
     options.put(METRICS_NAME_SETTING_NAME, "producer-prefix");
     options.put(METRICS_ENABLED_SETTING_NAME, true);
     options.put(METRICS_INCLUDE_TAGS_SETTING_NAME, true);
+    ConfigStore configStore = mock(ConfigStore.class);
+    when(configStore.getConfigForModule(CONFIG_STORE_MODULE_NAME))
+        .thenReturn(new ConfigWithOverrides(options));
+
     // when
-    CDCKafkaConfig config = new DefaultConfigLoader().loadConfig(options);
+    CDCKafkaConfig config = new DefaultConfigLoader().loadConfig(configStore);
 
     // then
     assertThat(config.getKafkaProducerSettings())
@@ -185,5 +200,28 @@ class DefaultConfigTest {
     assertThat(config.getTopicPrefixName()).isEqualTo("prefix");
     assertThat(config.getMetricsConfig())
         .isEqualTo(new MetricsConfig(true, true, "producer-prefix"));
+  }
+
+  @Test
+  public void shouldLoadSettingsFromConfigStore() {
+    // given
+    Path path =
+        Paths.get(
+            Objects.requireNonNull(getClass().getClassLoader().getResource("stargate-config.yaml"))
+                .getPath());
+    ConfigStore configStore = new ConfigStoreYaml(path);
+
+    // when
+    CDCKafkaConfig cdcKafkaConfig = new DefaultConfigLoader().loadConfig(configStore);
+
+    // then validate only settings loaded from yaml file
+    assertThat(cdcKafkaConfig.getKafkaProducerSettings())
+        .contains(
+            new SimpleEntry<>(SCHEMA_REGISTRY_URL_SETTING_NAME, "http://schema-registry-url"),
+            new SimpleEntry<>(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "http://kafka-server"));
+    assertThat(cdcKafkaConfig.getTopicPrefixName()).isEqualTo("prefix");
+    assertThat(cdcKafkaConfig.getSchemaRegistryUrl()).isEqualTo("http://schema-registry-url");
+    assertThat(cdcKafkaConfig.getMetricsConfig())
+        .isEqualTo(new MetricsConfig(true, INCLUDE_TAGS_DEFAULT, METRICS_NAME_DEFAULT));
   }
 }

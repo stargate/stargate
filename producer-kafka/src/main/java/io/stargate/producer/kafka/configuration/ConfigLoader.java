@@ -15,7 +15,7 @@
  */
 package io.stargate.producer.kafka.configuration;
 
-import java.util.Map;
+import io.stargate.config.store.api.ConfigStore;
 
 public interface ConfigLoader {
   String CDC_TOPIC_PREFIX_NAME = "topic.prefix-name";
@@ -25,5 +25,5 @@ public interface ConfigLoader {
   String METRICS_INCLUDE_TAGS_SETTING_NAME = "metrics.include-tags";
   String METRICS_NAME_SETTING_NAME = "metrics.name";
 
-  CDCKafkaConfig loadConfig(Map<String, Object> options);
+  CDCKafkaConfig loadConfig(ConfigStore configStore);
 }

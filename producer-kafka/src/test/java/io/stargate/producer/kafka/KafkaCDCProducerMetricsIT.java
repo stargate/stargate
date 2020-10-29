@@ -15,10 +15,10 @@
  */
 package io.stargate.producer.kafka;
 
-import static io.stargate.producer.kafka.KafkaCDCProducer.CONFIG_STORE_MODULE_NAME;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_ENABLED_SETTING_NAME;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_INCLUDE_TAGS_SETTING_NAME;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_NAME_SETTING_NAME;
+import static io.stargate.producer.kafka.configuration.DefaultConfigLoader.CONFIG_STORE_MODULE_NAME;
 import static io.stargate.producer.kafka.configuration.MetricsConfig.METRICS_NAME_DEFAULT;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.clusteringKey;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.column;

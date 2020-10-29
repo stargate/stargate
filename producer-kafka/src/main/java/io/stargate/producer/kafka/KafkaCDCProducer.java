@@ -40,7 +40,6 @@ import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
 public class KafkaCDCProducer extends SchemaAwareCDCProducer {
-  public static final String CONFIG_STORE_MODULE_NAME = "cdc.kafka";
 
   private final DefaultConfigLoader configLoader;
 
@@ -71,9 +70,7 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   @Override
   public CompletableFuture<Void> init() {
-    CDCKafkaConfig cdcKafkaConfig =
-        configLoader.loadConfig(
-            configStore.getConfigForModule(CONFIG_STORE_MODULE_NAME).getConfigMap());
+    CDCKafkaConfig cdcKafkaConfig = configLoader.loadConfig(configStore);
 
     this.mappingService = new DefaultMappingService(cdcKafkaConfig.getTopicPrefixName());
     this.schemaProvider =
