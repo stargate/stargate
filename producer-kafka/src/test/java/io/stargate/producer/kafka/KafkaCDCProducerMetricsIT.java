@@ -15,6 +15,7 @@
  */
 package io.stargate.producer.kafka;
 
+import static io.stargate.producer.kafka.KafkaCDCProducer.CONFIG_STORE_MODULE_NAME;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_ENABLED_SETTING_NAME;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_INCLUDE_TAGS_SETTING_NAME;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_NAME_SETTING_NAME;
@@ -27,9 +28,12 @@ import static io.stargate.producer.kafka.schema.SchemasTestConstants.CLUSTERING_
 import static io.stargate.producer.kafka.schema.SchemasTestConstants.COLUMN_NAME;
 import static io.stargate.producer.kafka.schema.SchemasTestConstants.PARTITION_KEY_NAME;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
+import io.stargate.config.store.api.ConfigStore;
+import io.stargate.config.store.api.ConfigWithOverrides;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,6 +41,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
 import org.apache.cassandra.stargate.schema.CQLType.Native;
 import org.apache.cassandra.stargate.schema.TableMetadata;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 public class KafkaCDCProducerMetricsIT extends IntegrationTestBase {
@@ -49,14 +54,14 @@ public class KafkaCDCProducerMetricsIT extends IntegrationTestBase {
 
     String kafkaMetricsPrefix = "producer-prefix";
     MetricRegistry metricRegistry = new MetricRegistry();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(metricRegistry);
     Map<String, Object> metricsSettings = new HashMap<>();
     metricsSettings.put(METRICS_ENABLED_SETTING_NAME, true);
     metricsSettings.put(METRICS_INCLUDE_TAGS_SETTING_NAME, true);
     metricsSettings.put(METRICS_NAME_SETTING_NAME, kafkaMetricsPrefix);
 
-    Map<String, Object> properties = createKafkaProducerSettings(metricsSettings);
-    kafkaCDCProducer.init(properties).get();
+    ConfigStore configStore = mockConfigStore(metricsSettings);
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(metricRegistry, configStore);
+    kafkaCDCProducer.init().get();
 
     // when
     // schema change event
@@ -117,12 +122,12 @@ public class KafkaCDCProducerMetricsIT extends IntegrationTestBase {
     String topicName = createTopicName(tableMetadata);
 
     MetricRegistry metricRegistry = new MetricRegistry();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(metricRegistry);
     Map<String, Object> metricsSettings = new HashMap<>();
     metricsSettings.put(METRICS_ENABLED_SETTING_NAME, false);
+    ConfigStore configStore = mockConfigStore(metricsSettings);
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(metricRegistry, configStore);
 
-    Map<String, Object> properties = createKafkaProducerSettings(metricsSettings);
-    kafkaCDCProducer.init(properties).get();
+    kafkaCDCProducer.init().get();
 
     // when
     // schema change event
@@ -160,6 +165,15 @@ public class KafkaCDCProducerMetricsIT extends IntegrationTestBase {
     } finally {
       kafkaCDCProducer.close().get();
     }
+  }
+
+  @NotNull
+  private ConfigStore mockConfigStore(Map<String, Object> metricsSettings) {
+    Map<String, Object> properties = createKafkaProducerSettings(metricsSettings);
+    ConfigStore configStore = mock(ConfigStore.class);
+    when(configStore.getConfigForModule(CONFIG_STORE_MODULE_NAME))
+        .thenReturn(new ConfigWithOverrides(properties));
+    return configStore;
   }
 
   private long countMetricsByPrefix(String kafkaMetricsPrefix, MetricRegistry metricRegistry) {

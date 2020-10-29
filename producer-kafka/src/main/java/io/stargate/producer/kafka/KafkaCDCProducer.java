@@ -19,6 +19,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.dropwizard.kafka.metrics.DropwizardMetricsReporter;
+import io.stargate.config.store.api.ConfigStore;
 import io.stargate.db.cdc.SchemaAwareCDCProducer;
 import io.stargate.producer.kafka.configuration.CDCKafkaConfig;
 import io.stargate.producer.kafka.configuration.DefaultConfigLoader;
@@ -28,8 +29,6 @@ import io.stargate.producer.kafka.producer.CompletableKafkaProducer;
 import io.stargate.producer.kafka.schema.KeyValueConstructor;
 import io.stargate.producer.kafka.schema.SchemaProvider;
 import io.stargate.producer.kafka.schema.SchemaRegistryProvider;
-import java.util.Collections;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
@@ -41,8 +40,11 @@ import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
 public class KafkaCDCProducer extends SchemaAwareCDCProducer {
+  public static final String CONFIG_STORE_MODULE_NAME = "cdc.kafka";
 
   private final DefaultConfigLoader configLoader;
+
+  private final ConfigStore configStore;
 
   private MappingService mappingService;
 
@@ -52,8 +54,9 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   private CompletableFuture<CompletableKafkaProducer<GenericRecord, GenericRecord>> kafkaProducer;
 
-  public KafkaCDCProducer(MetricRegistry registry) {
+  public KafkaCDCProducer(MetricRegistry registry, ConfigStore configStore) {
     registerMetrics(registry);
+    this.configStore = configStore;
     this.configLoader = new DefaultConfigLoader();
   }
 
@@ -66,8 +69,11 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
     SharedMetricRegistries.add("default", registry);
   }
 
-  public CompletableFuture<Void> init(Map<String, Object> options) {
-    CDCKafkaConfig cdcKafkaConfig = configLoader.loadConfig(options);
+  @Override
+  public CompletableFuture<Void> init() {
+    CDCKafkaConfig cdcKafkaConfig =
+        configLoader.loadConfig(
+            configStore.getConfigForModule(CONFIG_STORE_MODULE_NAME).getConfigMap());
 
     this.mappingService = new DefaultMappingService(cdcKafkaConfig.getTopicPrefixName());
     this.schemaProvider =
@@ -82,12 +88,6 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   private Consumer<Object> toVoid() {
     return (producer) -> {};
-  }
-
-  // todo plug config-store
-  @Override
-  public CompletableFuture<Void> init() {
-    return init(Collections.emptyMap());
   }
 
   @Override

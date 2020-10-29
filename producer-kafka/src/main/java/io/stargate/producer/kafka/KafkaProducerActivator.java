@@ -72,7 +72,8 @@ public class KafkaProducerActivator implements BundleActivator, ServiceListener 
     started = true;
     logger.info("Starting Kafka producer....");
     try {
-      CDCProducer producer = new KafkaCDCProducer(metrics.getRegistry(KAFKA_CDC_METRICS_PREFIX));
+      CDCProducer producer =
+          new KafkaCDCProducer(metrics.getRegistry(KAFKA_CDC_METRICS_PREFIX), null);
       context.registerService(CDCProducer.class, producer, null);
       logger.info("Started Kafka producer....");
     } catch (Exception e) {
