@@ -31,8 +31,10 @@ public class NameMapping {
   private final Map<String, BiMap<String, String>> columnNames;
   private final BiMap<String, String> udtNames = HashBiMap.create();
   private final Map<String, BiMap<String, String>> fieldNames;
+  private final List<String> warnings;
 
-  public NameMapping(Set<Table> tables, List<UserDefinedType> udts) {
+  public NameMapping(Set<Table> tables, List<UserDefinedType> udts, List<String> warnings) {
+    this.warnings = warnings;
     columnNames = new HashMap<>();
     buildNames(tables);
     fieldNames = new HashMap<>();
@@ -41,23 +43,50 @@ public class NameMapping {
 
   private void buildNames(Set<Table> tables) {
     for (Table table : tables) {
-      entityNames.put(table.name(), CaseUtil.toCamel(table.name()));
-      columnNames.put(table.name(), buildColumnNames(table.columns()));
+      String graphqlName = CaseUtil.toCamel(table.name());
+      String clashingCqlName = entityNames.inverse().get(graphqlName);
+      if (clashingCqlName != null) {
+        warnings.add(
+            String.format(
+                "Can't convert table %s because its GraphQL name %s would collide with table %s",
+                table.name(), graphqlName, clashingCqlName));
+      } else {
+        entityNames.put(table.name(), graphqlName);
+        columnNames.put(table.name(), buildColumnNames(table.columns()));
+      }
     }
   }
 
   private void buildNames(List<UserDefinedType> udts) {
     for (UserDefinedType udt : udts) {
       // CQL allows tables and UDTs with the same name, append a suffix to avoid clashes.
-      udtNames.put(udt.name(), CaseUtil.toCamel(udt.name()) + "Udt");
-      fieldNames.put(udt.name(), buildColumnNames(udt.columns()));
+      String graphqlName = CaseUtil.toCamel(udt.name()) + "Udt";
+      String clashingCqlName = udtNames.inverse().get(graphqlName);
+      if (clashingCqlName != null) {
+        warnings.add(
+            String.format(
+                "Can't convert UDT %s because its GraphQL name %s would collide with UDT %s",
+                udt.name(), graphqlName, clashingCqlName));
+      } else {
+        udtNames.put(udt.name(), graphqlName);
+        fieldNames.put(udt.name(), buildColumnNames(udt.columns()));
+      }
     }
   }
 
   private BiMap<String, String> buildColumnNames(List<Column> columns) {
     BiMap<String, String> map = HashBiMap.create();
     for (Column column : columns) {
-      map.put(column.name(), CaseUtil.toLowerCamel(column.name()));
+      String graphqlName = CaseUtil.toLowerCamel(column.name());
+      String clashingCqlName = map.inverse().get(graphqlName);
+      if (clashingCqlName != null) {
+        warnings.add(
+            String.format(
+                "Can't convert column %s.%s because its GraphQL name %s would collide with column %s",
+                column.table(), column.name(), graphqlName, clashingCqlName));
+      } else {
+        map.put(column.name(), graphqlName);
+      }
     }
     return map;
   }

@@ -16,8 +16,8 @@
 package io.stargate.graphql.schema;
 
 import static graphql.Scalars.GraphQLString;
+import static graphql.schema.GraphQLList.list;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import graphql.Scalars;
 import graphql.introspection.Introspection;
@@ -51,15 +51,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class DmlSchemaBuilder {
-  private static final Logger log = LoggerFactory.getLogger(DmlSchemaBuilder.class);
 
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
   private final Map<Table, GraphQLOutputType> entityResultMap = new HashMap<>();
+  private final List<String> warnings = new ArrayList<>();
   private final FieldInputTypeCache fieldInputTypes;
   private final FieldOutputTypeCache fieldOutputTypes;
   private final FieldFilterInputTypeCache fieldFilterInputTypes;
@@ -72,9 +70,9 @@ class DmlSchemaBuilder {
     this.authenticationService = authenticationService;
     this.keyspace = keyspace;
 
-    this.nameMapping = new NameMapping(keyspace.tables(), keyspace.userDefinedTypes());
-    this.fieldInputTypes = new FieldInputTypeCache(this.nameMapping);
-    this.fieldOutputTypes = new FieldOutputTypeCache(this.nameMapping);
+    this.nameMapping = new NameMapping(keyspace.tables(), keyspace.userDefinedTypes(), warnings);
+    this.fieldInputTypes = new FieldInputTypeCache(this.nameMapping, warnings);
+    this.fieldOutputTypes = new FieldOutputTypeCache(this.nameMapping, warnings);
     this.fieldFilterInputTypes =
         new FieldFilterInputTypeCache(this.fieldInputTypes, this.nameMapping);
   }
@@ -88,6 +86,10 @@ class DmlSchemaBuilder {
 
     // Tables must be iterated one at a time. If a table is unfulfillable, it is skipped
     for (Table table : keyspace.tables()) {
+      if (nameMapping.getGraphqlName(table) == null) {
+        // This means there was a name clash. We already added a warning in NameMapping.
+        continue;
+      }
       Set<GraphQLType> additionalTypes;
       List<GraphQLFieldDefinition> tableQueryField;
       List<GraphQLFieldDefinition> tableMutationFields;
@@ -97,7 +99,9 @@ class DmlSchemaBuilder {
         tableQueryField = buildQuery(table);
         tableMutationFields = buildMutations(table);
       } catch (Exception e) {
-        log.warn("Skipping table " + table.name());
+        warnings.add(
+            String.format(
+                "Could not convert table %s, skipping (%s)", table.name(), e.getMessage()));
         continue;
       }
 
@@ -134,6 +138,8 @@ class DmlSchemaBuilder {
               .build();
       mutationFields.add(emptyMutationField);
     }
+
+    queryFields.add(buildWarnings());
 
     builder.additionalType(buildQueryOptionsInputType());
     builder.query(buildQueries(queryFields));
@@ -304,16 +310,22 @@ class DmlSchemaBuilder {
   private List<GraphQLInputObjectField> buildFilterInputFields(Table table) {
     List<GraphQLInputObjectField> fields = new ArrayList<>();
     for (Column column : table.columns()) {
-      fields.add(
-          GraphQLInputObjectField.newInputObjectField()
-              .name(nameMapping.getGraphqlName(table, column))
-              .type(fieldFilterInputTypes.get(column.type()))
-              .build());
+      String graphqlName = nameMapping.getGraphqlName(table, column);
+      if (graphqlName != null) {
+        try {
+          fields.add(
+              GraphQLInputObjectField.newInputObjectField()
+                  .name(graphqlName)
+                  .type(fieldFilterInputTypes.get(column.type()))
+                  .build());
+        } catch (Exception e) {
+          warnings.add(
+              String.format(
+                  "Could not create filter input type for column %s.%s, skipping (%s)",
+                  column.table(), column.name(), e.getMessage()));
+        }
+      }
     }
-
-    Preconditions.checkState(
-        !fields.isEmpty(), "Could not generate an input type for table, skipping.");
-
     return fields;
   }
 
@@ -370,8 +382,11 @@ class DmlSchemaBuilder {
     GraphQLEnumType.Builder input =
         GraphQLEnumType.newEnum().name(nameMapping.getGraphqlName(table) + "Order");
     for (Column columnMetadata : table.columns()) {
-      input.value(nameMapping.getGraphqlName(table, columnMetadata) + "_DESC");
-      input.value(nameMapping.getGraphqlName(table, columnMetadata) + "_ASC");
+      String graphqlName = nameMapping.getGraphqlName(table, columnMetadata);
+      if (graphqlName != null) {
+        input.value(graphqlName + "_DESC");
+        input.value(graphqlName + "_ASC");
+      }
     }
     return input.build();
   }
@@ -380,16 +395,21 @@ class DmlSchemaBuilder {
     GraphQLInputObjectType.Builder input =
         GraphQLInputObjectType.newInputObject().name(nameMapping.getGraphqlName(table) + "Input");
     for (Column columnMetadata : table.columns()) {
-      try {
-        GraphQLInputObjectField field =
-            GraphQLInputObjectField.newInputObjectField()
-                .name(nameMapping.getGraphqlName(table, columnMetadata))
-                .type(fieldInputTypes.get(columnMetadata.type()))
-                .build();
-        input.field(field);
-      } catch (Exception e) {
-        log.error(
-            String.format("Input type for %s could not be created", columnMetadata.name()), e);
+      String graphqlName = nameMapping.getGraphqlName(table, columnMetadata);
+      if (graphqlName != null) {
+        try {
+          GraphQLInputObjectField field =
+              GraphQLInputObjectField.newInputObjectField()
+                  .name(graphqlName)
+                  .type(fieldInputTypes.get(columnMetadata.type()))
+                  .build();
+          input.field(field);
+        } catch (Exception e) {
+          warnings.add(
+              String.format(
+                  "Could not create input type for column %s.%s, skipping (%s)",
+                  columnMetadata.table(), columnMetadata.name(), e.getMessage()));
+        }
       }
     }
     return input.build();
@@ -423,21 +443,44 @@ class DmlSchemaBuilder {
     GraphQLObjectType.Builder builder =
         GraphQLObjectType.newObject().name(nameMapping.getGraphqlName(table));
     for (Column columnMetadata : table.columns()) {
-      try {
-        GraphQLFieldDefinition.Builder fieldBuilder = buildOutputField(table, columnMetadata);
-        builder.field(fieldBuilder.build());
-      } catch (Exception e) {
-        log.error(String.format("Type for %s could not be created", columnMetadata.name()), e);
+      String graphqlName = nameMapping.getGraphqlName(table, columnMetadata);
+      if (graphqlName != null) {
+        try {
+          GraphQLFieldDefinition.Builder fieldBuilder =
+              new GraphQLFieldDefinition.Builder()
+                  .name(graphqlName)
+                  .type(fieldOutputTypes.get(columnMetadata.type()));
+          builder.field(fieldBuilder.build());
+        } catch (Exception e) {
+          warnings.add(
+              String.format(
+                  "Could not create output type for column %s.%s, skipping (%s)",
+                  columnMetadata.table(), columnMetadata.name(), e.getMessage()));
+        }
       }
     }
 
     return builder.build();
   }
 
-  private GraphQLFieldDefinition.Builder buildOutputField(Table table, Column columnMetadata) {
-    return new GraphQLFieldDefinition.Builder()
-        .name(nameMapping.getGraphqlName(table, columnMetadata))
-        .type(fieldOutputTypes.get(columnMetadata.type()));
+  private GraphQLFieldDefinition buildWarnings() {
+    StringBuilder description =
+        new StringBuilder(
+            "Warnings encountered during the translation of the backend schema into GraphQL.\n"
+                + "For convenience they are also listed below:");
+    if (warnings.isEmpty()) {
+      description.append("\n<none>");
+    } else {
+      for (String warning : warnings) {
+        description.append("\n- ").append(warning);
+      }
+    }
+    return GraphQLFieldDefinition.newFieldDefinition()
+        .name("__conversionWarnings")
+        .description(description.toString())
+        .type(list(GraphQLString))
+        .dataFetcher((d) -> warnings)
+        .build();
   }
 
   private static final GraphQLInputType MUTATION_OPTIONS =
