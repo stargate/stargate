@@ -132,7 +132,6 @@
         <module>health-checker</module>
         <module>config-store-api</module>
         <module>config-store-yaml</module>
-        <module>producer-kafka</module>
         <!-- testing last -->
         <module>testing</module>
       </modules>
