@@ -46,7 +46,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.Network;
 
 public class IntegrationTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(IntegrationTestBase.class);
@@ -60,8 +59,7 @@ public class IntegrationTestBase {
 
   @BeforeAll
   public static void setup() throws Exception {
-    Network network = Network.newNetwork();
-    kafkaContainer = new KafkaContainer().withNetwork(network).withEmbeddedZookeeper();
+    kafkaContainer = new KafkaContainer().withEmbeddedZookeeper();
     kafkaContainer.start();
     try (ServerSocket serverSocket = new ServerSocket(0)) {
 
