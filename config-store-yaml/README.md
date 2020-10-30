@@ -53,11 +53,11 @@ will be captured by the `getConfigForModule()` method with 30 seconds delay.
 The Config Store YAML exposes cache level metrics to allow tracking efficiency and performance. 
 All metrics are exposed under `config.store.yaml` prefix. 
 The `MetricRegistry` will have the following cache-level metrics:
--  `config.store.yaml.file-cache.hitCount`
--  `config.store.yaml.file-cache.hitRate`
--  `config.store.yaml.file-cache.missCount`
--  `config.store.yaml.file-cache.evictionCount`
--  `config.store.yaml.file-cache.size`
+* `config.store.yaml.file-cache.hitCount`
+* `config.store.yaml.file-cache.hitRate`
+* `config.store.yaml.file-cache.missCount`
+* `config.store.yaml.file-cache.evictionCount`
+* `config.store.yaml.file-cache.size`
 
 
 ## Using Config Store Yaml with Kubernetes(K8s)
