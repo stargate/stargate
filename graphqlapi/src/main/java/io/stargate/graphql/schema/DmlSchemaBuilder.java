@@ -381,8 +381,8 @@ class DmlSchemaBuilder {
   private GraphQLType buildOrderType(Table table) {
     GraphQLEnumType.Builder input =
         GraphQLEnumType.newEnum().name(nameMapping.getGraphqlName(table) + "Order");
-    for (Column columnMetadata : table.columns()) {
-      String graphqlName = nameMapping.getGraphqlName(table, columnMetadata);
+    for (Column column : table.columns()) {
+      String graphqlName = nameMapping.getGraphqlName(table, column);
       if (graphqlName != null) {
         input.value(graphqlName + "_DESC");
         input.value(graphqlName + "_ASC");
@@ -394,21 +394,21 @@ class DmlSchemaBuilder {
   private GraphQLType buildInputType(Table table) {
     GraphQLInputObjectType.Builder input =
         GraphQLInputObjectType.newInputObject().name(nameMapping.getGraphqlName(table) + "Input");
-    for (Column columnMetadata : table.columns()) {
-      String graphqlName = nameMapping.getGraphqlName(table, columnMetadata);
+    for (Column column : table.columns()) {
+      String graphqlName = nameMapping.getGraphqlName(table, column);
       if (graphqlName != null) {
         try {
           GraphQLInputObjectField field =
               GraphQLInputObjectField.newInputObjectField()
                   .name(graphqlName)
-                  .type(fieldInputTypes.get(columnMetadata.type()))
+                  .type(fieldInputTypes.get(column.type()))
                   .build();
           input.field(field);
         } catch (Exception e) {
           warnings.add(
               String.format(
                   "Could not create input type for column %s in table %s, skipping (%s)",
-                  columnMetadata.name(), columnMetadata.table(), e.getMessage()));
+                  column.name(), column.table(), e.getMessage()));
         }
       }
     }
@@ -442,20 +442,20 @@ class DmlSchemaBuilder {
   public GraphQLObjectType buildType(Table table) {
     GraphQLObjectType.Builder builder =
         GraphQLObjectType.newObject().name(nameMapping.getGraphqlName(table));
-    for (Column columnMetadata : table.columns()) {
-      String graphqlName = nameMapping.getGraphqlName(table, columnMetadata);
+    for (Column column : table.columns()) {
+      String graphqlName = nameMapping.getGraphqlName(table, column);
       if (graphqlName != null) {
         try {
           GraphQLFieldDefinition.Builder fieldBuilder =
               new GraphQLFieldDefinition.Builder()
                   .name(graphqlName)
-                  .type(fieldOutputTypes.get(columnMetadata.type()));
+                  .type(fieldOutputTypes.get(column.type()));
           builder.field(fieldBuilder.build());
         } catch (Exception e) {
           warnings.add(
               String.format(
                   "Could not create output type for column %s in table %s, skipping (%s)",
-                  columnMetadata.name(), columnMetadata.table(), e.getMessage()));
+                  column.name(), column.table(), e.getMessage()));
         }
       }
     }
