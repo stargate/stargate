@@ -84,4 +84,6 @@ public @interface CqlSessionSpec {
    * #initQueries()} are ignored.
    */
   boolean createSession() default true;
+
+  boolean noDefaultContactPoints() default false;
 }
