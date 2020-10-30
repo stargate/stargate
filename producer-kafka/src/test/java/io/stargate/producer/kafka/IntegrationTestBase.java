@@ -24,6 +24,7 @@ import static org.testcontainers.containers.KafkaContainer.ZOOKEEPER_PORT;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.stargate.db.schema.Table;
 import io.stargate.producer.kafka.configuration.ConfigLoader;
 import io.stargate.producer.kafka.schema.EmbeddedSchemaRegistryServer;
 import java.net.ServerSocket;
@@ -34,7 +35,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.apache.commons.collections.IteratorUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -80,16 +80,15 @@ public class IntegrationTestBase {
     schemaRegistry.close();
   }
 
-  protected TableMetadata mockTableMetadata() {
-    TableMetadata tableMetadata = mock(TableMetadata.class);
-    when(tableMetadata.getKeyspace()).thenReturn("keyspaceName");
-    when(tableMetadata.getName()).thenReturn("tableName" + UUID.randomUUID().toString());
+  protected Table mockTableMetadata() {
+    Table tableMetadata = mock(Table.class);
+    when(tableMetadata.keyspace()).thenReturn("keyspaceName");
+    when(tableMetadata.name()).thenReturn("tableName" + UUID.randomUUID().toString());
     return tableMetadata;
   }
 
-  protected String createTopicName(TableMetadata tableMetadata) {
-    return String.format(
-        "%s.%s.%s", TOPIC_PREFIX, tableMetadata.getKeyspace(), tableMetadata.getName());
+  protected String createTopicName(Table tableMetadata) {
+    return String.format("%s.%s.%s", TOPIC_PREFIX, tableMetadata.keyspace(), tableMetadata.name());
   }
 
   @NotNull

@@ -40,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.stargate.db.schema.Table;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Optional;
@@ -54,7 +55,6 @@ import org.apache.avro.io.EncoderFactory;
 import org.apache.cassandra.stargate.db.DeleteEvent;
 import org.apache.cassandra.stargate.db.MutationEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
-import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -80,7 +80,7 @@ class KeyValueConstructorTest {
             column(COLUMN_NAME),
             clusteringKeyValue,
             clusteringKey(CLUSTERING_KEY_NAME),
-            mock(TableMetadata.class));
+            mock(Table.class));
     when(schemaProvider.getKeySchemaForTopic(TOPIC_NAME)).thenReturn(KEY_SCHEMA);
 
     // when
@@ -108,7 +108,7 @@ class KeyValueConstructorTest {
             column(COLUMN_NAME),
             null,
             clusteringKey(CLUSTERING_KEY_NAME),
-            mock(TableMetadata.class));
+            mock(Table.class));
     when(schemaProvider.getKeySchemaForTopic(TOPIC_NAME)).thenReturn(KEY_SCHEMA);
     // when
     GenericRecord genericRecord = keyValueConstructor.constructKey(rowMutationEvent, TOPIC_NAME);
@@ -139,7 +139,7 @@ class KeyValueConstructorTest {
             column(COLUMN_NAME),
             clusteringKeyValue,
             clusteringKey(CLUSTERING_KEY_NAME),
-            mock(TableMetadata.class),
+            mock(Table.class),
             timestamp);
     when(schemaProvider.getValueSchemaForTopic(TOPIC_NAME)).thenReturn(VALUE_SCHEMA);
 
@@ -179,7 +179,7 @@ class KeyValueConstructorTest {
             partitionKey(PARTITION_KEY_NAME),
             clusteringKeyValue,
             clusteringKey(CLUSTERING_KEY_NAME),
-            mock(TableMetadata.class),
+            mock(Table.class),
             timestamp);
     when(schemaProvider.getValueSchemaForTopic(TOPIC_NAME)).thenReturn(VALUE_SCHEMA);
 
@@ -231,7 +231,7 @@ class KeyValueConstructorTest {
             column(COLUMN_NAME),
             clusteringKeyValue,
             clusteringKey(CLUSTERING_KEY_NAME),
-            mock(TableMetadata.class));
+            mock(Table.class));
 
     RowUpdateEvent rowUpdateEventNoCK =
         createRowUpdateEventNoCK(
@@ -239,7 +239,7 @@ class KeyValueConstructorTest {
             partitionKey(PARTITION_KEY_NAME),
             columnValue,
             column(COLUMN_NAME),
-            mock(TableMetadata.class));
+            mock(Table.class));
 
     RowUpdateEvent rowUpdateEventNoColumns =
         createRowUpdateEventNoColumns(
@@ -247,15 +247,15 @@ class KeyValueConstructorTest {
             partitionKey(PARTITION_KEY_NAME),
             clusteringKeyValue,
             clusteringKey(CLUSTERING_KEY_NAME),
-            mock(TableMetadata.class));
+            mock(Table.class));
 
     DeleteEvent deleteEventNoPK =
         createDeleteEventNoPk(
-            clusteringKeyValue, clusteringKey(CLUSTERING_KEY_NAME), mock(TableMetadata.class));
+            clusteringKeyValue, clusteringKey(CLUSTERING_KEY_NAME), mock(Table.class));
 
     DeleteEvent deleteEventNoCK =
         createDeleteEventNoCk(
-            partitionKeyValue, clusteringKey(PARTITION_KEY_NAME), mock(TableMetadata.class));
+            partitionKeyValue, clusteringKey(PARTITION_KEY_NAME), mock(Table.class));
 
     return Stream.of(
         Arguments.of(rowUpdateEventNoPK, PARTITION_KEY_NAME),

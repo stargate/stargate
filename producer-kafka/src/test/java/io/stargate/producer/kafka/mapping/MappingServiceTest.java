@@ -19,7 +19,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.apache.cassandra.stargate.schema.TableMetadata;
+import io.stargate.db.schema.Table;
 import org.junit.jupiter.api.Test;
 
 class MappingServiceTest {
@@ -28,9 +28,9 @@ class MappingServiceTest {
   public void shouldConstructMappingForPrefix() {
     // given
     DefaultMappingService mappingService = new DefaultMappingService("prefix");
-    TableMetadata tableMetadata = mock(TableMetadata.class);
-    when(tableMetadata.getKeyspace()).thenReturn("k1");
-    when(tableMetadata.getName()).thenReturn("table");
+    Table tableMetadata = mock(Table.class);
+    when(tableMetadata.keyspace()).thenReturn("k1");
+    when(tableMetadata.name()).thenReturn("table");
 
     // when
     String topicNameFromTableMetadata = mappingService.getTopicNameFromTableMetadata(tableMetadata);

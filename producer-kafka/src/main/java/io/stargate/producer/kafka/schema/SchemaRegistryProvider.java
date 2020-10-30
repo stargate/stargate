@@ -27,6 +27,8 @@ import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Table;
 import io.stargate.producer.kafka.mapping.MappingService;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,8 +40,6 @@ import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
-import org.apache.cassandra.stargate.schema.ColumnMetadata;
-import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,9 +78,9 @@ public class SchemaRegistryProvider implements SchemaProvider {
   }
 
   @Override
-  public void createOrUpdateSchema(TableMetadata tableMetadata) {
-    createOrUpdateKeySchema(tableMetadata);
-    createOrUpdateValueSchema(tableMetadata);
+  public void createOrUpdateSchema(Table table) {
+    createOrUpdateKeySchema(table);
+    createOrUpdateValueSchema(table);
   }
 
   private Schema getSchemaBySubject(String subjectName) {
@@ -122,9 +122,9 @@ public class SchemaRegistryProvider implements SchemaProvider {
     }
   }
 
-  private void createOrUpdateValueSchema(TableMetadata tableMetadata) {
-    ParsedSchema valueSchema = new AvroSchema(constructValueSchema(tableMetadata));
-    String subject = constructValueRecordName(tableMetadata);
+  private void createOrUpdateValueSchema(Table table) {
+    ParsedSchema valueSchema = new AvroSchema(constructValueSchema(table));
+    String subject = constructValueRecordName(table);
 
     int schemaId = registerSchema(valueSchema, subject);
 
@@ -132,9 +132,9 @@ public class SchemaRegistryProvider implements SchemaProvider {
         "Registered valueSchema: {}, for subject: {} and id: {}", valueSchema, subject, schemaId);
   }
 
-  private void createOrUpdateKeySchema(TableMetadata tableMetadata) {
-    ParsedSchema keySchema = new AvroSchema(constructKeySchema(tableMetadata));
-    String subject = constructKeyRecordName(tableMetadata);
+  private void createOrUpdateKeySchema(Table table) {
+    ParsedSchema keySchema = new AvroSchema(constructKeySchema(table));
+    String subject = constructKeyRecordName(table);
 
     int schemaId = registerSchema(keySchema, subject);
 
@@ -153,27 +153,26 @@ public class SchemaRegistryProvider implements SchemaProvider {
     }
   }
 
-  Schema constructKeySchema(TableMetadata tableMetadata) {
-    String keyRecordName = constructKeyRecordName(tableMetadata);
+  Schema constructKeySchema(Table table) {
+    String keyRecordName = constructKeyRecordName(table);
     FieldAssembler<Schema> keyBuilder = SchemaBuilder.record(keyRecordName).fields();
 
-    for (ColumnMetadata columnMetadata : tableMetadata.getPartitionKeys()) {
-      Schema avroFieldSchema = CqlToAvroTypeConverter.toAvroType(columnMetadata.getType());
-      keyBuilder.name(columnMetadata.getName()).type(avroFieldSchema).noDefault();
+    for (Column columnMetadata : table.partitionKeyColumns()) {
+      Schema avroFieldSchema = CqlToAvroTypeConverter.toAvroType(columnMetadata.type());
+      keyBuilder.name(columnMetadata.name()).type(avroFieldSchema).noDefault();
     }
     return keyBuilder.endRecord();
   }
 
-  Schema constructValueSchema(TableMetadata tableMetadata) {
+  Schema constructValueSchema(Table table) {
     List<Schema> partitionKeys =
-        constructUnionWithRequiredValueFieldsSchema(tableMetadata.getPartitionKeys());
+        constructUnionWithRequiredValueFieldsSchema(table.partitionKeyColumns());
     List<Schema> clusteringKeys =
-        constructUnionWithRequiredValueFieldsSchema(tableMetadata.getClusteringKeys());
-    List<Schema> columns = constructUnionWithOptionalValueFieldsSchema(tableMetadata.getColumns());
-    Schema fieldsSchema =
-        constructFieldsSchema(partitionKeys, clusteringKeys, columns, tableMetadata);
+        constructUnionWithRequiredValueFieldsSchema(table.clusteringKeyColumns());
+    List<Schema> columns = constructUnionWithOptionalValueFieldsSchema(table.columns());
+    Schema fieldsSchema = constructFieldsSchema(partitionKeys, clusteringKeys, columns, table);
 
-    String valueRecordName = constructValueRecordName(tableMetadata);
+    String valueRecordName = constructValueRecordName(table);
     return SchemaBuilder.record(valueRecordName)
         .fields()
         .requiredString(OPERATION_FIELD_NAME)
@@ -185,11 +184,8 @@ public class SchemaRegistryProvider implements SchemaProvider {
   }
 
   private Schema constructFieldsSchema(
-      List<Schema> partitionKeys,
-      List<Schema> clusteringKeys,
-      List<Schema> columns,
-      TableMetadata tableMetadata) {
-    String dataRecordName = constructDataRecordName(tableMetadata);
+      List<Schema> partitionKeys, List<Schema> clusteringKeys, List<Schema> columns, Table table) {
+    String dataRecordName = constructDataRecordName(table);
     FieldAssembler<Schema> fields = SchemaBuilder.record(dataRecordName).fields();
     addToFields(partitionKeys, fields);
     addToFields(clusteringKeys, fields);
@@ -208,15 +204,14 @@ public class SchemaRegistryProvider implements SchemaProvider {
     }
   }
 
-  private List<Schema> constructUnionWithRequiredValueFieldsSchema(
-      List<ColumnMetadata> tableMetadata) {
+  private List<Schema> constructUnionWithRequiredValueFieldsSchema(List<Column> tableMetadata) {
     List<Schema> fields = new ArrayList<>();
-    for (ColumnMetadata columnMetadata : tableMetadata) {
+    for (Column columnMetadata : tableMetadata) {
       Schema field =
-          SchemaBuilder.record(columnMetadata.getName())
+          SchemaBuilder.record(columnMetadata.name())
               .fields()
               .name(VALUE_FIELD_NAME)
-              .type(CqlToAvroTypeConverter.toAvroType(columnMetadata.getType()))
+              .type(CqlToAvroTypeConverter.toAvroType(columnMetadata.type()))
               .noDefault()
               .endRecord();
       fields.add(SchemaBuilder.unionOf().nullType().and().type(field).endUnion());
@@ -224,17 +219,16 @@ public class SchemaRegistryProvider implements SchemaProvider {
     return fields;
   }
 
-  private List<Schema> constructUnionWithOptionalValueFieldsSchema(
-      List<ColumnMetadata> tableMetadata) {
+  private List<Schema> constructUnionWithOptionalValueFieldsSchema(List<Column> columns) {
     List<Schema> partitionKeys = new ArrayList<>();
-    for (ColumnMetadata columnMetadata : tableMetadata) {
+    for (Column columnMetadata : columns) {
       Schema field =
-          SchemaBuilder.record(columnMetadata.getName())
+          SchemaBuilder.record(columnMetadata.name())
               .fields()
               .name(VALUE_FIELD_NAME)
               .type()
               .optional()
-              .type(CqlToAvroTypeConverter.toAvroType(columnMetadata.getType()))
+              .type(CqlToAvroTypeConverter.toAvroType(columnMetadata.type()))
               .endRecord();
       partitionKeys.add(SchemaBuilder.unionOf().nullType().and().type(field).endUnion());
     }
@@ -245,19 +239,19 @@ public class SchemaRegistryProvider implements SchemaProvider {
     return String.format("%s.Key", topicName);
   }
 
-  private String constructKeyRecordName(TableMetadata tableMetadata) {
-    return constructKeyRecordName(mappingService.getTopicNameFromTableMetadata(tableMetadata));
+  private String constructKeyRecordName(Table table) {
+    return constructKeyRecordName(mappingService.getTopicNameFromTableMetadata(table));
   }
 
-  private String constructValueRecordName(TableMetadata tableMetadata) {
-    return constructValueRecordName(mappingService.getTopicNameFromTableMetadata(tableMetadata));
+  private String constructValueRecordName(Table table) {
+    return constructValueRecordName(mappingService.getTopicNameFromTableMetadata(table));
   }
 
   private String constructValueRecordName(String topicName) {
     return String.format("%s.Value", topicName);
   }
 
-  private String constructDataRecordName(TableMetadata tableMetadata) {
-    return String.format("%s.Data", mappingService.getTopicNameFromTableMetadata(tableMetadata));
+  private String constructDataRecordName(Table table) {
+    return String.format("%s.Data", mappingService.getTopicNameFromTableMetadata(table));
   }
 }
