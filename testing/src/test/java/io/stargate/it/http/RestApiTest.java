@@ -17,7 +17,6 @@ package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.datastax.oss.driver.api.core.CqlSession;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -60,7 +59,6 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   private static String authToken;
   private String host;
   private String keyspace;
-  private CqlSession session;
 
   @BeforeEach
   public void setup(TestInfo testInfo, StargateConnectionInfo cluster) throws IOException {
