@@ -36,6 +36,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import com.datastax.oss.protocol.internal.util.Bytes;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableListType;
 import io.stargate.db.schema.ImmutableMapType;
@@ -63,6 +64,7 @@ import org.apache.avro.util.Utf8;
 import org.apache.cassandra.stargate.db.Cell;
 import org.apache.cassandra.stargate.db.DeleteEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -615,45 +617,7 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
             .put("list", Arrays.asList(1, 2))
             .build();
 
-    Column.ColumnType customType =
-        new Column.ColumnType() {
-
-          @Override
-          public int id() {
-            // 0 is the code for custom types
-            return 0;
-          }
-
-          @Override
-          public Column.Type rawType() {
-            return null;
-          }
-
-          @Override
-          public Class<?> javaType() {
-            return null;
-          }
-
-          @Override
-          public String cqlDefinition() {
-            return null;
-          }
-
-          @Override
-          public String name() {
-            return null;
-          }
-
-          @Override
-          public TypeCodec codec() {
-            return null;
-          }
-
-          @Override
-          public Column.ColumnType fieldType(String name) {
-            return null;
-          }
-        };
+    ColumnType customType = customType();
 
     // tuple
     ParameterizedType.TupleType tupleType =
@@ -703,5 +667,47 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
         Arguments.of(
             Collections.singletonList(column(nestedTupleType)),
             Collections.singletonList(cell(column(nestedTupleType), nestedTupleValues))));
+  }
+
+  @NotNull
+  private static ColumnType customType() {
+    return new ColumnType() {
+
+      @Override
+      public int id() {
+        // 0 is the code for custom types
+        return 0;
+      }
+
+      @Override
+      public Column.Type rawType() {
+        return null;
+      }
+
+      @Override
+      public Class<?> javaType() {
+        return null;
+      }
+
+      @Override
+      public String cqlDefinition() {
+        return null;
+      }
+
+      @Override
+      public String name() {
+        return null;
+      }
+
+      @Override
+      public TypeCodec codec() {
+        return null;
+      }
+
+      @Override
+      public ColumnType fieldType(String name) {
+        return null;
+      }
+    };
   }
 }
