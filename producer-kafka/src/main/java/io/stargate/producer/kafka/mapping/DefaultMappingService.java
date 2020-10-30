@@ -15,8 +15,8 @@
  */
 package io.stargate.producer.kafka.mapping;
 
+import io.stargate.db.schema.Table;
 import io.stargate.producer.kafka.configuration.ConfigLoader;
-import org.apache.cassandra.stargate.schema.TableMetadata;
 
 public class DefaultMappingService implements MappingService {
   private final String prefixName;
@@ -31,8 +31,7 @@ public class DefaultMappingService implements MappingService {
    * keyspace 'ks' and table 't', the final topic name will be: 'p.ks.t'
    */
   @Override
-  public String getTopicNameFromTableMetadata(TableMetadata tableMetadata) {
-    return String.format(
-        "%s.%s.%s", prefixName, tableMetadata.getKeyspace(), tableMetadata.getName());
+  public String getTopicNameFromTableMetadata(Table table) {
+    return String.format("%s.%s.%s", prefixName, table.keyspace(), table.name());
   }
 }

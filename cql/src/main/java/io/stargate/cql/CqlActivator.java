@@ -118,6 +118,9 @@ public class CqlActivator implements BundleActivator {
       String listenAddress =
           System.getProperty(
               "stargate.listen_address", InetAddress.getLocalHost().getHostAddress());
+
+      if (!Boolean.getBoolean("stargate.bind_to_listen_address")) listenAddress = "0.0.0.0";
+
       Integer cqlPort = Integer.getInteger("stargate.cql_port", 9042);
 
       Config c = new Config();

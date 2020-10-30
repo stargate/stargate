@@ -15,8 +15,8 @@
  */
 package io.stargate.producer.kafka.schema;
 
+import io.stargate.db.schema.Table;
 import org.apache.avro.Schema;
-import org.apache.cassandra.stargate.schema.TableMetadata;
 
 public interface SchemaProvider {
 
@@ -38,5 +38,5 @@ public interface SchemaProvider {
    * getKeySchemaForTopic or getValueSchemaForTopic. In other words, the createOrUpdateSchema must
    * return successfully before calling both get methods.
    */
-  void createOrUpdateSchema(TableMetadata tableMetadata);
+  void createOrUpdateSchema(Table table);
 }

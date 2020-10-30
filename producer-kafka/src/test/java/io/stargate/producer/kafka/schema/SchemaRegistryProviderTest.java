@@ -26,13 +26,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Table;
 import io.stargate.producer.kafka.mapping.MappingService;
 import java.util.Arrays;
 import java.util.Collections;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
-import org.apache.cassandra.stargate.schema.CQLType.Native;
-import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.junit.jupiter.api.Test;
 
 class SchemaRegistryProviderTest {
@@ -43,10 +43,12 @@ class SchemaRegistryProviderTest {
     MappingService mappingService = mock(MappingService.class);
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(new MockSchemaRegistryClient(), mappingService);
-    TableMetadata tableMetadata = mock(TableMetadata.class);
+    Table tableMetadata = mock(Table.class);
     when(mappingService.getTopicNameFromTableMetadata(tableMetadata)).thenReturn("topicName");
-    when(tableMetadata.getPartitionKeys())
-        .thenReturn(Arrays.asList(partitionKey("f1", Native.TEXT), partitionKey("f2", Native.INT)));
+    when(tableMetadata.partitionKeyColumns())
+        .thenReturn(
+            Arrays.asList(
+                partitionKey("f1", Column.Type.Text), partitionKey("f2", Column.Type.Int)));
 
     // when
     Schema schema = schemaRegistryProvider.constructKeySchema(tableMetadata);
@@ -64,14 +66,14 @@ class SchemaRegistryProviderTest {
     MappingService mappingService = mock(MappingService.class);
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(new MockSchemaRegistryClient(), mappingService);
-    TableMetadata tableMetadata = mock(TableMetadata.class);
+    Table tableMetadata = mock(Table.class);
     when(mappingService.getTopicNameFromTableMetadata(tableMetadata)).thenReturn("topicName");
-    when(tableMetadata.getPartitionKeys())
-        .thenReturn(Collections.singletonList(partitionKey("pk1", Native.TEXT)));
-    when(tableMetadata.getClusteringKeys())
-        .thenReturn(Collections.singletonList(clusteringKey("ck1", Native.TEXT)));
-    when(tableMetadata.getColumns())
-        .thenReturn(Collections.singletonList(clusteringKey("col1", Native.TEXT)));
+    when(tableMetadata.partitionKeyColumns())
+        .thenReturn(Collections.singletonList(partitionKey("pk1", Column.Type.Text)));
+    when(tableMetadata.clusteringKeyColumns())
+        .thenReturn(Collections.singletonList(clusteringKey("ck1", Column.Type.Text)));
+    when(tableMetadata.columns())
+        .thenReturn(Collections.singletonList(clusteringKey("col1", Column.Type.Text)));
 
     // when
     Schema schema = schemaRegistryProvider.constructValueSchema(tableMetadata);
@@ -94,14 +96,14 @@ class SchemaRegistryProviderTest {
     MappingService mappingService = mock(MappingService.class);
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(new MockSchemaRegistryClient(), mappingService);
-    TableMetadata tableMetadata = mock(TableMetadata.class);
+    Table tableMetadata = mock(Table.class);
     when(mappingService.getTopicNameFromTableMetadata(tableMetadata)).thenReturn(topicName);
-    when(tableMetadata.getPartitionKeys())
-        .thenReturn(Collections.singletonList(partitionKey("pk1", Native.TEXT)));
-    when(tableMetadata.getClusteringKeys())
-        .thenReturn(Collections.singletonList(clusteringKey("ck1", Native.TEXT)));
-    when(tableMetadata.getColumns())
-        .thenReturn(Collections.singletonList(clusteringKey("col1", Native.TEXT)));
+    when(tableMetadata.partitionKeyColumns())
+        .thenReturn(Collections.singletonList(partitionKey("pk1", Column.Type.Text)));
+    when(tableMetadata.clusteringKeyColumns())
+        .thenReturn(Collections.singletonList(clusteringKey("ck1", Column.Type.Text)));
+    when(tableMetadata.columns())
+        .thenReturn(Collections.singletonList(clusteringKey("col1", Column.Type.Text)));
 
     // when
     schemaRegistryProvider.createOrUpdateSchema(tableMetadata);

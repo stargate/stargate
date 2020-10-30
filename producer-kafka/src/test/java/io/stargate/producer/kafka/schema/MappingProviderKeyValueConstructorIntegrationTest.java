@@ -25,12 +25,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Table;
 import io.stargate.producer.kafka.mapping.MappingService;
 import java.util.Collections;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.cassandra.stargate.db.MutationEvent;
-import org.apache.cassandra.stargate.schema.CQLType.Native;
-import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.junit.jupiter.api.Test;
 
 public class MappingProviderKeyValueConstructorIntegrationTest {
@@ -43,25 +43,25 @@ public class MappingProviderKeyValueConstructorIntegrationTest {
     SchemaProvider schemaProvider =
         new SchemaRegistryProvider(new MockSchemaRegistryClient(), mappingService);
     KeyValueConstructor keyValueConstructor = new KeyValueConstructor(schemaProvider);
-    TableMetadata tableMetadata = mock(TableMetadata.class);
+    Table tableMetadata = mock(Table.class);
     when(mappingService.getTopicNameFromTableMetadata(tableMetadata)).thenReturn(topicName);
-    when(tableMetadata.getPartitionKeys())
-        .thenReturn(Collections.singletonList(partitionKey("pk1", Native.TEXT)));
-    when(tableMetadata.getClusteringKeys())
-        .thenReturn(Collections.singletonList(clusteringKey("ck1", Native.TEXT)));
-    when(tableMetadata.getColumns())
-        .thenReturn(Collections.singletonList(clusteringKey("col1", Native.TEXT)));
+    when(tableMetadata.partitionKeyColumns())
+        .thenReturn(Collections.singletonList(partitionKey("pk1", Column.Type.Text)));
+    when(tableMetadata.clusteringKeyColumns())
+        .thenReturn(Collections.singletonList(clusteringKey("ck1", Column.Type.Text)));
+    when(tableMetadata.columns())
+        .thenReturn(Collections.singletonList(clusteringKey("col1", Column.Type.Text)));
 
     String partitionKeyValue = "pk_value";
     Integer clusteringKeyValue = 100;
     MutationEvent rowMutationEvent =
         createRowUpdateEvent(
             partitionKeyValue,
-            partitionKey("pk1", Native.TEXT),
+            partitionKey("pk1", Column.Type.Text),
             "col_value",
             column("col1"),
             clusteringKeyValue,
-            clusteringKey("ck1", Native.INT),
+            clusteringKey("ck1", Column.Type.Int),
             tableMetadata);
 
     // when

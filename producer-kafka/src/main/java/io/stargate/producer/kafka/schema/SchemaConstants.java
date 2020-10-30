@@ -20,4 +20,5 @@ public class SchemaConstants {
   public static final String TIMESTAMP_FIELD_NAME = "ts_ms";
   public static final String DATA_FIELD_NAME = "data";
   public static final String VALUE_FIELD_NAME = "value";
+  public static final int CUSTOM_TYPE_ID = 0;
 }

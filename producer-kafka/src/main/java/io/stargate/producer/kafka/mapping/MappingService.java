@@ -15,9 +15,9 @@
  */
 package io.stargate.producer.kafka.mapping;
 
-import org.apache.cassandra.stargate.schema.TableMetadata;
+import io.stargate.db.schema.Table;
 
 public interface MappingService {
   /** returns the topic name for TableMetadata (keyspace.tableName) */
-  String getTopicNameFromTableMetadata(TableMetadata tableMetadata);
+  String getTopicNameFromTableMetadata(Table table);
 }
