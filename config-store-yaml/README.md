@@ -59,7 +59,6 @@ The `MetricRegistry` will have the following cache-level metrics:
 *   `config.store.yaml.file-cache.evictionCount`
 *   `config.store.yaml.file-cache.size`
 
-
 ## Using Config Store Yaml with Kubernetes(K8s)
 
 This config store needs to have a YAML file in the local file system. It
