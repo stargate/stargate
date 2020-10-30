@@ -2,9 +2,6 @@ package io.stargate.it.http.docsapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
-import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -21,9 +18,7 @@ import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.models.Keyspace;
 import io.stargate.web.models.ResponseWrapper;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.URLEncoder;
-import java.time.Duration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -36,14 +31,12 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   private String keyspace;
-  private CqlSession session;
   private static String authToken;
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final OkHttpClient client =
@@ -58,41 +51,17 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     hostWithPort = host + ":8082";
 
     keyspace = "ks_docs_" + System.currentTimeMillis();
-    session =
-        CqlSession.builder()
-            .withConfigLoader(
-                DriverConfigLoader.programmaticBuilder()
-                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5))
-                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(180))
-                    .withDuration(
-                        DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT,
-                        Duration.ofSeconds(180))
-                    .withDuration(
-                        DefaultDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(180))
-                    .withDuration(
-                        DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
-                    .build())
-            .withAuthCredentials("cassandra", "cassandra")
-            .addContactPoint(new InetSocketAddress(cluster.seedAddress(), 9043))
-            .withLocalDatacenter(cluster.datacenter())
-            .build();
-
-    assertThat(
-            session
-                .execute(
-                    String.format(
-                        "create keyspace if not exists %s WITH replication = "
-                            + "{'class': 'SimpleStrategy', 'replication_factor': 1 }",
-                        keyspace))
-                .wasApplied())
-        .isTrue();
 
     initAuth();
-  }
 
-  @AfterEach
-  public void teardown() {
-    session.close();
+    String createKeyspaceRequest =
+        String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspace);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces", host),
+        createKeyspaceRequest,
+        HttpStatus.SC_CREATED);
   }
 
   private void initAuth() throws IOException {
