@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.config.store.api.yaml;
+package io.stargate.config.store.yaml;
 
+import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.MapType;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -28,6 +29,7 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.config.store.api.ConfigWithOverrides;
 import io.stargate.config.store.api.MissingModuleSettingsException;
+import io.stargate.config.store.yaml.metrics.CacheMetricsRegistry;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.HashMap;
@@ -42,12 +44,12 @@ public class ConfigStoreYaml implements ConfigStore {
   @VisibleForTesting final LoadingCache<Path, Map<String, Map<String, Object>>> configFileCache;
   public static final Duration DEFAULT_EVICTION_TIME = Duration.ofSeconds(30);
 
-  public ConfigStoreYaml(Path configFilePath) {
-    this(configFilePath, Ticker.systemTicker());
+  public ConfigStoreYaml(Path configFilePath, MetricRegistry metricRegistry) {
+    this(configFilePath, Ticker.systemTicker(), metricRegistry);
   }
 
   @VisibleForTesting
-  public ConfigStoreYaml(Path configFilePath, Ticker ticker) {
+  public ConfigStoreYaml(Path configFilePath, Ticker ticker, MetricRegistry metricRegistry) {
     this.configFilePath = configFilePath;
     mapper = new ObjectMapper(new YAMLFactory());
     MapType mapType =
@@ -71,6 +73,8 @@ public class ConfigStoreYaml implements ConfigStore {
                     return mapper.readValue(configFilePath.toFile(), yamlConfigType);
                   }
                 });
+
+    CacheMetricsRegistry.registerCacheMetrics(metricRegistry, configFileCache);
   }
 
   @Override
