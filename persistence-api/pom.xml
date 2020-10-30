@@ -107,7 +107,7 @@
               io.stargate.db.datastore.query,
               org.apache.cassandra.stargate,
               org.apache.cassandra.stargate.*,
-              com.datastax.oss.driver.*
+              com.datastax.oss.driver.*;-split-package:=merge-last
             ]]></Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>

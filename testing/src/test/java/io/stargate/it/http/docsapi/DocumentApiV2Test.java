@@ -59,6 +59,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(name).isPresent();
     String testName = name.get();
     keyspace = "ks_docs_" + testName + "_" + System.currentTimeMillis();
+    // trim to max keyspace name length of 48
+    keyspace = keyspace.substring(0, Math.min(keyspace.length(), 48));
 
     initAuth();
 

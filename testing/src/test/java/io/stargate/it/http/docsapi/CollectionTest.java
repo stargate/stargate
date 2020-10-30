@@ -14,8 +14,10 @@ import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -26,7 +28,10 @@ import okhttp3.ResponseBody;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.parallel.Isolated;
 
+@Isolated
 public class CollectionTest extends BaseOsgiIntegrationTest {
 
   private String keyspace;
@@ -41,12 +46,19 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
   private String hostWithPort;
 
   @BeforeEach
-  public void setup(ClusterConnectionInfo backend, StargateConnectionInfo stargate)
+  public void setup(
+      TestInfo testInfo, ClusterConnectionInfo backend, StargateConnectionInfo stargate)
       throws IOException {
     host = "http://" + stargate.seedAddress();
     hostWithPort = host + ":8082";
 
-    keyspace = "ks_collection_" + System.currentTimeMillis();
+    Optional<String> name = testInfo.getTestMethod().map(Method::getName);
+    assertThat(name).isPresent();
+    String testName = name.get();
+    keyspace = "ks_collection_" + testName + "_" + System.currentTimeMillis();
+    // trim to max keyspace name length of 48
+    keyspace = keyspace.substring(0, Math.min(keyspace.length(), 48));
+
     isDse = backend.isDse();
     session =
         CqlSession.builder()
