@@ -18,11 +18,13 @@ import io.stargate.it.driver.TestKeyspace;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+@Isolated
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(customBuilder = "registerListener")

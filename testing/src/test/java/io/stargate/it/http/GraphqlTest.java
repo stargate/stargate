@@ -113,10 +113,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
-import org.junit.jupiter.api.parallel.ResourceAccessMode;
-import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -138,10 +134,6 @@ import org.slf4j.LoggerFactory;
  *       see generated code in `target/generated-sources/graphql-client`.
  * </ul>
  */
-@Execution(ExecutionMode.CONCURRENT)
-@ResourceLock(
-    value = "io.stargate.it.storage.ExternalStorage.Cluster.ccm",
-    mode = ResourceAccessMode.READ_WRITE)
 public class GraphqlTest extends BaseOsgiIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);

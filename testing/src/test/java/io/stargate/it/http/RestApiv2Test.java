@@ -49,17 +49,9 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
-import org.junit.jupiter.api.parallel.ResourceAccessMode;
-import org.junit.jupiter.api.parallel.ResourceLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Execution(ExecutionMode.CONCURRENT)
-@ResourceLock(
-    value = "io.stargate.it.storage.ExternalStorage.Cluster.ccm",
-    mode = ResourceAccessMode.READ_WRITE)
 public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(RestApiv2Test.class);

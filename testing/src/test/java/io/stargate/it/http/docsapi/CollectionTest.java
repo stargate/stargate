@@ -26,15 +26,7 @@ import okhttp3.ResponseBody;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
-import org.junit.jupiter.api.parallel.ResourceAccessMode;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
-@Execution(ExecutionMode.CONCURRENT)
-@ResourceLock(
-    value = "io.stargate.it.storage.ExternalStorage.Cluster.ccm",
-    mode = ResourceAccessMode.READ_WRITE)
 public class CollectionTest extends BaseOsgiIntegrationTest {
 
   private String keyspace;
