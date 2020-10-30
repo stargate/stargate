@@ -26,6 +26,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Table;
 import io.stargate.producer.kafka.IntegrationTestBase;
 import io.stargate.producer.kafka.mapping.DefaultMappingService;
 import java.util.Arrays;
@@ -33,8 +35,6 @@ import java.util.Collections;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
-import org.apache.cassandra.stargate.schema.CQLType.Native;
-import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -46,7 +46,7 @@ public class SchemaRegistryProviderIT extends IntegrationTestBase {
   @Test
   public void shouldAllowUpdatingTheSameSchema() {
     // given
-    TableMetadata tableMetadata = mockTableMetadata();
+    Table tableMetadata = mockTableMetadata();
     DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
@@ -81,9 +81,9 @@ public class SchemaRegistryProviderIT extends IntegrationTestBase {
   @ParameterizedTest
   @MethodSource("newColumnsProvider")
   public void shouldAllowAddingNewColumnBecauseChangeIsBackwardCompatible(
-      Consumer<TableMetadata> tableMetadataModification) {
+      Consumer<Table> tableMetadataModification) {
     // given
-    TableMetadata tableMetadata = mockTableMetadata();
+    Table tableMetadata = mockTableMetadata();
     DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
@@ -109,7 +109,7 @@ public class SchemaRegistryProviderIT extends IntegrationTestBase {
   @Test
   public void shouldNotAllowAddingNewPKBecauseChangeIsNotBackwardCompatible() {
     // given
-    TableMetadata tableMetadata = mockTableMetadata();
+    Table tableMetadata = mockTableMetadata();
     DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
@@ -118,10 +118,11 @@ public class SchemaRegistryProviderIT extends IntegrationTestBase {
     schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
 
     // and when add a new column
-    when(tableMetadata.getPartitionKeys())
+    when(tableMetadata.partitionKeyColumns())
         .thenReturn(
             Arrays.asList(
-                partitionKey(PARTITION_KEY_NAME, Native.TEXT), partitionKey("pk_2", Native.TEXT)));
+                partitionKey(PARTITION_KEY_NAME, Column.Type.Text),
+                partitionKey("pk_2", Column.Type.Text)));
 
     // then
     assertThatThrownBy(() -> schemaRegistryProvider.createOrUpdateSchema(tableMetadata))
@@ -133,9 +134,9 @@ public class SchemaRegistryProviderIT extends IntegrationTestBase {
   @ParameterizedTest
   @MethodSource("removeColumnsProvider")
   public void shouldAllowRemovingColumnBecauseChangeIsBackwardCompatible(
-      Consumer<TableMetadata> tableMetadataModification) {
+      Consumer<Table> tableMetadataModification) {
     // given
-    TableMetadata tableMetadata = mockTableMetadata();
+    Table tableMetadata = mockTableMetadata();
     DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
@@ -162,7 +163,7 @@ public class SchemaRegistryProviderIT extends IntegrationTestBase {
   @Test
   public void shouldNotAllowRemovingPKBecauseChangeIsNotBackwardCompatible() {
     // given
-    TableMetadata tableMetadata = mockTableMetadata();
+    Table tableMetadata = mockTableMetadata();
     DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
@@ -171,7 +172,7 @@ public class SchemaRegistryProviderIT extends IntegrationTestBase {
     schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
 
     // and when remove a column
-    when(tableMetadata.getPartitionKeys()).thenReturn(Collections.emptyList());
+    when(tableMetadata.partitionKeyColumns()).thenReturn(Collections.emptyList());
     assertThatThrownBy(() -> schemaRegistryProvider.createOrUpdateSchema(tableMetadata))
         .hasRootCauseInstanceOf(RestClientException.class)
         .hasRootCauseMessage(
@@ -181,9 +182,9 @@ public class SchemaRegistryProviderIT extends IntegrationTestBase {
   @ParameterizedTest
   @MethodSource("renameColumnsProvider")
   public void shouldAllowRenamingColumnBecauseChangeIsBackwardCompatible(
-      Consumer<TableMetadata> tableMetadataModification) {
+      Consumer<Table> tableMetadataModification) {
     // given
-    TableMetadata tableMetadata = mockTableMetadata();
+    Table tableMetadata = mockTableMetadata();
     DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
@@ -210,7 +211,7 @@ public class SchemaRegistryProviderIT extends IntegrationTestBase {
   @Test
   public void shouldNotAllowRenamingPKBecauseChangeIsNotBackwardCompatible() {
     // given
-    TableMetadata tableMetadata = mockTableMetadata();
+    Table tableMetadata = mockTableMetadata();
     DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
@@ -219,9 +220,10 @@ public class SchemaRegistryProviderIT extends IntegrationTestBase {
     schemaRegistryProvider.createOrUpdateSchema(tableMetadata);
 
     // and when rename a PK
-    when(tableMetadata.getPartitionKeys())
+    when(tableMetadata.partitionKeyColumns())
         .thenReturn(
-            Collections.singletonList(partitionKey(PARTITION_KEY_NAME + "_renamed", Native.TEXT)));
+            Collections.singletonList(
+                partitionKey(PARTITION_KEY_NAME + "_renamed", Column.Type.Text)));
     assertThatThrownBy(() -> schemaRegistryProvider.createOrUpdateSchema(tableMetadata))
         .hasRootCauseInstanceOf(RestClientException.class)
         .hasRootCauseMessage(
@@ -231,7 +233,7 @@ public class SchemaRegistryProviderIT extends IntegrationTestBase {
   @Test
   public void shouldFetchTheLatestSchemaWhenThereIsNoTrackedIdButSchemaWasCreatedBefore() {
     // given
-    TableMetadata tableMetadata = mockTableMetadata();
+    Table tableMetadata = mockTableMetadata();
     DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
@@ -259,7 +261,7 @@ public class SchemaRegistryProviderIT extends IntegrationTestBase {
   @Test
   public void shouldThrowWhenThereIsNoTrackedIdAndSchemaWasNotCreatedBefore() {
     // given
-    TableMetadata tableMetadata = mockTableMetadata();
+    Table tableMetadata = mockTableMetadata();
     DefaultMappingService mappingService = new DefaultMappingService(generatePrefix());
     SchemaRegistryProvider schemaRegistryProvider =
         new SchemaRegistryProvider(schemaRegistry.getSchemaRegistryUrl(), mappingService);
@@ -277,65 +279,67 @@ public class SchemaRegistryProviderIT extends IntegrationTestBase {
   public static Stream<Arguments> newColumnsProvider() {
     return Stream.of(
         Arguments.of(
-            (Consumer<TableMetadata>)
+            (Consumer<Table>)
                 tableMetadata -> {
-                  when(tableMetadata.getColumns())
+                  when(tableMetadata.columns())
                       .thenReturn(
                           Arrays.asList(
-                              column(COLUMN_NAME, Native.TEXT), column("col_2", Native.TEXT)));
+                              column(COLUMN_NAME, Column.Type.Text),
+                              column("col_2", Column.Type.Text)));
                 }), // new column
         Arguments.of(
-            (Consumer<TableMetadata>)
+            (Consumer<Table>)
                 tableMetadata -> {
-                  when(tableMetadata.getClusteringKeys())
+                  when(tableMetadata.clusteringKeyColumns())
                       .thenReturn(
                           Arrays.asList(
-                              clusteringKey(CLUSTERING_KEY_NAME, Native.INT),
-                              clusteringKey("CK_2", Native.TEXT)));
+                              clusteringKey(CLUSTERING_KEY_NAME, Column.Type.Int),
+                              clusteringKey("CK_2", Column.Type.Text)));
                 })); // new clustering column
   }
 
   public static Stream<Arguments> removeColumnsProvider() {
     return Stream.of(
         Arguments.of(
-            (Consumer<TableMetadata>)
+            (Consumer<Table>)
                 tableMetadata -> {
-                  when(tableMetadata.getColumns()).thenReturn(Collections.emptyList());
+                  when(tableMetadata.columns()).thenReturn(Collections.emptyList());
                 }), // remove column
         Arguments.of(
-            (Consumer<TableMetadata>)
+            (Consumer<Table>)
                 tableMetadata -> {
-                  when(tableMetadata.getClusteringKeys()).thenReturn(Collections.emptyList());
+                  when(tableMetadata.clusteringKeyColumns()).thenReturn(Collections.emptyList());
                 })); // remove clustering column
   }
 
   public static Stream<Arguments> renameColumnsProvider() {
     return Stream.of(
         Arguments.of(
-            (Consumer<TableMetadata>)
+            (Consumer<Table>)
                 tableMetadata -> {
-                  when(tableMetadata.getColumns())
-                      .thenReturn(
-                          Collections.singletonList(column(COLUMN_NAME + "_renamed", Native.TEXT)));
-                }), // rename column
-        Arguments.of(
-            (Consumer<TableMetadata>)
-                tableMetadata -> {
-                  when(tableMetadata.getClusteringKeys())
+                  when(tableMetadata.columns())
                       .thenReturn(
                           Collections.singletonList(
-                              clusteringKey(CLUSTERING_KEY_NAME + "_renamed", Native.INT)));
+                              column(COLUMN_NAME + "_renamed", Column.Type.Text)));
+                }), // rename column
+        Arguments.of(
+            (Consumer<Table>)
+                tableMetadata -> {
+                  when(tableMetadata.clusteringKeyColumns())
+                      .thenReturn(
+                          Collections.singletonList(
+                              clusteringKey(CLUSTERING_KEY_NAME + "_renamed", Column.Type.Int)));
                 })); // rename clustering column
   }
 
-  public TableMetadata mockTableMetadata() {
-    TableMetadata tableMetadata = super.mockTableMetadata();
-    when(tableMetadata.getPartitionKeys())
-        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
-    when(tableMetadata.getClusteringKeys())
-        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
-    when(tableMetadata.getColumns())
-        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
+  public Table mockTableMetadata() {
+    Table tableMetadata = super.mockTableMetadata();
+    when(tableMetadata.partitionKeyColumns())
+        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Column.Type.Text)));
+    when(tableMetadata.clusteringKeyColumns())
+        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Column.Type.Int)));
+    when(tableMetadata.columns())
+        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Column.Type.Text)));
     return tableMetadata;
   }
 
