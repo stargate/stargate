@@ -321,8 +321,8 @@ class DmlSchemaBuilder {
         } catch (Exception e) {
           warnings.add(
               String.format(
-                  "Could not create filter input type for column %s.%s, skipping (%s)",
-                  column.table(), column.name(), e.getMessage()));
+                  "Could not create filter input type for column %s in table %s, skipping (%s)",
+                  column.name(), column.table(), e.getMessage()));
         }
       }
     }
@@ -407,8 +407,8 @@ class DmlSchemaBuilder {
         } catch (Exception e) {
           warnings.add(
               String.format(
-                  "Could not create input type for column %s.%s, skipping (%s)",
-                  columnMetadata.table(), columnMetadata.name(), e.getMessage()));
+                  "Could not create input type for column %s in table %s, skipping (%s)",
+                  columnMetadata.name(), columnMetadata.table(), e.getMessage()));
         }
       }
     }
@@ -454,8 +454,8 @@ class DmlSchemaBuilder {
         } catch (Exception e) {
           warnings.add(
               String.format(
-                  "Could not create output type for column %s.%s, skipping (%s)",
-                  columnMetadata.table(), columnMetadata.name(), e.getMessage()));
+                  "Could not create output type for column %s in table %s, skipping (%s)",
+                  columnMetadata.name(), columnMetadata.table(), e.getMessage()));
         }
       }
     }
@@ -465,12 +465,11 @@ class DmlSchemaBuilder {
 
   private GraphQLFieldDefinition buildWarnings() {
     StringBuilder description =
-        new StringBuilder(
-            "Warnings encountered during the translation of the backend schema into GraphQL.\n"
-                + "For convenience they are also listed below:");
+        new StringBuilder("Warnings encountered during the CQL to GraphQL conversion.");
     if (warnings.isEmpty()) {
-      description.append("\n<none>");
+      description.append("No warnings found, this will return an empty list.\n");
     } else {
+      description.append("\nThis will return:");
       for (String warning : warnings) {
         description.append("\n- ").append(warning);
       }

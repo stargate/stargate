@@ -82,8 +82,9 @@ public class NameMapping {
       if (clashingCqlName != null) {
         warnings.add(
             String.format(
-                "Can't convert column %s.%s because its GraphQL name %s would collide with column %s",
-                column.table(), column.name(), graphqlName, clashingCqlName));
+                "Can't convert column %s in table/UDT %s because its GraphQL name %s "
+                    + "would collide with column %s",
+                column.name(), column.table(), graphqlName, clashingCqlName));
       } else {
         map.put(column.name(), graphqlName);
       }

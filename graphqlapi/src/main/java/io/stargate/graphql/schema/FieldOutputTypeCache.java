@@ -54,7 +54,7 @@ class FieldOutputTypeCache extends FieldTypeCache<GraphQLOutputType> {
     if (graphqlName == null) {
       throw new IllegalArgumentException(
           String.format(
-              "Could find a GraphQL name mapping for UDT %s, "
+              "Could not find a GraphQL name mapping for UDT %s, "
                   + "this is probably because it clashes with another UDT",
               udt.name()));
     }
@@ -71,8 +71,8 @@ class FieldOutputTypeCache extends FieldTypeCache<GraphQLOutputType> {
         } catch (Exception e) {
           warnings.add(
               String.format(
-                  "Could not create output type for UDT field %s.%s, skipping (%s)",
-                  column.table(), column.name(), e.getMessage()));
+                  "Could not create output type for field %s in UDT %s, skipping (%s)",
+                  column.name(), column.table(), e.getMessage()));
         }
       }
     }

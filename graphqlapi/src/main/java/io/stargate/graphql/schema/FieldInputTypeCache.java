@@ -72,8 +72,8 @@ class FieldInputTypeCache extends FieldTypeCache<GraphQLInputType> {
         } catch (Exception e) {
           warnings.add(
               String.format(
-                  "Could not create input type for UDT field %s.%s, skipping (%s)",
-                  column.table(), column.name(), e.getMessage()));
+                  "Could not create input type for field %s in UDT %s, skipping (%s)",
+                  column.name(), column.table(), e.getMessage()));
         }
       }
     }
