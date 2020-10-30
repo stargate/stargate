@@ -30,7 +30,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
-import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.driver.CqlSessionHelper;
+import io.stargate.it.driver.CqlSessionSpec;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -55,12 +56,25 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 @Isolated
 @ExtendWith(CqlSessionExtension.class)
+@CqlSessionSpec(createKeyspace = false)
 public class DataTypeTest extends BaseOsgiIntegrationTest {
 
   private static List<TypeSample<?>> allTypes;
 
   @BeforeAll
-  public static void createSchema(CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
+  public static void createSchema(CqlSession session, CqlSessionHelper helper) {
+
+    // Creating a new table for each type is too slow, use a single table with all possible types.
+    // This also means we need to use the same keyspace for all test methods, so we have to create
+    // it manually.
+
+    CqlIdentifier keyspaceId = helper.generateKeyspaceId();
+    session.execute(
+        String.format(
+            "CREATE KEYSPACE IF NOT EXISTS %s "
+                + "WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
+            keyspaceId.asCql(false)));
+    session.execute(String.format("USE %s", keyspaceId.asCql(false)));
 
     allTypes = generateAllTypes(keyspaceId);
 

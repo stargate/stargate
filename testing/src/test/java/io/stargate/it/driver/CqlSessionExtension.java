@@ -91,9 +91,9 @@ import org.slf4j.LoggerFactory;
  *
  * <h3>Keyspace creation</h3>
  *
- * By default, the extension creates a dedicated keyspace for the lifecycle of each created session,
- * and drops it immediately after the test class/method has executed. Keyspace names are generated
- * in a way that guarantees uniqueness, to avoid conflicts between tests.
+ * By default, the extension creates a dedicated keyspace <b>for each test method</b> (regardless of
+ * where the extension is configured) and drops it immediately afterwards. Keyspace names are
+ * generated in a way that guarantees uniqueness, to avoid conflicts between tests.
  *
  * <p>A {@code USE ks} statement is automatically issued, so that the session is already "connected"
  * to the keyspace when your test code starts executing. In general you don't need to prefix table
@@ -123,18 +123,17 @@ import org.slf4j.LoggerFactory;
  *   <li>a parameter of type {@link CqlIdentifier} <b>AND annotated with {@link TestKeyspace}</b>:
  *       injected with the identifier of the keyspace that was created by the extension. This is
  *       useful if you need to look up schema metadata, use the keyspace from another session or
- *       API, etc.
+ *       API, etc. Note that, since the keyspace is specific to each test method, this parameter
+ *       cannot be injected at the class level (e.g. in the constructor or a BeforeAll method).
  *   <li>any parameter of type {@link CqlSessionHelper}: returns an instance of that interface, that
  *       contains utility methods (see its javadocs).
  * </ul>
  *
  * <h3>Parallel execution</h3>
  *
- * JUnit 5 allows parallel execution of test classes, or even parallel execution of test methods
- * within the same class. This extension is thread-safe and will work in either scenario. Note
- * however that using a class-level extension with parallel methods can be tricky: the methods will
- * be accessing the same keyspace concurrently, which can have unintended side effects if they
- * mutate the same tables. It's probably a good idea to keep parallelism at the class level.
+ * This extension is thread-safe and works in concurrent scenarios, whether it's parallel test
+ * classes or parallel test methods. The fact that each test method always gets a unique keyspace
+ * guarantees that they will be isolated from each other.
  */
 public class CqlSessionExtension
     implements BeforeAllCallback,
@@ -151,8 +150,8 @@ public class CqlSessionExtension
 
   private volatile StargateEnvironmentInfo stargate;
   private volatile CqlSessionSpec cqlSessionSpec;
-  private volatile CqlIdentifier keyspaceId;
   private volatile CqlSession session;
+  private final ThreadLocal<CqlIdentifier> keyspaceIdHolder = new ThreadLocal<>();
 
   @Override
   public void beforeAll(ExtensionContext context) {
@@ -170,10 +169,16 @@ public class CqlSessionExtension
       sessionLifecycle = Lifecycle.PER_METHOD;
       createSession(context);
     }
+    createKeyspace(context);
+
+    for (String query : cqlSessionSpec.initQueries()) {
+      session.execute(query);
+    }
   }
 
   @Override
   public void afterEach(ExtensionContext context) {
+    dropKeyspace();
     assert sessionLifecycle != null;
     if (sessionLifecycle == Lifecycle.PER_METHOD) {
       LOG.debug("Stopping per-method execution for {}", context.getElement());
@@ -216,8 +221,23 @@ public class CqlSessionExtension
     } else if (type == CqlSessionBuilder.class) {
       return newSessionBuilder(stargate, extensionContext);
     } else if (type == CqlSessionHelper.class) {
-      return (CqlSessionHelper) this::waitForStargateNodes;
+      return new CqlSessionHelper() {
+        @Override
+        public void waitForStargateNodes(CqlSession session) {
+          CqlSessionExtension.this.waitForStargateNodes(session);
+        }
+
+        @Override
+        public CqlIdentifier generateKeyspaceId() {
+          return CqlSessionExtension.generateKeyspaceId(extensionContext);
+        }
+      };
     } else if (type == CqlIdentifier.class) {
+      if (!extensionContext.getTestMethod().isPresent()) {
+        throw new IllegalStateException(
+            "Can't inject keyspace id at the test level, it changes for every method.");
+      }
+      CqlIdentifier keyspaceId = keyspaceIdHolder.get();
       if (keyspaceId == null) {
         throw new IllegalStateException(
             String.format(
@@ -248,22 +268,6 @@ public class CqlSessionExtension
       LOG.debug("Creating new session for {}", context.getElement());
       session = newSessionBuilder(stargate, context).build();
       waitForStargateNodes(session);
-
-      if (cqlSessionSpec.createKeyspace()) {
-        keyspaceId = generateKeyspaceId(context);
-        LOG.debug("Creating keyspace {}", keyspaceId.asCql(true));
-
-        session.execute(
-            String.format(
-                "CREATE KEYSPACE IF NOT EXISTS %s "
-                    + "WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
-                keyspaceId.asCql(false)));
-        session.execute(String.format("USE %s", keyspaceId.asCql(false)));
-      }
-
-      for (String query : cqlSessionSpec.initQueries()) {
-        session.execute(query);
-      }
     } else {
       LOG.debug(
           "Not creating session for {} because @{}.createSession() == false",
@@ -274,15 +278,31 @@ public class CqlSessionExtension
 
   private void destroySession(ExtensionContext context) {
     if (session != null) {
-      try {
-        if (cqlSessionSpec.dropKeyspace()) {
-          LOG.debug("Dropping keyspace {}", keyspaceId.asCql(true));
-          session.execute(String.format("DROP KEYSPACE IF EXISTS %s", keyspaceId.asCql(false)));
-        }
-      } finally {
-        LOG.debug("Destroying session for {}", context.getElement());
-        session.close();
-      }
+      LOG.debug("Destroying session for {}", context.getElement());
+      session.close();
+    }
+  }
+
+  private void createKeyspace(ExtensionContext context) {
+    if (session != null && cqlSessionSpec.createKeyspace()) {
+      CqlIdentifier keyspaceId = generateKeyspaceId(context);
+      keyspaceIdHolder.set(keyspaceId);
+      LOG.debug("Creating keyspace {}", keyspaceId.asCql(true));
+
+      session.execute(
+          String.format(
+              "CREATE KEYSPACE IF NOT EXISTS %s "
+                  + "WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
+              keyspaceId.asCql(false)));
+      session.execute(String.format("USE %s", keyspaceId.asCql(false)));
+    }
+  }
+
+  private void dropKeyspace() {
+    CqlIdentifier keyspaceId = keyspaceIdHolder.get();
+    if (keyspaceId != null && cqlSessionSpec.dropKeyspace()) {
+      LOG.debug("Dropping keyspace {}", keyspaceId.asCql(true));
+      session.execute(String.format("DROP KEYSPACE IF EXISTS %s", keyspaceId.asCql(false)));
     }
   }
 

@@ -1,5 +1,6 @@
 package io.stargate.it.driver;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 
 /**
@@ -19,4 +20,11 @@ public interface CqlSessionHelper {
    * from the driver.
    */
   void waitForStargateNodes(CqlSession session);
+
+  /**
+   * Generates a new keyspace id, that is guaranteed to be unique for the current test context.
+   *
+   * <p>This does not create the keyspace in the database, you have to do that yourself.
+   */
+  CqlIdentifier generateKeyspaceId();
 }
