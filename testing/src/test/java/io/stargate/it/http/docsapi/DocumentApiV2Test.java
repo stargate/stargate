@@ -18,10 +18,12 @@ import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.models.Keyspace;
 import io.stargate.web.models.ResponseWrapper;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URLEncoder;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import okhttp3.MediaType;
@@ -33,6 +35,7 @@ import okhttp3.ResponseBody;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
@@ -46,16 +49,18 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   private String hostWithPort;
 
   @BeforeEach
-  public void setup(StargateConnectionInfo cluster) throws IOException {
+  public void setup(TestInfo testInfo, StargateConnectionInfo cluster) throws IOException {
     host = "http://" + cluster.seedAddress();
     hostWithPort = host + ":8082";
 
-    keyspace = "ks_docs_" + System.currentTimeMillis();
+    Optional<String> name = testInfo.getTestMethod().map(Method::getName);
+    assertThat(name).isPresent();
+    String testName = name.get();
+    keyspace = "ks_docs_" + testName + "_" + System.currentTimeMillis();
 
     initAuth();
 
-    String createKeyspaceRequest =
-        String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspace);
+    String createKeyspaceRequest = String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspace);
 
     RestUtils.post(
         authToken,
