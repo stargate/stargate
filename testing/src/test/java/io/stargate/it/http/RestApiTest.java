@@ -18,8 +18,6 @@ package io.stargate.it.http;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
-import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,19 +40,19 @@ import io.stargate.web.models.SuccessResponse;
 import io.stargate.web.models.TableAdd;
 import io.stargate.web.models.TableResponse;
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.time.Duration;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 public class RestApiTest extends BaseOsgiIntegrationTest {
 
@@ -65,44 +63,26 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   private CqlSession session;
 
   @BeforeEach
-  public void setup(StargateConnectionInfo cluster) throws IOException {
+  public void setup(TestInfo testInfo, StargateConnectionInfo cluster) throws IOException {
     host = "http://" + cluster.seedAddress();
 
     keyspace = "ks_restapitest";
-
-    session =
-        CqlSession.builder()
-            .withConfigLoader(
-                DriverConfigLoader.programmaticBuilder()
-                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5))
-                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(180))
-                    .withDuration(
-                        DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT,
-                        Duration.ofSeconds(180))
-                    .withDuration(
-                        DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
-                    .build())
-            .withAuthCredentials("cassandra", "cassandra")
-            .addContactPoint(new InetSocketAddress(cluster.seedAddress(), cluster.cqlPort()))
-            .withLocalDatacenter(cluster.datacenter())
-            .build();
-
-    assertThat(
-            session
-                .execute(
-                    String.format(
-                        "create keyspace if not exists %s WITH replication = "
-                            + "{'class': 'SimpleStrategy', 'replication_factor': 1 }",
-                        keyspace))
-                .wasApplied())
-        .isTrue();
+    Optional<String> name = testInfo.getTestMethod().map(Method::getName);
+    assertThat(name).isPresent();
+    String testName = name.get();
+    keyspace = "ks_rest_" + testName + "_" + System.nanoTime();
+    // trim to max keyspace name length of 48
+    keyspace = keyspace.substring(0, Math.min(keyspace.length(), 48));
 
     initAuth();
-  }
 
-  @AfterEach
-  public void teardown() {
-    session.close();
+    String createKeyspaceRequest = String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspace);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces", host),
+        createKeyspaceRequest,
+        HttpStatus.SC_CREATED);
   }
 
   private void initAuth() throws IOException {
@@ -188,13 +168,13 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void createTable() throws IOException {
-    String tableName = "tbl_createtable_" + System.currentTimeMillis();
+    String tableName = "tbl_createtable_" + System.nanoTime();
     createTable(tableName);
   }
 
   @Test
   public void getTable() throws IOException {
-    String tableName = "tbl_gettable_" + System.currentTimeMillis();
+    String tableName = "tbl_gettable_" + System.nanoTime();
     createTable(tableName);
 
     String body =
@@ -209,7 +189,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getTableComplex() throws IOException {
-    String tableName = "tbl_gettable_" + System.currentTimeMillis();
+    String tableName = "tbl_gettable_" + System.nanoTime();
     createComplexTable(tableName);
 
     String body =
@@ -231,7 +211,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void deleteTable() throws IOException {
-    String tableName = "tbl_deletetable_" + System.currentTimeMillis();
+    String tableName = "tbl_deletetable_" + System.nanoTime();
     createTable(tableName);
 
     RestUtils.delete(
@@ -242,7 +222,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getRow() throws IOException {
-    String tableName = "tbl_getrow_" + System.currentTimeMillis();
+    String tableName = "tbl_getrow_" + System.nanoTime();
     createTable(tableName);
 
     List<ColumnModel> columns = new ArrayList<>();
@@ -269,7 +249,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void updateRow() throws IOException {
-    String tableName = "tbl_updaterow_" + System.currentTimeMillis();
+    String tableName = "tbl_updaterow_" + System.nanoTime();
     createTable(tableName);
 
     List<ColumnModel> columns = new ArrayList<>();
@@ -343,7 +323,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getRowWithClustering() throws IOException {
-    String tableName = "tbl_getallrows_clustering_" + System.currentTimeMillis();
+    String tableName = "tbl_getallrows_clustering_" + System.nanoTime();
     createTableWithClustering(tableName);
 
     String id = UUID.randomUUID().toString();
@@ -391,7 +371,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getRowWithMixedClusteringKeyTypes() throws IOException {
-    String tableName = "tbl_getrow_mixedclustering_" + System.currentTimeMillis();
+    String tableName = "tbl_getrow_mixedclustering_" + System.nanoTime();
     createTableWithMixedClustering(tableName);
 
     String body =
@@ -430,7 +410,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getRowWithTrailingSlash() throws IOException {
-    String tableName = "tbl_getrow_trailingslash_" + System.currentTimeMillis();
+    String tableName = "tbl_getrow_trailingslash_" + System.nanoTime();
     createTableWithMixedClustering(tableName);
 
     String body =
@@ -474,7 +454,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getRowByCompoundPartitionKey() throws IOException {
-    String tableName = "tbl_getrow_compoundkey" + System.currentTimeMillis();
+    String tableName = "tbl_getrow_compoundkey" + System.nanoTime();
     createTestTable(
         tableName,
         Arrays.asList(
@@ -497,7 +477,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getRowWithSemicolonInKey() throws IOException {
-    String tableName = "tbl_getrow_semicolonkey_" + System.currentTimeMillis();
+    String tableName = "tbl_getrow_semicolonkey_" + System.nanoTime();
     createTableWithMixedClustering(tableName);
 
     List<ColumnModel> columns = new ArrayList<>();
@@ -524,7 +504,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getAllRows() throws IOException {
-    String tableName = "tbl_getallrows_" + System.currentTimeMillis();
+    String tableName = "tbl_getallrows_" + System.nanoTime();
     createTable(tableName);
 
     List<ColumnModel> columns = new ArrayList<>();
@@ -577,7 +557,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getAllRowsNoSize() throws IOException {
-    String tableName = "tbl_getallrowsnosize_" + System.currentTimeMillis();
+    String tableName = "tbl_getallrowsnosize_" + System.nanoTime();
     createTable(tableName);
 
     List<ColumnModel> columns = new ArrayList<>();
@@ -628,7 +608,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void addRow() throws IOException {
-    String tableName = "tbl_addrow_" + System.currentTimeMillis();
+    String tableName = "tbl_addrow_" + System.nanoTime();
     createTable(tableName);
 
     RowAdd rowAdd = new RowAdd();
@@ -669,7 +649,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void addRowWithList() throws IOException {
-    String tableName = "tbl_addrowlist_" + System.currentTimeMillis();
+    String tableName = "tbl_addrowlist_" + System.nanoTime();
     createTestTable(
         tableName,
         Arrays.asList("name text", "email list<text>"),
@@ -711,7 +691,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void query() throws IOException {
-    String tableName = "tbl_query_" + System.currentTimeMillis();
+    String tableName = "tbl_query_" + System.nanoTime();
     createTable(tableName);
 
     List<ColumnModel> columns = new ArrayList<>();
@@ -761,7 +741,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void queryWithPaging() throws IOException {
-    String tableName = "tbl_query_" + System.currentTimeMillis();
+    String tableName = "tbl_query_paging_" + System.nanoTime();
     TableAdd tableAdd = new TableAdd();
     tableAdd.setName(tableName);
 
@@ -843,7 +823,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void queryWithFilterMissingColumnName() throws IOException {
-    String tableName = "tbl_query_" + System.currentTimeMillis();
+    String tableName = "tbl_query_" + System.nanoTime();
     createTable(tableName);
 
     Query query = new Query();
@@ -865,7 +845,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void queryWithFilterMissingOperator() throws IOException {
-    String tableName = "tbl_query_" + System.currentTimeMillis();
+    String tableName = "tbl_query_" + System.nanoTime();
     createTable(tableName);
 
     Query query = new Query();
@@ -887,7 +867,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void queryWithFilterEmptyValueList() throws IOException {
-    String tableName = "tbl_query_" + System.currentTimeMillis();
+    String tableName = "tbl_query_" + System.nanoTime();
     createTable(tableName);
 
     Query query = new Query();
@@ -910,7 +890,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void queryWithFilterMissingValueList() throws IOException {
-    String tableName = "tbl_query_" + System.currentTimeMillis();
+    String tableName = "tbl_query_" + System.nanoTime();
     createTable(tableName);
 
     Query query = new Query();
@@ -932,7 +912,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void queryWithEmptyFilter() throws IOException {
-    String tableName = "tbl_query_" + System.currentTimeMillis();
+    String tableName = "tbl_query_" + System.nanoTime();
     createTable(tableName);
 
     Query query = new Query();
@@ -950,7 +930,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void queryWithEmptyFilters() throws IOException {
-    String tableName = "tbl_query_" + System.currentTimeMillis();
+    String tableName = "tbl_query_" + System.nanoTime();
     createTable(tableName);
 
     Query query = new Query();
@@ -966,7 +946,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void queryWithMissingFilter() throws IOException {
-    String tableName = "tbl_query_" + System.currentTimeMillis();
+    String tableName = "tbl_query_" + System.nanoTime();
     createTable(tableName);
 
     Query query = new Query();
@@ -980,7 +960,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void deleteRowWithClustering() throws IOException {
-    String tableName = "tbl_deleterows_clustering_" + System.currentTimeMillis();
+    String tableName = "tbl_deleterows_clustering_" + System.nanoTime();
     createTableWithClustering(tableName);
 
     String id = UUID.randomUUID().toString();
@@ -1041,7 +1021,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void deleteRowWithMixedClustering() throws IOException {
-    String tableName = "tbl_deleterow_mixedclustering_" + System.currentTimeMillis();
+    String tableName = "tbl_deleterow_mixedclustering_" + System.nanoTime();
     createTableWithMixedClustering(tableName);
 
     RestUtils.delete(
@@ -1064,7 +1044,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void deleteRowPartition() throws IOException {
-    String tableName = "tbl_deleterows_partition_" + System.currentTimeMillis();
+    String tableName = "tbl_deleterows_partition_" + System.nanoTime();
     createTableWithClustering(tableName);
 
     String id = UUID.randomUUID().toString();
@@ -1126,7 +1106,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getColumns() throws IOException {
-    String tableName = "tbl_getcolumns_" + System.currentTimeMillis();
+    String tableName = "tbl_getcolumns_" + System.nanoTime();
     createTable(tableName);
 
     String body =
@@ -1144,7 +1124,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getColumnsComplex() throws IOException {
-    String tableName = "tbl_getcolumns_" + System.currentTimeMillis();
+    String tableName = "tbl_getcolumns_" + System.nanoTime();
     createComplexTable(tableName);
 
     String body =
@@ -1164,7 +1144,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getColumn() throws IOException {
-    String tableName = "tbl_getcolumn_" + System.currentTimeMillis();
+    String tableName = "tbl_getcolumn_" + System.nanoTime();
     createTable(tableName);
 
     String body =
@@ -1182,7 +1162,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getColumnComplex() throws IOException {
-    String tableName = "tbl_getcolumn_" + System.currentTimeMillis();
+    String tableName = "tbl_getcolumn_" + System.nanoTime();
     createComplexTable(tableName);
 
     String body =
@@ -1200,7 +1180,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void addColumn() throws IOException {
-    String tableName = "tbl_addcolumn_" + System.currentTimeMillis();
+    String tableName = "tbl_addcolumn_" + System.nanoTime();
     createTable(tableName);
 
     ColumnDefinition columnDefinition = new ColumnDefinition("middleName", "text");
@@ -1210,7 +1190,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void deleteColumn() throws IOException {
-    String tableName = "tbl_deletecolumn_" + System.currentTimeMillis();
+    String tableName = "tbl_deletecolumn_" + System.nanoTime();
     createTable(tableName);
 
     createColumn(tableName, new ColumnDefinition("middleName", "text"));

@@ -25,13 +25,12 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.parallel.Isolated;
 
-@Isolated
 public class CollectionTest extends BaseOsgiIntegrationTest {
 
   private String keyspace;
@@ -55,7 +54,7 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
     Optional<String> name = testInfo.getTestMethod().map(Method::getName);
     assertThat(name).isPresent();
     String testName = name.get();
-    keyspace = "ks_collection_" + testName + "_" + System.currentTimeMillis();
+    keyspace = "ks_collection_" + testName + "_" + System.nanoTime();
     // trim to max keyspace name length of 48
     keyspace = keyspace.substring(0, Math.min(keyspace.length(), 48));
 
@@ -75,21 +74,19 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
                         DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
                     .build())
             .withAuthCredentials("cassandra", "cassandra")
-            .addContactPoint(new InetSocketAddress(stargate.seedAddress(), 9043))
+            .addContactPoint(new InetSocketAddress(stargate.seedAddress(), stargate.cqlPort()))
             .withLocalDatacenter(stargate.datacenter())
             .build();
 
-    assertThat(
-            session
-                .execute(
-                    String.format(
-                        "create keyspace if not exists %s WITH replication = "
-                            + "{'class': 'SimpleStrategy', 'replication_factor': 1 }",
-                        keyspace))
-                .wasApplied())
-        .isTrue();
-
     initAuth();
+
+    String createKeyspaceRequest = String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspace);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces", host),
+        createKeyspaceRequest,
+        HttpStatus.SC_CREATED);
   }
 
   private void initAuth() throws IOException {
