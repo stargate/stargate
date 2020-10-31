@@ -76,6 +76,10 @@ class CacheMetricsRegistryTest {
         .isEqualTo(getMetricValue(metricRegistry, CacheMetricsRegistry.MISS_COUNT))
         .isEqualTo(3);
 
+    assertThat(stats.missRate())
+        .isEqualTo(getMetricValue(metricRegistry, CacheMetricsRegistry.MISS_RATE))
+        .isEqualTo(0.75);
+
     assertThat(cache.size())
         .isEqualTo(getMetricValue(metricRegistry, CacheMetricsRegistry.SIZE))
         .isEqualTo(2);

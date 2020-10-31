@@ -56,6 +56,7 @@ The `MetricRegistry` will have the following cache-level metrics:
 *   `config.store.yaml.file-cache.hitCount`
 *   `config.store.yaml.file-cache.hitRate`
 *   `config.store.yaml.file-cache.missCount`
+*   `config.store.yaml.file-cache.missRate`
 *   `config.store.yaml.file-cache.evictionCount`
 *   `config.store.yaml.file-cache.size`
 

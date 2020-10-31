@@ -30,6 +30,8 @@ public class CacheMetricsRegistry {
 
   public static final String MISS_COUNT = "missCount";
 
+  public static final String MISS_RATE = "missRate";
+
   public static final String EVICTION_COUNT = "evictionCount";
 
   public static final String SIZE = "size";
@@ -48,6 +50,9 @@ public class CacheMetricsRegistry {
 
     metricRegistry.register(
         nameWithPrefix(MISS_COUNT), (Gauge<Long>) () -> cache.stats().missCount());
+
+    metricRegistry.register(
+        nameWithPrefix(MISS_RATE), (Gauge<Double>) () -> cache.stats().missRate());
 
     metricRegistry.register(
         nameWithPrefix(EVICTION_COUNT), (Gauge<Long>) () -> cache.stats().evictionCount());
