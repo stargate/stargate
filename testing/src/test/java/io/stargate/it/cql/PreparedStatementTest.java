@@ -31,22 +31,28 @@ public class PreparedStatementTest extends BaseOsgiIntegrationTest {
   private String tableName;
 
   @BeforeEach
-  public void createSchema(TestInfo testInfo, CqlSession session) {
+  public void createSchema(
+      TestInfo testInfo, CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     Optional<String> name = testInfo.getTestMethod().map(Method::getName);
     assertThat(name).isPresent();
     String testName = name.get();
 
     tableName = (testName + "_tbl").toLowerCase();
     // Must recreate every time because some methods alter the schema
-    session.execute(String.format("DROP TABLE IF EXISTS %s", tableName));
-    session.execute(String.format("CREATE TABLE %s (a int PRIMARY KEY, b int, c int)", tableName));
+    session.execute(String.format("DROP TABLE IF EXISTS \"%s\".%s", keyspaceId, tableName));
+    session.execute(
+        String.format(
+            "CREATE TABLE \"%s\".%s (a int PRIMARY KEY, b int, c int)", keyspaceId, tableName));
   }
 
   @Test
   @DisplayName("Should get expected metadata when preparing INSERT with no variables")
-  public void insertWithoutVariablesTest(CqlSession session) {
+  public void insertWithoutVariablesTest(
+      CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     PreparedStatement prepared =
-        session.prepare(String.format("INSERT INTO %s (a, b, c) VALUES (1, 1, 1)", tableName));
+        session.prepare(
+            String.format(
+                "INSERT INTO \"%s\".%s (a, b, c) VALUES (1, 1, 1)", keyspaceId, tableName));
     assertThat(prepared.getVariableDefinitions()).isEmpty();
     assertThat(prepared.getPartitionKeyIndices()).isEmpty();
     assertThat(prepared.getResultSetDefinitions()).isEmpty();
@@ -56,7 +62,9 @@ public class PreparedStatementTest extends BaseOsgiIntegrationTest {
   @DisplayName("Should get expected metadata when preparing INSERT with variables")
   public void insertWithVariablesTest(CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     PreparedStatement prepared =
-        session.prepare(String.format("INSERT INTO %s (a, b, c) VALUES (?, ?, ?)", tableName));
+        session.prepare(
+            String.format(
+                "INSERT INTO \"%s\".%s (a, b, c) VALUES (?, ?, ?)", keyspaceId, tableName));
     assertAllColumns(prepared.getVariableDefinitions(), keyspaceId);
     assertThat(prepared.getPartitionKeyIndices()).containsExactly(0);
     assertThat(prepared.getResultSetDefinitions()).isEmpty();
@@ -67,7 +75,8 @@ public class PreparedStatementTest extends BaseOsgiIntegrationTest {
   public void selectWithoutVariablesTest(
       CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     PreparedStatement prepared =
-        session.prepare(String.format("SELECT a,b,c FROM %s WHERE a = 1", tableName));
+        session.prepare(
+            String.format("SELECT a,b,c FROM \"%s\".%s WHERE a = 1", keyspaceId, tableName));
     assertThat(prepared.getVariableDefinitions()).isEmpty();
     assertThat(prepared.getPartitionKeyIndices()).isEmpty();
     assertAllColumns(prepared.getResultSetDefinitions(), keyspaceId);
@@ -77,7 +86,8 @@ public class PreparedStatementTest extends BaseOsgiIntegrationTest {
   @DisplayName("Should get expected metadata when preparing SELECT with variables")
   public void selectWithVariablesTest(CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     PreparedStatement prepared =
-        session.prepare(String.format("SELECT a,b,c FROM %s WHERE a = ?", tableName));
+        session.prepare(
+            String.format("SELECT a,b,c FROM \"%s\".%s WHERE a = ?", keyspaceId, tableName));
     assertThat(prepared.getVariableDefinitions()).hasSize(1);
     ColumnDefinition variable1 = prepared.getVariableDefinitions().get(0);
     assertThat(variable1.getKeyspace()).isEqualTo(keyspaceId);
@@ -90,12 +100,13 @@ public class PreparedStatementTest extends BaseOsgiIntegrationTest {
 
   @Test
   @DisplayName("Should fail to reprepare if the query becomes invalid after a schema change")
-  public void failedReprepareTest(CqlSession session) {
+  public void failedReprepareTest(CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     // Given
-    session.execute(String.format("ALTER TABLE %s ADD d int", tableName));
+    session.execute(String.format("ALTER TABLE \"%s\".%s ADD d int", keyspaceId, tableName));
     PreparedStatement ps =
-        session.prepare(String.format("SELECT a, b, c, d FROM %s WHERE a = ?", tableName));
-    session.execute(String.format("ALTER TABLE %s DROP d", tableName));
+        session.prepare(
+            String.format("SELECT a, b, c, d FROM \"%s\".%s WHERE a = ?", keyspaceId, tableName));
+    session.execute(String.format("ALTER TABLE \"%s\".%s DROP d", keyspaceId, tableName));
 
     assertThatThrownBy(() -> session.execute(ps.bind()))
         .isInstanceOf(InvalidQueryException.class)
@@ -104,11 +115,13 @@ public class PreparedStatementTest extends BaseOsgiIntegrationTest {
 
   @Test
   @DisplayName("Should not store metadata for conditional updates")
-  public void conditionalUpdateTest(CqlSession session) {
+  public void conditionalUpdateTest(CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     // Given
     PreparedStatement ps =
         session.prepare(
-            String.format("INSERT INTO %s (a, b, c) VALUES (?, ?, ?) IF NOT EXISTS", tableName));
+            String.format(
+                "INSERT INTO \"%s\".%s (a, b, c) VALUES (?, ?, ?) IF NOT EXISTS",
+                keyspaceId, tableName));
 
     // Never store metadata in the prepared statement for conditional updates, since the result set
     // can change
@@ -145,7 +158,7 @@ public class PreparedStatementTest extends BaseOsgiIntegrationTest {
     assertThat(Bytes.toHexString(ps.getResultMetadataId())).isEqualTo(Bytes.toHexString(idBefore));
 
     // When
-    session.execute(String.format("ALTER TABLE %s ADD d int", tableName));
+    session.execute(String.format("ALTER TABLE \"%s\".%s ADD d int", keyspaceId, tableName));
     rs = session.execute(ps.bind(5, 5, 5));
 
     // Then

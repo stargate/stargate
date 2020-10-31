@@ -24,12 +24,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * Note: all tests related to unset values assume that the protocol version is always 4 or higher.
  */
-@Isolated
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(
     initQueries = {

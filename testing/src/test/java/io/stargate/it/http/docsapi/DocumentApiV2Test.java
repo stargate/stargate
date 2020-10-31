@@ -25,13 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
 import okhttp3.Response;
-import okhttp3.ResponseBody;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,8 +37,6 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   private String tableName;
   private static String authToken;
   private static final ObjectMapper objectMapper = new ObjectMapper();
-  private static final OkHttpClient client =
-      new OkHttpClient().newBuilder().readTimeout(3, TimeUnit.MINUTES).build();
 
   private String host;
   private String hostWithPort;
@@ -61,6 +53,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     // trim to max keyspace name length of 48
     keyspace = keyspace.substring(0, Math.min(keyspace.length(), 48));
     tableName = "tbl_" + testName + "_" + System.currentTimeMillis();
+    // trim to max table name length of 48
+    tableName = tableName.substring(0, Math.min(tableName.length(), 48));
 
     initAuth();
 
@@ -70,23 +64,14 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   private void initAuth() throws IOException {
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-    RequestBody requestBody =
-        RequestBody.create(
-            MediaType.parse("application/json"),
-            objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")));
+    String body =
+        RestUtils.post(
+            "",
+            String.format("%s:8081/v1/auth/token/generate", host),
+            objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
+            HttpStatus.SC_CREATED);
 
-    Request request =
-        new Request.Builder()
-            .url(String.format("%s:8081/v1/auth/token/generate", host))
-            .post(requestBody)
-            .addHeader("X-Cassandra-Request-Id", "foo")
-            .build();
-    Response response = client.newCall(request).execute();
-    ResponseBody body = response.body();
-
-    assertThat(body).isNotNull();
-    AuthTokenResponse authTokenResponse =
-        objectMapper.readValue(body.string(), AuthTokenResponse.class);
+    AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
     authToken = authTokenResponse.getAuthToken();
     assertThat(authToken).isNotNull();
   }
@@ -2348,7 +2333,9 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?page-state="
+                + "/collections/"
+                + tableName
+                + "?page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = objectMapper.readTree(r);
@@ -2366,7 +2353,9 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?page-state="
+                + "/collections/"
+                + tableName
+                + "?page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = objectMapper.readTree(r);
@@ -2386,7 +2375,12 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection?page-size=2",
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/"
+                + tableName
+                + "?page-size=2",
             200);
     resp = objectMapper.readTree(r);
     pageState = resp.requiredAt("/pageState").requireNonNull().asText();
@@ -2407,7 +2401,9 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?page-size=2&page-state="
+                + "/collections/"
+                + tableName
+                + "?page-size=2&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = objectMapper.readTree(r);
@@ -2428,7 +2424,12 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection?page-size=4",
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/"
+                + tableName
+                + "?page-size=4",
             200);
     resp = objectMapper.readTree(r);
     assertThat(resp.at("/pageState").isMissingNode()).isTrue();
@@ -2481,7 +2482,12 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     String r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection?fields=[\"a\"]",
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/"
+                + tableName
+                + "?fields=[\"a\"]",
             200);
     JsonNode resp = objectMapper.readTree(r);
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
@@ -2506,7 +2512,9 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?fields=[\"a\"]&page-state="
+                + "/collections/"
+                + tableName
+                + "?fields=[\"a\"]&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = objectMapper.readTree(r);
@@ -2531,7 +2539,9 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?fields=[\"a\"]&page-state="
+                + "/collections/"
+                + tableName
+                + "?fields=[\"a\"]&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = objectMapper.readTree(r);
@@ -2561,7 +2571,9 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?fields=[\"a\"]&page-size=2",
+                + "/collections/"
+                + tableName
+                + "?fields=[\"a\"]&page-size=2",
             200);
     resp = objectMapper.readTree(r);
     pageState = resp.requiredAt("/pageState").requireNonNull().asText();
@@ -2596,7 +2608,9 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?fields=[\"a\"]&page-size=2&page-state="
+                + "/collections/"
+                + tableName
+                + "?fields=[\"a\"]&page-size=2&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = objectMapper.readTree(r);
@@ -2627,7 +2641,9 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?fields=[\"a\"]&page-size=4",
+                + "/collections/"
+                + tableName
+                + "?fields=[\"a\"]&page-size=4",
             200);
     resp = objectMapper.readTree(r);
     assertThat(resp.at("/pageState").isMissingNode()).isTrue();
@@ -2691,7 +2707,9 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?where={\"b.value\": {\"$eq\": 2}}&fields=[\"a\"]",
+                + "/collections/"
+                + tableName
+                + "?where={\"b.value\": {\"$eq\": 2}}&fields=[\"a\"]",
             200);
     JsonNode resp = objectMapper.readTree(r);
     assertThat(resp.at("/pageState").isMissingNode()).isTrue();
@@ -2711,7 +2729,9 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]",
+                + "/collections/"
+                + tableName
+                + "?where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]",
             200);
     resp = objectMapper.readTree(r);
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
@@ -2737,7 +2757,9 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]&page-state="
+                + "/collections/"
+                + tableName
+                + "?where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = objectMapper.readTree(r);
@@ -2765,7 +2787,12 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     String r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection?page-size=21",
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/"
+                + tableName
+                + "?page-size=21",
             400);
     assertThat(r).isEqualTo("The parameter `page-size` is limited to 20.");
   }
