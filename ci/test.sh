@@ -9,14 +9,6 @@ echoinfo "Starting test"
 chown -R ubuntu:ubuntu /workspace/
 chown -R ubuntu:ubuntu /cache/
 
-# Add additional loopbacks
-ifconfig lo0 alias 127.0.0.10
-ifconfig lo0 alias 127.0.0.11
-ifconfig lo0 alias 127.0.0.12
-ifconfig lo0 alias 127.0.0.13
-ifconfig lo0 alias 127.0.0.14
-ifconfig lo0 alias 127.0.0.15
-
 # Need to switch users since we can't pass the right flag to allow running Cassandra as root
 sudo -i -u ubuntu bash << EOF
 set -euo pipefail

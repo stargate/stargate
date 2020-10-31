@@ -49,12 +49,9 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Execution(ExecutionMode.CONCURRENT)
 public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(RestApiv2Test.class);
