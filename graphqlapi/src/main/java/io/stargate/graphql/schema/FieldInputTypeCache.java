@@ -54,7 +54,7 @@ class FieldInputTypeCache extends FieldTypeCache<GraphQLInputType> {
     if (graphqlName == null) {
       throw new IllegalArgumentException(
           String.format(
-              "Could find a GraphQL name mapping for UDT %s, "
+              "Could not find a GraphQL name mapping for UDT %s, "
                   + "this is probably because it clashes with another UDT",
               udt.name()));
     }
