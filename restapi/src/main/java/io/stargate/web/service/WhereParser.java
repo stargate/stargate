@@ -119,7 +119,7 @@ public class WhereParser {
           if (!value.isValueNode()) {
             throw new RuntimeException(
                 String.format(
-                    "Value entry for field %s, operation %s was expecting a value, but found an object, array, or null.",
+                    "Value entry for field %s, operation %s was expecting a value, but found an object or array.",
                     fieldName, rawOp));
           }
 
