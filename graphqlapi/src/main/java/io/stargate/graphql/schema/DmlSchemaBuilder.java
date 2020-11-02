@@ -51,8 +51,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class DmlSchemaBuilder {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DmlSchemaBuilder.class);
 
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
@@ -99,9 +103,7 @@ class DmlSchemaBuilder {
         tableQueryField = buildQuery(table);
         tableMutationFields = buildMutations(table);
       } catch (Exception e) {
-        warnings.add(
-            String.format(
-                "Could not convert table %s, skipping (%s)", table.name(), e.getMessage()));
+        warn(e, "Could not convert table %s, skipping", table.name());
         continue;
       }
 
@@ -319,10 +321,11 @@ class DmlSchemaBuilder {
                   .type(fieldFilterInputTypes.get(column.type()))
                   .build());
         } catch (Exception e) {
-          warnings.add(
-              String.format(
-                  "Could not create filter input type for column %s in table %s, skipping (%s)",
-                  column.name(), column.table(), e.getMessage()));
+          warn(
+              e,
+              "Could not create filter input type for column %s in table %s, skipping",
+              column.name(),
+              column.table());
         }
       }
     }
@@ -405,10 +408,11 @@ class DmlSchemaBuilder {
                   .build();
           input.field(field);
         } catch (Exception e) {
-          warnings.add(
-              String.format(
-                  "Could not create input type for column %s in table %s, skipping (%s)",
-                  column.name(), column.table(), e.getMessage()));
+          warn(
+              e,
+              "Could not create input type for column %s in table %s, skipping",
+              column.name(),
+              column.table());
         }
       }
     }
@@ -452,10 +456,11 @@ class DmlSchemaBuilder {
                   .type(fieldOutputTypes.get(column.type()));
           builder.field(fieldBuilder.build());
         } catch (Exception e) {
-          warnings.add(
-              String.format(
-                  "Could not create output type for column %s in table %s, skipping (%s)",
-                  column.name(), column.table(), e.getMessage()));
+          warn(
+              e,
+              "Could not create output type for column %s in table %s, skipping",
+              column.name(),
+              column.table());
         }
       }
     }
@@ -480,6 +485,12 @@ class DmlSchemaBuilder {
         .type(list(GraphQLString))
         .dataFetcher((d) -> warnings)
         .build();
+  }
+
+  private void warn(Exception e, String format, Object... arguments) {
+    String message = String.format(format, arguments);
+    warnings.add(message + "(" + e.getMessage() + ")");
+    LOG.warn(message, e);
   }
 
   private static final GraphQLInputType MUTATION_OPTIONS =
