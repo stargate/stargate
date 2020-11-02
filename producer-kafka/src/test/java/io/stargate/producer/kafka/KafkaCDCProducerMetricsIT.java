@@ -18,7 +18,6 @@ package io.stargate.producer.kafka;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_ENABLED_SETTING_NAME;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_INCLUDE_TAGS_SETTING_NAME;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_NAME_SETTING_NAME;
-import static io.stargate.producer.kafka.configuration.DefaultConfigLoader.CONFIG_STORE_MODULE_NAME;
 import static io.stargate.producer.kafka.configuration.MetricsConfig.METRICS_NAME_DEFAULT;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.clusteringKey;
 import static io.stargate.producer.kafka.helpers.MutationEventHelper.column;
@@ -28,20 +27,17 @@ import static io.stargate.producer.kafka.schema.SchemasTestConstants.CLUSTERING_
 import static io.stargate.producer.kafka.schema.SchemasTestConstants.COLUMN_NAME;
 import static io.stargate.producer.kafka.schema.SchemasTestConstants.PARTITION_KEY_NAME;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
 import io.stargate.config.store.api.ConfigStore;
-import io.stargate.config.store.api.ConfigWithOverrides;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Table;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
-import org.apache.cassandra.stargate.schema.CQLType.Native;
-import org.apache.cassandra.stargate.schema.TableMetadata;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 public class KafkaCDCProducerMetricsIT extends IntegrationTestBase {
@@ -49,7 +45,7 @@ public class KafkaCDCProducerMetricsIT extends IntegrationTestBase {
   @Test
   public void shouldRegisterMetricsWhenMetricsAreEnabled() throws Exception {
     // given
-    TableMetadata tableMetadata = mockTableMetadata();
+    Table tableMetadata = mockTableMetadata();
     String topicName = createTopicName(tableMetadata);
 
     String kafkaMetricsPrefix = "producer-prefix";
@@ -59,29 +55,29 @@ public class KafkaCDCProducerMetricsIT extends IntegrationTestBase {
     metricsSettings.put(METRICS_INCLUDE_TAGS_SETTING_NAME, true);
     metricsSettings.put(METRICS_NAME_SETTING_NAME, kafkaMetricsPrefix);
 
-    ConfigStore configStore = mockConfigStore(metricsSettings);
+    ConfigStore configStore = mockConfigStoreWithProducerSettings(metricsSettings);
     KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(metricRegistry, configStore);
     kafkaCDCProducer.init().get();
 
     // when
     // schema change event
-    when(tableMetadata.getPartitionKeys())
-        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
-    when(tableMetadata.getClusteringKeys())
-        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
-    when(tableMetadata.getColumns())
-        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
+    when(tableMetadata.partitionKeyColumns())
+        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Column.Type.Text)));
+    when(tableMetadata.clusteringKeyColumns())
+        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Column.Type.Int)));
+    when(tableMetadata.columns())
+        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Column.Type.Text)));
     kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
 
     // send actual event
     RowUpdateEvent rowMutationEvent =
         createRowUpdateEvent(
             PARTITION_KEY_VALUE,
-            partitionKey(PARTITION_KEY_NAME, Native.TEXT),
+            partitionKey(PARTITION_KEY_NAME, Column.Type.Text),
             "col_value",
-            column(COLUMN_NAME, Native.TEXT),
+            column(COLUMN_NAME, Column.Type.Text),
             CLUSTERING_KEY_VALUE,
-            clusteringKey(CLUSTERING_KEY_NAME, Native.INT),
+            clusteringKey(CLUSTERING_KEY_NAME, Column.Type.Int),
             tableMetadata,
             1000);
     kafkaCDCProducer.send(rowMutationEvent).get();
@@ -118,36 +114,36 @@ public class KafkaCDCProducerMetricsIT extends IntegrationTestBase {
   @Test
   public void shouldNotRegisterMetricsWhenMetricsAreDisabled() throws Exception {
     // given
-    TableMetadata tableMetadata = mockTableMetadata();
+    Table tableMetadata = mockTableMetadata();
     String topicName = createTopicName(tableMetadata);
 
     MetricRegistry metricRegistry = new MetricRegistry();
     Map<String, Object> metricsSettings = new HashMap<>();
     metricsSettings.put(METRICS_ENABLED_SETTING_NAME, false);
-    ConfigStore configStore = mockConfigStore(metricsSettings);
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(metricRegistry, configStore);
 
+    ConfigStore configStore = mockConfigStoreWithProducerSettings(metricsSettings);
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(metricRegistry, configStore);
     kafkaCDCProducer.init().get();
 
     // when
     // schema change event
-    when(tableMetadata.getPartitionKeys())
-        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Native.TEXT)));
-    when(tableMetadata.getClusteringKeys())
-        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Native.INT)));
-    when(tableMetadata.getColumns())
-        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Native.TEXT)));
+    when(tableMetadata.partitionKeyColumns())
+        .thenReturn(Collections.singletonList(partitionKey(PARTITION_KEY_NAME, Column.Type.Text)));
+    when(tableMetadata.clusteringKeyColumns())
+        .thenReturn(Collections.singletonList(clusteringKey(CLUSTERING_KEY_NAME, Column.Type.Int)));
+    when(tableMetadata.columns())
+        .thenReturn(Collections.singletonList(column(COLUMN_NAME, Column.Type.Text)));
     kafkaCDCProducer.createTableSchemaAsync(tableMetadata).get();
 
     // send actual event
     RowUpdateEvent rowMutationEvent =
         createRowUpdateEvent(
             PARTITION_KEY_VALUE,
-            partitionKey(PARTITION_KEY_NAME, Native.TEXT),
+            partitionKey(PARTITION_KEY_NAME, Column.Type.Text),
             "col_value",
-            column(COLUMN_NAME, Native.TEXT),
+            column(COLUMN_NAME, Column.Type.Text),
             CLUSTERING_KEY_VALUE,
-            clusteringKey(CLUSTERING_KEY_NAME, Native.INT),
+            clusteringKey(CLUSTERING_KEY_NAME, Column.Type.Int),
             tableMetadata,
             1000);
     kafkaCDCProducer.send(rowMutationEvent).get();
@@ -165,15 +161,6 @@ public class KafkaCDCProducerMetricsIT extends IntegrationTestBase {
     } finally {
       kafkaCDCProducer.close().get();
     }
-  }
-
-  @NotNull
-  private ConfigStore mockConfigStore(Map<String, Object> metricsSettings) {
-    Map<String, Object> properties = createKafkaProducerSettings(metricsSettings);
-    ConfigStore configStore = mock(ConfigStore.class);
-    when(configStore.getConfigForModule(CONFIG_STORE_MODULE_NAME))
-        .thenReturn(new ConfigWithOverrides(properties));
-    return configStore;
   }
 
   private long countMetricsByPrefix(String kafkaMetricsPrefix, MetricRegistry metricRegistry) {

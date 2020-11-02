@@ -17,6 +17,7 @@ package io.stargate.producer.kafka;
 
 import static io.stargate.producer.kafka.configuration.ConfigLoader.CDC_TOPIC_PREFIX_NAME;
 import static io.stargate.producer.kafka.configuration.ConfigLoader.METRICS_ENABLED_SETTING_NAME;
+import static io.stargate.producer.kafka.configuration.DefaultConfigLoader.CONFIG_STORE_MODULE_NAME;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -24,6 +25,9 @@ import static org.testcontainers.containers.KafkaContainer.ZOOKEEPER_PORT;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.stargate.config.store.api.ConfigStore;
+import io.stargate.config.store.api.ConfigWithOverrides;
+import io.stargate.db.schema.Table;
 import io.stargate.producer.kafka.configuration.ConfigLoader;
 import io.stargate.producer.kafka.schema.EmbeddedSchemaRegistryServer;
 import java.net.ServerSocket;
@@ -34,7 +38,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.apache.commons.collections.IteratorUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -80,16 +83,15 @@ public class IntegrationTestBase {
     schemaRegistry.close();
   }
 
-  protected TableMetadata mockTableMetadata() {
-    TableMetadata tableMetadata = mock(TableMetadata.class);
-    when(tableMetadata.getKeyspace()).thenReturn("keyspaceName");
-    when(tableMetadata.getName()).thenReturn("tableName" + UUID.randomUUID().toString());
+  protected Table mockTableMetadata() {
+    Table tableMetadata = mock(Table.class);
+    when(tableMetadata.keyspace()).thenReturn("keyspaceName");
+    when(tableMetadata.name()).thenReturn("tableName" + UUID.randomUUID().toString());
     return tableMetadata;
   }
 
-  protected String createTopicName(TableMetadata tableMetadata) {
-    return String.format(
-        "%s.%s.%s", TOPIC_PREFIX, tableMetadata.getKeyspace(), tableMetadata.getName());
+  protected String createTopicName(Table tableMetadata) {
+    return String.format("%s.%s.%s", TOPIC_PREFIX, tableMetadata.keyspace(), tableMetadata.name());
   }
 
   @NotNull
@@ -120,6 +122,20 @@ public class IntegrationTestBase {
   @NotNull
   private String withCDCPrefixPrefix(String settingName) {
     return String.format("%s.%s", ConfigLoader.CDC_KAFKA_PRODUCER_SETTING_PREFIX, settingName);
+  }
+
+  @NotNull
+  public ConfigStore mockConfigStoreWithProducerSettings(Map<String, Object> metricsSettings) {
+    Map<String, Object> properties = createKafkaProducerSettings(metricsSettings);
+    ConfigStore configStore = mock(ConfigStore.class);
+    when(configStore.getConfigForModule(CONFIG_STORE_MODULE_NAME))
+        .thenReturn(new ConfigWithOverrides(properties, CONFIG_STORE_MODULE_NAME));
+    return configStore;
+  }
+
+  @NotNull
+  public ConfigStore mockConfigStoreWithProducerSettings() {
+    return mockConfigStoreWithProducerSettings(Collections.emptyMap());
   }
 
   protected void verifyReceivedByKafka(

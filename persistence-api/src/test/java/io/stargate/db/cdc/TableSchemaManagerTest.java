@@ -2,16 +2,15 @@ package io.stargate.db.cdc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import io.stargate.db.cdc.SchemaAwareCDCProducer.TableSchemaManager;
+import io.stargate.db.schema.ImmutableTable;
+import io.stargate.db.schema.Table;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.junit.jupiter.api.Test;
 
 public class TableSchemaManagerTest {
@@ -19,7 +18,7 @@ public class TableSchemaManagerTest {
   public void shouldNotCallCreateWhenTheVersionMatches() {
     AtomicInteger counter = new AtomicInteger();
     TableSchemaManager m = newInstance(counter);
-    TableMetadata table = newTable(1);
+    Table table = newTable(1);
 
     m.ensureCreated(table);
     assertThat(counter.get()).isEqualTo(1);
@@ -31,7 +30,7 @@ public class TableSchemaManagerTest {
   public void shouldNotCallCreateWhenTheVersionMatchesInParallel() {
     AtomicInteger counter = new AtomicInteger();
     TableSchemaManager m = newInstance(counter);
-    TableMetadata table = newTable(1);
+    Table table = newTable(1);
 
     invokeParallel(() -> m.ensureCreated(table), 8);
     assertThat(counter.get()).isEqualTo(1);
@@ -39,35 +38,11 @@ public class TableSchemaManagerTest {
 
   @Test
   public void shouldCallCreateWhenTableHashCodeCollidesButNotEqual() {
-    Object o1 =
-        new Object() {
-          @Override
-          public int hashCode() {
-            return 1;
-          }
+    // hash code of the Aa and BB is the same
+    Table table1 = ImmutableTable.builder().name("Aa").keyspace("ks1").build();
+    Table table2 = ImmutableTable.builder().name("BB").keyspace("ks1").build();
 
-          @Override
-          public boolean equals(Object obj) {
-            return false;
-          }
-        };
-    Object o2 =
-        new Object() {
-          @Override
-          public int hashCode() {
-            return 1;
-          }
-
-          @Override
-          public boolean equals(Object obj) {
-            return false;
-          }
-        };
-    TableMetadata table1 = newTable(o1);
-    TableMetadata table2 = newTable(o2);
-
-    assertThat(table1.getIdentity().hashCode()).isEqualTo(table2.getIdentity().hashCode());
-    assertThat(table1.getIdentity()).isNotEqualTo(table2.getIdentity());
+    assertThat(table1.hashCode()).isEqualTo(table2.hashCode());
 
     AtomicInteger counter = new AtomicInteger();
     TableSchemaManager m = newInstance(counter);
@@ -90,10 +65,10 @@ public class TableSchemaManagerTest {
         });
   }
 
-  private static TableMetadata newTable(Object identity) {
-    TableMetadata t = mock(TableMetadata.class);
-    when(t.getIdentity()).thenReturn(identity);
-    return t;
+  /** Creates a new table with a hash code based on the {@code id} parameter. */
+  private static Table newTable(int id) {
+    // Take advantage of ImmutableTable precomputed hashcode
+    return ImmutableTable.builder().name("sample_table").keyspace("k" + id).build();
   }
 
   public static <T> List<T> invokeParallel(Callable<T> task, int times) {

@@ -15,6 +15,7 @@
  */
 package io.stargate.producer.kafka.schema;
 
+import static io.stargate.producer.kafka.schema.SchemaConstants.CUSTOM_TYPE_ID;
 import static io.stargate.producer.kafka.schema.SchemaConstants.DATA_FIELD_NAME;
 import static io.stargate.producer.kafka.schema.SchemaConstants.OPERATION_FIELD_NAME;
 import static io.stargate.producer.kafka.schema.SchemaConstants.TIMESTAMP_FIELD_NAME;
@@ -22,6 +23,9 @@ import static io.stargate.producer.kafka.schema.SchemaConstants.VALUE_FIELD_NAME
 
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.ParameterizedType;
+import io.stargate.db.schema.UserDefinedType;
 import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.List;
@@ -36,10 +40,6 @@ import org.apache.cassandra.stargate.db.CellValue;
 import org.apache.cassandra.stargate.db.DeleteEvent;
 import org.apache.cassandra.stargate.db.MutationEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
-import org.apache.cassandra.stargate.schema.CQLType;
-import org.apache.cassandra.stargate.schema.CQLType.Custom;
-import org.apache.cassandra.stargate.schema.CQLType.Tuple;
-import org.apache.cassandra.stargate.schema.CQLType.UserDefined;
 
 public class KeyValueConstructor {
 
@@ -98,13 +98,13 @@ public class KeyValueConstructor {
       List<? extends CellValue> cellValues, Schema dataSchema, GenericRecord data) {
     cellValues.forEach(
         v -> {
-          String columnName = v.getColumn().getName();
+          String columnName = v.getColumn().name();
           Schema unionSchema = dataSchema.getField(columnName).schema();
           GenericRecord record = validateUnionTypeAndConstructRecord(columnName, unionSchema);
 
-          if (v.getColumn().getType().isUDT()) {
+          if (v.getColumn().type().isUserDefined()) {
             handleUdt(v, record);
-          } else if (v.getColumn().getType() instanceof Tuple) {
+          } else if (v.getColumn().type().isTuple()) {
             handleTuple(v, record);
           } else {
             record.put(VALUE_FIELD_NAME, getValueObjectOrByteBuffer(v));
@@ -115,16 +115,15 @@ public class KeyValueConstructor {
 
   private void handleUdt(CellValue v, GenericRecord record) {
     Schema udtSchema = validateNumberOfFieldsAndConstructSchema(v, record);
-    UserDefined userDefined = (UserDefined) v.getColumn().getType();
-    GenericRecord innerRecord =
-        validateUnionTypeAndConstructRecord(userDefined.getName(), udtSchema);
+    UserDefinedType userDefined = (UserDefinedType) v.getColumn().type();
+    GenericRecord innerRecord = validateUnionTypeAndConstructRecord(userDefined.name(), udtSchema);
 
     record.put(VALUE_FIELD_NAME, constructUdt(userDefined, v.getValueObject(), innerRecord));
   }
 
   private void handleTuple(CellValue v, GenericRecord record) {
     Schema tupleSchema = validateNumberOfFieldsAndConstructSchema(v, record);
-    Tuple tuple = (Tuple) v.getColumn().getType();
+    ParameterizedType.TupleType tuple = (ParameterizedType.TupleType) v.getColumn().type();
     GenericRecord innerRecord =
         validateUnionTypeAndConstructRecord(
             CqlToAvroTypeConverter.tupleToRecordName(tuple), tupleSchema);
@@ -146,7 +145,9 @@ public class KeyValueConstructor {
 
   @SuppressWarnings("unchecked")
   private Object constructTuple(
-      @NonNull Tuple tuple, @NonNull Object value, @NonNull GenericRecord record) {
+      @NonNull ParameterizedType.TupleType tuple,
+      @NonNull Object value,
+      @NonNull GenericRecord record) {
 
     if (!(value instanceof List)) {
       throw new IllegalArgumentException(
@@ -156,11 +157,11 @@ public class KeyValueConstructor {
     for (int i = 0; i < udtValues.size(); i++) {
       Object udtValue = udtValues.get(i);
       String udtKey = CqlToAvroTypeConverter.toTupleFieldName(i);
-      CQLType cqlType = tuple.getSubTypes()[i];
-      if (cqlType instanceof Tuple) {
+      Column.ColumnType cqlType = tuple.parameters().get(i);
+      if (cqlType instanceof ParameterizedType.TupleType) {
         // extract nested value
         Record nestedUdtRecord = new Record(record.getSchema().getField(udtKey).schema());
-        constructTuple((Tuple) cqlType, udtValue, nestedUdtRecord);
+        constructTuple((ParameterizedType.TupleType) cqlType, udtValue, nestedUdtRecord);
         record.put(udtKey, nestedUdtRecord);
       } else {
         // put actual value
@@ -172,19 +173,20 @@ public class KeyValueConstructor {
 
   @SuppressWarnings("unchecked")
   private Object constructUdt(
-      @NonNull UserDefined userDefined, @NonNull Object value, @NonNull GenericRecord record) {
+      @NonNull UserDefinedType userDefined, @NonNull Object value, @NonNull GenericRecord record) {
     if (!(value instanceof Map)) {
       throw new IllegalArgumentException(
           "The underlying type of a UserDefined should be a Map, but is:" + value.getClass());
     }
     Map<String, Object> udtValues = (Map<String, Object>) value;
     for (Map.Entry<String, Object> udtValue : udtValues.entrySet()) {
-      CQLType cqlType = userDefined.getFields().get(udtValue.getKey());
-      if (cqlType.isUDT()) {
+      Map<String, Column> columnMap = userDefined.columnMap();
+      Column.ColumnType cqlType = columnMap.get(udtValue.getKey()).type();
+      if (cqlType.isUserDefined()) {
         // extract nested values
         Record nestedUdtRecord =
             new Record(record.getSchema().getField(udtValue.getKey()).schema());
-        constructUdt((UserDefined) cqlType, udtValue.getValue(), nestedUdtRecord);
+        constructUdt((UserDefinedType) cqlType, udtValue.getValue(), nestedUdtRecord);
         record.put(udtValue.getKey(), nestedUdtRecord);
       } else {
         // put actual value
@@ -208,15 +210,14 @@ public class KeyValueConstructor {
       List<? extends CellValue> cellValues, GenericRecord genericRecord) {
     cellValues.forEach(
         cellValue ->
-            genericRecord.put(
-                cellValue.getColumn().getName(), getValueObjectOrByteBuffer(cellValue)));
+            genericRecord.put(cellValue.getColumn().name(), getValueObjectOrByteBuffer(cellValue)));
   }
 
   /**
    * It returns the java representation of the underlying value using {@link
    * CellValue#getValueObject()}. For the {@link CqlDuration} and {@link InetAddress} it returns the
    * byte buffer using {@link CellValue#getValue()} because both of those type does not have an avro
-   * representation. If the cell value is of a {@link Custom} it also returns byte buffer.
+   * representation. If the cell value is of a custom type it also returns byte buffer.
    */
   private Object getValueObjectOrByteBuffer(CellValue valueObject) {
     if (valueObject.getValueObject() == null) {
@@ -224,7 +225,7 @@ public class KeyValueConstructor {
     }
 
     // custom type should be saved as bytes
-    if (valueObject.getColumn().getType() instanceof Custom) {
+    if (valueObject.getColumn().type().id() == CUSTOM_TYPE_ID) {
       valueObject.getValue();
     }
 

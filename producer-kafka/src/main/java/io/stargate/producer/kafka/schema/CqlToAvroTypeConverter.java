@@ -15,7 +15,12 @@
  */
 package io.stargate.producer.kafka.schema;
 
+import static io.stargate.producer.kafka.schema.SchemaConstants.CUSTOM_TYPE_ID;
+
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.ParameterizedType;
+import io.stargate.db.schema.UserDefinedType;
 import io.stargate.producer.kafka.schema.codecs.BigIntegerConversion;
 import io.stargate.producer.kafka.schema.codecs.BigIntegerLogicalType;
 import io.stargate.producer.kafka.schema.codecs.BigIntegerLogicalType.BigIntegerTypeFactory;
@@ -27,6 +32,7 @@ import io.stargate.producer.kafka.schema.codecs.ShortLogicalType;
 import io.stargate.producer.kafka.schema.codecs.ShortLogicalType.ShortTypeFactory;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.avro.Conversions;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
@@ -35,18 +41,11 @@ import org.apache.avro.SchemaBuilder;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.avro.data.TimeConversions;
 import org.apache.avro.generic.GenericData;
-import org.apache.cassandra.stargate.schema.CQLType;
-import org.apache.cassandra.stargate.schema.CQLType.Collection;
-import org.apache.cassandra.stargate.schema.CQLType.Custom;
-import org.apache.cassandra.stargate.schema.CQLType.MapDataType;
-import org.apache.cassandra.stargate.schema.CQLType.Native;
-import org.apache.cassandra.stargate.schema.CQLType.Tuple;
-import org.apache.cassandra.stargate.schema.CQLType.UserDefined;
 import org.apache.commons.lang.StringUtils;
 
 public class CqlToAvroTypeConverter {
   private static final int DEFAULT_DECIMAL_PRECISION = 10;
-  private static final Map<Native, Schema> SCHEMA_PER_NATIVE_TYPE = new HashMap<>();
+  private static final Map<Column.Type, Schema> SCHEMA_PER_NATIVE_TYPE = new HashMap<>();
 
   private CqlToAvroTypeConverter() {}
 
@@ -57,41 +56,42 @@ public class CqlToAvroTypeConverter {
     LogicalTypes.register(
         BigIntegerLogicalType.BIG_INTEGER_LOGICAL_TYPE_NAME, new BigIntegerTypeFactory());
 
-    SCHEMA_PER_NATIVE_TYPE.put(Native.ASCII, Schema.create(Type.STRING));
-    SCHEMA_PER_NATIVE_TYPE.put(Native.BIGINT, Schema.create(Type.LONG));
-    SCHEMA_PER_NATIVE_TYPE.put(Native.BLOB, Schema.create(Type.BYTES));
-    SCHEMA_PER_NATIVE_TYPE.put(Native.BOOLEAN, Schema.create(Type.BOOLEAN));
-    SCHEMA_PER_NATIVE_TYPE.put(Native.COUNTER, Schema.create(Type.LONG));
+    SCHEMA_PER_NATIVE_TYPE.put(Column.Type.Ascii, Schema.create(Type.STRING));
+    SCHEMA_PER_NATIVE_TYPE.put(Column.Type.Bigint, Schema.create(Type.LONG));
+    SCHEMA_PER_NATIVE_TYPE.put(Column.Type.Blob, Schema.create(Type.BYTES));
+    SCHEMA_PER_NATIVE_TYPE.put(Column.Type.Boolean, Schema.create(Type.BOOLEAN));
+    SCHEMA_PER_NATIVE_TYPE.put(Column.Type.Counter, Schema.create(Type.LONG));
     SCHEMA_PER_NATIVE_TYPE.put(
-        Native.DATE, LogicalTypes.date().addToSchema(Schema.create(Type.INT)));
+        Column.Type.Date, LogicalTypes.date().addToSchema(Schema.create(Type.INT)));
     SCHEMA_PER_NATIVE_TYPE.put(
-        Native.DECIMAL,
+        Column.Type.Decimal,
         LogicalTypes.decimal(DEFAULT_DECIMAL_PRECISION).addToSchema(Schema.create(Type.BYTES)));
-    SCHEMA_PER_NATIVE_TYPE.put(Native.DOUBLE, Schema.create(Type.DOUBLE));
+    SCHEMA_PER_NATIVE_TYPE.put(Column.Type.Double, Schema.create(Type.DOUBLE));
     SCHEMA_PER_NATIVE_TYPE.put(
-        Native.DURATION,
+        Column.Type.Duration,
         Schema.create(Type.BYTES)); // there is no avro codec for this type, write as raw byte
-    SCHEMA_PER_NATIVE_TYPE.put(Native.FLOAT, Schema.create(Type.FLOAT));
+    SCHEMA_PER_NATIVE_TYPE.put(Column.Type.Float, Schema.create(Type.FLOAT));
     SCHEMA_PER_NATIVE_TYPE.put(
-        Native.INET,
+        Column.Type.Inet,
         Schema.create(Type.BYTES)); // there is no avro codec for this type, write as raw byte
-    SCHEMA_PER_NATIVE_TYPE.put(Native.INT, Schema.create(Type.INT));
+    SCHEMA_PER_NATIVE_TYPE.put(Column.Type.Int, Schema.create(Type.INT));
     SCHEMA_PER_NATIVE_TYPE.put(
-        Native.SMALLINT, new ShortLogicalType().addToSchema(Schema.create(Type.INT)));
-    SCHEMA_PER_NATIVE_TYPE.put(Native.TEXT, Schema.create(Type.STRING));
+        Column.Type.Smallint, new ShortLogicalType().addToSchema(Schema.create(Type.INT)));
+    SCHEMA_PER_NATIVE_TYPE.put(Column.Type.Text, Schema.create(Type.STRING));
     SCHEMA_PER_NATIVE_TYPE.put(
-        Native.TIME, LogicalTypes.timeMicros().addToSchema(Schema.create(Type.LONG)));
+        Column.Type.Time, LogicalTypes.timeMicros().addToSchema(Schema.create(Type.LONG)));
     SCHEMA_PER_NATIVE_TYPE.put(
-        Native.TIMESTAMP, LogicalTypes.timestampMillis().addToSchema(Schema.create(Type.LONG)));
+        Column.Type.Timestamp,
+        LogicalTypes.timestampMillis().addToSchema(Schema.create(Type.LONG)));
     SCHEMA_PER_NATIVE_TYPE.put(
-        Native.TIMEUUID, LogicalTypes.uuid().addToSchema(Schema.create(Type.STRING)));
+        Column.Type.Timeuuid, LogicalTypes.uuid().addToSchema(Schema.create(Type.STRING)));
     SCHEMA_PER_NATIVE_TYPE.put(
-        Native.TINYINT, new ByteLogicalType().addToSchema(Schema.create(Type.INT)));
+        Column.Type.Tinyint, new ByteLogicalType().addToSchema(Schema.create(Type.INT)));
     SCHEMA_PER_NATIVE_TYPE.put(
-        Native.UUID, LogicalTypes.uuid().addToSchema(Schema.create(Type.STRING)));
-    SCHEMA_PER_NATIVE_TYPE.put(Native.VARCHAR, Schema.create(Type.STRING));
+        Column.Type.Uuid, LogicalTypes.uuid().addToSchema(Schema.create(Type.STRING)));
+    SCHEMA_PER_NATIVE_TYPE.put(Column.Type.Varchar, Schema.create(Type.STRING));
     SCHEMA_PER_NATIVE_TYPE.put(
-        Native.VARINT, new BigIntegerLogicalType().addToSchema(Schema.create(Type.BYTES)));
+        Column.Type.Varint, new BigIntegerLogicalType().addToSchema(Schema.create(Type.BYTES)));
 
     GenericData.get().addLogicalTypeConversion(new Conversions.DecimalConversion());
     GenericData.get().addLogicalTypeConversion(new Conversions.UUIDConversion());
@@ -107,35 +107,35 @@ public class CqlToAvroTypeConverter {
    * It creates a Schema based on the CqlType. To see how specific types are handled, see the Java
    * doc of other methods.
    */
-  public static Schema toAvroType(CQLType type) {
-    if (type instanceof Collection) {
-      return createCollectionSchema((Collection) type);
-    } else if (type instanceof MapDataType) {
-      return createMapSchema((MapDataType) type);
-    } else if (type instanceof UserDefined) {
-      return createUserDefinedSchema((UserDefined) type);
-    } else if (type instanceof Tuple) {
-      return creteTupleSchema((Tuple) type);
-    } else if (type instanceof Custom) {
-      return createCustomSchema((Custom) type);
-    } else if (type instanceof Native) {
-      return getNativeSchema((Native) type);
+  public static Schema toAvroType(Column.ColumnType type) {
+    if (type.isMap()) {
+      return createMapSchema((ParameterizedType.MapType) type);
+    } else if (type.isCollection()) {
+      return createCollectionSchema(type);
+    } else if (type.isUserDefined()) {
+      return createUserDefinedSchema((UserDefinedType) type);
+    } else if (type.isTuple()) {
+      return createTupleSchema((ParameterizedType.TupleType) type);
+    } else if (type.id() == CUSTOM_TYPE_ID) {
+      return createCustomSchema();
+    } else if (type instanceof Column.Type) {
+      return getNativeSchema((Column.Type) type);
     } else {
       throw new UnsupportedOperationException(String.format("The type: %s is not supported", type));
     }
   }
 
-  private static Schema getNativeSchema(Native type) {
+  private static Schema getNativeSchema(Column.Type type) {
     return SCHEMA_PER_NATIVE_TYPE.get(type);
   }
 
   /**
    * The custom type is saved as bytes without an attempt to deserialize it. It's the client
-   * responsibility to deserialize it correctly. Currently, the class name form {@link
-   * Custom#getClassName()} is not propagated in the avro message.
+   * responsibility to deserialize it correctly. Currently, the class name is not propagated in the
+   * avro message.
    */
   @VisibleForTesting
-  static Schema createCustomSchema(@SuppressWarnings("unused") Custom type) {
+  static Schema createCustomSchema() {
     return Schema.create(Type.BYTES);
   }
 
@@ -143,7 +143,7 @@ public class CqlToAvroTypeConverter {
    * The Tuple is a Record type in Avro. For example, such a Tuple type:
    *
    * <pre>
-   *     new Tuple(Native.INT, new Collection(Kind.LIST, Native.TEXT));
+   *     new Tuple(Column.Type.INT, new Collection(Kind.LIST, Column.Type.TEXT));
    * </pre>
    *
    * will have the following schema:
@@ -169,20 +169,20 @@ public class CqlToAvroTypeConverter {
    * </pre>
    *
    * Please note that the name of the record is transformed according to {@link
-   * this#tupleToRecordName(Tuple)} method. Every element in the tuple has a name according to
-   * {@link this#toTupleFieldName(int)}.
+   * this#tupleToRecordName} method. Every element in the tuple has a name according to {@link
+   * this#toTupleFieldName(int)}.
    *
    * <p>The generated schema also supports nested Tuple types.
    */
   @VisibleForTesting
-  static Schema creteTupleSchema(Tuple type) {
+  static Schema createTupleSchema(ParameterizedType.TupleType type) {
     FieldAssembler<Schema> tupleSchemaBuilder =
         SchemaBuilder.record(tupleToRecordName(type)).fields();
 
-    for (int i = 0; i < type.getSubTypes().length; i++) {
+    for (int i = 0; i < type.parameters().size(); i++) {
       tupleSchemaBuilder
           .name(toTupleFieldName(i))
-          .type(toAvroType(type.getSubTypes()[i]))
+          .type(toAvroType(type.parameters().get(i)))
           .noDefault();
     }
     return tupleSchemaBuilder.endRecord();
@@ -197,16 +197,21 @@ public class CqlToAvroTypeConverter {
   }
 
   /**
-   * It converts the tuple name returned by the {@link Tuple#getName()} to a name that can be used
-   * as an Avro record name. For example {@code new Tuple(Native.INT)} will be transformed to
-   * 'tuple_int_' string value. It replaces removes all whitespaces, and replaces all occurrences of
-   * '<', '>' and ','.
+   * It converts the tuple name returned by the {@link ParameterizedType.TupleType#cqlDefinition()}
+   * to a name that can be used as an Avro record name. For example {@code new Tuple(Column.Type
+   * .INT)} will be transformed to 'tuple_int_' string value. It replaces removes all whitespaces,
+   * and replaces all occurrences of '<', '>' and ','.
    */
-  public static String tupleToRecordName(Tuple type) {
-    return StringUtils.deleteWhitespace(type.getName())
-        .replaceAll("<", "_")
-        .replaceAll(">", "_")
-        .replaceAll(",", "_");
+  public static String tupleToRecordName(ParameterizedType.TupleType type) {
+
+    return StringUtils.deleteWhitespace(
+        type.rawType().cqlDefinition()
+            + type.parameters().stream()
+                .map(p -> p.cqlDefinition())
+                .collect(Collectors.joining("_", "_", "_"))
+                .replaceAll("<", "_")
+                .replaceAll(">", "_")
+                .replaceAll(",", "_"));
   }
 
   /**
@@ -214,8 +219,8 @@ public class CqlToAvroTypeConverter {
    *
    * <pre>
    * LinkedHashMap<String, CQLType> udtColumns = new LinkedHashMap<>();
-   * udtColumns.put("udtcol_1", Native.INT);
-   * udtColumns.put("udtcol_2", Native.TEXT);
+   * udtColumns.put("udtcol_1", Column.Type.Int);
+   * udtColumns.put("udtcol_2", Column.Type.Text);
    * UserDefined userDefinedType = new UserDefined("ks", "typeName", udtColumns);
    * </pre>
    *
@@ -241,10 +246,10 @@ public class CqlToAvroTypeConverter {
    * The generated schema also supports nested UserDefined types.
    */
   @VisibleForTesting
-  static Schema createUserDefinedSchema(UserDefined type) {
-    FieldAssembler<Schema> udtSchemaBuilder = SchemaBuilder.record(type.getName()).fields();
-    for (Map.Entry<String, CQLType> udtField : type.getFields().entrySet()) {
-      udtSchemaBuilder.name(udtField.getKey()).type(toAvroType(udtField.getValue())).noDefault();
+  static Schema createUserDefinedSchema(UserDefinedType type) {
+    FieldAssembler<Schema> udtSchemaBuilder = SchemaBuilder.record(type.name()).fields();
+    for (Column udtField : type.columns()) {
+      udtSchemaBuilder.name(udtField.name()).type(toAvroType(udtField.type())).noDefault();
     }
     return udtSchemaBuilder.endRecord();
   }
@@ -267,8 +272,8 @@ public class CqlToAvroTypeConverter {
    * Please note that there is no field that represents the value for keys in a map.
    */
   @VisibleForTesting
-  static Schema createMapSchema(MapDataType type) {
-    return SchemaBuilder.map().values(toAvroType(type.getValueType()));
+  static Schema createMapSchema(ParameterizedType.MapType type) {
+    return SchemaBuilder.map().values(toAvroType(type.parameters().get(1)));
   }
 
   /**
@@ -283,7 +288,7 @@ public class CqlToAvroTypeConverter {
    * </pre>
    */
   @VisibleForTesting
-  static Schema createCollectionSchema(Collection type) {
-    return SchemaBuilder.array().items(toAvroType(type.getSubType()));
+  static Schema createCollectionSchema(Column.ColumnType type) {
+    return SchemaBuilder.array().items(toAvroType(type.parameters().get(0)));
   }
 }

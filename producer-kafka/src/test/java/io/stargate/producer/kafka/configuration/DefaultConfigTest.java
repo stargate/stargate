@@ -30,11 +30,12 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.codahale.metrics.MetricRegistry;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.dropwizard.kafka.metrics.DropwizardMetricsReporter;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.config.store.api.ConfigWithOverrides;
-import io.stargate.config.store.api.yaml.ConfigStoreYaml;
+import io.stargate.config.store.yaml.ConfigStoreYaml;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.AbstractMap.SimpleEntry;
@@ -103,7 +104,7 @@ class DefaultConfigTest {
   public void shouldThrowIfRequiredSettingNotPresent(Map<String, Object> options) {
     ConfigStore configStore = mock(ConfigStore.class);
     when(configStore.getConfigForModule(CONFIG_STORE_MODULE_NAME))
-        .thenReturn(new ConfigWithOverrides(options));
+        .thenReturn(new ConfigWithOverrides(options, CONFIG_STORE_MODULE_NAME));
 
     // when
     assertThatThrownBy(() -> new DefaultConfigLoader().loadConfig(configStore))
@@ -221,7 +222,7 @@ class DefaultConfigTest {
     options.put(METRICS_INCLUDE_TAGS_SETTING_NAME, true);
     ConfigStore configStore = mock(ConfigStore.class);
     when(configStore.getConfigForModule(CONFIG_STORE_MODULE_NAME))
-        .thenReturn(new ConfigWithOverrides(options));
+        .thenReturn(new ConfigWithOverrides(options, CONFIG_STORE_MODULE_NAME));
 
     // when
     CDCKafkaConfig config = new DefaultConfigLoader().loadConfig(configStore);
@@ -256,7 +257,7 @@ class DefaultConfigTest {
         Paths.get(
             Objects.requireNonNull(getClass().getClassLoader().getResource("stargate-config.yaml"))
                 .getPath());
-    ConfigStore configStore = new ConfigStoreYaml(path);
+    ConfigStore configStore = new ConfigStoreYaml(path, new MetricRegistry());
 
     // when
     CDCKafkaConfig cdcKafkaConfig = new DefaultConfigLoader().loadConfig(configStore);

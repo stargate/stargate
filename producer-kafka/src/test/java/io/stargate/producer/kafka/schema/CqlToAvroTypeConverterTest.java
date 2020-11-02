@@ -2,18 +2,18 @@ package io.stargate.producer.kafka.schema;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-import java.util.LinkedHashMap;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.ImmutableColumn;
+import io.stargate.db.schema.ImmutableListType;
+import io.stargate.db.schema.ImmutableMapType;
+import io.stargate.db.schema.ImmutableSetType;
+import io.stargate.db.schema.ImmutableTupleType;
+import io.stargate.db.schema.ImmutableUserDefinedType;
+import io.stargate.db.schema.ParameterizedType;
+import io.stargate.db.schema.UserDefinedType;
 import java.util.stream.Stream;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
-import org.apache.cassandra.stargate.schema.CQLType;
-import org.apache.cassandra.stargate.schema.CQLType.Collection;
-import org.apache.cassandra.stargate.schema.CQLType.Collection.Kind;
-import org.apache.cassandra.stargate.schema.CQLType.Custom;
-import org.apache.cassandra.stargate.schema.CQLType.MapDataType;
-import org.apache.cassandra.stargate.schema.CQLType.Native;
-import org.apache.cassandra.stargate.schema.CQLType.Tuple;
-import org.apache.cassandra.stargate.schema.CQLType.UserDefined;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -23,14 +23,16 @@ class CqlToAvroTypeConverterTest {
 
   @ParameterizedTest
   @MethodSource("tuplesProvider")
-  public void shouldCreateTupleName(Tuple tuple, String expected) {
+  public void shouldCreateTupleName(ParameterizedType.TupleType tuple, String expected) {
     assertThat(CqlToAvroTypeConverter.tupleToRecordName(tuple)).isEqualTo(expected);
   }
 
   @Test
   public void shouldCreateSchemaForSimpleTuple() {
     // when
-    Schema schema = CqlToAvroTypeConverter.creteTupleSchema(new Tuple(Native.INT));
+    Schema schema =
+        CqlToAvroTypeConverter.createTupleSchema(
+            ImmutableTupleType.builder().addParameters(Column.Type.Int).build());
 
     // then
     assertThat(schema.getField("t_0").schema().getType()).isEqualTo(Type.INT);
@@ -40,8 +42,13 @@ class CqlToAvroTypeConverterTest {
   public void shouldCreateSchemaForComplexTuple() {
     // when
     Schema schema =
-        CqlToAvroTypeConverter.creteTupleSchema(
-            new Tuple(Native.INT, Native.TEXT, new Collection(Kind.LIST, Native.INT)));
+        CqlToAvroTypeConverter.createTupleSchema(
+            ImmutableTupleType.builder()
+                .addParameters(
+                    Column.Type.Int,
+                    Column.Type.Text,
+                    ImmutableListType.builder().addParameters(Column.Type.Int).build())
+                .build());
 
     // then
     assertThat(schema.getField("t_0").schema().getType()).isEqualTo(Type.INT);
@@ -53,8 +60,16 @@ class CqlToAvroTypeConverterTest {
   public void shouldCreateSchemaForNestedTuple() {
     // when
     Schema schema =
-        CqlToAvroTypeConverter.creteTupleSchema(
-            new Tuple(new Tuple(Native.INT, new Collection(Kind.SET, Native.ASCII)), Native.TEXT));
+        CqlToAvroTypeConverter.createTupleSchema(
+            ImmutableTupleType.builder()
+                .addParameters(
+                    ImmutableTupleType.builder()
+                        .addParameters(
+                            Column.Type.Int,
+                            ImmutableSetType.builder().addParameters(Column.Type.Ascii).build())
+                        .build(),
+                    Column.Type.Text)
+                .build());
 
     // then
     Schema nested = schema.getField("t_0").schema();
@@ -67,7 +82,7 @@ class CqlToAvroTypeConverterTest {
   @Test
   public void shouldCreateSchemaForCustomType() {
     // when
-    Schema schema = CqlToAvroTypeConverter.createCustomSchema(new Custom("class"));
+    Schema schema = CqlToAvroTypeConverter.createCustomSchema();
 
     // then
     assertThat(schema.getType()).isEqualTo(Type.BYTES);
@@ -76,10 +91,16 @@ class CqlToAvroTypeConverterTest {
   @Test
   public void shouldCreateSimpleUserDefinedSchema() {
     // when
-    LinkedHashMap<String, CQLType> udtColumns = new LinkedHashMap<>();
-    udtColumns.put("udtcol_1", Native.INT);
-    udtColumns.put("udtcol_2", Native.TEXT);
-    UserDefined userDefinedType = new UserDefined("ks", "typeName", udtColumns);
+    Column[] udtColumns = {
+      ImmutableColumn.builder().name("udtcol_1").type(Column.Type.Int).build(),
+      ImmutableColumn.builder().name("udtcol_2").type(Column.Type.Text).build()
+    };
+    UserDefinedType userDefinedType =
+        ImmutableUserDefinedType.builder()
+            .keyspace("ks")
+            .name("typeName")
+            .addColumns(udtColumns)
+            .build();
     Schema schema = CqlToAvroTypeConverter.createUserDefinedSchema(userDefinedType);
 
     // then
@@ -91,14 +112,31 @@ class CqlToAvroTypeConverterTest {
   @Test
   public void shouldCreateNestedUserDefinedSchema() {
     // when
-    LinkedHashMap<String, CQLType> udtColumns = new LinkedHashMap<>();
-    udtColumns.put("udtcol_1", Native.INT);
-    udtColumns.put("udtcol_2", Native.TEXT);
-    UserDefined userDefinedType = new UserDefined("ks", "typeName", udtColumns);
-    LinkedHashMap<String, CQLType> nestedUdtColumns = new LinkedHashMap<>();
-    nestedUdtColumns.put("nested", userDefinedType);
-    nestedUdtColumns.put("list", new Collection(Kind.LIST, Native.INT));
-    UserDefined userDefinedTypeNested = new UserDefined("ks", "nested", nestedUdtColumns);
+    Column[] udtColumns = {
+      ImmutableColumn.builder().name("udtcol_1").type(Column.Type.Int).build(),
+      ImmutableColumn.builder().name("udtcol_2").type(Column.Type.Text).build()
+    };
+
+    UserDefinedType userDefinedType =
+        ImmutableUserDefinedType.builder()
+            .keyspace("ks")
+            .name("typeName")
+            .addColumns(udtColumns)
+            .build();
+
+    Column[] nestedUdtColumns = {
+      ImmutableColumn.builder().name("nested").type(userDefinedType).build(),
+      ImmutableColumn.builder()
+          .name("list")
+          .type(ImmutableListType.builder().addParameters(Column.Type.Int).build())
+          .build()
+    };
+    UserDefinedType userDefinedTypeNested =
+        ImmutableUserDefinedType.builder()
+            .keyspace("ks")
+            .name("nested")
+            .addColumns(nestedUdtColumns)
+            .build();
     Schema schema = CqlToAvroTypeConverter.createUserDefinedSchema(userDefinedTypeNested);
 
     // then
@@ -114,7 +152,8 @@ class CqlToAvroTypeConverterTest {
   public void shouldCreateSchemaForList() {
     // when
     Schema schema =
-        CqlToAvroTypeConverter.createCollectionSchema(new Collection(Kind.LIST, Native.TEXT));
+        CqlToAvroTypeConverter.createCollectionSchema(
+            ImmutableListType.builder().addParameters(Column.Type.Text).build());
 
     // then
     assertThat(schema.getType()).isEqualTo(Type.ARRAY);
@@ -125,7 +164,8 @@ class CqlToAvroTypeConverterTest {
   public void shouldCreateSchemaForSet() {
     // when
     Schema schema =
-        CqlToAvroTypeConverter.createCollectionSchema(new Collection(Kind.SET, Native.TEXT));
+        CqlToAvroTypeConverter.createCollectionSchema(
+            ImmutableSetType.builder().addParameters(Column.Type.Text).build());
 
     // then
     assertThat(schema.getType()).isEqualTo(Type.ARRAY);
@@ -136,7 +176,8 @@ class CqlToAvroTypeConverterTest {
   public void shouldCreateSchemaForMap() {
     // when
     Schema schema =
-        CqlToAvroTypeConverter.createMapSchema(new MapDataType(Native.INT, Native.TEXT));
+        CqlToAvroTypeConverter.createMapSchema(
+            ImmutableMapType.builder().addParameters(Column.Type.Int, Column.Type.Text).build());
 
     // then
     assertThat(schema.getType()).isEqualTo(Type.MAP);
@@ -145,13 +186,29 @@ class CqlToAvroTypeConverterTest {
 
   public static Stream<Arguments> tuplesProvider() {
     return Stream.of(
-        Arguments.of(new Tuple(Native.INT), "tuple_int_"),
-        Arguments.of(new Tuple(Native.INT, Native.TEXT), "tuple_int_text_"),
         Arguments.of(
-            new Tuple(Native.INT, Native.TEXT, new Collection(Kind.LIST, Native.INT)),
+            ImmutableTupleType.builder().addParameters(Column.Type.Int).build(), "tuple_int_"),
+        Arguments.of(
+            ImmutableTupleType.builder().addParameters(Column.Type.Int, Column.Type.Text).build(),
+            "tuple_int_text_"),
+        Arguments.of(
+            ImmutableTupleType.builder()
+                .addParameters(
+                    Column.Type.Int,
+                    Column.Type.Text,
+                    ImmutableListType.builder().addParameters(Column.Type.Int).build())
+                .build(),
             "tuple_int_text_list_int__"),
         Arguments.of(
-            new Tuple(new Tuple(Native.INT, new Collection(Kind.SET, Native.ASCII)), Native.TEXT),
-            "tuple_tuple_int_set_ascii___text_"));
+            ImmutableTupleType.builder()
+                .addParameters(
+                    ImmutableTupleType.builder()
+                        .addParameters(
+                            Column.Type.Int,
+                            ImmutableSetType.builder().addParameters(Column.Type.Ascii).build())
+                        .build(),
+                    Column.Type.Text)
+                .build(),
+            "tuple_frozen_tuple_int_set_ascii____text_"));
   }
 }

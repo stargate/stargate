@@ -289,27 +289,27 @@ The resulting schema supports a variety of types that can be used for any cell v
 ==== Supported Native Types.
 Let's take a look at a list of supported native types:
 
-- `Native.ASCII` is serialized as avro `Type.STRING`.
-- `Native.BIGINT` is serialized as avro `Type.LONG`.
-- `Native.BLOB` is serialized as avro `Type.BYTES`.
-- `Native.BOOLEAN` is serialized as avro `Type.BOOLEAN`.
-- `Native.COUNTER` is serialized as avro `Type.LONG`.
-- `Native.DATE` is serialized as avro logical `date` type with underlying `Type.INT` representation.
-- `Native.DECIMAL` is serialized as avro logical `decimal` type with underlying `Type.BYTES` representation. It uses `10` as a default decimal precision.
-- `Native.DOUBLE` is serialized as avro `Type.DOUBLE`.
-- `Native.DURATION` is serialized as a raw `Type.BYTES`
-- `Native.FLOAT` is serialized as avro `Type.FLOAT`.
-- `Native.INET` is serialized as a raw `Type.BYTES`
-- `Native.INT` is serialized as avro `Type.INT`.
-- `Native.SMALLINT` is serialized as avro logical `short` type with underlying `Type.INT` representation.
-- `Native.TEXT` is serialized as avro `Type.STRING`.
-- `Native.TIME` is serialized as avro logical `timeMicros` type with underlying `Type.LONG` representation.
-- `Native.TIMESTAMP` is serialized as avro logical `timestampMillis` type with underlying `Type.LONG` representation.
-- `Native.TIMEUUID` is serialized as avro logical `uuid` type with underlying `Type.STRING` representation.
-- `Native.TINYINT` is serialized as avro logical `byte` type with underlying `Type.INT` representation.
-- `Native.UUID` is serialized as avro logical `uuid` type with underlying `Type.STRING` representation.
-- `Native.VARCHAR` is serialized as avro `Type.STRING`.
-- `Native.VARINT` is serialized as avro logical `bigInteger` type with underlying `Type.BYTES` representation.
+- `ascii` is serialized as avro `Type.STRING`.
+- `bigint` is serialized as avro `Type.LONG`.
+- `blob` is serialized as avro `Type.BYTES`.
+- `boolean` is serialized as avro `Type.BOOLEAN`.
+- `counter` is serialized as avro `Type.LONG`.
+- `date` is serialized as avro logical `date` type with underlying `Type.INT` representation.
+- `decimal` is serialized as avro logical `decimal` type with underlying `Type.BYTES` representation. It uses `10` as a default decimal precision.
+- `double` is serialized as avro `Type.DOUBLE`.
+- `duration` is serialized as a raw `Type.BYTES`
+- `float` is serialized as avro `Type.FLOAT`.
+- `inet` is serialized as a raw `Type.BYTES`
+- `int` is serialized as avro `Type.INT`.
+- `smallint` is serialized as avro logical `short` type with underlying `Type.INT` representation.
+- `text` is serialized as avro `Type.STRING`.
+- `time` is serialized as avro logical `timeMicros` type with underlying `Type.LONG` representation.
+- `timestamp` is serialized as avro logical `timestampMillis` type with underlying `Type.LONG` representation.
+- `timeuuid` is serialized as avro logical `uuid` type with underlying `Type.STRING` representation.
+- `tinyint` is serialized as avro logical `byte` type with underlying `Type.INT` representation.
+- `uuid` is serialized as avro logical `uuid` type with underlying `Type.STRING` representation.
+- `varchar` is serialized as avro `Type.STRING`.
+- `varint` is serialized as avro logical `bigInteger` type with underlying `Type.BYTES` representation.
 
 ==== Map Type
 Avro assumes that every key is of a string type and automatically converts every key to a
@@ -339,15 +339,15 @@ For example, the resulting type for set and list of an integer type will be:
 ----
 
 ==== User Defined Type (UDT) Schema
-The UserDefined is a Record type in Avro.
-For example, such an UserDefined type:
+The user-defined type is a Record type in Avro.
+For example, such an user defined type:
 
-[source,java]
+[source,cql]
 ----
-LinkedHashMap<String, CQLType> udtColumns = new LinkedHashMap<>();
-udtColumns.put("udtcol_1", Native.INT);
-udtColumns.put("udtcol_2", Native.TEXT);
-UserDefined userDefinedType = new UserDefined("ks", "typeName", udtColumns);
+CREATE TYPE phone (
+  country_code int,
+  phone_number text
+);
 ----
 
 will have the following schema:
@@ -356,14 +356,14 @@ will have the following schema:
 ----
 {
 "type":"record",
-"name":"typeName",
+"name":"phone",
 "fields":[
    {
-      "name":"udtcol_1",
+      "name":"country_code",
       "type":"int"
    },
    {
-      "name":"udtcol_2",
+      "name":"phone_number",
       "type":"string"
    }
  ]
@@ -376,9 +376,9 @@ The generated schema also supports nested UserDefined types.
 
 The Tuple is a Record type in Avro. For example, such a Tuple type:
 
-[source,java]
+[source,cql]
 ----
-new Tuple(Native.INT, new Collection(Kind.LIST, Native.TEXT));
+tuple<int, list<text>>
 ----
 
 will have the following schema:

@@ -13,13 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.stargate.config.store.yaml;
 
-package io.stargate.db.cdc;
+import com.google.common.base.Ticker;
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicLong;
 
-interface CDCHealthChecker extends AutoCloseable {
-  boolean isHealthy();
+/** A Ticker whose value can be advanced programmatically in test. */
+public class FakeTicker extends Ticker {
 
-  void reportSendError();
+  private final AtomicLong nanos = new AtomicLong();
 
-  void reportSendSuccess();
+  public FakeTicker advance(long nanoseconds) {
+    nanos.addAndGet(nanoseconds);
+    return this;
+  }
+
+  public FakeTicker advance(Duration duration) {
+    return advance(duration.toNanos());
+  }
+
+  @Override
+  public long read() {
+    return nanos.get();
+  }
 }

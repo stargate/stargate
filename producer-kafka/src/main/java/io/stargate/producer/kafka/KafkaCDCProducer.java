@@ -21,6 +21,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import io.dropwizard.kafka.metrics.DropwizardMetricsReporter;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.db.cdc.SchemaAwareCDCProducer;
+import io.stargate.db.schema.Table;
 import io.stargate.producer.kafka.configuration.CDCKafkaConfig;
 import io.stargate.producer.kafka.configuration.DefaultConfigLoader;
 import io.stargate.producer.kafka.mapping.DefaultMappingService;
@@ -36,7 +37,6 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.cassandra.stargate.db.DeleteEvent;
 import org.apache.cassandra.stargate.db.MutationEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
-import org.apache.cassandra.stargate.schema.TableMetadata;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
 public class KafkaCDCProducer extends SchemaAwareCDCProducer {
@@ -88,8 +88,8 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
   }
 
   @Override
-  protected CompletableFuture<Void> createTableSchemaAsync(TableMetadata tableMetadata) {
-    return CompletableFuture.runAsync(() -> schemaProvider.createOrUpdateSchema(tableMetadata));
+  protected CompletableFuture<Void> createTableSchemaAsync(Table table) {
+    return CompletableFuture.runAsync(() -> schemaProvider.createOrUpdateSchema(table));
   }
 
   @Override
