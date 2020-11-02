@@ -28,13 +28,13 @@ import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -256,6 +256,10 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
 
     @Override
     public StargateConnectionInfo addNode() throws Exception {
+      if (spec.shared()) {
+        throw new UnsupportedOperationException(
+            "Adding a node to a shared cluster is not supported");
+      }
       Node node = new Node(nodes.size(), instanceNum, backend, env, parameters);
       nodes.add(node);
       node.start();
@@ -265,6 +269,10 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
 
     @Override
     public void removeNode(StargateConnectionInfo node) {
+      if (spec.shared()) {
+        throw new UnsupportedOperationException(
+            "Removing a node from a shared cluster is not supported");
+      }
       Node internalNode = (Node) node;
       internalNode.stopNode();
       internalNode.awaitExit();
@@ -489,8 +497,8 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
   }
 
   private static class Env {
-    private final Map<Integer, Integer> jmxPorts = new HashMap<>();
-    private final Map<Integer, String> listenAddresses = new HashMap<>();
+    private final Map<Integer, Integer> jmxPorts = new ConcurrentHashMap<>();
+    private final Map<Integer, String> listenAddresses = new ConcurrentHashMap<>();
 
     private String listenAddress(int index) {
       return listenAddresses.computeIfAbsent(

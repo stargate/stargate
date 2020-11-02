@@ -100,7 +100,7 @@ public class DsePersistenceActivator implements BundleActivator, ServiceListener
     c.disk_failure_policy = Config.DiskFailurePolicy.best_effort;
     c.start_native_transport = false;
     c.native_transport_port = cqlPort;
-    c.rpc_address = listenAddress;
+    c.rpc_address = "0.0.0.0";
     c.broadcast_rpc_address = listenAddress;
     c.endpoint_snitch = snitchClass;
     c.storage_port = listenPort;
