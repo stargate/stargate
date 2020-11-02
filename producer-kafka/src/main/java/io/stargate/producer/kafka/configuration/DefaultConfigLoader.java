@@ -18,6 +18,7 @@ package io.stargate.producer.kafka.configuration;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.dropwizard.kafka.metrics.DropwizardMetricsReporter;
+import io.stargate.config.store.api.ConfigStore;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -29,20 +30,30 @@ import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.producer.ProducerConfig;
 
 public class DefaultConfigLoader implements ConfigLoader {
-
+  public static final String CONFIG_STORE_MODULE_NAME = "cdc.kafka";
   private static final Pattern CDC_KAFKA_PRODUCER_SETTING_PATTERN =
       Pattern.compile(String.format("^(%s)\\.(.*.)", CDC_KAFKA_PRODUCER_SETTING_PREFIX));
 
   @Override
-  public CDCKafkaConfig loadConfig(Map<String, Object> options) {
+  public CDCKafkaConfig loadConfig(ConfigStore configStore) {
+    return loadConfig(configStore.getConfigForModule(CONFIG_STORE_MODULE_NAME).getConfigMap());
+  }
+
+  private CDCKafkaConfig loadConfig(Map<String, Object> options) {
     String topicPrefixName = getTopicPrefixName(options);
     Map<String, Object> kafkaProducerSettings = filterKafkaProducerSettings(options);
     MetricsConfig metricsConfig = loadMetricsConfig(options);
     registerMetricsIfEnabled(kafkaProducerSettings, metricsConfig);
     String schemaRegistryUrl = getSchemaRegistryUrl(kafkaProducerSettings);
+    validateBootstrapServersPresent(kafkaProducerSettings);
     putProducerSerializersConfig(kafkaProducerSettings);
     return new CDCKafkaConfig(
         topicPrefixName, schemaRegistryUrl, kafkaProducerSettings, metricsConfig);
+  }
+
+  private void validateBootstrapServersPresent(Map<String, Object> kafkaProducerSettings) {
+    // this should not throw
+    getStringSettingValue(kafkaProducerSettings, ProducerConfig.BOOTSTRAP_SERVERS_CONFIG);
   }
 
   /**

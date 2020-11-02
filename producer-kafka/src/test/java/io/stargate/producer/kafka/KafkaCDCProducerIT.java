@@ -35,6 +35,7 @@ import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import com.datastax.oss.protocol.internal.util.Bytes;
+import io.stargate.config.store.api.ConfigStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.ImmutableColumn;
@@ -79,9 +80,9 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     Table tableMetadata = mockTableMetadata();
     String topicName = createTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
-    Map<String, Object> properties = createKafkaProducerSettings();
-    kafkaCDCProducer.init(properties).get();
+    ConfigStore configStore = mockConfigStoreWithProducerSettings();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    kafkaCDCProducer.init().get();
 
     // when
     // schema change event
@@ -120,9 +121,9 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     Table tableMetadata = mockTableMetadata();
     String topicName = createTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
-    Map<String, Object> properties = createKafkaProducerSettings();
-    kafkaCDCProducer.init(properties).get();
+    ConfigStore configStore = mockConfigStoreWithProducerSettings();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    kafkaCDCProducer.init().get();
 
     // when
     // schema change event
@@ -161,9 +162,9 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     Table tableMetadata = mockTableMetadata();
     String topicName = createTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
-    Map<String, Object> properties = createKafkaProducerSettings();
-    kafkaCDCProducer.init(properties).get();
+    ConfigStore configStore = mockConfigStoreWithProducerSettings();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    kafkaCDCProducer.init().get();
 
     // when
     // schema change event
@@ -228,9 +229,9 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     Table tableMetadata = mockTableMetadata();
     String topicName = createTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
-    Map<String, Object> properties = createKafkaProducerSettings();
-    kafkaCDCProducer.init(properties).get();
+    ConfigStore configStore = mockConfigStoreWithProducerSettings();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    kafkaCDCProducer.init().get();
 
     // when
     // schema change event
@@ -378,9 +379,9 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     Table tableMetadata = mockTableMetadata();
     String topicName = createTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
-    Map<String, Object> properties = createKafkaProducerSettings();
-    kafkaCDCProducer.init(properties).get();
+    ConfigStore configStore = mockConfigStoreWithProducerSettings();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    kafkaCDCProducer.init().get();
 
     // when
     // schema change event
@@ -418,9 +419,9 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     Table tableMetadata = mockTableMetadata();
     String topicName = createTopicName(tableMetadata);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
-    Map<String, Object> properties = createKafkaProducerSettings();
-    kafkaCDCProducer.init(properties).get();
+    ConfigStore configStore = mockConfigStoreWithProducerSettings();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    kafkaCDCProducer.init().get();
 
     // normal map
     ParameterizedType.MapType mapType =
@@ -492,9 +493,9 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     String topicNameFirst = createTopicName(tableMetadataFirst);
     String topicNameSecond = createTopicName(tableMetadataFirst);
 
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry());
-    Map<String, Object> properties = createKafkaProducerSettings();
-    kafkaCDCProducer.init(properties).get();
+    ConfigStore configStore = mockConfigStoreWithProducerSettings();
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    kafkaCDCProducer.init().get();
 
     // when
     // schema change event for two independent topics - both have different schema

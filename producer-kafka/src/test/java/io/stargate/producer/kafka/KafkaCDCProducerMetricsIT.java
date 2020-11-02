@@ -30,6 +30,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
+import io.stargate.config.store.api.ConfigStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import java.util.Collections;
@@ -49,14 +50,14 @@ public class KafkaCDCProducerMetricsIT extends IntegrationTestBase {
 
     String kafkaMetricsPrefix = "producer-prefix";
     MetricRegistry metricRegistry = new MetricRegistry();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(metricRegistry);
     Map<String, Object> metricsSettings = new HashMap<>();
     metricsSettings.put(METRICS_ENABLED_SETTING_NAME, true);
     metricsSettings.put(METRICS_INCLUDE_TAGS_SETTING_NAME, true);
     metricsSettings.put(METRICS_NAME_SETTING_NAME, kafkaMetricsPrefix);
 
-    Map<String, Object> properties = createKafkaProducerSettings(metricsSettings);
-    kafkaCDCProducer.init(properties).get();
+    ConfigStore configStore = mockConfigStoreWithProducerSettings(metricsSettings);
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(metricRegistry, configStore);
+    kafkaCDCProducer.init().get();
 
     // when
     // schema change event
@@ -117,12 +118,12 @@ public class KafkaCDCProducerMetricsIT extends IntegrationTestBase {
     String topicName = createTopicName(tableMetadata);
 
     MetricRegistry metricRegistry = new MetricRegistry();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(metricRegistry);
     Map<String, Object> metricsSettings = new HashMap<>();
     metricsSettings.put(METRICS_ENABLED_SETTING_NAME, false);
 
-    Map<String, Object> properties = createKafkaProducerSettings(metricsSettings);
-    kafkaCDCProducer.init(properties).get();
+    ConfigStore configStore = mockConfigStoreWithProducerSettings(metricsSettings);
+    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(metricRegistry, configStore);
+    kafkaCDCProducer.init().get();
 
     // when
     // schema change event

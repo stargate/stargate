@@ -6,7 +6,7 @@ import org.osgi.framework.ServiceReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class BundleUtils {
+public class BundleUtils {
   private static final Logger logger = LoggerFactory.getLogger(CoreActivator.class);
 
   /** Gets the instance of the newly registered service or null if the type does not match. */
