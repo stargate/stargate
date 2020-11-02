@@ -16,6 +16,7 @@
 package io.stargate.config.store.api;
 
 import java.util.Map;
+import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -34,6 +35,57 @@ public class ConfigWithOverrides {
    */
   public Map<String, Object> getConfigMap() {
     return configMap;
+  }
+
+  @Nonnull
+  String getStringSettingValue(String settingName) {
+    return (String) getSettingValue(settingName, String.class);
+  }
+
+  @Nonnull
+  Optional<String> getOptionalStringValue(String settingName) {
+    return getOptionalSettingValue(settingName, String.class).map(v -> (String) v);
+  }
+
+  @Nonnull
+  Boolean getBooleanSettingValue(String settingName) {
+    return (Boolean) getSettingValue(settingName, Boolean.class);
+  }
+
+  @Nonnull
+  Optional<Boolean> getOptionalBooleanSettingValue(String settingName) {
+    return getOptionalSettingValue(settingName, Boolean.class).map(v -> (Boolean) v);
+  }
+
+  @Nonnull
+  Object getSettingValue(String settingName, Class<?> expectedType) {
+    Object configValue = configMap.get(settingName);
+    if (configValue == null) {
+      throw new IllegalArgumentException(
+          String.format("The config value for %s is not present", settingName));
+    }
+    if (!(configValue.getClass().isAssignableFrom(expectedType))) {
+      throw new IllegalArgumentException(
+          String.format(
+              "The config value for %s has wrong type: %s. It should be of a %s type",
+              settingName, configValue.getClass().getName(), expectedType.getName()));
+    }
+    return configValue;
+  }
+
+  @Nonnull
+  Optional<Object> getOptionalSettingValue(String settingName, Class<?> expectedType) {
+    Object configValue = configMap.get(settingName);
+    if (configValue == null) {
+      return Optional.empty();
+    }
+    if (!(configValue.getClass().isAssignableFrom(expectedType))) {
+      throw new IllegalArgumentException(
+          String.format(
+              "The config value for %s has wrong type: %s. It should be of a %s type",
+              settingName, configValue.getClass().getName(), expectedType.getName()));
+    }
+    return Optional.of(configValue);
   }
 
   /**

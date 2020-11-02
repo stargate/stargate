@@ -15,14 +15,17 @@
  */
 package io.stargate.config.store.api;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -60,6 +63,114 @@ class ConfigWithOverridesTest {
       System.clearProperty(FULL_SETTING_NAME);
       clearEnv(FULL_SETTING_NAME);
     }
+  }
+
+  @Test
+  public void shouldSuccessfullyGetTheRequiredStringValue() {
+    // given
+    Map<String, Object> options = new HashMap<>();
+    String settingName = "setting-a";
+    options.put(settingName, "v");
+
+    // when
+    String value = new ConfigWithOverrides(options, "ignored").getStringSettingValue(settingName);
+
+    // then
+    assertThat(value).isEqualTo("v");
+  }
+
+  @Test
+  public void shouldSuccessfullyGetRequiredBooleanValue() {
+    // given
+    Map<String, Object> options = new HashMap<>();
+    String settingName = "setting-a";
+    options.put(settingName, true);
+
+    // when
+    boolean value = new ConfigWithOverrides(options, "ignored").getBooleanSettingValue(settingName);
+
+    // then
+    assertThat(value).isEqualTo(true);
+  }
+
+  @Test
+  public void shouldSuccessfullyGetTheOptionalStringValue() {
+    // given
+    Map<String, Object> options = new HashMap<>();
+    String settingName = "setting-a";
+    options.put(settingName, "v");
+
+    // when
+    Optional<String> value =
+        new ConfigWithOverrides(options, "ignored").getOptionalStringValue(settingName);
+
+    // then
+    assertThat(value.get()).isEqualTo("v");
+  }
+
+  @Test
+  public void shouldSuccessfullyGetRequiredOptionalValue() {
+    // given
+    Map<String, Object> options = new HashMap<>();
+    String settingName = "setting-a";
+    options.put(settingName, true);
+
+    // when
+    Optional<Boolean> value =
+        new ConfigWithOverrides(options, "ignored").getOptionalBooleanSettingValue(settingName);
+
+    // then
+    assertThat(value.get()).isEqualTo(true);
+  }
+
+  @Test
+  public void shouldThrowIfValueIsNullForRequiredGetter() {
+    // given
+    Map<String, Object> options = new HashMap<>();
+    String settingName = "setting-a";
+    options.put(settingName, null);
+
+    // when, then
+    assertThatThrownBy(
+            () ->
+                new ConfigWithOverrides(options, "ignored")
+                    .getSettingValue(settingName, String.class))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(String.format("The config value for %s is not present", settingName));
+  }
+
+  @Test
+  public void shouldNotThrowIfValueIsNullForOptionalGetter() {
+    // given
+    Map<String, Object> options = new HashMap<>();
+    String settingName = "setting-a";
+    options.put(settingName, null);
+
+    // when, then
+    assertThat(
+            new ConfigWithOverrides(options, "ignored")
+                .getOptionalSettingValue(settingName, String.class)
+                .isPresent())
+        .isFalse();
+  }
+
+  @Test
+  public void shouldThrowIfValueHasWrongType() {
+    // given
+    Map<String, Object> options = new HashMap<>();
+    String settingName = "setting-a";
+    options.put(settingName, 1234);
+
+    // when, then
+    assertThatThrownBy(
+            () ->
+                new ConfigWithOverrides(options, "ignored")
+                    .getSettingValue(settingName, String.class))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(
+            String.format(
+                "The config value for %s has wrong type: %s. It should be of a %s type",
+                settingName, Integer.class.getName(), String.class.getName()));
   }
 
   public static Stream<Arguments> getSettingsProvider() {
