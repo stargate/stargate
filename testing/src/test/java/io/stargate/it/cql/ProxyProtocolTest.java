@@ -59,16 +59,15 @@ public class ProxyProtocolTest extends BaseOsgiIntegrationTest {
         assertThat(localRow.getInetAddress("listen_address")).isEqualTo(proxyAddress.getAddress());
 
         ResultSet rs =
-            proxySession
-                .execute(
-                    SimpleStatement.builder("SELECT * FROM system.peers")
-                        .setNode(node.get())
-                        .build());
+            proxySession.execute(
+                SimpleStatement.builder("SELECT * FROM system.peers").setNode(node.get()).build());
         List<InetAddress> peersAddresses = new ArrayList<>();
         rs.forEach(row -> peersAddresses.add(row.getInetAddress("preferred_ip")));
-        List<InetAddress> expectedPeersAddresses = proxyAddresses.stream()
-            .filter(a -> !a.getAddress().equals(proxyAddress.getAddress()))
-            .map(a -> a.getAddress()).collect(Collectors.toList());
+        List<InetAddress> expectedPeersAddresses =
+            proxyAddresses.stream()
+                .filter(a -> !a.getAddress().equals(proxyAddress.getAddress()))
+                .map(a -> a.getAddress())
+                .collect(Collectors.toList());
         assertThat(peersAddresses).containsExactlyInAnyOrderElementsOf(expectedPeersAddresses);
       }
     }
