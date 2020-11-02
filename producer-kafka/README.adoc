@@ -22,7 +22,7 @@ This extension has one service required: `Metrics` - this is provided by the `Co
 The main entry point for this CDC connector is a link:../producer-kafka/src/main/java/io/stargate/producer/kafka/KafkaCDCProducer.java[KafkaCDCProducer].
 It extends the `SchemaAwareCDCProducer` interface that serves as an integration layer between Stargate's persistence and CDC extension.
 
-1. `init()` - it will initialize the internal components of this CDC producer including underlying link:https://docs.confluent.io/current/clients/producer.html[Kafka Producer]. The configuration is taken from `ConfigStore` it is described in <<Configuration>>
+1. `init()` - it will initialize the internal components of this CDC producer including underlying link:https://docs.confluent.io/current/clients/producer.html[Kafka Producer]. The configuration is taken from `ConfigStore` and it is described in <<Configuration>>
 
 2. `createTableSchemaAsync()` - MUST be invoked on every Stargate node before any call to `send` is made (including restarts).
 This method is responsible for constructing the Avro schema based on the `TableMetadata` and registering the schema in link:https://docs.confluent.io/current/schema-registry/index.html[schema registry].
@@ -46,6 +46,8 @@ It uses the `ConfigStore.getConfigForModule("cdc.kafka")` method to get settings
 It will return the `Map<String, Object>` with all CDC Kafka specific settings.
 This extension does not support overriding settings via System properties or OS environment variables.
 All settings are taken only from the `stargate-config.yaml` file.
+This extension does not support runtime overrides. When this producer is started, it will fetch the current config using `ConfigStore` API.
+Once it is fetched, the configuration is not refreshed. If you want to refresh the config, you need to restart the Kafka CDC producer.
 When using the `config-store-yaml`, the underlying Yaml file used to load the config should have the following structure:
 [source,yaml]
 ----
