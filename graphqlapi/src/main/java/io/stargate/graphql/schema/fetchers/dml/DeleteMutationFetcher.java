@@ -12,10 +12,7 @@ import io.stargate.graphql.schema.NameMapping;
 public class DeleteMutationFetcher extends MutationFetcher {
 
   public DeleteMutationFetcher(
-      Table table,
-      NameMapping nameMapping,
-      Persistence persistence,
-      AuthnzService authnzService) {
+      Table table, NameMapping nameMapping, Persistence persistence, AuthnzService authnzService) {
     super(table, nameMapping, persistence, authnzService);
   }
 

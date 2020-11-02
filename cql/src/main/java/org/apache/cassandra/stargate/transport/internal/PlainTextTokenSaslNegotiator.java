@@ -24,8 +24,7 @@ class PlainTextTokenSaslNegotiator implements Authenticator.SaslNegotiator {
   private final Authenticator.SaslNegotiator wrapped;
   private StoredCredentials storedCredentials;
 
-  PlainTextTokenSaslNegotiator(
-      Authenticator.SaslNegotiator wrapped, AuthnzService authentication) {
+  PlainTextTokenSaslNegotiator(Authenticator.SaslNegotiator wrapped, AuthnzService authentication) {
     this.authentication = authentication;
     this.wrapped = wrapped;
   }

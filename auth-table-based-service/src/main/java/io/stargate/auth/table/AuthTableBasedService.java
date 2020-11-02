@@ -263,29 +263,31 @@ public class AuthTableBasedService implements AuthnzService {
   }
 
   @Override
-  public ResultSet executeDataReadWithAuthorization(Callable<ResultSet> action,
-      String token, List<String> primaryKeyValues, Table tableMetadata) throws Exception {
+  public ResultSet executeDataReadWithAuthorization(
+      Callable<ResultSet> action, String token, List<String> primaryKeyValues, Table tableMetadata)
+      throws Exception {
     // Cannot perform authorization with a table based token so just return
     return action.call();
   }
 
   @Override
-  public ResultSet executeDataWriteWithAuthorization(Callable<ResultSet> action, String token,
-      List<String> primaryKeyValues, Table tableMetadata) throws Exception {
+  public ResultSet executeDataWriteWithAuthorization(
+      Callable<ResultSet> action, String token, List<String> primaryKeyValues, Table tableMetadata)
+      throws Exception {
     // Cannot perform authorization with a table based token so just return
     return action.call();
   }
 
   @Override
-  public ResultSet executeSchemaReadWithAuthorization(Callable<ResultSet> action, String token,
-      String keyspace, String table) throws Exception {
+  public ResultSet executeSchemaReadWithAuthorization(
+      Callable<ResultSet> action, String token, String keyspace, String table) throws Exception {
     // Cannot perform authorization with a table based token so just return
     return action.call();
   }
 
   @Override
-  public ResultSet executeSchemaWriteWithAuthorization(Callable<ResultSet> action, String token,
-      String keyspace, String table) throws Exception {
+  public ResultSet executeSchemaWriteWithAuthorization(
+      Callable<ResultSet> action, String token, String keyspace, String table) throws Exception {
     // Cannot perform authorization with a table based token so just return
     return action.call();
   }

@@ -98,9 +98,7 @@ public class CqlActivator implements BundleActivator {
       } else if (metrics == null && service instanceof Metrics) {
         log.info("Using metrics: {}", ref.getBundle());
         metrics = (Metrics) service;
-      } else if (USE_AUTH_SERVICE
-          && authentication == null
-          && service instanceof AuthnzService) {
+      } else if (USE_AUTH_SERVICE && authentication == null && service instanceof AuthnzService) {
         log.info("Using authentication service: {}", ref.getBundle());
         authentication = (AuthnzService) service;
       }

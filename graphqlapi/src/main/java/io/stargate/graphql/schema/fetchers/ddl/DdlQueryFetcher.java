@@ -26,8 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Base class for fetchers that execute a single DDL query, such as a CREATE KEYSPACE or DROP
- * TABLE.
+ * Base class for fetchers that execute a single DDL query, such as a CREATE KEYSPACE or DROP TABLE.
  */
 public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
 

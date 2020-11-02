@@ -41,10 +41,7 @@ import java.util.stream.Collectors;
 public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
 
   public QueryFetcher(
-      Table table,
-      NameMapping nameMapping,
-      Persistence persistence,
-      AuthnzService authnzService) {
+      Table table, NameMapping nameMapping, Persistence persistence, AuthnzService authnzService) {
     super(table, nameMapping, persistence, authnzService);
   }
 

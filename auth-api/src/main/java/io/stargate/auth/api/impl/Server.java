@@ -54,7 +54,7 @@ public class Server extends Application<ApplicationConfiguration> {
     this.metrics = metrics;
 
     BeanConfig beanConfig = new BeanConfig();
-    beanConfig.setSchemes(new String[]{"http"});
+    beanConfig.setSchemes(new String[] {"http"});
     beanConfig.setBasePath("/");
     ScannerFactory.setScanner(new DefaultJaxrsScanner());
   }

@@ -33,10 +33,7 @@ import java.util.concurrent.CompletableFuture;
 public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<String, Object>>> {
 
   protected MutationFetcher(
-      Table table,
-      NameMapping nameMapping,
-      Persistence persistence,
-      AuthnzService authnzService) {
+      Table table, NameMapping nameMapping, Persistence persistence, AuthnzService authnzService) {
     super(table, nameMapping, persistence, authnzService);
   }
 

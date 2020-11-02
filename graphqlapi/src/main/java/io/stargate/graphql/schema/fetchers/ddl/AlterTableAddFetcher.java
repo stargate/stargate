@@ -26,8 +26,7 @@ import java.util.Map;
 
 public class AlterTableAddFetcher extends DdlQueryFetcher {
 
-  public AlterTableAddFetcher(
-      Persistence persistence, AuthnzService authnzService) {
+  public AlterTableAddFetcher(Persistence persistence, AuthnzService authnzService) {
     super(persistence, authnzService);
   }
 

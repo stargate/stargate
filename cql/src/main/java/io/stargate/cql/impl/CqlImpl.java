@@ -45,10 +45,7 @@ public class CqlImpl {
   private final AuthnzService authentication;
 
   public CqlImpl(
-      Config config,
-      Persistence persistence,
-      Metrics metrics,
-      AuthnzService authentication) {
+      Config config, Persistence persistence, Metrics metrics, AuthnzService authentication) {
     TransportDescriptor.daemonInitialization(config);
 
     this.persistence = persistence;

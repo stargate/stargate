@@ -26,8 +26,7 @@ import java.util.Map;
 
 public class CreateKeyspaceFetcher extends DdlQueryFetcher {
 
-  public CreateKeyspaceFetcher(
-      Persistence persistence, AuthnzService authnzService) {
+  public CreateKeyspaceFetcher(Persistence persistence, AuthnzService authnzService) {
     super(persistence, authnzService);
   }
 

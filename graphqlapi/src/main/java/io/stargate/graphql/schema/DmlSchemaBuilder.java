@@ -66,8 +66,7 @@ class DmlSchemaBuilder {
   private final NameMapping nameMapping;
   private final Keyspace keyspace;
 
-  DmlSchemaBuilder(
-      Persistence persistence, AuthnzService authnzService, Keyspace keyspace) {
+  DmlSchemaBuilder(Persistence persistence, AuthnzService authnzService, Keyspace keyspace) {
     this.persistence = persistence;
     this.authnzService = authnzService;
     this.keyspace = keyspace;
@@ -258,8 +257,7 @@ class DmlSchemaBuilder {
                 .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "FilterInput")))
         .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
-        .dataFetcher(
-            new UpdateMutationFetcher(table, nameMapping, persistence, authnzService))
+        .dataFetcher(new UpdateMutationFetcher(table, nameMapping, persistence, authnzService))
         .build();
   }
 
@@ -275,8 +273,7 @@ class DmlSchemaBuilder {
         .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
         .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
-        .dataFetcher(
-            new InsertMutationFetcher(table, nameMapping, persistence, authnzService))
+        .dataFetcher(new InsertMutationFetcher(table, nameMapping, persistence, authnzService))
         .build();
   }
 
@@ -296,8 +293,7 @@ class DmlSchemaBuilder {
                 .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "FilterInput")))
         .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
-        .dataFetcher(
-            new DeleteMutationFetcher(table, nameMapping, persistence, authnzService))
+        .dataFetcher(new DeleteMutationFetcher(table, nameMapping, persistence, authnzService))
         .build();
   }
 

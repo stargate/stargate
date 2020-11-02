@@ -315,12 +315,18 @@ public class TableResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          db.getAuthnzService().executeSchemaWriteWithAuthorization(() -> localDB
-              .query()
-              .drop()
-              .table(keyspaceName, tableName)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute(), token, keyspaceName, tableName);
+          db.getAuthnzService()
+              .executeSchemaWriteWithAuthorization(
+                  () ->
+                      localDB
+                          .query()
+                          .drop()
+                          .table(keyspaceName, tableName)
+                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+                          .execute(),
+                  token,
+                  keyspaceName,
+                  tableName);
 
           return Response.status(Response.Status.NO_CONTENT).build();
         });

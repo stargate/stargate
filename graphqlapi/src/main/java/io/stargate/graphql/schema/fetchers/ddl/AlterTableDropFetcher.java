@@ -25,8 +25,7 @@ import java.util.List;
 
 public class AlterTableDropFetcher extends DdlQueryFetcher {
 
-  public AlterTableDropFetcher(
-      Persistence persistence, AuthnzService authnzService) {
+  public AlterTableDropFetcher(Persistence persistence, AuthnzService authnzService) {
     super(persistence, authnzService);
   }
 

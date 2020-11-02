@@ -32,10 +32,7 @@ import java.util.Map;
 public class InsertMutationFetcher extends MutationFetcher {
 
   public InsertMutationFetcher(
-      Table table,
-      NameMapping nameMapping,
-      Persistence persistence,
-      AuthnzService authnzService) {
+      Table table, NameMapping nameMapping, Persistence persistence, AuthnzService authnzService) {
     super(table, nameMapping, persistence, authnzService);
   }
 

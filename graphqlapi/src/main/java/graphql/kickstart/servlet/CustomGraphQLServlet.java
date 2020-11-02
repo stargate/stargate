@@ -58,8 +58,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
 
   private final ConcurrentMap<String, RequestHandlerReference> keyspaceHandlers;
 
-  public CustomGraphQLServlet(
-      Persistence persistence, AuthnzService authnzService) {
+  public CustomGraphQLServlet(Persistence persistence, AuthnzService authnzService) {
     this.persistence = persistence;
     this.authnzService = authnzService;
     DataStore dataStore = DataStore.create(persistence);
@@ -182,8 +181,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
       // TODO not sure about toLowerCase, check how case sensitive keyspaces are handled
       String keyspaceName = keyspace.name().toLowerCase();
       LOG.debug("Prepare handler for {}", keyspaceName);
-      map.put(
-          keyspaceName, new RequestHandlerReference(keyspace, persistence, authnzService));
+      map.put(keyspaceName, new RequestHandlerReference(keyspace, persistence, authnzService));
     }
     return map;
   }
@@ -205,8 +203,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
         keyspaceHandlers.remove(keyspaceName);
       } else {
         keyspaceHandlers.put(
-            keyspaceName,
-            new RequestHandlerReference(keyspace, persistence, authnzService));
+            keyspaceName, new RequestHandlerReference(keyspace, persistence, authnzService));
       }
       LOG.debug("Done refreshing handler for keyspace {}", keyspaceName);
     } catch (Exception e) {
@@ -340,8 +337,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
     }
 
     private HttpRequestHandlerImpl computeHandler() {
-      GraphQLSchema schema =
-          SchemaFactory.newDmlSchema(persistence, authnzService, keyspace);
+      GraphQLSchema schema = SchemaFactory.newDmlSchema(persistence, authnzService, keyspace);
       GraphQLConfiguration configuration =
           GraphQLConfiguration.with(schema)
               .with(

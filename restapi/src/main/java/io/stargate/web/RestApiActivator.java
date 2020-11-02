@@ -59,8 +59,7 @@ public class RestApiActivator implements BundleActivator, ServiceListener {
         throw new RuntimeException(ise);
       }
 
-      ServiceReference[] refs =
-          context.getServiceReferences(AuthnzService.class.getName(), null);
+      ServiceReference[] refs = context.getServiceReferences(AuthnzService.class.getName(), null);
       if (refs != null) {
         for (ServiceReference ref : refs) {
           // Get the service object.
@@ -132,9 +131,9 @@ public class RestApiActivator implements BundleActivator, ServiceListener {
           } else if (service instanceof AuthnzService
               && serviceEvent.getServiceReference().getProperty("AuthIdentifier") != null
               && serviceEvent
-              .getServiceReference()
-              .getProperty("AuthIdentifier")
-              .equals(AUTH_IDENTIFIER)) {
+                  .getServiceReference()
+                  .getProperty("AuthIdentifier")
+                  .equals(AUTH_IDENTIFIER)) {
             log.info("Setting authenticationService in RestApiActivator");
             this.web.setAuthenticationService((AuthnzService) service);
           } else if (service instanceof Metrics) {

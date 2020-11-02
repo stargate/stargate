@@ -25,10 +25,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
   protected final NameMapping nameMapping;
 
   protected DmlFetcher(
-      Table table,
-      NameMapping nameMapping,
-      Persistence persistence,
-      AuthnzService authnzService) {
+      Table table, NameMapping nameMapping, Persistence persistence, AuthnzService authnzService) {
     super(persistence, authnzService);
     this.table = table;
     this.nameMapping = nameMapping;

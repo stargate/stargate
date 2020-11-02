@@ -28,8 +28,7 @@ public class SchemaGraphQLServlet extends SimpleGraphQLHttpServlet {
   private final Persistence persistence;
   private final AuthnzService authnzService;
 
-  public SchemaGraphQLServlet(
-      Persistence persistence, AuthnzService authnzService) {
+  public SchemaGraphQLServlet(Persistence persistence, AuthnzService authnzService) {
     this.persistence = persistence;
     this.authnzService = authnzService;
   }

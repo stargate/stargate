@@ -42,12 +42,9 @@ public abstract class GraphQlTestBase {
   protected GraphQL graphQl;
   protected GraphQLSchema graphQlSchema;
 
-  @Mock
-  protected Persistence persistence;
-  @Mock
-  protected AuthnzService authnzService;
-  @Mock
-  protected ResultSet resultSet;
+  @Mock protected Persistence persistence;
+  @Mock protected AuthnzService authnzService;
+  @Mock protected ResultSet resultSet;
   @Mock private StoredCredentials storedCredentials;
 
   @Captor protected ArgumentCaptor<String> queryCaptor;

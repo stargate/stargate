@@ -24,8 +24,7 @@ public class SchemaFactory {
    *
    * <p>This is the API exposed at {@code /graphql-schema}.
    */
-  public static GraphQLSchema newDdlSchema(
-      Persistence persistence, AuthnzService authnzService) {
+  public static GraphQLSchema newDdlSchema(Persistence persistence, AuthnzService authnzService) {
     return new DdlSchemaBuilder(persistence, authnzService).build();
   }
 }

@@ -66,8 +66,7 @@ public class AuthTableBasedServiceActivator implements BundleActivator, ServiceL
       if (persistenceReference != null) {
         log.info("Registering authTableBasedService in AuthTableBasedServiceActivator");
         registration =
-            context.registerService(
-                AuthnzService.class.getName(), authTableBasedService, props);
+            context.registerService(AuthnzService.class.getName(), authTableBasedService, props);
       }
     }
   }

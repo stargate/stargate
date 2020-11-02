@@ -62,14 +62,13 @@ public class Server extends Application<ApplicationConfiguration> {
   private final AuthnzService authnzService;
   private final Metrics metrics;
 
-  public Server(
-      Persistence persistence, AuthnzService authnzService, Metrics metrics) {
+  public Server(Persistence persistence, AuthnzService authnzService, Metrics metrics) {
     this.persistence = persistence;
     this.authnzService = authnzService;
     this.metrics = metrics;
 
     BeanConfig beanConfig = new BeanConfig();
-    beanConfig.setSchemes(new String[]{"http"});
+    beanConfig.setSchemes(new String[] {"http"});
     beanConfig.setBasePath("/");
     ScannerFactory.setScanner(new DefaultJaxrsScanner());
   }

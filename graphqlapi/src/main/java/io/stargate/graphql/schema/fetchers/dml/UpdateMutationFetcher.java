@@ -19,10 +19,7 @@ import java.util.Map;
 public class UpdateMutationFetcher extends MutationFetcher {
 
   public UpdateMutationFetcher(
-      Table table,
-      NameMapping nameMapping,
-      Persistence persistence,
-      AuthnzService authnzService) {
+      Table table, NameMapping nameMapping, Persistence persistence, AuthnzService authnzService) {
     super(table, nameMapping, persistence, authnzService);
   }
 
