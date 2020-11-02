@@ -66,9 +66,8 @@ public class StatementHolder extends Meta.StatementHandle {
     List<Object> localParams =
         params.stream().map(TypedValue::toLocal).collect(Collectors.toList());
     Iterable<Object> rows = prepared.query().execute(localParams);
-    ExecutionResult r = new ExecutionResult(prepared, rows.iterator());
-    result = r;
-    return r;
+    result = new ExecutionResult(prepared, rows.iterator());
+    return result;
   }
 
   public ExecutionResult execute(List<TypedValue> params) {
