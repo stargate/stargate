@@ -66,7 +66,7 @@ public @interface CqlSessionSpec {
   String customBuilder() default "";
 
   /**
-   * A list of CQL queries that will be executed before each test method.
+   * A list of CQL queries that will be executed before the current test.
    *
    * <p>If {@link #createKeyspace()} was set, the session will already be connected to the temporary
    * keyspace when these queries get executed. Otherwise, the session will not be connected to any
