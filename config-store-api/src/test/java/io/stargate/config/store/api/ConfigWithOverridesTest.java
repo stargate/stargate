@@ -31,18 +31,22 @@ class ConfigWithOverridesTest {
 
   private static final String SETTING_NAME = "key_" + UUID.randomUUID().toString();
 
+  private static final String MODULE_NAME = "module_1";
+
+  private static final String FULL_SETTING_NAME = String.format("%s.%s", MODULE_NAME, SETTING_NAME);
+
   @ParameterizedTest
   @MethodSource("getSettingsProvider")
   public void shouldReturnSettingWithTheHighestPriority(
       Map<String, Object> configMap, String envVariable, String systemProperty, Object expected) {
     try {
       // given
-      setEnv(SETTING_NAME, envVariable);
+      setEnv(FULL_SETTING_NAME, envVariable);
       if (systemProperty != null) {
-        System.setProperty(SETTING_NAME, systemProperty);
+        System.setProperty(FULL_SETTING_NAME, systemProperty);
       }
 
-      ConfigWithOverrides configWithOverrides = new ConfigWithOverrides(configMap);
+      ConfigWithOverrides configWithOverrides = new ConfigWithOverrides(configMap, MODULE_NAME);
 
       // when
       Object result = configWithOverrides.getWithOverrides(SETTING_NAME);
@@ -53,8 +57,8 @@ class ConfigWithOverridesTest {
       // and then
       assertThat(configWithOverrides.getConfigMap()).isEqualTo(configMap);
     } finally {
-      System.clearProperty(SETTING_NAME);
-      clearEnv(SETTING_NAME);
+      System.clearProperty(FULL_SETTING_NAME);
+      clearEnv(FULL_SETTING_NAME);
     }
   }
 

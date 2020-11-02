@@ -88,7 +88,7 @@ public class ConfigStoreYaml implements ConfigStore {
                 "The loaded configuration map: %s, does not contain settings from a given module: %s",
                 result, moduleName));
       }
-      return new ConfigWithOverrides(ImmutableMap.copyOf(result.get(moduleName)));
+      return new ConfigWithOverrides(ImmutableMap.copyOf(result.get(moduleName)), moduleName);
     } catch (ExecutionException e) {
       throw new UncheckedExecutionException(
           "Problem when processing yaml file from: " + configFilePath, e);
