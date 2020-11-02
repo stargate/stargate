@@ -44,6 +44,8 @@ this change to the CDC extension via the send() method. The send() method retrie
 The `init()` method uses the link:../config-store-yaml/README.md[config-store] to retrieve settings.
 It uses the `ConfigStore.getConfigForModule("cdc.kafka")` method to get settings specific to this module.
 It will return the `Map<String, Object>` with all CDC Kafka specific settings.
+This extension does not support overriding settings via System properties or OS environment variables.
+All settings are taken only from the `stargate-config.yaml` file.
 When using the `config-store-yaml`, the underlying Yaml file used to load the config should have the following structure:
 [source,yaml]
 ----
