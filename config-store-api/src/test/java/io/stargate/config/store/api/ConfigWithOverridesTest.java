@@ -73,7 +73,8 @@ class ConfigWithOverridesTest {
     options.put(settingName, "v");
 
     // when
-    String value = new ConfigWithOverrides(options, "ignored").getStringSettingValue(settingName);
+    String value =
+        new ConfigWithOverrides(options, "ignored").getSettingValue(settingName, String.class);
 
     // then
     assertThat(value).isEqualTo("v");
@@ -87,7 +88,8 @@ class ConfigWithOverridesTest {
     options.put(settingName, true);
 
     // when
-    boolean value = new ConfigWithOverrides(options, "ignored").getBooleanSettingValue(settingName);
+    boolean value =
+        new ConfigWithOverrides(options, "ignored").getSettingValue(settingName, Boolean.class);
 
     // then
     assertThat(value).isEqualTo(true);
@@ -102,7 +104,8 @@ class ConfigWithOverridesTest {
 
     // when
     Optional<String> value =
-        new ConfigWithOverrides(options, "ignored").getOptionalStringValue(settingName);
+        new ConfigWithOverrides(options, "ignored")
+            .getOptionalSettingValue(settingName, String.class);
 
     // then
     assertThat(value.get()).isEqualTo("v");
@@ -117,7 +120,8 @@ class ConfigWithOverridesTest {
 
     // when
     Optional<Boolean> value =
-        new ConfigWithOverrides(options, "ignored").getOptionalBooleanSettingValue(settingName);
+        new ConfigWithOverrides(options, "ignored")
+            .getOptionalSettingValue(settingName, Boolean.class);
 
     // then
     assertThat(value.get()).isEqualTo(true);

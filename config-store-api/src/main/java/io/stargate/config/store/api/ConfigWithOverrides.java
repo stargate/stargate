@@ -37,26 +37,6 @@ public class ConfigWithOverrides {
     return configMap;
   }
 
-  @Nonnull
-  public String getStringSettingValue(String settingName) {
-    return (String) getSettingValue(settingName, String.class);
-  }
-
-  @Nonnull
-  public Optional<String> getOptionalStringValue(String settingName) {
-    return getOptionalSettingValue(settingName, String.class).map(v -> (String) v);
-  }
-
-  @Nonnull
-  public Boolean getBooleanSettingValue(String settingName) {
-    return (Boolean) getSettingValue(settingName, Boolean.class);
-  }
-
-  @Nonnull
-  public Optional<Boolean> getOptionalBooleanSettingValue(String settingName) {
-    return getOptionalSettingValue(settingName, Boolean.class).map(v -> (Boolean) v);
-  }
-
   /**
    * It retrieves the value from underlying configMap checking for its presence and type. If the
    * value for a given settingName does not have a value, it throws an {@code
@@ -68,7 +48,7 @@ public class ConfigWithOverrides {
    * @return the value associated with settingName, matching expectedType.
    */
   @Nonnull
-  public Object getSettingValue(String settingName, Class<?> expectedType) {
+  public <T> T getSettingValue(String settingName, Class<T> expectedType) {
     Object configValue = configMap.get(settingName);
     if (configValue == null) {
       throw new IllegalArgumentException(
@@ -80,7 +60,7 @@ public class ConfigWithOverrides {
               "The config value for %s has wrong type: %s. It should be of a %s type",
               settingName, configValue.getClass().getName(), expectedType.getName()));
     }
-    return configValue;
+    return ((T) configValue);
   }
 
   /**
@@ -95,7 +75,7 @@ public class ConfigWithOverrides {
    *     expectedType.
    */
   @Nonnull
-  public Optional<Object> getOptionalSettingValue(String settingName, Class<?> expectedType) {
+  public <T> Optional<T> getOptionalSettingValue(String settingName, Class<T> expectedType) {
     Object configValue = configMap.get(settingName);
     if (configValue == null) {
       return Optional.empty();
@@ -106,7 +86,7 @@ public class ConfigWithOverrides {
               "The config value for %s has wrong type: %s. It should be of a %s type",
               settingName, configValue.getClass().getName(), expectedType.getName()));
     }
-    return Optional.of(configValue);
+    return Optional.of(configValue).map(v -> (T) v);
   }
 
   /**
