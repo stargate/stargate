@@ -53,4 +53,8 @@ public class BaseOsgiIntegrationTest {
     return !backend.isDse()
         && Version.parse(backend.clusterVersion()).nextStable().compareTo(Version.V4_0_0) >= 0;
   }
+
+  public boolean isDse() {
+    return backend.isDse();
+  }
 }

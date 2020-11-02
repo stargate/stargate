@@ -1,15 +1,13 @@
 package io.stargate.it.proxy;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.CqlSessionBuilder;
-import io.netty.channel.local.LocalAddress;
-import io.stargate.it.driver.CqlSessionHelper;
-import io.stargate.it.driver.TestKeyspace;
+import com.google.common.net.InetAddresses;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -20,22 +18,31 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.platform.commons.support.AnnotationSupport;
 
 public class ProxyExtension implements BeforeAllCallback, AfterAllCallback, ParameterResolver {
-  private TcpProxy proxy;
+  public static final ProxySpec DEFAULT_PROXY_SPEC = DefaultProxySpec.INSTANCE;
+
+  private List<TcpProxy> proxies = new ArrayList<>();
+  private List<InetSocketAddress> proxyAddresses = new ArrayList<>();
   private ProxySpec proxySpec;
 
   @Override
   public void beforeAll(ExtensionContext extensionContext) throws Exception {
     proxySpec = getProxySpec(extensionContext);
-    proxy =
-        TcpProxy.builder()
-            .localAddress(proxySpec.localAddress(), proxySpec.localPort())
-            .remoteAddress(proxySpec.remoteAddress(), proxySpec.remotePort())
-            .build();
+
+    InetAddress localAddress = InetAddress.getByName(proxySpec.startingLocalAddress());
+    for (int i = 0; i < proxySpec.numProxies(); ++i) {
+      proxies.add(
+          TcpProxy.builder()
+              .localAddress(localAddress.getHostAddress(), proxySpec.localPort())
+              .remoteAddress(proxySpec.remoteAddress(), proxySpec.remotePort())
+              .build());
+      proxyAddresses.add(new InetSocketAddress(localAddress, proxySpec.localPort()));
+      localAddress = InetAddresses.increment(localAddress);
+    }
   }
 
   @Override
   public void afterAll(ExtensionContext extensionContext) throws Exception {
-    if (proxy != null) {
+    for (TcpProxy proxy : proxies) {
       proxy.close();
     }
   }
@@ -54,20 +61,22 @@ public class ProxyExtension implements BeforeAllCallback, AfterAllCallback, Para
   }
 
   @Override
-  public boolean supportsParameter(ParameterContext parameterContext,
-      ExtensionContext extensionContext) throws ParameterResolutionException {
+  public boolean supportsParameter(
+      ParameterContext parameterContext, ExtensionContext extensionContext)
+      throws ParameterResolutionException {
     Parameter parameter = parameterContext.getParameter();
     Class<?> type = parameter.getType();
-    return type == InetSocketAddress.class && (parameter.getAnnotation(ProxyAddress.class) != null );
+    return type == List.class && (parameter.getAnnotation(ProxyAddresses.class) != null);
   }
 
   @Override
-  public Object resolveParameter(ParameterContext parameterContext,
-      ExtensionContext extensionContext) throws ParameterResolutionException {
+  public Object resolveParameter(
+      ParameterContext parameterContext, ExtensionContext extensionContext)
+      throws ParameterResolutionException {
     Parameter parameter = parameterContext.getParameter();
     Class<?> type = parameter.getType();
-    if (type == InetSocketAddress.class && parameter.getAnnotation(ProxyAddress.class) != null) {
-      return new InetSocketAddress(proxySpec.localAddress(), proxySpec.localPort());
+    if (type == List.class && parameter.getAnnotation(ProxyAddresses.class) != null) {
+      return proxyAddresses;
     } else {
       throw new AssertionError("Unsupported parameter");
     }
