@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
@@ -58,19 +57,15 @@ public class RestApiv2DseTest extends BaseOsgiIntegrationTest {
 
   private static final ObjectMapper objectMapper =
       new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+  private static String keyspaceUri;
   private static String authToken;
-  private String keyspaceUri;
 
   @BeforeAll
-  public static void beforeAll(StargateConnectionInfo cluster) throws IOException {
-    authToken = fetchAuthToken(cluster.seedAddress());
-  }
-
-  @BeforeEach
-  public void beforeEach(StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId) {
-    keyspaceUri =
-        String.format(
-            "http://%s:8082/v2/keyspaces/%s", cluster.seedAddress(), keyspaceId.asInternal());
+  public static void beforeAll(
+      StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId) throws IOException {
+    String host = cluster.seedAddress();
+    authToken = fetchAuthToken(host);
+    keyspaceUri = String.format("http://%s:8082/v2/keyspaces/%s", host, keyspaceId.asInternal());
   }
 
   @Test
