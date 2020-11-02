@@ -29,7 +29,7 @@ public interface StargateEnvironmentInfo {
    * @return the connection info associated with the added node. This can be used to remove this
    *     node from the environment using {@link #removeNode(StargateConnectionInfo)}.
    * @throws Exception
-   * @throws UnsupportedOperationException when attempting to modify a shared cluster environment.
+   * @throws UnsupportedOperationException when attempting to modify a shared environment.
    */
   StargateConnectionInfo addNode() throws Exception;
 
@@ -40,7 +40,7 @@ public interface StargateEnvironmentInfo {
    * @param node the connection info for an existing Stargate node. This is usually returned from
    *     {@link #addNode()}, but could be a node returned by {@link #nodes()}.
    * @throws Exception
-   * @throws UnsupportedOperationException when attempting to modify a shared cluster environment.
+   * @throws UnsupportedOperationException when attempting to modify a shared environment.
    */
   void removeNode(StargateConnectionInfo node);
 }
