@@ -6,10 +6,13 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.DmlTestBase;
 import io.stargate.graphql.schema.SampleKeyspaces;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+@Execution(ExecutionMode.CONCURRENT)
 public class QueryFetcherCollectionsTest extends DmlTestBase {
 
   @Override

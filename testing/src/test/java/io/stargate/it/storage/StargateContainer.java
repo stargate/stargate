@@ -286,6 +286,8 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
       cmd.addArgument("-Dstargate.auth_api_enable_username_token=true");
       cmd.addArgument("-Dstargate.libdir=" + LIB_DIR.getAbsolutePath());
       cmd.addArgument("-Dstargate.bundle.cache.dir=" + cacheDir.getAbsolutePath());
+      cmd.addArgument("-Dstargate.logging.level.web=WARN");
+      cmd.addArgument("-Dstargate.logging.level.auth=WARN");
 
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());

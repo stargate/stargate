@@ -12,8 +12,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
+@Execution(ExecutionMode.CONCURRENT)
 public class NumberCoercionTest {
+
   @Test
   public void nullValue() {
     assertThat(coerceToColumnType(BigInteger.class, null).columnTypeAcceptsValue()).isFalse();

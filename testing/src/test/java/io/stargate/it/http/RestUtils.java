@@ -18,6 +18,7 @@ package io.stargate.it.http;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -28,12 +29,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RestUtils {
+
   private static final Logger logger = LoggerFactory.getLogger(RestUtils.class);
+
+  private static final OkHttpClient client =
+      new OkHttpClient().newBuilder().readTimeout(3, TimeUnit.MINUTES).build();
 
   public static String get(String authToken, String path, int expectedStatusCode)
       throws IOException {
-    OkHttpClient client = new OkHttpClient().newBuilder().build();
-
     Request request;
     if (authToken != null) {
       request =
@@ -54,8 +57,6 @@ public class RestUtils {
   public static String post(
       String authToken, String path, String requestBody, int expectedStatusCode)
       throws IOException {
-    OkHttpClient client = new OkHttpClient().newBuilder().build();
-
     Request request;
     if (authToken != null) {
       request =
@@ -84,8 +85,6 @@ public class RestUtils {
   public static Response postRaw(
       String authToken, String path, String requestBody, int expectedStatusCode)
       throws IOException {
-    OkHttpClient client = new OkHttpClient().newBuilder().build();
-
     Request request;
     if (authToken != null) {
       request =
@@ -111,8 +110,6 @@ public class RestUtils {
   public static String put(
       String authToken, String path, String requestBody, int expectedStatusCode)
       throws IOException {
-    OkHttpClient client = new OkHttpClient().newBuilder().build();
-
     Request request;
     if (authToken != null) {
       request =
@@ -141,8 +138,6 @@ public class RestUtils {
   public static String patch(
       String authToken, String path, String requestBody, int expectedStatusCode)
       throws IOException {
-    OkHttpClient client = new OkHttpClient().newBuilder().build();
-
     Request request;
     if (authToken != null) {
       request =
@@ -170,8 +165,6 @@ public class RestUtils {
 
   public static String delete(String authToken, String path, int expectedStatusCode)
       throws IOException {
-    OkHttpClient client = new OkHttpClient().newBuilder().build();
-
     Request request;
     if (authToken != null) {
       request =

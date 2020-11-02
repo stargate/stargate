@@ -26,7 +26,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.Isolated;
 
+@Isolated
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(
     initQueries = {

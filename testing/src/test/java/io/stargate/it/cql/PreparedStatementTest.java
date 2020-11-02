@@ -16,27 +16,43 @@ import com.datastax.oss.protocol.internal.util.Bytes;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
 public class PreparedStatementTest extends BaseOsgiIntegrationTest {
 
+  private String tableName;
+
   @BeforeEach
-  public void createSchema(CqlSession session) {
+  public void createSchema(
+      TestInfo testInfo, CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
+    Optional<String> name = testInfo.getTestMethod().map(Method::getName);
+    assertThat(name).isPresent();
+    String testName = name.get();
+
+    tableName = (testName + "_tbl").toLowerCase();
     // Must recreate every time because some methods alter the schema
-    session.execute("DROP TABLE IF EXISTS prepared_statement_test");
-    session.execute("CREATE TABLE prepared_statement_test (a int PRIMARY KEY, b int, c int)");
+    session.execute(String.format("DROP TABLE IF EXISTS \"%s\".%s", keyspaceId, tableName));
+    session.execute(
+        String.format(
+            "CREATE TABLE \"%s\".%s (a int PRIMARY KEY, b int, c int)", keyspaceId, tableName));
   }
 
   @Test
   @DisplayName("Should get expected metadata when preparing INSERT with no variables")
-  public void insertWithoutVariablesTest(CqlSession session) {
+  public void insertWithoutVariablesTest(
+      CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     PreparedStatement prepared =
-        session.prepare("INSERT INTO prepared_statement_test (a, b, c) VALUES (1, 1, 1)");
+        session.prepare(
+            String.format(
+                "INSERT INTO \"%s\".%s (a, b, c) VALUES (1, 1, 1)", keyspaceId, tableName));
     assertThat(prepared.getVariableDefinitions()).isEmpty();
     assertThat(prepared.getPartitionKeyIndices()).isEmpty();
     assertThat(prepared.getResultSetDefinitions()).isEmpty();
@@ -46,7 +62,9 @@ public class PreparedStatementTest extends BaseOsgiIntegrationTest {
   @DisplayName("Should get expected metadata when preparing INSERT with variables")
   public void insertWithVariablesTest(CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     PreparedStatement prepared =
-        session.prepare("INSERT INTO prepared_statement_test (a, b, c) VALUES (?, ?, ?)");
+        session.prepare(
+            String.format(
+                "INSERT INTO \"%s\".%s (a, b, c) VALUES (?, ?, ?)", keyspaceId, tableName));
     assertAllColumns(prepared.getVariableDefinitions(), keyspaceId);
     assertThat(prepared.getPartitionKeyIndices()).containsExactly(0);
     assertThat(prepared.getResultSetDefinitions()).isEmpty();
@@ -57,7 +75,8 @@ public class PreparedStatementTest extends BaseOsgiIntegrationTest {
   public void selectWithoutVariablesTest(
       CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     PreparedStatement prepared =
-        session.prepare("SELECT a,b,c FROM prepared_statement_test WHERE a = 1");
+        session.prepare(
+            String.format("SELECT a,b,c FROM \"%s\".%s WHERE a = 1", keyspaceId, tableName));
     assertThat(prepared.getVariableDefinitions()).isEmpty();
     assertThat(prepared.getPartitionKeyIndices()).isEmpty();
     assertAllColumns(prepared.getResultSetDefinitions(), keyspaceId);
@@ -67,11 +86,12 @@ public class PreparedStatementTest extends BaseOsgiIntegrationTest {
   @DisplayName("Should get expected metadata when preparing SELECT with variables")
   public void selectWithVariablesTest(CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     PreparedStatement prepared =
-        session.prepare("SELECT a,b,c FROM prepared_statement_test WHERE a = ?");
+        session.prepare(
+            String.format("SELECT a,b,c FROM \"%s\".%s WHERE a = ?", keyspaceId, tableName));
     assertThat(prepared.getVariableDefinitions()).hasSize(1);
     ColumnDefinition variable1 = prepared.getVariableDefinitions().get(0);
     assertThat(variable1.getKeyspace()).isEqualTo(keyspaceId);
-    assertThat(variable1.getTable().asInternal()).isEqualTo("prepared_statement_test");
+    assertThat(variable1.getTable().asInternal()).isEqualTo(tableName);
     assertThat(variable1.getName().asInternal()).isEqualTo("a");
     assertThat(variable1.getType()).isEqualTo(DataTypes.INT);
     assertThat(prepared.getPartitionKeyIndices()).containsExactly(0);
@@ -80,12 +100,13 @@ public class PreparedStatementTest extends BaseOsgiIntegrationTest {
 
   @Test
   @DisplayName("Should fail to reprepare if the query becomes invalid after a schema change")
-  public void failedReprepareTest(CqlSession session) {
+  public void failedReprepareTest(CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     // Given
-    session.execute("ALTER TABLE prepared_statement_test ADD d int");
+    session.execute(String.format("ALTER TABLE \"%s\".%s ADD d int", keyspaceId, tableName));
     PreparedStatement ps =
-        session.prepare("SELECT a, b, c, d FROM prepared_statement_test WHERE a = ?");
-    session.execute("ALTER TABLE prepared_statement_test DROP d");
+        session.prepare(
+            String.format("SELECT a, b, c, d FROM \"%s\".%s WHERE a = ?", keyspaceId, tableName));
+    session.execute(String.format("ALTER TABLE \"%s\".%s DROP d", keyspaceId, tableName));
 
     assertThatThrownBy(() -> session.execute(ps.bind()))
         .isInstanceOf(InvalidQueryException.class)
@@ -94,11 +115,13 @@ public class PreparedStatementTest extends BaseOsgiIntegrationTest {
 
   @Test
   @DisplayName("Should not store metadata for conditional updates")
-  public void conditionalUpdateTest(CqlSession session) {
+  public void conditionalUpdateTest(CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     // Given
     PreparedStatement ps =
         session.prepare(
-            "INSERT INTO prepared_statement_test (a, b, c) VALUES (?, ?, ?) IF NOT EXISTS");
+            String.format(
+                "INSERT INTO \"%s\".%s (a, b, c) VALUES (?, ?, ?) IF NOT EXISTS",
+                keyspaceId, tableName));
 
     // Never store metadata in the prepared statement for conditional updates, since the result set
     // can change
@@ -135,7 +158,7 @@ public class PreparedStatementTest extends BaseOsgiIntegrationTest {
     assertThat(Bytes.toHexString(ps.getResultMetadataId())).isEqualTo(Bytes.toHexString(idBefore));
 
     // When
-    session.execute("ALTER TABLE prepared_statement_test ADD d int");
+    session.execute(String.format("ALTER TABLE \"%s\".%s ADD d int", keyspaceId, tableName));
     rs = session.execute(ps.bind(5, 5, 5));
 
     // Then
@@ -156,17 +179,17 @@ public class PreparedStatementTest extends BaseOsgiIntegrationTest {
     assertThat(columnDefinitions).hasSize(3);
     ColumnDefinition column1 = columnDefinitions.get(0);
     assertThat(column1.getKeyspace()).isEqualTo(keyspaceId);
-    assertThat(column1.getTable().asInternal()).isEqualTo("prepared_statement_test");
+    assertThat(column1.getTable().asInternal()).isEqualTo(tableName);
     assertThat(column1.getName().asInternal()).isEqualTo("a");
     assertThat(column1.getType()).isEqualTo(DataTypes.INT);
     ColumnDefinition column2 = columnDefinitions.get(1);
     assertThat(column2.getKeyspace()).isEqualTo(keyspaceId);
-    assertThat(column2.getTable().asInternal()).isEqualTo("prepared_statement_test");
+    assertThat(column2.getTable().asInternal()).isEqualTo(tableName);
     assertThat(column2.getName().asInternal()).isEqualTo("b");
     assertThat(column2.getType()).isEqualTo(DataTypes.INT);
     ColumnDefinition column3 = columnDefinitions.get(2);
     assertThat(column3.getKeyspace()).isEqualTo(keyspaceId);
-    assertThat(column3.getTable().asInternal()).isEqualTo("prepared_statement_test");
+    assertThat(column3.getTable().asInternal()).isEqualTo(tableName);
     assertThat(column3.getName().asInternal()).isEqualTo("c");
     assertThat(column3.getType()).isEqualTo(DataTypes.INT);
   }

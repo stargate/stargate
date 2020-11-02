@@ -18,8 +18,12 @@ import org.apache.cassandra.stargate.exceptions.AuthenticationException;
 import org.apache.cassandra.stargate.transport.internal.PlainTextTokenSaslNegotiator.Credentials;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
+@Execution(ExecutionMode.CONCURRENT)
 public class PlainTextTokenSaslNegotiatorTest {
+
   private final String TOKEN = "a24b121a-a385-44a6-8ae1-fe7542dbc490";
   private final String ROLE = "someRole";
 

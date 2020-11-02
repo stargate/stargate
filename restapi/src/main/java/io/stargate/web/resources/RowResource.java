@@ -307,7 +307,11 @@ public class RowResource {
           String query =
               String.format(
                   "SELECT %s FROM %s.%s WHERE %s %s",
-                  returnColumns, keyspaceName, tableName, expression, orderByExpression);
+                  returnColumns,
+                  Converters.maybeQuote(keyspaceName),
+                  Converters.maybeQuote(tableName),
+                  expression,
+                  orderByExpression);
           CompletableFuture<ResultSet> selectQuery =
               localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM, values.toArray());
 

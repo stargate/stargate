@@ -101,7 +101,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import net.jcip.annotations.NotThreadSafe;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -114,6 +113,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -135,8 +135,9 @@ import org.slf4j.LoggerFactory;
  *       see generated code in `target/generated-sources/graphql-client`.
  * </ul>
  */
-@NotThreadSafe
+@Isolated
 public class GraphqlTest extends BaseOsgiIntegrationTest {
+
   private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
 
   private static CqlSession session;

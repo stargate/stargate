@@ -13,10 +13,13 @@ import java.nio.ByteBuffer;
 import java.util.Base64;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+@Execution(ExecutionMode.CONCURRENT)
 public class QueryFetcherTest extends DmlTestBase {
 
   @Override
