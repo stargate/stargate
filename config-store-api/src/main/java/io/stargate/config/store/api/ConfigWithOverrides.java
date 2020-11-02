@@ -38,27 +38,37 @@ public class ConfigWithOverrides {
   }
 
   @Nonnull
-  String getStringSettingValue(String settingName) {
+  public String getStringSettingValue(String settingName) {
     return (String) getSettingValue(settingName, String.class);
   }
 
   @Nonnull
-  Optional<String> getOptionalStringValue(String settingName) {
+  public Optional<String> getOptionalStringValue(String settingName) {
     return getOptionalSettingValue(settingName, String.class).map(v -> (String) v);
   }
 
   @Nonnull
-  Boolean getBooleanSettingValue(String settingName) {
+  public Boolean getBooleanSettingValue(String settingName) {
     return (Boolean) getSettingValue(settingName, Boolean.class);
   }
 
   @Nonnull
-  Optional<Boolean> getOptionalBooleanSettingValue(String settingName) {
+  public Optional<Boolean> getOptionalBooleanSettingValue(String settingName) {
     return getOptionalSettingValue(settingName, Boolean.class).map(v -> (Boolean) v);
   }
 
+  /**
+   * It retrieves the value from underlying configMap checking for its presence and type. If the
+   * value for a given settingName does not have a value, it throws an {@code
+   * IllegalArgumentException}. If the type of the setting value does not match the expectedType, it
+   * throws {@code IllegalArgumentException}.
+   *
+   * @param settingName - it will be used as a key of underlying configMap.
+   * @param expectedType - it will be used to check if the type of an actual setting value matches.
+   * @return the value associated with settingName, matching expectedType.
+   */
   @Nonnull
-  Object getSettingValue(String settingName, Class<?> expectedType) {
+  public Object getSettingValue(String settingName, Class<?> expectedType) {
     Object configValue = configMap.get(settingName);
     if (configValue == null) {
       throw new IllegalArgumentException(
@@ -73,8 +83,19 @@ public class ConfigWithOverrides {
     return configValue;
   }
 
+  /**
+   * It retrieves the value wrapped in the {@code Optional} from underlying configMap checking for
+   * its type. If the value for a given settingName does not have a value, it returns {@code
+   * Optional.empty()} If the type of the setting value does not match the expectedType, it throws
+   * {@code IllegalArgumentException}.
+   *
+   * @param settingName - it will be used as a key of underlying configMap.
+   * @param expectedType - it will be used to check if the type of an actual setting value matches.
+   * @return the value wrapped in the {@code Optional} associated with settingName, matching
+   *     expectedType.
+   */
   @Nonnull
-  Optional<Object> getOptionalSettingValue(String settingName, Class<?> expectedType) {
+  public Optional<Object> getOptionalSettingValue(String settingName, Class<?> expectedType) {
     Object configValue = configMap.get(settingName);
     if (configValue == null) {
       return Optional.empty();
