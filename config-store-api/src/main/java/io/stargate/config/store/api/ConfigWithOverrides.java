@@ -57,6 +57,13 @@ public class ConfigWithOverrides {
    *
    * <p>Prefixing with module name is done to avoid conflicts of overrides between modules.
    *
+   * <p>Please keep in mind that if you are overriding settings via a System property or OS
+   * environment variable, it will always return the String value. If the underlying config map does
+   * not contain a String for the specific setting name, and the override is provided, you may get
+   * class cast problems. To alleviate this problem, you should assert that the underlying config
+   * map value for the setting that you plan to override is of a String type. You can also add a
+   * custom parsing logic with instanceof checks but it may be error-prone.
+   *
    * @return the value with the highest priority or null if there is no value associated with the
    *     given settingName.
    */
