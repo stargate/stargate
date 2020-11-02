@@ -23,7 +23,7 @@ import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
-import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthnzService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.web.RestApiActivator;
@@ -59,17 +59,17 @@ import org.osgi.framework.FrameworkUtil;
 public class Server extends Application<ApplicationConfiguration> {
 
   private final Persistence persistence;
-  private final AuthenticationService authenticationService;
+  private final AuthnzService authnzService;
   private final Metrics metrics;
 
   public Server(
-      Persistence persistence, AuthenticationService authenticationService, Metrics metrics) {
+      Persistence persistence, AuthnzService authnzService, Metrics metrics) {
     this.persistence = persistence;
-    this.authenticationService = authenticationService;
+    this.authnzService = authnzService;
     this.metrics = metrics;
 
     BeanConfig beanConfig = new BeanConfig();
-    beanConfig.setSchemes(new String[] {"http"});
+    beanConfig.setSchemes(new String[]{"http"});
     beanConfig.setBasePath("/");
     ScannerFactory.setScanner(new DefaultJaxrsScanner());
   }
@@ -94,7 +94,7 @@ public class Server extends Application<ApplicationConfiguration> {
   public void run(
       final ApplicationConfiguration applicationConfiguration, final Environment environment)
       throws IOException {
-    final Db db = new Db(persistence, authenticationService);
+    final Db db = new Db(persistence, authnzService);
 
     environment.getObjectMapper().configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
     environment.getObjectMapper().registerModule(new JavaTimeModule());

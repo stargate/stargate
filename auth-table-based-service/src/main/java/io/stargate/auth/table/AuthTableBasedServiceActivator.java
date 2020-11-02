@@ -15,7 +15,7 @@
  */
 package io.stargate.auth.table;
 
-import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthnzService;
 import io.stargate.db.Persistence;
 import java.util.Hashtable;
 import org.osgi.framework.BundleActivator;
@@ -67,7 +67,7 @@ public class AuthTableBasedServiceActivator implements BundleActivator, ServiceL
         log.info("Registering authTableBasedService in AuthTableBasedServiceActivator");
         registration =
             context.registerService(
-                AuthenticationService.class.getName(), authTableBasedService, props);
+                AuthnzService.class.getName(), authTableBasedService, props);
       }
     }
   }
@@ -99,7 +99,7 @@ public class AuthTableBasedServiceActivator implements BundleActivator, ServiceL
             log.info("Registering authTableBasedService in AuthTableBasedServiceActivator");
             registration =
                 context.registerService(
-                    AuthenticationService.class.getName(), authTableBasedService, props);
+                    AuthnzService.class.getName(), authTableBasedService, props);
           }
           break;
         case (ServiceEvent.UNREGISTERING):

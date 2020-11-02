@@ -16,8 +16,10 @@
 package io.stargate.web.resources;
 
 import com.codahale.metrics.annotation.Timed;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.datastore.Row;
 import io.stargate.db.datastore.query.Value;
 import io.stargate.db.datastore.query.Where;
 import io.stargate.db.schema.Column;
@@ -45,6 +47,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -65,6 +68,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,14 +128,20 @@ public class RowResource {
           DataStore localDB = db.getDataStoreForToken(token);
 
           final ResultSet r =
-              localDB
-                  .query()
-                  .select()
-                  .from(keyspaceName, tableName)
-                  .where(
-                      buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI()))
-                  .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                  .execute();
+              db.getAuthnzService().executeDataReadWithAuthorization(
+                  () ->
+                      localDB
+                          .query()
+                          .select()
+                          .from(keyspaceName, tableName)
+                          .where(
+                              buildWhereClause(
+                                  localDB, keyspaceName, tableName, request.getRequestURI()))
+                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+                          .execute(),
+                  token,
+                  idFromPath(request.getRequestURI()),
+                  db.getTable(localDB, keyspaceName, tableName));
 
           final List<Map<String, Object>> rows =
               r.rows().stream().map(Converters::row2Map).collect(Collectors.toList());
@@ -141,6 +152,76 @@ public class RowResource {
         });
   }
 
+  private ResultSet executeQueryWithAuthorization(
+      Callable<ResultSet> action, String token, List<String> primaryKeyValues, Table tableMetadata)
+      throws Exception {
+    // No need to check the query if we're not using JWT based auth
+    if (!"AuthJwtService".equals(System.getProperty("stargate.auth_id"))) {
+      return action.call();
+    }
+
+    // Grab the custom claims from the JWT. It's safe to work with the JWT as a plain Base64 encoded
+    // json object here since by this point we've already authenticated the request.
+    String[] parts = token.split("\\.");
+    String decodedPayload = new String(Base64.getUrlDecoder().decode(parts[1]));
+    JSONObject payload = new JSONObject(decodedPayload);
+    JSONObject stargateClaims = payload.getJSONObject("stargate_claims");
+
+    precheckQuery(stargateClaims, primaryKeyValues, tableMetadata);
+
+    ResultSet result = action.call();
+
+    postcheckQuery(stargateClaims, result);
+
+    return result;
+  }
+
+  private void postcheckQuery(JSONObject stargateClaims, ResultSet resultSet)
+      throws JSONException, UnauthorizedException {
+    // If scopes/fields line up with the resultset then return
+    if (resultSet != null) {
+      for (Row row : resultSet.rows()) {
+        for (Column col : row.columns()) {
+          if (stargateClaims.has("x-stargate-" + col.name())) {
+            // TODO: [doug] 2020-10-28, Wed, 16:47 needs to be waaaay safer
+            if (!stargateClaims
+                .getString("x-stargate-" + col.name())
+                .equals(row.getString(col.name()))) {
+              // TODO: [doug] 2020-10-28, Wed, 16:48 figure out how to return this as a 403
+              throw new UnauthorizedException("Not allowed to access this resource");
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private void precheckQuery(JSONObject stargateClaims, List<String> primaryKeyValues,
+      Table tableMetadata)
+      throws JSONException, UnauthorizedException {
+    List<Column> keys = tableMetadata.primaryKeyColumns();
+
+    for (int i = 0; i < primaryKeyValues.size(); i++) {
+      // If one of the columns exist as a field in the JWT claims and the values do not match then
+      // the request is not allowed.
+      if (stargateClaims.has("x-stargate-" + keys.get(i).name())) {
+
+        if (!Column.ofTypeText(keys.get(i).type())) {
+          throw new IllegalArgumentException(
+              "Column must be of type text to be used for authorization");
+        }
+
+        // TODO: [doug] 2020-10-28, Wed, 16:47 needs to be waaaay safer
+        if (!stargateClaims
+            .getString("x-stargate-" + keys.get(i).name())
+            .equals(primaryKeyValues.get(i))) {
+          // TODO: [doug] 2020-10-28, Wed, 16:48 figure out how to return this as a 403
+          throw new UnauthorizedException("Not allowed to access this resource");
+        }
+      }
+    }
+  }
+
   @Timed
   @GET
   @ApiOperation(
@@ -149,12 +230,12 @@ public class RowResource {
       response = Rows.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = Rows.class),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+          @ApiResponse(code = 200, message = "OK", response = Rows.class),
+          @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+          @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+          @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+          @ApiResponse(code = 404, message = "Not Found", response = Error.class),
+          @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   public Response getAllRows(
       @ApiParam(

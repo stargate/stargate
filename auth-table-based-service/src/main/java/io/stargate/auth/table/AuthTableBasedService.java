@@ -16,7 +16,7 @@
 package io.stargate.auth.table;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
-import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthnzService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
@@ -24,15 +24,18 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.datastore.query.WhereCondition;
+import io.stargate.db.schema.Table;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AuthTableBasedService implements AuthenticationService {
+public class AuthTableBasedService implements AuthnzService {
 
   private static final Logger logger = LoggerFactory.getLogger(AuthTableBasedService.class);
 
@@ -257,5 +260,33 @@ public class AuthTableBasedService implements AuthenticationService {
     }
 
     return storedCredentials;
+  }
+
+  @Override
+  public ResultSet executeDataReadWithAuthorization(Callable<ResultSet> action,
+      String token, List<String> primaryKeyValues, Table tableMetadata) throws Exception {
+    // Cannot perform authorization with a table based token so just return
+    return action.call();
+  }
+
+  @Override
+  public ResultSet executeDataWriteWithAuthorization(Callable<ResultSet> action, String token,
+      List<String> primaryKeyValues, Table tableMetadata) throws Exception {
+    // Cannot perform authorization with a table based token so just return
+    return action.call();
+  }
+
+  @Override
+  public ResultSet executeSchemaReadWithAuthorization(Callable<ResultSet> action, String token,
+      String keyspace, String table) throws Exception {
+    // Cannot perform authorization with a table based token so just return
+    return action.call();
+  }
+
+  @Override
+  public ResultSet executeSchemaWriteWithAuthorization(Callable<ResultSet> action, String token,
+      String keyspace, String table) throws Exception {
+    // Cannot perform authorization with a table based token so just return
+    return action.call();
   }
 }

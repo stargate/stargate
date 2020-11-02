@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.stargate</groupId>
@@ -7,7 +9,21 @@
     <version>0.0.20-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.auth</groupId>
-  <artifactId>authentication</artifactId>
+  <artifactId>authnz</artifactId>
+  <dependencies>
+    <dependency>
+      <groupId>io.stargate.db</groupId>
+      <artifactId>persistence-api</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+  </dependencies>
   <build>
     <plugins>
       <plugin>
@@ -16,8 +32,9 @@
         <configuration>
           <unpackBundle>true</unpackBundle>
           <instructions>
-            <Bundle-Name>Authentication</Bundle-Name>
-            <Bundle-Description>Authentication component for project</Bundle-Description>
+            <Bundle-Name>Authnz</Bundle-Name>
+            <Bundle-Description>Authentication and authorization component for project
+            </Bundle-Description>
             <Bundle-SymbolicName>io.stargate.auth</Bundle-SymbolicName>
             <Import-Package>org.osgi.framework</Import-Package>
             <Export-Package>io.stargate.auth</Export-Package>

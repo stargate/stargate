@@ -20,7 +20,7 @@ import graphql.kickstart.execution.GraphQLObjectMapper;
 import graphql.kickstart.execution.GraphQLQueryInvoker;
 import graphql.kickstart.execution.config.DefaultExecutionStrategyProvider;
 import graphql.schema.GraphQLSchema;
-import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthnzService;
 import io.stargate.db.EventListener;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
@@ -53,18 +53,18 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
   private static final Pattern KEYSPACE_NAME_PATTERN = Pattern.compile("\\w+");
 
   private final Persistence persistence;
-  private final AuthenticationService authenticationService;
+  private final AuthnzService authnzService;
   private final String defaultKeyspace;
 
   private final ConcurrentMap<String, RequestHandlerReference> keyspaceHandlers;
 
   public CustomGraphQLServlet(
-      Persistence persistence, AuthenticationService authenticationService) {
+      Persistence persistence, AuthnzService authnzService) {
     this.persistence = persistence;
-    this.authenticationService = authenticationService;
+    this.authnzService = authnzService;
     DataStore dataStore = DataStore.create(persistence);
     this.defaultKeyspace = findDefaultKeyspace(dataStore);
-    this.keyspaceHandlers = initKeyspaceHandlers(persistence, dataStore, authenticationService);
+    this.keyspaceHandlers = initKeyspaceHandlers(persistence, dataStore, authnzService);
 
     persistence.registerEventListener(this);
   }
@@ -174,7 +174,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
   }
 
   private static ConcurrentMap<String, RequestHandlerReference> initKeyspaceHandlers(
-      Persistence persistence, DataStore dataStore, AuthenticationService authenticationService) {
+      Persistence persistence, DataStore dataStore, AuthnzService authnzService) {
 
     ConcurrentMap<String, RequestHandlerReference> map = new ConcurrentHashMap<>();
 
@@ -183,7 +183,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
       String keyspaceName = keyspace.name().toLowerCase();
       LOG.debug("Prepare handler for {}", keyspaceName);
       map.put(
-          keyspaceName, new RequestHandlerReference(keyspace, persistence, authenticationService));
+          keyspaceName, new RequestHandlerReference(keyspace, persistence, authnzService));
     }
     return map;
   }
@@ -206,7 +206,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
       } else {
         keyspaceHandlers.put(
             keyspaceName,
-            new RequestHandlerReference(keyspace, persistence, authenticationService));
+            new RequestHandlerReference(keyspace, persistence, authnzService));
       }
       LOG.debug("Done refreshing handler for keyspace {}", keyspaceName);
     } catch (Exception e) {
@@ -315,15 +315,15 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
   static class RequestHandlerReference {
     private final Keyspace keyspace;
     private final Persistence persistence;
-    private final AuthenticationService authenticationService;
+    private final AuthnzService authnzService;
 
     private volatile HttpRequestHandlerImpl handler;
 
     RequestHandlerReference(
-        Keyspace keyspace, Persistence persistence, AuthenticationService authenticationService) {
+        Keyspace keyspace, Persistence persistence, AuthnzService authnzService) {
       this.keyspace = keyspace;
       this.persistence = persistence;
-      this.authenticationService = authenticationService;
+      this.authnzService = authnzService;
     }
 
     HttpRequestHandler get() {
@@ -341,7 +341,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
 
     private HttpRequestHandlerImpl computeHandler() {
       GraphQLSchema schema =
-          SchemaFactory.newDmlSchema(persistence, authenticationService, keyspace);
+          SchemaFactory.newDmlSchema(persistence, authnzService, keyspace);
       GraphQLConfiguration configuration =
           GraphQLConfiguration.with(schema)
               .with(

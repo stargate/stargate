@@ -8,7 +8,7 @@ import com.nimbusds.jose.proc.JWSVerificationKeySelector;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
 import com.nimbusds.jwt.proc.DefaultJWTProcessor;
-import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthnzService;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Hashtable;
@@ -63,7 +63,7 @@ public class AuthJWTServiceActivator implements BundleActivator {
       jwtProcessor.setJWSKeySelector(keySelector);
 
       authJwtService = new AuthJwtService(jwtProcessor);
-      context.registerService(AuthenticationService.class.getName(), authJwtService, props);
+      context.registerService(AuthnzService.class.getName(), authJwtService, props);
     }
   }
 

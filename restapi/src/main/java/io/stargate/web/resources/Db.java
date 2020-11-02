@@ -15,7 +15,7 @@
  */
 package io.stargate.web.resources;
 
-import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthnzService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.ImmutableParameters;
@@ -33,7 +33,7 @@ import javax.ws.rs.NotFoundException;
 public class Db {
   private final Persistence persistence;
   private final DataStore dataStore;
-  private final AuthenticationService authenticationService;
+  private final AuthnzService authnzService;
 
   public Collection<Table> getTables(DataStore dataStore, String keyspaceName) {
     Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
@@ -57,8 +57,8 @@ public class Db {
     return tableMetadata;
   }
 
-  public Db(final Persistence persistence, AuthenticationService authenticationService) {
-    this.authenticationService = authenticationService;
+  public Db(final Persistence persistence, AuthnzService authnzService) {
+    this.authnzService = authnzService;
     this.persistence = persistence;
     this.dataStore = DataStore.create(persistence);
   }
@@ -71,14 +71,18 @@ public class Db {
     return this.persistence;
   }
 
+  public AuthnzService getAuthnzService() {
+    return authnzService;
+  }
+
   public DataStore getDataStoreForToken(String token) throws UnauthorizedException {
-    StoredCredentials storedCredentials = authenticationService.validateToken(token);
+    StoredCredentials storedCredentials = authnzService.validateToken(token);
     return DataStore.create(persistence, storedCredentials.getRoleName());
   }
 
   public DataStore getDataStoreForToken(String token, int pageSize, ByteBuffer pagingState)
       throws UnauthorizedException {
-    StoredCredentials storedCredentials = authenticationService.validateToken(token);
+    StoredCredentials storedCredentials = authnzService.validateToken(token);
     Parameters parameters =
         ImmutableParameters.builder()
             .pageSize(pageSize)
@@ -89,13 +93,13 @@ public class Db {
   }
 
   public DocumentDB getDocDataStoreForToken(String token) throws UnauthorizedException {
-    StoredCredentials storedCredentials = authenticationService.validateToken(token);
+    StoredCredentials storedCredentials = authnzService.validateToken(token);
     return new DocumentDB(DataStore.create(persistence, storedCredentials.getRoleName()));
   }
 
   public DocumentDB getDocDataStoreForToken(String token, int pageSize, ByteBuffer pageState)
       throws UnauthorizedException {
-    StoredCredentials storedCredentials = authenticationService.validateToken(token);
+    StoredCredentials storedCredentials = authnzService.validateToken(token);
     Parameters parameters =
         Parameters.builder().pageSize(pageSize).pagingState(Optional.ofNullable(pageState)).build();
 

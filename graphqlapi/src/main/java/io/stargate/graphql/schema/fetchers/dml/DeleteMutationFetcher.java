@@ -3,7 +3,7 @@ package io.stargate.graphql.schema.fetchers.dml;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.delete.Delete;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthnzService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Table;
@@ -15,8 +15,8 @@ public class DeleteMutationFetcher extends MutationFetcher {
       Table table,
       NameMapping nameMapping,
       Persistence persistence,
-      AuthenticationService authenticationService) {
-    super(table, nameMapping, persistence, authenticationService);
+      AuthnzService authnzService) {
+    super(table, nameMapping, persistence, authnzService);
   }
 
   @Override

@@ -17,20 +17,21 @@ package graphql.kickstart.servlet;
 
 import graphql.kickstart.execution.GraphQLObjectMapper;
 import graphql.schema.GraphQLSchema;
-import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthnzService;
 import io.stargate.db.Persistence;
 import io.stargate.graphql.graphqlservlet.GraphqlCustomContextBuilder;
 import io.stargate.graphql.graphqlservlet.StargateGraphqlErrorHandler;
 import io.stargate.graphql.schema.SchemaFactory;
 
 public class SchemaGraphQLServlet extends SimpleGraphQLHttpServlet {
+
   private final Persistence persistence;
-  private final AuthenticationService authenticationService;
+  private final AuthnzService authnzService;
 
   public SchemaGraphQLServlet(
-      Persistence persistence, AuthenticationService authenticationService) {
+      Persistence persistence, AuthnzService authnzService) {
     this.persistence = persistence;
-    this.authenticationService = authenticationService;
+    this.authnzService = authnzService;
   }
 
   @Override
@@ -45,6 +46,6 @@ public class SchemaGraphQLServlet extends SimpleGraphQLHttpServlet {
   }
 
   private GraphQLSchema createSchema() {
-    return SchemaFactory.newDdlSchema(persistence, authenticationService);
+    return SchemaFactory.newDdlSchema(persistence, authnzService);
   }
 }

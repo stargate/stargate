@@ -15,14 +15,14 @@
  */
 package io.stargate.web.impl;
 
-import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthnzService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 
 public class WebImpl {
 
   private Persistence persistence;
-  private AuthenticationService authenticationService;
+  private AuthnzService authnzService;
   private Metrics metrics;
 
   public Persistence getPersistence() {
@@ -33,12 +33,12 @@ public class WebImpl {
     this.persistence = persistence;
   }
 
-  public AuthenticationService getAuthenticationService() {
-    return authenticationService;
+  public AuthnzService getAuthenticationService() {
+    return authnzService;
   }
 
-  public void setAuthenticationService(AuthenticationService authenticationService) {
-    this.authenticationService = authenticationService;
+  public void setAuthenticationService(AuthnzService authnzService) {
+    this.authnzService = authnzService;
   }
 
   public Metrics getMetrics() {
@@ -50,7 +50,7 @@ public class WebImpl {
   }
 
   public void start() throws Exception {
-    Server server = new Server(persistence, this.authenticationService, this.metrics);
+    Server server = new Server(persistence, this.authnzService, this.metrics);
     server.run("server", "config.yaml");
   }
 }

@@ -1,7 +1,7 @@
 package org.apache.cassandra.stargate.transport.internal;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthnzService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.Authenticator;
@@ -20,12 +20,12 @@ class PlainTextTokenSaslNegotiator implements Authenticator.SaslNegotiator {
 
   static final byte NUL = 0;
 
-  private final AuthenticationService authentication;
+  private final AuthnzService authentication;
   private final Authenticator.SaslNegotiator wrapped;
   private StoredCredentials storedCredentials;
 
   PlainTextTokenSaslNegotiator(
-      Authenticator.SaslNegotiator wrapped, AuthenticationService authentication) {
+      Authenticator.SaslNegotiator wrapped, AuthnzService authentication) {
     this.authentication = authentication;
     this.wrapped = wrapped;
   }

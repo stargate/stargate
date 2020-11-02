@@ -15,7 +15,7 @@
  */
 package io.stargate.auth.api;
 
-import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthnzService;
 import io.stargate.auth.api.impl.WebImpl;
 import io.stargate.core.metrics.api.Metrics;
 import org.osgi.framework.BundleActivator;
@@ -51,16 +51,16 @@ public class AuthApiActivator implements BundleActivator, ServiceListener {
       }
 
       ServiceReference[] refs =
-          context.getServiceReferences(AuthenticationService.class.getName(), null);
+          context.getServiceReferences(AuthnzService.class.getName(), null);
       if (refs != null) {
         for (ServiceReference ref : refs) {
           // Get the service object.
           Object service = context.getService(ref);
-          if (service instanceof AuthenticationService
+          if (service instanceof AuthnzService
               && ref.getProperty("AuthIdentifier") != null
               && ref.getProperty("AuthIdentifier").equals(AUTH_IDENTIFIER)) {
             log.info("Setting authenticationService in AuthApiActivator");
-            this.web.setAuthenticationService((AuthenticationService) service);
+            this.web.setAuthenticationService((AuthnzService) service);
             break;
           }
         }
@@ -104,14 +104,14 @@ public class AuthApiActivator implements BundleActivator, ServiceListener {
           log.info("Service of type " + objectClass[0] + " registered.");
           Object service = context.getService(serviceEvent.getServiceReference());
 
-          if (service instanceof AuthenticationService
+          if (service instanceof AuthnzService
               && serviceEvent.getServiceReference().getProperty("AuthIdentifier") != null
               && serviceEvent
-                  .getServiceReference()
-                  .getProperty("AuthIdentifier")
-                  .equals(AUTH_IDENTIFIER)) {
+              .getServiceReference()
+              .getProperty("AuthIdentifier")
+              .equals(AUTH_IDENTIFIER)) {
             log.info("Setting authenticationService in AuthApiActivator");
-            this.web.setAuthenticationService((AuthenticationService) service);
+            this.web.setAuthenticationService((AuthnzService) service);
           } else if (service instanceof Metrics) {
             log.info("Setting metrics in AuthApiActivator");
             this.web.setMetrics(((Metrics) service));
