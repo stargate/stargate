@@ -40,8 +40,14 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assumptions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -53,11 +59,17 @@ public class StargateMetaTest extends AbstractDataStoreTest {
   private static final String TEST_PASSWORD = "test_password";
 
   private final AuthenticationService authenticator;
+  private StargateMeta stargateMeta;
 
   public StargateMetaTest() throws Exception {
     authenticator = Mockito.mock(AuthenticationService.class);
     Mockito.when(authenticator.createToken(Mockito.anyString(), Mockito.eq(TEST_PASSWORD)))
         .thenReturn("token");
+  }
+
+  @BeforeEach
+  public void createMeta() {
+    stargateMeta = new StargateMeta(dataStore, authenticator);
   }
 
   public static Stream<Arguments> allColumnParams() {
@@ -69,14 +81,24 @@ public class StargateMetaTest extends AbstractDataStoreTest {
                     .map(e -> Arguments.of(s, e.getKey(), e.getValue())));
   }
 
+  private Connection newConnection(SerializationParams serialization, AtomicLong roundTripCounter)
+      throws SQLException {
+    return newConnection(serialization, "test_" + serialization, TEST_PASSWORD, roundTripCounter);
+  }
+
   private Connection newConnection(SerializationParams serialization) throws SQLException {
     return newConnection(serialization, "test_" + serialization, TEST_PASSWORD);
   }
 
   private Connection newConnection(SerializationParams ser, String user, String password)
       throws SQLException {
-    return SerializingTestDriver.newConnection(
-        ser, new StargateMeta(dataStore, authenticator), user, password);
+    return newConnection(ser, user, password, new AtomicLong());
+  }
+
+  private Connection newConnection(
+      SerializationParams ser, String user, String password, AtomicLong roundTripCounter)
+      throws SQLException {
+    return SerializingTestDriver.newConnection(ser, stargateMeta, user, password, roundTripCounter);
   }
 
   @ParameterizedTest
@@ -134,6 +156,34 @@ public class StargateMetaTest extends AbstractDataStoreTest {
 
     assertThat(rs.next()).isTrue();
     assertThat(rs.getInt(1)).isEqualTo(20);
+
+    assertThat(rs.next()).isFalse();
+  }
+
+  @ParameterizedTest
+  @EnumSource(SerializationParams.class)
+  public void longResultSet(SerializationParams serialization) throws SQLException {
+    List<Map<String, Object>> rows =
+        IntStream.range(0, 1000)
+            .mapToObj(i -> ImmutableMap.<String, Object>of("a", i))
+            .collect(Collectors.toList());
+    withQuery(table1, "SELECT a FROM %s").returning(rows);
+
+    AtomicLong roundTripCounter = new AtomicLong();
+    Connection connection = newConnection(serialization, roundTripCounter);
+    PreparedStatement statement =
+        connection.prepareStatement("select a from test_ks.test1 order by a ASC");
+    ResultSet rs = statement.executeQuery();
+
+    long count0 = roundTripCounter.get();
+    for (int i = 0; i < 1000; i++) {
+      assertThat(rs.next()).isTrue();
+      assertThat(rs.getInt(1)).isEqualTo(i);
+    }
+
+    // expect several round trips to the server during interation since the default Frame size
+    // in Avatica is 100 rows.
+    assertThat(roundTripCounter.get()).isGreaterThan(count0);
 
     assertThat(rs.next()).isFalse();
   }
@@ -231,10 +281,30 @@ public class StargateMetaTest extends AbstractDataStoreTest {
   public void closeStatement(SerializationParams serialization) throws SQLException {
     Connection connection = newConnection(serialization);
     Statement statement = connection.createStatement();
+
+    assertThat(stargateMeta.connections()).hasSize(1);
+    assertThat(stargateMeta.connections().values().iterator().next().statements()).hasSize(1);
+
     statement.close();
+
+    assertThat(stargateMeta.connections()).hasSize(1);
+    assertThat(stargateMeta.connections().values().iterator().next().statements()).hasSize(0);
 
     assertThatThrownBy(() -> statement.executeQuery("select * from test_ks.test1"))
         .hasMessage("Statement closed");
+  }
+
+  @ParameterizedTest
+  @EnumSource(SerializationParams.class)
+  public void closeConnection(SerializationParams serialization) throws SQLException {
+    Connection connection = newConnection(serialization);
+
+    assertThat(stargateMeta.connections()).hasSize(1);
+
+    connection.close();
+
+    assertThat(stargateMeta.connections()).hasSize(0);
+    assertThatThrownBy(connection::createStatement).hasMessage("Connection closed");
   }
 
   private void validateValue(

@@ -22,6 +22,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.apache.calcite.avatica.BuiltInConnectionProperty;
 import org.apache.calcite.avatica.ConnectionConfig;
@@ -64,14 +66,18 @@ public class SerializingTestDriver extends Driver {
           0);
 
   public static Connection newConnection(
-      SerializationParams params, StargateMeta meta, String user, String password)
+      SerializationParams params,
+      StargateMeta meta,
+      String user,
+      String password,
+      AtomicLong roundTripCounter)
       throws SQLException {
     Properties connectionProperties = new Properties();
     if (user != null) connectionProperties.put("user", user);
     if (password != null) connectionProperties.put("password", password);
 
     Service service = new LocalService(meta);
-    connectionProperties.put(HANDLER, params.handlerFactory.apply(service));
+    connectionProperties.put(HANDLER, params.handlerFactory.apply(service, roundTripCounter));
 
     connectionProperties.put(
         BuiltInConnectionProperty.HTTP_CLIENT_FACTORY.camelName(),
@@ -115,8 +121,10 @@ public class SerializingTestDriver extends Driver {
 
   private static final class LocalProtobufHandler implements Function<byte[], byte[]> {
     private final ProtobufHandler handler;
+    private final AtomicLong roundTripCounter;
 
-    private LocalProtobufHandler(Service service) {
+    private LocalProtobufHandler(Service service, AtomicLong roundTripCounter) {
+      this.roundTripCounter = roundTripCounter;
       this.handler =
           new ProtobufHandler(
               service, new ProtobufTranslationImpl(), NoopMetricsSystem.getInstance());
@@ -124,19 +132,23 @@ public class SerializingTestDriver extends Driver {
 
     @Override
     public byte[] apply(byte[] bytes) {
+      roundTripCounter.incrementAndGet();
       return handler.apply(bytes).getResponse();
     }
   }
 
   private static final class LocalJsonHandler implements Function<byte[], byte[]> {
     private final JsonHandler handler;
+    private final AtomicLong roundTripCounter;
 
-    private LocalJsonHandler(Service service) {
+    private LocalJsonHandler(Service service, AtomicLong roundTripCounter) {
+      this.roundTripCounter = roundTripCounter;
       this.handler = new JsonHandler(service, NoopMetricsSystem.getInstance());
     }
 
     @Override
     public byte[] apply(byte[] bytes) {
+      roundTripCounter.incrementAndGet();
       String input = new String(bytes);
       return handler.apply(input).getResponse().getBytes();
     }
@@ -158,12 +170,12 @@ public class SerializingTestDriver extends Driver {
     ;
 
     private final Serialization serialization;
-    private final Function<Service, Function<byte[], byte[]>> handlerFactory;
+    private final BiFunction<Service, AtomicLong, Function<byte[], byte[]>> handlerFactory;
     private final Function<Object, Object> coercer;
 
     SerializationParams(
         Serialization serialization,
-        Function<Service, Function<byte[], byte[]>> handlerFactory,
+        BiFunction<Service, AtomicLong, Function<byte[], byte[]>> handlerFactory,
         Function<Object, Object> coercer) {
       this.serialization = serialization;
       this.handlerFactory = handlerFactory;
