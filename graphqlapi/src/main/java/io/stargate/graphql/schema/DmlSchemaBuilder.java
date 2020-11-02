@@ -489,8 +489,10 @@ class DmlSchemaBuilder {
 
   private void warn(Exception e, String format, Object... arguments) {
     String message = String.format(format, arguments);
-    warnings.add(message + "(" + e.getMessage() + ")");
-    LOG.warn(message, e);
+    warnings.add(message + " (" + e.getMessage() + ")");
+    if (!(e instanceof SchemaWarningException)) {
+      LOG.warn(message, e);
+    }
   }
 
   private static final GraphQLInputType MUTATION_OPTIONS =

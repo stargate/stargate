@@ -48,7 +48,7 @@ public class NameMapping {
       if (clashingCqlName != null) {
         warnings.add(
             String.format(
-                "Can't convert table %s because its GraphQL name %s would collide with table %s",
+                "Couldn't convert table %s because its GraphQL name %s would collide with table %s",
                 table.name(), graphqlName, clashingCqlName));
       } else {
         entityNames.put(table.name(), graphqlName);
@@ -65,7 +65,7 @@ public class NameMapping {
       if (clashingCqlName != null) {
         warnings.add(
             String.format(
-                "Can't convert UDT %s because its GraphQL name %s would collide with UDT %s",
+                "Could not convert UDT %s because its GraphQL name %s would collide with UDT %s",
                 udt.name(), graphqlName, clashingCqlName));
       } else {
         udtNames.put(udt.name(), graphqlName);
@@ -82,7 +82,7 @@ public class NameMapping {
       if (clashingCqlName != null) {
         warnings.add(
             String.format(
-                "Can't convert column %s in table/UDT %s because its GraphQL name %s "
+                "Could not convert column %s in table/UDT %s because its GraphQL name %s "
                     + "would collide with column %s",
                 column.name(), column.table(), graphqlName, clashingCqlName));
       } else {
