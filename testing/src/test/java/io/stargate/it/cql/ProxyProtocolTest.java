@@ -27,12 +27,12 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+@SkipWhenNotDse
+@SkipIfProxyDnsInvalid
 @StargateSpec(parametersCustomizer = "buildParameters")
 @CqlSessionSpec(createSession = false, noDefaultContactPoints = true)
 @ProxySpec(numProxies = 3)
 @ExtendWith({CqlSessionExtension.class, ProxyExtension.class})
-@SkipWhenNotDse
-@SkipIfProxyDnsInvalid
 public class ProxyProtocolTest extends BaseOsgiIntegrationTest {
   @SuppressWarnings("unused") // referenced in @StargateSpec
   public static void buildParameters(StargateParameters.Builder builder) {
