@@ -16,6 +16,12 @@
         <scope>provided</scope>
       </dependency>
       <dependency>
+        <groupId>io.stargate.core</groupId>
+        <artifactId>core</artifactId>
+        <version>${project.version}</version>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
         <groupId>org.junit.jupiter</groupId>
         <artifactId>junit-jupiter</artifactId>
         <version>${junit.version}</version>
@@ -26,6 +32,16 @@
             <artifactId>guava</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>io.dropwizard.metrics</groupId>
+        <artifactId>metrics-ganglia</artifactId>
+        <version>3.2.6</version>
+      </dependency>
+      <dependency>
+        <groupId>io.dropwizard.metrics</groupId>
+        <artifactId>metrics-graphite</artifactId>
+        <version>4.1.2</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -48,7 +64,7 @@
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
-        <artifactId>mockito-core</artifactId>
+        <artifactId>mockito-inline</artifactId>
         <version>3.5.10</version>
         <scope>test</scope>
       </dependency>
@@ -69,10 +85,12 @@
 						<Bundle-Name>Config-Store-Yaml</Bundle-Name>
 						<Bundle-Description>Config store YAML implementation</Bundle-Description>
 						<Bundle-SymbolicName>io.stargate.config.store.yaml</Bundle-SymbolicName>
-						<Bundle-Activator>io.stargate.config.store.api.yaml.ConfigStoreActivator</Bundle-Activator>
+						<Bundle-Activator>io.stargate.config.store.yaml.ConfigStoreActivator</Bundle-Activator>
 						<Import-Package><![CDATA[
                                         org.osgi.framework,
-                                        io.stargate.config.store.api
+                                        io.stargate.config.store.api,
+                                        com.codahale.metrics,
+                                        !com.codahale.metrics.graphite.*,
                                         ]]>
 						</Import-Package>
 						<DynamicImport-Package>*</DynamicImport-Package>

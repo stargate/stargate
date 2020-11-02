@@ -44,6 +44,22 @@ propagate higher in the call stack.
 If the caller tries to load a config file that does not exist, it will throw the
 `UncheckedIOException` with the following message: `Problem when processing YAML file from: path_to_file`. 
 
+## YAML File Cache
+
+Loading the YAML file every time the `ConfigStore#getConfigForModule(String moduleName)` is called would add substantial performance overhead.
+To reduce this, the file is cached for 30 seconds after write. It means that the change to the underlying `stargate-config.yaml`
+will be captured by the `getConfigForModule()` method with 30 seconds delay.
+
+The Config Store YAML exposes cache level metrics to allow tracking efficiency and performance. 
+All metrics are exposed under `config.store.yaml` prefix. 
+The `MetricRegistry` will have the following cache-level metrics:
+*   `config.store.yaml.file-cache.hitCount`
+*   `config.store.yaml.file-cache.hitRate`
+*   `config.store.yaml.file-cache.missCount`
+*   `config.store.yaml.file-cache.missRate`
+*   `config.store.yaml.file-cache.evictionCount`
+*   `config.store.yaml.file-cache.size`
+
 ## Using Config Store Yaml with Kubernetes(K8s)
 
 This config store needs to have a YAML file in the local file system. It
