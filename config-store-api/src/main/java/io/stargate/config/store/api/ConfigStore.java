@@ -28,4 +28,12 @@ public interface ConfigStore {
    * call stack.
    */
   ConfigWithOverrides getConfigForModule(String moduleName) throws MissingModuleSettingsException;
+
+  /**
+   * This is a convenience method that calls the {@link this#getConfigForModule(String)} with a
+   * stargate module name.
+   */
+  default ConfigWithOverrides getGlobalConfig() {
+    return getConfigForModule("stargate");
+  }
 }

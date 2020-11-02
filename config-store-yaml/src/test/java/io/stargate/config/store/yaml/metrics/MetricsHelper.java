@@ -13,13 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.stargate.config.store.yaml.metrics;
 
-package io.stargate.db.cdc;
+import com.codahale.metrics.MetricRegistry;
 
-interface CDCHealthChecker extends AutoCloseable {
-  boolean isHealthy();
+public class MetricsHelper {
 
-  void reportSendError();
-
-  void reportSendSuccess();
+  public static Number getMetricValue(MetricRegistry metricRegistry, String metricName) {
+    return (Number)
+        metricRegistry.getGauges().entrySet().stream()
+            .filter(v -> v.getKey().contains(metricName))
+            .findFirst()
+            .get()
+            .getValue()
+            .getValue();
+  }
 }
