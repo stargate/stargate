@@ -18,6 +18,7 @@ import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchemaElement;
 import graphql.schema.GraphQLType;
 import io.stargate.db.schema.Column;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -36,10 +37,12 @@ public class FieldTypeCachesTest {
   private FieldInputTypeCache fieldInputTypes;
   private FieldOutputTypeCache fieldOutputTypes;
 
+  private List<String> warnings = new ArrayList<>();
+
   @BeforeEach
   public void setup() {
-    fieldInputTypes = new FieldInputTypeCache(nameMapping);
-    fieldOutputTypes = new FieldOutputTypeCache(nameMapping);
+    fieldInputTypes = new FieldInputTypeCache(nameMapping, warnings);
+    fieldOutputTypes = new FieldOutputTypeCache(nameMapping, warnings);
   }
 
   @ParameterizedTest
