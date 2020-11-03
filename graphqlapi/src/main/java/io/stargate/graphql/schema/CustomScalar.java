@@ -16,6 +16,7 @@
 package io.stargate.graphql.schema;
 
 import com.datastax.oss.driver.api.core.data.CqlDuration;
+import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.google.common.base.Preconditions;
 import graphql.language.ArrayValue;
 import graphql.language.BooleanValue;
@@ -49,13 +50,11 @@ import java.util.stream.Collectors;
 /** Enum representation of all the custom scalars supported by Stargate. */
 public enum CustomScalar {
   UUID(
-      "Uuid",
-      "The `Uuid` scalar type represents a CQL uuid as a string.",
-      o -> java.util.UUID.fromString(String.valueOf(o))),
+      "Uuid", "The `Uuid` scalar type represents a CQL uuid as a string.", CustomScalar::parseUuid),
   TIMEUUID(
       "TimeUuid",
       "The `TimeUuid` scalar type represents a CQL timeuuid as a string.",
-      o -> java.util.UUID.fromString(String.valueOf(o))),
+      CustomScalar::parseTimeUuid),
 
   INET(
       "Inet",
@@ -169,6 +168,34 @@ public enum CustomScalar {
     }
     throw new NumberFormatException(
         String.format("Expected string for bigint scalar, obtained %s", v.getClass().getName()));
+  }
+
+  /** Support uuid literals and now() function */
+  private static java.util.UUID parseTimeUuid(Object v) {
+    if (!(v instanceof String)) {
+      throw new IllegalArgumentException(
+          String.format("Expected string value for TimeUuid, obtained: %s", v));
+    }
+
+    String stringValue = (String) v;
+    if (stringValue.equals("now()")) {
+      return Uuids.timeBased();
+    }
+    return java.util.UUID.fromString(stringValue);
+  }
+
+  /** Support uuid literals and uuid() function */
+  private static java.util.UUID parseUuid(Object v) {
+    if (!(v instanceof String)) {
+      throw new IllegalArgumentException(
+          String.format("Expected string value for Uuid, obtained: %s", v));
+    }
+
+    String stringValue = (String) v;
+    if (stringValue.equals("uuid()")) {
+      return Uuids.random();
+    }
+    return java.util.UUID.fromString(stringValue);
   }
 
   /**
