@@ -16,7 +16,6 @@
 package io.stargate.core.activator;
 
 import io.stargate.core.BundleUtils;
-import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
@@ -85,7 +84,6 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
     logger.info("Starting {} ...", activatorName);
     this.context = context;
 
-    List<ServiceReference<?>> serviceReferences = new ArrayList<>();
     for (Class<?> dependentService : dependentServices) {
       ServiceReference<?> serviceReference =
           context.getServiceReference(dependentService.getName());
@@ -99,10 +97,9 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
         // if the service is present, get it
         registeredServices.put(dependentService, context.getService(serviceReference));
       }
-      serviceReferences.add(serviceReference);
     }
 
-    if (serviceReferences.stream().anyMatch(Objects::isNull)) {
+    if (registeredServices.values().stream().anyMatch(Objects::isNull)) {
       // It will be started once all dependent services are registered
       return;
     }
