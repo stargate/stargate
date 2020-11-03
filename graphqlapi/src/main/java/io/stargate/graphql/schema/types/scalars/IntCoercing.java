@@ -79,7 +79,7 @@ abstract class IntCoercing<DriverTypeT> implements Coercing<DriverTypeT, Long> {
     }
   }
 
-  static IntCoercing<Byte> BYTE =
+  static IntCoercing<Byte> TINYINT =
       new IntCoercing<Byte>() {
         @Override
         protected Byte fromBigInteger(BigInteger i) {
@@ -93,7 +93,7 @@ abstract class IntCoercing<DriverTypeT> implements Coercing<DriverTypeT, Long> {
         }
       };
 
-  static IntCoercing<Short> SHORT =
+  static IntCoercing<Short> SMALLINT =
       new IntCoercing<Short>() {
         @Override
         protected Short fromBigInteger(BigInteger i) {

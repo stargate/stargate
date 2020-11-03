@@ -140,7 +140,7 @@ public class CustomScalars {
   public static final GraphQLScalarType SMALLINT =
       GraphQLScalarType.newScalar()
           .name("SmallInt")
-          .coercing(IntCoercing.SHORT)
+          .coercing(IntCoercing.SMALLINT)
           .description(
               "Represents a CQL `smallint` as an integer.\nThis is a 16-bit signed int.\n"
                   + "An error will be thrown if the value is out of bounds.")
@@ -149,7 +149,7 @@ public class CustomScalars {
   public static final GraphQLScalarType TINYINT =
       GraphQLScalarType.newScalar()
           .name("TinyInt")
-          .coercing(IntCoercing.BYTE)
+          .coercing(IntCoercing.TINYINT)
           .description(
               "Represents a CQL `tinyint` as an integer\n.This is an 8-bit signed int.\n"
                   + "An error will be thrown if the value is out of bounds.")
