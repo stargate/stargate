@@ -61,7 +61,7 @@ abstract class StringCoercing<DriverTypeT> implements Coercing<DriverTypeT, Stri
     } catch (CoercingParseLiteralException e) {
       throw e;
     } catch (Exception e) {
-      throw new CoercingParseLiteralException(e);
+      throw new CoercingParseLiteralException(e.getMessage(), e);
     }
   }
 
@@ -75,7 +75,7 @@ abstract class StringCoercing<DriverTypeT> implements Coercing<DriverTypeT, Stri
     } catch (CoercingParseLiteralException e) {
       throw e;
     } catch (Exception e) {
-      throw new CoercingParseLiteralException(e);
+      throw new CoercingParseLiteralException(e.getMessage(), e);
     }
   }
 

@@ -82,7 +82,7 @@ abstract class TemporalCoercing<DriverTypeT> implements Coercing<DriverTypeT, St
     } catch (CoercingParseLiteralException e) {
       throw e;
     } catch (Exception e) {
-      throw new CoercingParseLiteralException(e);
+      throw new CoercingParseLiteralException(e.getMessage(), e);
     }
   }
 
@@ -92,7 +92,7 @@ abstract class TemporalCoercing<DriverTypeT> implements Coercing<DriverTypeT, St
     } catch (CoercingParseLiteralException e) {
       throw e;
     } catch (Exception e) {
-      throw new CoercingParseLiteralException(e);
+      throw new CoercingParseLiteralException(e.getMessage(), e);
     }
   }
 
