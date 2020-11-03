@@ -58,7 +58,8 @@ class ConfigStoreActivatorYamlTest {
     Hashtable<String, String> expectedProps = createExpectedProperties();
     // then
     verify(bundleContext, times(1))
-        .registerService(eq(ConfigStore.class), any(ConfigStoreYaml.class), eq(expectedProps));
+        .registerService(
+            eq(ConfigStore.class.getName()), any(ConfigStoreYaml.class), eq(expectedProps));
     assertThat(activator.started).isTrue();
   }
 
@@ -77,7 +78,8 @@ class ConfigStoreActivatorYamlTest {
     Hashtable<String, String> expectedProps = createExpectedProperties();
     // then
     verify(bundleContext, times(1))
-        .registerService(eq(ConfigStore.class), any(ConfigStoreYaml.class), eq(expectedProps));
+        .registerService(
+            eq(ConfigStore.class.getName()), any(ConfigStoreYaml.class), eq(expectedProps));
     assertThat(activator.started).isTrue();
   }
 
@@ -97,7 +99,8 @@ class ConfigStoreActivatorYamlTest {
     verify(bundleContext, times(1))
         .addServiceListener(any(), eq(String.format("(objectClass=%s)", Metrics.class.getName())));
     verify(bundleContext, times(0))
-        .registerService(eq(ConfigStore.class), any(ConfigStoreYaml.class), eq(expectedProps));
+        .registerService(
+            eq(ConfigStore.class.getName()), any(ConfigStoreYaml.class), eq(expectedProps));
     assertThat(activator.started).isFalse();
   }
 
@@ -119,7 +122,8 @@ class ConfigStoreActivatorYamlTest {
 
       // then should register service
       verify(bundleContext, times(1))
-          .registerService(eq(ConfigStore.class), any(ConfigStoreYaml.class), eq(expectedProps));
+          .registerService(
+              eq(ConfigStore.class.getName()), any(ConfigStoreYaml.class), eq(expectedProps));
       assertThat(activator.started).isTrue();
     }
   }
@@ -141,7 +145,8 @@ class ConfigStoreActivatorYamlTest {
 
     // then should register service
     verify(bundleContext, times(0))
-        .registerService(eq(ConfigStore.class), any(ConfigStoreYaml.class), eq(expectedProps));
+        .registerService(
+            eq(ConfigStore.class.getName()), any(ConfigStoreYaml.class), eq(expectedProps));
     assertThat(activator.started).isFalse();
   }
 
