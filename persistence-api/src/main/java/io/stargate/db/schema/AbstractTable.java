@@ -19,17 +19,12 @@ import static io.stargate.db.schema.Column.Kind.Clustering;
 import static io.stargate.db.schema.Column.Kind.PartitionKey;
 import static io.stargate.db.schema.Column.Kind.Regular;
 import static io.stargate.db.schema.Column.Kind.Static;
+import static java.lang.String.format;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
-import io.stargate.db.datastore.query.ColumnOrder;
-import io.stargate.db.datastore.query.ImmutableColumnOrder;
-import io.stargate.db.datastore.query.ImmutableWhereCondition;
-import io.stargate.db.datastore.query.WhereCondition;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -41,17 +36,6 @@ import org.immutables.value.Value;
  */
 public abstract class AbstractTable implements Index, QualifiedSchemaEntity {
   private static final long serialVersionUID = -5320339139947924742L;
-
-  private static final Set<WhereCondition.Predicate> ALLOWED_PARTITION_KEY_PREDICATES =
-      ImmutableSet.of(WhereCondition.Predicate.Eq, WhereCondition.Predicate.In);
-  private static final Set<WhereCondition.Predicate> ALLOWED_CLUSTERING_COLUMN_PREDICATES =
-      ImmutableSet.of(
-          WhereCondition.Predicate.Eq,
-          WhereCondition.Predicate.Gt,
-          WhereCondition.Predicate.Gte,
-          WhereCondition.Predicate.Lt,
-          WhereCondition.Predicate.Lte,
-          WhereCondition.Predicate.In);
 
   public abstract List<Column> columns();
 
@@ -99,6 +83,28 @@ public abstract class AbstractTable implements Index, QualifiedSchemaEntity {
     return ImmutableSet.<Column>builder().addAll(clusteringKeyColumns()).build();
   }
 
+  /**
+   * The index of the provided primary key column in the primary key.
+   *
+   * <p>For instance, if the table primary key is {@code PRIMARY KEY (a, b, c, d)}, then this method
+   * will return 0 for column "a", 1 for column "b", etc...
+   *
+   * @throws IllegalArgumentException if the provided column is not a primary key column on this
+   *     table.
+   */
+  public int primaryKeyColumnIndex(Column column) {
+    // TODO: Column could maintain that index for primary keys, which would save us this.
+    //  Maybe not a big deal in practice since primary key definitions can only get so long.
+    List<Column> pks = primaryKeyColumns();
+    for (int i = 0; i < pks.size(); i++) {
+      if (column.name().equals(pks.get(i).name())) {
+        return i;
+      }
+    }
+    throw new IllegalArgumentException(
+        format("Column %s is not a primary key column of %s.%s", column, cqlKeyspace(), cqlName()));
+  }
+
   public Column column(String name) {
     if (Column.TTL.name().equals(name)) {
       return Column.TTL;
@@ -109,119 +115,14 @@ public abstract class AbstractTable implements Index, QualifiedSchemaEntity {
     return columnMap().get(name);
   }
 
-  @Override
-  public boolean supports(
-      List<Column> select,
-      List<WhereCondition<?>> conditions,
-      List<ColumnOrder> orders,
-      OptionalLong limit) {
-    // Dereference the columns. This allows us to do contains tests.
-    select = select.stream().map(this::dereference).collect(Collectors.toList());
-    conditions =
-        conditions.stream()
-            .map(
-                c ->
-                    ImmutableWhereCondition.builder()
-                        .from((WhereCondition<Object>) c)
-                        .column(dereference(c.column()))
-                        .build())
-            .collect(Collectors.toList());
-    orders =
-        orders.stream()
-            .map(o -> ImmutableColumnOrder.of(dereference(o.column()), o.order()))
-            .collect(Collectors.toList());
-
-    if (conditions.isEmpty()) {
-      return orders.isEmpty();
+  public Column existingColumn(String name) {
+    Column column = column(name);
+    if (column == null) {
+      throw new IllegalArgumentException(
+          format(
+              "Cannot find column %s in table %s.%s",
+              ColumnUtils.maybeQuote(name), cqlKeyspace(), cqlName()));
     }
-
-    if (!allSelectColumnsRecognised(select)) {
-      return false;
-    }
-
-    if (!allConditionColumnsRecognised(conditions)) {
-      return false;
-    }
-
-    if (!allPartitionKeysCovered(conditions)) {
-      return false;
-    }
-
-    if (!clusteringConditionsSupported(conditions)) {
-      return false;
-    }
-
-    return orderSupported(conditions, orders, false) || orderSupported(conditions, orders, true);
-  }
-
-  private boolean allPartitionKeysCovered(List<WhereCondition<?>> conditions) {
-    return partitionKeyColumns().stream()
-        .allMatch(
-            c ->
-                conditions.stream()
-                    .anyMatch(
-                        p ->
-                            p.column().equals(c)
-                                && ALLOWED_PARTITION_KEY_PREDICATES.contains(p.predicate())));
-  }
-
-  private boolean allConditionColumnsRecognised(List<WhereCondition<?>> conditions) {
-    return conditions.stream().allMatch(c -> primaryKeyColumns().contains(c.column()));
-  }
-
-  private boolean allSelectColumnsRecognised(List<Column> select) {
-    return select.stream().allMatch(c -> columns().contains(c) || c == Column.STAR);
-  }
-
-  private boolean clusteringConditionsSupported(List<WhereCondition<?>> conditions) {
-    List<WhereCondition> clusteringKeyRestrictions =
-        conditions.stream()
-            .filter(c -> clusteringKeyColumns().contains(c.column()))
-            .collect(Collectors.toList());
-
-    List<WhereCondition> unusedClusteringKeyRestrictions =
-        new ArrayList<>(clusteringKeyRestrictions);
-    for (Column column : clusteringKeyColumns()) {
-      boolean found =
-          unusedClusteringKeyRestrictions.removeIf(
-              c ->
-                  c.column().equals(column)
-                      && ALLOWED_CLUSTERING_COLUMN_PREDICATES.contains(c.predicate()));
-      if (!found) {
-        // As soon as we miss a clustering key restriction we have to stop
-        break;
-      }
-    }
-
-    // If we didn't manage to use all the clustering key restrictions then we can't query.
-    return unusedClusteringKeyRestrictions.isEmpty();
-  }
-
-  private boolean orderSupported(
-      List<WhereCondition<?>> conditions, List<ColumnOrder> orders, boolean reverse) {
-    List<ColumnOrder> unusedOrders = new ArrayList<>(orders);
-    for (Column column : clusteringKeyColumns()) {
-      if (conditions.stream()
-          .anyMatch(
-              p -> p.column().equals(column) && p.predicate() == WhereCondition.Predicate.Eq)) {
-        // The order was covered by a condition so we can safely skip it
-        unusedOrders.removeIf(o -> o.column().equals(column));
-        continue;
-      }
-      Column.Order desiredOrder = reverse ? column.order().reversed() : column.order();
-      boolean found =
-          unusedOrders.removeIf(o -> o.column().equals(column) && o.order() == desiredOrder);
-      if (!found) {
-        // As soon as we miss a clustering key order restriction we have to stop
-        break;
-      }
-    }
-
-    return unusedOrders.isEmpty();
-  }
-
-  private Column dereference(Column column) {
-    Column dereferenced = column(column.name());
-    return dereferenced != null ? dereferenced : column;
+    return column;
   }
 }

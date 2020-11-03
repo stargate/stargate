@@ -24,16 +24,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.db.datastore.Row;
-import io.stargate.db.datastore.query.ImmutableWhereCondition;
-import io.stargate.db.datastore.query.Value;
-import io.stargate.db.datastore.query.WhereCondition;
+import io.stargate.db.query.Predicate;
+import io.stargate.db.query.builder.BuiltCondition;
+import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.Kind;
+import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.ParameterizedType;
 import io.stargate.db.schema.ReservedKeywords;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.web.models.ClusteringExpression;
-import io.stargate.web.models.TableAdd;
+import io.stargate.web.models.ColumnDefinition;
+import io.stargate.web.models.PrimaryKey;
 import io.stargate.web.models.TableOptions;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -88,32 +91,26 @@ public class Converters {
     }
   }
 
-  public static WhereCondition<?> idToWhere(String val, String column, Table tableData) {
-    Column col = tableData.column(column);
-    Column.ColumnType type = col.type();
+  public static BuiltCondition idToWhere(String val, String column, Table tableData) {
+    Column.ColumnType type = tableData.column(column).type();
     Object value = val;
 
     if (type != null) {
       value = typeForValue(type, val);
     }
 
-    return ImmutableWhereCondition.builder()
-        .value(value)
-        .predicate(WhereCondition.Predicate.Eq)
-        .column(col)
-        .build();
+    return BuiltCondition.of(column.toLowerCase(), Predicate.EQ, value);
   }
 
-  public static Value<?> colToValue(String name, String value, Table tableData) {
-    Column col = tableData.column(name);
-    Column.ColumnType type = col.type();
+  public static ValueModifier colToValue(String name, String value, Table tableData) {
+    Column.ColumnType type = tableData.column(name).type();
     Object valueObj = value;
 
     if (type != null) {
       valueObj = typeForStringValue(type, value);
     }
 
-    return Value.create(col, valueObj);
+    return ValueModifier.set(name, valueObj);
   }
 
   public static Object typeForStringValue(Column.ColumnType type, String value) {
@@ -255,7 +252,7 @@ public class Converters {
     return value;
   }
 
-  public static Value<?> colToValue(Map.Entry<String, String> entry, Table tableData) {
+  public static ValueModifier colToValue(Map.Entry<String, String> entry, Table tableData) {
     String name = entry.getKey();
     Column col = tableData.column(name);
     Column.ColumnType type = col.type();
@@ -265,7 +262,7 @@ public class Converters {
       value = typeForValue(type, entry.getValue());
     }
 
-    return Value.create(col, value);
+    return ValueModifier.set(name, value);
   }
 
   public static Object typeForValue(Column.ColumnType type, String value) {
@@ -413,6 +410,35 @@ public class Converters {
     return str;
   }
 
+  public static Column.Kind getColumnKind(ColumnDefinition def, PrimaryKey primaryKey) {
+    // Note: we "rely" on checking the primary key before getIsStatic here. Namely, this allow
+    // the caller to check, when this method return a primary key kind, whether static is also set.
+    if (primaryKey.getPartitionKey().contains(def.getName())) {
+      return Kind.PartitionKey;
+    }
+    if (primaryKey.getClusteringKey().contains(def.getName())) {
+      return Kind.Clustering;
+    }
+    return def.getIsStatic() ? Kind.Static : Kind.Regular;
+  }
+
+  public static Order getColumnOrder(ColumnDefinition def, TableOptions tableOptions)
+      throws Exception {
+    for (ClusteringExpression expression : tableOptions.getClusteringExpression()) {
+      if (expression.getOrder() == null || expression.getColumn() == null) {
+        throw new Exception("both order and column are required for clustering expression");
+      }
+      if (def.getName().equals(expression.getColumn())) {
+        try {
+          return Order.valueOf(expression.getOrder().toUpperCase());
+        } catch (IllegalArgumentException e) {
+          throw new Exception("order must be either 'asc' or 'desc'");
+        }
+      }
+    }
+    return null;
+  }
+
   /**
    * Returns a formatted json response based on provided query parameters.
    *
@@ -422,53 +448,6 @@ public class Converters {
    */
   public static String writeResponse(Object response) throws JsonProcessingException {
     return mapper.writeValueAsString(response);
-  }
-
-  public static String getTableOptions(TableAdd tableAdd) throws Exception {
-    TableOptions options = tableAdd.getTableOptions();
-    if (options == null) {
-      return "";
-    }
-
-    String tableOptions = "";
-    if (options.getDefaultTimeToLive() != null) {
-      tableOptions = getOptionPrefix(tableOptions);
-
-      tableOptions += "default_time_to_live = " + options.getDefaultTimeToLive();
-    }
-
-    if (options.getClusteringExpression() != null && options.getClusteringExpression().size() > 0) {
-      tableOptions = getOptionPrefix(tableOptions);
-
-      String expression = "";
-      for (int i = 0; i < options.getClusteringExpression().size(); i++) {
-        ClusteringExpression exp = options.getClusteringExpression().get(i);
-        if (exp.getOrder() == null || exp.getColumn() == null) {
-          throw new Exception("both order and column are required for clustering expression");
-        }
-
-        if (!exp.getOrder().equalsIgnoreCase("asc") && !exp.getOrder().equalsIgnoreCase("desc")) {
-          throw new Exception("order must be either 'asc' or 'desc'");
-        }
-
-        if (i == options.getClusteringExpression().size() - 1) {
-          expression += exp.getColumn() + " " + exp.getOrder();
-        }
-      }
-
-      tableOptions += String.format("CLUSTERING ORDER BY (%s)", expression);
-    }
-
-    return tableOptions;
-  }
-
-  private static String getOptionPrefix(String tableOptions) {
-    if (tableOptions.equals("")) {
-      tableOptions = "WITH ";
-    } else {
-      tableOptions += " AND ";
-    }
-    return tableOptions;
   }
 
   public static String maybeQuote(String text) {

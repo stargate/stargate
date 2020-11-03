@@ -2,6 +2,8 @@ package io.stargate.graphql.schema.fetchers.ddl;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import io.stargate.db.schema.Column.Type;
+import io.stargate.db.schema.Schema;
 import io.stargate.graphql.schema.DdlTestBase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -25,5 +27,17 @@ public class DropTypeFetcherTest extends DdlTestBase {
           "DROP TYPE IF EXISTS test.a"),
       arguments("dropType(keyspaceName:\"Test\", typeName:\"A\")", "DROP TYPE \"Test\".\"A\""),
     };
+  }
+
+  @Override
+  public Schema getCQLSchema() {
+    return Schema.build()
+        .keyspace("test")
+        .type("a")
+        .column("f", Type.Int)
+        .keyspace("Test")
+        .type("A")
+        .column("f", Type.Int)
+        .build();
   }
 }

@@ -164,4 +164,21 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   public final boolean isSmallerOrEqualTo(ProtocolVersion other) {
     return num <= other.num;
   }
+
+  public com.datastax.oss.driver.api.core.ProtocolVersion toDriverVersion() {
+    switch (this) {
+      case V1: // fallthrough on purpose
+      case V2:
+        // This should likely be rejected much sooner but ...
+        throw new ProtocolException("Unsupported protocol version: " + this);
+      case V3:
+        return com.datastax.oss.driver.api.core.ProtocolVersion.V3;
+      case V4:
+        return com.datastax.oss.driver.api.core.ProtocolVersion.V4;
+      case V5:
+        return com.datastax.oss.driver.api.core.ProtocolVersion.V5;
+      default:
+        throw new AssertionError("Unhandled protocol version: " + this);
+    }
+  }
 }

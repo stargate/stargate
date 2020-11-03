@@ -85,7 +85,7 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-userid", "123");
 
     List<TypedKeyValue> typedKeyValues =
-        Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
+        Collections.singletonList(new TypedKeyValue("userid", Type.Text, "123"));
 
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(
@@ -103,7 +103,7 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-userid", "123");
 
     List<TypedKeyValue> typedKeyValues =
-        Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
+        Collections.singletonList(new TypedKeyValue("userid", Type.Text, "123"));
 
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(
@@ -125,7 +125,7 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-userid", "123");
 
     List<TypedKeyValue> typedKeyValues =
-        Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
+        Collections.singletonList(new TypedKeyValue("userid", Type.Text, "123"));
 
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(
@@ -151,7 +151,7 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-userid", "456");
 
     List<TypedKeyValue> typedKeyValues =
-        Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
+        Collections.singletonList(new TypedKeyValue("userid", Type.Text, "123"));
 
     UnauthorizedException ex =
         assertThrows(
@@ -181,7 +181,7 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-userid", "123");
 
     List<TypedKeyValue> typedKeyValues =
-        Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
+        Collections.singletonList(new TypedKeyValue("userid", Type.Text, "123"));
 
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(
@@ -209,8 +209,8 @@ public class AuthzJwtServiceTest {
 
     List<TypedKeyValue> typedKeyValues =
         Arrays.asList(
-            new TypedKeyValue("userid", Type.Text.name(), "123"),
-            new TypedKeyValue("item_count", Type.Int.name(), 2));
+            new TypedKeyValue("userid", Type.Text, "123"),
+            new TypedKeyValue("item_count", Type.Int, 2));
 
     IllegalArgumentException ex =
         assertThrows(
