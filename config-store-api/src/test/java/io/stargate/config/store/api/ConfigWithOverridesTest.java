@@ -177,6 +177,25 @@ class ConfigWithOverridesTest {
                 settingName, Integer.class.getName(), String.class.getName()));
   }
 
+  @Test
+  public void shouldThrowIfOptionalValueHasWrongType() {
+    // given
+    Map<String, Object> options = new HashMap<>();
+    String settingName = "setting-a";
+    options.put(settingName, 1234);
+
+    // when, then
+    assertThatThrownBy(
+            () ->
+                new ConfigWithOverrides(options, "ignored")
+                    .getOptionalSettingValue(settingName, String.class))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(
+            String.format(
+                "The config value for %s has wrong type: %s. It should be of a %s type",
+                settingName, Integer.class.getName(), String.class.getName()));
+  }
+
   public static Stream<Arguments> getSettingsProvider() {
     Map<String, Object> configMap = new HashMap<>();
     configMap.put(SETTING_NAME, "config_value");
