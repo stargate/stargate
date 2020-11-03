@@ -19,8 +19,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -96,6 +98,56 @@ class ConfigWithOverridesTest {
   }
 
   @Test
+  public void shouldSuccessfullyGetRequiredListValue() {
+    // given
+    Map<String, Object> options = new HashMap<>();
+    String settingName = "setting-a";
+    List<Integer> expected = Arrays.asList(1, 2, 3);
+    options.put(settingName, expected);
+
+    // when
+    List<Integer> value =
+        new ConfigWithOverrides(options, "ignored").getSettingValueList(settingName, Integer.class);
+
+    // then
+    assertThat(value).isEqualTo(expected);
+  }
+
+  @Test
+  public void shouldSuccessfullyGetRequiredEmptyListValue() {
+    // given
+    Map<String, Object> options = new HashMap<>();
+    String settingName = "setting-a";
+    List<Integer> expected = Collections.emptyList();
+    options.put(settingName, expected);
+
+    // when
+    List<Integer> value =
+        new ConfigWithOverrides(options, "ignored").getSettingValueList(settingName, Integer.class);
+
+    // then
+    assertThat(value).isEqualTo(expected);
+  }
+
+  //
+  //	@Test
+  //	public void shouldSuccessfullyGetOptionalListValue() {
+  //		// given
+  //		Map<String, Object> options = new HashMap<>();
+  //		String settingName = "setting-a";
+  //		List<Integer> expected = Arrays.asList(1, 2, 3);
+  //		options.put(settingName, expected);
+  //
+  //		// when
+  //		List<Integer> value =
+  //				new ConfigWithOverrides(options, "ignored")
+  //						.getSettingValueList(settingName, Integer.class);
+  //
+  //		// then
+  //		assertThat(value).isEqualTo(expected);
+  //	}
+
+  @Test
   public void shouldSuccessfullyGetTheOptionalStringValue() {
     // given
     Map<String, Object> options = new HashMap<>();
@@ -112,7 +164,7 @@ class ConfigWithOverridesTest {
   }
 
   @Test
-  public void shouldSuccessfullyGetRequiredOptionalValue() {
+  public void shouldSuccessfullyGetRequiredOptionalBooleanValue() {
     // given
     Map<String, Object> options = new HashMap<>();
     String settingName = "setting-a";
@@ -139,6 +191,22 @@ class ConfigWithOverridesTest {
             () ->
                 new ConfigWithOverrides(options, "ignored")
                     .getSettingValue(settingName, String.class))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(String.format("The config value for %s is not present", settingName));
+  }
+
+  @Test
+  public void shouldThrowIfValueIsNullForRequiredListGetter() {
+    // given
+    Map<String, Object> options = new HashMap<>();
+    String settingName = "setting-a";
+    options.put(settingName, null);
+
+    // when, then
+    assertThatThrownBy(
+            () ->
+                new ConfigWithOverrides(options, "ignored")
+                    .getSettingValueList(settingName, String.class))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(String.format("The config value for %s is not present", settingName));
   }
@@ -174,6 +242,44 @@ class ConfigWithOverridesTest {
         .hasMessageContaining(
             String.format(
                 "The config value for %s has wrong type: %s. It should be of a %s type",
+                settingName, Integer.class.getName(), String.class.getName()));
+  }
+
+  @Test
+  public void shouldThrowIfListHasWrongType() {
+    // given
+    Map<String, Object> options = new HashMap<>();
+    String settingName = "setting-a";
+    options.put(settingName, 1234);
+
+    // when, then
+    assertThatThrownBy(
+            () ->
+                new ConfigWithOverrides(options, "ignored")
+                    .getSettingValueList(settingName, String.class))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(
+            String.format(
+                "The config value for %s has wrong type: %s. It should be of a %s type",
+                settingName, Integer.class.getName(), List.class.getName()));
+  }
+
+  @Test
+  public void shouldThrowIfListValueHasWrongType() {
+    // given
+    Map<String, Object> options = new HashMap<>();
+    String settingName = "setting-a";
+    options.put(settingName, Collections.singletonList(1));
+
+    // when, then
+    assertThatThrownBy(
+            () ->
+                new ConfigWithOverrides(options, "ignored")
+                    .getSettingValueList(settingName, String.class))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(
+            String.format(
+                "The config value for %s.list-value has wrong type: %s. It should be of a %s type",
                 settingName, Integer.class.getName(), String.class.getName()));
   }
 
