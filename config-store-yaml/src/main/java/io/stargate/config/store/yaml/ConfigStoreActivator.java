@@ -16,7 +16,7 @@
 package io.stargate.config.store.yaml;
 
 import io.stargate.config.store.api.ConfigStore;
-import io.stargate.core.BaseActivator;
+import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -43,8 +43,8 @@ public class ConfigStoreActivator extends BaseActivator {
   }
 
   @Override
-  protected ServiceAndProperties createService(List<Object> dependantServices) {
-    Metrics metrics = (Metrics) dependantServices.get(0);
+  protected ServiceAndProperties createService(List<Object> dependentServices) {
+    Metrics metrics = (Metrics) dependentServices.get(0);
 
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", CONFIG_STORE_YAML_IDENTIFIER);

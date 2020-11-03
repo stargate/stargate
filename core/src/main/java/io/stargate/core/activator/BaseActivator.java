@@ -1,5 +1,21 @@
-package io.stargate.core;
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.stargate.core.activator;
 
+import io.stargate.core.BundleUtils;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
@@ -20,7 +36,7 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
 
   private final String activatorName;
 
-  private final List<Class<?>> dependantServices;
+  private final List<Class<?>> dependentServices;
 
   private BundleContext context;
 
@@ -31,18 +47,18 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
   public boolean started;
 
   public BaseActivator(
-      String activatorName, List<Class<?>> dependantServices, Class<?> targetServiceClass) {
+      String activatorName, List<Class<?>> dependentServices, Class<?> targetServiceClass) {
     this.activatorName = activatorName;
-    this.dependantServices = dependantServices;
-    this.registeredServices = createMapWithNullValues(dependantServices);
+    this.dependentServices = dependentServices;
+    this.registeredServices = createMapWithNullValues(dependentServices);
     this.targetServiceClass = targetServiceClass;
   }
 
   private LinkedHashMap<Class<?>, Object> createMapWithNullValues(
-      List<Class<?>> dependantServices) {
-    LinkedHashMap<Class<?>, Object> map = new LinkedHashMap<>(dependantServices.size());
-    for (Class<?> dependantService : dependantServices) {
-      map.put(dependantService, null);
+      List<Class<?>> dependentServices) {
+    LinkedHashMap<Class<?>, Object> map = new LinkedHashMap<>(dependentServices.size());
+    for (Class<?> dependentService : dependentServices) {
+      map.put(dependentService, null);
     }
     return map;
   }
@@ -53,29 +69,30 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
     this.context = context;
 
     List<ServiceReference<?>> serviceReferences = new ArrayList<>();
-    for (Class<?> dependantService : dependantServices) {
+    for (Class<?> dependentService : dependentServices) {
       ServiceReference<?> serviceReference =
-          context.getServiceReference(dependantService.getName());
+          context.getServiceReference(dependentService.getName());
       if (serviceReference == null) {
         logger.debug(
             "{} service is null, registering a listener to get notification when it will be ready.",
-            dependantService.getName());
+            dependentService.getName());
         context.addServiceListener(
-            this, String.format("(objectClass=%s)", dependantService.getName()));
+            this, String.format("(objectClass=%s)", dependentService.getName()));
       }
       serviceReferences.add(serviceReference);
     }
 
     if (serviceReferences.stream().anyMatch(Objects::isNull)) {
-      // It will be started once all dependant services are registered
+      // It will be started once all dependent services are registered
       return;
     }
 
     List<Object> startedServices = new ArrayList<>(serviceReferences.size());
     for (ServiceReference<?> serviceReference : serviceReferences) {
       startedServices.add(context.getService(serviceReference));
-      startServiceInternal(startedServices);
     }
+
+    startServiceInternal(startedServices);
   }
 
   @Override
@@ -83,11 +100,11 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
 
   @Override
   public void serviceChanged(ServiceEvent event) {
-    for (Class<?> dependantService : dependantServices) {
-      Object registeredService = BundleUtils.getRegisteredService(context, event, dependantService);
+    for (Class<?> dependentService : dependentServices) {
+      Object registeredService = BundleUtils.getRegisteredService(context, event, dependentService);
       if (registeredService != null) {
         // capture registration only if the instance is not null
-        registeredServices.put(dependantService, registeredService);
+        registeredServices.put(dependentService, registeredService);
       }
     }
     if (registeredServices.values().stream().allMatch(Objects::nonNull)) {
@@ -95,18 +112,18 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
     }
   }
 
-  private void startServiceInternal(List<Object> dependantServices) {
+  private void startServiceInternal(List<Object> dependentServices) {
     if (started) {
       logger.info("The {} is already started. Ignoring the start request.", activatorName);
       return;
     }
     started = true;
-    ServiceAndProperties service = createService(dependantServices);
+    ServiceAndProperties service = createService(dependentServices);
     context.registerService(targetServiceClass.getName(), service.service, service.properties);
     logger.info("Started {}....", activatorName);
   }
 
-  protected abstract ServiceAndProperties createService(List<Object> dependantServices);
+  protected abstract ServiceAndProperties createService(List<Object> dependentServices);
 
   public static class ServiceAndProperties {
     private final Object service;
