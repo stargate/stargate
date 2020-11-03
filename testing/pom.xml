@@ -229,6 +229,7 @@
               <sourceDirName>${project.basedir}/src/main/graphql/betterbotz</sourceDirName>
               <customTypeMap>
                 <Timestamp>java.time.Instant</Timestamp>
+                <Float32>java.lang.Float</Float32>
               </customTypeMap>
             </configuration>
           </execution>

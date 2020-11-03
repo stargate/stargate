@@ -49,6 +49,15 @@ CREATE TYPE IF NOT EXISTS betterbotz.a(b frozen<b>);
 
 CREATE TABLE IF NOT EXISTS betterbotz.udts(a frozen<a> PRIMARY KEY, bs list<frozen<b>>);
 
+CREATE TABLE IF NOT EXISTS betterbotz.tuples(
+    id uuid PRIMARY KEY,
+    tuple1 tuple<bigint>,
+    tuple2 tuple<float, float>,
+    tuple3 tuple<timeuuid, int, boolean>
+);
+
+CREATE TABLE IF NOT EXISTS betterbotz.tuples_pk(id tuple<int, int> PRIMARY KEY);
+
 CREATE TABLE IF NOT EXISTS betterbotz.scalars (
     id uuid PRIMARY KEY,
     asciivalue ascii,

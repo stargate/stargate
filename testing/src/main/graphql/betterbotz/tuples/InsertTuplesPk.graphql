@@ -1,0 +1,13 @@
+mutation InsertTuplesPk(
+    $value: TuplesPkInput!
+    $ifNotExists: Boolean
+    $options: MutationOptions
+) {
+    insertTuplesPk(
+        value: $value
+        ifNotExists: $ifNotExists
+        options: $options
+    ) {
+        applied
+    }
+}
