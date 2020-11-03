@@ -585,7 +585,24 @@ public class QueryBuilderImpl {
 
   public void where(Where<?> where) {
     wheres.add(where);
-    parameters.addAll((List) where.getAllNodesOfType(Parameter.class));
+    for (Parameter<?> parameter : where.getAllNodesOfType(Parameter.class)) {
+      Parameter<?> actualParameter;
+      if (isEntryEqWithValue(parameter)) {
+        // EntryEq takes a [key,value] parameter, but the key is concatenated in the LHS (as in
+        // `theColumn[key] = ?`), we only bind the value:
+        Pair<?, ?> entry = (Pair<?, ?>) parameter.value().get();
+        actualParameter = ImmutableValue.create(parameter.column(), entry.getValue1());
+      } else {
+        actualParameter = parameter;
+      }
+      parameters.add(actualParameter);
+    }
+  }
+
+  private static boolean isEntryEqWithValue(Parameter<?> parameter) {
+    return parameter instanceof WhereCondition
+        && parameter.value().isPresent()
+        && ((WhereCondition<?>) parameter).predicate() == WhereCondition.Predicate.EntryEq;
   }
 
   @DSLAction(autoVarArgs = false)
