@@ -18,16 +18,15 @@ package io.stargate.config.store.yaml;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConfigStoreActivator extends BaseActivator {
-	private static final Logger logger = LoggerFactory.getLogger(ConfigStoreActivator.class);
+  private static final Logger logger = LoggerFactory.getLogger(ConfigStoreActivator.class);
 
   public static final String CONFIG_STORE_YAML_METRICS_PREFIX = "config.store.yaml";
   public static final String CONFIG_STORE_YAML_IDENTIFIER = "ConfigStoreYaml";

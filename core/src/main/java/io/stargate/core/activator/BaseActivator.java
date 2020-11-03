@@ -16,7 +16,6 @@
 package io.stargate.core.activator;
 
 import io.stargate.core.BundleUtils;
-import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -77,7 +76,7 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
    * (see targetServiceClass). It will wait for a notification denoting that service was registered
    * using {@link this#serviceChanged(ServiceEvent)}. If all services are present, it will call the
    * user-provided {@link this#createService(List)} and register it in the OSGi using {@link
-   * BundleContext#registerService(Class, Object, Dictionary)}.
+   * BundleContext#registerService(Class, Object, java.util.Dictionary)}.
    */
   @Override
   public synchronized void start(BundleContext context) throws InvalidSyntaxException {
@@ -109,7 +108,9 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
   }
 
   @Override
-  public synchronized void stop(BundleContext context) throws Exception {}
+  public synchronized void stop(BundleContext context) throws Exception {
+    // no-op
+  }
 
   /**
    * It will try to match all dependentServices with a ServiceEvent notification. If the
