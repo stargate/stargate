@@ -259,6 +259,57 @@ class BaseActivatorTest {
     }
   }
 
+  @Test
+  public void shouldStartIfOneServiceIsAccessibleDuringStartAndSecondWasRegisteredLater()
+      throws InvalidSyntaxException {
+    // given
+    BundleContext bundleContext = mock(BundleContext.class);
+    TestServiceActivator activator = new TestServiceActivator();
+    // service 1 is present
+    mockService1(bundleContext);
+    activator.start(bundleContext);
+    ServiceEvent service2ServiceEvent = mock(ServiceEvent.class);
+
+    try (MockedStatic<BundleUtils> bundleUtilsMock = mockStatic(BundleUtils.class)) {
+      mockService2Notification(bundleContext, service2ServiceEvent, bundleUtilsMock);
+
+      // when service 2 is registered
+      activator.serviceChanged(service2ServiceEvent);
+
+      // then should not register service
+      verify(bundleContext, times(1))
+          .registerService(
+              eq(TestService.class.getName()), any(TestService.class), eq(EXPECTED_PROPERTIES));
+      assertThat(activator.started).isTrue();
+    }
+  }
+
+  @Test
+  public void
+      shouldStartIfOneServiceIsAccessibleDuringStartAndSecondWasRegisteredLaterDifferentOrdering()
+          throws InvalidSyntaxException {
+    // given
+    BundleContext bundleContext = mock(BundleContext.class);
+    TestServiceActivator activator = new TestServiceActivator();
+    // service 2 is present
+    mockService2(bundleContext);
+    activator.start(bundleContext);
+    ServiceEvent service1ServiceEvent = mock(ServiceEvent.class);
+
+    try (MockedStatic<BundleUtils> bundleUtilsMock = mockStatic(BundleUtils.class)) {
+      mockService1Notification(bundleContext, service1ServiceEvent, bundleUtilsMock);
+
+      // when service 1 is registered
+      activator.serviceChanged(service1ServiceEvent);
+
+      // then should not register service
+      verify(bundleContext, times(1))
+          .registerService(
+              eq(TestService.class.getName()), any(TestService.class), eq(EXPECTED_PROPERTIES));
+      assertThat(activator.started).isTrue();
+    }
+  }
+
   @SuppressWarnings("unchecked")
   private void mockService1(BundleContext bundleContext) {
     ServiceReference<DependentService1> serviceReference = mock(ServiceReference.class);

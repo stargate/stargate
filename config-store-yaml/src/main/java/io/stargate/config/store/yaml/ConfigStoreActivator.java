@@ -18,12 +18,16 @@ package io.stargate.config.store.yaml;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 
 public class ConfigStoreActivator extends BaseActivator {
+	private static final Logger logger = LoggerFactory.getLogger(ConfigStoreActivator.class);
 
   public static final String CONFIG_STORE_YAML_METRICS_PREFIX = "config.store.yaml";
   public static final String CONFIG_STORE_YAML_IDENTIFIER = "ConfigStoreYaml";
@@ -49,6 +53,7 @@ public class ConfigStoreActivator extends BaseActivator {
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", CONFIG_STORE_YAML_IDENTIFIER);
 
+    logger.info("Creating Config Store YAML for config file location: {} ", configYamlLocation);
     return new ServiceAndProperties(
         new ConfigStoreYaml(
             Paths.get(configYamlLocation), metrics.getRegistry(CONFIG_STORE_YAML_METRICS_PREFIX)),

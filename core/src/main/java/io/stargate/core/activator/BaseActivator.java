@@ -17,6 +17,7 @@ package io.stargate.core.activator;
 
 import io.stargate.core.BundleUtils;
 import java.util.ArrayList;
+import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -46,6 +47,12 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
 
   public boolean started;
 
+  /**
+   * @param activatorName - The name used when logging the progress of registration.
+   * @param dependentServices - List of dependent services that needs to be retrieved using service
+   *     reference.
+   * @param targetServiceClass - This class will be used when registering the service.
+   */
   public BaseActivator(
       String activatorName, List<Class<?>> dependentServices, Class<?> targetServiceClass) {
     this.activatorName = activatorName;
@@ -63,6 +70,16 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
     return map;
   }
 
+  /**
+   * When the OSGi invokes the start() method, it will try to get all dependentServices passed to
+   * this class's constructor. It will use the {@link BundleContext#getServiceReference(String)}. If
+   * any of those services are not present, it will register the listeners for them using {@link
+   * BundleContext#addServiceListener(ServiceListener, String)} and not start the target service
+   * (see targetServiceClass). It will wait for a notification denoting that service was registered
+   * using {@link this#serviceChanged(ServiceEvent)}. If all services are present, it will call the
+   * user-provided {@link this#createService(List)} and register it in the OSGi using {@link
+   * BundleContext#registerService(Class, Object, Dictionary)}.
+   */
   @Override
   public synchronized void start(BundleContext context) throws InvalidSyntaxException {
     logger.info("Starting {} ...", activatorName);
@@ -78,6 +95,9 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
             dependentService.getName());
         context.addServiceListener(
             this, String.format("(objectClass=%s)", dependentService.getName()));
+      } else {
+        // if the service is present, get it
+        registeredServices.put(dependentService, context.getService(serviceReference));
       }
       serviceReferences.add(serviceReference);
     }
@@ -87,19 +107,23 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
       return;
     }
 
-    List<Object> startedServices = new ArrayList<>(serviceReferences.size());
-    for (ServiceReference<?> serviceReference : serviceReferences) {
-      startedServices.add(context.getService(serviceReference));
-    }
-
-    startServiceInternal(startedServices);
+    // all dependant services are present
+    startServiceInternal(new LinkedList<>(registeredServices.values()));
   }
 
   @Override
   public synchronized void stop(BundleContext context) throws Exception {}
 
+  /**
+   * It will try to match all dependentServices with a ServiceEvent notification. If the
+   * notification for dependant service contains a non-null value, it will start the target service.
+   * After the notification is handled, it checks if all dependentServices are not null. If they
+   * are, the client's provided {@link this#createService(List)} is called, and the service is
+   * registered. It will not register the service if it was already registered in the {@link
+   * this#start(BundleContext)}.
+   */
   @Override
-  public void serviceChanged(ServiceEvent event) {
+  public synchronized void serviceChanged(ServiceEvent event) {
     for (Class<?> dependentService : dependentServices) {
       Object registeredService = BundleUtils.getRegisteredService(context, event, dependentService);
       if (registeredService != null) {
@@ -112,7 +136,7 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
     }
   }
 
-  private void startServiceInternal(List<Object> dependentServices) {
+  private synchronized void startServiceInternal(List<Object> dependentServices) {
     if (started) {
       logger.info("The {} is already started. Ignoring the start request.", activatorName);
       return;
@@ -123,6 +147,15 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
     logger.info("Started {}....", activatorName);
   }
 
+  /**
+   * Clients should override this method to create the Service that will be registered in the OSGi
+   * container. The dependant services will contain all services registered passed to the
+   * constructor of this class as {@code List<Class<?>> dependentServices}. The ordering will be the
+   * same. You can safely cast the objects to the expected types according to the dependentServices.
+   *
+   * @return ServiceAndProperties that has the service for OSGi registration and the properties that
+   *     will be passed.
+   */
   protected abstract ServiceAndProperties createService(List<Object> dependentServices);
 
   public static class ServiceAndProperties {
