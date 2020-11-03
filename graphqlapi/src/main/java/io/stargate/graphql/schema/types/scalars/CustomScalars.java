@@ -125,7 +125,8 @@ public class CustomScalars {
           .description(
               "Represents a CQL `float` as a floating-point literal.\n"
                   + "This is a 32-bit IEEE-754 floating point.\n"
-                  + "An error will be thrown if the value is out of bounds.")
+                  + "If the value cannot be represented as a float, it will be converted.\n"
+                  + "This conversion can loose precision, or range (resulting in +/-Infinity).")
           .build();
 
   public static final GraphQLScalarType BLOB =
