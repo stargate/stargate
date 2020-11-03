@@ -10,7 +10,7 @@
   <artifactId>producer-kafka</artifactId>
   <properties>
     <junit.version>5.6.2</junit.version>
-    <kafka-clients.version>5.5.1-ce</kafka-clients.version>
+    <kafka-clients.version>2.6.0</kafka-clients.version>
     <avro.version>1.10.0</avro.version>
     <schema-registry.version>5.5.1</schema-registry.version>
   </properties>
@@ -155,9 +155,9 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>kafka</artifactId>
-      <version>1.14.3</version>
+      <groupId>org.springframework.kafka</groupId>
+      <artifactId>spring-kafka-test</artifactId>
+      <version>2.6.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>

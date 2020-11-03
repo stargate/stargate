@@ -21,7 +21,6 @@ import static io.stargate.producer.kafka.configuration.DefaultConfigLoader.CONFI
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.testcontainers.containers.KafkaContainer.ZOOKEEPER_PORT;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
@@ -48,38 +47,39 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.Network;
+import org.springframework.kafka.test.EmbeddedKafkaBroker;
 
 public class IntegrationTestBase {
+
   private static final Logger LOG = LoggerFactory.getLogger(IntegrationTestBase.class);
 
-  protected static KafkaContainer kafkaContainer;
   protected static EmbeddedSchemaRegistryServer schemaRegistry;
 
   protected static final String TOPIC_PREFIX = "topicPrefix";
   protected static final String PARTITION_KEY_VALUE = "pk_value";
   protected static final Integer CLUSTERING_KEY_VALUE = 1;
 
+  private static EmbeddedKafkaBroker embeddedKafkaBroker;
+
   @BeforeAll
   public static void setup() throws Exception {
-    Network network = Network.newNetwork();
-    kafkaContainer = new KafkaContainer().withNetwork(network).withEmbeddedZookeeper();
-    kafkaContainer.start();
+    embeddedKafkaBroker = new EmbeddedKafkaBroker(1);
+    embeddedKafkaBroker.afterPropertiesSet(); // it starts the kafka broker
+
     try (ServerSocket serverSocket = new ServerSocket(0)) {
 
       schemaRegistry =
           new EmbeddedSchemaRegistryServer(
               String.format("http://localhost:%s", serverSocket.getLocalPort()),
-              String.format("localhost:%s", ZOOKEEPER_PORT),
-              kafkaContainer.getBootstrapServers());
+              String.format("localhost:%s", embeddedKafkaBroker.getZkPort()),
+              embeddedKafkaBroker.getBrokersAsString());
     }
     schemaRegistry.startSchemaRegistry();
   }
 
   @AfterAll
   public static void cleanup() {
-    kafkaContainer.stop();
+    embeddedKafkaBroker.destroy();
     schemaRegistry.close();
   }
 
@@ -103,7 +103,7 @@ public class IntegrationTestBase {
 
     properties.put(
         withCDCPrefixPrefix(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG),
-        kafkaContainer.getBootstrapServers());
+        embeddedKafkaBroker.getBrokersAsString());
 
     properties.put(
         withCDCPrefixPrefix("schema.registry.url"), schemaRegistry.getSchemaRegistryUrl());
@@ -141,7 +141,7 @@ public class IntegrationTestBase {
   protected void verifyReceivedByKafka(
       GenericRecord expectedKey, GenericRecord expectedValue, String topicName) {
     Properties props = new Properties();
-    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers());
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaBroker.getBrokersAsString());
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
     props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
