@@ -129,24 +129,6 @@ class ConfigWithOverridesTest {
     assertThat(value).isEqualTo(expected);
   }
 
-  //
-  //	@Test
-  //	public void shouldSuccessfullyGetOptionalListValue() {
-  //		// given
-  //		Map<String, Object> options = new HashMap<>();
-  //		String settingName = "setting-a";
-  //		List<Integer> expected = Arrays.asList(1, 2, 3);
-  //		options.put(settingName, expected);
-  //
-  //		// when
-  //		List<Integer> value =
-  //				new ConfigWithOverrides(options, "ignored")
-  //						.getSettingValueList(settingName, Integer.class);
-  //
-  //		// then
-  //		assertThat(value).isEqualTo(expected);
-  //	}
-
   @Test
   public void shouldSuccessfullyGetTheOptionalStringValue() {
     // given
