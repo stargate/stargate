@@ -19,134 +19,85 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.codahale.metrics.Timer;
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.CqlSessionBuilder;
-import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.config.OptionsMap;
 import com.datastax.oss.driver.api.core.config.TypedDriverOption;
 import com.datastax.oss.driver.api.core.cql.Row;
-import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.api.core.metrics.DefaultNodeMetric;
-import com.datastax.oss.driver.internal.core.loadbalancing.DcInferringLoadBalancingPolicy;
-import io.stargate.it.storage.StargateConnectionInfo;
+import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.storage.StargateEnvironmentInfo;
 import io.stargate.it.storage.StargateSpec;
-import java.lang.reflect.Method;
-import java.net.InetSocketAddress;
-import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import net.jcip.annotations.NotThreadSafe;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 @NotThreadSafe
+@Disabled("Waiting for fixes on #232 and #250")
 @StargateSpec(nodes = 3)
+@ExtendWith(CqlSessionExtension.class)
+@CqlSessionSpec(
+    customOptions = "configureDriverMetrics",
+    initQueries = "CREATE TABLE IF NOT EXISTS test (k int, cc int, v int, PRIMARY KEY(k, cc))")
 public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
 
-  private String table;
-
-  private String keyspace;
-
-  private CqlSession session;
-
-  private int runningStargateNodes;
-
-  @BeforeEach
-  public void setup(TestInfo testInfo, StargateEnvironmentInfo stargate) {
-    OptionsMap config = OptionsMap.driverDefaults();
-    config.put(TypedDriverOption.METADATA_TOKEN_MAP_ENABLED, false);
-    config.put(
-        TypedDriverOption.LOAD_BALANCING_POLICY_CLASS,
-        DcInferringLoadBalancingPolicy.class.getName());
-    config.put(TypedDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(30));
-    config.put(TypedDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT, Duration.ofSeconds(180));
-    config.put(TypedDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(30));
-    config.put(TypedDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(30));
-    config.put(TypedDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1));
-    config.put(
+  public static void configureDriverMetrics(OptionsMap options) {
+    options.put(
         TypedDriverOption.METRICS_NODE_ENABLED,
         Collections.singletonList(DefaultNodeMetric.CQL_MESSAGES.getPath()));
-
-    CqlSessionBuilder cqlSessionBuilder =
-        CqlSession.builder().withConfigLoader(DriverConfigLoader.fromMap(config));
-
-    for (StargateConnectionInfo node : stargate.nodes()) {
-      cqlSessionBuilder.addContactPoint(new InetSocketAddress(node.seedAddress(), node.cqlPort()));
-    }
-    session = cqlSessionBuilder.build();
-    awaitAllNodes(session, stargate);
-
-    Optional<String> name = testInfo.getTestMethod().map(Method::getName);
-    assertThat(name).isPresent();
-    String testName = name.get();
-    keyspace = "ks_" + testName;
-    table = testName;
-    runningStargateNodes = stargate.nodes().size();
   }
 
-  @AfterEach
-  public void teardown() {
-    session.close();
+  private static int nodeCount;
+
+  @BeforeAll
+  public static void beforeAll(StargateEnvironmentInfo stargate) {
+    nodeCount = stargate.nodes().size();
   }
 
   @Test
-  public void shouldConnectToMultipleStargateNodes() {
+  public void shouldConnectToMultipleStargateNodes(CqlSession session) {
     List<Row> all = session.execute("SELECT * FROM system.peers").all();
     // system.peers should have N records (all stargate nodes - 1)
-    assertThat(all.size()).isEqualTo(runningStargateNodes - 1);
+    assertThat(all.size()).isEqualTo(nodeCount - 1);
   }
 
   @Test
-  public void shouldDistributeTrafficUniformly() {
+  public void shouldDistributeTrafficUniformly(CqlSession session) {
     // given
-    createKeyspaceAndTable();
     int numberOfRequestPerNode = 100;
-    int totalNumberOfRequests = numberOfRequestPerNode * runningStargateNodes;
+    int totalNumberOfRequests = numberOfRequestPerNode * nodeCount;
     // difference tolerance - every node should have numberOfRequestPerNode +- tolerance
     long tolerance = 5;
 
     // when
     for (int i = 0; i < totalNumberOfRequests; i++) {
-      session.execute(
-          SimpleStatement.newInstance(
-              String.format(
-                  "INSERT INTO \"%s\".\"%s\" (k, cc, v) VALUES (1, ?, ?)", keyspace, table),
-              i,
-              i));
+      session.execute("INSERT INTO test (k, cc, v) VALUES (1, ?, ?)", i, i);
     }
 
     // then
     Collection<Node> nodes = session.getMetadata().getNodes().values();
-    assertThat(nodes).hasSize(runningStargateNodes);
+    assertThat(nodes).hasSize(nodeCount);
     for (Node n : nodes) {
       long cqlMessages =
-          ((Timer)
-                  session.getMetrics().get().getNodeMetric(n, DefaultNodeMetric.CQL_MESSAGES).get())
+          session
+              .getMetrics()
+              .flatMap(metrics -> metrics.<Timer>getNodeMetric(n, DefaultNodeMetric.CQL_MESSAGES))
+              .orElseThrow(this::failOnMissingMetric)
               .getCount();
       assertThat(cqlMessages)
           .isBetween(numberOfRequestPerNode - tolerance, numberOfRequestPerNode + tolerance);
     }
   }
 
-  private void createKeyspace() {
-    session.execute(
+  private AssertionError failOnMissingMetric() {
+    return new AssertionError(
         String.format(
-            "CREATE KEYSPACE IF NOT EXISTS \"%s\" WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 }",
-            keyspace));
-  }
-
-  private void createKeyspaceAndTable() {
-    createKeyspace();
-
-    session.execute(
-        SimpleStatement.newInstance(
-            String.format(
-                "CREATE TABLE IF NOT EXISTS \"%s\".\"%s\" (k int, cc int, v int, PRIMARY KEY(k, cc))",
-                keyspace, table)));
+            "Expected to find metric %s since it was enabled in the test",
+            DefaultNodeMetric.CQL_MESSAGES.getPath()));
   }
 }

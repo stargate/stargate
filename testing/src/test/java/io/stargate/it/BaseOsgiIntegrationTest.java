@@ -15,28 +15,20 @@
  */
 package io.stargate.it;
 
-import static org.awaitility.Awaitility.await;
-
-import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.Version;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import io.stargate.it.storage.ClusterSpec;
-import io.stargate.it.storage.StargateEnvironmentInfo;
 import io.stargate.it.storage.StargateSpec;
 import io.stargate.it.storage.UseStargateContainer;
 import java.io.File;
 import java.net.URL;
-import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** This class manages starting Stargate OSGi containers. */
 @UseStargateContainer
 @ClusterSpec(shared = true)
 @StargateSpec(shared = true)
 public class BaseOsgiIntegrationTest {
-
-  private static final Logger LOG = LoggerFactory.getLogger(BaseOsgiIntegrationTest.class);
 
   protected ClusterConnectionInfo backend;
 
@@ -55,25 +47,10 @@ public class BaseOsgiIntegrationTest {
     this.backend = backend;
   }
 
-  /**
-   * Waits until a CQL session sees all the Stargate nodes in its metadata. The CI environment is
-   * slow and it may take a while until system.peers is up to date.
-   */
-  protected void awaitAllNodes(CqlSession session, StargateEnvironmentInfo stargate) {
-    int expectedNodeCount = stargate.nodes().size();
-    await()
-        .atMost(Duration.ofMinutes(10))
-        .pollInterval(Duration.ofSeconds(10))
-        .until(
-            () -> {
-              boolean connected = session.getMetadata().getNodes().size() == expectedNodeCount;
-              LOG.debug(
-                  "Expected: {}, in driver metadata: {}, in system tables: {}",
-                  expectedNodeCount,
-                  session.getMetadata().getNodes().size(),
-                  session.execute("SELECT * FROM system.peers").all().size() + 1);
-
-              return connected;
-            });
+  // TODO generalize this to an ExecutionCondition that reads custom annotations, like
+  // @CassandraRequirement/@DseRequirement in the Java driver tests
+  public boolean isCassandra4() {
+    return !backend.isDse()
+        && Version.parse(backend.clusterVersion()).nextStable().compareTo(Version.V4_0_0) >= 0;
   }
 }

@@ -3,8 +3,7 @@ package io.stargate.it.cql;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.datastax.oss.driver.api.core.config.OptionsMap;
-import com.datastax.oss.driver.api.core.config.TypedDriverOption;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.BatchStatement;
 import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
@@ -16,42 +15,33 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
-import java.time.Duration;
+import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.storage.StargateConnectionInfo;
+import io.stargate.it.storage.StargateEnvironmentInfo;
 import java.util.Iterator;
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-@DisplayName("BatchStatementTest")
-public class BatchStatementTest extends JavaDriverTestBase {
+@ExtendWith(CqlSessionExtension.class)
+@CqlSessionSpec(
+    initQueries = {
+      "CREATE TABLE test (k0 text, k1 int, v int, PRIMARY KEY (k0, k1))",
+      "CREATE TABLE counter1 (k0 text PRIMARY KEY, c counter)",
+      "CREATE TABLE counter2 (k0 text PRIMARY KEY, c counter)",
+      "CREATE TABLE counter3 (k0 text PRIMARY KEY, c counter)",
+    })
+public class BatchStatementTest extends BaseOsgiIntegrationTest {
 
   private static final int batchCount = 100;
 
-  @Override
-  protected void customizeConfig(OptionsMap config) {
-    config.put(TypedDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(30));
-  }
-
-  @BeforeEach
-  public void createTables() {
-    String[] schemaStatements =
-        new String[] {
-          "CREATE TABLE test (k0 text, k1 int, v int, PRIMARY KEY (k0, k1))",
-          "CREATE TABLE counter1 (k0 text PRIMARY KEY, c counter)",
-          "CREATE TABLE counter2 (k0 text PRIMARY KEY, c counter)",
-          "CREATE TABLE counter3 (k0 text PRIMARY KEY, c counter)",
-        };
-
-    for (String schemaStatement : schemaStatements) {
-      session.execute(SimpleStatement.newInstance(schemaStatement));
-    }
-  }
-
   @Test
   @DisplayName("Should execute batch of simple statements with variables")
-  public void simpleStatementsVariablesTest(TestInfo name) {
+  public void simpleStatementsVariablesTest(CqlSession session, TestInfo name) {
     // Build a batch of batchCount simple statements, each with their own positional variables.
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.UNLOGGED);
     for (int i = 0; i < batchCount; i++) {
@@ -67,12 +57,12 @@ public class BatchStatementTest extends JavaDriverTestBase {
     BatchStatement batchStatement = builder.build();
     session.execute(batchStatement);
 
-    verifyBatchInsert(name);
+    verifyBatchInsert(session, name);
   }
 
   @Test
   @DisplayName("Should execute batch of bound statements with variables")
-  public void boundStatementsVariablesTest(TestInfo name) {
+  public void boundStatementsVariablesTest(CqlSession session, TestInfo name) {
     // Build a batch of batchCount statements with bound statements, each with their own positional
     // variables.
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.UNLOGGED);
@@ -90,12 +80,12 @@ public class BatchStatementTest extends JavaDriverTestBase {
     BatchStatement batchStatement = builder.build();
     session.execute(batchStatement);
 
-    verifyBatchInsert(name);
+    verifyBatchInsert(session, name);
   }
 
   @Test
   @DisplayName("Should execute batch of bound statements with unset values")
-  public void boundStatementsUnsetTest(TestInfo name) {
+  public void boundStatementsUnsetTest(CqlSession session, TestInfo name) {
     // Build a batch of batchCount statements with bound statements, each with their own positional
     // variables.
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.UNLOGGED);
@@ -113,7 +103,7 @@ public class BatchStatementTest extends JavaDriverTestBase {
     BatchStatement batchStatement = builder.build();
     session.execute(batchStatement);
 
-    verifyBatchInsert(name);
+    verifyBatchInsert(session, name);
 
     BatchStatementBuilder builder2 = BatchStatement.builder(DefaultBatchType.UNLOGGED);
     for (int i = 0; i < batchCount; i++) {
@@ -152,7 +142,7 @@ public class BatchStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should execute batch of bound statements with named variables")
-  public void boundStatementsNamedVariablesTest(TestInfo name) {
+  public void boundStatementsNamedVariablesTest(CqlSession session, TestInfo name) {
     // Build a batch of batchCount statements with bound statements, each with their own named
     // variable values.
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.UNLOGGED);
@@ -172,12 +162,12 @@ public class BatchStatementTest extends JavaDriverTestBase {
     BatchStatement batchStatement = builder.build();
     session.execute(batchStatement);
 
-    verifyBatchInsert(name);
+    verifyBatchInsert(session, name);
   }
 
   @Test
   @DisplayName("Should execute batch of bound and simple statements with variables")
-  public void boundAndSimpleStatementsTest(TestInfo name) {
+  public void boundAndSimpleStatementsTest(CqlSession session, TestInfo name) {
     // Build a batch of batchCount statements with simple and bound statements alternating.
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.UNLOGGED);
     SimpleStatement insert =
@@ -204,12 +194,12 @@ public class BatchStatementTest extends JavaDriverTestBase {
     BatchStatement batchStatement = builder.build();
     session.execute(batchStatement);
 
-    verifyBatchInsert(name);
+    verifyBatchInsert(session, name);
   }
 
   @Test
   @DisplayName("Should execute batch with multiple CAS operations on the same partition")
-  public void casTest(TestInfo name) {
+  public void casTest(CqlSession session, TestInfo name) {
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.UNLOGGED);
     SimpleStatement insert =
         SimpleStatement.builder(
@@ -227,7 +217,7 @@ public class BatchStatementTest extends JavaDriverTestBase {
     ResultSet result = session.execute(batchStatement);
     assertThat(result.wasApplied()).isTrue();
 
-    verifyBatchInsert(name);
+    verifyBatchInsert(session, name);
 
     // re execute same batch and ensure wasn't applied.
     result = session.execute(batchStatement);
@@ -236,7 +226,7 @@ public class BatchStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should execute counter batch")
-  public void counterTest(TestInfo name) {
+  public void counterTest(CqlSession session, TestInfo name) {
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.COUNTER);
 
     for (int i = 1; i <= 3; i++) {
@@ -265,7 +255,7 @@ public class BatchStatementTest extends JavaDriverTestBase {
     }
   }
 
-  private void doCounterIncrement(TestInfo name) {
+  private void doCounterIncrement(CqlSession session, TestInfo name) {
 
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.LOGGED);
 
@@ -285,11 +275,12 @@ public class BatchStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should fail if unlogged batch contains counter increments")
-  public void unloggedCounterTest(TestInfo name) {
-    assertThatThrownBy(() -> doCounterIncrement(name)).isInstanceOf(InvalidQueryException.class);
+  public void unloggedCounterTest(CqlSession session, TestInfo name) {
+    assertThatThrownBy(() -> doCounterIncrement(session, name))
+        .isInstanceOf(InvalidQueryException.class);
   }
 
-  private void doCounterAndNonCounterIncrement(TestInfo name) {
+  private void doCounterAndNonCounterIncrement(CqlSession session, TestInfo name) {
 
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.COUNTER);
 
@@ -317,12 +308,12 @@ public class BatchStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should fail if counter batch contains non-counter operations")
-  public void counterAndNoCounterTest(TestInfo name) {
-    assertThatThrownBy(() -> doCounterAndNonCounterIncrement(name))
+  public void counterAndNoCounterTest(CqlSession session, TestInfo name) {
+    assertThatThrownBy(() -> doCounterAndNonCounterIncrement(session, name))
         .isInstanceOf(InvalidQueryException.class);
   }
 
-  private void verifyBatchInsert(TestInfo name) {
+  private void verifyBatchInsert(CqlSession session, TestInfo name) {
     // validate data inserted by the batch.
     Statement<?> select =
         SimpleStatement.builder("SELECT * from test where k0 = ?")
@@ -345,7 +336,7 @@ public class BatchStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should execute statement with tracing and retrieve trace")
-  public void tracingTest(TestInfo name) {
+  public void tracingTest(CqlSession session, TestInfo name, StargateEnvironmentInfo stargate) {
     // Build a batch of batchCount simple statements, each with their own positional variables.
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.UNLOGGED);
     for (int i = 0; i < batchCount; i++) {
@@ -363,8 +354,9 @@ public class BatchStatementTest extends JavaDriverTestBase {
 
     QueryTrace queryTrace = resultSet.getExecutionInfo().getQueryTrace();
     assertThat(queryTrace).isNotNull();
-    assertThat(queryTrace.getCoordinatorAddress().getAddress())
-        .isIn(getStargateInetSocketAddresses());
+    assertThat(stargate.nodes())
+        .extracting(StargateConnectionInfo::seedAddress)
+        .contains(queryTrace.getCoordinatorAddress().getAddress().getHostAddress());
     assertThat(queryTrace.getRequestType()).isEqualTo("Execute batch of CQL3 queries");
     assertThat(queryTrace.getEvents()).isNotEmpty();
   }

@@ -10,17 +10,23 @@ import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
+import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.CqlSessionSpec;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class PaginationTest extends JavaDriverTestBase {
+@ExtendWith(CqlSessionExtension.class)
+@CqlSessionSpec(customOptions = "customizePageSize")
+public class PaginationTest extends BaseOsgiIntegrationTest {
 
   private static final String QUERY = "SELECT v FROM test WHERE k = ?";
   private static final String KEY = "test";
@@ -28,13 +34,12 @@ public class PaginationTest extends JavaDriverTestBase {
   private static final int SESSION_PAGE_SIZE = STATEMENT_PAGE_SIZE * 2;
   private static final int TOTAL_COUNT = SESSION_PAGE_SIZE * 5 - 1;
 
-  @Override
-  protected void customizeConfig(OptionsMap config) {
+  public static void customizePageSize(OptionsMap config) {
     config.put(TypedDriverOption.REQUEST_PAGE_SIZE, SESSION_PAGE_SIZE);
   }
 
-  @BeforeEach
-  public void setupSchema() {
+  @BeforeAll
+  public static void setupSchema(CqlSession session) {
     session.execute("CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))");
     for (int i = 0; i < TOTAL_COUNT; i++) {
       session.execute("INSERT INTO test (k, v) VALUES (?, ?)", KEY, i);
@@ -47,8 +52,9 @@ public class PaginationTest extends JavaDriverTestBase {
   public void paginationTest(
       @SuppressWarnings("unused") String description,
       StatementProvider statementProvider,
-      int expectedPageSize) {
-    assertResultsPaginated(statementProvider.apply(session), expectedPageSize);
+      int expectedPageSize,
+      CqlSession session) {
+    assertResultsPaginated(statementProvider.apply(session), expectedPageSize, session);
   }
 
   public static Stream<Arguments> statementProviders() {
@@ -75,7 +81,8 @@ public class PaginationTest extends JavaDriverTestBase {
 
   private interface StatementProvider extends Function<CqlSession, Statement<?>> {}
 
-  private void assertResultsPaginated(Statement<?> statement, int expectedPageSize) {
+  private void assertResultsPaginated(
+      Statement<?> statement, int expectedPageSize, CqlSession session) {
     session
         .executeAsync(statement)
         .thenCompose(rs -> assertResultsPaginated(rs, 0, expectedPageSize))
