@@ -19,6 +19,7 @@ import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLModifiedType;
 import graphql.schema.GraphQLNamedType;
 import graphql.schema.GraphQLType;
+import io.stargate.graphql.schema.SchemaWarningException;
 
 public class TypeBuilder {
   /** Gets the name of a given GraphQL type to be used in composite type names. */
@@ -33,7 +34,8 @@ public class TypeBuilder {
     }
 
     if (!(type instanceof GraphQLModifiedType)) {
-      throw new RuntimeException(String.format("GraphQL type %s not supported in maps", type));
+      throw new SchemaWarningException(
+          String.format("GraphQL type %s not supported in composite type", type));
     }
 
     return modifier + getTypeName(((GraphQLModifiedType) type).getWrappedType());

@@ -4,21 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import graphql.Scalars;
-import graphql.schema.GraphQLFieldDefinition;
-import graphql.schema.GraphQLInputObjectField;
-import graphql.schema.GraphQLInputObjectType;
-import graphql.schema.GraphQLInputType;
-import graphql.schema.GraphQLList;
-import graphql.schema.GraphQLNamedInputType;
-import graphql.schema.GraphQLNamedOutputType;
-import graphql.schema.GraphQLNamedSchemaElement;
-import graphql.schema.GraphQLNamedType;
-import graphql.schema.GraphQLNonNull;
-import graphql.schema.GraphQLObjectType;
-import graphql.schema.GraphQLOutputType;
-import graphql.schema.GraphQLScalarType;
-import graphql.schema.GraphQLSchemaElement;
-import graphql.schema.GraphQLType;
+import graphql.schema.*;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
@@ -174,7 +160,12 @@ public class FieldTypeCachesTest {
     for (int i = 1; i < subTypes.length; i++) {
       GraphQLFieldDefinition field = fields.get(i);
       assertThat(field.getName()).isEqualTo("item" + i);
-      assertThat(field.getType()).isEqualTo(getOutputType(subTypes[i]));
+      GraphQLOutputType subType = getOutputType(subTypes[i]);
+      if (field.getType() instanceof GraphQLModifiedType) {
+        assertThat(field.getType().getChildren()).isEqualTo(subType.getChildren());
+      } else {
+        assertThat(field.getType()).isEqualTo(subType);
+      }
     }
   }
 
@@ -201,7 +192,12 @@ public class FieldTypeCachesTest {
     for (int i = 1; i < subTypes.length; i++) {
       GraphQLInputObjectField field = fields.get(i);
       assertThat(field.getName()).isEqualTo("item" + i);
-      assertThat(field.getType()).isEqualTo(getInputType(subTypes[i]));
+      GraphQLInputType subType = getInputType(subTypes[i]);
+      if (field.getType() instanceof GraphQLModifiedType) {
+        assertThat(field.getType().getChildren()).isEqualTo(subType.getChildren());
+      } else {
+        assertThat(field.getType()).isEqualTo(subType);
+      }
     }
   }
 
