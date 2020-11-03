@@ -17,6 +17,20 @@ import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.platform.commons.support.AnnotationSupport;
 
+/**
+ * A test extension that manages instances of {@link TcpProxy}.
+ *
+ * <h3>Customization</h3>
+ *
+ * The behavior of this extension is modified using the {@link ProxySpec} annotation. If not present
+ * it will use the defaults.
+ *
+ * <h3>Parameter injection</h3>
+ *
+ * This extension will inject a {@code List<InetSocketAddress>} parameter that's annotated with
+ * {@link ProxyAddresses} which contains all the local addresses of the proxies managed by the
+ * extension instance.
+ */
 public class ProxyExtension implements BeforeAllCallback, AfterAllCallback, ParameterResolver {
   public static final ProxySpec DEFAULT_PROXY_SPEC = DefaultProxySpec.INSTANCE;
 

@@ -1,6 +1,7 @@
 package io.stargate.it.proxy;
 
 import com.google.common.net.InetAddresses;
+import io.stargate.it.storage.StargateParameters;
 import java.io.UncheckedIOException;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
@@ -15,6 +16,13 @@ import org.junit.jupiter.api.extension.ExecutionCondition;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.platform.commons.support.AnnotationSupport;
 
+/**
+ * A condition that verifies that DNS is setup correctly to contain the IP addresses for all the
+ * proxies in the cluster.
+ *
+ * <p>This uses {@link ProxySpec#verifyProxyDnsName()} to resolve the IP addresses so make sure that
+ * matches {@link StargateParameters#proxyDnsName()} if changed from the default value.
+ */
 public class ProxyDnsCondition implements ExecutionCondition {
   @Override
   public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
@@ -28,6 +36,7 @@ public class ProxyDnsCondition implements ExecutionCondition {
           AnnotationSupport.findAnnotation(((Method) element).getDeclaringClass(), ProxySpec.class);
     }
 
+    // Use the default spec if an explicit one is not on the class
     ProxySpec proxySpec = maybeProxySpec.orElse(ProxyExtension.DEFAULT_PROXY_SPEC);
 
     List<InetAddress> resolvedAddresses;

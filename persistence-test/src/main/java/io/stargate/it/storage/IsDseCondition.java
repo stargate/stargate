@@ -5,6 +5,11 @@ import org.junit.jupiter.api.extension.ConditionEvaluationResult;
 import org.junit.jupiter.api.extension.ExecutionCondition;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
+/**
+ * A condition that checks if the persistence backend uses DSE.
+ *
+ * <p>The test/suite is skipped if the persistence backend is not running DSE.
+ */
 public class IsDseCondition implements ExecutionCondition {
   @Override
   public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext extensionContext) {

@@ -31,7 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @SkipIfProxyDnsInvalid
 @StargateSpec(parametersCustomizer = "buildParameters")
 @CqlSessionSpec(createSession = false, noDefaultContactPoints = true)
-@ProxySpec(numProxies = 3)
+@ProxySpec(numProxies = 2)
 @ExtendWith({CqlSessionExtension.class, ProxyExtension.class})
 public class ProxyProtocolTest extends BaseOsgiIntegrationTest {
   @SuppressWarnings("unused") // referenced in @StargateSpec
@@ -62,7 +62,7 @@ public class ProxyProtocolTest extends BaseOsgiIntegrationTest {
             proxySession.execute(
                 SimpleStatement.builder("SELECT * FROM system.peers").setNode(node.get()).build());
         List<InetAddress> peersAddresses = new ArrayList<>();
-        rs.forEach(row -> peersAddresses.add(row.getInetAddress("preferred_ip")));
+        rs.forEach(row -> peersAddresses.add(row.getInetAddress("peer")));
         List<InetAddress> expectedPeersAddresses =
             proxyAddresses.stream()
                 .filter(a -> !a.getAddress().equals(proxyAddress.getAddress()))

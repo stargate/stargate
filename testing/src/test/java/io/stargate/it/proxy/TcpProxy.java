@@ -24,6 +24,15 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import javax.validation.constraints.NotNull;
 
+/**
+ * A small TCP proxy that implements HAProxy protocol.
+ *
+ * <p>It only support forwarding traffic to a single backend server. It's based on the
+ * "HexDumpProxy" example provided by Netty.
+ *
+ * @see <a
+ *     href="https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt">https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt</a>
+ */
 public class TcpProxy implements AutoCloseable {
   private final EventLoopGroup bossGroup = new NioEventLoopGroup(1);
   private final EventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -53,24 +62,56 @@ public class TcpProxy implements AutoCloseable {
 
     private Builder() {}
 
+    /**
+     * Sets the address and port for the proxy to bind and listen.
+     *
+     * @param address the proxy's listening address
+     * @param port the proxy's port
+     * @return the builder to facilitate chaining
+     */
     public Builder localAddress(@NotNull String address, int port) {
       return localAddress(new InetSocketAddress(address, port));
     }
 
+    /**
+     * @see #localAddress(String, int)
+     * @param address the proxy's listening address and port
+     * @return the builder to facilitate chaining
+     */
     public Builder localAddress(@NotNull InetSocketAddress address) {
       this.localAddress = address;
       return this;
     }
 
+    /**
+     * Sets the upstream address and port for the proxy.
+     *
+     * @param address the address to of the upstream service
+     * @param port the port of the upstream service
+     * @return the builder to facilitate chaining
+     */
     public Builder remoteAddress(@NotNull String address, int port) {
       return remoteAddress(new InetSocketAddress(address, port));
     }
 
+    /**
+     * @see #remoteAddress(String, int)
+     * @param address the socket address of the upstream service
+     * @return the builder to facilitate chaining
+     */
     public Builder remoteAddress(@NotNull InetSocketAddress address) {
       this.remoteAddress = address;
       return this;
     }
 
+    /**
+     * Constructs a new TCP proxy.
+     *
+     * <p>Waits for the connection to bind and start listening for connections before returning.
+     *
+     * @return a running TCP proxy
+     * @throws InterruptedException
+     */
     public TcpProxy build() throws InterruptedException {
       return new TcpProxy(localAddress, remoteAddress);
     }
@@ -115,7 +156,7 @@ public class TcpProxy implements AutoCloseable {
             @Override
             public void operationComplete(ChannelFuture future) {
               if (future.isSuccess()) {
-                // connection complete start to read first data
+                // Connection complete start to read first data
                 inboundChannel.read();
               } else {
                 // Close the connection if the connection attempt has failed.
@@ -135,7 +176,7 @@ public class TcpProxy implements AutoCloseable {
                   @Override
                   public void operationComplete(ChannelFuture future) {
                     if (future.isSuccess()) {
-                      // was able to flush out data, start to read the next chunk
+                      // Was able to flush out data, start to read the next chunk
                       ctx.channel().read();
                     } else {
                       future.channel().close();
