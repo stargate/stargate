@@ -26,6 +26,8 @@ import java.math.BigInteger;
  * Handles type conversions for custom scalars that map to "small" integer CQL types. We can map
  * these type to integer literals, both in GraphQL and JSON.
  *
+ * <p>We follow the same rules as CQL: values that are out of range are rejected.
+ *
  * @param <DriverTypeT> how the Java driver represents this type. This is what we'll deserialize to
  *     for incoming data, and will send back for results.
  * @see BigIntCoercing

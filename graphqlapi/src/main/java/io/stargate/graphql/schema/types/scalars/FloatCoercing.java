@@ -24,6 +24,10 @@ import graphql.schema.CoercingSerializeException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
+/**
+ * We follow the same rules as CQL: parsing a double literal may lead to a loss of precision, and
+ * values that are out of range are converted to positive or negative infinity.
+ */
 class FloatCoercing implements Coercing<Float, Float> {
 
   static FloatCoercing INSTANCE = new FloatCoercing();
@@ -37,19 +41,8 @@ class FloatCoercing implements Coercing<Float, Float> {
 
   @Override
   public Float parseValue(Object input) throws CoercingParseValueException {
-    if (input instanceof Double) {
-      double d = (Double) input;
-      float f = (float) d;
-      if (f != d) {
-        throw new CoercingParseLiteralException("Out of bounds");
-      }
-      return f;
-    } else if (input instanceof BigInteger) {
-      return checkBounds(((BigInteger) input).floatValue());
-    } else if (input instanceof Long || input instanceof Integer) {
-      long l = ((Number) input).longValue();
-      // This may involve some rounding (see JLS 5.1.2)
-      return (float) l;
+    if (input instanceof Number) {
+      return ((Number) input).floatValue();
     } else {
       throw new CoercingParseLiteralException("Expected an integer or float literal");
     }
@@ -59,19 +52,12 @@ class FloatCoercing implements Coercing<Float, Float> {
   public Float parseLiteral(Object input) throws CoercingParseLiteralException {
     if (input instanceof IntValue) {
       BigInteger bi = ((IntValue) input).getValue();
-      return checkBounds(bi.floatValue());
+      return bi.floatValue();
     } else if (input instanceof FloatValue) {
       BigDecimal bd = ((FloatValue) input).getValue();
-      return checkBounds(bd.floatValue());
+      return bd.floatValue();
     } else {
       throw new CoercingParseLiteralException("Expected an integer or float literal");
     }
-  }
-
-  private float checkBounds(float f) {
-    if (f == Float.NEGATIVE_INFINITY || f == Float.POSITIVE_INFINITY) {
-      throw new CoercingParseLiteralException("Out of bounds");
-    }
-    return f;
   }
 }
