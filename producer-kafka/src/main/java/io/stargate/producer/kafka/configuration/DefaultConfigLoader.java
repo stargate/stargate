@@ -19,6 +19,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.dropwizard.kafka.metrics.DropwizardMetricsReporter;
 import io.stargate.config.store.api.ConfigStore;
+import io.stargate.config.store.api.ConfigWithOverrides;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,24 +37,26 @@ public class DefaultConfigLoader implements ConfigLoader {
 
   @Override
   public CDCKafkaConfig loadConfig(ConfigStore configStore) {
-    return loadConfig(configStore.getConfigForModule(CONFIG_STORE_MODULE_NAME).getConfigMap());
+    return loadConfig(configStore.getConfigForModule(CONFIG_STORE_MODULE_NAME));
   }
 
-  private CDCKafkaConfig loadConfig(Map<String, Object> options) {
-    String topicPrefixName = getTopicPrefixName(options);
-    Map<String, Object> kafkaProducerSettings = filterKafkaProducerSettings(options);
-    MetricsConfig metricsConfig = loadMetricsConfig(options);
+  private CDCKafkaConfig loadConfig(ConfigWithOverrides configWithOverrides) {
+    String topicPrefixName = getTopicPrefixName(configWithOverrides);
+    Map<String, Object> kafkaProducerSettings =
+        filterKafkaProducerSettings(configWithOverrides.getConfigMap());
+    MetricsConfig metricsConfig = loadMetricsConfig(configWithOverrides);
     registerMetricsIfEnabled(kafkaProducerSettings, metricsConfig);
-    String schemaRegistryUrl = getSchemaRegistryUrl(kafkaProducerSettings);
-    validateBootstrapServersPresent(kafkaProducerSettings);
+    String schemaRegistryUrl = getSchemaRegistryUrl(configWithOverrides);
+    validateBootstrapServersPresent(configWithOverrides);
     putProducerSerializersConfig(kafkaProducerSettings);
     return new CDCKafkaConfig(
         topicPrefixName, schemaRegistryUrl, kafkaProducerSettings, metricsConfig);
   }
 
-  private void validateBootstrapServersPresent(Map<String, Object> kafkaProducerSettings) {
+  private void validateBootstrapServersPresent(ConfigWithOverrides configWithOverrides) {
     // this should not throw
-    getStringSettingValue(kafkaProducerSettings, ProducerConfig.BOOTSTRAP_SERVERS_CONFIG);
+    configWithOverrides.getSettingValue(
+        withProducerPrefix(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG), String.class);
   }
 
   /**
@@ -100,13 +103,16 @@ public class DefaultConfigLoader implements ConfigLoader {
    * is optional, if not provided the {@link MetricsConfig#METRICS_NAME_DEFAULT} is used.
    */
   @NonNull
-  MetricsConfig loadMetricsConfig(Map<String, Object> options) {
-    boolean metricsEnabled = getBooleanSettingValue(options, METRICS_ENABLED_SETTING_NAME);
+  MetricsConfig loadMetricsConfig(ConfigWithOverrides configWithOverrides) {
+    boolean metricsEnabled =
+        configWithOverrides.getSettingValue(METRICS_ENABLED_SETTING_NAME, Boolean.class);
     // METRICS_INCLUDE_TAGS_SETTING_NAME and METRICS_NAME_SETTING_NAME are optional.
     // If not provided, the default value will be taken.
     Optional<Boolean> metricsIncludeTags =
-        getOptionalBooleanSettingValue(options, METRICS_INCLUDE_TAGS_SETTING_NAME);
-    Optional<String> metricsName = getOptionalStringValue(options, METRICS_NAME_SETTING_NAME);
+        configWithOverrides.getOptionalSettingValue(
+            METRICS_INCLUDE_TAGS_SETTING_NAME, Boolean.class);
+    Optional<String> metricsName =
+        configWithOverrides.getOptionalSettingValue(METRICS_NAME_SETTING_NAME, String.class);
     return MetricsConfig.create(metricsEnabled, metricsIncludeTags, metricsName);
   }
 
@@ -134,64 +140,16 @@ public class DefaultConfigLoader implements ConfigLoader {
     return CDC_KAFKA_PRODUCER_SETTING_PATTERN.matcher(entry.getKey()).matches();
   }
 
-  String getTopicPrefixName(Map<String, Object> options) {
-    return getStringSettingValue(options, CDC_TOPIC_PREFIX_NAME);
+  String getTopicPrefixName(ConfigWithOverrides configWithOverrides) {
+    return configWithOverrides.getSettingValue(CDC_TOPIC_PREFIX_NAME, String.class);
   }
 
-  String getSchemaRegistryUrl(Map<String, Object> kafkaProducerSettings) {
-    return getStringSettingValue(kafkaProducerSettings, SCHEMA_REGISTRY_URL_SETTING_NAME);
+  String getSchemaRegistryUrl(ConfigWithOverrides configWithOverrides) {
+    return configWithOverrides.getSettingValue(
+        withProducerPrefix(SCHEMA_REGISTRY_URL_SETTING_NAME), String.class);
   }
 
-  @NonNull
-  String getStringSettingValue(Map<String, Object> options, String settingName) {
-    return (String) getSettingValue(options, settingName, String.class);
-  }
-
-  @NonNull
-  Optional<String> getOptionalStringValue(Map<String, Object> options, String settingName) {
-    return getOptionalSettingValue(options, settingName, String.class).map(v -> (String) v);
-  }
-
-  @NonNull
-  Boolean getBooleanSettingValue(Map<String, Object> options, String settingName) {
-    return (Boolean) getSettingValue(options, settingName, Boolean.class);
-  }
-
-  @NonNull
-  Optional<Boolean> getOptionalBooleanSettingValue(
-      Map<String, Object> options, String settingName) {
-    return getOptionalSettingValue(options, settingName, Boolean.class).map(v -> (Boolean) v);
-  }
-
-  @NonNull
-  Object getSettingValue(Map<String, Object> options, String settingName, Class<?> expectedType) {
-    Object configValue = options.get(settingName);
-    if (configValue == null) {
-      throw new IllegalArgumentException(
-          String.format("The config value for %s is not present", settingName));
-    }
-    if (!(configValue.getClass().isAssignableFrom(expectedType))) {
-      throw new IllegalArgumentException(
-          String.format(
-              "The config value for %s has wrong type: %s. It should be of a %s type",
-              settingName, configValue.getClass().getName(), expectedType.getName()));
-    }
-    return configValue;
-  }
-
-  @NonNull
-  Optional<Object> getOptionalSettingValue(
-      Map<String, Object> options, String settingName, Class<?> expectedType) {
-    Object configValue = options.get(settingName);
-    if (configValue == null) {
-      return Optional.empty();
-    }
-    if (!(configValue.getClass().isAssignableFrom(expectedType))) {
-      throw new IllegalArgumentException(
-          String.format(
-              "The config value for %s has wrong type: %s. It should be of a %s type",
-              settingName, configValue.getClass().getName(), expectedType.getName()));
-    }
-    return Optional.of(configValue);
+  private String withProducerPrefix(String settingName) {
+    return String.format("%s.%s", CDC_KAFKA_PRODUCER_SETTING_PREFIX, settingName);
   }
 }

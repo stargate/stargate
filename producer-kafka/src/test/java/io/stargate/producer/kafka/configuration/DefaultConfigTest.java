@@ -60,7 +60,8 @@ class DefaultConfigTest {
     options.put(CDC_TOPIC_PREFIX_NAME, "some-prefix");
 
     // when
-    String topicPrefixName = new DefaultConfigLoader().getTopicPrefixName(options);
+    String topicPrefixName =
+        new DefaultConfigLoader().getTopicPrefixName(new ConfigWithOverrides(options, "ignored"));
 
     // then
     assertThat(topicPrefixName).isEqualTo("some-prefix");
@@ -90,10 +91,13 @@ class DefaultConfigTest {
   public void shouldExtractSchemaRegistrySetting() {
     // given
     Map<String, Object> options = new HashMap<>();
-    options.put(SCHEMA_REGISTRY_URL_SETTING_NAME, "url");
+    options.put(
+        String.format("%s.%s", CDC_KAFKA_PRODUCER_SETTING_PREFIX, SCHEMA_REGISTRY_URL_SETTING_NAME),
+        "url");
 
     // when
-    String schemaRegistryUrl = new DefaultConfigLoader().getSchemaRegistryUrl(options);
+    String schemaRegistryUrl =
+        new DefaultConfigLoader().getSchemaRegistryUrl(new ConfigWithOverrides(options, "ignored"));
 
     // then
     assertThat(schemaRegistryUrl).isEqualTo("url");
@@ -136,35 +140,6 @@ class DefaultConfigTest {
   }
 
   @Test
-  public void shouldThrowIfValueIsNull() {
-    // given
-    Map<String, Object> options = new HashMap<>();
-    String settingName = "setting-a";
-    options.put(settingName, null);
-
-    // when, then
-    assertThatThrownBy(() -> new DefaultConfigLoader().getStringSettingValue(options, settingName))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining(String.format("The config value for %s is not present", settingName));
-  }
-
-  @Test
-  public void shouldThrowIfValueHasWrongType() {
-    // given
-    Map<String, Object> options = new HashMap<>();
-    String settingName = "setting-a";
-    options.put(settingName, 1234);
-
-    // when, then
-    assertThatThrownBy(() -> new DefaultConfigLoader().getStringSettingValue(options, settingName))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining(
-            String.format(
-                "The config value for %s has wrong type: %s. It should be of a %s type",
-                settingName, Integer.class.getName(), String.class.getName()));
-  }
-
-  @Test
   public void shouldConstructMetricsWithAllSettings() {
     // given
     Map<String, Object> options = new HashMap<>();
@@ -173,7 +148,8 @@ class DefaultConfigTest {
     options.put(METRICS_INCLUDE_TAGS_SETTING_NAME, true);
 
     // when
-    MetricsConfig metricsConfig = new DefaultConfigLoader().loadMetricsConfig(options);
+    MetricsConfig metricsConfig =
+        new DefaultConfigLoader().loadMetricsConfig(new ConfigWithOverrides(options, "ignored"));
 
     // then
     assertThat(metricsConfig.isMetricsEnabled()).isEqualTo(true);
@@ -188,7 +164,8 @@ class DefaultConfigTest {
     options.put(METRICS_ENABLED_SETTING_NAME, true);
 
     // when
-    MetricsConfig metricsConfig = new DefaultConfigLoader().loadMetricsConfig(options);
+    MetricsConfig metricsConfig =
+        new DefaultConfigLoader().loadMetricsConfig(new ConfigWithOverrides(options, "ignored"));
 
     // then
     assertThat(metricsConfig.isMetricsEnabled()).isEqualTo(true);
