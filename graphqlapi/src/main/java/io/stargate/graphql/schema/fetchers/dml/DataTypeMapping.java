@@ -134,9 +134,9 @@ class DataTypeMapping {
     List<Column> columns = row.columns();
     Map<String, Object> map = new HashMap<>(columns.size());
     for (Column column : columns) {
-      if (!row.isNull(column.name())) {
-        map.put(
-            nameMapping.getGraphqlName(table, column), toGraphQLValue(nameMapping, column, row));
+      String graphqlName = nameMapping.getGraphqlName(table, column);
+      if (graphqlName != null && !row.isNull(column.name())) {
+        map.put(graphqlName, toGraphQLValue(nameMapping, column, row));
       }
     }
     return map;
@@ -179,8 +179,8 @@ class DataTypeMapping {
       Map<String, Object> result = new HashMap<>(udt.columns().size());
       for (Column column : udt.columns()) {
         Object dbFieldValue = udtValue.getObject(CqlIdentifier.fromInternal(column.name()));
-        if (dbFieldValue != null) {
-          String graphQlFieldName = nameMapping.getGraphqlName(udt, column);
+        String graphQlFieldName = nameMapping.getGraphqlName(udt, column);
+        if (dbFieldValue != null && graphQlFieldName != null) {
           Object graphQlFieldValue = toGraphQLValue(nameMapping, column.type(), dbFieldValue);
           result.put(graphQlFieldName, graphQlFieldValue);
         }

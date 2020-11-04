@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import org.javatuples.Pair;
 
 public class WhereParser {
   private static final ObjectMapper mapper = new ObjectMapper();
@@ -60,42 +61,106 @@ public class WhereParser {
 
       Iterator<String> ops = fieldConditions.fieldNames();
       while (ops.hasNext()) {
-        String op = ops.next();
-        JsonNode value = fieldConditions.get(op);
-        if (!value.isNull() && value.isArray() && op.equalsIgnoreCase(FilterOp.$IN.rawValue)) {
-
-          ObjectReader reader = mapper.readerFor(new TypeReference<List<Object>>() {});
-          conditions.add(conditionToWhere(fieldName, op, reader.readValue(value)));
-          continue;
+        String rawOp = ops.next();
+        FilterOp op;
+        try {
+          op = FilterOp.valueOf(rawOp.toUpperCase());
+        } catch (IllegalArgumentException iea) {
+          throw new RuntimeException(String.format("Operation %s is not supported", rawOp));
         }
 
-        if (!value.isValueNode() || value.isNull()) {
+        JsonNode value = fieldConditions.get(rawOp);
+        if (value.isNull()) {
           throw new RuntimeException(
               String.format(
-                  "Value entry for field %s, operation %s was expecting a value, but found an object, array, or null.",
-                  fieldName, op));
+                  "Value entry for field %s, operation %s was expecting a value, but found null.",
+                  fieldName, rawOp));
         }
 
-        try {
-          FilterOp.valueOf(op.toUpperCase());
-        } catch (IllegalArgumentException iea) {
-          throw new RuntimeException(String.format("Operation %s is not supported", op));
-        }
-
-        if (op.equalsIgnoreCase(FilterOp.$EXISTS.rawValue)) {
-          if (!value.isBoolean() || !value.booleanValue()) {
-            throw new RuntimeException("`exists` only supports the value `true`");
+        if (op == FilterOp.$IN) {
+          if (!value.isArray()) {
+            throw new RuntimeException(
+                String.format(
+                    "Value entry for field %s, operation %s must be an array.", fieldName, rawOp));
           }
-          conditions.add(conditionToWhere(fieldName, op, true));
+          ObjectReader reader = mapper.readerFor(new TypeReference<List<Object>>() {});
+          conditions.add(conditionToWhere(fieldName, op, reader.readValue(value)));
+        } else if (op == FilterOp.$CONTAINSENTRY) {
+          JsonNode entryKey, entryValue;
+          if (!value.isObject()
+              || value.size() != 2
+              || (entryKey = value.get("key")) == null
+              || (entryValue = value.get("value")) == null) {
+            throw new RuntimeException(
+                String.format(
+                    "Value entry for field %s, operation %s must be an object "
+                        + "with two fields 'key' and 'value'.",
+                    fieldName, rawOp));
+          }
+          Column.ColumnType mapType = tableData.column(fieldName).type();
+          if (mapType == null || !mapType.isMap()) {
+            throw new RuntimeException(
+                String.format(
+                    "Field %s: operation %s is only supported for map types", fieldName, rawOp));
+          }
+          Column.ColumnType keyType = mapType.parameters().get(0);
+          Column.ColumnType valueType = mapType.parameters().get(1);
+          conditions.add(
+              ImmutableWhereCondition.builder()
+                  .column(fieldName.toLowerCase())
+                  .predicate(op.predicate)
+                  .value(
+                      Pair.with(
+                          Converters.typeForValue(keyType, entryKey.asText()),
+                          Converters.typeForValue(valueType, entryValue.asText())))
+                  .build());
         } else {
-          Column.ColumnType type = tableData.column(fieldName).type();
-          Object val = value.asText();
-
-          if (type != null) {
-            val = Converters.typeForValue(type, value.asText());
+          // Remaining operators: the value is a simple node
+          if (!value.isValueNode()) {
+            throw new RuntimeException(
+                String.format(
+                    "Value entry for field %s, operation %s was expecting a value, but found an object or array.",
+                    fieldName, rawOp));
           }
 
-          conditions.add(conditionToWhere(fieldName, op, val));
+          if (op == FilterOp.$EXISTS) {
+            if (!value.isBoolean() || !value.booleanValue()) {
+              throw new RuntimeException("`exists` only supports the value `true`");
+            }
+            conditions.add(conditionToWhere(fieldName, op, true));
+          } else {
+            Object val = value.asText();
+            Column.ColumnType columnType = tableData.column(fieldName).type();
+            if (columnType != null) {
+              Column.ColumnType valueType;
+              if (op == FilterOp.$CONTAINS) {
+                if (columnType.isCollection()) {
+                  valueType =
+                      columnType.isMap()
+                          ? columnType.parameters().get(1)
+                          : columnType.parameters().get(0);
+                } else {
+                  throw new RuntimeException(
+                      String.format(
+                          "Field %s: operation %s is only supported for collection types",
+                          fieldName, rawOp));
+                }
+              } else if (op == FilterOp.$CONTAINSKEY) {
+                if (columnType.isMap()) {
+                  valueType = columnType.parameters().get(0);
+                } else {
+                  throw new RuntimeException(
+                      String.format(
+                          "Field %s: operation %s is only supported for map types",
+                          fieldName, rawOp));
+                }
+              } else {
+                valueType = columnType;
+              }
+              val = Converters.typeForValue(valueType, value.asText());
+            }
+            conditions.add(conditionToWhere(fieldName, op, val));
+          }
         }
       }
     }
@@ -103,10 +168,10 @@ public class WhereParser {
     return conditions;
   }
 
-  private static Where<?> conditionToWhere(String fieldName, String op, Object value) {
+  private static Where<?> conditionToWhere(String fieldName, FilterOp op, Object value) {
     return ImmutableWhereCondition.builder()
         .value(value)
-        .predicate(FilterOp.valueOf(op.toUpperCase()).predicate)
+        .predicate(op.predicate)
         .column(fieldName.toLowerCase())
         .build();
   }

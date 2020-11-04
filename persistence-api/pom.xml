@@ -138,6 +138,7 @@
               io.stargate.db.datastore,
               io.stargate.db.schema,
               io.stargate.db.datastore.query,
+              org.javatuples,
               org.apache.cassandra.stargate,
               org.apache.cassandra.stargate.*,
               com.datastax.oss.driver.*
