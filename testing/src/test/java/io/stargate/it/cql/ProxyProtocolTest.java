@@ -30,7 +30,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @SkipWhenNotDse
 @SkipIfProxyDnsInvalid
 @StargateSpec(parametersCustomizer = "buildParameters")
-@CqlSessionSpec(createSession = false, noDefaultContactPoints = true)
+@CqlSessionSpec(createSession = false, useDefaultContactPoints = false)
 @ProxySpec(numProxies = 2)
 @ExtendWith({CqlSessionExtension.class, ProxyExtension.class})
 public class ProxyProtocolTest extends BaseOsgiIntegrationTest {

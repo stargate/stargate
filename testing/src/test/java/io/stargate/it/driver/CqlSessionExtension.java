@@ -308,7 +308,7 @@ public class CqlSessionExtension
     CqlSessionBuilder builder = CqlSession.builder().withAuthCredentials("cassandra", "cassandra");
     builder = maybeCustomizeBuilder(builder, cqlSessionSpec, context);
     builder.withConfigLoader(DriverConfigLoader.fromMap(options));
-    if (!cqlSessionSpec.noDefaultContactPoints()) {
+    if (cqlSessionSpec.useDefaultContactPoints()) {
       for (StargateConnectionInfo node : stargate.nodes()) {
         builder.addContactPoint(new InetSocketAddress(node.seedAddress(), node.cqlPort()));
       }

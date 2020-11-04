@@ -2,7 +2,6 @@ package io.stargate.it.proxy;
 
 import com.google.common.net.InetAddresses;
 import io.stargate.it.storage.StargateParameters;
-import java.io.UncheckedIOException;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -15,6 +14,8 @@ import org.junit.jupiter.api.extension.ConditionEvaluationResult;
 import org.junit.jupiter.api.extension.ExecutionCondition;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.platform.commons.support.AnnotationSupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A condition that verifies that DNS is setup correctly to contain the IP addresses for all the
@@ -24,6 +25,8 @@ import org.junit.platform.commons.support.AnnotationSupport;
  * matches {@link StargateParameters#proxyDnsName()} if changed from the default value.
  */
 public class ProxyDnsCondition implements ExecutionCondition {
+  private static final Logger LOG = LoggerFactory.getLogger(ProxyDnsCondition.class);
+
   @Override
   public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
     AnnotatedElement element =
@@ -43,13 +46,24 @@ public class ProxyDnsCondition implements ExecutionCondition {
     try {
       resolvedAddresses =
           Arrays.stream(InetAddress.getAllByName(proxySpec.verifyProxyDnsName()))
-              .map(a -> getByName(a.getHostAddress()))
               .collect(Collectors.toList());
     } catch (UnknownHostException e) {
-      throw new UncheckedIOException("Unable to determine addresses for proxy DNS", e);
+      String msg =
+          String.format(
+              "Unable to determine addresses for proxy DNS: %s", proxySpec.verifyProxyDnsName());
+      LOG.error(msg, e);
+      return ConditionEvaluationResult.disabled(msg);
     }
 
-    InetAddress proxyAddress = getByName(proxySpec.startingLocalAddress());
+    InetAddress proxyAddress;
+    try {
+      proxyAddress = InetAddress.getByName(proxySpec.startingLocalAddress());
+    } catch (UnknownHostException e) {
+      String msg =
+          String.format("Invalid starting local address: %s", proxySpec.startingLocalAddress());
+      LOG.error(msg, e);
+      return ConditionEvaluationResult.disabled(msg);
+    }
     for (int i = 0; i < proxySpec.numProxies(); ++i) {
       if (!resolvedAddresses.contains(proxyAddress)) {
         return ConditionEvaluationResult.disabled(
@@ -59,14 +73,7 @@ public class ProxyDnsCondition implements ExecutionCondition {
       }
       proxyAddress = InetAddresses.increment(proxyAddress);
     }
-    return ConditionEvaluationResult.enabled("Proxy DNS setup correctly");
-  }
 
-  InetAddress getByName(String address) {
-    try {
-      return InetAddress.getByName(address);
-    } catch (UnknownHostException e) {
-      throw new UncheckedIOException("Invalid address string", e);
-    }
+    return ConditionEvaluationResult.enabled("Proxy DNS setup correctly");
   }
 }
