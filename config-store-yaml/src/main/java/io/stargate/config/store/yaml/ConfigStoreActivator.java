@@ -37,7 +37,7 @@ public class ConfigStoreActivator extends BaseActivator {
   public ConfigStoreActivator(String configYamlLocation) {
     super(
         "Config Store YAML",
-        Collections.singletonList(DependentService.constructDependentService(Metrics.class)),
+        Collections.singletonList(ServiceDependency.create(Metrics.class)),
         ConfigStore.class);
     this.configYamlLocation = configYamlLocation;
   }

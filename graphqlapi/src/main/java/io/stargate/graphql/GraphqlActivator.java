@@ -42,11 +42,11 @@ public class GraphqlActivator extends BaseActivator {
     super(
         "GraphQL",
         Arrays.asList(
-            DependentService.constructDependentService(
+            ServiceDependency.create(
                 AuthenticationService.class, "AuthIdentifier", AUTH_IDENTIFIER),
-            DependentService.constructDependentService(
+            ServiceDependency.create(
                 Persistence.class, "Identifier", PERSISTENCE_IDENTIFIER),
-            DependentService.constructDependentService(Metrics.class)));
+            ServiceDependency.create(Metrics.class)));
   }
 
   @Override

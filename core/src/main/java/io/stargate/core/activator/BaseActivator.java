@@ -39,7 +39,7 @@ public abstract class BaseActivator implements BundleActivator {
 
   private final String activatorName;
 
-  private final List<DependentService> dependentServices;
+  private final List<ServiceDependency> serviceDependencies;
 
   private BundleContext context;
 
@@ -55,7 +55,7 @@ public abstract class BaseActivator implements BundleActivator {
 
   /**
    * @param activatorName - The name used when logging the progress of registration.
-   * @param dependentServices - List of dependent services that this component relies on. It
+   * @param serviceDependencies - List of dependent services that this component relies on. It
    *     provides the happens-before meaning that all dependentServices must be present before the
    *     {@link this#createService(List)} is called.
    * @param targetServiceClass - This class will be used when registering the service. If null, then
@@ -63,11 +63,11 @@ public abstract class BaseActivator implements BundleActivator {
    */
   public BaseActivator(
       String activatorName,
-      List<DependentService> dependentServices,
+      List<ServiceDependency> serviceDependencies,
       @Nullable Class<?> targetServiceClass) {
     this.activatorName = activatorName;
-    this.dependentServices = dependentServices;
-    this.registeredServices = createMapWithNullValues(dependentServices);
+    this.serviceDependencies = serviceDependencies;
+    this.registeredServices = createMapWithNullValues(serviceDependencies);
     this.targetServiceClass = Optional.ofNullable(targetServiceClass);
   }
 
@@ -75,22 +75,22 @@ public abstract class BaseActivator implements BundleActivator {
    * Convenience method for activators that does not register any service see docs for {@link
    * this#BaseActivator(String, List, Class)}.
    */
-  public BaseActivator(String activatorName, List<DependentService> dependentServices) {
-    this(activatorName, dependentServices, null);
+  public BaseActivator(String activatorName, List<ServiceDependency> serviceDependencies) {
+    this(activatorName, serviceDependencies, null);
   }
 
   private LinkedHashMap<Class<?>, Object> createMapWithNullValues(
-      List<DependentService> dependentServices) {
-    LinkedHashMap<Class<?>, Object> map = new LinkedHashMap<>(dependentServices.size());
-    for (DependentService dependentService : dependentServices) {
-      map.put(dependentService.className, null);
+      List<ServiceDependency> serviceDependencies) {
+    LinkedHashMap<Class<?>, Object> map = new LinkedHashMap<>(serviceDependencies.size());
+    for (ServiceDependency serviceDependency : serviceDependencies) {
+      map.put(serviceDependency.className, null);
     }
     return map;
   }
 
   /**
    * When the OSGi invokes the start() method, it constructs the {@link Tracker}. It will listen for
-   * notification of all services passed as {@link this#dependentServices}. It will wait for a
+   * notification of all services passed as {@link this#serviceDependencies}. It will wait for a
    * notification denoting that service was registered using {@link
    * Tracker#addingService(ServiceReference)}. If all services are present, it will call the
    * user-provided {@link this#createService(List)} and register it in the OSGi using {@link
@@ -111,11 +111,11 @@ public abstract class BaseActivator implements BundleActivator {
   String constructDependenciesFilter() {
     StringBuilder builder = new StringBuilder("(|");
 
-    for (DependentService dependentService : dependentServices) {
-      if (dependentService.identifier.isPresent()) {
-        builder.append(String.format("(%s)", dependentService.identifier.get()));
+    for (ServiceDependency serviceDependency : serviceDependencies) {
+      if (serviceDependency.identifier.isPresent()) {
+        builder.append(String.format("(%s)", serviceDependency.identifier.get()));
       } else {
-        builder.append(String.format("(objectClass=%s)", dependentService.className.getName()));
+        builder.append(String.format("(objectClass=%s)", serviceDependency.className.getName()));
       }
     }
     builder.append(")");
@@ -216,40 +216,24 @@ public abstract class BaseActivator implements BundleActivator {
     }
   }
 
-  public static class DependentService {
+  public static class ServiceDependency {
     private Class<?> className;
 
     private Optional<String> identifier;
 
-    private DependentService(Class<?> className, String identifier) {
+    private ServiceDependency(Class<?> className, String identifier) {
       this.className = className;
       this.identifier = Optional.ofNullable(identifier);
     }
 
-    public static DependentService constructDependentService(
+    public static ServiceDependency create(
         Class<?> className, String identifierKey, String identifierValue) {
-      return new DependentService(
+      return new ServiceDependency(
           className, String.format("%s=%s", identifierKey, identifierValue));
     }
 
-    public static DependentService constructDependentService(Class<?> className) {
-      return new DependentService(className, null);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) return true;
-      if (o == null || getClass() != o.getClass()) return false;
-
-      DependentService that = (DependentService) o;
-
-      if (!Objects.equals(className, that.className)) return false;
-      return Objects.equals(identifier, that.identifier);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(className, identifier);
+    public static ServiceDependency create(Class<?> className) {
+      return new ServiceDependency(className, null);
     }
   }
 }

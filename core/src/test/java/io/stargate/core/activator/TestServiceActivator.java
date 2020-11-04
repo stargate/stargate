@@ -31,8 +31,8 @@ public class TestServiceActivator extends BaseActivator {
     super(
         "Config Store Test Activator",
         Arrays.asList(
-            DependentService.constructDependentService(DependentService1.class),
-            DependentService.constructDependentService(DependentService2.class)),
+            ServiceDependency.create(DependentService1.class),
+            ServiceDependency.create(DependentService2.class)),
         targetService);
   }
 
