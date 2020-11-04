@@ -15,15 +15,20 @@
  */
 package io.stargate.config.store.api;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class ConfigWithOverrides {
-  private Map<String, Object> configMap;
+  private final Map<String, Object> configMap;
+  private final String moduleName;
 
-  public ConfigWithOverrides(@Nonnull Map<String, Object> configMap) {
+  public ConfigWithOverrides(@Nonnull Map<String, Object> configMap, String moduleName) {
     this.configMap = configMap;
+    this.moduleName = moduleName;
   }
 
   /**
@@ -32,6 +37,84 @@ public class ConfigWithOverrides {
    */
   public Map<String, Object> getConfigMap() {
     return configMap;
+  }
+
+  /**
+   * It retrieves the list of values from underlying configMap checking for its presence and the
+   * type. If the value for a given settingName does not have a value, it throws an {@code
+   * IllegalArgumentException}. If the type of the setting value is not a {@link List} it throws
+   * {@code IllegalArgumentException}. If the underlying type of any element in this list does not
+   * match the expectedType, it throws {@code IllegalArgumentException}.
+   *
+   * @param settingName - it will be used as a key of underlying configMap.
+   * @param expectedType - it will be used to check if the type of an actual list element value
+   *     matches.
+   * @return the list of values associated with settingName. Each value matches expectedType.
+   */
+  @Nonnull
+  @SuppressWarnings("unchecked")
+  public <T> List<T> getSettingValueList(String settingName, Class<T> expectedType) {
+    List<?> settingValue = getSettingValue(settingName, List.class);
+    return settingValue.stream()
+        .map(
+            v -> {
+              validateType(String.format("%s.list-value", settingName), v, expectedType);
+              return (T) v;
+            })
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * It retrieves the value from underlying configMap checking for its presence and type. If the
+   * value for a given settingName does not have a value, it throws an {@code
+   * IllegalArgumentException}. If the type of the setting value does not match the expectedType, it
+   * throws {@code IllegalArgumentException}.
+   *
+   * @param settingName - it will be used as a key of underlying configMap.
+   * @param expectedType - it will be used to check if the type of an actual setting value matches.
+   * @return the value associated with settingName, matching expectedType.
+   */
+  @Nonnull
+  @SuppressWarnings("unchecked")
+  public <T> T getSettingValue(String settingName, Class<T> expectedType) {
+    Object configValue = configMap.get(settingName);
+    if (configValue == null) {
+      throw new IllegalArgumentException(
+          String.format("The config value for %s is not present", settingName));
+    }
+    validateType(settingName, configValue, expectedType);
+    return (T) configValue;
+  }
+
+  /**
+   * It retrieves the value wrapped in the {@code Optional} from underlying configMap checking for
+   * its type. If the value for a given settingName does not have a value, it returns {@code
+   * Optional.empty()} If the type of the setting value does not match the expectedType, it throws
+   * {@code IllegalArgumentException}.
+   *
+   * @param settingName - it will be used as a key of underlying configMap.
+   * @param expectedType - it will be used to check if the type of an actual setting value matches.
+   * @return the value wrapped in the {@code Optional} associated with settingName, matching
+   *     expectedType.
+   */
+  @Nonnull
+  @SuppressWarnings("unchecked")
+  public <T> Optional<T> getOptionalSettingValue(String settingName, Class<T> expectedType) {
+    Object configValue = configMap.get(settingName);
+    if (configValue == null) {
+      return Optional.empty();
+    }
+    validateType(settingName, configValue, expectedType);
+    return Optional.of(configValue).map(v -> (T) v);
+  }
+
+  private <T> void validateType(String settingName, Object configValue, Class<T> expectedType) {
+    if (!(expectedType.isAssignableFrom(configValue.getClass()))) {
+      throw new IllegalArgumentException(
+          String.format(
+              "The config value for %s has wrong type: %s. It should be of a %s type",
+              settingName, configValue.getClass().getName(), expectedType.getName()));
+    }
   }
 
   /**
@@ -45,20 +128,42 @@ public class ConfigWithOverrides {
    *
    * <p>3. Underlying config map
    *
+   * <p>When trying to retrieve the system property and environment variable, it will use the full
+   * setting name. It will add the module name for which this `ConfigWithOverrides` is created.
+   *
+   * <p>For example, if the {@code String moduleName = "m_1"} and you are calling this
+   * getWithOverrides() method for settingName = "s" it will firstly try to {@code
+   * System.getProperty("m_1.s")}, then {@code System.getenv("m_1.s")} and finally get the config
+   * from the underlying map using {@code Map.get("s")}.
+   *
+   * <p>Prefixing with module name is done to avoid conflicts of overrides between modules.
+   *
+   * <p>Please keep in mind that if you are overriding settings via a System property or OS
+   * environment variable, it will always return the String value. If the underlying config map does
+   * not contain a String for the specific setting name, and the override is provided, you may get
+   * class cast problems. To alleviate this problem, you should assert that the underlying config
+   * map value for the setting that you plan to override is of a String type. You can also add a
+   * custom parsing logic with instanceof checks but it may be error-prone.
+   *
    * @return the value with the highest priority or null if there is no value associated with the
    *     given settingName.
    */
   @Nullable
   public Object getWithOverrides(String settingName) {
-    String systemProperty = System.getProperty(settingName);
+    String settingNameWithModulePrefix = withModulePrefix(settingName);
+    String systemProperty = System.getProperty(settingNameWithModulePrefix);
     if (systemProperty != null) {
       return systemProperty;
     }
 
-    String envVariable = System.getenv(settingName);
+    String envVariable = System.getenv(settingNameWithModulePrefix);
     if (envVariable != null) {
       return envVariable;
     }
     return configMap.get(settingName);
+  }
+
+  private String withModulePrefix(String settingName) {
+    return String.format("%s.%s", moduleName, settingName);
   }
 }
