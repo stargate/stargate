@@ -277,7 +277,7 @@ class BaseActivatorTest {
   public void shouldStartButNotRegisterAndInvokeStopIfTargetClassNotSpecified() throws Exception {
     // given
     BundleContext bundleContext = mock(BundleContext.class);
-    TestServiceActivator activator = new TestServiceActivator(null);
+    TestServiceActivator activator = new TestServiceActivatorWithoutStart();
     mockFilterForBothServices(bundleContext);
     activator.start(bundleContext);
 

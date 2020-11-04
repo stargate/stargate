@@ -138,8 +138,11 @@ public abstract class BaseActivator implements BundleActivator {
     }
     started = true;
     ServiceAndProperties service = createService(dependentServices);
-    targetServiceClass.ifPresent(
-        aClass -> context.registerService(aClass.getName(), service.service, service.properties));
+    if (service != null && targetServiceClass.isPresent()) {
+      logger.info("Registering {} as {}", activatorName, targetServiceClass.get().getName());
+      context.registerService(
+          targetServiceClass.get().getName(), service.service, service.properties);
+    }
     logger.info("Started {}", activatorName);
   }
 
@@ -191,8 +194,9 @@ public abstract class BaseActivator implements BundleActivator {
    * same. You can safely cast the objects to the expected types according to the dependentServices.
    *
    * @return ServiceAndProperties that has the service for OSGi registration and the properties that
-   *     will be passed.
+   *     will be passed or null if there is no registration service required.
    */
+  @Nullable
   protected abstract ServiceAndProperties createService(List<Object> dependentServices);
 
   protected abstract void stopService();
