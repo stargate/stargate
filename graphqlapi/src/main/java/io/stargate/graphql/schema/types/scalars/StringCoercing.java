@@ -16,6 +16,7 @@
 package io.stargate.graphql.schema.types.scalars;
 
 import com.datastax.oss.driver.api.core.data.CqlDuration;
+import com.datastax.oss.driver.api.core.uuid.Uuids;
 import graphql.language.StringValue;
 import graphql.schema.Coercing;
 import graphql.schema.CoercingParseLiteralException;
@@ -88,6 +89,9 @@ abstract class StringCoercing<DriverTypeT> implements Coercing<DriverTypeT, Stri
 
         @Override
         protected java.util.UUID parse(String value) {
+          if (value.equals("uuid()")) {
+            return Uuids.random();
+          }
           return java.util.UUID.fromString(value);
         }
       };
@@ -101,6 +105,10 @@ abstract class StringCoercing<DriverTypeT> implements Coercing<DriverTypeT, Stri
 
         @Override
         protected java.util.UUID parse(String value) {
+          if (value.equals("now()")) {
+            return Uuids.timeBased();
+          }
+
           java.util.UUID uuid = java.util.UUID.fromString(value);
           if (uuid.version() != 1) {
             throw new CoercingParseLiteralException("Not a Type 1 (time-based) UUID");
