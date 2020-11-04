@@ -299,6 +299,27 @@ class BaseActivatorTest {
     assertThat(activator.stopCalled).isTrue();
   }
 
+  @Test
+  public void shouldNotInvokeStopIfWasNotProperlyStarted() throws Exception {
+    // given
+    BundleContext bundleContext = mock(BundleContext.class);
+    TestServiceActivator activator = new TestServiceActivatorWithoutStart();
+    mockFilterForBothServices(bundleContext);
+    activator.start(bundleContext);
+
+    // then should not register service
+    verify(bundleContext, times(0))
+        .registerService(
+            eq(TestService.class.getName()), any(TestService.class), eq(EXPECTED_PROPERTIES));
+    assertThat(activator.started).isFalse();
+
+    // when
+    activator.stop(bundleContext);
+
+    // then
+    assertThat(activator.stopCalled).isFalse();
+  }
+
   private BaseActivator createBaseActivator(List<DependentService> dependentServices) {
 
     return new BaseActivator("ignored", dependentServices, Object.class) {

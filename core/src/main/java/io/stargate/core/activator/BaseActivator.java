@@ -58,7 +58,8 @@ public abstract class BaseActivator implements BundleActivator {
    * @param dependentServices - List of dependent services that this component relies on. It
    *     provides the happens-before meaning that all dependentServices must be present before the
    *     {@link this#createService(List)} is called.
-   * @param targetServiceClass - This class will be used when registering the service.
+   * @param targetServiceClass - This class will be used when registering the service. If null, then
+   *     the registration will not happen.
    */
   public BaseActivator(
       String activatorName,
@@ -71,10 +72,8 @@ public abstract class BaseActivator implements BundleActivator {
   }
 
   /**
-   * @param activatorName - The name used when logging the progress of registration.
-   * @param dependentServices - List of dependent services that this component relies on. It
-   *     provides the happens-before meaning that all dependentServices must be present before the
-   *     {@link this#createService(List)} is called.
+   * Convenience method for activators that does not register any service see docs for {@link
+   * this#BaseActivator(String, List, Class)}.
    */
   public BaseActivator(String activatorName, List<DependentService> dependentServices) {
     this(activatorName, dependentServices, null);
@@ -126,6 +125,7 @@ public abstract class BaseActivator implements BundleActivator {
   @Override
   public synchronized void stop(BundleContext context) throws Exception {
     if (started) {
+      logger.info("Stopping {}", activatorName);
       stopService();
     }
     tracker.close();
@@ -199,6 +199,10 @@ public abstract class BaseActivator implements BundleActivator {
   @Nullable
   protected abstract ServiceAndProperties createService(List<Object> dependentServices);
 
+  /**
+   * It will be called when the OSGi calls {@link this#stop(BundleContext)} and only if service was
+   * already started.
+   */
   protected abstract void stopService();
 
   public static class ServiceAndProperties {
