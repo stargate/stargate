@@ -13,6 +13,9 @@ chown -R ubuntu:ubuntu /cache/
 sudo -i -u ubuntu bash << EOF
 set -euo pipefail
 
+# Add DNS entries for proxy protocol tests
+printf "stargate.local 127.0.1.11\nstargate.local 127.0.1.12" | sudo tee -a /etc/hosts > /dev/null
+
 echoinfo() { echo "[\$(date -Is)] - \$@" 1>&2; }
 export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
 export PATH=$PATH:\$JAVA_HOME/bin
