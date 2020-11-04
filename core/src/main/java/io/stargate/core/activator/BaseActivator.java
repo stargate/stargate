@@ -15,27 +15,31 @@
  */
 package io.stargate.core.activator;
 
-import io.stargate.core.BundleUtils;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.Filter;
 import org.osgi.framework.InvalidSyntaxException;
-import org.osgi.framework.ServiceEvent;
 import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceReference;
+import org.osgi.util.tracker.ServiceTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class BaseActivator implements BundleActivator, ServiceListener {
+public abstract class BaseActivator implements BundleActivator {
   private static final Logger logger = LoggerFactory.getLogger(BaseActivator.class);
 
   private final String activatorName;
 
-  private final List<Class<?>> dependentServices;
+  private final List<DependentService> dependentServices;
 
   private BundleContext context;
 
@@ -45,6 +49,10 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
 
   public boolean started;
 
+  @VisibleForTesting
+  @GuardedBy("this")
+  public Tracker tracker;
+
   /**
    * @param activatorName - The name used when logging the progress of registration.
    * @param dependentServices - List of dependent services that needs to be retrieved using service
@@ -52,7 +60,7 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
    * @param targetServiceClass - This class will be used when registering the service.
    */
   public BaseActivator(
-      String activatorName, List<Class<?>> dependentServices, Class<?> targetServiceClass) {
+      String activatorName, List<DependentService> dependentServices, Class<?> targetServiceClass) {
     this.activatorName = activatorName;
     this.dependentServices = dependentServices;
     this.registeredServices = createMapWithNullValues(dependentServices);
@@ -60,10 +68,10 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
   }
 
   private LinkedHashMap<Class<?>, Object> createMapWithNullValues(
-      List<Class<?>> dependentServices) {
+      List<DependentService> dependentServices) {
     LinkedHashMap<Class<?>, Object> map = new LinkedHashMap<>(dependentServices.size());
-    for (Class<?> dependentService : dependentServices) {
-      map.put(dependentService, null);
+    for (DependentService dependentService : dependentServices) {
+      map.put(dependentService.className, null);
     }
     return map;
   }
@@ -74,64 +82,41 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
    * any of those services are not present, it will register the listeners for them using {@link
    * BundleContext#addServiceListener(ServiceListener, String)} and not start the target service
    * (see targetServiceClass). It will wait for a notification denoting that service was registered
-   * using {@link this#serviceChanged(ServiceEvent)}. If all services are present, it will call the
-   * user-provided {@link this#createService(List)} and register it in the OSGi using {@link
-   * BundleContext#registerService(Class, Object, java.util.Dictionary)}.
+   * using {@link Tracker#addingService(ServiceReference)}. If all services are present, it will
+   * call the user-provided {@link this#createService(List)} and register it in the OSGi using
+   * {@link BundleContext#registerService(Class, Object, java.util.Dictionary)}.
    */
   @Override
   public synchronized void start(BundleContext context) throws InvalidSyntaxException {
     logger.info("Starting {} ...", activatorName);
     this.context = context;
+    tracker =
+        new Tracker(
+            context, context.createFilter(constructDependenciesFilter()), registeredServices);
+    tracker.open();
+  }
 
-    for (Class<?> dependentService : dependentServices) {
-      ServiceReference<?> serviceReference =
-          context.getServiceReference(dependentService.getName());
-      if (serviceReference == null) {
-        logger.debug(
-            "{} service is null, registering a listener to get notification when it will be ready.",
-            dependentService.getName());
-        context.addServiceListener(
-            this, String.format("(objectClass=%s)", dependentService.getName()));
+  @VisibleForTesting
+  String constructDependenciesFilter() {
+    StringBuilder builder = new StringBuilder("(|");
+
+    for (DependentService dependentService : dependentServices) {
+      if (dependentService.identifier.isPresent()) {
+        builder.append(String.format("(%s)", dependentService.identifier.get()));
       } else {
-        // if the service is present, get it
-        registeredServices.put(dependentService, context.getService(serviceReference));
+        builder.append(String.format("(objectClass=%s)", dependentService.className.getName()));
       }
     }
-
-    if (registeredServices.values().stream().anyMatch(Objects::isNull)) {
-      // It will be started once all dependent services are registered
-      return;
-    }
-
-    // all dependant services are present
-    startServiceInternal(new LinkedList<>(registeredServices.values()));
+    builder.append(")");
+    return builder.toString();
   }
 
   @Override
   public synchronized void stop(BundleContext context) throws Exception {
-    // no-op
-  }
-
-  /**
-   * It will try to match all dependentServices with a ServiceEvent notification. If the
-   * notification for dependant service contains a non-null value, it will start the target service.
-   * After the notification is handled, it checks if all dependentServices are not null. If they
-   * are, the client's provided {@link this#createService(List)} is called, and the service is
-   * registered. It will not register the service if it was already registered in the {@link
-   * this#start(BundleContext)}.
-   */
-  @Override
-  public synchronized void serviceChanged(ServiceEvent event) {
-    for (Class<?> dependentService : dependentServices) {
-      Object registeredService = BundleUtils.getRegisteredService(context, event, dependentService);
-      if (registeredService != null) {
-        // capture registration only if the instance is not null
-        registeredServices.put(dependentService, registeredService);
-      }
+    if (started) {
+      stopService();
     }
-    if (registeredServices.values().stream().allMatch(Objects::nonNull)) {
-      startServiceInternal(new LinkedList<>(registeredServices.values()));
-    }
+    tracker.close();
   }
 
   private synchronized void startServiceInternal(List<Object> dependentServices) {
@@ -142,7 +127,48 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
     started = true;
     ServiceAndProperties service = createService(dependentServices);
     context.registerService(targetServiceClass.getName(), service.service, service.properties);
-    logger.info("Started {}....", activatorName);
+    logger.info("Started {}", activatorName);
+  }
+
+  public class Tracker extends ServiceTracker<Object, Object> {
+
+    private final LinkedHashMap<Class<?>, Object> registeredServices;
+
+    public Tracker(
+        BundleContext context, Filter filter, LinkedHashMap<Class<?>, Object> registeredServices) {
+      super(context, filter, null);
+      this.registeredServices = registeredServices;
+    }
+
+    /**
+     * It will try to match all dependentServices with a ServiceReference notification. After the
+     * notification is handled, it checks if all dependentServices are not null. If they are, the
+     * client's provided {@link this#createService(List)} is called, and the service is registered.
+     * It will not register the service if it was already registered.
+     */
+    @Override
+    public Object addingService(ServiceReference<Object> ref) {
+      Object service = super.addingService(ref);
+      startIfAllRegistered(ref, service);
+
+      return service;
+    }
+
+    @VisibleForTesting
+    public void startIfAllRegistered(ServiceReference<Object> ref, Object service) {
+      if (service == null) {
+        return;
+      }
+      for (Map.Entry<Class<?>, Object> registeredService : registeredServices.entrySet()) {
+        if (registeredService.getKey().isAssignableFrom(service.getClass())) {
+          logger.debug("Using service: {}", ref.getBundle());
+          registeredServices.put(registeredService.getKey(), service);
+        }
+      }
+      if (registeredServices.values().stream().allMatch(Objects::nonNull)) {
+        startServiceInternal(new LinkedList<>(registeredServices.values()));
+      }
+    }
   }
 
   /**
@@ -156,6 +182,8 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
    */
   protected abstract ServiceAndProperties createService(List<Object> dependentServices);
 
+  protected abstract void stopService();
+
   public static class ServiceAndProperties {
     private final Object service;
 
@@ -164,6 +192,43 @@ public abstract class BaseActivator implements BundleActivator, ServiceListener 
     public ServiceAndProperties(Object service, Hashtable<String, String> properties) {
       this.service = service;
       this.properties = properties;
+    }
+  }
+
+  public static class DependentService {
+    private Class<?> className;
+
+    private Optional<String> identifier;
+
+    private DependentService(Class<?> className, String identifier) {
+      this.className = className;
+      this.identifier = Optional.ofNullable(identifier);
+    }
+
+    public static DependentService constructDependentService(
+        Class<?> className, String identifierKey, String identifierValue) {
+      return new DependentService(
+          className, String.format("%s=%s", identifierKey, identifierValue));
+    }
+
+    public static DependentService constructDependentService(Class<?> className) {
+      return new DependentService(className, null);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+
+      DependentService that = (DependentService) o;
+
+      if (!Objects.equals(className, that.className)) return false;
+      return Objects.equals(identifier, that.identifier);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(className, identifier);
     }
   }
 }

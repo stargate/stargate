@@ -21,10 +21,14 @@ import java.util.List;
 
 public class TestServiceActivator extends BaseActivator {
 
+  public boolean stopCalled;
+
   public TestServiceActivator() {
     super(
         "Config Store Test Activator",
-        Arrays.asList(DependentService1.class, DependentService2.class),
+        Arrays.asList(
+            DependentService.constructDependentService(DependentService1.class),
+            DependentService.constructDependentService(DependentService2.class)),
         TestService.class);
   }
 
@@ -37,5 +41,10 @@ public class TestServiceActivator extends BaseActivator {
     props.put("Identifier", "id_1");
 
     return new ServiceAndProperties(new TestService(dependentService1, dependentService2), props);
+  }
+
+  @Override
+  protected void stopService() {
+    stopCalled = true;
   }
 }
