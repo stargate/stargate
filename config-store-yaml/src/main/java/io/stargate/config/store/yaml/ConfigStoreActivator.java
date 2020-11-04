@@ -79,7 +79,7 @@ public class ConfigStoreActivator implements BundleActivator, ServiceListener {
     started = true;
 
     Hashtable<String, String> props = new Hashtable<>();
-    props.put("Identifier", CONFIG_STORE_YAML_IDENTIFIER);
+    props.put("ConfigStoreIdentifier", CONFIG_STORE_YAML_IDENTIFIER);
 
     ConfigStoreYaml configStoreYaml =
         new ConfigStoreYaml(
