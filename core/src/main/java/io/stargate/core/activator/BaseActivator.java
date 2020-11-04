@@ -189,7 +189,7 @@ public abstract class BaseActivator implements BundleActivator {
 
   /**
    * Clients should override this method to create the Service that will be registered in the OSGi
-   * container. The dependant services will contain all services registered passed to the
+   * container. The dependent services will contain all services registered passed to the
    * constructor of this class as {@code List<Class<?>> dependentServices}. The ordering will be the
    * same. You can safely cast the objects to the expected types according to the dependentServices.
    *
