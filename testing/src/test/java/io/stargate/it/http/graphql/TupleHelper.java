@@ -7,7 +7,6 @@ import com.example.graphql.client.betterbotz.type.TupleBigIntInput;
 import com.example.graphql.client.betterbotz.type.TupleFloat32Float32Input;
 import com.example.graphql.client.betterbotz.type.TupleTimeUuidIntBooleanInput;
 import com.example.graphql.client.betterbotz.type.TuplesInput;
-import java.util.Optional;
 import java.util.UUID;
 import org.assertj.core.api.InstanceOfAssertFactories;
 
@@ -42,17 +41,17 @@ public class TupleHelper {
     assertThat(item.getTuple1())
         .isPresent()
         .get()
-        .extracting(v -> v.getItem0())
+        .extracting(v -> v.getItem0().get())
         .isEqualTo(String.valueOf(tuple1Value));
     assertThat(item.getTuple2())
         .isPresent()
         .get()
-        .extracting(v -> v.getItem0(), v -> v.getItem1())
-        .containsExactly(tuple2[0], Optional.of(tuple2[1]));
+        .extracting(v -> v.getItem0().get(), v -> v.getItem1().get())
+        .containsExactly(tuple2[0], tuple2[1]);
     assertThat(item.getTuple3())
         .isPresent()
         .get()
-        .extracting(v -> v.getItem0(), v -> v.getItem1(), v -> v.getItem2())
-        .containsExactly(tuple3[0].toString(), Optional.of(tuple3[1]), Optional.of(tuple3[2]));
+        .extracting(v -> v.getItem0().get(), v -> v.getItem1().get(), v -> v.getItem2().get())
+        .containsExactly(tuple3[0].toString(), tuple3[1], tuple3[2]);
   }
 }

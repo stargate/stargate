@@ -138,22 +138,22 @@ class DataTypeMapping {
     List<Column.ColumnType> subTypes = type.parameters();
 
     // Track null values.
-    // Note that first item can't be null as enforced by the schema.
     boolean hasANullItem = false;
 
     for (int i = 0; i < subTypes.size(); i++) {
       Object item = mapValue.get("item" + i);
 
-      if (i > 0) {
-        if (item == null) {
-          hasANullItem = true;
-          continue;
-        }
+      if (item == null) {
+        hasANullItem = true;
+        continue;
+      }
 
-        if (hasANullItem) {
-          throw new UnsupportedOperationException(
-              "Tuple can have a null item followed by a non-null item");
-        }
+      if (hasANullItem) {
+        throw new UnsupportedOperationException(
+            "Tuple can't have a null item followed by a non-null item");
+      }
+
+      if (i > 0) {
         out.append(',');
       }
 

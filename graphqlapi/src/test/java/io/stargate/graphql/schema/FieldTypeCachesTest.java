@@ -148,22 +148,14 @@ public class FieldTypeCachesTest {
     assertThat(objectType.getName()).matches(String.format("^Tuple%s$", name));
 
     List<GraphQLFieldDefinition> fields = objectType.getFieldDefinitions();
-    assertThat(fields)
-        .hasSize(subTypes.length)
-        .first()
-        .matches(d -> d.getName().equals("item0"))
-        .extracting(GraphQLFieldDefinition::getType)
-        // The first item is not null
-        .isInstanceOf(GraphQLNonNull.class)
-        .extracting(t -> t.getChildren().get(0))
-        .isSameAs(getOutputType(subTypes[0]));
+    assertThat(fields).hasSize(subTypes.length);
 
-    for (int i = 1; i < subTypes.length; i++) {
+    for (int i = 0; i < subTypes.length; i++) {
       GraphQLFieldDefinition field = fields.get(i);
       assertThat(field.getName()).isEqualTo("item" + i);
       GraphQLOutputType subType = getOutputType(subTypes[i]);
-      if (field.getType() instanceof GraphQLModifiedType) {
-        assertThat(field.getType().getChildren()).isEqualTo(subType.getChildren());
+      if (field.getType() instanceof GraphQLList) {
+        assertThat(field.getType().getChildren().get(0)).isEqualTo(subType.getChildren().get(0));
       } else {
         assertThat(field.getType()).isEqualTo(subType);
       }
@@ -180,22 +172,14 @@ public class FieldTypeCachesTest {
     assertThat(objectType.getName()).matches(String.format("^Tuple%sInput$", name));
 
     List<GraphQLInputObjectField> fields = objectType.getFieldDefinitions();
-    assertThat(fields)
-        .hasSize(subTypes.length)
-        .first()
-        .matches(d -> d.getName().equals("item0"))
-        .extracting(GraphQLInputObjectField::getType)
-        // The first item is not null
-        .isInstanceOf(GraphQLNonNull.class)
-        .extracting(t -> t.getChildren().get(0))
-        .isSameAs(getInputType(subTypes[0]));
+    assertThat(fields).hasSize(subTypes.length);
 
-    for (int i = 1; i < subTypes.length; i++) {
+    for (int i = 0; i < subTypes.length; i++) {
       GraphQLInputObjectField field = fields.get(i);
       assertThat(field.getName()).isEqualTo("item" + i);
       GraphQLInputType subType = getInputType(subTypes[i]);
-      if (field.getType() instanceof GraphQLModifiedType) {
-        assertThat(field.getType().getChildren()).isEqualTo(subType.getChildren());
+      if (field.getType() instanceof GraphQLList) {
+        assertThat(field.getType().getChildren().get(0)).isEqualTo(subType.getChildren().get(0));
       } else {
         assertThat(field.getType()).isEqualTo(subType);
       }
@@ -275,9 +259,6 @@ public class FieldTypeCachesTest {
     return Stream.of(
         arguments(new ColumnType[] {Type.Text, Type.Uuid}, "StringUuid"),
         arguments(new ColumnType[] {Type.Uuid, Type.Set.of(Column.Type.Double)}, "UuidListFloat"),
-        arguments(
-            new ColumnType[] {Type.Uuid, Type.Map.of(Type.Timeuuid, Column.Type.Double)},
-            "UuidListEntryTimeUuidKeyFloatValue(Input)?"),
         arguments(new ColumnType[] {Type.Int, Type.Timeuuid}, "IntTimeUuid"),
         arguments(new ColumnType[] {Type.Double}, "Float"),
         arguments(

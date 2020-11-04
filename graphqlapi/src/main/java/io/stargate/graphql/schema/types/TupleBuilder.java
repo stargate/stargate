@@ -19,7 +19,6 @@ import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLInputObjectField;
 import graphql.schema.GraphQLInputObjectType;
 import graphql.schema.GraphQLInputType;
-import graphql.schema.GraphQLNonNull;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLOutputType;
 import graphql.schema.GraphQLType;
@@ -45,11 +44,10 @@ public class TupleBuilder extends TypeBuilder {
     List<GraphQLFieldDefinition> fields = new ArrayList<>(subTypes.size());
 
     for (int i = 0; i < subTypes.size(); i++) {
-      GraphQLOutputType t = (GraphQLOutputType) subTypes.get(i);
       fields.add(
           GraphQLFieldDefinition.newFieldDefinition()
               .name(String.format("item%d", i))
-              .type(i == 0 ? new GraphQLNonNull(t) : t)
+              .type((GraphQLOutputType) subTypes.get(i))
               .build());
     }
 
@@ -64,11 +62,10 @@ public class TupleBuilder extends TypeBuilder {
     List<GraphQLInputObjectField> fields = new ArrayList<>(subTypes.size());
 
     for (int i = 0; i < subTypes.size(); i++) {
-      GraphQLInputType t = (GraphQLInputType) subTypes.get(i);
       fields.add(
           GraphQLInputObjectField.newInputObjectField()
               .name(String.format("item%d", i))
-              .type(i == 0 ? new GraphQLNonNull(t) : t)
+              .type((GraphQLInputType) subTypes.get(i))
               .build());
     }
 

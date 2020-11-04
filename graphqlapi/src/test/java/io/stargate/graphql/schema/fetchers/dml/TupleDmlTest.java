@@ -130,11 +130,12 @@ public class TupleDmlTest extends DmlTestBase {
   }
 
   private static Stream<Arguments> getInvalidValues() {
-    String nullError = "Tuple can have a null item followed by a non-null item";
+    String nullError = "Tuple can't have a null item followed by a non-null item";
 
     return Stream.of(
-        arguments(0, "{item1: 1.2}", "missing required field"),
-        arguments(0, "{item0: null, item1: 1.2}", "must not be null"),
+        arguments(0, "{item0: null, item1: 1.2}", nullError),
+        arguments(0, "{item1: 1.2}", nullError),
+        arguments(1, "{item2: 1}", nullError),
         arguments(1, "{item0: \"425cc127-055c-4d0b-a765-d8e42fa78527\", item2: 1}", nullError),
         arguments(
             1,
