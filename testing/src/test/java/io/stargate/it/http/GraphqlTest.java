@@ -95,15 +95,20 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.net.InetSocketAddress;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -850,7 +855,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         ProductsInput.builder()
             .id(productId)
             .name("Shiny Legs")
-            .price(new BigDecimal("3199.99"))
+            .price("3199.99")
             .created(Instant.now())
             .description("Normal legs but shiny.")
             .build();
@@ -880,7 +885,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     UUID id = UUID.randomUUID();
     String productName = "prod " + id;
     String customer = "cust " + id;
-    BigDecimal price = new BigDecimal("123");
+    String price = "123";
     String description = "desc " + id;
 
     ApolloClient client = getApolloClient("/graphql/betterbotz");
@@ -943,7 +948,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                 OrdersInput.builder()
                     .prodName(productName)
                     .customerName(customer)
-                    .price(new BigDecimal("456"))
+                    .price("456")
                     .description(description)
                     .build())
             .build();
@@ -1004,7 +1009,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                 ProductsInput.builder()
                     .id(Uuids.random().toString())
                     .prodName("prod 1")
-                    .price(new BigDecimal("1"))
+                    .price("1")
                     .name("prod1")
                     .created(Instant.now())
                     .build())
@@ -1168,7 +1173,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         arguments(Column.Type.Smallint, 32_767),
         arguments(Column.Type.Text, "abc123", "'abc123'"),
         arguments(Column.Type.Time, "23:59:31.123456789"),
-        arguments(Column.Type.Timestamp, "2007-12-03T10:15:30Z"),
+        arguments(Column.Type.Timestamp, formatInstant(Instant.now())),
         arguments(Column.Type.Tinyint, -128),
         arguments(Column.Type.Tinyint, 1),
         arguments(Column.Type.Timeuuid, Uuids.timeBased().toString()),
@@ -1336,7 +1341,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
           ProductsInput.builder()
               .id(UUID.randomUUID().toString())
               .name(name)
-              .price(new BigDecimal("1.0"))
+              .price("1.0")
               .created(Instant.now())
               .build());
     }
@@ -1577,7 +1582,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
 
               @Override
               public Instant decode(@NotNull CustomTypeValue<?> customTypeValue) {
-                return Instant.parse(customTypeValue.value.toString());
+                return parseInstant(customTypeValue.value.toString());
               }
             })
         .build();
@@ -1620,4 +1625,24 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
       this.errors = errors;
     }
   }
+
+  private static Instant parseInstant(String source) {
+    try {
+      return TIMESTAMP_FORMAT.get().parse(source).toInstant();
+    } catch (ParseException e) {
+      throw new AssertionError("Unexpected error while parsing timestamp in response", e);
+    }
+  }
+
+  private static String formatInstant(Instant instant) {
+    return TIMESTAMP_FORMAT.get().format(Date.from(instant));
+  }
+
+  private static final ThreadLocal<SimpleDateFormat> TIMESTAMP_FORMAT =
+      ThreadLocal.withInitial(
+          () -> {
+            SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+            parser.setTimeZone(TimeZone.getTimeZone(ZoneId.systemDefault()));
+            return parser;
+          });
 }

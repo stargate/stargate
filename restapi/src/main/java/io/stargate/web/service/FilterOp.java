@@ -24,7 +24,11 @@ public enum FilterOp {
   $GT(">", WhereCondition.Predicate.Gt, "$gt"),
   $GTE(">=", WhereCondition.Predicate.Gte, "$gte"),
   $EXISTS("==", WhereCondition.Predicate.Eq, "$exists"),
-  $IN("IN", WhereCondition.Predicate.In, "$in");
+  $IN("IN", WhereCondition.Predicate.In, "$in"),
+  $CONTAINS("CONTAINS", WhereCondition.Predicate.Contains, "$contains"),
+  $CONTAINSKEY("CONTAINS KEY", WhereCondition.Predicate.ContainsKey, "$containsKey"),
+  $CONTAINSENTRY("==", WhereCondition.Predicate.EntryEq, "$containsEntry"),
+  ;
   // NE("!=", WhereCondition.Predicate.Neq) CQL 3.4.5 doesn't support <>
   // NIN(...) CQL 3.4.5 doesn't support NOT IN
 
