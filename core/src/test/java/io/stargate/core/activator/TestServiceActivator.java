@@ -24,12 +24,16 @@ public class TestServiceActivator extends BaseActivator {
   public boolean stopCalled;
 
   public TestServiceActivator() {
+    this(TestService.class);
+  }
+
+  public TestServiceActivator(Class<?> targetService) {
     super(
         "Config Store Test Activator",
         Arrays.asList(
             DependentService.constructDependentService(DependentService1.class),
             DependentService.constructDependentService(DependentService2.class)),
-        TestService.class);
+        targetService);
   }
 
   @Override

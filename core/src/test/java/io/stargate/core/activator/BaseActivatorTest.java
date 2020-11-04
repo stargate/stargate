@@ -273,6 +273,32 @@ class BaseActivatorTest {
     assertThat(activator.stopCalled).isTrue();
   }
 
+  @Test
+  public void shouldStartButNotRegisterAndInvokeStopIfTargetClassNotSpecified() throws Exception {
+    // given
+    BundleContext bundleContext = mock(BundleContext.class);
+    TestServiceActivator activator = new TestServiceActivator(null);
+    mockFilterForBothServices(bundleContext);
+    activator.start(bundleContext);
+
+    // when
+    ServiceReference<Object> serviceReference = mock(ServiceReference.class);
+    activator.tracker.startIfAllRegistered(serviceReference, mock(DependentService1.class));
+    activator.tracker.startIfAllRegistered(serviceReference, mock(DependentService2.class));
+
+    // then should not register service
+    verify(bundleContext, times(0))
+        .registerService(
+            eq(TestService.class.getName()), any(TestService.class), eq(EXPECTED_PROPERTIES));
+    assertThat(activator.started).isTrue();
+
+    // when
+    activator.stop(bundleContext);
+
+    // then
+    assertThat(activator.stopCalled).isTrue();
+  }
+
   private BaseActivator createBaseActivator(List<DependentService> dependentServices) {
 
     return new BaseActivator("ignored", dependentServices, Object.class) {

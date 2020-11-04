@@ -24,11 +24,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import javax.annotation.Nullable;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
 import org.osgi.framework.InvalidSyntaxException;
-import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
 import org.slf4j.Logger;
@@ -45,7 +45,7 @@ public abstract class BaseActivator implements BundleActivator {
 
   private LinkedHashMap<Class<?>, Object> registeredServices;
 
-  private Class<?> targetServiceClass;
+  private Optional<Class<?>> targetServiceClass;
 
   public boolean started;
 
@@ -55,16 +55,29 @@ public abstract class BaseActivator implements BundleActivator {
 
   /**
    * @param activatorName - The name used when logging the progress of registration.
-   * @param dependentServices - List of dependent services that needs to be retrieved using service
-   *     reference.
+   * @param dependentServices - List of dependent services that this component relies on. It
+   *     provides the happens-before meaning that all dependentServices must be present before the
+   *     {@link this#createService(List)} is called.
    * @param targetServiceClass - This class will be used when registering the service.
    */
   public BaseActivator(
-      String activatorName, List<DependentService> dependentServices, Class<?> targetServiceClass) {
+      String activatorName,
+      List<DependentService> dependentServices,
+      @Nullable Class<?> targetServiceClass) {
     this.activatorName = activatorName;
     this.dependentServices = dependentServices;
     this.registeredServices = createMapWithNullValues(dependentServices);
-    this.targetServiceClass = targetServiceClass;
+    this.targetServiceClass = Optional.ofNullable(targetServiceClass);
+  }
+
+  /**
+   * @param activatorName - The name used when logging the progress of registration.
+   * @param dependentServices - List of dependent services that this component relies on. It
+   *     provides the happens-before meaning that all dependentServices must be present before the
+   *     {@link this#createService(List)} is called.
+   */
+  public BaseActivator(String activatorName, List<DependentService> dependentServices) {
+    this(activatorName, dependentServices, null);
   }
 
   private LinkedHashMap<Class<?>, Object> createMapWithNullValues(
@@ -77,14 +90,13 @@ public abstract class BaseActivator implements BundleActivator {
   }
 
   /**
-   * When the OSGi invokes the start() method, it will try to get all dependentServices passed to
-   * this class's constructor. It will use the {@link BundleContext#getServiceReference(String)}. If
-   * any of those services are not present, it will register the listeners for them using {@link
-   * BundleContext#addServiceListener(ServiceListener, String)} and not start the target service
-   * (see targetServiceClass). It will wait for a notification denoting that service was registered
-   * using {@link Tracker#addingService(ServiceReference)}. If all services are present, it will
-   * call the user-provided {@link this#createService(List)} and register it in the OSGi using
-   * {@link BundleContext#registerService(Class, Object, java.util.Dictionary)}.
+   * When the OSGi invokes the start() method, it constructs the {@link Tracker}. It will listen for
+   * notification of all services passed as {@link this#dependentServices}. It will wait for a
+   * notification denoting that service was registered using {@link
+   * Tracker#addingService(ServiceReference)}. If all services are present, it will call the
+   * user-provided {@link this#createService(List)} and register it in the OSGi using {@link
+   * BundleContext#registerService(Class, Object, java.util.Dictionary)} if {@code
+   * targetServiceClass.isPresent()}.
    */
   @Override
   public synchronized void start(BundleContext context) throws InvalidSyntaxException {
@@ -126,7 +138,8 @@ public abstract class BaseActivator implements BundleActivator {
     }
     started = true;
     ServiceAndProperties service = createService(dependentServices);
-    context.registerService(targetServiceClass.getName(), service.service, service.properties);
+    targetServiceClass.ifPresent(
+        aClass -> context.registerService(aClass.getName(), service.service, service.properties));
     logger.info("Started {}", activatorName);
   }
 
@@ -142,9 +155,9 @@ public abstract class BaseActivator implements BundleActivator {
 
     /**
      * It will try to match all dependentServices with a ServiceReference notification. After the
-     * notification is handled, it checks if all dependentServices are not null. If they are, the
-     * client's provided {@link this#createService(List)} is called, and the service is registered.
-     * It will not register the service if it was already registered.
+     * notification is handled, it checks if all dependentServices are not null. If they are not,
+     * the client's provided {@link this#createService(List)} is called, and the service is
+     * registered. It will not register the service if it was already registered.
      */
     @Override
     public Object addingService(ServiceReference<Object> ref) {
@@ -161,7 +174,7 @@ public abstract class BaseActivator implements BundleActivator {
       }
       for (Map.Entry<Class<?>, Object> registeredService : registeredServices.entrySet()) {
         if (registeredService.getKey().isAssignableFrom(service.getClass())) {
-          logger.debug("Using service: {}", ref.getBundle());
+          logger.debug("{} using service: {}", activatorName, ref.getBundle());
           registeredServices.put(registeredService.getKey(), service);
         }
       }
