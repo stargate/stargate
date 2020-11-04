@@ -15,7 +15,7 @@
  */
 package io.stargate.auth.api.resources;
 
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.auth.model.Credentials;
@@ -48,15 +48,15 @@ public class AuthResource {
 
   private static final Logger logger = LoggerFactory.getLogger(AuthResource.class);
 
-  private final AuthnzService authService;
+  private final AuthenticationService authService;
   private final boolean shouldEnableUsernameToken;
 
   @Inject
-  public AuthResource(AuthnzService authService) {
+  public AuthResource(AuthenticationService authService) {
     this(authService, Boolean.getBoolean("stargate.auth_api_enable_username_token"));
   }
 
-  public AuthResource(AuthnzService authService, boolean shouldEnableUsernameToken) {
+  public AuthResource(AuthenticationService authService, boolean shouldEnableUsernameToken) {
     this.authService = authService;
     this.shouldEnableUsernameToken = shouldEnableUsernameToken;
   }

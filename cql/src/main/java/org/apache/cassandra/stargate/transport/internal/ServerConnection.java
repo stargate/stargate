@@ -20,7 +20,7 @@ package org.apache.cassandra.stargate.transport.internal;
 import com.codahale.metrics.Counter;
 import io.netty.channel.Channel;
 import io.netty.handler.ssl.SslHandler;
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Authenticator;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.Persistence;
@@ -38,7 +38,7 @@ public class ServerConnection extends Connection {
   private volatile Authenticator.SaslNegotiator saslNegotiator;
   private final ClientInfo clientInfo;
   private final Persistence.Connection persistenceConnection;
-  private final AuthnzService authentication;
+  private final AuthenticationService authentication;
   private volatile ConnectionStage stage;
   public final Counter requests = new Counter();
 
@@ -48,7 +48,7 @@ public class ServerConnection extends Connection {
       ProtocolVersion version,
       Connection.Tracker tracker,
       Persistence persistence,
-      AuthnzService authentication) {
+      AuthenticationService authentication) {
     super(channel, version, tracker);
     this.clientInfo =
         new ClientInfo(

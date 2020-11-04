@@ -21,7 +21,7 @@ import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.api.AuthApiActivator;
 import io.stargate.auth.api.config.ApplicationConfiguration;
 import io.stargate.auth.api.resources.AuthResource;
@@ -46,11 +46,11 @@ public class Server extends Application<ApplicationConfiguration> {
 
   private static final Logger logger = LoggerFactory.getLogger(Server.class);
 
-  AuthnzService authnzService;
+  AuthenticationService authenticationService;
   private final Metrics metrics;
 
-  public Server(AuthnzService authnzService, Metrics metrics) {
-    this.authnzService = authnzService;
+  public Server(AuthenticationService authenticationService, Metrics metrics) {
+    this.authenticationService = authenticationService;
     this.metrics = metrics;
 
     BeanConfig beanConfig = new BeanConfig();
@@ -85,7 +85,7 @@ public class Server extends Application<ApplicationConfiguration> {
             new AbstractBinder() {
               @Override
               protected void configure() {
-                bind(authnzService).to(AuthnzService.class);
+                bind(authenticationService).to(AuthenticationService.class);
               }
             });
     environment.jersey().register(AuthResource.class);

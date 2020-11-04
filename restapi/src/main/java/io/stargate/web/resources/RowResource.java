@@ -123,8 +123,8 @@ public class RowResource {
           DataStore localDB = db.getDataStoreForToken(token);
 
           final ResultSet r =
-              db.getAuthnzService()
-                  .executeDataReadWithAuthorization(
+              db.getAuthorizationService()
+                  .authorizedDataRead(
                       () ->
                           localDB
                               .query()

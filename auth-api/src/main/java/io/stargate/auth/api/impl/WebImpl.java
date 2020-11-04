@@ -15,20 +15,20 @@
  */
 package io.stargate.auth.api.impl;
 
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.Metrics;
 
 public class WebImpl {
 
-  private AuthnzService authnzService;
+  private AuthenticationService authenticationService;
   private Metrics metrics;
 
-  public AuthnzService getAuthenticationService() {
-    return authnzService;
+  public AuthenticationService getAuthenticationService() {
+    return authenticationService;
   }
 
-  public void setAuthenticationService(AuthnzService authnzService) {
-    this.authnzService = authnzService;
+  public void setAuthenticationService(AuthenticationService authenticationService) {
+    this.authenticationService = authenticationService;
   }
 
   public Metrics getMetrics() {
@@ -40,7 +40,7 @@ public class WebImpl {
   }
 
   public void start() {
-    Server server = new Server(this.authnzService, this.metrics);
+    Server server = new Server(this.authenticationService, this.metrics);
     server.run("server", "config.yaml");
   }
 }

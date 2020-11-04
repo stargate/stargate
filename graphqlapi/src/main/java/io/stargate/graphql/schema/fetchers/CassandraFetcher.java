@@ -2,7 +2,7 @@ package io.stargate.graphql.schema.fetchers;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
@@ -18,11 +18,11 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> {
 
   protected final Persistence persistence;
-  protected final AuthnzService authnzService;
+  protected final AuthenticationService authenticationService;
 
-  public CassandraFetcher(Persistence persistence, AuthnzService authnzService) {
+  public CassandraFetcher(Persistence persistence, AuthenticationService authenticationService) {
     this.persistence = persistence;
-    this.authnzService = authnzService;
+    this.authenticationService = authenticationService;
   }
 
   @Override
@@ -30,7 +30,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
     HTTPAwareContextImpl httpAwareContext = environment.getContext();
 
     String token = httpAwareContext.getAuthToken();
-    StoredCredentials storedCredentials = authnzService.validateToken(token);
+    StoredCredentials storedCredentials = authenticationService.validateToken(token);
 
     Parameters parameters;
     Map<String, Object> options = environment.getArgument("options");

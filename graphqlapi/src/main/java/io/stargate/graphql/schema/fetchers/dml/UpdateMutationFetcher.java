@@ -6,7 +6,7 @@ import com.datastax.oss.driver.api.querybuilder.update.Assignment;
 import com.datastax.oss.driver.api.querybuilder.update.Update;
 import com.datastax.oss.driver.api.querybuilder.update.UpdateStart;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
@@ -19,8 +19,11 @@ import java.util.Map;
 public class UpdateMutationFetcher extends MutationFetcher {
 
   public UpdateMutationFetcher(
-      Table table, NameMapping nameMapping, Persistence persistence, AuthnzService authnzService) {
-    super(table, nameMapping, persistence, authnzService);
+      Table table,
+      NameMapping nameMapping,
+      Persistence persistence,
+      AuthenticationService authenticationService) {
+    super(table, nameMapping, persistence, authenticationService);
   }
 
   @Override

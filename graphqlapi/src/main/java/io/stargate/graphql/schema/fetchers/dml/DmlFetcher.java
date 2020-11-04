@@ -6,7 +6,7 @@ import com.datastax.oss.driver.api.querybuilder.relation.Relation;
 import com.datastax.oss.driver.api.querybuilder.term.Term;
 import com.google.common.collect.ImmutableList;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
@@ -25,8 +25,11 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
   protected final NameMapping nameMapping;
 
   protected DmlFetcher(
-      Table table, NameMapping nameMapping, Persistence persistence, AuthnzService authnzService) {
-    super(persistence, authnzService);
+      Table table,
+      NameMapping nameMapping,
+      Persistence persistence,
+      AuthenticationService authenticationService) {
+    super(persistence, authenticationService);
     this.table = table;
     this.nameMapping = nameMapping;
   }

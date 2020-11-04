@@ -15,7 +15,7 @@
  */
 package io.stargate.auth.table;
 
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import java.util.Hashtable;
 import org.osgi.framework.BundleActivator;
@@ -32,7 +32,7 @@ public class AuthTableBasedServiceActivator implements BundleActivator, ServiceL
   private static final Logger log = LoggerFactory.getLogger(AuthTableBasedServiceActivator.class);
 
   private BundleContext context;
-  private final AuthTableBasedService authTableBasedService = new AuthTableBasedService();
+  private final AuthnTableBasedService authnTableBasedService = new AuthnTableBasedService();
   private ServiceReference persistenceReference;
   private ServiceRegistration<?> registration;
   static Hashtable<String, String> props = new Hashtable<>();
@@ -46,9 +46,9 @@ public class AuthTableBasedServiceActivator implements BundleActivator, ServiceL
   @Override
   public void start(BundleContext context) {
     this.context = context;
-    log.info("Starting authTableBasedService....");
+    log.info("Starting authnTableBasedService....");
 
-    synchronized (authTableBasedService) {
+    synchronized (authnTableBasedService) {
       try {
         context.addServiceListener(this, String.format("(Identifier=%s)", PERSISTENCE_IDENTIFIER));
       } catch (InvalidSyntaxException ise) {
@@ -59,14 +59,15 @@ public class AuthTableBasedServiceActivator implements BundleActivator, ServiceL
       if (persistenceReference != null
           && persistenceReference.getProperty("Identifier").equals(PERSISTENCE_IDENTIFIER)) {
         log.info("Setting persistence in AuthTableBasedServiceActivator");
-        this.authTableBasedService.setPersistence(
+        this.authnTableBasedService.setPersistence(
             (Persistence) context.getService(persistenceReference));
       }
 
       if (persistenceReference != null) {
-        log.info("Registering authTableBasedService in AuthTableBasedServiceActivator");
+        log.info("Registering authnTableBasedService in AuthTableBasedServiceActivator");
         registration =
-            context.registerService(AuthnzService.class.getName(), authTableBasedService, props);
+            context.registerService(
+                AuthenticationService.class.getName(), authnTableBasedService, props);
       }
     }
   }
@@ -83,7 +84,7 @@ public class AuthTableBasedServiceActivator implements BundleActivator, ServiceL
   public void serviceChanged(ServiceEvent serviceEvent) {
     int type = serviceEvent.getType();
     String[] objectClass = (String[]) serviceEvent.getServiceReference().getProperty("objectClass");
-    synchronized (authTableBasedService) {
+    synchronized (authnTableBasedService) {
       switch (type) {
         case (ServiceEvent.REGISTERED):
           log.info("Service of type " + objectClass[0] + " registered.");
@@ -91,14 +92,14 @@ public class AuthTableBasedServiceActivator implements BundleActivator, ServiceL
 
           if (service instanceof Persistence) {
             log.info("Setting persistence in RestApiActivator");
-            this.authTableBasedService.setPersistence((Persistence) service);
+            this.authnTableBasedService.setPersistence((Persistence) service);
           }
 
-          if (this.authTableBasedService.getPersistence() != null && registration == null) {
-            log.info("Registering authTableBasedService in AuthTableBasedServiceActivator");
+          if (this.authnTableBasedService.getPersistence() != null && registration == null) {
+            log.info("Registering authnTableBasedService in AuthTableBasedServiceActivator");
             registration =
                 context.registerService(
-                    AuthnzService.class.getName(), authTableBasedService, props);
+                    AuthenticationService.class.getName(), authnTableBasedService, props);
           }
           break;
         case (ServiceEvent.UNREGISTERING):

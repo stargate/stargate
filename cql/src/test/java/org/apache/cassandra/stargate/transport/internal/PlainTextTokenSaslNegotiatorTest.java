@@ -6,7 +6,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.AuthenticatedUser;
@@ -76,7 +76,7 @@ public class PlainTextTokenSaslNegotiatorTest {
 
     StoredCredentials credentials = new StoredCredentials();
     credentials.setRoleName(ROLE);
-    AuthnzService authentication = mock(AuthnzService.class);
+    AuthenticationService authentication = mock(AuthenticationService.class);
     when(authentication.validateToken(TOKEN)).thenReturn(credentials);
 
     PlainTextTokenSaslNegotiator negotiator =
@@ -121,7 +121,7 @@ public class PlainTextTokenSaslNegotiatorTest {
 
   @Test
   public void authServiceReturnsNullCredentials() throws UnauthorizedException, IOException {
-    AuthnzService authentication = mock(AuthnzService.class);
+    AuthenticationService authentication = mock(AuthenticationService.class);
     when(authentication.validateToken(TOKEN)).thenReturn(null);
 
     SaslNegotiator wrappedNegotiator = mock(SaslNegotiator.class);
@@ -138,7 +138,7 @@ public class PlainTextTokenSaslNegotiatorTest {
 
   @Test
   public void authServiceThrowsUnauthorized() throws UnauthorizedException, IOException {
-    AuthnzService authentication = mock(AuthnzService.class);
+    AuthenticationService authentication = mock(AuthenticationService.class);
     when(authentication.validateToken(TOKEN))
         .thenThrow(new UnauthorizedException("Not authorized"));
 

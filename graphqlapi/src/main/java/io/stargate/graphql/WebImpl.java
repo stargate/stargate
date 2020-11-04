@@ -19,7 +19,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.servlet.InstrumentedFilter;
 import graphql.kickstart.servlet.CustomGraphQLServlet;
 import graphql.kickstart.servlet.SchemaGraphQLServlet;
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import java.io.IOException;
@@ -37,7 +37,7 @@ public class WebImpl {
 
   private final Server server;
 
-  public WebImpl(Persistence persistence, Metrics metrics, AuthnzService authentication)
+  public WebImpl(Persistence persistence, Metrics metrics, AuthenticationService authentication)
       throws IOException {
     server = new Server();
 

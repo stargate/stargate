@@ -14,7 +14,7 @@ import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
@@ -43,7 +43,7 @@ public abstract class GraphQlTestBase {
   protected GraphQLSchema graphQlSchema;
 
   @Mock protected Persistence persistence;
-  @Mock protected AuthnzService authnzService;
+  @Mock protected AuthenticationService authenticationService;
   @Mock protected ResultSet resultSet;
   @Mock private StoredCredentials storedCredentials;
 
@@ -60,7 +60,7 @@ public abstract class GraphQlTestBase {
   public void setupEnvironment() {
     try {
       String roleName = "mock role name";
-      when(authnzService.validateToken(token)).thenReturn(storedCredentials);
+      when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
       when(storedCredentials.getRoleName()).thenReturn(roleName);
       dataStoreCreateMock = mockStatic(DataStore.class);
       dataStoreCreateMock

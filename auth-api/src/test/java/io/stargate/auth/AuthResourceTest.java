@@ -23,7 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(DropwizardExtensionsSupport.class)
 class AuthResourceTest {
 
-  private static final AuthnzService authService = mock(AuthnzService.class);
+  private static final AuthenticationService authService = mock(AuthenticationService.class);
 
   private static final ResourceExtension resourceWithUsernameTokenDisabled =
       ResourceExtension.builder().addResource(new AuthResource(authService, false)).build();

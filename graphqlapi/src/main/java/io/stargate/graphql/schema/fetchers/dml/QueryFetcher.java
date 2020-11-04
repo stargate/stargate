@@ -22,7 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
@@ -41,8 +41,11 @@ import java.util.stream.Collectors;
 public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
 
   public QueryFetcher(
-      Table table, NameMapping nameMapping, Persistence persistence, AuthnzService authnzService) {
-    super(table, nameMapping, persistence, authnzService);
+      Table table,
+      NameMapping nameMapping,
+      Persistence persistence,
+      AuthenticationService authenticationService) {
+    super(table, nameMapping, persistence, authenticationService);
   }
 
   @Override

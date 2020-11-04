@@ -15,7 +15,7 @@
  */
 package io.stargate.graphql;
 
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import net.jcip.annotations.GuardedBy;
@@ -60,7 +60,7 @@ public class GraphqlActivator implements BundleActivator {
   }
 
   private synchronized void maybeStartService(
-      Persistence persistence, Metrics metrics, AuthnzService authentication) {
+      Persistence persistence, Metrics metrics, AuthenticationService authentication) {
     if (web == null) {
       try {
         web = new WebImpl(persistence, metrics, authentication);
@@ -87,7 +87,7 @@ public class GraphqlActivator implements BundleActivator {
 
     private Persistence persistence;
     private Metrics metrics;
-    private AuthnzService authentication;
+    private AuthenticationService authentication;
 
     public Tracker(BundleContext context, Filter filter) {
       super(context, filter, null);
@@ -103,9 +103,9 @@ public class GraphqlActivator implements BundleActivator {
       } else if (metrics == null && service instanceof Metrics) {
         LOG.debug("Using metrics: {}", ref.getBundle());
         metrics = (Metrics) service;
-      } else if (authentication == null && service instanceof AuthnzService) {
+      } else if (authentication == null && service instanceof AuthenticationService) {
         LOG.debug("Using authentication service: {}", ref.getBundle());
-        authentication = (AuthnzService) service;
+        authentication = (AuthenticationService) service;
       }
 
       if (persistence != null && metrics != null && authentication != null) {

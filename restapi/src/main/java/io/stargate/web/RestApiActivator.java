@@ -15,7 +15,8 @@
  */
 package io.stargate.web;
 
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.web.impl.WebImpl;
@@ -37,6 +38,7 @@ public class RestApiActivator implements BundleActivator, ServiceListener {
   private final WebImpl web = new WebImpl();
   private ServiceReference persistenceReference;
   private ServiceReference authenticationReference;
+  private ServiceReference authorizationReference;
   private ServiceReference<?> metricsReference;
 
   private static String AUTH_IDENTIFIER =
@@ -59,16 +61,32 @@ public class RestApiActivator implements BundleActivator, ServiceListener {
         throw new RuntimeException(ise);
       }
 
-      ServiceReference[] refs = context.getServiceReferences(AuthnzService.class.getName(), null);
+      ServiceReference[] refs =
+          context.getServiceReferences(AuthenticationService.class.getName(), null);
       if (refs != null) {
         for (ServiceReference ref : refs) {
           // Get the service object.
           Object service = context.getService(ref);
-          if (service instanceof AuthnzService
+          if (service instanceof AuthenticationService
               && ref.getProperty("AuthIdentifier") != null
               && ref.getProperty("AuthIdentifier").equals(AUTH_IDENTIFIER)) {
             log.info("Setting authenticationService in RestApiActivator");
-            this.web.setAuthenticationService((AuthnzService) service);
+            this.web.setAuthenticationService((AuthenticationService) service);
+            break;
+          }
+        }
+      }
+
+      refs = context.getServiceReferences(AuthorizationService.class.getName(), null);
+      if (refs != null) {
+        for (ServiceReference ref : refs) {
+          // Get the service object.
+          Object service = context.getService(ref);
+          if (service instanceof AuthorizationService
+              && ref.getProperty("AuthIdentifier") != null
+              && ref.getProperty("AuthIdentifier").equals(AUTH_IDENTIFIER)) {
+            log.info("Setting authorizationService in RestApiActivator");
+            this.web.setAuthorizationService((AuthorizationService) service);
             break;
           }
         }
@@ -110,6 +128,10 @@ public class RestApiActivator implements BundleActivator, ServiceListener {
       context.ungetService(authenticationReference);
     }
 
+    if (authorizationReference != null) {
+      context.ungetService(authorizationReference);
+    }
+
     if (metricsReference != null) {
       context.ungetService(metricsReference);
     }
@@ -128,14 +150,22 @@ public class RestApiActivator implements BundleActivator, ServiceListener {
           if (service instanceof Persistence) {
             log.info("Setting persistence in RestApiActivator");
             this.web.setPersistence((Persistence) service);
-          } else if (service instanceof AuthnzService
+          } else if (service instanceof AuthenticationService
               && serviceEvent.getServiceReference().getProperty("AuthIdentifier") != null
               && serviceEvent
                   .getServiceReference()
                   .getProperty("AuthIdentifier")
                   .equals(AUTH_IDENTIFIER)) {
             log.info("Setting authenticationService in RestApiActivator");
-            this.web.setAuthenticationService((AuthnzService) service);
+            this.web.setAuthenticationService((AuthenticationService) service);
+          } else if (service instanceof AuthorizationService
+              && serviceEvent.getServiceReference().getProperty("AuthIdentifier") != null
+              && serviceEvent
+                  .getServiceReference()
+                  .getProperty("AuthIdentifier")
+                  .equals(AUTH_IDENTIFIER)) {
+            log.info("Setting authorizationService in RestApiActivator");
+            this.web.setAuthorizationService((AuthorizationService) service);
           } else if (service instanceof Metrics) {
             log.info("Setting metrics in RestApiActivator");
             this.web.setMetrics(((Metrics) service));

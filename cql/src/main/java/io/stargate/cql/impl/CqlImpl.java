@@ -19,7 +19,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import java.net.InetAddress;
@@ -42,10 +42,13 @@ public class CqlImpl {
 
   private final Persistence persistence;
   private final Metrics metrics;
-  private final AuthnzService authentication;
+  private final AuthenticationService authentication;
 
   public CqlImpl(
-      Config config, Persistence persistence, Metrics metrics, AuthnzService authentication) {
+      Config config,
+      Persistence persistence,
+      Metrics metrics,
+      AuthenticationService authentication) {
     TransportDescriptor.daemonInitialization(config);
 
     this.persistence = persistence;

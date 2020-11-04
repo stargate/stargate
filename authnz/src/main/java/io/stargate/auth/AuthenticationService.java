@@ -15,30 +15,11 @@
  */
 package io.stargate.auth;
 
-import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.schema.Table;
-import java.util.List;
-import java.util.concurrent.Callable;
-
-public interface AuthnzService {
+public interface AuthenticationService {
 
   String createToken(String key, String secret) throws UnauthorizedException;
 
   String createToken(String key) throws UnauthorizedException;
 
   StoredCredentials validateToken(String token) throws UnauthorizedException;
-
-  ResultSet executeDataReadWithAuthorization(
-      Callable<ResultSet> action, String token, List<String> primaryKeyValues, Table tableMetadata)
-      throws Exception;
-
-  ResultSet executeDataWriteWithAuthorization(
-      Callable<ResultSet> action, String token, List<String> primaryKeyValues, Table tableMetadata)
-      throws Exception;
-
-  ResultSet executeSchemaReadWithAuthorization(
-      Callable<ResultSet> action, String token, String keyspace, String table) throws Exception;
-
-  ResultSet executeSchemaWriteWithAuthorization(
-      Callable<ResultSet> action, String token, String keyspace, String table) throws Exception;
 }

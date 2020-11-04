@@ -16,7 +16,7 @@
 package io.stargate.graphql.schema.fetchers.ddl;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Keyspace;
@@ -25,8 +25,9 @@ import java.util.Map;
 
 public class SingleKeyspaceFetcher extends CassandraFetcher<Map<String, Object>> {
 
-  public SingleKeyspaceFetcher(Persistence persistence, AuthnzService authnzService) {
-    super(persistence, authnzService);
+  public SingleKeyspaceFetcher(
+      Persistence persistence, AuthenticationService authenticationService) {
+    super(persistence, authenticationService);
   }
 
   @Override

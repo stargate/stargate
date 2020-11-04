@@ -12,15 +12,8 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jose.proc.BadJOSEException;
-import com.nimbusds.jose.proc.SecurityContext;
-import com.nimbusds.jose.proc.SimpleSecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.JWTClaimsSet.Builder;
 import com.nimbusds.jwt.SignedJWT;
-import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
-import com.nimbusds.jwt.proc.DefaultJWTProcessor;
-import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ArrayListBackedRow;
 import io.stargate.db.datastore.ResultSet;
@@ -28,12 +21,10 @@ import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
-import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,146 +34,18 @@ import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class AuthJwtServiceTest {
+public class AuthzJwtServiceTest {
 
-  private DefaultJWTProcessor<?> jwtProcessorMocked;
-  private AuthJwtService mockAuthJwtService;
-  private AuthJwtService liveAuthJwtService;
+  private AuthzJwtService mockAuthzJwtService;
   private SecretKey key;
 
   @BeforeEach
   void setup() {
-    jwtProcessorMocked = mock(DefaultJWTProcessor.class);
-    mockAuthJwtService = new AuthJwtService(jwtProcessorMocked);
+    mockAuthzJwtService = new AuthzJwtService();
 
     byte[] keyBytes = new byte[32];
     new SecureRandom().nextBytes(keyBytes);
     key = new SecretKeySpec(keyBytes, JWSAlgorithm.RS256.getName());
-
-    ConfigurableJWTProcessor<SimpleSecurityContext> processor = new DefaultJWTProcessor<>();
-    processor.setJWSKeySelector((header, context) -> Collections.singletonList(key));
-    liveAuthJwtService = new AuthJwtService(processor);
-  }
-
-  @Test
-  public void createTokenByKey() {
-    UnsupportedOperationException ex =
-        assertThrows(
-            UnsupportedOperationException.class, () -> mockAuthJwtService.createToken("user"));
-    assertThat(ex)
-        .hasMessage(
-            "Creating a token is not supported for AuthJwtService. Tokens must be created out of band.");
-  }
-
-  @Test
-  public void createToken() {
-    UnsupportedOperationException ex =
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mockAuthJwtService.createToken("key", "secret"));
-    assertThat(ex)
-        .hasMessage(
-            "Creating a token is not supported for AuthJwtService. Tokens must be created out of band.");
-  }
-
-  @Test
-  public void validateToken()
-      throws UnauthorizedException, ParseException, JOSEException, BadJOSEException {
-    Map<String, Object> stargate_claims = new HashMap<>();
-    stargate_claims.put("x-stargate-role", "user");
-    JWTClaimsSet jwtClaimsSet = new Builder().claim("stargate_claims", stargate_claims).build();
-    when(jwtProcessorMocked.process("token", null)).thenReturn(jwtClaimsSet);
-
-    StoredCredentials storedCredentials = mockAuthJwtService.validateToken("token");
-
-    assertThat(storedCredentials).isNotNull();
-    assertThat(storedCredentials.getRoleName()).isEqualTo("user");
-  }
-
-  @Test
-  public void validateTokenMissingClaims() throws ParseException, JOSEException, BadJOSEException {
-    Map<String, Object> stargate_claims = new HashMap<>();
-    stargate_claims.put("x-stargate-role", "user");
-    JWTClaimsSet jwtClaimsSet = new Builder().claim("claims", stargate_claims).build();
-    when(jwtProcessorMocked.process("token", null)).thenReturn(jwtClaimsSet);
-
-    UnauthorizedException ex =
-        assertThrows(UnauthorizedException.class, () -> mockAuthJwtService.validateToken("token"));
-    assertThat(ex).hasMessage("Failed to parse claim from JWT");
-  }
-
-  @Test
-  public void validateTokenMissingRole() throws ParseException, JOSEException, BadJOSEException {
-    Map<String, Object> stargate_claims = new HashMap<>();
-    stargate_claims.put("x-stargate-foo", "user");
-    JWTClaimsSet jwtClaimsSet = new Builder().claim("stargate_claims", stargate_claims).build();
-    when(jwtProcessorMocked.process("token", null)).thenReturn(jwtClaimsSet);
-
-    UnauthorizedException ex =
-        assertThrows(UnauthorizedException.class, () -> mockAuthJwtService.validateToken("token"));
-    assertThat(ex).hasMessage("Failed to parse claim from JWT");
-  }
-
-  @Test
-  public void validateTokenEmptyRole() throws ParseException, JOSEException, BadJOSEException {
-    Map<String, Object> stargate_claims = new HashMap<>();
-    stargate_claims.put("x-stargate-role", "");
-    JWTClaimsSet jwtClaimsSet = new Builder().claim("stargate_claims", stargate_claims).build();
-    when(jwtProcessorMocked.process("token", null)).thenReturn(jwtClaimsSet);
-
-    UnauthorizedException ex =
-        assertThrows(UnauthorizedException.class, () -> mockAuthJwtService.validateToken("token"));
-    assertThat(ex).hasMessage("JWT must have a value for x-stargate-role");
-  }
-
-  @Test
-  public void validateTokenRoleWrongType() throws ParseException, JOSEException, BadJOSEException {
-    Map<String, Object> stargate_claims = new HashMap<>();
-    stargate_claims.put("x-stargate-role", 1);
-    JWTClaimsSet jwtClaimsSet = new Builder().claim("stargate_claims", stargate_claims).build();
-    when(jwtProcessorMocked.process("token", null)).thenReturn(jwtClaimsSet);
-
-    UnauthorizedException ex =
-        assertThrows(UnauthorizedException.class, () -> mockAuthJwtService.validateToken("token"));
-    assertThat(ex).hasMessage("Failed to parse claim from JWT");
-  }
-
-  @Test
-  public void validateTokenInvalid() throws ParseException, JOSEException, BadJOSEException {
-    when(jwtProcessorMocked.process("token", null))
-        .thenThrow(new BadJOSEException("The provided JWT is bad"));
-
-    UnauthorizedException ex =
-        assertThrows(UnauthorizedException.class, () -> mockAuthJwtService.validateToken("token"));
-    assertThat(ex).hasMessage("Invalid JWT: The provided JWT is bad");
-  }
-
-  @Test
-  public void validateTokenMalformed() {
-    ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
-    AuthJwtService authJwtService = new AuthJwtService(jwtProcessor);
-
-    UnauthorizedException ex =
-        assertThrows(UnauthorizedException.class, () -> authJwtService.validateToken("token"));
-    assertThat(ex)
-        .hasMessage("Failed to process JWT: Invalid JWT serialization: Missing dot delimiter(s)");
-  }
-
-  @Test
-  public void validateTokenExpired() throws JOSEException {
-    final Date now = new Date();
-    final Date yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-    JWTClaimsSet claims =
-        new JWTClaimsSet.Builder().subject("alice").expirationTime(yesterday).build();
-
-    SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claims);
-    jwt.sign(new MACSigner(key));
-
-    UnauthorizedException ex =
-        assertThrows(
-            UnauthorizedException.class, () -> liveAuthJwtService.validateToken(jwt.serialize()));
-    assertThat(ex).hasMessage("Invalid JWT: Expired JWT");
   }
 
   @Test
@@ -205,7 +68,7 @@ public class AuthJwtServiceTest {
     List<String> primaryKeyValues = Collections.singletonList("123");
 
     ResultSet result =
-        mockAuthJwtService.executeDataReadWithAuthorization(
+        mockAuthzJwtService.authorizedDataRead(
             action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART);
     assertThat(result.rows().get(0)).isEqualTo(row);
   }
@@ -222,7 +85,7 @@ public class AuthJwtServiceTest {
     List<String> primaryKeyValues = Collections.singletonList("123");
 
     ResultSet result =
-        mockAuthJwtService.executeDataReadWithAuthorization(
+        mockAuthzJwtService.authorizedDataRead(
             action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART);
     assertThat(result).isNull();
   }
@@ -242,7 +105,7 @@ public class AuthJwtServiceTest {
     List<String> primaryKeyValues = Collections.singletonList("123");
 
     ResultSet result =
-        mockAuthJwtService.executeDataReadWithAuthorization(
+        mockAuthzJwtService.authorizedDataRead(
             action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART);
     assertThat(result.rows()).isEqualTo(null);
   }
@@ -270,7 +133,7 @@ public class AuthJwtServiceTest {
         assertThrows(
             IllegalArgumentException.class,
             () ->
-                mockAuthJwtService.executeDataReadWithAuthorization(
+                mockAuthzJwtService.authorizedDataRead(
                     action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART));
     assertThat(ex).hasMessage("Provided more primary key values than exists");
   }
@@ -298,7 +161,7 @@ public class AuthJwtServiceTest {
         assertThrows(
             UnauthorizedException.class,
             () ->
-                mockAuthJwtService.executeDataReadWithAuthorization(
+                mockAuthzJwtService.authorizedDataRead(
                     action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART));
     assertThat(ex).hasMessage("Not allowed to access this resource");
   }
@@ -326,7 +189,7 @@ public class AuthJwtServiceTest {
         assertThrows(
             UnauthorizedException.class,
             () ->
-                mockAuthJwtService.executeDataReadWithAuthorization(
+                mockAuthzJwtService.authorizedDataRead(
                     action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART));
     assertThat(ex).hasMessage("Not allowed to access this resource");
   }
@@ -355,7 +218,7 @@ public class AuthJwtServiceTest {
         assertThrows(
             IllegalArgumentException.class,
             () ->
-                mockAuthJwtService.executeDataReadWithAuthorization(
+                mockAuthzJwtService.authorizedDataRead(
                     action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART_NON_TEXT_PK));
     assertThat(ex).hasMessage("Column must be of type text to be used for authorization");
   }
@@ -386,7 +249,7 @@ public class AuthJwtServiceTest {
     List<String> primaryKeyValues = Collections.emptyList();
 
     ResultSet result =
-        mockAuthJwtService.executeDataReadWithAuthorization(
+        mockAuthzJwtService.authorizedDataRead(
             action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART);
     assertThat(result.rows().get(0)).isEqualTo(row1);
     assertThat(result.rows().get(1)).isEqualTo(row2);

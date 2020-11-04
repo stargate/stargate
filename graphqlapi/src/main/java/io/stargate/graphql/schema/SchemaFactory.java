@@ -1,7 +1,7 @@
 package io.stargate.graphql.schema;
 
 import graphql.schema.GraphQLSchema;
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.schema.Keyspace;
 
@@ -14,8 +14,8 @@ public class SchemaFactory {
    * <p>This is the API exposed at {@code /graphql/<keyspaceName>}.
    */
   public static GraphQLSchema newDmlSchema(
-      Persistence persistence, AuthnzService authnzService, Keyspace keyspace) {
-    return new DmlSchemaBuilder(persistence, authnzService, keyspace).build();
+      Persistence persistence, AuthenticationService authenticationService, Keyspace keyspace) {
+    return new DmlSchemaBuilder(persistence, authenticationService, keyspace).build();
   }
 
   /**
@@ -24,7 +24,8 @@ public class SchemaFactory {
    *
    * <p>This is the API exposed at {@code /graphql-schema}.
    */
-  public static GraphQLSchema newDdlSchema(Persistence persistence, AuthnzService authnzService) {
-    return new DdlSchemaBuilder(persistence, authnzService).build();
+  public static GraphQLSchema newDdlSchema(
+      Persistence persistence, AuthenticationService authenticationService) {
+    return new DdlSchemaBuilder(persistence, authenticationService).build();
   }
 }

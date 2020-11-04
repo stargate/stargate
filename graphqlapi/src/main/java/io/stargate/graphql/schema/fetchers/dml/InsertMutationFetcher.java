@@ -20,7 +20,7 @@ import com.datastax.oss.driver.api.querybuilder.insert.Insert;
 import com.datastax.oss.driver.api.querybuilder.term.Term;
 import com.google.common.base.Preconditions;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
@@ -32,8 +32,11 @@ import java.util.Map;
 public class InsertMutationFetcher extends MutationFetcher {
 
   public InsertMutationFetcher(
-      Table table, NameMapping nameMapping, Persistence persistence, AuthnzService authnzService) {
-    super(table, nameMapping, persistence, authnzService);
+      Table table,
+      NameMapping nameMapping,
+      Persistence persistence,
+      AuthenticationService authenticationService) {
+    super(table, nameMapping, persistence, authenticationService);
   }
 
   @Override

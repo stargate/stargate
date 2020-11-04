@@ -21,15 +21,15 @@ import com.datastax.oss.driver.api.querybuilder.schema.CreateTable;
 import com.datastax.oss.driver.api.querybuilder.schema.CreateTableStart;
 import com.datastax.oss.driver.api.querybuilder.schema.CreateTableWithOptions;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import java.util.List;
 import java.util.Map;
 
 public class CreateTableFetcher extends DdlQueryFetcher {
 
-  public CreateTableFetcher(Persistence persistence, AuthnzService authnzService) {
-    super(persistence, authnzService);
+  public CreateTableFetcher(Persistence persistence, AuthenticationService authenticationService) {
+    super(persistence, authenticationService);
   }
 
   public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {

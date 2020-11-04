@@ -47,7 +47,7 @@ import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 import io.netty.util.internal.logging.Slf4JLoggerFactory;
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.cql.impl.CqlImpl;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.EventListener;
@@ -98,7 +98,7 @@ public class Server implements CassandraDaemon.Server {
 
   public final InetSocketAddress socket;
   public final Persistence persistence;
-  public final AuthnzService authentication;
+  public final AuthenticationService authentication;
   public boolean useSSL = false;
   private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
@@ -214,7 +214,7 @@ public class Server implements CassandraDaemon.Server {
   public static class Builder {
 
     private final Persistence persistence;
-    private final AuthnzService authentication;
+    private final AuthenticationService authentication;
     private EventLoopGroup workerGroup;
     private EventExecutor eventExecutorGroup;
     private boolean useSSL = false;
@@ -222,7 +222,7 @@ public class Server implements CassandraDaemon.Server {
     private int port = -1;
     private InetSocketAddress socket;
 
-    public Builder(Persistence persistence, AuthnzService authentication) {
+    public Builder(Persistence persistence, AuthenticationService authentication) {
       assert persistence != null;
       this.persistence = persistence;
       this.authentication = authentication;

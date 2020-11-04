@@ -315,8 +315,8 @@ public class TableResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          db.getAuthnzService()
-              .executeSchemaWriteWithAuthorization(
+          db.getAuthorizationService()
+              .authorizedSchemaWrite(
                   () ->
                       localDB
                           .query()

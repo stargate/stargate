@@ -15,7 +15,7 @@
  */
 package io.stargate.cql;
 
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.cql.impl.CqlImpl;
 import io.stargate.db.Persistence;
@@ -62,7 +62,7 @@ public class CqlActivator implements BundleActivator {
   }
 
   private synchronized void maybeStartService(
-      Persistence persistence, Metrics metrics, AuthnzService authentication) {
+      Persistence persistence, Metrics metrics, AuthenticationService authentication) {
     if (cql != null) { // Already started
       return;
     }
@@ -83,7 +83,7 @@ public class CqlActivator implements BundleActivator {
   private class Tracker extends ServiceTracker<Object, Object> {
     private Persistence persistence;
     private Metrics metrics;
-    private AuthnzService authentication;
+    private AuthenticationService authentication;
 
     public Tracker(BundleContext context, Filter filter) {
       super(context, filter, null);
@@ -98,9 +98,11 @@ public class CqlActivator implements BundleActivator {
       } else if (metrics == null && service instanceof Metrics) {
         log.info("Using metrics: {}", ref.getBundle());
         metrics = (Metrics) service;
-      } else if (USE_AUTH_SERVICE && authentication == null && service instanceof AuthnzService) {
+      } else if (USE_AUTH_SERVICE
+          && authentication == null
+          && service instanceof AuthenticationService) {
         log.info("Using authentication service: {}", ref.getBundle());
-        authentication = (AuthnzService) service;
+        authentication = (AuthenticationService) service;
       }
 
       if (persistence != null && metrics != null && (!USE_AUTH_SERVICE || authentication != null)) {

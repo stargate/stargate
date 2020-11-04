@@ -18,7 +18,7 @@ package io.stargate.graphql.schema.fetchers.ddl;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
@@ -30,8 +30,8 @@ import java.util.Map;
  */
 public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
 
-  protected DdlQueryFetcher(Persistence persistence, AuthnzService authnzService) {
-    super(persistence, authnzService);
+  protected DdlQueryFetcher(Persistence persistence, AuthenticationService authenticationService) {
+    super(persistence, authenticationService);
   }
 
   @Override

@@ -23,7 +23,8 @@ import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
-import io.stargate.auth.AuthnzService;
+import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.web.RestApiActivator;
@@ -59,12 +60,18 @@ import org.osgi.framework.FrameworkUtil;
 public class Server extends Application<ApplicationConfiguration> {
 
   private final Persistence persistence;
-  private final AuthnzService authnzService;
+  private final AuthenticationService authenticationService;
+  private final AuthorizationService authorizationService;
   private final Metrics metrics;
 
-  public Server(Persistence persistence, AuthnzService authnzService, Metrics metrics) {
+  public Server(
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService,
+      Metrics metrics) {
     this.persistence = persistence;
-    this.authnzService = authnzService;
+    this.authenticationService = authenticationService;
+    this.authorizationService = authorizationService;
     this.metrics = metrics;
 
     BeanConfig beanConfig = new BeanConfig();
@@ -93,7 +100,7 @@ public class Server extends Application<ApplicationConfiguration> {
   public void run(
       final ApplicationConfiguration applicationConfiguration, final Environment environment)
       throws IOException {
-    final Db db = new Db(persistence, authnzService);
+    final Db db = new Db(persistence, authenticationService, authorizationService);
 
     environment.getObjectMapper().configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
     environment.getObjectMapper().registerModule(new JavaTimeModule());
