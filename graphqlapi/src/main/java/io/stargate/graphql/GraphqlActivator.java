@@ -44,8 +44,7 @@ public class GraphqlActivator extends BaseActivator {
         Arrays.asList(
             ServiceDependency.create(
                 AuthenticationService.class, "AuthIdentifier", AUTH_IDENTIFIER),
-            ServiceDependency.create(
-                Persistence.class, "Identifier", PERSISTENCE_IDENTIFIER),
+            ServiceDependency.create(Persistence.class, "Identifier", PERSISTENCE_IDENTIFIER),
             ServiceDependency.create(Metrics.class)));
   }
 
