@@ -9,12 +9,13 @@ echoinfo "Starting test"
 chown -R ubuntu:ubuntu /workspace/
 chown -R ubuntu:ubuntu /cache/
 
+# Add DNS entries for proxy protocol tests
+echo '127.0.1.11 stargate.local' >> /etc/hosts
+echo '127.0.1.12 stargate.local' >> /etc/hosts
+
 # Need to switch users since we can't pass the right flag to allow running Cassandra as root
 sudo -i -u ubuntu bash << EOF
 set -euo pipefail
-
-# Add DNS entries for proxy protocol tests
-printf "stargate.local 127.0.1.11\nstargate.local 127.0.1.12" | sudo tee -a /etc/hosts > /dev/null
 
 echoinfo() { echo "[\$(date -Is)] - \$@" 1>&2; }
 export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
