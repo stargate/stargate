@@ -39,8 +39,7 @@ class SystemTablesTest extends BaseOsgiIntegrationTest {
                 SimpleStatement.builder("SELECT * FROM system.local").setNode(localNode).build())
             .one();
     assertThat(localRow).isNotNull();
-    assertThat(localRow.getInetAddress("listen_address"))
-        .isEqualTo(localNode.getListenAddress().map(s -> s.getAddress()).orElse(null));
+    assertThat(localRow.getInetAddress("listen_address")).isEqualTo(getNodeAddress(localNode));
 
     ResultSet rs =
         session.execute(
@@ -48,9 +47,7 @@ class SystemTablesTest extends BaseOsgiIntegrationTest {
     List<InetAddress> peersAddresses = new ArrayList<>();
     rs.forEach(row -> peersAddresses.add(row.getInetAddress("peer")));
     List<InetAddress> expectedPeersAddresses =
-        Streams.stream(nodes)
-            .map(n -> n.getBroadcastAddress().map(s -> s.getAddress()).orElse(null))
-            .collect(Collectors.toList());
+        Streams.stream(nodes).map(n -> getNodeAddress(n)).collect(Collectors.toList());
     assertThat(peersAddresses).containsExactlyInAnyOrderElementsOf(expectedPeersAddresses);
   }
 
@@ -82,7 +79,7 @@ class SystemTablesTest extends BaseOsgiIntegrationTest {
     assertThat(removedNodeRow).isNull();
   }
 
-  private Row queryPeer(CqlSession session, Node localNode, InetAddress peer) {
+  private static Row queryPeer(CqlSession session, Node localNode, InetAddress peer) {
     return session
         .execute(
             SimpleStatement.builder("SELECT * FROM system.peers WHERE peer = ?")
@@ -90,5 +87,11 @@ class SystemTablesTest extends BaseOsgiIntegrationTest {
                 .addPositionalValue(peer)
                 .build())
         .one();
+  }
+
+  private static InetAddress getNodeAddress(Node node) {
+    return node.getListenAddress()
+        .map(l -> l.getAddress())
+        .orElse(node.getBroadcastRpcAddress().map(b -> b.getAddress()).orElse(null));
   }
 }
