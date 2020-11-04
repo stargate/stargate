@@ -21,6 +21,7 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -195,8 +196,8 @@ public class ScalarsDmlTest extends DmlTestBase {
   }
 
   private static Stream<Arguments> getValues() {
-    SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
-    dateFormatter.setTimeZone(TimeZone.getTimeZone(ZoneId.systemDefault()));
+    String timestampLiteral =
+        instantFormatter().format(Date.from(Instant.parse("2020-01-03T10:15:31.123Z")));
 
     return Stream.of(
         arguments(Column.Type.Ascii, "abc", "'abc'"),
@@ -237,28 +238,20 @@ public class ScalarsDmlTest extends DmlTestBase {
         arguments(Column.Type.Int, 0, null),
         arguments(Column.Type.Int, Integer.MAX_VALUE, null),
         arguments(Column.Type.Int, Integer.MIN_VALUE, null),
-        arguments(Column.Type.Smallint, (short) 0, null),
-        arguments(Column.Type.Smallint, (short) -1, null),
-        arguments(Column.Type.Smallint, (short) 1, null),
-        arguments(Column.Type.Smallint, Short.MAX_VALUE, null),
-        arguments(Column.Type.Smallint, Short.MIN_VALUE, null),
+        arguments(Column.Type.Smallint, 0L, null),
+        arguments(Column.Type.Smallint, -1L, null),
+        arguments(Column.Type.Smallint, 1L, null),
+        arguments(Column.Type.Smallint, (long) Short.MAX_VALUE, null),
+        arguments(Column.Type.Smallint, (long) Short.MIN_VALUE, null),
         arguments(Column.Type.Text, "abc123", "'abc123'"),
         arguments(Column.Type.Text, "", "''"),
         arguments(Column.Type.Time, "10:15:30.123456789", "'10:15:30.123456789'"),
-        arguments(Column.Type.Time, "13:45", "'13:45:00.000000000'"),
-        arguments(
-            Column.Type.Timestamp,
-            "2007-12-03T10:15:30Z",
-            "'" + dateFormatter.format(Date.from(Instant.parse("2007-12-03T10:15:30Z"))) + "'"),
-        arguments(
-            Column.Type.Timestamp,
-            "2020-01-03T10:15:31.123Z",
-            "'" + dateFormatter.format(Date.from(Instant.parse("2020-01-03T10:15:31.123Z"))) + "'"),
-        arguments(Column.Type.Tinyint, (byte) 0, null),
-        arguments(Column.Type.Tinyint, (byte) 1, null),
-        arguments(Column.Type.Tinyint, (byte) -1, null),
-        arguments(Column.Type.Tinyint, Byte.MIN_VALUE, null),
-        arguments(Column.Type.Tinyint, Byte.MAX_VALUE, null),
+        arguments(Column.Type.Timestamp, timestampLiteral, "'" + timestampLiteral + "'"),
+        arguments(Column.Type.Tinyint, 0L, null),
+        arguments(Column.Type.Tinyint, 1L, null),
+        arguments(Column.Type.Tinyint, -1L, null),
+        arguments(Column.Type.Tinyint, (long) Byte.MIN_VALUE, null),
+        arguments(Column.Type.Tinyint, (long) Byte.MAX_VALUE, null),
         arguments(Column.Type.Timeuuid, "30821634-13ad-11eb-adc1-0242ac120002", null),
         arguments(Column.Type.Uuid, "f3abdfbf-479f-407b-9fde-128145bd7bef", null),
         arguments(Column.Type.Varchar, "abc123", "'abc123'"),
@@ -347,12 +340,26 @@ public class ScalarsDmlTest extends DmlTestBase {
             });
         put(Column.Type.Smallint, o -> Short.valueOf(o.toString()));
         put(Column.Type.Time, o -> LocalTime.parse(o.toString()));
-        put(Column.Type.Timestamp, o -> Instant.parse(o.toString()));
+        put(
+            Column.Type.Timestamp,
+            o -> {
+              try {
+                return instantFormatter().parse(o.toString()).toInstant();
+              } catch (ParseException e) {
+                throw new RuntimeException(e);
+              }
+            });
         put(Column.Type.Tinyint, o -> Byte.valueOf(o.toString()));
         put(Column.Type.Timeuuid, o -> UUID.fromString(o.toString()));
         put(Column.Type.Uuid, o -> UUID.fromString(o.toString()));
         put(Column.Type.Varint, o -> new BigInteger(o.toString()));
       }
     };
+  }
+
+  private static SimpleDateFormat instantFormatter() {
+    SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+    dateFormatter.setTimeZone(TimeZone.getTimeZone(ZoneId.systemDefault()));
+    return dateFormatter;
   }
 }
