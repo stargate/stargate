@@ -25,6 +25,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import java.util.Hashtable;
 import org.junit.jupiter.api.Test;
 import org.osgi.framework.BundleContext;
@@ -48,6 +49,11 @@ public class AuthJWTServiceActivatorTest {
             eq(AuthenticationService.class.getName()),
             any(AuthnJwtService.class),
             eq(expectedProps));
+    verify(bundleContext, times(1))
+        .registerService(
+            eq(AuthorizationService.class.getName()),
+            any(AuthzJwtService.class),
+            eq(expectedProps));
   }
 
   @Test
@@ -66,6 +72,11 @@ public class AuthJWTServiceActivatorTest {
         .registerService(
             eq(AuthenticationService.class.getName()),
             any(AuthnJwtService.class),
+            eq(expectedProps));
+    verify(bundleContext, never())
+        .registerService(
+            eq(AuthorizationService.class.getName()),
+            any(AuthzJwtService.class),
             eq(expectedProps));
   }
 
@@ -88,6 +99,11 @@ public class AuthJWTServiceActivatorTest {
             eq(AuthenticationService.class.getName()),
             any(AuthnJwtService.class),
             eq(expectedProps));
+    verify(bundleContext, never())
+        .registerService(
+            eq(AuthorizationService.class.getName()),
+            any(AuthzJwtService.class),
+            eq(expectedProps));
   }
 
   @Test
@@ -109,6 +125,11 @@ public class AuthJWTServiceActivatorTest {
             eq(AuthenticationService.class.getName()),
             any(AuthnJwtService.class),
             eq(expectedProps));
+    verify(bundleContext, never())
+        .registerService(
+            eq(AuthorizationService.class.getName()),
+            any(AuthzJwtService.class),
+            eq(expectedProps));
   }
 
   @Test
@@ -129,6 +150,11 @@ public class AuthJWTServiceActivatorTest {
         .registerService(
             eq(AuthenticationService.class.getName()),
             any(AuthnJwtService.class),
+            eq(expectedProps));
+    verify(bundleContext, never())
+        .registerService(
+            eq(AuthorizationService.class.getName()),
+            any(AuthzJwtService.class),
             eq(expectedProps));
   }
 }

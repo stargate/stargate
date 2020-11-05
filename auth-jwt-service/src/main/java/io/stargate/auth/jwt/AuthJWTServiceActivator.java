@@ -24,6 +24,7 @@ import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
 import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Hashtable;
@@ -48,11 +49,13 @@ public class AuthJWTServiceActivator implements BundleActivator {
   @GuardedBy("this")
   private AuthnJwtService authnJwtService;
 
+  @GuardedBy("this")
+  private AuthzJwtService authzJwtService;
+
   @Override
   public synchronized void start(BundleContext context) {
-    if (authnJwtService == null
-        && AUTH_JWT_IDENTIFIER.equals(System.getProperty("stargate.auth_id"))) {
-      log.info("Registering authnJwtService in AuthnJwtService");
+    if (AUTH_JWT_IDENTIFIER.equals(System.getProperty("stargate.auth_id"))) {
+      log.info("Registering authnJwtService and authzJwtService in AuthnJwtService");
 
       String urlProvider = System.getProperty("stargate.auth.jwt_provider_url");
       if (urlProvider == null || urlProvider.equals("")) {
@@ -79,6 +82,9 @@ public class AuthJWTServiceActivator implements BundleActivator {
 
       authnJwtService = new AuthnJwtService(jwtProcessor);
       context.registerService(AuthenticationService.class.getName(), authnJwtService, props);
+
+      authzJwtService = new AuthzJwtService();
+      context.registerService(AuthorizationService.class.getName(), authzJwtService, props);
     }
   }
 

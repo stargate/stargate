@@ -108,11 +108,7 @@ class PersistenceBackedResultSet implements ResultSet {
     for (List<ByteBuffer> rowValues : page.rows) {
       ArrayListBackedRow row = new ArrayListBackedRow(columns, rowValues, driverProtocolVersion);
 
-      if (authzFilter != null) {
-        if (authzFilter.test(row)) {
-          fetchedRows.addLast(row);
-        }
-      } else {
+      if (authzFilter == null || authzFilter.test(row)) {
         fetchedRows.addLast(row);
       }
     }
