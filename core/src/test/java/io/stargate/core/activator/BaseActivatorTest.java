@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -40,6 +41,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
+import org.osgi.framework.ServiceRegistration;
 
 class BaseActivatorTest {
 
@@ -246,19 +248,20 @@ class BaseActivatorTest {
   }
 
   @Test
-  public void shouldStartAndInvokeStopIfBothServicesAreRegistered() throws Exception {
+  public void shouldStartAndInvokeStopAndUngetIfBothServicesAreRegistered() throws Exception {
     // given
     BundleContext bundleContext = mock(BundleContext.class);
     TestServiceActivator activator = new TestServiceActivator();
     mockFilterForBothServices(bundleContext);
     activator.start(bundleContext);
+    ServiceReference<?> targetServiceReference = mockServiceRegistration(bundleContext);
 
     // when
     ServiceReference<Object> serviceReference = mock(ServiceReference.class);
     activator.tracker.startIfAllRegistered(serviceReference, mock(DependentService1.class));
     activator.tracker.startIfAllRegistered(serviceReference, mock(DependentService2.class));
 
-    // then should not register service
+    // then should register service
     verify(bundleContext, times(1))
         .registerService(
             eq(TestService.class.getName()), any(TestService.class), eq(EXPECTED_PROPERTIES));
@@ -269,15 +272,19 @@ class BaseActivatorTest {
 
     // then
     assertThat(activator.stopCalled).isTrue();
+    // and unget service
+    verify(bundleContext, times(1)).ungetService(eq(targetServiceReference));
   }
 
   @Test
-  public void shouldStartButNotRegisterAndInvokeStopIfTargetClassNotSpecified() throws Exception {
+  public void shouldStartButNotRegisterNotUngetAndInvokeStopIfTargetClassNotSpecified()
+      throws Exception {
     // given
     BundleContext bundleContext = mock(BundleContext.class);
     TestServiceActivator activator = new TestServiceActivatorWithoutStart();
     mockFilterForBothServices(bundleContext);
     activator.start(bundleContext);
+    ServiceReference<?> targetServiceReference = mockServiceRegistration(bundleContext);
 
     // when
     ServiceReference<Object> serviceReference = mock(ServiceReference.class);
@@ -295,6 +302,8 @@ class BaseActivatorTest {
 
     // then
     assertThat(activator.stopCalled).isTrue();
+    // do not unget service
+    verify(bundleContext, times(0)).ungetService(eq(targetServiceReference));
   }
 
   @Test
@@ -316,6 +325,18 @@ class BaseActivatorTest {
 
     // then
     assertThat(activator.stopCalled).isFalse();
+  }
+
+  @SuppressWarnings("unchecked")
+  private ServiceReference<?> mockServiceRegistration(BundleContext bundleContext) {
+    ServiceRegistration<?> serviceRegistration = mock(ServiceRegistration.class);
+    ServiceReference serviceReference = mock(ServiceReference.class);
+    when(serviceRegistration.getReference()).thenReturn(serviceReference);
+    doReturn(serviceRegistration)
+        .when(bundleContext)
+        .registerService(
+            eq(TestService.class.getName()), any(TestService.class), eq(EXPECTED_PROPERTIES));
+    return serviceReference;
   }
 
   private BaseActivator createBaseActivator(List<ServicePointer<?>> serviceDependencies) {

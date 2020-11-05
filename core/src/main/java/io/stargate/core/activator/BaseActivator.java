@@ -27,6 +27,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
+import org.osgi.framework.ServiceRegistration;
 import org.osgi.util.tracker.ServiceTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,8 @@ public abstract class BaseActivator implements BundleActivator {
   @VisibleForTesting
   @GuardedBy("this")
   public Tracker tracker;
+
+  @Nullable private ServiceRegistration<?> targetServiceRegistration;
 
   /**
    * @param activatorName - The name used when logging the progress of registration.
@@ -97,13 +100,28 @@ public abstract class BaseActivator implements BundleActivator {
     return builder.toString();
   }
 
+  /**
+   * It is calling the user-provided {@link this#stopService()} if the service was started
+   * successfully. If there {@link this#targetServiceClass} is present, and there was an OSGi
+   * service registration it will deregister service callint {@link
+   * BundleContext#ungetService(ServiceReference)}.
+   */
   @Override
   public synchronized void stop(BundleContext context) throws Exception {
     if (started) {
       logger.info("Stopping {}", activatorName);
       stopService();
+      deregisterService();
     }
     tracker.close();
+  }
+
+  private void deregisterService() {
+    if (targetServiceRegistration != null) {
+      ServiceReference<?> reference = targetServiceRegistration.getReference();
+      logger.info("Unget service {} from {}", reference.getBundle(), activatorName);
+      context.ungetService(reference);
+    }
   }
 
   private synchronized void startServiceInternal() {
@@ -115,8 +133,9 @@ public abstract class BaseActivator implements BundleActivator {
     ServiceAndProperties service = createService();
     if (service != null && targetServiceClass.isPresent()) {
       logger.info("Registering {} as {}", activatorName, targetServiceClass.get().getName());
-      context.registerService(
-          targetServiceClass.get().getName(), service.service, service.properties);
+      this.targetServiceRegistration =
+          context.registerService(
+              targetServiceClass.get().getName(), service.service, service.properties);
     }
     logger.info("Started {}", activatorName);
   }
