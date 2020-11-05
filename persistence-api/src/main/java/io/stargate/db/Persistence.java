@@ -100,7 +100,11 @@ public interface Persistence {
             + " milliseconds.");
   }
 
-  /** Persistence-specific CQL options to be returned in SUPPORTED response messages. */
+  /**
+   * Persistence-specific CQL options to be returned in SUPPORTED response messages.
+   *
+   * <p><b>Important:</b> At a minimum, this must return the {@code "CQL_VERSION"} option.
+   */
   Map<String, List<String>> cqlSupportedOptions();
 
   /**
