@@ -16,35 +16,27 @@
 package io.stargate.config.store.yaml;
 
 import io.stargate.config.store.api.ConfigStore;
-import io.stargate.core.BundleUtils;
+import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.Hashtable;
-import javax.annotation.concurrent.GuardedBy;
-import org.osgi.framework.BundleActivator;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.InvalidSyntaxException;
-import org.osgi.framework.ServiceEvent;
-import org.osgi.framework.ServiceListener;
-import org.osgi.framework.ServiceReference;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ConfigStoreActivator implements BundleActivator, ServiceListener {
+public class ConfigStoreActivator extends BaseActivator {
   private static final Logger logger = LoggerFactory.getLogger(ConfigStoreActivator.class);
 
   public static final String CONFIG_STORE_YAML_METRICS_PREFIX = "config.store.yaml";
   public static final String CONFIG_STORE_YAML_IDENTIFIER = "ConfigStoreYaml";
 
   private final String configYamlLocation;
-
-  private BundleContext context;
-
-  @GuardedBy("this")
-  boolean started;
+  private ServicePointer<Metrics> metricsService = ServicePointer.create(Metrics.class);
 
   // for testing purpose
   public ConfigStoreActivator(String configYamlLocation) {
+    super("Config Store YAML", ConfigStore.class);
     this.configYamlLocation = configYamlLocation;
   }
 
@@ -55,49 +47,26 @@ public class ConfigStoreActivator implements BundleActivator, ServiceListener {
   }
 
   @Override
-  public synchronized void start(BundleContext context) throws InvalidSyntaxException {
-    logger.info("Starting Config Store YAML for config file location: {} ...", configYamlLocation);
-    this.context = context;
-
-    ServiceReference<?> metricsReference = context.getServiceReference(Metrics.class.getName());
-    if (metricsReference == null) {
-      logger.debug(
-          "Metrics service is null, registering a listener to get notification when it will be ready.");
-      context.addServiceListener(this, String.format("(objectClass=%s)", Metrics.class.getName()));
-      return;
-    }
-
-    Metrics metrics = (Metrics) context.getService(metricsReference);
-    startConfigStore(metrics);
-  }
-
-  private synchronized void startConfigStore(Metrics metrics) {
-    if (started) {
-      logger.info("The Config Store YAML is already started. Ignoring the start request.");
-      return;
-    }
-    started = true;
+  protected ServiceAndProperties createService() {
+    Metrics metrics = metricsService.get();
 
     Hashtable<String, String> props = new Hashtable<>();
     props.put("ConfigStoreIdentifier", CONFIG_STORE_YAML_IDENTIFIER);
 
-    ConfigStoreYaml configStoreYaml =
+    logger.info("Creating Config Store YAML for config file location: {} ", configYamlLocation);
+    return new ServiceAndProperties(
         new ConfigStoreYaml(
-            Paths.get(configYamlLocation), metrics.getRegistry(CONFIG_STORE_YAML_METRICS_PREFIX));
-    context.registerService(ConfigStore.class, configStoreYaml, props);
-    logger.info("Started Config Store YAML....");
+            Paths.get(configYamlLocation), metrics.getRegistry(CONFIG_STORE_YAML_METRICS_PREFIX)),
+        props);
   }
 
   @Override
-  public void stop(BundleContext context) {
+  protected void stopService() {
     // no-op
   }
 
   @Override
-  public synchronized void serviceChanged(ServiceEvent event) {
-    Metrics metrics = BundleUtils.getRegisteredService(context, event, Metrics.class);
-    if (metrics != null) {
-      startConfigStore(metrics);
-    }
+  protected List<ServicePointer<?>> dependencies() {
+    return Collections.singletonList(metricsService);
   }
 }
