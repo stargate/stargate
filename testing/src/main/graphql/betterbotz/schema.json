@@ -141,7 +141,7 @@
         {
           "kind": "SCALAR",
           "name": "Ascii",
-          "description": "The `Ascii` scalar type represents CQL ascii character values as a string.",
+          "description": "Represents a CQL `ascii` as a string.\nAn error will be thrown if the string contains non-ASCII characters.",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -280,7 +280,7 @@
         {
           "kind": "SCALAR",
           "name": "BigInt",
-          "description": "The `BIGINT` scalar type represents a CQL bigint (64-bit signed integer) as a string.",
+          "description": "Represents a CQL `bigint` as an integer literal.\nThis is a 64-bit signed integer.",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -375,7 +375,7 @@
         {
           "kind": "SCALAR",
           "name": "Blob",
-          "description": "The `Blob` scalar type represents a CQL blob as a base64 encoded byte array.",
+          "description": "Represents a CQL `blob` as a base64 encoded string.\nExample: \"yv4=\" (for the hex value 0xCAFE)",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -1329,7 +1329,7 @@
         {
           "kind": "SCALAR",
           "name": "Date",
-          "description": "A date without a time-zone in the ISO-8601 calendar system, represented as a string, such as \"2020-10-21\".",
+          "description": "Represents a CQL `date` as a string.\nThis is a date without a time-zone in the ISO-8601 calendar system.\nExample: \"2020-10-21\".A date can also be input as a 32-bit, positive numeric literal, which will be\ninterpreted as a number of days, where the epoch is in the middle of the range\n(1970-01-01 = 2147483648).",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -1424,7 +1424,7 @@
         {
           "kind": "SCALAR",
           "name": "Decimal",
-          "description": "The `Decimal` scalar type represents a CQL decimal as a string.",
+          "description": "Represents a CQL `decimal` as a string.\nThis is a variable-precision decimal.\nExamples: \"1.5\", \"1e-3\"",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -1519,7 +1519,7 @@
         {
           "kind": "SCALAR",
           "name": "Duration",
-          "description": "Represents a duration represented as a string in ISO 8601 format. A duration stores separately months, days, and seconds due to the fact that the number of days in a month varies, and a day can have 23 or 25 hours if a daylight saving is involved.",
+          "description": "Represents a CQL `duration` as a string.\nSee https://docs.datastax.com/en/dse/6.8/cql/cql/cql_reference/upsertDates.htmlExample: \"1h4m48s20ms\"",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -1928,7 +1928,7 @@
         {
           "kind": "SCALAR",
           "name": "Float32",
-          "description": "The `Float32` scalar type represents a CQL float (single-precision floating point values).",
+          "description": "Represents a CQL `float` as a floating-point literal.\nThis is a 32-bit IEEE-754 floating point.\nIf the value cannot be represented as a float, it will be converted.\nThis conversion can loose precision, or range (resulting in +/-Infinity).",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -2108,7 +2108,7 @@
         {
           "kind": "SCALAR",
           "name": "Inet",
-          "description": "Represents an IP address string in IPv4 or IPv6 format.",
+          "description": "Represents a CQL `inet` as a string.\nThis is an IP address in IPv4 or IPv6 format.\nExamples: \"127.0.0.1\", \"::1\"\nIf you don't provide a numerical address, it will be resolved on the server.",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -5487,7 +5487,7 @@
           "description": null,
           "fields": [
             {
-              "name": "products",
+              "name": "Products",
               "description": null,
               "args": [
                 {
@@ -5544,7 +5544,7 @@
               "deprecationReason": null
             },
             {
-              "name": "productsFilter",
+              "name": "ProductsFilter",
               "description": null,
               "args": [
                 {
@@ -5591,7 +5591,7 @@
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "orders",
+              "name": "Orders",
               "description": null,
               "args": [
                 {
@@ -5648,7 +5648,7 @@
               "deprecationReason": null
             },
             {
-              "name": "ordersFilter",
+              "name": "OrdersFilter",
               "description": null,
               "args": [
                 {
@@ -5695,7 +5695,7 @@
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "collectionsSimple",
+              "name": "CollectionsSimple",
               "description": null,
               "args": [
                 {
@@ -5752,7 +5752,7 @@
               "deprecationReason": null
             },
             {
-              "name": "collectionsSimpleFilter",
+              "name": "CollectionsSimpleFilter",
               "description": null,
               "args": [
                 {
@@ -5799,7 +5799,7 @@
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "collectionsNested",
+              "name": "CollectionsNested",
               "description": null,
               "args": [
                 {
@@ -5856,7 +5856,7 @@
               "deprecationReason": null
             },
             {
-              "name": "collectionsNestedFilter",
+              "name": "CollectionsNestedFilter",
               "description": null,
               "args": [
                 {
@@ -5903,7 +5903,7 @@
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "udts",
+              "name": "Udts",
               "description": null,
               "args": [
                 {
@@ -5960,7 +5960,7 @@
               "deprecationReason": null
             },
             {
-              "name": "udtsFilter",
+              "name": "UdtsFilter",
               "description": null,
               "args": [
                 {
@@ -6007,7 +6007,7 @@
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "scalars",
+              "name": "Scalars",
               "description": null,
               "args": [
                 {
@@ -6064,7 +6064,7 @@
               "deprecationReason": null
             },
             {
-              "name": "scalarsFilter",
+              "name": "ScalarsFilter",
               "description": null,
               "args": [
                 {
@@ -6109,6 +6109,22 @@
               },
               "isDeprecated": true,
               "deprecationReason": "No longer supported. Use root type instead."
+            },
+            {
+              "name": "__conversionWarnings",
+              "description": "Warnings encountered during the CQL to GraphQL conversion.No warnings found, this will return an empty list.\n",
+              "args": [],
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "String",
+                  "ofType": null
+                }
+              },
+              "isDeprecated": false,
+              "deprecationReason": null
             }
           ],
           "inputFields": null,
@@ -7280,7 +7296,7 @@
         {
           "kind": "SCALAR",
           "name": "SmallInt",
-          "description": "The `SmallInt` scalar type represents a CQL smallint (16-bit signed int).",
+          "description": "Represents a CQL `smallint` as an integer.\nThis is a 16-bit signed int.\nAn error will be thrown if the value is out of bounds.",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -7470,7 +7486,7 @@
         {
           "kind": "SCALAR",
           "name": "Time",
-          "description": "The `Time` scalar type represents a time without a time-zone in the ISO-8601 calendar system as a string, such as \"10:15:30.123456789\".",
+          "description": "Represents a CQL `time` as a string.\nThis is a time without a time-zone in the ISO-8601 calendar system.Example: \"10:15:30.123456789\"\nA time can also be input as a numeric literal, which will be interpreted\nas a number of nanoseconds since midnight.",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -7565,7 +7581,7 @@
         {
           "kind": "SCALAR",
           "name": "TimeUuid",
-          "description": "The `TimeUuid` scalar type represents a CQL timeuuid as a string.",
+          "description": "Represents a CQL `timeuuid` as a string.\nExample: \"fe86cad0-1965-11eb-84e6-ab660d2e8c9e\"",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -7660,7 +7676,7 @@
         {
           "kind": "SCALAR",
           "name": "Timestamp",
-          "description": "The `Timestamp` scalar type represents an instantaneous point on the time-linein ISO-8601 instant format, such as \"2007-12-03T10:15:30.00Z\".",
+          "description": "Represents a CQL `timestamp` as a string.\nThis is an instantaneous point on the time-line.\nThis type supports many different string representations, see https://docs.datastax.com/en/cql-oss/3.x/cql/cql_reference/timestamp_type_r.html\nA timestamp can also be input as a numeric literal, which will be interpreted\nas a number of milliseconds since the epoch (1970-01-01 UTC at midnight).\nExamples: \"2011-02-03 04:05+0000\", 1296705900000\nString literals that do not include any time zone information will be\ninterpreted using the server's default time zone.",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -7755,7 +7771,7 @@
         {
           "kind": "SCALAR",
           "name": "TinyInt",
-          "description": "The `TinyInt` scalar type represents a CQL tinyint (8-bit signed int).",
+          "description": "Represents a CQL `tinyint` as an integer\n.This is an 8-bit signed int.\nAn error will be thrown if the value is out of bounds.",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -8068,7 +8084,7 @@
         {
           "kind": "SCALAR",
           "name": "Uuid",
-          "description": "The `Uuid` scalar type represents a CQL uuid as a string.",
+          "description": "Represents a CQL `uuid` as a string.\nExample: \"fe86cad0-1965-11eb-84e6-ab660d2e8c9e\"",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -8163,7 +8179,7 @@
         {
           "kind": "SCALAR",
           "name": "Varint",
-          "description": "The `Varint` scalar type represents a CQL varint as a string.",
+          "description": "Represents a CQL `varint` as an integer.\nThis is an arbitrary-precision integer.\nExamples: 1, 9223372036854775808",
           "fields": null,
           "inputFields": null,
           "interfaces": null,

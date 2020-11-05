@@ -200,9 +200,9 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     PreparedStatement insert =
         session.prepare(
             String.format(
-                "insert into %s.%s (id, prod_id, prod_name, description, price,"
-                    + "sell_price, customer_name, address) values (?, ?, ?, ?, ?, ?, ?, ?)",
-                keyspace, "orders"));
+                "insert into %s.\"Orders\" (id, \"prodId\", \"prodName\", description, price,"
+                    + "\"sellPrice\", \"customerName\", address) values (?, ?, ?, ?, ?, ?, ?, ?)",
+                keyspace));
 
     session.execute(
         insert.bind(
@@ -322,7 +322,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             session
                 .execute(
                     String.format(
-                        "create table %s.%s (id uuid, primary key (id))", newKeyspaceName, "test"))
+                        "create table %s.test (id uuid, primary key (id))", newKeyspaceName))
                 .wasApplied())
         .isTrue();
   }
@@ -908,20 +908,20 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             session
                 .execute(
                     SimpleStatement.newInstance(
-                        "SELECT * FROM betterbotz.products WHERE id = ?", id))
+                        "SELECT * FROM betterbotz.\"Products\" WHERE id = ?", id))
                 .one())
         .isNotNull()
-        .extracting(r -> r.getString("prod_name"), r -> r.getString("description"))
+        .extracting(r -> r.getString("\"prodName\""), r -> r.getString("description"))
         .containsExactly(productName, description);
 
     assertThat(
             session
                 .execute(
                     SimpleStatement.newInstance(
-                        "SELECT * FROM betterbotz.orders WHERE prod_name = ?", productName))
+                        "SELECT * FROM betterbotz.\"Orders\" WHERE \"prodName\" = ?", productName))
                 .one())
         .isNotNull()
-        .extracting(r -> r.getString("customer_name"), r -> r.getString("description"))
+        .extracting(r -> r.getString("\"customerName\""), r -> r.getString("description"))
         .containsExactly(customer, description);
   }
 
@@ -951,10 +951,10 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             session
                 .execute(
                     SimpleStatement.newInstance(
-                        "SELECT * FROM betterbotz.orders WHERE prod_name = ?", productName))
+                        "SELECT * FROM betterbotz.\"Orders\" WHERE \"prodName\" = ?", productName))
                 .one())
         .isNotNull()
-        .extracting(r -> r.getString("customer_name"), r -> r.getString("description"))
+        .extracting(r -> r.getString("\"customerName\""), r -> r.getString("description"))
         .containsExactly(customer, description);
   }
 
@@ -1095,7 +1095,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             "Invalid Syntax"),
         arguments(
             dmlPath,
-            "query { products(filter: { name: { gt: \"a\"} }) { values { id } }}",
+            "query { Products(filter: { name: { gt: \"a\"} }) { values { id } }}",
             "Cannot execute this query",
             "use ALLOW FILTERING"),
         arguments(
@@ -1131,14 +1131,14 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             executePost("/graphql/betterbotz", String.format(mutation, id, column, graphQLValue)))
         .doesNotContainKey("errors");
 
-    String query = "query { scalars(value: {id: \"%s\"}) { values { %s } } }";
+    String query = "query { Scalars(value: {id: \"%s\"}) { values { %s } } }";
     Map<String, Object> result =
         executePost("/graphql/betterbotz", String.format(query, id, column));
 
     assertThat(result).doesNotContainKey("errors");
     assertThat(result)
         .extractingByKey("data", InstanceOfAssertFactories.MAP)
-        .extractingByKey("scalars", InstanceOfAssertFactories.MAP)
+        .extractingByKey("Scalars", InstanceOfAssertFactories.MAP)
         .extractingByKey("values", InstanceOfAssertFactories.LIST)
         .singleElement()
         .asInstanceOf(InstanceOfAssertFactories.MAP)
