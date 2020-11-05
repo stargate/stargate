@@ -23,6 +23,8 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import javax.validation.constraints.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A small TCP proxy that implements HAProxy protocol.
@@ -34,6 +36,8 @@ import javax.validation.constraints.NotNull;
  *     href="https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt">https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt</a>
  */
 public class TcpProxy implements AutoCloseable {
+  private static final Logger LOG = LoggerFactory.getLogger(TcpProxy.class);
+
   private final EventLoopGroup bossGroup = new NioEventLoopGroup(1);
   private final EventLoopGroup workerGroup = new NioEventLoopGroup();
   private final Channel serverChannel;
@@ -158,9 +162,16 @@ public class TcpProxy implements AutoCloseable {
               if (future.isSuccess()) {
                 // Connection complete start to read first data
                 inboundChannel.read();
+                LOG.info("Successfully connected to backend address {}", remoteAddress);
               } else {
                 // Close the connection if the connection attempt has failed.
                 inboundChannel.close();
+                if (future.cause() != null) {
+                  LOG.error(
+                      "Unable to connect to backend address {}: {}", remoteAddress, future.cause());
+                } else {
+                  LOG.error("Connection canceled to backend address {}: {}", remoteAddress);
+                }
               }
             }
           });
