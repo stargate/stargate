@@ -23,28 +23,29 @@ public class TestServiceActivator extends BaseActivator {
 
   public boolean stopCalled;
 
+  ServiceDependency<DependentService1> service1 = ServiceDependency.create(DependentService1.class);
+  ServiceDependency<DependentService2> service2 = ServiceDependency.create(DependentService2.class);
+
+  @Override
+  protected List<ServiceDependency<?>> dependencies() {
+    return Arrays.asList(service1, service2);
+  }
+
   public TestServiceActivator() {
     this(TestService.class);
   }
 
   public TestServiceActivator(Class<?> targetService) {
-    super(
-        "Config Store Test Activator",
-        Arrays.asList(
-            ServiceDependency.create(DependentService1.class),
-            ServiceDependency.create(DependentService2.class)),
-        targetService);
+    super("Config Store Test Activator", targetService);
   }
 
   @Override
-  protected ServiceAndProperties createService(List<Object> dependentServices) {
-    DependentService1 dependentService1 = (DependentService1) dependentServices.get(0);
-    DependentService2 dependentService2 = (DependentService2) dependentServices.get(1);
-
+  protected ServiceAndProperties createService() {
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "id_1");
 
-    return new ServiceAndProperties(new TestService(dependentService1, dependentService2), props);
+    return new ServiceAndProperties(
+        new TestService(service1.getService(), service2.getService()), props);
   }
 
   @Override

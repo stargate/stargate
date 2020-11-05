@@ -32,13 +32,11 @@ public class ConfigStoreActivator extends BaseActivator {
   public static final String CONFIG_STORE_YAML_IDENTIFIER = "ConfigStoreYaml";
 
   private final String configYamlLocation;
+  private ServiceDependency<Metrics> metricsService = ServiceDependency.create(Metrics.class);
 
   // for testing purpose
   public ConfigStoreActivator(String configYamlLocation) {
-    super(
-        "Config Store YAML",
-        Collections.singletonList(ServiceDependency.create(Metrics.class)),
-        ConfigStore.class);
+    super("Config Store YAML", ConfigStore.class);
     this.configYamlLocation = configYamlLocation;
   }
 
@@ -49,8 +47,8 @@ public class ConfigStoreActivator extends BaseActivator {
   }
 
   @Override
-  protected ServiceAndProperties createService(List<Object> dependentServices) {
-    Metrics metrics = (Metrics) dependentServices.get(0);
+  protected ServiceAndProperties createService() {
+    Metrics metrics = metricsService.getService();
 
     Hashtable<String, String> props = new Hashtable<>();
     props.put("ConfigStoreIdentifier", CONFIG_STORE_YAML_IDENTIFIER);
@@ -65,5 +63,10 @@ public class ConfigStoreActivator extends BaseActivator {
   @Override
   protected void stopService() {
     // no-op
+  }
+
+  @Override
+  protected List<ServiceDependency<?>> dependencies() {
+    return Collections.singletonList(metricsService);
   }
 }

@@ -18,10 +18,7 @@ package io.stargate.core.activator;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.util.Hashtable;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nullable;
@@ -39,11 +36,7 @@ public abstract class BaseActivator implements BundleActivator {
 
   private final String activatorName;
 
-  private final List<ServiceDependency> serviceDependencies;
-
   private BundleContext context;
-
-  private LinkedHashMap<Class<?>, Object> registeredServices;
 
   private Optional<Class<?>> targetServiceClass;
 
@@ -55,55 +48,37 @@ public abstract class BaseActivator implements BundleActivator {
 
   /**
    * @param activatorName - The name used when logging the progress of registration.
-   * @param serviceDependencies - List of dependent services that this component relies on. It
-   *     provides the happens-before meaning that all dependentServices must be present before the
-   *     {@link this#createService(List)} is called.
    * @param targetServiceClass - This class will be used when registering the service. If null, then
    *     the registration will not happen.
    */
-  public BaseActivator(
-      String activatorName,
-      List<ServiceDependency> serviceDependencies,
-      @Nullable Class<?> targetServiceClass) {
+  public BaseActivator(String activatorName, @Nullable Class<?> targetServiceClass) {
     this.activatorName = activatorName;
-    this.serviceDependencies = serviceDependencies;
-    this.registeredServices = createMapWithNullValues(serviceDependencies);
     this.targetServiceClass = Optional.ofNullable(targetServiceClass);
   }
 
   /**
    * Convenience method for activators that does not register any service see docs for {@link
-   * this#BaseActivator(String, List, Class)}.
+   * this#BaseActivator(String, Class)}.
    */
-  public BaseActivator(String activatorName, List<ServiceDependency> serviceDependencies) {
-    this(activatorName, serviceDependencies, null);
-  }
-
-  private LinkedHashMap<Class<?>, Object> createMapWithNullValues(
-      List<ServiceDependency> serviceDependencies) {
-    LinkedHashMap<Class<?>, Object> map = new LinkedHashMap<>(serviceDependencies.size());
-    for (ServiceDependency serviceDependency : serviceDependencies) {
-      map.put(serviceDependency.className, null);
-    }
-    return map;
+  public BaseActivator(String activatorName) {
+    this(activatorName, null);
   }
 
   /**
    * When the OSGi invokes the start() method, it constructs the {@link Tracker}. It will listen for
-   * notification of all services passed as {@link this#serviceDependencies}. It will wait for a
+   * notification of all services passed as {@link this#dependencies()}. It will wait for a
    * notification denoting that service was registered using {@link
    * Tracker#addingService(ServiceReference)}. If all services are present, it will call the
-   * user-provided {@link this#createService(List)} and register it in the OSGi using {@link
+   * user-provided {@link this#createService()} and register it in the OSGi using {@link
    * BundleContext#registerService(Class, Object, java.util.Dictionary)} if {@code
-   * targetServiceClass.isPresent()}.
+   * targetServiceClass.isPresent()}. If it is not present, the {@link this#createService()} is
+   * called but there will bo no registration in the OSGi.
    */
   @Override
   public synchronized void start(BundleContext context) throws InvalidSyntaxException {
     logger.info("Starting {} ...", activatorName);
     this.context = context;
-    tracker =
-        new Tracker(
-            context, context.createFilter(constructDependenciesFilter()), registeredServices);
+    tracker = new Tracker(context, context.createFilter(constructDependenciesFilter()));
     tracker.open();
   }
 
@@ -111,7 +86,7 @@ public abstract class BaseActivator implements BundleActivator {
   String constructDependenciesFilter() {
     StringBuilder builder = new StringBuilder("(|");
 
-    for (ServiceDependency serviceDependency : serviceDependencies) {
+    for (ServiceDependency<?> serviceDependency : dependencies()) {
       if (serviceDependency.identifier.isPresent()) {
         builder.append(String.format("(%s)", serviceDependency.identifier.get()));
       } else {
@@ -131,13 +106,13 @@ public abstract class BaseActivator implements BundleActivator {
     tracker.close();
   }
 
-  private synchronized void startServiceInternal(List<Object> dependentServices) {
+  private synchronized void startServiceInternal() {
     if (started) {
       logger.info("The {} is already started. Ignoring the start request.", activatorName);
       return;
     }
     started = true;
-    ServiceAndProperties service = createService(dependentServices);
+    ServiceAndProperties service = createService();
     if (service != null && targetServiceClass.isPresent()) {
       logger.info("Registering {} as {}", activatorName, targetServiceClass.get().getName());
       context.registerService(
@@ -148,19 +123,15 @@ public abstract class BaseActivator implements BundleActivator {
 
   public class Tracker extends ServiceTracker<Object, Object> {
 
-    private final LinkedHashMap<Class<?>, Object> registeredServices;
-
-    public Tracker(
-        BundleContext context, Filter filter, LinkedHashMap<Class<?>, Object> registeredServices) {
+    public Tracker(BundleContext context, Filter filter) {
       super(context, filter, null);
-      this.registeredServices = registeredServices;
     }
 
     /**
-     * It will try to match all dependentServices with a ServiceReference notification. After the
-     * notification is handled, it checks if all dependentServices are not null. If they are not,
-     * the client's provided {@link this#createService(List)} is called, and the service is
-     * registered. It will not register the service if it was already registered.
+     * It will try to match all {@link this#dependencies()} with a ServiceReference notification.
+     * After the notification is handled, it checks if all services in dependencies() are not null.
+     * If they are not, the client's provided {@link this#createService()} is called, and the
+     * service is registered. It will not register the service if it was already registered.
      */
     @Override
     public Object addingService(ServiceReference<Object> ref) {
@@ -175,35 +146,41 @@ public abstract class BaseActivator implements BundleActivator {
       if (service == null) {
         return;
       }
-      for (Map.Entry<Class<?>, Object> registeredService : registeredServices.entrySet()) {
-        if (registeredService.getKey().isAssignableFrom(service.getClass())) {
+      for (ServiceDependency<?> serviceDependency : dependencies()) {
+        if (serviceDependency.className.isAssignableFrom(service.getClass())) {
           logger.debug("{} using service: {}", activatorName, ref.getBundle());
-          registeredServices.put(registeredService.getKey(), service);
+          serviceDependency.setService(service);
         }
       }
-      if (registeredServices.values().stream().allMatch(Objects::nonNull)) {
-        startServiceInternal(new LinkedList<>(registeredServices.values()));
+      if (dependencies().stream().map(v -> v.service).allMatch(Objects::nonNull)) {
+        startServiceInternal();
       }
     }
   }
 
   /**
-   * Clients should override this method to create the Service that will be registered in the OSGi
-   * container. The dependent services will contain all services registered passed to the
-   * constructor of this class as {@code List<Class<?>> dependentServices}. The ordering will be the
-   * same. You can safely cast the objects to the expected types according to the dependentServices.
+   * Clients should override this method to create the Service that may be be registered in the OSGi
+   * container. The dependent services will contain all services registered by the {@link
+   * this#dependencies()}.
    *
    * @return ServiceAndProperties that has the service for OSGi registration and the properties that
    *     will be passed or null if there is no registration service required.
    */
   @Nullable
-  protected abstract ServiceAndProperties createService(List<Object> dependentServices);
+  protected abstract ServiceAndProperties createService();
 
   /**
    * It will be called when the OSGi calls {@link this#stop(BundleContext)} and only if service was
    * already started.
    */
   protected abstract void stopService();
+
+  /**
+   * @return List of dependent services that this component relies on. It provides the
+   *     happens-before meaning that all dependent services must be present before the {@link
+   *     this#createService()} is called.
+   */
+  protected abstract List<ServiceDependency<?>> dependencies();
 
   public static class ServiceAndProperties {
     private final Object service;
@@ -216,24 +193,35 @@ public abstract class BaseActivator implements BundleActivator {
     }
   }
 
-  public static class ServiceDependency {
-    private Class<?> className;
+  public static class ServiceDependency<T> {
+    private Class<T> className;
 
     private Optional<String> identifier;
 
-    private ServiceDependency(Class<?> className, String identifier) {
+    private T service;
+
+    private ServiceDependency(Class<T> className, String identifier) {
       this.className = className;
       this.identifier = Optional.ofNullable(identifier);
     }
 
-    public static ServiceDependency create(
-        Class<?> className, String identifierKey, String identifierValue) {
-      return new ServiceDependency(
+    public static <T> ServiceDependency<T> create(
+        Class<T> className, String identifierKey, String identifierValue) {
+      return new ServiceDependency<>(
           className, String.format("%s=%s", identifierKey, identifierValue));
     }
 
-    public static ServiceDependency create(Class<?> className) {
-      return new ServiceDependency(className, null);
+    public static <T> ServiceDependency<T> create(Class<T> className) {
+      return new ServiceDependency<>(className, null);
+    }
+
+    public T getService() {
+      return service;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void setService(Object service) {
+      this.service = (T) service;
     }
   }
 }

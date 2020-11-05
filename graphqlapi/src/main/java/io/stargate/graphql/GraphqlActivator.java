@@ -35,32 +35,34 @@ public class GraphqlActivator extends BaseActivator {
   private static final String PERSISTENCE_IDENTIFIER =
       System.getProperty("stargate.persistence_id", "CassandraPersistence");
 
+  private ServiceDependency<AuthenticationService> authentication =
+      ServiceDependency.create(AuthenticationService.class, "AuthIdentifier", AUTH_IDENTIFIER);
+  private ServiceDependency<Persistence> persistence =
+      ServiceDependency.create(Persistence.class, "Identifier", PERSISTENCE_IDENTIFIER);
+  private ServiceDependency<Metrics> metrics = ServiceDependency.create(Metrics.class);
+
   @GuardedBy("this")
   private WebImpl web;
 
   public GraphqlActivator() {
-    super(
-        "GraphQL",
-        Arrays.asList(
-            ServiceDependency.create(
-                AuthenticationService.class, "AuthIdentifier", AUTH_IDENTIFIER),
-            ServiceDependency.create(Persistence.class, "Identifier", PERSISTENCE_IDENTIFIER),
-            ServiceDependency.create(Metrics.class)));
+    super("GraphQL");
   }
 
   @Override
   @Nullable
-  protected ServiceAndProperties createService(List<Object> dependentServices) {
-    AuthenticationService authentication = (AuthenticationService) dependentServices.get(0);
-    Persistence persistence = (Persistence) dependentServices.get(1);
-    Metrics metrics = (Metrics) dependentServices.get(2);
-    maybeStartService(persistence, metrics, authentication);
+  protected ServiceAndProperties createService() {
+    maybeStartService(persistence.getService(), metrics.getService(), authentication.getService());
     return null;
   }
 
   @Override
   protected void stopService() {
     maybeStopService();
+  }
+
+  @Override
+  protected List<ServiceDependency<?>> dependencies() {
+    return Arrays.asList(persistence, metrics, authentication);
   }
 
   private synchronized void maybeStartService(

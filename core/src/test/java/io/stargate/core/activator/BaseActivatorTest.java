@@ -52,7 +52,7 @@ class BaseActivatorTest {
   @ParameterizedTest
   @MethodSource("dependentServices")
   public void shouldConstructDependenciesFilter(
-      List<ServiceDependency> serviceDependencies, String expected) {
+      List<ServiceDependency<?>> serviceDependencies, String expected) {
     // given
     BaseActivator baseActivator = createBaseActivator(serviceDependencies);
 
@@ -318,17 +318,22 @@ class BaseActivatorTest {
     assertThat(activator.stopCalled).isFalse();
   }
 
-  private BaseActivator createBaseActivator(List<ServiceDependency> serviceDependencies) {
+  private BaseActivator createBaseActivator(List<ServiceDependency<?>> serviceDependencies) {
 
-    return new BaseActivator("ignored", serviceDependencies, Object.class) {
+    return new BaseActivator("ignored", Object.class) {
       @Override
-      protected ServiceAndProperties createService(List<Object> dependentServices1) {
+      protected ServiceAndProperties createService() {
         return null;
       }
 
       @Override
       protected void stopService() {
         // no-op
+      }
+
+      @Override
+      protected List<ServiceDependency<?>> dependencies() {
+        return serviceDependencies;
       }
     };
   }

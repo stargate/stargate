@@ -15,15 +15,13 @@
  */
 package io.stargate.core.activator;
 
-import java.util.List;
-
 public class TestServiceActivatorWithoutStart extends TestServiceActivator {
   public TestServiceActivatorWithoutStart() {
     super(null);
   }
 
   @Override
-  protected ServiceAndProperties createService(List<Object> dependentServices) {
+  protected ServiceAndProperties createService() {
     return null;
   }
 }
