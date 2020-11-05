@@ -48,7 +48,7 @@ public class ConfigStoreActivator extends BaseActivator {
 
   @Override
   protected ServiceAndProperties createService() {
-    Metrics metrics = metricsService.getService();
+    Metrics metrics = metricsService.get();
 
     Hashtable<String, String> props = new Hashtable<>();
     props.put("ConfigStoreIdentifier", CONFIG_STORE_YAML_IDENTIFIER);

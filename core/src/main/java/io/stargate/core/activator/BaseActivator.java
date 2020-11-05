@@ -90,7 +90,7 @@ public abstract class BaseActivator implements BundleActivator {
       if (servicePointer.identifier.isPresent()) {
         builder.append(String.format("(%s)", servicePointer.identifier.get()));
       } else {
-        builder.append(String.format("(objectClass=%s)", servicePointer.className.getName()));
+        builder.append(String.format("(objectClass=%s)", servicePointer.expectedClass.getName()));
       }
     }
     builder.append(")");
@@ -147,9 +147,9 @@ public abstract class BaseActivator implements BundleActivator {
         return;
       }
       for (ServicePointer<?> servicePointer : dependencies()) {
-        if (servicePointer.className.isAssignableFrom(service.getClass())) {
+        if (servicePointer.expectedClass.isAssignableFrom(service.getClass())) {
           logger.debug("{} using service: {}", activatorName, ref.getBundle());
-          servicePointer.setService(service);
+          servicePointer.set(service);
         }
       }
       if (dependencies().stream().map(v -> v.service).allMatch(Objects::nonNull)) {
@@ -194,14 +194,14 @@ public abstract class BaseActivator implements BundleActivator {
   }
 
   public static class ServicePointer<T> {
-    private Class<T> className;
+    private Class<T> expectedClass;
 
     private Optional<String> identifier;
 
     private T service;
 
-    private ServicePointer(Class<T> className, @Nullable String identifier) {
-      this.className = className;
+    private ServicePointer(Class<T> expectedClass, @Nullable String identifier) {
+      this.expectedClass = expectedClass;
       this.identifier = Optional.ofNullable(identifier);
     }
 
@@ -215,12 +215,12 @@ public abstract class BaseActivator implements BundleActivator {
       return new ServicePointer<>(className, null);
     }
 
-    public T getService() {
+    public T get() {
       return service;
     }
 
     @SuppressWarnings("unchecked")
-    private void setService(Object service) {
+    private void set(Object service) {
       this.service = (T) service;
     }
   }

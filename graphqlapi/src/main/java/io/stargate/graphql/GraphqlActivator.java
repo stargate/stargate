@@ -51,7 +51,7 @@ public class GraphqlActivator extends BaseActivator {
   @Override
   @Nullable
   protected ServiceAndProperties createService() {
-    maybeStartService(persistence.getService(), metrics.getService(), authentication.getService());
+    maybeStartService(persistence.get(), metrics.get(), authentication.get());
     return null;
   }
 

@@ -44,8 +44,7 @@ public class TestServiceActivator extends BaseActivator {
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "id_1");
 
-    return new ServiceAndProperties(
-        new TestService(service1.getService(), service2.getService()), props);
+    return new ServiceAndProperties(new TestService(service1.get(), service2.get()), props);
   }
 
   @Override

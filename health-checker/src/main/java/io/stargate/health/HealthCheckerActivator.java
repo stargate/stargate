@@ -26,7 +26,7 @@ public class HealthCheckerActivator extends BaseActivator {
   protected ServiceAndProperties createService() {
     log.info("Starting healthchecker....");
     try {
-      WebImpl web = new WebImpl(context, metrics.getService());
+      WebImpl web = new WebImpl(context, metrics.get());
       web.start();
       log.info("Started healthchecker....");
     } catch (Exception e) {
