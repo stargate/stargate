@@ -200,7 +200,7 @@ public abstract class BaseActivator implements BundleActivator {
 
     private T service;
 
-    private ServicePointer(Class<T> className, String identifier) {
+    private ServicePointer(Class<T> className, @Nullable String identifier) {
       this.className = className;
       this.identifier = Optional.ofNullable(identifier);
     }
