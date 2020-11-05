@@ -36,7 +36,7 @@ public abstract class BaseActivator implements BundleActivator {
 
   private final String activatorName;
 
-  private BundleContext context;
+  protected BundleContext context;
 
   private Optional<Class<?>> targetServiceClass;
 
