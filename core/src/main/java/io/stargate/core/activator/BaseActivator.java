@@ -86,11 +86,11 @@ public abstract class BaseActivator implements BundleActivator {
   String constructDependenciesFilter() {
     StringBuilder builder = new StringBuilder("(|");
 
-    for (ServiceDependency<?> serviceDependency : dependencies()) {
-      if (serviceDependency.identifier.isPresent()) {
-        builder.append(String.format("(%s)", serviceDependency.identifier.get()));
+    for (ServicePointer<?> servicePointer : dependencies()) {
+      if (servicePointer.identifier.isPresent()) {
+        builder.append(String.format("(%s)", servicePointer.identifier.get()));
       } else {
-        builder.append(String.format("(objectClass=%s)", serviceDependency.className.getName()));
+        builder.append(String.format("(objectClass=%s)", servicePointer.className.getName()));
       }
     }
     builder.append(")");
@@ -146,10 +146,10 @@ public abstract class BaseActivator implements BundleActivator {
       if (service == null) {
         return;
       }
-      for (ServiceDependency<?> serviceDependency : dependencies()) {
-        if (serviceDependency.className.isAssignableFrom(service.getClass())) {
+      for (ServicePointer<?> servicePointer : dependencies()) {
+        if (servicePointer.className.isAssignableFrom(service.getClass())) {
           logger.debug("{} using service: {}", activatorName, ref.getBundle());
-          serviceDependency.setService(service);
+          servicePointer.setService(service);
         }
       }
       if (dependencies().stream().map(v -> v.service).allMatch(Objects::nonNull)) {
@@ -180,7 +180,7 @@ public abstract class BaseActivator implements BundleActivator {
    *     happens-before meaning that all dependent services must be present before the {@link
    *     this#createService()} is called.
    */
-  protected abstract List<ServiceDependency<?>> dependencies();
+  protected abstract List<ServicePointer<?>> dependencies();
 
   public static class ServiceAndProperties {
     private final Object service;
@@ -193,26 +193,26 @@ public abstract class BaseActivator implements BundleActivator {
     }
   }
 
-  public static class ServiceDependency<T> {
+  public static class ServicePointer<T> {
     private Class<T> className;
 
     private Optional<String> identifier;
 
     private T service;
 
-    private ServiceDependency(Class<T> className, String identifier) {
+    private ServicePointer(Class<T> className, String identifier) {
       this.className = className;
       this.identifier = Optional.ofNullable(identifier);
     }
 
-    public static <T> ServiceDependency<T> create(
+    public static <T> ServicePointer<T> create(
         Class<T> className, String identifierKey, String identifierValue) {
-      return new ServiceDependency<>(
+      return new ServicePointer<>(
           className, String.format("%s=%s", identifierKey, identifierValue));
     }
 
-    public static <T> ServiceDependency<T> create(Class<T> className) {
-      return new ServiceDependency<>(className, null);
+    public static <T> ServicePointer<T> create(Class<T> className) {
+      return new ServicePointer<>(className, null);
     }
 
     public T getService() {

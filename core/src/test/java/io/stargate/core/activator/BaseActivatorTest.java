@@ -15,7 +15,7 @@
  */
 package io.stargate.core.activator;
 
-import static io.stargate.core.activator.BaseActivator.ServiceDependency.create;
+import static io.stargate.core.activator.BaseActivator.ServicePointer.create;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.stargate.core.activator.BaseActivator.ServiceDependency;
+import io.stargate.core.activator.BaseActivator.ServicePointer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Hashtable;
@@ -52,7 +52,7 @@ class BaseActivatorTest {
   @ParameterizedTest
   @MethodSource("dependentServices")
   public void shouldConstructDependenciesFilter(
-      List<ServiceDependency<?>> serviceDependencies, String expected) {
+      List<ServicePointer<?>> serviceDependencies, String expected) {
     // given
     BaseActivator baseActivator = createBaseActivator(serviceDependencies);
 
@@ -75,17 +75,17 @@ class BaseActivatorTest {
                 DependentService1.class.getName(), DependentService2.class.getName())),
         arguments(
             Collections.singletonList(
-                ServiceDependency.create(DependentService1.class, "Identifier", "Service_1")),
+                ServicePointer.create(DependentService1.class, "Identifier", "Service_1")),
             "(|(Identifier=Service_1))"),
         arguments(
             Arrays.asList(
-                ServiceDependency.create(DependentService1.class, "Identifier", "Service_1"),
-                ServiceDependency.create(DependentService2.class, "Identifier2", "Service_2")),
+                ServicePointer.create(DependentService1.class, "Identifier", "Service_1"),
+                ServicePointer.create(DependentService2.class, "Identifier2", "Service_2")),
             "(|(Identifier=Service_1)(Identifier2=Service_2))"),
         arguments(
             Arrays.asList(
                 create(DependentService1.class),
-                ServiceDependency.create(DependentService2.class, "Identifier2", "Service_2")),
+                ServicePointer.create(DependentService2.class, "Identifier2", "Service_2")),
             String.format(
                 "(|(objectClass=%s)(Identifier2=Service_2))", DependentService1.class.getName())));
   }
@@ -318,7 +318,7 @@ class BaseActivatorTest {
     assertThat(activator.stopCalled).isFalse();
   }
 
-  private BaseActivator createBaseActivator(List<ServiceDependency<?>> serviceDependencies) {
+  private BaseActivator createBaseActivator(List<ServicePointer<?>> serviceDependencies) {
 
     return new BaseActivator("ignored", Object.class) {
       @Override
@@ -332,7 +332,7 @@ class BaseActivatorTest {
       }
 
       @Override
-      protected List<ServiceDependency<?>> dependencies() {
+      protected List<ServicePointer<?>> dependencies() {
         return serviceDependencies;
       }
     };

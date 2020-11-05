@@ -35,11 +35,11 @@ public class GraphqlActivator extends BaseActivator {
   private static final String PERSISTENCE_IDENTIFIER =
       System.getProperty("stargate.persistence_id", "CassandraPersistence");
 
-  private ServiceDependency<AuthenticationService> authentication =
-      ServiceDependency.create(AuthenticationService.class, "AuthIdentifier", AUTH_IDENTIFIER);
-  private ServiceDependency<Persistence> persistence =
-      ServiceDependency.create(Persistence.class, "Identifier", PERSISTENCE_IDENTIFIER);
-  private ServiceDependency<Metrics> metrics = ServiceDependency.create(Metrics.class);
+  private ServicePointer<AuthenticationService> authentication =
+      ServicePointer.create(AuthenticationService.class, "AuthIdentifier", AUTH_IDENTIFIER);
+  private ServicePointer<Persistence> persistence =
+      ServicePointer.create(Persistence.class, "Identifier", PERSISTENCE_IDENTIFIER);
+  private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
 
   @GuardedBy("this")
   private WebImpl web;
@@ -61,7 +61,7 @@ public class GraphqlActivator extends BaseActivator {
   }
 
   @Override
-  protected List<ServiceDependency<?>> dependencies() {
+  protected List<ServicePointer<?>> dependencies() {
     return Arrays.asList(persistence, metrics, authentication);
   }
 

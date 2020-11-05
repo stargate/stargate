@@ -23,11 +23,11 @@ public class TestServiceActivator extends BaseActivator {
 
   public boolean stopCalled;
 
-  ServiceDependency<DependentService1> service1 = ServiceDependency.create(DependentService1.class);
-  ServiceDependency<DependentService2> service2 = ServiceDependency.create(DependentService2.class);
+  ServicePointer<DependentService1> service1 = ServicePointer.create(DependentService1.class);
+  ServicePointer<DependentService2> service2 = ServicePointer.create(DependentService2.class);
 
   @Override
-  protected List<ServiceDependency<?>> dependencies() {
+  protected List<ServicePointer<?>> dependencies() {
     return Arrays.asList(service1, service2);
   }
 

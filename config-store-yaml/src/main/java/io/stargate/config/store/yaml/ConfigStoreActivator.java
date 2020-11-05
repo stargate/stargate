@@ -32,7 +32,7 @@ public class ConfigStoreActivator extends BaseActivator {
   public static final String CONFIG_STORE_YAML_IDENTIFIER = "ConfigStoreYaml";
 
   private final String configYamlLocation;
-  private ServiceDependency<Metrics> metricsService = ServiceDependency.create(Metrics.class);
+  private ServicePointer<Metrics> metricsService = ServicePointer.create(Metrics.class);
 
   // for testing purpose
   public ConfigStoreActivator(String configYamlLocation) {
@@ -66,7 +66,7 @@ public class ConfigStoreActivator extends BaseActivator {
   }
 
   @Override
-  protected List<ServiceDependency<?>> dependencies() {
+  protected List<ServicePointer<?>> dependencies() {
     return Collections.singletonList(metricsService);
   }
 }
