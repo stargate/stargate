@@ -12,11 +12,11 @@ import org.slf4j.LoggerFactory;
 public class HealthCheckerActivator extends BaseActivator {
   private static final Logger log = LoggerFactory.getLogger(HealthCheckerActivator.class);
 
+  private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+
   public HealthCheckerActivator() {
     super("healthchecker");
   }
-
-  ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
 
   @Override
   public synchronized void stop(BundleContext context) {}
