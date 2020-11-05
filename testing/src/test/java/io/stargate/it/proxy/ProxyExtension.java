@@ -1,6 +1,9 @@
 package io.stargate.it.proxy;
 
 import com.google.common.net.InetAddresses;
+import io.stargate.it.storage.StargateConnectionInfo;
+import io.stargate.it.storage.StargateContainer;
+import io.stargate.it.storage.StargateEnvironmentInfo;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -39,15 +42,27 @@ public class ProxyExtension implements BeforeAllCallback, AfterAllCallback, Para
   private ProxySpec proxySpec;
 
   @Override
-  public void beforeAll(ExtensionContext extensionContext) throws Exception {
-    proxySpec = getProxySpec(extensionContext);
+  public void beforeAll(ExtensionContext context) throws Exception {
+    StargateEnvironmentInfo stargate =
+        (StargateEnvironmentInfo)
+            context.getStore(ExtensionContext.Namespace.GLOBAL).get(StargateContainer.STORE_KEY);
+    if (stargate == null) {
+      throw new IllegalStateException(
+          String.format(
+              "%s can only be used in conjunction with %s (make sure it is declared last)",
+              ProxyExtension.class.getSimpleName(), StargateContainer.class.getSimpleName()));
+    }
+
+    proxySpec = getProxySpec(context);
 
     InetAddress localAddress = InetAddress.getByName(proxySpec.startingLocalAddress());
+    final int numStargateNodes = stargate.nodes().size();
     for (int i = 0; i < proxySpec.numProxies(); ++i) {
+      StargateConnectionInfo node = stargate.nodes().get(i % numStargateNodes);
       proxies.add(
           TcpProxy.builder()
               .localAddress(localAddress.getHostAddress(), proxySpec.localPort())
-              .remoteAddress(proxySpec.remoteAddress(), proxySpec.remotePort())
+              .remoteAddress(node.seedAddress(), node.cqlPort())
               .build());
       proxyAddresses.add(new InetSocketAddress(localAddress, proxySpec.localPort()));
       localAddress = InetAddresses.increment(localAddress);

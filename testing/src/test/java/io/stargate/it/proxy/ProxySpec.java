@@ -14,7 +14,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 public @interface ProxySpec {
-
   /**
    * The starting address used to bind proxy servers. If {@link #numProxies()} is {@code > 1} then
    * subsequent addresses will follow directly after this address e.g. "127.0.1.12", "127.0.1.13",
@@ -27,12 +26,6 @@ public @interface ProxySpec {
 
   /** The number of proxies to start. */
   int numProxies() default 1;
-
-  /** The address of a remote service to forward traffic. */
-  String remoteAddress() default "127.0.0.11";
-
-  /** The port of a remote service to forward traffic. */
-  int remotePort() default 9043;
 
   /**
    * The DNS name used to contact the proxies. This is used by {@link ProxyDnsCondition} to verify
