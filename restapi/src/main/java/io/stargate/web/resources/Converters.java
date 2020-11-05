@@ -58,9 +58,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Converters {
+
   private static final Logger logger = LoggerFactory.getLogger(Converters.class);
 
   private static final ObjectMapper mapper = new ObjectMapper();
+  private static final Pattern UNQUOTED_IDENTIFIER = Pattern.compile("[a-z][a-z0-9_]*");
+  private static final Pattern PATTERN_DOUBLE_QUOTE = Pattern.compile("\"", Pattern.LITERAL);
+  private static final String ESCAPED_DOUBLE_QUOTE = Matcher.quoteReplacement("\"\"");
 
   static {
     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -463,10 +467,6 @@ public class Converters {
     }
     return tableOptions;
   }
-
-  private static final Pattern UNQUOTED_IDENTIFIER = Pattern.compile("[a-z][a-z0-9_]*");
-  private static final Pattern PATTERN_DOUBLE_QUOTE = Pattern.compile("\"", Pattern.LITERAL);
-  private static final String ESCAPED_DOUBLE_QUOTE = Matcher.quoteReplacement("\"\"");
 
   public static String maybeQuote(String text) {
     if (UNQUOTED_IDENTIFIER.matcher(text).matches() && !ReservedKeywords.isReserved(text))

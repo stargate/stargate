@@ -18,6 +18,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
 
 class PersistenceBackedResultSet implements ResultSet {
@@ -29,6 +30,7 @@ class PersistenceBackedResultSet implements ResultSet {
   private final ProtocolVersion driverProtocolVersion;
   private final Deque<Row> fetchedRows;
   private final List<Column> columns;
+  private Predicate<Row> authzFilter;
 
   // Paging state to fetch the next page, or null is we've fetched all pages.
   private ByteBuffer nextPagingState;
@@ -104,7 +106,15 @@ class PersistenceBackedResultSet implements ResultSet {
 
   private void processNewPage(Result.Rows page) {
     for (List<ByteBuffer> rowValues : page.rows) {
-      fetchedRows.addLast(new ArrayListBackedRow(columns, rowValues, driverProtocolVersion));
+      ArrayListBackedRow row = new ArrayListBackedRow(columns, rowValues, driverProtocolVersion);
+
+      if (authzFilter != null) {
+        if (authzFilter.test(row)) {
+          fetchedRows.addLast(row);
+        }
+      } else {
+        fetchedRows.addLast(row);
+      }
     }
     nextPagingState = page.resultMetadata.pagingState;
   }
@@ -167,6 +177,12 @@ class PersistenceBackedResultSet implements ResultSet {
       }
       fetchNextPage();
     }
+  }
+
+  @Override
+  public ResultSet withRowInspector(Predicate<Row> authzFilter) {
+    this.authzFilter = authzFilter;
+    return this;
   }
 
   @Override

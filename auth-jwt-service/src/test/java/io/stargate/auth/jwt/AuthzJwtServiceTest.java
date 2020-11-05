@@ -1,9 +1,25 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.auth.jwt;
 
 import static io.stargate.auth.jwt.SampleTable.SHOPPING_CART;
 import static io.stargate.auth.jwt.SampleTable.SHOPPING_CART_NON_TEXT_PK;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -56,6 +72,7 @@ public class AuthzJwtServiceTest {
     values.put("item_count", 2);
     values.put("last_update_timestamp", Instant.now());
     Row row = createRow(SHOPPING_CART.columns(), values);
+    when(resultSet.withRowInspector(any())).thenReturn(resultSet);
     when(resultSet.rows()).thenReturn(Collections.singletonList(row));
 
     Callable<ResultSet> action = mock(Callable.class);
@@ -93,6 +110,7 @@ public class AuthzJwtServiceTest {
   @Test
   public void executeDataReadWithAuthorizationResultSetWithNoRows() throws Exception {
     ResultSet resultSet = mock(ResultSet.class);
+    when(resultSet.withRowInspector(any())).thenReturn(resultSet);
     when(resultSet.rows()).thenReturn(null);
 
     Callable<ResultSet> action = mock(Callable.class);
@@ -174,7 +192,8 @@ public class AuthzJwtServiceTest {
     values.put("item_count", 2);
     values.put("last_update_timestamp", Instant.now());
     Row row = createRow(SHOPPING_CART.columns(), values);
-    when(resultSet.rows()).thenReturn(Collections.singletonList(row));
+    when(resultSet.withRowInspector(any())).thenReturn(resultSet);
+    when(resultSet.rows()).thenReturn(Collections.emptyList());
 
     Callable<ResultSet> action = mock(Callable.class);
     when(action.call()).thenReturn(resultSet);
@@ -185,13 +204,10 @@ public class AuthzJwtServiceTest {
 
     List<String> primaryKeyValues = Collections.singletonList("123");
 
-    UnauthorizedException ex =
-        assertThrows(
-            UnauthorizedException.class,
-            () ->
-                mockAuthzJwtService.authorizedDataRead(
-                    action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART));
-    assertThat(ex).hasMessage("Not allowed to access this resource");
+    ResultSet result =
+        mockAuthzJwtService.authorizedDataRead(
+            action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART);
+    assertThat(result.rows()).isEqualTo(Collections.emptyList());
   }
 
   @Test
@@ -238,6 +254,7 @@ public class AuthzJwtServiceTest {
     values2.put("last_update_timestamp", Instant.now());
     Row row2 = createRow(SHOPPING_CART.columns(), values2);
 
+    when(resultSet.withRowInspector(any())).thenReturn(resultSet);
     when(resultSet.rows()).thenReturn(Arrays.asList(row1, row2));
 
     Callable<ResultSet> action = mock(Callable.class);
