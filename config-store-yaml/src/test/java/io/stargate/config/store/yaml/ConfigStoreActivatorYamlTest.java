@@ -130,7 +130,7 @@ class ConfigStoreActivatorYamlTest {
 
   private Hashtable<String, String> createExpectedProperties() {
     Hashtable<String, String> expectedProps = new Hashtable<>();
-    expectedProps.put("Identifier", ConfigStoreActivator.CONFIG_STORE_YAML_IDENTIFIER);
+    expectedProps.put("ConfigStoreIdentifier", ConfigStoreActivator.CONFIG_STORE_YAML_IDENTIFIER);
     return expectedProps;
   }
 }

@@ -53,7 +53,7 @@ public class ConfigStoreActivator extends BaseActivator {
     Metrics metrics = (Metrics) dependentServices.get(0);
 
     Hashtable<String, String> props = new Hashtable<>();
-    props.put("Identifier", CONFIG_STORE_YAML_IDENTIFIER);
+    props.put("ConfigStoreIdentifier", CONFIG_STORE_YAML_IDENTIFIER);
 
     logger.info("Creating Config Store YAML for config file location: {} ", configYamlLocation);
     return new ServiceAndProperties(

@@ -15,7 +15,10 @@
  */
 package io.stargate.config.store.api;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -34,6 +37,84 @@ public class ConfigWithOverrides {
    */
   public Map<String, Object> getConfigMap() {
     return configMap;
+  }
+
+  /**
+   * It retrieves the list of values from underlying configMap checking for its presence and the
+   * type. If the value for a given settingName does not have a value, it throws an {@code
+   * IllegalArgumentException}. If the type of the setting value is not a {@link List} it throws
+   * {@code IllegalArgumentException}. If the underlying type of any element in this list does not
+   * match the expectedType, it throws {@code IllegalArgumentException}.
+   *
+   * @param settingName - it will be used as a key of underlying configMap.
+   * @param expectedType - it will be used to check if the type of an actual list element value
+   *     matches.
+   * @return the list of values associated with settingName. Each value matches expectedType.
+   */
+  @Nonnull
+  @SuppressWarnings("unchecked")
+  public <T> List<T> getSettingValueList(String settingName, Class<T> expectedType) {
+    List<?> settingValue = getSettingValue(settingName, List.class);
+    return settingValue.stream()
+        .map(
+            v -> {
+              validateType(String.format("%s.list-value", settingName), v, expectedType);
+              return (T) v;
+            })
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * It retrieves the value from underlying configMap checking for its presence and type. If the
+   * value for a given settingName does not have a value, it throws an {@code
+   * IllegalArgumentException}. If the type of the setting value does not match the expectedType, it
+   * throws {@code IllegalArgumentException}.
+   *
+   * @param settingName - it will be used as a key of underlying configMap.
+   * @param expectedType - it will be used to check if the type of an actual setting value matches.
+   * @return the value associated with settingName, matching expectedType.
+   */
+  @Nonnull
+  @SuppressWarnings("unchecked")
+  public <T> T getSettingValue(String settingName, Class<T> expectedType) {
+    Object configValue = configMap.get(settingName);
+    if (configValue == null) {
+      throw new IllegalArgumentException(
+          String.format("The config value for %s is not present", settingName));
+    }
+    validateType(settingName, configValue, expectedType);
+    return (T) configValue;
+  }
+
+  /**
+   * It retrieves the value wrapped in the {@code Optional} from underlying configMap checking for
+   * its type. If the value for a given settingName does not have a value, it returns {@code
+   * Optional.empty()} If the type of the setting value does not match the expectedType, it throws
+   * {@code IllegalArgumentException}.
+   *
+   * @param settingName - it will be used as a key of underlying configMap.
+   * @param expectedType - it will be used to check if the type of an actual setting value matches.
+   * @return the value wrapped in the {@code Optional} associated with settingName, matching
+   *     expectedType.
+   */
+  @Nonnull
+  @SuppressWarnings("unchecked")
+  public <T> Optional<T> getOptionalSettingValue(String settingName, Class<T> expectedType) {
+    Object configValue = configMap.get(settingName);
+    if (configValue == null) {
+      return Optional.empty();
+    }
+    validateType(settingName, configValue, expectedType);
+    return Optional.of(configValue).map(v -> (T) v);
+  }
+
+  private <T> void validateType(String settingName, Object configValue, Class<T> expectedType) {
+    if (!(expectedType.isAssignableFrom(configValue.getClass()))) {
+      throw new IllegalArgumentException(
+          String.format(
+              "The config value for %s has wrong type: %s. It should be of a %s type",
+              settingName, configValue.getClass().getName(), expectedType.getName()));
+    }
   }
 
   /**
