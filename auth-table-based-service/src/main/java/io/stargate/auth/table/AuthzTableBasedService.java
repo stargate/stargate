@@ -26,8 +26,8 @@ public class AuthzTableBasedService implements AuthorizationService {
   /**
    * Authorization for data access is not provided by table based tokens so all authorization will
    * be deferred to the underlying permissions assigned to the role the token maps to.
-   * <p>
-   * {@inheritdoc}
+   *
+   * <p>{@inheritdoc}
    */
   @Override
   public ResultSet authorizedDataRead(
@@ -40,8 +40,8 @@ public class AuthzTableBasedService implements AuthorizationService {
   /**
    * Authorization for data access is not provided by table based tokens so all authorization will
    * be deferred to the underlying permissions assigned to the role the token maps to.
-   * <p>
-   * {@inheritdoc}
+   *
+   * <p>{@inheritdoc}
    */
   @Override
   public ResultSet authorizedDataWrite(
@@ -55,8 +55,8 @@ public class AuthzTableBasedService implements AuthorizationService {
    * Authorization for schema resource access is not provided by table based tokens so all
    * authorization will be deferred to the underlying permissions assigned to the role the token
    * maps to.
-   * <p>
-   * {@inheritdoc}
+   *
+   * <p>{@inheritdoc}
    */
   @Override
   public ResultSet authorizedSchemaRead(
@@ -69,8 +69,8 @@ public class AuthzTableBasedService implements AuthorizationService {
    * Authorization for schema resource access is not provided by table based tokens so all
    * authorization will be deferred to the underlying permissions assigned to the role the token
    * maps to.
-   * <p>
-   * {@inheritdoc}
+   *
+   * <p>{@inheritdoc}
    */
   @Override
   public ResultSet authorizedSchemaWrite(

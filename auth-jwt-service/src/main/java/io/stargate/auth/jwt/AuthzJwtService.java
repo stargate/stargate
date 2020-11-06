@@ -37,12 +37,11 @@ public class AuthzJwtService implements AuthorizationService {
   private static final Logger log = LoggerFactory.getLogger(AuthzJwtService.class);
   private final Pattern tokenPattern = Pattern.compile("\\.");
 
-
   /**
    * Using the provided JWT and the claims it contains will perform pre-authorization where
    * possible, executes the query provided, and then authorizes the response of the query.
-   * <p>
-   * {@inheritdoc}
+   *
+   * <p>{@inheritdoc}
    */
   @Override
   public ResultSet authorizedDataRead(
@@ -87,8 +86,8 @@ public class AuthzJwtService implements AuthorizationService {
   /**
    * Using the provided JWT and the claims it contains will perform pre-authorization where possible
    * and if successful executes the query provided.
-   * <p>
-   * {@inheritdoc}
+   *
+   * <p>{@inheritdoc}
    */
   @Override
   public ResultSet authorizedDataWrite(
@@ -105,8 +104,8 @@ public class AuthzJwtService implements AuthorizationService {
   /**
    * Authorization for schema resource access is not provided by JWTs so all authorization will be
    * deferred to the underlying permissions assigned to the role the JWT maps to.
-   * <p>
-   * {@inheritdoc}
+   *
+   * <p>{@inheritdoc}
    */
   @Override
   public ResultSet authorizedSchemaRead(
@@ -117,8 +116,8 @@ public class AuthzJwtService implements AuthorizationService {
   /**
    * Authorization for schema resource access is not provided by JWTs so all authorization will be
    * deferred to the underlying permissions assigned to the role the JWT maps to.
-   * <p>
-   * {@inheritdoc}
+   *
+   * <p>{@inheritdoc}
    */
   @Override
   public ResultSet authorizedSchemaWrite(

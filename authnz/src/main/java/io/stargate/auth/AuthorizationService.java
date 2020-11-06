@@ -22,19 +22,17 @@ import java.util.concurrent.Callable;
 
 public interface AuthorizationService {
 
-
   /**
    * Using the provided token will perform pre-authorization where possible, executes the query
    * provided, and then authorizes the response of the query.
    *
-   * @param action           A {@link QueryBuilder} object to be executed and authorized against a
-   *                         token.
-   * @param token            The authenticated token to use for authorization.
+   * @param action A {@link QueryBuilder} object to be executed and authorized against a token.
+   * @param token The authenticated token to use for authorization.
    * @param primaryKeyValues A list of primary key values that will be used in the query and should
-   *                         be authorized against the token.
-   * @param tableMetadata    The {@link Table} that will be queried against.
+   *     be authorized against the token.
+   * @param tableMetadata The {@link Table} that will be queried against.
    * @return On success will return the result of the query and otherwise will return an exception
-   * relating to the failure to authorize.
+   *     relating to the failure to authorize.
    * @throws Exception An exception relating to the failure to authorize.
    */
   ResultSet authorizedDataRead(
@@ -45,14 +43,13 @@ public interface AuthorizationService {
    * Using the provided token will perform pre-authorization where possible and if successful
    * executes the query provided.
    *
-   * @param action           A {@link QueryBuilder} object to be executed and authorized against a
-   *                         token.
-   * @param token            The authenticated token to use for authorization.
+   * @param action A {@link QueryBuilder} object to be executed and authorized against a token.
+   * @param token The authenticated token to use for authorization.
    * @param primaryKeyValues A list of primary key values that will be used in the query and should
-   *                         be authorized against the token.
-   * @param tableMetadata    The {@link Table} that will be queried against.
+   *     be authorized against the token.
+   * @param tableMetadata The {@link Table} that will be queried against.
    * @return On success will return the result of the query and otherwise will return an exception
-   * relating to the failure to authorize.
+   *     relating to the failure to authorize.
    * @throws Exception An exception relating to the failure to authorize.
    */
   ResultSet authorizedDataWrite(
@@ -63,13 +60,13 @@ public interface AuthorizationService {
    * Using the provided token will perform pre-authorization where possible, executes the query
    * provided, and then authorizes the response of the query.
    *
-   * @param action   A {@link QueryBuilder} object to be executed and authorized against a token.
-   * @param token    The authenticated token to use for authorization.
+   * @param action A {@link QueryBuilder} object to be executed and authorized against a token.
+   * @param token The authenticated token to use for authorization.
    * @param keyspace Either the keyspace containing the resource to be read or the actual resource
-   *                 being read.
-   * @param table    The table within the provided keyspace that is being read.
+   *     being read.
+   * @param table The table within the provided keyspace that is being read.
    * @return On success will return the result of the query and otherwise will return an exception
-   * relating to the failure to authorize.
+   *     relating to the failure to authorize.
    * @throws Exception An exception relating to the failure to authorize.
    */
   ResultSet authorizedSchemaRead(
@@ -79,13 +76,13 @@ public interface AuthorizationService {
    * Using the provided token will perform pre-authorization where possible and if successful
    * executes the query provided.
    *
-   * @param action   A {@link QueryBuilder} object to be executed and authorized against a token.
-   * @param token    The authenticated token to use for authorization.
+   * @param action A {@link QueryBuilder} object to be executed and authorized against a token.
+   * @param token The authenticated token to use for authorization.
    * @param keyspace Either the keyspace containing the resource to be modified or the actual
-   *                 resource being modified.
-   * @param table    The table within the provided keyspace that is being modified.
+   *     resource being modified.
+   * @param table The table within the provided keyspace that is being modified.
    * @return On success will return the result of the query and otherwise will return an exception
-   * relating to the failure to authorize.
+   *     relating to the failure to authorize.
    * @throws Exception An exception relating to the failure to authorize.
    */
   ResultSet authorizedSchemaWrite(
