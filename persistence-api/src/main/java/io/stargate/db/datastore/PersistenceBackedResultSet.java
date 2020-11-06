@@ -106,11 +106,7 @@ class PersistenceBackedResultSet implements ResultSet {
 
   private void processNewPage(Result.Rows page) {
     for (List<ByteBuffer> rowValues : page.rows) {
-      ArrayListBackedRow row = new ArrayListBackedRow(columns, rowValues, driverProtocolVersion);
-
-      if (authzFilter == null || authzFilter.test(row)) {
-        fetchedRows.addLast(row);
-      }
+      fetchedRows.addLast(new ArrayListBackedRow(columns, rowValues, driverProtocolVersion));
     }
     nextPagingState = page.resultMetadata.pagingState;
   }
@@ -165,7 +161,7 @@ class PersistenceBackedResultSet implements ResultSet {
   private Row nextRow() {
     while (true) {
       Row nextRow = fetchedRows.pollFirst();
-      if (nextRow != null) {
+      if (nextRow != null && (authzFilter == null || authzFilter.test(nextRow))) {
         return nextRow;
       }
       if (nextPagingState == null) {
@@ -214,7 +210,10 @@ class PersistenceBackedResultSet implements ResultSet {
   public List<Row> currentPageRows() {
     List<Row> fetched = new ArrayList<>();
     while (!fetchedRows.isEmpty()) {
-      fetched.add(fetchedRows.pollFirst());
+      Row row = fetchedRows.pollFirst();
+      if (authzFilter == null || authzFilter.test(row)) {
+        fetched.add(row);
+      }
     }
     return fetched;
   }

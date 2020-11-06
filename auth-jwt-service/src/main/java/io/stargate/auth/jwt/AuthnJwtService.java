@@ -15,6 +15,7 @@
  */
 package io.stargate.auth.jwt;
 
+import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.proc.BadJOSEException;
 import com.nimbusds.jose.proc.SecurityContext;
@@ -66,6 +67,10 @@ public class AuthnJwtService implements AuthenticationService {
    */
   @Override
   public StoredCredentials validateToken(String token) throws UnauthorizedException {
+    if (Strings.isNullOrEmpty(token)) {
+      throw new UnauthorizedException("authorization failed - missing token");
+    }
+
     JWTClaimsSet claimsSet = validate(token);
     String roleName;
     try {
@@ -75,7 +80,7 @@ public class AuthnJwtService implements AuthenticationService {
       throw new UnauthorizedException("Failed to parse claim from JWT", e);
     }
 
-    if (roleName == null || roleName.equals("")) {
+    if (Strings.isNullOrEmpty(roleName)) {
       throw new UnauthorizedException("JWT must have a value for " + ROLE_FIELD);
     }
 

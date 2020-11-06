@@ -38,7 +38,7 @@ public class AuthJWTServiceActivator implements BundleActivator {
 
   private static final Logger log = LoggerFactory.getLogger(AuthJWTServiceActivator.class);
 
-  public static final String AUTH_JWT_IDENTIFIER = "AuthnJwtService";
+  public static final String AUTH_JWT_IDENTIFIER = "AuthJwtService";
 
   private static final Hashtable<String, String> props = new Hashtable<>();
 

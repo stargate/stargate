@@ -196,12 +196,18 @@ public class RowResource {
           DataStore localDB = db.getDataStoreForToken(token, pageSize, pageState);
 
           final ResultSet r =
-              localDB
-                  .query()
-                  .select()
-                  .from(keyspaceName, tableName)
-                  .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                  .execute();
+              db.getAuthorizationService()
+                  .authorizedDataRead(
+                      () ->
+                          localDB
+                              .query()
+                              .select()
+                              .from(keyspaceName, tableName)
+                              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+                              .execute(),
+                      token,
+                      Collections.emptyList(),
+                      db.getTable(localDB, keyspaceName, tableName));
 
           final List<Map<String, Object>> rows =
               r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
