@@ -123,8 +123,8 @@
     <dependency>
       <groupId>io.stargate.config-store</groupId>
       <artifactId>config-store-api</artifactId>
-      <version>0.0.23-SNAPSHOT</version>
-      <scope>compile</scope>
+      <version>${project.version}</version>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
   <build>
