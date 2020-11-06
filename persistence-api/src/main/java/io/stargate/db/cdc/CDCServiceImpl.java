@@ -20,6 +20,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.ThreadFactoryBuilder;
+import io.stargate.config.store.api.ConfigStore;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.metrics.CDCMetrics;
 import java.util.concurrent.*;
@@ -47,7 +48,7 @@ public final class CDCServiceImpl implements CDCService {
         new CDCWriteException("CDC producer marked as unhealthy"));
   }
 
-  public CDCServiceImpl(CDCProducer producer, Metrics metrics) {
+  public CDCServiceImpl(CDCProducer producer, Metrics metrics, ConfigStore configStore) {
     // TODO: Use real stargate config store
     this(producer, CDCConfig.defaultConfig, metrics.getRegistry("cdc"));
   }

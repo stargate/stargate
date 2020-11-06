@@ -114,6 +114,12 @@
       <version>27.0-jre</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.stargate.config-store</groupId>
+      <artifactId>config-store-api</artifactId>
+      <version>0.0.23-SNAPSHOT</version>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
