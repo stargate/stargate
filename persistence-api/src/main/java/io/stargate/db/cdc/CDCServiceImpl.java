@@ -22,6 +22,8 @@ import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.ThreadFactoryBuilder;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.core.metrics.api.Metrics;
+import io.stargate.db.cdc.config.CDCConfig;
+import io.stargate.db.cdc.config.CDCConfigLoader;
 import io.stargate.db.metrics.CDCMetrics;
 import java.util.concurrent.*;
 import org.apache.cassandra.stargate.db.MutationEvent;
@@ -49,8 +51,7 @@ public final class CDCServiceImpl implements CDCService {
   }
 
   public CDCServiceImpl(CDCProducer producer, Metrics metrics, ConfigStore configStore) {
-    // TODO: Use real stargate config store
-    this(producer, CDCConfig.defaultConfig, metrics.getRegistry("cdc"));
+    this(producer, CDCConfigLoader.loadConfig(configStore), metrics.getRegistry("cdc"));
   }
 
   private CDCServiceImpl(CDCProducer producer, CDCConfig config, MetricRegistry registry) {
@@ -79,7 +80,7 @@ public final class CDCServiceImpl implements CDCService {
 
   @Override
   public CompletableFuture<Void> publish(MutationEvent mutation) {
-    if (!config.isTrackedByCDC(mutation)) {
+    if (!config.isTrackedByCDC(mutation.getTable())) {
       return completedFuture;
     }
 
@@ -129,7 +130,7 @@ public final class CDCServiceImpl implements CDCService {
 
       f.thenAccept(r -> scheduledTimeout.cancel(false));
     } catch (Exception ex) {
-      // Scheduler was shutdown, nvm
+      logger.warn("Scheduler shutdown", ex);
     }
 
     return f;
@@ -144,46 +145,5 @@ public final class CDCServiceImpl implements CDCService {
     } catch (Exception e) {
       logger.info("There was an issue releasing resources of CDC Producer", e);
     }
-  }
-
-  @VisibleForTesting
-  interface CDCConfig {
-    boolean isTrackedByCDC(MutationEvent mutation);
-
-    long getProducerTimeoutMs();
-
-    double getErrorRateThreshold();
-
-    int getMinErrorsPerSecond();
-
-    int getEWMAIntervalMinutes();
-
-    CDCConfig defaultConfig =
-        new CDCConfig() {
-          @Override
-          public boolean isTrackedByCDC(MutationEvent mutation) {
-            return true;
-          }
-
-          @Override
-          public long getProducerTimeoutMs() {
-            return 100;
-          }
-
-          @Override
-          public double getErrorRateThreshold() {
-            return 0.5;
-          }
-
-          @Override
-          public int getMinErrorsPerSecond() {
-            return 10;
-          }
-
-          @Override
-          public int getEWMAIntervalMinutes() {
-            return 1;
-          }
-        };
   }
 }

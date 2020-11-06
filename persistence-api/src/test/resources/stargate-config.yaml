@@ -1,0 +1,2 @@
+cdc.core:
+  enabledTables: ["ks1.table_a", "ks2.table_b"]
