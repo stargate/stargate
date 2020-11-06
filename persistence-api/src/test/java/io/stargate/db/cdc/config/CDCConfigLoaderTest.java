@@ -114,16 +114,21 @@ class CDCConfigLoaderTest {
 
     // then
     assertThat(cdcConfig.isTrackedByCDC(mockTableWithKeyspace("ks", "table"))).isTrue();
-    assertThat(cdcConfig.isTrackedByCDC(mockTableWithKeyspace("ks", "table_not_tracked_yet")))
+    assertThat(
+            cdcConfig.isTrackedByCDC(
+                mockTableWithKeyspace("ks", "table_tracked_after_runtime_change")))
         .isFalse();
 
-    // when reload of underlying settings
+    // when change underlying setting
     settings.put(
-        ENABLED_TABLES_SETTINGS_NAME, Collections.singletonList("ks.table_not_tracked_yet"));
+        ENABLED_TABLES_SETTINGS_NAME,
+        Collections.singletonList("ks.table_tracked_after_runtime_change"));
 
     // then
     assertThat(cdcConfig.isTrackedByCDC(mockTableWithKeyspace("ks", "table"))).isFalse();
-    assertThat(cdcConfig.isTrackedByCDC(mockTableWithKeyspace("ks", "table_not_tracked_yet")))
+    assertThat(
+            cdcConfig.isTrackedByCDC(
+                mockTableWithKeyspace("ks", "table_tracked_after_runtime_change")))
         .isTrue();
   }
 
