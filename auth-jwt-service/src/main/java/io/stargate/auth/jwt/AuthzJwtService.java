@@ -37,18 +37,12 @@ public class AuthzJwtService implements AuthorizationService {
   private static final Logger log = LoggerFactory.getLogger(AuthzJwtService.class);
   private final Pattern tokenPattern = Pattern.compile("\\.");
 
+
   /**
    * Using the provided JWT and the claims it contains will perform pre-authorization where
    * possible, executes the query provided, and then authorizes the response of the query.
-   *
-   * @param action A {@link QueryBuilder} object to be executed and authorized against a JWT.
-   * @param token The authenticated JWT token to use for authorization.
-   * @param primaryKeyValues A list of primary key values that will be used in the query and should
-   *     be authorized against the JWT.
-   * @param tableMetadata The {@link Table} that will be queried against.
-   * @return On success will return the result of the query and otherwise will return an exception
-   *     relating to the failure to authorize.
-   * @throws Exception An exception relating to the failure to authorize.
+   * <p>
+   * {@inheritdoc}
    */
   @Override
   public ResultSet authorizedDataRead(
@@ -91,14 +85,10 @@ public class AuthzJwtService implements AuthorizationService {
   }
 
   /**
-   * TODO
-   *
-   * @param action
-   * @param token
-   * @param primaryKeyValues
-   * @param tableMetadata
-   * @return
-   * @throws Exception
+   * Using the provided JWT and the claims it contains will perform pre-authorization where possible
+   * and if successful executes the query provided.
+   * <p>
+   * {@inheritdoc}
    */
   @Override
   public ResultSet authorizedDataWrite(
@@ -112,25 +102,27 @@ public class AuthzJwtService implements AuthorizationService {
     return action.call();
   }
 
+  /**
+   * Authorization for schema resource access is not provided by JWTs so all authorization will be
+   * deferred to the underlying permissions assigned to the role the JWT maps to.
+   * <p>
+   * {@inheritdoc}
+   */
   @Override
   public ResultSet authorizedSchemaRead(
       Callable<ResultSet> action, String token, String keyspace, String table) throws Exception {
-    JSONObject stargateClaims = extractClaimsFromJWT(token);
-
-    preCheckSchemaRead(stargateClaims, keyspace, table);
-
-    // TODO: [doug] 2020-11-2, Mon, 17:23 Finish implementing
     return action.call();
   }
 
+  /**
+   * Authorization for schema resource access is not provided by JWTs so all authorization will be
+   * deferred to the underlying permissions assigned to the role the JWT maps to.
+   * <p>
+   * {@inheritdoc}
+   */
   @Override
   public ResultSet authorizedSchemaWrite(
       Callable<ResultSet> action, String token, String keyspace, String table) throws Exception {
-    JSONObject stargateClaims = extractClaimsFromJWT(token);
-
-    preCheckSchemaWrite(stargateClaims, keyspace, table);
-
-    // Just return the result. No value in doing a post check since we can't roll back anyway.
     return action.call();
   }
 
@@ -146,14 +138,6 @@ public class AuthzJwtService implements AuthorizationService {
     String decodedPayload = new String(Base64.getUrlDecoder().decode(parts[1]));
     JSONObject payload = new JSONObject(decodedPayload);
     return payload.getJSONObject(CLAIMS_FIELD);
-  }
-
-  private void preCheckSchemaRead(JSONObject stargateClaims, String keyspace, String table) {
-    // TODO: [doug] 2020-11-2, Mon, 17:23 Finish implementing
-  }
-
-  private void preCheckSchemaWrite(JSONObject stargateClaims, String keyspace, String table) {
-    // TODO: [doug] 2020-11-2, Mon, 17:23 Finish implementing
   }
 
   private void preCheckDataReadWrite(

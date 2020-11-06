@@ -23,6 +23,12 @@ import java.util.concurrent.Callable;
 
 public class AuthzTableBasedService implements AuthorizationService {
 
+  /**
+   * Authorization for data access is not provided by table based tokens so all authorization will
+   * be deferred to the underlying permissions assigned to the role the token maps to.
+   * <p>
+   * {@inheritdoc}
+   */
   @Override
   public ResultSet authorizedDataRead(
       Callable<ResultSet> action, String token, List<String> primaryKeyValues, Table tableMetadata)
@@ -31,6 +37,12 @@ public class AuthzTableBasedService implements AuthorizationService {
     return action.call();
   }
 
+  /**
+   * Authorization for data access is not provided by table based tokens so all authorization will
+   * be deferred to the underlying permissions assigned to the role the token maps to.
+   * <p>
+   * {@inheritdoc}
+   */
   @Override
   public ResultSet authorizedDataWrite(
       Callable<ResultSet> action, String token, List<String> primaryKeyValues, Table tableMetadata)
@@ -39,6 +51,13 @@ public class AuthzTableBasedService implements AuthorizationService {
     return action.call();
   }
 
+  /**
+   * Authorization for schema resource access is not provided by table based tokens so all
+   * authorization will be deferred to the underlying permissions assigned to the role the token
+   * maps to.
+   * <p>
+   * {@inheritdoc}
+   */
   @Override
   public ResultSet authorizedSchemaRead(
       Callable<ResultSet> action, String token, String keyspace, String table) throws Exception {
@@ -46,6 +65,13 @@ public class AuthzTableBasedService implements AuthorizationService {
     return action.call();
   }
 
+  /**
+   * Authorization for schema resource access is not provided by table based tokens so all
+   * authorization will be deferred to the underlying permissions assigned to the role the token
+   * maps to.
+   * <p>
+   * {@inheritdoc}
+   */
   @Override
   public ResultSet authorizedSchemaWrite(
       Callable<ResultSet> action, String token, String keyspace, String table) throws Exception {
