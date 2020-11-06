@@ -22,4 +22,25 @@ public interface StargateEnvironmentInfo {
   String id();
 
   List<? extends StargateConnectionInfo> nodes();
+
+  /**
+   * Add a node to the Stargate environment.
+   *
+   * @return the connection info associated with the added node. This can be used to remove this
+   *     node from the environment using {@link #removeNode(StargateConnectionInfo)}.
+   * @throws Exception
+   * @throws UnsupportedOperationException when attempting to modify a shared environment.
+   */
+  StargateConnectionInfo addNode() throws Exception;
+
+  /**
+   * Remove a node from the Stargate environment. This is usually a node added via {@link
+   * #addNode()}
+   *
+   * @param node the connection info for an existing Stargate node. This is usually returned from
+   *     {@link #addNode()}, but could be a node returned by {@link #nodes()}.
+   * @throws Exception
+   * @throws UnsupportedOperationException when attempting to modify a shared environment.
+   */
+  void removeNode(StargateConnectionInfo node);
 }

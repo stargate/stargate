@@ -20,18 +20,24 @@ import static java.lang.management.ManagementFactory.getRuntimeMXBean;
 
 import com.datastax.oss.driver.api.core.Version;
 import io.stargate.it.storage.StargateParameters.Builder;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -72,6 +78,13 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
   private static final File LIB_DIR = initLibDir();
   private static final int PROCESS_WAIT_MINUTES =
       Integer.getInteger("stargate.test.process.wait.timeout.minutes", 10);
+  private static final int MAX_NODES = 10;
+
+  /**
+   * Preallocate JMX ports to guarantee Stargate nodes receive a unique port. This includes cases
+   * where multiple concurrent Stargate clusters are created during parallel execution of tests.
+   */
+  private static final Queue<Integer> jmxPorts = initJmxPorts(MAX_NODES);
 
   // the first 10 addresses are reserved for storage nodes
   private static final AtomicInteger stargateAddressStart = new AtomicInteger(11);
@@ -86,6 +99,27 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     }
 
     return new File(dir);
+  }
+
+  private static Queue<Integer> initJmxPorts(int maxNodeCount) {
+    Queue<Integer> ports = new ConcurrentLinkedQueue<>();
+
+    try {
+      List<ServerSocket> sockets = new ArrayList<>();
+      for (int i = 0; i < maxNodeCount; i++) {
+        ServerSocket socket = new ServerSocket(0);
+        sockets.add(socket);
+        ports.add(socket.getLocalPort());
+      }
+      for (ServerSocket socket : sockets) {
+        socket.close();
+      }
+    } catch (IOException e) {
+      LOG.error("Unable to preallocate JMX ports", e);
+      throw new UncheckedIOException(e);
+    }
+
+    return ports;
   }
 
   public StargateContainer() {
@@ -186,6 +220,8 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     private final StargateSpec spec;
     private final StargateParameters parameters;
     private final List<Node> nodes = new ArrayList<>();
+    private final int instanceNum;
+    private final Env env;
 
     private Container(
         ClusterConnectionInfo backend, StargateSpec spec, StargateParameters parameters)
@@ -194,9 +230,9 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
       this.spec = spec;
       this.parameters = parameters;
 
-      int instanceNum = stargateInstanceSeq.getAndIncrement();
+      instanceNum = stargateInstanceSeq.getAndIncrement();
 
-      Env env = new Env(spec.nodes());
+      env = new Env();
       for (int i = 0; i < spec.nodes(); i++) {
         nodes.add(new Node(i, instanceNum, backend, env, parameters));
       }
@@ -230,6 +266,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     public void close() {
       super.close();
       stop();
+      env.close();
     }
 
     private boolean matches(
@@ -247,6 +284,31 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     @Override
     public List<? extends StargateConnectionInfo> nodes() {
       return nodes;
+    }
+
+    @Override
+    public StargateConnectionInfo addNode() throws Exception {
+      if (spec.shared()) {
+        throw new UnsupportedOperationException(
+            "Adding a node to a shared cluster is not supported");
+      }
+      Node node = new Node(nodes.size(), instanceNum, backend, env, parameters);
+      nodes.add(node);
+      node.start();
+      node.awaitReady();
+      return node;
+    }
+
+    @Override
+    public void removeNode(StargateConnectionInfo node) {
+      if (spec.shared()) {
+        throw new UnsupportedOperationException(
+            "Removing a node from a shared cluster is not supported");
+      }
+      Node internalNode = (Node) node;
+      internalNode.stopNode();
+      internalNode.awaitExit();
+      nodes.remove(node);
     }
   }
 
@@ -466,34 +528,26 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     }
   }
 
-  private static class Env {
+  private static class Env implements Closeable {
+    private final Map<Integer, Integer> ports = new HashMap<>();
+    private final Map<Integer, String> listenAddresses = new HashMap<>();
 
-    private final List<Integer> ports = new ArrayList<>();
-    private final int addressStart;
-
-    private Env(int nodeCount) throws IOException {
-      // Note: do not reuse addresses
-      addressStart = stargateAddressStart.getAndAdd(nodeCount);
-
-      // Allocate `nodeCount` random ports
-      List<ServerSocket> sockets = new ArrayList<>();
-      for (int i = 0; i < nodeCount; i++) {
-        ServerSocket socket = new ServerSocket(0);
-        sockets.add(socket);
-        ports.add(socket.getLocalPort());
-      }
-
-      for (ServerSocket socket : sockets) {
-        socket.close();
-      }
+    private synchronized String listenAddress(int index) {
+      return listenAddresses.computeIfAbsent(
+          index, i -> "127.0.0." + stargateAddressStart.getAndIncrement());
     }
 
-    private String listenAddress(int index) {
-      return "127.0.0." + (addressStart + index);
-    }
-
-    private int jmxPort(int index) {
-      return ports.get(index);
+    private synchronized int jmxPort(int index) {
+      return ports.computeIfAbsent(
+          index,
+          i -> {
+            Integer port = jmxPorts.poll();
+            if (port == null) {
+              throw new AssertionError(
+                  String.format("Tests using too many Stargate nodes (%d maximum)", MAX_NODES));
+            }
+            return port;
+          });
     }
 
     private int cqlPort() {
@@ -515,6 +569,11 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
 
     public File cacheDir(int nodeIndex) throws IOException {
       return Files.createTempDirectory("stargate-node-" + nodeIndex + "-felix-cache").toFile();
+    }
+
+    @Override
+    public synchronized void close() {
+      jmxPorts.addAll(ports.values());
     }
   }
 }
