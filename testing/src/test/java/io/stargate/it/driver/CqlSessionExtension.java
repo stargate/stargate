@@ -7,6 +7,8 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.config.OptionsMap;
+import com.datastax.oss.driver.api.core.config.TypedDriverOption;
+import com.datastax.oss.driver.internal.core.loadbalancing.DcInferringLoadBalancingPolicy;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateContainer;
 import io.stargate.it.storage.StargateEnvironmentInfo;
@@ -17,6 +19,7 @@ import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.Date;
 import java.util.Optional;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -300,7 +303,7 @@ public class CqlSessionExtension
 
   private CqlSessionBuilder newSessionBuilder(
       StargateEnvironmentInfo stargate, ExtensionContext context) {
-    OptionsMap options = CqlSessionOptions.defaultConfig();
+    OptionsMap options = defaultConfig();
     maybeCustomizeOptions(options, cqlSessionSpec, context);
     CqlSessionBuilder builder = CqlSession.builder().withAuthCredentials("cassandra", "cassandra");
     builder = maybeCustomizeBuilder(builder, cqlSessionSpec, context);
@@ -362,6 +365,23 @@ public class CqlSessionExtension
       Object testInstance = context.getTestInstance().orElse(null);
       return (CqlSessionBuilder) ReflectionUtils.invokeMethod(method, testInstance, builder);
     }
+  }
+
+  @NotNull
+  private OptionsMap defaultConfig() {
+    OptionsMap config;
+    config = OptionsMap.driverDefaults();
+    config.put(TypedDriverOption.METADATA_TOKEN_MAP_ENABLED, false);
+    config.put(
+        TypedDriverOption.LOAD_BALANCING_POLICY_CLASS,
+        DcInferringLoadBalancingPolicy.class.getName());
+    config.put(TypedDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(180));
+    config.put(TypedDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT, Duration.ofSeconds(180));
+    config.put(TypedDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(180));
+    config.put(TypedDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180));
+    config.put(TypedDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5));
+    config.put(TypedDriverOption.REQUEST_WARN_IF_SET_KEYSPACE, false);
+    return config;
   }
 
   private static CqlIdentifier generateKeyspaceId(ExtensionContext context) {
