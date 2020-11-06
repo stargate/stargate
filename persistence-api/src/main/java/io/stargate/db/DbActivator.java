@@ -11,9 +11,9 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 public class DbActivator extends BaseActivator {
-  private ServicePointer<Metrics> metrics;
-  private ServicePointer<CDCProducer> cdcProducer;
-  private ServicePointer<ConfigStore> configStore;
+  private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  private ServicePointer<CDCProducer> cdcProducer = ServicePointer.create(CDCProducer.class);
+  private ServicePointer<ConfigStore> configStore = ServicePointer.create(ConfigStore.class);
   private CDCService cdcService;
 
   public DbActivator() {
