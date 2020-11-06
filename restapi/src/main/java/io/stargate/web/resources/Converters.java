@@ -89,7 +89,8 @@ public class Converters {
   }
 
   public static WhereCondition<?> idToWhere(String val, String column, Table tableData) {
-    Column.ColumnType type = tableData.column(column).type();
+    Column col = tableData.column(column);
+    Column.ColumnType type = col.type();
     Object value = val;
 
     if (type != null) {
@@ -99,19 +100,20 @@ public class Converters {
     return ImmutableWhereCondition.builder()
         .value(value)
         .predicate(WhereCondition.Predicate.Eq)
-        .column(column.toLowerCase())
+        .column(col)
         .build();
   }
 
   public static Value<?> colToValue(String name, String value, Table tableData) {
-    Column.ColumnType type = tableData.column(name).type();
+    Column col = tableData.column(name);
+    Column.ColumnType type = col.type();
     Object valueObj = value;
 
     if (type != null) {
       valueObj = typeForStringValue(type, value);
     }
 
-    return Value.create(name, valueObj);
+    return Value.create(col, valueObj);
   }
 
   public static Object typeForStringValue(Column.ColumnType type, String value) {
@@ -255,14 +257,15 @@ public class Converters {
 
   public static Value<?> colToValue(Map.Entry<String, String> entry, Table tableData) {
     String name = entry.getKey();
-    Column.ColumnType type = tableData.column(name).type();
+    Column col = tableData.column(name);
+    Column.ColumnType type = col.type();
     Object value = entry.getValue();
 
     if (type != null) {
       value = typeForValue(type, entry.getValue());
     }
 
-    return Value.create(name, value);
+    return Value.create(col, value);
   }
 
   public static Object typeForValue(Column.ColumnType type, String value) {

@@ -103,7 +103,8 @@ public class ColumnResource {
               tableMetadata.columns().stream()
                   .map(
                       (col) -> {
-                        String type = col.type() == null ? null : col.type().cqlDefinition();
+                        //noinspection ConstantConditions
+                        String type = col.type() != null ? col.type().cqlDefinition() : null;
                         return new ColumnDefinition(
                             col.name(), type, col.kind() == Column.Kind.Static);
                       })
@@ -215,7 +216,8 @@ public class ColumnResource {
                 .build();
           }
 
-          String type = col.type() == null ? null : col.type().cqlDefinition();
+          //noinspection ConstantConditions
+          String type = col.type() != null ? col.type().cqlDefinition() : null;
           return Response.status(Response.Status.OK)
               .entity(new ColumnDefinition(col.name(), type, col.kind() == Kind.Static))
               .build();

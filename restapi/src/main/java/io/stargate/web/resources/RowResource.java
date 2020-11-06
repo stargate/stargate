@@ -16,14 +16,20 @@
 package io.stargate.web.resources;
 
 import com.codahale.metrics.annotation.Timed;
+import io.stargate.auth.TargetCell;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.datastore.query.ColumnOrder;
+import io.stargate.db.datastore.query.ImmutableColumnOrder;
+import io.stargate.db.datastore.query.ImmutableWhereCondition;
 import io.stargate.db.datastore.query.Value;
-import io.stargate.db.datastore.query.Where;
+import io.stargate.db.datastore.query.WhereCondition;
+import io.stargate.db.datastore.query.WhereCondition.Predicate;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.Filter;
+import io.stargate.web.models.Filter.Operator;
 import io.stargate.web.models.Query;
 import io.stargate.web.models.RowAdd;
 import io.stargate.web.models.RowResponse;
@@ -45,7 +51,6 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.inject.Inject;
@@ -80,7 +85,7 @@ public class RowResource {
 
   @Inject private Db db;
 
-  private int DEFAULT_PAGE_SIZE = 100;
+  private final int DEFAULT_PAGE_SIZE = 100;
 
   @Timed
   @GET
@@ -122,6 +127,8 @@ public class RowResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
+          List<WhereCondition<?>> wheres =
+              buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI());
           final ResultSet r =
               db.getAuthorizationService()
                   .authorizedDataRead(
@@ -130,14 +137,11 @@ public class RowResource {
                               .query()
                               .select()
                               .from(keyspaceName, tableName)
-                              .where(
-                                  buildWhereClause(
-                                      localDB, keyspaceName, tableName, request.getRequestURI()))
+                              .where(wheres)
                               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                               .execute(),
                       token,
-                      idFromPath(request.getRequestURI()),
-                      db.getTable(localDB, keyspaceName, tableName));
+                      wheres.stream().map(TargetCell::new).collect(Collectors.toList()));
 
           final List<Map<String, Object>> rows =
               r.rows().stream().map(Converters::row2Map).collect(Collectors.toList());
@@ -206,8 +210,7 @@ public class RowResource {
                               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                               .execute(),
                       token,
-                      Collections.emptyList(),
-                      db.getTable(localDB, keyspaceName, tableName));
+                      Collections.emptyList());
 
           final List<Map<String, Object>> rows =
               r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
@@ -269,12 +272,14 @@ public class RowResource {
 
           final Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
 
-          String returnColumns = "*";
+          List<Column> columns;
           if (queryModel.getColumnNames() != null && queryModel.getColumnNames().size() != 0) {
-            returnColumns =
+            columns =
                 queryModel.getColumnNames().stream()
-                    .map(Converters::maybeQuote)
-                    .collect(Collectors.joining(","));
+                    .map(Column::reference)
+                    .collect(Collectors.toList());
+          } else {
+            columns = tableMetadata.columns();
           }
 
           if (queryModel.getFilters() == null || queryModel.getFilters().size() == 0) {
@@ -283,7 +288,7 @@ public class RowResource {
                 .build();
           }
 
-          List<Object> values = new ArrayList<>();
+          List<WhereCondition<?>> wheres = new ArrayList<>();
           for (Filter filter : queryModel.getFilters()) {
             if (!validateFilter(filter)) {
               return Response.status(Response.Status.BAD_REQUEST)
@@ -292,12 +297,29 @@ public class RowResource {
             }
 
             for (Object obj : filter.getValue()) {
-              values.add(filterToValue(obj, filter.getColumnName(), tableMetadata));
+              Predicate op = getOp(filter.getOperator());
+              if (op == Predicate.In) {
+                wheres.add(
+                    ImmutableWhereCondition.builder()
+                        .value(
+                            filter.getValue().stream()
+                                .map(v -> filterToValue(obj, filter.getColumnName(), tableMetadata))
+                                .collect(Collectors.toList()))
+                        .predicate(op)
+                        .column(tableMetadata.column(filter.getColumnName()))
+                        .build());
+              } else {
+                wheres.add(
+                    ImmutableWhereCondition.builder()
+                        .value(filterToValue(obj, filter.getColumnName(), tableMetadata))
+                        .predicate(op)
+                        .column(tableMetadata.column(filter.getColumnName()))
+                        .build());
+              }
             }
           }
-          String expression = buildExpressionFromOperators(queryModel.getFilters());
 
-          String orderByExpression = "";
+          List<ColumnOrder> order = new ArrayList<>();
           if (queryModel.getOrderBy() != null) {
             String name = queryModel.getOrderBy().getColumn();
             String direction = queryModel.getOrderBy().getOrder();
@@ -314,17 +336,26 @@ public class RowResource {
                   .build();
             }
 
-            orderByExpression = "ORDER BY " + name + " " + direction;
+            Column.Order colOrder = "ASC".equals(direction) ? Column.Order.Asc : Column.Order.Desc;
+            order.add(ImmutableColumnOrder.of(name, colOrder));
           }
 
-          String query =
-              String.format(
-                  "SELECT %s FROM %s.%s WHERE %s %s",
-                  returnColumns, keyspaceName, tableName, expression, orderByExpression);
-          CompletableFuture<ResultSet> selectQuery =
-              localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM, values.toArray());
+          ResultSet r =
+              db.getAuthorizationService()
+                  .authorizedDataRead(
+                      () ->
+                          localDB
+                              .query()
+                              .select()
+                              .column(columns)
+                              .from(tableMetadata.keyspace(), tableMetadata.name())
+                              .where(wheres)
+                              .orderBy(order)
+                              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+                              .execute(),
+                      token,
+                      wheres.stream().map(TargetCell::new).collect(Collectors.toList()));
 
-          ResultSet r = selectQuery.get();
           final List<Map<String, Object>> rows =
               r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
 
@@ -382,12 +413,18 @@ public class RowResource {
                               c.getValue(),
                               db.getTable(localDB, keyspaceName, tableName)))
                   .collect(Collectors.toList());
-          localDB
-              .query()
-              .insertInto(keyspaceName, tableName)
-              .value(values)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+
+          db.getAuthorizationService()
+              .authorizedDataWrite(
+                  () ->
+                      localDB
+                          .query()
+                          .insertInto(keyspaceName, tableName)
+                          .value(values)
+                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+                          .execute(),
+                  token,
+                  values.stream().map(TargetCell::new).collect(Collectors.toList()));
 
           return Response.status(Response.Status.CREATED).entity(new RowsResponse(true, 1)).build();
         });
@@ -429,13 +466,20 @@ public class RowResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          localDB
-              .query()
-              .delete()
-              .from(keyspaceName, tableName)
-              .where(buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI()))
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+          List<WhereCondition<?>> wheres =
+              buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI());
+          db.getAuthorizationService()
+              .authorizedDataWrite(
+                  () ->
+                      localDB
+                          .query()
+                          .delete()
+                          .from(keyspaceName, tableName)
+                          .where(wheres)
+                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+                          .execute(),
+                  token,
+                  wheres.stream().map(TargetCell::new).collect(Collectors.toList()));
 
           return Response.status(Response.Status.NO_CONTENT).entity(new SuccessResponse()).build();
         });
@@ -488,13 +532,20 @@ public class RowResource {
                   .map((c) -> Converters.colToValue(c.getColumn(), c.getValue(), tableMetadata))
                   .collect(Collectors.toList());
 
-          localDB
-              .query()
-              .update(keyspaceName, tableName)
-              .value(changes)
-              .where(buildWhereClause(request.getRequestURI(), tableMetadata))
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+          List<WhereCondition<?>> wheres =
+              buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI());
+          db.getAuthorizationService()
+              .authorizedDataWrite(
+                  () ->
+                      localDB
+                          .query()
+                          .update(keyspaceName, tableName)
+                          .value(changes)
+                          .where(wheres)
+                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+                          .execute(),
+                  token,
+                  wheres.stream().map(TargetCell::new).collect(Collectors.toList()));
 
           return Response.status(Response.Status.OK).entity(new SuccessResponse()).build();
         });
@@ -512,47 +563,24 @@ public class RowResource {
     return true;
   }
 
-  private String buildExpressionFromOperators(List<Filter> filters) {
-    StringBuilder expression = new StringBuilder();
-    for (Filter filter : filters) {
-      if (expression.length() != 0) {
-        expression.append(" AND ");
-      }
-
-      String op = getOp(filter.getOperator());
-      if (op.equals("in")) {
-        String placeholder = String.join("", Collections.nCopies(filter.getValue().size(), "?,"));
-        expression
-            .append(filter.getColumnName())
-            .append(" in (")
-            .append(placeholder, 0, placeholder.length() - 1)
-            .append(")");
-      } else {
-        expression.append(filter.getColumnName().toLowerCase()).append(" ").append(op).append(" ?");
-      }
-    }
-
-    return expression.toString();
-  }
-
-  private String getOp(Filter.Operator operator) {
+  private Predicate getOp(Operator operator) {
     switch (operator) {
       case eq:
-        return "=";
+        return Predicate.Eq;
       case notEq:
-        return "!=";
+        return Predicate.Neq;
       case gt:
-        return ">";
+        return Predicate.Gt;
       case gte:
-        return ">=";
+        return Predicate.Gte;
       case lt:
-        return "<";
+        return Predicate.Lt;
       case lte:
-        return "<=";
+        return Predicate.Lte;
       case in:
-        return "in";
+        return Predicate.In;
       default:
-        return "=";
+        return Predicate.EntryEq;
     }
   }
 
@@ -567,12 +595,12 @@ public class RowResource {
     return value;
   }
 
-  private List<Where<?>> buildWhereClause(
+  private List<WhereCondition<?>> buildWhereClause(
       DataStore localDB, String keyspaceName, String tableName, String path) {
     return buildWhereClause(path, db.getTable(localDB, keyspaceName, tableName));
   }
 
-  private List<Where<?>> buildWhereClause(String path, Table tableMetadata) {
+  private List<WhereCondition<?>> buildWhereClause(String path, Table tableMetadata) {
     List<String> values = idFromPath(path);
 
     final List<Column> keys = tableMetadata.primaryKeyColumns();

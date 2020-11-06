@@ -19,10 +19,11 @@ import static io.stargate.auth.jwt.AuthnJwtService.CLAIMS_FIELD;
 import static io.stargate.auth.jwt.AuthnJwtService.STARGATE_PREFIX;
 
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.TargetCell;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.Column;
-import io.stargate.db.schema.Table;
+import io.stargate.db.schema.Column.Type;
 import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -45,11 +46,10 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public ResultSet authorizedDataRead(
-      Callable<ResultSet> action, String token, List<String> primaryKeyValues, Table tableMetadata)
-      throws Exception {
+      Callable<ResultSet> action, String token, List<TargetCell> targetCells) throws Exception {
     JSONObject stargateClaims = extractClaimsFromJWT(token);
 
-    preCheckDataReadWrite(stargateClaims, primaryKeyValues, tableMetadata);
+    preCheckDataReadWrite(stargateClaims, targetCells);
 
     ResultSet result = action.call();
 
@@ -91,11 +91,10 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public ResultSet authorizedDataWrite(
-      Callable<ResultSet> action, String token, List<String> primaryKeyValues, Table tableMetadata)
-      throws Exception {
+      Callable<ResultSet> action, String token, List<TargetCell> targetCells) throws Exception {
     JSONObject stargateClaims = extractClaimsFromJWT(token);
 
-    preCheckDataReadWrite(stargateClaims, primaryKeyValues, tableMetadata);
+    preCheckDataReadWrite(stargateClaims, targetCells);
 
     // Just return the result. No value in doing a post check since we can't roll back anyway.
     return action.call();
@@ -139,27 +138,23 @@ public class AuthzJwtService implements AuthorizationService {
     return payload.getJSONObject(CLAIMS_FIELD);
   }
 
-  private void preCheckDataReadWrite(
-      JSONObject stargateClaims, List<String> primaryKeyValues, Table tableMetadata)
+  private void preCheckDataReadWrite(JSONObject stargateClaims, List<TargetCell> targetCells)
       throws JSONException, UnauthorizedException {
-    List<Column> keys = tableMetadata.primaryKeyColumns();
-
-    if (primaryKeyValues.size() > keys.size()) {
-      throw new IllegalArgumentException("Provided more primary key values than exists");
-    }
-
-    for (int i = 0; i < primaryKeyValues.size(); i++) {
+    for (int i = 0; i < targetCells.size(); i++) {
+      TargetCell targetCell = targetCells.get(0);
       // If one of the columns exist as a field in the JWT claims and the values do not match then
       // the request is not allowed.
-      if (stargateClaims.has(STARGATE_PREFIX + keys.get(i).name())) {
+      if (stargateClaims.has(STARGATE_PREFIX + targetCell.getName())) {
 
-        if (!Column.ofTypeText(keys.get(i).type())) {
+        if (!(targetCell.getType().equals(Type.Varchar.cqlDefinition())
+            || targetCell.getType().equals(Type.Text.cqlDefinition()))) {
           throw new IllegalArgumentException(
               "Column must be of type text to be used for authorization");
         }
 
-        String stargateClaimValue = stargateClaims.getString(STARGATE_PREFIX + keys.get(i).name());
-        String columnValue = primaryKeyValues.get(i);
+        String stargateClaimValue =
+            stargateClaims.getString(STARGATE_PREFIX + targetCell.getName());
+        String columnValue = (String) targetCell.getValue();
         if (!stargateClaimValue.equals(columnValue)) {
           throw new UnauthorizedException("Not allowed to access this resource");
         }
