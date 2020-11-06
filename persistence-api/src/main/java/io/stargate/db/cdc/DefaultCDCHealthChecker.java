@@ -24,8 +24,8 @@ import java.util.concurrent.atomic.AtomicLong;
 class DefaultCDCHealthChecker implements CDCHealthChecker {
   private double errorRateThreshold;
   private int minErrorsPerSecond;
-  static final int INTERVAL = 5;
-  static final long TICK_INTERVAL = TimeUnit.SECONDS.toNanos(INTERVAL);
+  public static final int INTERVAL = 5;
+  public static final long TICK_INTERVAL = TimeUnit.SECONDS.toNanos(INTERVAL);
 
   private AutoTickEWMA successes;
   private AutoTickEWMA errors;
@@ -96,7 +96,7 @@ class DefaultCDCHealthChecker implements CDCHealthChecker {
 
     TickClock defaultClock =
         new TickClock() {
-          private final Clock clock = com.codahale.metrics.Clock.defaultClock();
+          private final Clock clock = Clock.defaultClock();
 
           @Override
           public long getTick() {
@@ -106,7 +106,9 @@ class DefaultCDCHealthChecker implements CDCHealthChecker {
   }
 
   @Override
-  public void close() {}
+  public void close() {
+    // no-op
+  }
 
   private static class AutoTickEWMA {
     private static final double SECONDS_PER_MINUTE = 60.0;
@@ -122,12 +124,12 @@ class DefaultCDCHealthChecker implements CDCHealthChecker {
       lastTick = new AtomicLong(clock.getTick());
     }
 
-    void update() {
+    public void update() {
       instance.update(1);
     }
 
     /** Gets the rate with seconds as unit of time. */
-    double getRate() {
+    public double getRate() {
       tickIfNecessary();
       return instance.getRate(TimeUnit.SECONDS);
     }
