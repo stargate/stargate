@@ -167,13 +167,19 @@ public class ColumnsResource {
                   .type(Column.Type.fromCqlDefinitionOf(columnDefinition.getTypeDefinition()))
                   .build();
 
-          localDB
-              .query()
-              .alter()
-              .table(keyspaceName, tableName)
-              .addColumn(column)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+          db.getAuthorizationService()
+              .authorizedSchemaWrite(
+                  () ->
+                      localDB
+                          .query()
+                          .alter()
+                          .table(keyspaceName, tableName)
+                          .addColumn(column)
+                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+                          .execute(),
+                  token,
+                  keyspaceName,
+                  tableName);
 
           return Response.status(Response.Status.CREATED)
               .entity(
@@ -290,15 +296,21 @@ public class ColumnsResource {
                   + Converters.maybeQuote(columnName)
                   + " TO "
                   + Converters.maybeQuote(columnUpdate.getName());
-          localDB
-              .query(
-                  String.format(
-                      "ALTER TABLE %s.%s %s",
-                      Converters.maybeQuote(keyspaceName),
-                      Converters.maybeQuote(tableName),
-                      alterInstructions),
-                  ConsistencyLevel.LOCAL_QUORUM)
-              .get();
+          db.getAuthorizationService()
+              .authorizedSchemaWrite(
+                  () ->
+                      localDB
+                          .query(
+                              String.format(
+                                  "ALTER TABLE %s.%s %s",
+                                  Converters.maybeQuote(keyspaceName),
+                                  Converters.maybeQuote(tableName),
+                                  alterInstructions),
+                              ConsistencyLevel.LOCAL_QUORUM)
+                          .get(),
+                  token,
+                  keyspaceName,
+                  tableName);
 
           return Response.status(Response.Status.OK)
               .entity(
@@ -337,13 +349,19 @@ public class ColumnsResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          localDB
-              .query()
-              .alter()
-              .table(keyspaceName, tableName)
-              .dropColumn(columnName)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+          db.getAuthorizationService()
+              .authorizedSchemaWrite(
+                  () ->
+                      localDB
+                          .query()
+                          .alter()
+                          .table(keyspaceName, tableName)
+                          .dropColumn(columnName)
+                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+                          .execute(),
+                  token,
+                  keyspaceName,
+                  tableName);
 
           return Response.status(Response.Status.NO_CONTENT).build();
         });

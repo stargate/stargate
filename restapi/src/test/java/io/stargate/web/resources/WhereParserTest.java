@@ -52,7 +52,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("name", Column.Type.Text))
             .build();
 
-    List<Where<?>> where = WhereParser.parseWhere(whereParam, table);
+    List<WhereCondition<?>> where = WhereParser.parseWhere(whereParam, table);
 
     assertThat(where).isEqualTo(whereExpected);
   }
@@ -183,7 +183,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("price", Column.Type.Double))
             .build();
 
-    List<Where<?>> where = WhereParser.parseWhere(whereParam, table);
+    List<WhereCondition<?>> where = WhereParser.parseWhere(whereParam, table);
 
     assertThat(where).isEqualTo(whereExpected);
   }
@@ -218,7 +218,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("id", Column.Type.Uuid))
             .build();
 
-    List<Where<?>> where = WhereParser.parseWhere(whereParam, table);
+    List<WhereCondition<?>> where = WhereParser.parseWhere(whereParam, table);
 
     assertThat(where).isEqualTo(whereExpected);
   }
@@ -260,7 +260,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("name", Column.Type.Text))
             .build();
 
-    List<Where<?>> where = WhereParser.parseWhere(whereParam, table);
+    List<WhereCondition<?>> where = WhereParser.parseWhere(whereParam, table);
 
     assertThat(where).isEqualTo(whereExpected);
   }

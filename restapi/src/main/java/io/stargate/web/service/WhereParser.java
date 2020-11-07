@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.stargate.db.datastore.query.ImmutableWhereCondition;
-import io.stargate.db.datastore.query.Where;
+import io.stargate.db.datastore.query.WhereCondition;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import io.stargate.web.resources.Converters;
@@ -34,14 +34,15 @@ import java.util.List;
 public class WhereParser {
   private static final ObjectMapper mapper = new ObjectMapper();
 
-  public static List<Where<?>> parseWhere(String whereParam, Table tableData) throws IOException {
+  public static List<WhereCondition<?>> parseWhere(String whereParam, Table tableData)
+      throws IOException {
     JsonNode filterJson;
     try {
       filterJson = mapper.readTree(whereParam);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Input provided is not valid json");
     }
-    List<Where<?>> conditions = new ArrayList<>();
+    List<WhereCondition<?>> conditions = new ArrayList<>();
 
     if (!filterJson.isObject()) {
       throw new RuntimeException("Was expecting a JSON object as input for where parameter.");
@@ -103,7 +104,7 @@ public class WhereParser {
     return conditions;
   }
 
-  private static Where<?> conditionToWhere(String fieldName, String op, Object value) {
+  private static WhereCondition<?> conditionToWhere(String fieldName, String op, Object value) {
     return ImmutableWhereCondition.builder()
         .value(value)
         .predicate(FilterOp.valueOf(op.toUpperCase()).predicate)

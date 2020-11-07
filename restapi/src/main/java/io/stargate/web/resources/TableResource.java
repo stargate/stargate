@@ -199,7 +199,12 @@ public class TableResource {
                   Converters.maybeQuote(tableAdd.getName()),
                   columnDefinitions.toString(),
                   tableOptions);
-          localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM).get();
+          db.getAuthorizationService()
+              .authorizedSchemaWrite(
+                  () -> localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM).get(),
+                  token,
+                  keyspaceName,
+                  tableAdd.getName());
 
           return Response.status(Response.Status.CREATED).entity(new SuccessResponse()).build();
         });
