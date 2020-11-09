@@ -5,10 +5,8 @@ import static org.apache.cassandra.cql3.QueryProcessor.executeInternal;
 import static org.apache.cassandra.cql3.QueryProcessor.executeOnceInternal;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -25,7 +23,6 @@ import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.db.commitlog.CommitLogPosition;
 import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.dht.IPartitioner;
-import org.apache.cassandra.dht.Murmur3Partitioner;
 import org.apache.cassandra.dht.Token.TokenFactory;
 import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.locator.InetAddressAndPort;
@@ -190,7 +187,8 @@ public class StargateSystemKeyspace {
         DatabaseDescriptor.getStoragePort(),
         SystemKeyspace.BootstrapState.COMPLETED.name(),
         SystemKeyspace.getLocalHostId(),
-        StargateSystemKeyspace.getRandomTokens(FBUtilities.getBroadcastNativeAddressAndPort(), DatabaseDescriptor.getNumTokens()),
+        StargateSystemKeyspace.generateRandomTokens(
+            FBUtilities.getBroadcastNativeAddressAndPort(), DatabaseDescriptor.getNumTokens()),
         SCHEMA_VERSION);
   }
 
@@ -270,11 +268,11 @@ public class StargateSystemKeyspace {
     }
   }
 
-  public static Set<String> getRandomTokens(InetAddressAndPort inetAddress, int numTokens) {
+  public static Set<String> generateRandomTokens(InetAddressAndPort inetAddress, int numTokens) {
     Random random = new Random(getHash(inetAddress));
+    IPartitioner partitioner = DatabaseDescriptor.getPartitioner();
+    TokenFactory tokenFactory = partitioner.getTokenFactory();
     Set<String> tokens = new HashSet<>(numTokens);
-    final IPartitioner partitioner = Murmur3Partitioner.instance;
-    final TokenFactory tokenFactory = partitioner.getTokenFactory();
     while (tokens.size() < numTokens) {
       tokens.add(tokenFactory.toString(partitioner.getRandomToken(random)));
     }

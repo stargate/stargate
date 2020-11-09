@@ -10,7 +10,6 @@ import io.stargate.db.cassandra.impl.StargateSystemKeyspace;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,7 +21,6 @@ import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.SelectStatement;
-import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.dht.Token.TokenFactory;
 import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.EndpointState;
@@ -277,7 +275,7 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     StargateSystemKeyspace.updatePeerInfo(
         endpoint,
         "tokens",
-        StargateSystemKeyspace.getRandomTokens(endpoint, DatabaseDescriptor.getNumTokens()));
+        StargateSystemKeyspace.generateRandomTokens(endpoint, DatabaseDescriptor.getNumTokens()));
   }
 
   private void notifyDown(InetAddressAndPort endpoint) {
