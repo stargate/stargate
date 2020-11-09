@@ -5,9 +5,14 @@ import static org.apache.cassandra.cql3.QueryProcessor.executeInternal;
 import static org.apache.cassandra.cql3.QueryProcessor.executeOnceInternal;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.config.DatabaseDescriptor;
@@ -19,6 +24,9 @@ import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.db.commitlog.CommitLogPosition;
 import org.apache.cassandra.db.marshal.UTF8Type;
+import org.apache.cassandra.dht.IPartitioner;
+import org.apache.cassandra.dht.Murmur3Partitioner;
+import org.apache.cassandra.dht.Token.TokenFactory;
 import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.locator.InetAddressAndPort;
 import org.apache.cassandra.schema.ColumnMetadata;
@@ -33,6 +41,7 @@ import org.apache.cassandra.schema.Types;
 import org.apache.cassandra.schema.Views;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.utils.FBUtilities;
+import org.apache.cassandra.utils.MurmurHash;
 import org.apache.commons.lang3.ArrayUtils;
 
 public class StargateSystemKeyspace {
@@ -181,7 +190,7 @@ public class StargateSystemKeyspace {
         DatabaseDescriptor.getStoragePort(),
         SystemKeyspace.BootstrapState.COMPLETED.name(),
         SystemKeyspace.getLocalHostId(),
-        Collections.singleton(DatabaseDescriptor.getPartitioner().getMinimumToken().toString()),
+        StargateSystemKeyspace.getRandomTokens(FBUtilities.getBroadcastNativeAddressAndPort(), DatabaseDescriptor.getNumTokens()),
         SCHEMA_VERSION);
   }
 
@@ -259,5 +268,21 @@ public class StargateSystemKeyspace {
       }
       FBUtilities.waitOnFutures(futures);
     }
+  }
+
+  public static Set<String> getRandomTokens(InetAddressAndPort inetAddress, int numTokens) {
+    Random random = new Random(getHash(inetAddress));
+    Set<String> tokens = new HashSet<>(numTokens);
+    final IPartitioner partitioner = Murmur3Partitioner.instance;
+    final TokenFactory tokenFactory = partitioner.getTokenFactory();
+    while (tokens.size() < numTokens) {
+      tokens.add(tokenFactory.toString(partitioner.getRandomToken(random)));
+    }
+    return tokens;
+  }
+
+  private static long getHash(InetAddressAndPort inetAddress) {
+    ByteBuffer bytes = ByteBuffer.wrap(inetAddress.addressBytes).putInt(inetAddress.port);
+    return MurmurHash.hash2_64(bytes, bytes.position(), bytes.remaining(), 0);
   }
 }
