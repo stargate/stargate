@@ -9,7 +9,6 @@ import io.stargate.db.cassandra.impl.StargateSystemKeyspace;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -265,8 +264,7 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     StargateSystemKeyspace.updatePeerInfo(
         endpoint,
         "tokens",
-        Collections.singleton(
-            factory.toString(DatabaseDescriptor.getPartitioner().getMinimumToken())),
+        StargateSystemKeyspace.generateRandomTokens(endpoint, DatabaseDescriptor.getNumTokens()),
         executor);
   }
 
