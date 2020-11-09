@@ -56,10 +56,11 @@ class PersistenceBackedResultSetTest {
   @BeforeEach
   void setup() {
     connection = mock(Connection.class);
-    Schema schema = ImmutableSchema.builder()
-        .addKeyspaces(
-            ImmutableKeyspace.builder().name("store").addTables(SHOPPING_CART).build())
-        .build();
+    Schema schema =
+        ImmutableSchema.builder()
+            .addKeyspaces(
+                ImmutableKeyspace.builder().name("store").addTables(SHOPPING_CART).build())
+            .build();
 
     Persistence persistence = mock(Persistence.class);
     when(connection.persistence()).thenReturn(persistence);

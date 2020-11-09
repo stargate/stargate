@@ -81,6 +81,28 @@ public class RestUtils {
     return body.string();
   }
 
+  public static String generateJwt(
+      String path, String username, String password, int expectedStatusCode) throws IOException {
+    OkHttpClient client = new OkHttpClient().newBuilder().build();
+
+    RequestBody requestBody =
+        RequestBody.create(
+            MediaType.parse("application/x-www-form-urlencoded"),
+            String.format(
+                "username=%s&password=%s&grant_type=password&client_id=user-service",
+                username, password));
+
+    Request request = new Request.Builder().url(path).post(requestBody).build();
+
+    Response response = client.newCall(request).execute();
+    assertStatusCode(response, expectedStatusCode);
+
+    ResponseBody body = response.body();
+    assertThat(body).isNotNull();
+
+    return body.string();
+  }
+
   public static Response postRaw(
       String authToken, String path, String requestBody, int expectedStatusCode)
       throws IOException {
