@@ -87,15 +87,20 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.net.InetSocketAddress;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -110,8 +115,8 @@ import okhttp3.RequestBody;
 import org.apache.http.HttpStatus;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -139,32 +144,28 @@ import org.slf4j.LoggerFactory;
 public class GraphqlTest extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
 
-  private CqlSession session;
-  private String authToken;
+  private static CqlSession session;
+  private static String authToken;
+  private static StargateConnectionInfo stargate;
   private static final String keyspace = "betterbotz";
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
-  private StargateConnectionInfo stargate;
+  @BeforeAll
+  public static void setup(StargateConnectionInfo stargateInfo) throws Exception {
+    stargate = stargateInfo;
 
-  @BeforeEach
-  public void setup(StargateConnectionInfo stargate) throws Exception {
-    this.stargate = stargate;
-
-    if (session == null) {
-      createSessionAndSchema();
-
-      initAuth();
-    }
+    createSessionAndSchema();
+    initAuth();
   }
 
-  @AfterEach
-  public void teardown() {
+  @AfterAll
+  public static void teardown() {
     if (session != null) {
       session.close();
     }
   }
 
-  private void createSessionAndSchema() throws Exception {
+  private static void createSessionAndSchema() throws Exception {
     session =
         CqlSession.builder()
             .withConfigLoader(
@@ -183,7 +184,8 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .build();
 
     // Create CQL schema using betterbotz.cql file
-    InputStream inputStream = getClass().getClassLoader().getResourceAsStream("betterbotz.cql");
+    InputStream inputStream =
+        GraphqlTest.class.getClassLoader().getResourceAsStream("betterbotz.cql");
     assertThat(inputStream).isNotNull();
     String queries = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
     assertThat(queries).isNotNull();
@@ -225,7 +227,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             "123 Main St 67890"));
   }
 
-  private void initAuth() throws IOException {
+  private static void initAuth() throws IOException {
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     String body =
@@ -845,7 +847,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         ProductsInput.builder()
             .id(productId)
             .name("Shiny Legs")
-            .price(new BigDecimal("3199.99"))
+            .price("3199.99")
             .created(Instant.now())
             .description("Normal legs but shiny.")
             .build();
@@ -875,7 +877,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     UUID id = UUID.randomUUID();
     String productName = "prod " + id;
     String customer = "cust " + id;
-    BigDecimal price = new BigDecimal("123");
+    String price = "123";
     String description = "desc " + id;
 
     ApolloClient client = getApolloClient("/graphql/betterbotz");
@@ -938,7 +940,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                 OrdersInput.builder()
                     .prodName(productName)
                     .customerName(customer)
-                    .price(new BigDecimal("456"))
+                    .price("456")
                     .description(description)
                     .build())
             .build();
@@ -999,7 +1001,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                 ProductsInput.builder()
                     .id(Uuids.random().toString())
                     .prodName("prod 1")
-                    .price(new BigDecimal("1"))
+                    .price("1")
                     .name("prod1")
                     .created(Instant.now())
                     .build())
@@ -1163,7 +1165,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         arguments(Column.Type.Smallint, 32_767),
         arguments(Column.Type.Text, "abc123", "'abc123'"),
         arguments(Column.Type.Time, "23:59:31.123456789"),
-        arguments(Column.Type.Timestamp, "2007-12-03T10:15:30Z"),
+        arguments(Column.Type.Timestamp, formatInstant(Instant.now())),
         arguments(Column.Type.Tinyint, -128),
         arguments(Column.Type.Tinyint, 1),
         arguments(Column.Type.Timeuuid, Uuids.timeBased().toString()),
@@ -1275,7 +1277,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
           ProductsInput.builder()
               .id(UUID.randomUUID().toString())
               .name(name)
-              .price(new BigDecimal("1.0"))
+              .price("1.0")
               .created(Instant.now())
               .build());
     }
@@ -1516,7 +1518,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
 
               @Override
               public Instant decode(@NotNull CustomTypeValue<?> customTypeValue) {
-                return Instant.parse(customTypeValue.value.toString());
+                return parseInstant(customTypeValue.value.toString());
               }
             })
         .build();
@@ -1559,4 +1561,24 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
       this.errors = errors;
     }
   }
+
+  private static Instant parseInstant(String source) {
+    try {
+      return TIMESTAMP_FORMAT.get().parse(source).toInstant();
+    } catch (ParseException e) {
+      throw new AssertionError("Unexpected error while parsing timestamp in response", e);
+    }
+  }
+
+  private static String formatInstant(Instant instant) {
+    return TIMESTAMP_FORMAT.get().format(Date.from(instant));
+  }
+
+  private static final ThreadLocal<SimpleDateFormat> TIMESTAMP_FORMAT =
+      ThreadLocal.withInitial(
+          () -> {
+            SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+            parser.setTimeZone(TimeZone.getTimeZone(ZoneId.systemDefault()));
+            return parser;
+          });
 }

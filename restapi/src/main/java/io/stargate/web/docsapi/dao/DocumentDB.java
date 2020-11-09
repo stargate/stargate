@@ -531,7 +531,9 @@ public class DocumentDB {
   public void delete(
       String keyspace, String table, String key, List<String> pathToDelete, long microsSinceEpoch) {
 
-    getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch, pathToDelete).execute().join();
+    getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch, pathToDelete)
+        .execute(ConsistencyLevel.LOCAL_QUORUM)
+        .join();
   }
 
   public void deleteDeadLeaves(

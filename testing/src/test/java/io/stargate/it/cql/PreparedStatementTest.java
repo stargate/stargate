@@ -3,6 +3,8 @@ package io.stargate.it.cql;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ColumnDefinition;
 import com.datastax.oss.driver.api.core.cql.ColumnDefinitions;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
@@ -11,21 +13,28 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.protocol.internal.util.Bytes;
+import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.TestKeyspace;
 import java.nio.ByteBuffer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-public class PreparedStatementTest extends JavaDriverTestBase {
+@ExtendWith(CqlSessionExtension.class)
+public class PreparedStatementTest extends BaseOsgiIntegrationTest {
 
   @BeforeEach
-  public void setupSchema() {
+  public void createSchema(CqlSession session) {
+    // Must recreate every time because some methods alter the schema
+    session.execute("DROP TABLE IF EXISTS prepared_statement_test");
     session.execute("CREATE TABLE prepared_statement_test (a int PRIMARY KEY, b int, c int)");
   }
 
   @Test
   @DisplayName("Should get expected metadata when preparing INSERT with no variables")
-  public void insertWithoutVariablesTest() {
+  public void insertWithoutVariablesTest(CqlSession session) {
     PreparedStatement prepared =
         session.prepare("INSERT INTO prepared_statement_test (a, b, c) VALUES (1, 1, 1)");
     assertThat(prepared.getVariableDefinitions()).isEmpty();
@@ -35,27 +44,28 @@ public class PreparedStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should get expected metadata when preparing INSERT with variables")
-  public void insertWithVariablesTest() {
+  public void insertWithVariablesTest(CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     PreparedStatement prepared =
         session.prepare("INSERT INTO prepared_statement_test (a, b, c) VALUES (?, ?, ?)");
-    assertAllColumns(prepared.getVariableDefinitions());
+    assertAllColumns(prepared.getVariableDefinitions(), keyspaceId);
     assertThat(prepared.getPartitionKeyIndices()).containsExactly(0);
     assertThat(prepared.getResultSetDefinitions()).isEmpty();
   }
 
   @Test
   @DisplayName("Should get expected metadata when preparing SELECT without variables")
-  public void selectWithoutVariablesTest() {
+  public void selectWithoutVariablesTest(
+      CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     PreparedStatement prepared =
         session.prepare("SELECT a,b,c FROM prepared_statement_test WHERE a = 1");
     assertThat(prepared.getVariableDefinitions()).isEmpty();
     assertThat(prepared.getPartitionKeyIndices()).isEmpty();
-    assertAllColumns(prepared.getResultSetDefinitions());
+    assertAllColumns(prepared.getResultSetDefinitions(), keyspaceId);
   }
 
   @Test
   @DisplayName("Should get expected metadata when preparing SELECT with variables")
-  public void selectWithVariablesTest() {
+  public void selectWithVariablesTest(CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     PreparedStatement prepared =
         session.prepare("SELECT a,b,c FROM prepared_statement_test WHERE a = ?");
     assertThat(prepared.getVariableDefinitions()).hasSize(1);
@@ -65,12 +75,12 @@ public class PreparedStatementTest extends JavaDriverTestBase {
     assertThat(variable1.getName().asInternal()).isEqualTo("a");
     assertThat(variable1.getType()).isEqualTo(DataTypes.INT);
     assertThat(prepared.getPartitionKeyIndices()).containsExactly(0);
-    assertAllColumns(prepared.getResultSetDefinitions());
+    assertAllColumns(prepared.getResultSetDefinitions(), keyspaceId);
   }
 
   @Test
   @DisplayName("Should fail to reprepare if the query becomes invalid after a schema change")
-  public void failedReprepareTest() {
+  public void failedReprepareTest(CqlSession session) {
     // Given
     session.execute("ALTER TABLE prepared_statement_test ADD d int");
     PreparedStatement ps =
@@ -84,7 +94,7 @@ public class PreparedStatementTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should not store metadata for conditional updates")
-  public void conditionalUpdateTest() {
+  public void conditionalUpdateTest(CqlSession session) {
     // Given
     PreparedStatement ps =
         session.prepare(
@@ -142,7 +152,7 @@ public class PreparedStatementTest extends JavaDriverTestBase {
     assertThat(Bytes.toHexString(ps.getResultMetadataId())).isEqualTo(Bytes.toHexString(idBefore));
   }
 
-  private void assertAllColumns(ColumnDefinitions columnDefinitions) {
+  private void assertAllColumns(ColumnDefinitions columnDefinitions, CqlIdentifier keyspaceId) {
     assertThat(columnDefinitions).hasSize(3);
     ColumnDefinition column1 = columnDefinitions.get(0);
     assertThat(column1.getKeyspace()).isEqualTo(keyspaceId);

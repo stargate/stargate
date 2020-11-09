@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
-  <version>0.0.20-SNAPSHOT</version>
+  <version>0.0.23-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
@@ -131,6 +131,8 @@
         <module>auth-table-based-service</module>
         <module>auth-jwt-service</module>
         <module>health-checker</module>
+        <module>config-store-api</module>
+        <module>config-store-yaml</module>
         <!-- testing last -->
         <module>testing</module>
       </modules>
@@ -156,6 +158,8 @@
         <module>auth-table-based-service</module>
         <module>auth-jwt-service</module>
         <module>health-checker</module>
+        <module>config-store-api</module>
+        <module>config-store-yaml</module>
         <!-- testing last -->
         <module>testing</module>
       </modules>
@@ -520,6 +524,11 @@
         <groupId>io.dropwizard</groupId>
         <artifactId>dropwizard-testing</artifactId>
         <version>${dropwizard.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.awaitility</groupId>
+        <artifactId>awaitility</artifactId>
+        <version>4.0.3</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
