@@ -210,6 +210,10 @@ public abstract class BaseActivator implements BundleActivator {
       this.service = service;
       this.properties = properties;
     }
+
+    public ServiceAndProperties(Object service) {
+      this(service, new Hashtable<>());
+    }
   }
 
   public static class ServicePointer<T> {
