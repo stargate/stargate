@@ -68,16 +68,16 @@ public class Starter {
 
   public static final String STARTED_MESSAGE = "Finished starting bundles.";
 
-  private static final String JAR_DIRECTORY =
+  protected static final String JAR_DIRECTORY =
       System.getProperty("stargate.libdir", "../stargate-lib");
-  private static final String CACHE_DIRECTORY = System.getProperty("stargate.bundle.cache.dir");
+  protected static final String CACHE_DIRECTORY = System.getProperty("stargate.bundle.cache.dir");
 
   @Retention(RetentionPolicy.RUNTIME)
   public @interface Order {
     int value();
   }
 
-  @Inject HelpOption<Starter> help;
+  @Inject protected HelpOption<Starter> help;
 
   @Required
   @Order(value = 1)
@@ -86,14 +86,14 @@ public class Starter {
       title = "cluster_name",
       arity = 1,
       description = "Name of backend cluster")
-  String clusterName;
+  protected String clusterName;
 
   @Order(value = 2)
   @Option(
       name = {"--cluster-seed"},
       title = "seed_address",
       description = "Seed node address")
-  List<String> seedList = new ArrayList<>();
+  protected List<String> seedList = new ArrayList<>();
 
   @Required
   @Order(value = 3)
@@ -101,7 +101,7 @@ public class Starter {
       name = {"--cluster-version"},
       title = "version",
       description = "The major version number of the backend cluster (example: 3.11 or 4.0)")
-  String version;
+  protected String version;
 
   @Order(value = 4)
   @Option(
@@ -112,7 +112,7 @@ public class Starter {
   @Pattern(
       pattern = "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$",
       description = "Must be a valid IP address")
-  String listenHostStr = "127.0.0.1";
+  protected String listenHostStr = "127.0.0.1";
 
   @Order(value = 5)
   @Option(
@@ -121,7 +121,7 @@ public class Starter {
       arity = 1,
       description = "Port that seed nodes are listening on (default: 7000)")
   @Port
-  Integer seedPort = 7000;
+  protected Integer seedPort = 7000;
 
   @Order(value = 6)
   @Option(
@@ -129,7 +129,7 @@ public class Starter {
       name = {"--dc"},
       arity = 1,
       description = "Datacenter name of this node (matching backend)")
-  String dc;
+  protected String dc;
 
   @Order(value = 7)
   @Option(
@@ -137,19 +137,19 @@ public class Starter {
       name = {"--rack"},
       arity = 1,
       description = "Rack name of this node (matching backend)")
-  String rack;
+  protected String rack;
 
   @Order(value = 8)
   @Option(
       name = {"--simple-snitch"},
       description = "Set if backend uses the simple snitch")
-  boolean simpleSnitch = false;
+  protected boolean simpleSnitch = false;
 
   @Order(value = 9)
   @Option(
       name = {"--dse"},
       description = "Set if backend is DSE, otherwise Cassandra")
-  boolean dse = false;
+  protected boolean dse = false;
 
   @Order(value = 10)
   @Option(
@@ -157,40 +157,40 @@ public class Starter {
       title = "port",
       description = "CQL Service port (default: 9042)")
   @Port
-  int cqlPort = 9042;
+  protected int cqlPort = 9042;
 
   @Order(value = 11)
   @Option(
       name = {"--enable-auth"},
       description = "Set to enable PasswordAuthenticator")
-  private boolean enableAuth = false;
+  protected boolean enableAuth = false;
 
   @Order(value = 12)
   @Option(
       name = {"--use-proxy-protocol"},
       description = "Use proxy protocol to determine the public address and port of CQL requests")
-  private boolean useProxyProtocol = false;
+  protected boolean useProxyProtocol = false;
 
   @Order(value = 13)
   @Option(
       name = {"--proxy-dns-name"},
       description =
           "Used with the proxy protocol flag to populate `system.peers` with a proxy's public IP addresses (i.e. A records)")
-  private String proxyDnsName;
+  protected String proxyDnsName;
 
   @Order(value = 14)
   @Option(
       name = {"--proxy-port"},
       description =
           "Used with the proxy protocol flag to specify the proxy's listening port for the CQL protocol")
-  private int proxyPort = cqlPort;
+  protected int proxyPort = cqlPort;
 
   @Order(value = 15)
   @Option(
       name = {"--emulate-dbaas-defaults"},
       description =
           "Updated defaults reflect those of DataStax Astra at the time of the currently used DSE release")
-  private boolean emulateDbaasDefaults = false;
+  protected boolean emulateDbaasDefaults = false;
 
   @Order(value = 16)
   @Option(
@@ -199,19 +199,19 @@ public class Starter {
           "Defines whether the stargate node should also behave as a "
               + "regular node, joining the ring with tokens assigned in order to facilitate getting started quickly and not "
               + "requiring additional nodes or existing cluster")
-  boolean developerMode = false;
+  protected boolean developerMode = false;
 
   @Order(value = 17)
   @Option(
       name = {"--bind-to-listen-address"},
       description = "When set, it binds web services to listen address only")
-  boolean bindToListenAddressOnly = false;
+  protected boolean bindToListenAddressOnly = false;
 
   @Order(value = 18)
   @Option(
       name = {"--jmx-port"},
       description = "The port on which JMX should start")
-  int jmxPort = 7199;
+  protected int jmxPort = 7199;
 
   @Order(value = 19)
   @Option(
@@ -219,12 +219,12 @@ public class Starter {
         "--disable-dynamic-snitch",
         "Whether the dynamic snitch should wrap the actual snitch."
       })
-  boolean disableDynamicSnitch = false;
+  protected boolean disableDynamicSnitch = false;
 
   @Order(value = 20)
   @Option(
       name = {"--disable-mbean-registration", "Whether the mbean registration should be disabled"})
-  boolean disableMBeanRegistration = false;
+  protected boolean disableMBeanRegistration = false;
 
   private BundleContext context;
   private Felix framework;
@@ -355,20 +355,7 @@ public class Starter {
     }
 
     // Initialize Apache Felix Framework
-    Map<String, String> configMap = new HashMap<>();
-    configMap.put(Constants.FRAMEWORK_STORAGE_CLEAN, "onFirstInit");
-    configMap.put(
-        FelixConstants.LOG_LEVEL_PROP,
-        System.getProperty("felix.log.level", String.valueOf(Logger.LOG_WARNING)));
-    configMap.put(
-        FelixConstants.FRAMEWORK_SYSTEMPACKAGES_EXTRA,
-        "sun.misc,sun.nio.ch,com.sun.management,sun.rmi.registry");
-
-    if (CACHE_DIRECTORY != null) {
-      configMap.put(FelixConstants.FRAMEWORK_STORAGE, CACHE_DIRECTORY);
-    }
-
-    framework = new Felix(configMap);
+    framework = new Felix(felixConfig());
     framework.init();
 
     System.err.println("JAR DIR: " + JAR_DIRECTORY);
@@ -395,6 +382,23 @@ public class Starter {
     System.out.println(STARTED_MESSAGE);
 
     if (watchBundles) watchJarDirectory(JAR_DIRECTORY);
+  }
+
+  protected Map<String, String> felixConfig() {
+    Map<String, String> configMap = new HashMap<>();
+    configMap.put(Constants.FRAMEWORK_STORAGE_CLEAN, "onFirstInit");
+    configMap.put(
+        FelixConstants.LOG_LEVEL_PROP,
+        System.getProperty("felix.log.level", String.valueOf(Logger.LOG_WARNING)));
+    configMap.put(
+        FelixConstants.FRAMEWORK_SYSTEMPACKAGES_EXTRA,
+        "sun.misc,sun.nio.ch,com.sun.management,sun.rmi.registry");
+
+    if (CACHE_DIRECTORY != null) {
+      configMap.put(FelixConstants.FRAMEWORK_STORAGE, CACHE_DIRECTORY);
+    }
+
+    return configMap;
   }
 
   protected List<File> pickBundles(File[] files) {
@@ -509,7 +513,7 @@ public class Starter {
   }
 
   /** Prints help with options in the order specified in {@link Order} */
-  private static void printHelp(SingleCommand c) {
+  protected static void printHelp(SingleCommand c) {
     try {
       new CliCommandUsageGenerator(
               79,
@@ -532,10 +536,10 @@ public class Starter {
     }
   }
 
-  public static void main(String[] args) {
-    SingleCommand<Starter> parser = SingleCommand.singleCommand(Starter.class);
+  protected static void cli(String[] args, Class<? extends Starter> starterClass) {
+    SingleCommand<? extends Starter> parser = SingleCommand.singleCommand(starterClass);
     try {
-      ParseResult<Starter> result = parser.parseWithResult(args);
+      ParseResult<? extends Starter> result = parser.parseWithResult(args);
 
       if (result.wasSuccessful()) {
         // Parsed successfully, so just run the command and exit
@@ -577,5 +581,9 @@ public class Starter {
 
       System.exit(1);
     }
+  }
+
+  public static void main(String[] args) {
+    cli(args, Starter.class);
   }
 }

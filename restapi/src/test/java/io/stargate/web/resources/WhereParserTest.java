@@ -119,7 +119,7 @@ public class WhereParserTest {
             })
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining(
-            "Value entry for field name, operation $gt was expecting a value, but found an object, array, or null.");
+            "Value entry for field name, operation $gt was expecting a value, but found null.");
   }
 
   @Test

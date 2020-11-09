@@ -21,7 +21,7 @@ steps:
       - 'rsync'
       - '-r'
       - '-x'
-      - '/cache/.m2/repository/io/stargate'
+      - '/cache/.m2/io/stargate'
       - 'gs://${_BUCKET}/cache/.m2'
       - '/cache/.m2'
     volumes:
@@ -81,7 +81,7 @@ steps:
       - 'rsync'
       - '-r'
       - '-x'
-      - '/cache/.m2/repository/io/stargate'
+      - '/cache/.m2/io/stargate'
       - '/cache/.m2'
       - 'gs://${_BUCKET}/cache/.m2/'
     volumes:

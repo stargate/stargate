@@ -1,5 +1,9 @@
 package io.stargate.db.dse.impl;
 
+import com.datastax.bdp.db.util.ProductType;
+import com.datastax.bdp.db.util.ProductVersion;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
 import io.reactivex.Single;
@@ -19,8 +23,10 @@ import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +39,9 @@ import org.apache.cassandra.auth.AuthenticatedUser;
 import org.apache.cassandra.auth.user.UserRolesAndPermissions;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.cql3.PageSize;
 import org.apache.cassandra.cql3.QueryOptions;
+import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.marshal.UserType;
@@ -64,6 +72,7 @@ import org.apache.cassandra.transport.messages.ExecuteMessage;
 import org.apache.cassandra.transport.messages.PrepareMessage;
 import org.apache.cassandra.transport.messages.QueryMessage;
 import org.apache.cassandra.transport.messages.ResultMessage;
+import org.apache.cassandra.transport.messages.StartupMessage;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -248,6 +257,23 @@ public class DsePersistence
             .collect(Collectors.toSet())
             .size()
         <= 1;
+  }
+
+  @Override
+  public Map<String, List<String>> cqlSupportedOptions() {
+    List<String> pageUnits =
+        Arrays.stream(PageSize.PageUnit.values()).map(Enum::toString).collect(Collectors.toList());
+    return ImmutableMap.<String, List<String>>builder()
+        .put(StartupMessage.PAGE_UNIT, pageUnits)
+        .put(
+            StartupMessage.SERVER_VERSION,
+            Collections.singletonList(ProductVersion.getDSEVersionString()))
+        .put(StartupMessage.PRODUCT_TYPE, Collections.singletonList(ProductType.product.name()))
+        .put(
+            StartupMessage.EMULATE_DBAAS_DEFAULTS,
+            Collections.singletonList(String.valueOf(DatabaseDescriptor.isEmulateDbaasDefaults())))
+        .put(StartupMessage.CQL_VERSION, ImmutableList.of(QueryProcessor.CQL_VERSION.toString()))
+        .build();
   }
 
   /**

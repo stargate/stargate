@@ -3,21 +3,22 @@ package io.stargate.it.cql;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.offset;
 
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ExecutionInfo;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
-import org.junit.jupiter.api.BeforeEach;
+import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.driver.CqlSessionExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-public abstract class AbstractCompressionTest extends JavaDriverTestBase {
+@ExtendWith(CqlSessionExtension.class)
+public abstract class AbstractCompressionTest extends BaseOsgiIntegrationTest {
 
-  @BeforeEach
-  public void createTable() {
+  protected void compressionTest(CqlSession session) {
 
     session.execute("CREATE TABLE test (k text PRIMARY KEY, t text, i int, f float)");
-  }
 
-  protected void compressionTest() {
     // Run a couple of simple test queries
     ResultSet rs =
         session.execute(

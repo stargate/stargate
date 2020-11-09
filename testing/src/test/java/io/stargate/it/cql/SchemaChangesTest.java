@@ -5,35 +5,41 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.metadata.schema.SchemaChangeListener;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
+import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.driver.TestKeyspace;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class SchemaChangesTest extends JavaDriverTestBase {
+@ExtendWith(CqlSessionExtension.class)
+@CqlSessionSpec(customBuilder = "registerListener")
+public class SchemaChangesTest extends BaseOsgiIntegrationTest {
 
-  @Mock private SchemaChangeListener schemaChanges;
+  private static SchemaChangeListener schemaChanges;
   @Captor ArgumentCaptor<TableMetadata> tableCaptor;
   @Captor ArgumentCaptor<TableMetadata> previousTableCaptor;
 
-  @Override
-  protected void customizeBuilder(CqlSessionBuilder builder) {
-    assertThat(schemaChanges).isNotNull();
-    builder.withSchemaChangeListener(schemaChanges);
+  public static CqlSessionBuilder registerListener(CqlSessionBuilder builder) {
+    schemaChanges = Mockito.mock(SchemaChangeListener.class);
+    return builder.withSchemaChangeListener(schemaChanges);
   }
 
   @Test
   @DisplayName("Should notify of schema changes")
-  public void schemaChangesTest() {
+  public void schemaChangesTest(CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     // This is not an extensive coverage of the driver's schema metadata, we just want to check that
     // the schema events on the control connection are wired correctly.
     session.execute("CREATE TABLE foo(k int PRIMARY KEY)");
@@ -67,7 +73,7 @@ public class SchemaChangesTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should fail when trying to create schema elements that already exist")
-  public void alreadyExistsErrors() {
+  public void alreadyExistsErrors(CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
     assertThatThrownBy(
             () ->
                 session.execute(
