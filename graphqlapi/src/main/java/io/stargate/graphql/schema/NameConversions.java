@@ -55,10 +55,8 @@ public class NameConversions {
     if (graphqlName == null || graphqlName.isEmpty()) {
       throw new IllegalArgumentException("GraphQL name must be non-null and not empty");
     }
-    if (type == IdentifierType.UDT) {
-      if (graphqlName.endsWith("Udt")) {
-        graphqlName = graphqlName.substring(0, graphqlName.length() - 3);
-      }
+    if (type == IdentifierType.UDT && graphqlName.endsWith("Udt")) {
+      graphqlName = graphqlName.substring(0, graphqlName.length() - 3);
     }
     return maybeHexUnescape(graphqlName);
   }
