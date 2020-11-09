@@ -329,14 +329,15 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
     HttpRequestHandler get() {
       // Double-checked locking
       HttpRequestHandlerImpl result = handler;
-      if (handler == null) {
-        synchronized (this) {
-          if (handler == null) {
-            handler = result = computeHandler();
-          }
-        }
+      if (result != null) {
+        return result;
       }
-      return result;
+      synchronized (this) {
+        if (handler == null) {
+          handler = computeHandler();
+        }
+        return handler;
+      }
     }
 
     private HttpRequestHandlerImpl computeHandler() {

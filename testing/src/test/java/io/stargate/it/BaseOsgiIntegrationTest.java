@@ -15,6 +15,7 @@
  */
 package io.stargate.it;
 
+import com.datastax.oss.driver.api.core.Version;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import io.stargate.it.storage.ClusterSpec;
 import io.stargate.it.storage.StargateSpec;
@@ -44,5 +45,12 @@ public class BaseOsgiIntegrationTest {
   @BeforeEach
   public void init(ClusterConnectionInfo backend) {
     this.backend = backend;
+  }
+
+  // TODO generalize this to an ExecutionCondition that reads custom annotations, like
+  // @CassandraRequirement/@DseRequirement in the Java driver tests
+  public boolean isCassandra4() {
+    return !backend.isDse()
+        && Version.parse(backend.clusterVersion()).nextStable().compareTo(Version.V4_0_0) >= 0;
   }
 }
