@@ -36,6 +36,7 @@ import io.stargate.db.datastore.ArrayListBackedRow;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.Type;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -84,7 +85,7 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-userid", "123");
 
     List<TargetCell> targetCells =
-        Collections.singletonList(new TargetCell("userid", "Text", "123"));
+        Collections.singletonList(new TargetCell("userid", Type.Text.name(), "123"));
 
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), targetCells);
@@ -101,7 +102,7 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-userid", "123");
 
     List<TargetCell> targetCells =
-        Collections.singletonList(new TargetCell("userid", "Text", "123"));
+        Collections.singletonList(new TargetCell("userid", Type.Text.name(), "123"));
 
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), targetCells);
@@ -122,41 +123,11 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-userid", "123");
 
     List<TargetCell> targetCells =
-        Collections.singletonList(new TargetCell("userid", "Text", "123"));
+        Collections.singletonList(new TargetCell("userid", Type.Text.name(), "123"));
 
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), targetCells);
     assertThat(result.rows()).isEqualTo(null);
-  }
-
-  @Test
-  public void executeDataReadWithAuthorizationMoreValuesThanKeys() throws Exception {
-    ResultSet resultSet = mock(ResultSet.class);
-    Map<String, Object> values = new HashMap<>();
-    values.put("userid", "123");
-    values.put("item_count", 2);
-    values.put("last_update_timestamp", Instant.now());
-    Row row = createRow(SHOPPING_CART.columns(), values);
-    when(resultSet.rows()).thenReturn(Collections.singletonList(row));
-
-    Callable<ResultSet> action = mock(Callable.class);
-    when(action.call()).thenReturn(resultSet);
-
-    Map<String, Object> stargate_claims = new HashMap<>();
-    stargate_claims.put("x-stargate-role", "web-user");
-    stargate_claims.put("x-stargate-userid", "123");
-
-    List<TargetCell> targetCells =
-        Arrays.asList(
-            new TargetCell("userid", "Text", "123"), new TargetCell("userid", "Text", "abc"));
-
-    IllegalArgumentException ex =
-        assertThrows(
-            IllegalArgumentException.class,
-            () ->
-                mockAuthzJwtService.authorizedDataRead(
-                    action, signJWT(stargate_claims), targetCells));
-    assertThat(ex).hasMessage("Provided more primary key values than exists");
   }
 
   @Test
@@ -177,7 +148,7 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-userid", "456");
 
     List<TargetCell> targetCells =
-        Collections.singletonList(new TargetCell("userid", "Text", "123"));
+        Collections.singletonList(new TargetCell("userid", Type.Text.name(), "123"));
 
     UnauthorizedException ex =
         assertThrows(
@@ -207,7 +178,7 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-userid", "123");
 
     List<TargetCell> targetCells =
-        Collections.singletonList(new TargetCell("userid", "Text", "123"));
+        Collections.singletonList(new TargetCell("userid", Type.Text.name(), "123"));
 
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), targetCells);
@@ -234,7 +205,8 @@ public class AuthzJwtServiceTest {
 
     List<TargetCell> targetCells =
         Arrays.asList(
-            new TargetCell("userid", "Text", "123"), new TargetCell("userid", "Text", "2"));
+            new TargetCell("userid", Type.Text.name(), "123"),
+            new TargetCell("item_count", Type.Int.name(), 2));
 
     IllegalArgumentException ex =
         assertThrows(

@@ -140,14 +140,13 @@ public class AuthzJwtService implements AuthorizationService {
 
   private void preCheckDataReadWrite(JSONObject stargateClaims, List<TargetCell> targetCells)
       throws JSONException, UnauthorizedException {
-    for (int i = 0; i < targetCells.size(); i++) {
-      TargetCell targetCell = targetCells.get(0);
+    for (TargetCell targetCell : targetCells) {
       // If one of the columns exist as a field in the JWT claims and the values do not match then
       // the request is not allowed.
       if (stargateClaims.has(STARGATE_PREFIX + targetCell.getName())) {
-
-        if (!(targetCell.getType().equals(Type.Varchar.cqlDefinition())
-            || targetCell.getType().equals(Type.Text.cqlDefinition()))) {
+        String targetCellType = targetCell.getType().toLowerCase();
+        if (!(targetCellType.equals(Type.Varchar.cqlDefinition())
+            || targetCellType.equals(Type.Text.cqlDefinition()))) {
           throw new IllegalArgumentException(
               "Column must be of type text to be used for authorization");
         }
