@@ -40,6 +40,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -47,7 +48,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 public class ScalarsDmlTest extends DmlTestBase {
   public static final Table table = buildTable();
   public static final Keyspace keyspace =
-      ImmutableKeyspace.builder().name("scalars_ks").addTables(table).build();
+      ImmutableKeyspace.builder().name("scalars").addTables(table).build();
+  private static final String UUID_REGEX =
+      "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
   public static final Map<Column.Type, Function<Object, Object>> toRowCellFn = buildRowToCellMap();
 
@@ -141,6 +144,55 @@ public class ScalarsDmlTest extends DmlTestBase {
   public void incorrectLiteralsForScalarsShouldResultInError(Column.Type type, Object value) {
     String mutation = "mutation { insertScalars(value: { %s:%s, id:1 }) { applied } }";
     assertError(String.format(mutation, getName(type), toGraphQLValue(value)), "Validation error");
+  }
+
+  @Test
+  public void timeUuidTypeShouldSupportNowFunction() {
+    long startTime = System.currentTimeMillis();
+    long unixToGregorian = 12219292800000L;
+    long ticksInMs = 10000L;
+
+    String mutation =
+        "mutation { insertScalars(value: { timeuuidvalue:\"now()\", id:1 }) { "
+            + "applied, value { timeuuidvalue } } }";
+    ExecutionResult result = executeGraphQl(mutation);
+    assertThat(result.getErrors()).isEmpty();
+    assertThat(queryCaptor.getValue())
+        .matches(
+            String.format(
+                "INSERT INTO scalars_ks.scalars \\(id,timeuuidvalue\\)" + " VALUES \\(1,%s\\)",
+                UUID_REGEX));
+
+    assertThat(result.<Map<String, Object>>getData())
+        .extractingByKey("insertScalars", InstanceOfAssertFactories.MAP)
+        .extractingByKey("value", InstanceOfAssertFactories.MAP)
+        .extractingByKey("timeuuidvalue")
+        .extracting(
+            x -> UUID.fromString(x.toString()).timestamp() / ticksInMs - unixToGregorian,
+            InstanceOfAssertFactories.LONG)
+        .isGreaterThanOrEqualTo(startTime)
+        .isLessThanOrEqualTo(System.currentTimeMillis());
+  }
+
+  @Test
+  public void uuidTypeShouldSupportUuidFunction() {
+    String mutation =
+        "mutation { insertScalars(value: { uuidvalue:\"uuid()\", id:1 }) { "
+            + "applied, value { uuidvalue } } }";
+    ExecutionResult result = executeGraphQl(mutation);
+    assertThat(result.getErrors()).isEmpty();
+    assertThat(queryCaptor.getValue())
+        .matches(
+            String.format(
+                "INSERT INTO scalars_ks.scalars \\(id,uuidvalue\\)" + " VALUES \\(1,%s\\)",
+                UUID_REGEX));
+
+    assertThat(result.<Map<String, Object>>getData())
+        .extractingByKey("insertScalars", InstanceOfAssertFactories.MAP)
+        .extractingByKey("value", InstanceOfAssertFactories.MAP)
+        .extractingByKey("uuidvalue")
+        .extracting(x -> UUID.fromString(x.toString()).version())
+        .isEqualTo(4);
   }
 
   private static Stream<Arguments> getValues() {
