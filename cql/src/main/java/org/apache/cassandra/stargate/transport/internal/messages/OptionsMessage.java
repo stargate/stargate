@@ -23,10 +23,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.Message;
-import org.apache.cassandra.transport.frame.compress.SnappyCompressor;
+import org.apache.cassandra.stargate.transport.internal.frame.compress.SnappyCompressor;
 import org.apache.cassandra.utils.ChecksumType;
 
 /** Message to indicate that the server is ready to receive requests. */
@@ -50,20 +49,17 @@ public class OptionsMessage extends Message.Request {
 
   @Override
   protected CompletableFuture<? extends Response> execute(long queryStartNanoTime) {
-    List<String> cqlVersions = new ArrayList<>();
-    cqlVersions.add(QueryProcessor.CQL_VERSION.toString());
 
     List<String> compressions = new ArrayList<>();
     if (SnappyCompressor.INSTANCE != null) compressions.add("snappy");
     // LZ4 is always available since worst case scenario it default to a pure JAVA implem.
     compressions.add("lz4");
 
-    Map<String, List<String>> supported = new HashMap<>();
-    supported.put(org.apache.cassandra.transport.messages.StartupMessage.CQL_VERSION, cqlVersions);
-    supported.put(org.apache.cassandra.transport.messages.StartupMessage.COMPRESSION, compressions);
-    supported.put(
-        org.apache.cassandra.transport.messages.StartupMessage.PROTOCOL_VERSIONS,
-        org.apache.cassandra.transport.ProtocolVersion.supportedVersions());
+    Map<String, List<String>> supported = new HashMap<>(persistence().cqlSupportedOptions());
+    assert supported.containsKey(StartupMessage.CQL_VERSION);
+
+    supported.put(StartupMessage.COMPRESSION, compressions);
+    supported.put(StartupMessage.PROTOCOL_VERSIONS, ProtocolVersion.supportedVersions());
 
     if (connection.getVersion().supportsChecksums()) {
       ChecksumType[] types = ChecksumType.values();

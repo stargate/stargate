@@ -18,6 +18,8 @@ import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchemaElement;
 import graphql.schema.GraphQLType;
 import io.stargate.db.schema.Column;
+import io.stargate.graphql.schema.types.scalars.CustomScalars;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -36,10 +38,12 @@ public class FieldTypeCachesTest {
   private FieldInputTypeCache fieldInputTypes;
   private FieldOutputTypeCache fieldOutputTypes;
 
+  private List<String> warnings = new ArrayList<>();
+
   @BeforeEach
   public void setup() {
-    fieldInputTypes = new FieldInputTypeCache(nameMapping);
-    fieldOutputTypes = new FieldOutputTypeCache(nameMapping);
+    fieldInputTypes = new FieldInputTypeCache(nameMapping, warnings);
+    fieldOutputTypes = new FieldOutputTypeCache(nameMapping, warnings);
   }
 
   @ParameterizedTest
@@ -165,25 +169,25 @@ public class FieldTypeCachesTest {
 
   public static Stream<Arguments> getScalarTypes() {
     return Stream.of(
-        arguments(Column.Type.Ascii, CustomScalar.ASCII.getGraphQLScalar()),
-        arguments(Column.Type.Bigint, CustomScalar.BIGINT.getGraphQLScalar()),
-        arguments(Column.Type.Blob, CustomScalar.BLOB.getGraphQLScalar()),
+        arguments(Column.Type.Ascii, CustomScalars.ASCII),
+        arguments(Column.Type.Bigint, CustomScalars.BIGINT),
+        arguments(Column.Type.Blob, CustomScalars.BLOB),
         arguments(Column.Type.Boolean, Scalars.GraphQLBoolean),
-        arguments(Column.Type.Counter, CustomScalar.COUNTER.getGraphQLScalar()),
-        arguments(Column.Type.Decimal, CustomScalar.DECIMAL.getGraphQLScalar()),
+        arguments(Column.Type.Counter, CustomScalars.COUNTER),
+        arguments(Column.Type.Decimal, CustomScalars.DECIMAL),
         arguments(Column.Type.Double, Scalars.GraphQLFloat),
         arguments(Column.Type.Int, Scalars.GraphQLInt),
         arguments(Column.Type.Text, Scalars.GraphQLString),
         arguments(Column.Type.Varchar, Scalars.GraphQLString),
-        arguments(Column.Type.Timestamp, CustomScalar.TIMESTAMP.getGraphQLScalar()),
-        arguments(Column.Type.Uuid, CustomScalar.UUID.getGraphQLScalar()),
-        arguments(Column.Type.Varint, CustomScalar.VARINT.getGraphQLScalar()),
-        arguments(Column.Type.Timeuuid, CustomScalar.TIMEUUID.getGraphQLScalar()),
-        arguments(Column.Type.Inet, CustomScalar.INET.getGraphQLScalar()),
-        arguments(Column.Type.Date, CustomScalar.DATE.getGraphQLScalar()),
-        arguments(Column.Type.Time, CustomScalar.TIME.getGraphQLScalar()),
-        arguments(Column.Type.Smallint, CustomScalar.SMALLINT.getGraphQLScalar()),
-        arguments(Column.Type.Tinyint, CustomScalar.TINYINT.getGraphQLScalar()));
+        arguments(Column.Type.Timestamp, CustomScalars.TIMESTAMP),
+        arguments(Column.Type.Uuid, CustomScalars.UUID),
+        arguments(Column.Type.Varint, CustomScalars.VARINT),
+        arguments(Column.Type.Timeuuid, CustomScalars.TIMEUUID),
+        arguments(Column.Type.Inet, CustomScalars.INET),
+        arguments(Column.Type.Date, CustomScalars.DATE),
+        arguments(Column.Type.Time, CustomScalars.TIME),
+        arguments(Column.Type.Smallint, CustomScalars.SMALLINT),
+        arguments(Column.Type.Tinyint, CustomScalars.TINYINT));
   }
 
   public static Stream<Arguments> getMapArgs() {

@@ -6,10 +6,14 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import com.datastax.oss.driver.api.core.AllNodesFailedException;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
+import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
@@ -19,9 +23,12 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 @StargateSpec(parametersCustomizer = "buildParameters")
-public class AuthenticationTest extends JavaDriverTestBase {
+@ExtendWith(CqlSessionExtension.class)
+@CqlSessionSpec(createSession = false)
+public class AuthenticationTest extends BaseOsgiIntegrationTest {
 
   private StargateConnectionInfo stargate;
 
@@ -38,17 +45,17 @@ public class AuthenticationTest extends JavaDriverTestBase {
 
   @Test
   @DisplayName("Should fail to connect if auth credentials are invalid")
-  public void invalidCredentials() {
-    assertThatThrownBy(() -> newSessionBuilder().withAuthCredentials("invalid", "invalid").build())
+  public void invalidCredentials(CqlSessionBuilder sessionBuilder) {
+    assertThatThrownBy(() -> sessionBuilder.withAuthCredentials("invalid", "invalid").build())
         .isInstanceOf(AllNodesFailedException.class)
         .hasMessageContaining("Provided username invalid and/or password are incorrect");
   }
 
   @Test
   @DisplayName("Should connect with auth token")
-  public void tokenAuthentication() {
+  public void tokenAuthentication(CqlSessionBuilder sessionBuilder) {
     try (CqlSession tokenSession =
-        newSessionBuilder().withAuthCredentials("token", getAuthToken()).build()) {
+        sessionBuilder.withAuthCredentials("token", getAuthToken()).build()) {
       Row row = tokenSession.execute("SELECT * FROM system.local").one();
       assertThat(row).isNotNull();
     }

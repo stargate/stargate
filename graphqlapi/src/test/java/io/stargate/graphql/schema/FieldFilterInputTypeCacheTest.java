@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import graphql.schema.GraphQLInputObjectType;
 import io.stargate.db.schema.Column;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,10 +18,11 @@ public class FieldFilterInputTypeCacheTest {
 
   @Mock private NameMapping nameMapping;
   private FieldFilterInputTypeCache fieldFilterInputTypes;
+  private List<String> warnings = new ArrayList<>();
 
   @BeforeEach
   public void setup() {
-    FieldInputTypeCache fieldInputTypes = new FieldInputTypeCache(nameMapping);
+    FieldInputTypeCache fieldInputTypes = new FieldInputTypeCache(nameMapping, warnings);
     fieldFilterInputTypes = new FieldFilterInputTypeCache(fieldInputTypes, nameMapping);
   }
 
