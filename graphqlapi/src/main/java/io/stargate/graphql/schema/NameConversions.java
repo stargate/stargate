@@ -32,23 +32,23 @@ public class NameConversions {
     if (cqlName == null || cqlName.isEmpty()) {
       throw new IllegalArgumentException("CQL name must be non-null and not empty");
     }
+    String graphqlName;
     if (type == IdentifierType.TABLE) {
-      for (Map.Entry<String, String> entry : RESERVED_GRAPHQL_NAMES.entrySet()) {
-        if (cqlName.equals(entry.getKey())) {
-          return entry.getValue();
-        }
+      graphqlName = RESERVED_GRAPHQL_NAMES.get(cqlName);
+      if (graphqlName != null) {
+        return graphqlName;
       }
     }
-    String result = hexEscape(cqlName);
+    graphqlName = maybeHexEscape(cqlName);
     if (type == IdentifierType.TABLE) {
-      result = escapeReservedPrefix(result);
-      result = escapeReservedSuffix(result);
+      graphqlName = escapeReservedPrefix(graphqlName);
+      graphqlName = escapeReservedSuffix(graphqlName);
     } else if (type == IdentifierType.UDT) {
-      result = escapeReservedPrefix(result);
+      graphqlName = escapeReservedPrefix(graphqlName);
       // No need to escape suffixes because we append our own:
-      result += "Udt";
+      graphqlName += "Udt";
     }
-    return result;
+    return graphqlName;
   }
 
   public static String toCql(String graphqlName, IdentifierType type) {
@@ -56,59 +56,93 @@ public class NameConversions {
       throw new IllegalArgumentException("GraphQL name must be non-null and not empty");
     }
     if (type == IdentifierType.UDT) {
-      if (!graphqlName.endsWith("Udt")) {
-        throw new IllegalArgumentException("GraphQL UDT name must end with 'Udt'");
+      if (graphqlName.endsWith("Udt")) {
+        graphqlName = graphqlName.substring(0, graphqlName.length() - 3);
       }
-      graphqlName = graphqlName.substring(0, graphqlName.length() - 3);
     }
-    return unHexEscape(graphqlName);
+    return maybeHexUnescape(graphqlName);
+  }
+
+  private static String maybeHexEscape(String source) {
+    // Note that we traverse the string twice in the worst case; but that's a fast linear iteration,
+    // and not escaping should be the most common case anyway.
+    return needsHexEscape(source) ? hexEscape(source) : source;
+  }
+
+  private static boolean needsHexEscape(String source) {
+    assert source != null && !source.isEmpty();
+    // GraphQL does not allow leading double underscores or digits
+    if (source.startsWith("__") || isDigit(source.charAt(0))) {
+      return true;
+    }
+    int i = 0, length = source.length();
+    while (i < length) {
+      int cp = source.codePointAt(i), charCount = Character.charCount(cp);
+      if (charCount > 1 || !isValidGraphql(cp) || (cp == 'x' && lengthOfHexEscape(source, i) > 0)) {
+        return true;
+      }
+      i += charCount;
+    }
+    return false;
   }
 
   private static String hexEscape(String source) {
-    StringBuilder result = null;
-    int length = source.length();
-    int i = 0;
-    while (i < length) {
-      char c = source.charAt(i);
-      // Handle this case separately because it consumes two characters:
-      if (i < length - 1 && Character.isSurrogatePair(c, source.charAt(i + 1))) {
-        result = appendHex(result, source, i);
-        i += 2;
-      }
-      // Other cases where we escape: leading double underscores, leading digit, character not
-      // allowed in GraphQL, or 'x' followed by something that could be interpreted as a hex escape.
-      else if ((i == 0 && length > 1 && c == '_' && source.charAt(1) == '_')
-          || (i == 0 && isDigit(c))
-          || !isValidGraphql(c)
-          || (c == 'x' && lengthOfHexEscape(source, i) > 0)) {
-        result = appendHex(result, source, i);
-        i += 1;
-      } else {
-        result = appendSame(result, source, i);
-        i += 1;
-      }
+    assert source != null && !source.isEmpty();
+    StringBuilder result = new StringBuilder();
+    int i = 0, length = source.length(), cp;
+    if (source.startsWith("__")) {
+      result.append("x5f__");
+      i = 2;
+    } else if (isDigit((cp = source.charAt(0)))) {
+      appendHexEscape(result, cp);
+      i = 1;
     }
-    return (result == null) ? source : result.toString();
+    while (i < length) {
+      cp = source.codePointAt(i);
+      int charCount = Character.charCount(cp);
+      if (charCount > 1 || !isValidGraphql(cp) || (cp == 'x' && lengthOfHexEscape(source, i) > 0)) {
+        appendHexEscape(result, cp);
+      } else {
+        result.append((char) cp);
+      }
+      i += charCount;
+    }
+    return result.toString();
   }
 
-  private static String unHexEscape(String source) {
-    StringBuilder result = null;
-    int length = source.length();
-    int i = 0;
+  private static String maybeHexUnescape(String source) {
+    return needsHexUnescape(source) ? hexUnescape(source) : source;
+  }
+
+  private static boolean needsHexUnescape(String source) {
+    assert source != null && !source.isEmpty();
+    int i = 0, length = source.length();
+    while (i < length) {
+      if (source.charAt(i) == 'x' && lengthOfHexEscape(source, i) > 0) {
+        return true;
+      }
+      i += 1;
+    }
+    return false;
+  }
+
+  private static String hexUnescape(String source) {
+    assert source != null && !source.isEmpty();
+    StringBuilder result = new StringBuilder();
+    int i = 0, length = source.length();
     while (i < length) {
       char c = source.charAt(i);
       int l;
       if (c == 'x' && (l = lengthOfHexEscape(source, i)) > 0) {
         String hexString = source.substring(i + 1, i + l - 1);
-        int codePoint = Integer.parseInt(hexString, 16);
-        result = appendCodePoint(result, codePoint, source, i);
+        result.appendCodePoint(Integer.parseInt(hexString, 16));
         i += l;
       } else {
-        result = appendSame(result, source, i);
+        result.append(c);
         i += 1;
       }
     }
-    return (result == null) ? source : result.toString();
+    return result.toString();
   }
 
   /**
@@ -131,40 +165,19 @@ public class NameConversions {
     return -1;
   }
 
-  // The goal is to avoid allocating the StringBuilder until we actually replace a character.
-  private static StringBuilder appendSame(StringBuilder target, String source, int sourceIndex) {
-    if (target == null) {
-      return null;
-    } else {
-      return target.append(source.charAt(sourceIndex));
-    }
+  private static void appendHexEscape(StringBuilder target, int codePoint) {
+    target.append('x').append(Integer.toHexString(codePoint)).append('_');
   }
 
-  private static StringBuilder appendCodePoint(
-      StringBuilder target, int codePoint, String source, int sourceIndex) {
-    if (target == null) {
-      target = new StringBuilder(source.substring(0, sourceIndex));
-    }
-    return target.appendCodePoint(codePoint);
-  }
-
-  private static StringBuilder appendHex(StringBuilder target, String source, int sourceIndex) {
-    if (target == null) {
-      target = new StringBuilder(source.substring(0, sourceIndex));
-    }
-    String hex = Integer.toHexString(source.codePointAt(sourceIndex));
-    return target.append('x').append(hex).append('_');
-  }
-
-  private static boolean isValidGraphql(char c) {
+  private static boolean isValidGraphql(int c) {
     return isDigit(c) || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
   }
 
-  private static boolean isHex(char c) {
+  private static boolean isHex(int c) {
     return isDigit(c) || (c >= 'a' && c <= 'f');
   }
 
-  private static boolean isDigit(char c) {
+  private static boolean isDigit(int c) {
     return c >= '0' && c <= '9';
   }
 
