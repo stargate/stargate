@@ -160,7 +160,7 @@ public class ScalarsDmlTest extends DmlTestBase {
     assertThat(queryCaptor.getValue())
         .matches(
             String.format(
-                "INSERT INTO scalars_ks.scalars \\(id,timeuuidvalue\\)" + " VALUES \\(1,%s\\)",
+                "INSERT INTO scalars_ks.\"Scalars\" \\(id,timeuuidvalue\\) VALUES \\(1,%s\\)",
                 UUID_REGEX));
 
     assertThat(result.<Map<String, Object>>getData())
@@ -184,7 +184,7 @@ public class ScalarsDmlTest extends DmlTestBase {
     assertThat(queryCaptor.getValue())
         .matches(
             String.format(
-                "INSERT INTO scalars_ks.scalars \\(id,uuidvalue\\)" + " VALUES \\(1,%s\\)",
+                "INSERT INTO scalars_ks.\"Scalars\" \\(id,uuidvalue\\) VALUES \\(1,%s\\)",
                 UUID_REGEX));
 
     assertThat(result.<Map<String, Object>>getData())
