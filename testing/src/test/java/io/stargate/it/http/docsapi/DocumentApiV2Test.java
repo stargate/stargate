@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
@@ -208,22 +207,19 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   @Test
   public void testBasicForms() throws IOException {
     RestUtils.put(
-            authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
-            "a=b&b=null&c.b=3.3&d.[0].[2]=true",
-            200);
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        "a=b&b=null&c.b=3.3&d.[0].[2]=true",
+        200);
 
     String resp =
-            RestUtils.get(
-                    authToken,
-                    hostWithPort
-                            + "/v2/namespaces/"
-                            + keyspace
-                            + "/collections/collection/1",
-                    200);
-    JsonNode expected = objectMapper.readTree(
-            "{\"a\":\"b\", \"b\":null, \"c\":{\"b\": 3.3}, \"d\":[[null, null, true]]}"
-    );
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    JsonNode expected =
+        objectMapper.readTree(
+            "{\"a\":\"b\", \"b\":null, \"c\":{\"b\": 3.3}, \"d\":[[null, null, true]]}");
     assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(expected, "1", null));
   }
 

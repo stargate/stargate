@@ -29,7 +29,6 @@ import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.resources.Db;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
@@ -894,7 +893,7 @@ public class DocumentServiceTest {
   }
 
   @Test
-  public void putAtPath() throws UnauthorizedException, UnsupportedEncodingException {
+  public void putAtPath() throws UnauthorizedException {
     DocumentDB dbMock = mock(DocumentDB.class);
     Db dbFactoryMock = mock(Db.class);
     when(dbFactoryMock.getDocDataStoreForToken(anyString())).thenReturn(dbMock);
@@ -925,7 +924,7 @@ public class DocumentServiceTest {
   }
 
   @Test
-  public void putAtPath_patching() throws UnauthorizedException, UnsupportedEncodingException {
+  public void putAtPath_patching() throws UnauthorizedException {
     DocumentDB dbMock = mock(DocumentDB.class);
     Db dbFactoryMock = mock(Db.class);
     when(dbFactoryMock.getDocDataStoreForToken(anyString())).thenReturn(dbMock);

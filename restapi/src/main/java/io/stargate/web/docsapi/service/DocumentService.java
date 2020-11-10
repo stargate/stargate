@@ -21,8 +21,6 @@ import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.resources.Db;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -123,8 +121,7 @@ public class DocumentService {
       List<String> path,
       String key,
       String payload,
-      boolean patching)
-      throws UnsupportedEncodingException {
+      boolean patching) {
     String trimmed = payload.trim();
     boolean isJson = trimmed.startsWith("{") || trimmed.startsWith("[");
     if (isJson) {
@@ -252,22 +249,24 @@ public class DocumentService {
   }
 
   private ImmutablePair<List<Object[]>, List<String>> shredForm(
-      DocumentDB db, List<String> path, String key, String formPayload, boolean patching)
-      throws UnsupportedEncodingException {
+      DocumentDB db, List<String> path, String key, String formPayload, boolean patching) {
     List<Object[]> bindVariableList = new ArrayList<>();
     List<String> firstLevelKeys = new ArrayList<>();
     String[] pairs = formPayload.split("&");
     for (String pair : pairs) {
       String[] data = pair.split("=");
-      if (data.length != 2) {
+      String fullyQualifiedField;
+      String value;
+      if (data.length == 2) {
+        fullyQualifiedField = data[0];
+        value = data[1];
+      } else if (data.length == 1) {
+        fullyQualifiedField = "data";
+        value = data[0];
+      } else {
         continue;
       }
-      String fullyQualifiedField = data[0];
-      String value = URLDecoder.decode(data[1], "UTF-8");
       String[] fieldNames = fullyQualifiedField.split("\\.");
-      for (int i = 0; i < fieldNames.length; i++) {
-        fieldNames[i] = URLDecoder.decode(fieldNames[i], "UTF-8");
-      }
 
       if (path.size() + fieldNames.length > DocumentDB.MAX_DEPTH) {
         throw new DocumentAPIRequestException(
@@ -355,7 +354,7 @@ public class DocumentService {
       List<PathSegment> path,
       boolean patching,
       Db dbFactory)
-      throws UnauthorizedException, UnsupportedEncodingException {
+      throws UnauthorizedException {
     DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
 
     JsonSurfer surfer = JsonSurferGson.INSTANCE;
