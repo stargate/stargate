@@ -143,16 +143,6 @@ class DataTypeMapping {
     for (int i = 0; i < subTypes.size(); i++) {
       Object item = mapValue.get("item" + i);
 
-      if (item == null) {
-        hasANullItem = true;
-        continue;
-      }
-
-      if (hasANullItem) {
-        throw new UnsupportedOperationException(
-            "Tuple can't have a null item followed by a non-null item");
-      }
-
       if (i > 0) {
         out.append(',');
       }

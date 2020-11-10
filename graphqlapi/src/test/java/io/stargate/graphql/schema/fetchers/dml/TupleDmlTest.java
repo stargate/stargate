@@ -79,16 +79,6 @@ public class TupleDmlTest extends DmlTestBase {
   }
 
   @ParameterizedTest
-  @MethodSource("getInvalidValues")
-  public void shouldNotAllowTupleValuesWithNullValuesFollowedByNotNullValues(
-      int tupleIndex, String value, String errorMessage) {
-    String column = String.format("value%d", tupleIndex);
-    String mutation = "mutation { insertTuples(value: { %s:%s, id:1 }) { applied } }";
-
-    assertError(String.format(mutation, column, value), errorMessage);
-  }
-
-  @ParameterizedTest
   @MethodSource("getValues")
   public void shouldEncodeTupleValues(int tupleIndex, Object[] values) {
     Column column = table.column(String.format("value%d", tupleIndex));
@@ -121,26 +111,15 @@ public class TupleDmlTest extends DmlTestBase {
   private static Stream<Arguments> getValues() {
     return Stream.of(
         arguments(0, new Object[] {1.3f, -0.9f}),
-        arguments(0, new Object[] {-1f}),
+        arguments(0, new Object[] {-1f, null}),
+        arguments(0, new Object[] {null, 0f}),
+        arguments(0, new Object[] {null, null}),
         arguments(0, new Object[] {Float.MAX_VALUE, 1f}),
         arguments(1, new Object[] {UUID.randomUUID(), "hello", 1}),
-        arguments(1, new Object[] {UUID.randomUUID(), "second"}),
-        arguments(1, new Object[] {UUID.randomUUID()}),
+        arguments(1, new Object[] {UUID.randomUUID(), "second", null}),
+        arguments(1, new Object[] {null, "third", null}),
+        arguments(1, new Object[] {UUID.randomUUID(), null, null}),
         arguments(2, new Object[] {Uuids.timeBased(), true}));
-  }
-
-  private static Stream<Arguments> getInvalidValues() {
-    String nullError = "Tuple can't have a null item followed by a non-null item";
-
-    return Stream.of(
-        arguments(0, "{item0: null, item1: 1.2}", nullError),
-        arguments(0, "{item1: 1.2}", nullError),
-        arguments(1, "{item2: 1}", nullError),
-        arguments(1, "{item0: \"425cc127-055c-4d0b-a765-d8e42fa78527\", item2: 1}", nullError),
-        arguments(
-            1,
-            "{item0: \"425cc127-055c-4d0b-a765-d8e42fa78527\", item1: null, item2: 1}",
-            nullError));
   }
 
   private String toGraphQLValue(Object[] values) {
@@ -176,6 +155,8 @@ public class TupleDmlTest extends DmlTestBase {
         builder.append("'");
         builder.append(v);
         builder.append("'");
+      } else if (v == null) {
+        builder.append("NULL");
       } else {
         builder.append(v);
       }
