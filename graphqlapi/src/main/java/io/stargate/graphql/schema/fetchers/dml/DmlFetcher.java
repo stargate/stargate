@@ -1,7 +1,6 @@
 package io.stargate.graphql.schema.fetchers.dml;
 
 import com.datastax.oss.driver.api.querybuilder.condition.Condition;
-import com.datastax.oss.driver.api.querybuilder.relation.ColumnRelationBuilder;
 import com.datastax.oss.driver.api.querybuilder.relation.Relation;
 import com.datastax.oss.driver.api.querybuilder.term.Term;
 import com.google.common.collect.ImmutableList;
@@ -10,6 +9,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
+import io.stargate.graphql.schema.FilterOperator;
 import io.stargate.graphql.schema.NameMapping;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
 import java.util.ArrayList;
@@ -43,36 +43,18 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     for (Map.Entry<String, Map<String, Object>> clauseEntry : columnList.entrySet()) {
       Column column = getColumn(table, clauseEntry.getKey());
 
-      for (Map.Entry<String, Object> condition : clauseEntry.getValue().entrySet()) {
-        if (condition.getKey().equals("in")) {
-          clause.add(
-              Condition.column(column.name()).in(buildListLiterals(column, condition.getValue())));
-          continue;
+      for (Map.Entry<String, Object> conditionMap : clauseEntry.getValue().entrySet()) {
+        FilterOperator operator = FilterOperator.fromFieldName(conditionMap.getKey());
+        Condition condition;
+        if (operator != FilterOperator.IN) {
+          condition =
+              operator.buildCondition(column.name(), toCqlTerm(column, conditionMap.getValue()));
+        } else {
+          condition =
+              operator.buildCondition(
+                  column.name(), buildListLiterals(column, conditionMap.getValue()));
         }
-
-        Term dbValue = toCqlTerm(column, condition.getValue());
-        switch (condition.getKey()) {
-          case "eq":
-            clause.add(Condition.column(column.name()).isEqualTo(dbValue));
-            break;
-          case "notEq":
-            clause.add(Condition.column(column.name()).isNotEqualTo(dbValue));
-            break;
-          case "gt":
-            clause.add(Condition.column(column.name()).isGreaterThan(dbValue));
-            break;
-          case "gte":
-            clause.add(Condition.column(column.name()).isGreaterThanOrEqualTo(dbValue));
-            break;
-          case "lt":
-            clause.add(Condition.column(column.name()).isLessThan(dbValue));
-            break;
-          case "lte":
-            clause.add(Condition.column(column.name()).isLessThanOrEqualTo(dbValue));
-            break;
-          default:
-            break;
-        }
+        clause.add(condition);
       }
     }
     return clause;
@@ -96,15 +78,18 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     for (Map.Entry<String, Map<String, Object>> clauseEntry : columnList.entrySet()) {
       Column column = getColumn(table, clauseEntry.getKey());
       for (Map.Entry<String, Object> condition : clauseEntry.getValue().entrySet()) {
-
-        ColumnRelationBuilder<Relation> relationStart = Relation.column(column.name());
         Relation relation;
-        if (condition.getKey().equals("in")) {
-          relation = relationStart.in(buildListLiterals(column, condition.getValue()));
-        } else if (condition.getKey().equals("contains")) {
-          relation = relationStart.contains(toCqlElementTerm(column, condition.getValue()));
+        FilterOperator operator = FilterOperator.fromFieldName(condition.getKey());
+        if (operator == FilterOperator.IN) {
+          relation =
+              operator.buildRelation(
+                  column.name(), buildListLiterals(column, condition.getValue()));
+        } else if (operator == FilterOperator.CONTAINS) {
+          relation =
+              operator.buildRelation(column.name(), toCqlElementTerm(column, condition.getValue()));
         } else if (condition.getKey().equals("containsKey")) {
-          relation = relationStart.containsKey(toCqlKeyTerm(column, condition.getValue()));
+          relation =
+              operator.buildRelation(column.name(), toCqlKeyTerm(column, condition.getValue()));
         } else if (condition.getKey().equals("containsEntry")) {
           Column.ColumnType mapType = column.type();
           assert mapType != null && mapType.isMap();
@@ -113,31 +98,9 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
           Term keyTerm = toCqlTerm(keyType, entry.get("key"));
           Column.ColumnType valueType = mapType.parameters().get(1);
           Term valueTerm = toCqlTerm(valueType, entry.get("value"));
-          relation = Relation.mapValue(column.name(), keyTerm).isEqualTo(valueTerm);
+          relation = operator.buildRelation(column.name(), keyTerm, valueTerm);
         } else {
-          Term rightTerm = toCqlTerm(column, condition.getValue());
-          switch (condition.getKey()) {
-            case "eq":
-              relation = relationStart.isEqualTo(rightTerm);
-              break;
-            case "notEq":
-              relation = relationStart.isNotEqualTo(rightTerm);
-              break;
-            case "gt":
-              relation = relationStart.isGreaterThan(rightTerm);
-              break;
-            case "gte":
-              relation = relationStart.isGreaterThanOrEqualTo(rightTerm);
-              break;
-            case "lt":
-              relation = relationStart.isLessThan(rightTerm);
-              break;
-            case "lte":
-              relation = relationStart.isLessThanOrEqualTo(rightTerm);
-              break;
-            default:
-              throw new IllegalStateException("Unsupported relation type " + condition.getKey());
-          }
+          relation = operator.buildRelation(column.name(), toCqlTerm(column, condition.getValue()));
         }
         relations.add(relation);
       }
