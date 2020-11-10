@@ -137,9 +137,6 @@ class DataTypeMapping {
     Map<String, Object> mapValue = (Map<String, Object>) value;
     List<Column.ColumnType> subTypes = type.parameters();
 
-    // Track null values.
-    boolean hasANullItem = false;
-
     for (int i = 0; i < subTypes.size(); i++) {
       Object item = mapValue.get("item" + i);
 
