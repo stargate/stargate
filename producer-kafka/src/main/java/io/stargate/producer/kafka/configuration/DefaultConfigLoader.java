@@ -103,7 +103,7 @@ public class DefaultConfigLoader implements ConfigLoader {
    * is optional, if not provided the {@link MetricsConfig#METRICS_NAME_DEFAULT} is used.
    */
   @NonNull
-  MetricsConfig loadMetricsConfig(ConfigWithOverrides configWithOverrides) {
+  protected MetricsConfig loadMetricsConfig(ConfigWithOverrides configWithOverrides) {
     boolean metricsEnabled =
         configWithOverrides.getSettingValue(METRICS_ENABLED_SETTING_NAME, Boolean.class);
     // METRICS_INCLUDE_TAGS_SETTING_NAME and METRICS_NAME_SETTING_NAME are optional.
@@ -116,7 +116,7 @@ public class DefaultConfigLoader implements ConfigLoader {
     return MetricsConfig.create(metricsEnabled, metricsIncludeTags, metricsName);
   }
 
-  Map<String, Object> filterKafkaProducerSettings(Map<String, Object> options) {
+  protected Map<String, Object> filterKafkaProducerSettings(Map<String, Object> options) {
     return options.entrySet().stream()
         .filter(this::isKafkaProducerSetting)
         .map(this::toKafkaProducerSetting)
@@ -140,11 +140,11 @@ public class DefaultConfigLoader implements ConfigLoader {
     return CDC_KAFKA_PRODUCER_SETTING_PATTERN.matcher(entry.getKey()).matches();
   }
 
-  String getTopicPrefixName(ConfigWithOverrides configWithOverrides) {
+  protected String getTopicPrefixName(ConfigWithOverrides configWithOverrides) {
     return configWithOverrides.getSettingValue(CDC_TOPIC_PREFIX_NAME, String.class);
   }
 
-  String getSchemaRegistryUrl(ConfigWithOverrides configWithOverrides) {
+  protected String getSchemaRegistryUrl(ConfigWithOverrides configWithOverrides) {
     return configWithOverrides.getSettingValue(
         withProducerPrefix(SCHEMA_REGISTRY_URL_SETTING_NAME), String.class);
   }

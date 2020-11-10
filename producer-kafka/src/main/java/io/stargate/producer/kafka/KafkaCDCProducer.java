@@ -47,9 +47,9 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   private MappingService mappingService;
 
-  KeyValueConstructor keyValueConstructor;
+  protected KeyValueConstructor keyValueConstructor;
 
-  SchemaProvider schemaProvider;
+  protected SchemaProvider schemaProvider;
 
   private CompletableFuture<CompletableKafkaProducer<GenericRecord, GenericRecord>> kafkaProducer;
 

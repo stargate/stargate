@@ -55,7 +55,7 @@ public class EmbeddedSchemaRegistryServer implements Closeable {
       server = app.createServer();
       server.start();
     } catch (Exception ex) {
-      throw new RuntimeException("Error when starting schema registry", ex);
+      throw new IllegalStateException("Error when starting schema registry", ex);
     }
 
     LOGGER.info(
@@ -68,7 +68,7 @@ public class EmbeddedSchemaRegistryServer implements Closeable {
       stopServer();
     } catch (final Exception e) {
       LOGGER.error("Error shutdown embedded schema registry...", e);
-      throw new RuntimeException("Error shutdown embedded schema registry...", e);
+      throw new IllegalStateException("Error shutdown embedded schema registry...", e);
     }
   }
 

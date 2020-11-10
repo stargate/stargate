@@ -153,7 +153,7 @@ public class SchemaRegistryProvider implements SchemaProvider {
     }
   }
 
-  Schema constructKeySchema(Table table) {
+  protected Schema constructKeySchema(Table table) {
     String keyRecordName = constructKeyRecordName(table);
     FieldAssembler<Schema> keyBuilder = SchemaBuilder.record(keyRecordName).fields();
 
@@ -164,7 +164,7 @@ public class SchemaRegistryProvider implements SchemaProvider {
     return keyBuilder.endRecord();
   }
 
-  Schema constructValueSchema(Table table) {
+  protected Schema constructValueSchema(Table table) {
     List<Schema> partitionKeys =
         constructUnionWithRequiredValueFieldsSchema(table.partitionKeyColumns());
     List<Schema> clusteringKeys =
