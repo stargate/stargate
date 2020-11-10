@@ -52,11 +52,11 @@ import org.testcontainers.containers.wait.strategy.Wait;
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(
     initQueries = {
-        "CREATE ROLE IF NOT EXISTS 'web_user' WITH PASSWORD = 'web_user' AND LOGIN = TRUE",
-        "CREATE KEYSPACE IF NOT EXISTS store WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}",
-        "CREATE TABLE IF NOT EXISTS store.shopping_cart (userid text, item_count int, last_update_timestamp timestamp, PRIMARY KEY (userid, last_update_timestamp));",
-        "INSERT INTO store.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('9876', 2, toTimeStamp(toDate(now())))",
-        "INSERT INTO store.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('1234', 5, toTimeStamp(toDate(now())))",
+      "CREATE ROLE IF NOT EXISTS 'web_user' WITH PASSWORD = 'web_user' AND LOGIN = TRUE",
+      "CREATE KEYSPACE IF NOT EXISTS store WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}",
+      "CREATE TABLE IF NOT EXISTS store.shopping_cart (userid text, item_count int, last_update_timestamp timestamp, PRIMARY KEY (userid, last_update_timestamp));",
+      "INSERT INTO store.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('9876', 2, toTimeStamp(toDate(now())))",
+      "INSERT INTO store.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('1234', 5, toTimeStamp(toDate(now())))",
     })
 public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
 
@@ -174,8 +174,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
 
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     List<Keyspace> keyspaces =
-        objectMapper.convertValue(response.getData(), new TypeReference<List<Keyspace>>() {
-        });
+        objectMapper.convertValue(response.getData(), new TypeReference<List<Keyspace>>() {});
     assertThat(keyspaces)
         .anySatisfy(
             value ->
@@ -187,8 +186,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.get(authToken, String.format("%s:8082/v1/keyspaces", host), HttpStatus.SC_OK);
 
-    List<String> keyspaces = objectMapper.readValue(body, new TypeReference<List<String>>() {
-    });
+    List<String> keyspaces = objectMapper.readValue(body, new TypeReference<List<String>>() {});
     assertThat(keyspaces)
         .containsAnyOf(
             "system", "system_auth", "system_distributed", "system_schema", "system_traces");
@@ -202,8 +200,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
             String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
-    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {
-    });
+    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
     assertThat(rows.getCount()).isGreaterThan(0);
 
     for (Map<String, Object> row : rows.getRows()) {
@@ -217,8 +214,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   public void getRowV1() throws IOException {
     String body = getRowV1(tableName, "");
 
-    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {
-    });
+    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
     assertThat(rows.getCount()).isGreaterThan(0);
 
     for (Map<String, Object> row : rows.getRows()) {
@@ -247,8 +243,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
-            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {
-            });
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(data.get(0).get("userid")).isEqualTo("9876");
     assertThat(data.get(0).get("item_count")).isEqualTo(2);
     assertThat(data.get(0).get("last_update_timestamp")).isNotNull();
@@ -272,8 +267,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     RowResponse rowResponse =
         objectMapper.readValue(
             getRowV1(tableName, rowIdentifier + ";" + URLEncoder.encode(updateTimestamp, "UTF-8")),
-            new TypeReference<RowResponse>() {
-            });
+            new TypeReference<RowResponse>() {});
     assertThat(rowResponse.getCount()).isEqualTo(1);
     assertThat(rowResponse.getRows().get(0).get("userid")).isEqualTo(rowIdentifier);
     assertThat(rowResponse.getRows().get(0).get("item_count")).isEqualTo(10);
@@ -303,8 +297,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     rowResponse =
         objectMapper.readValue(
             getRowV1(tableName, rowIdentifier + ";" + URLEncoder.encode(updateTimestamp, "UTF-8")),
-            new TypeReference<RowResponse>() {
-            });
+            new TypeReference<RowResponse>() {});
     assertThat(rowResponse.getCount()).isEqualTo(1);
     assertThat(rowResponse.getRows().get(0).get("userid")).isEqualTo(rowIdentifier);
     assertThat(rowResponse.getRows().get(0).get("item_count")).isEqualTo(8);
@@ -399,8 +392,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(query),
             HttpStatus.SC_OK);
 
-    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {
-    });
+    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
     assertThat(rowResponse.getCount()).isEqualTo(1);
     assertThat(rowResponse.getRows().get(0).get("userid")).isEqualTo(rowIdentifier);
     assertThat(rowResponse.getRows().get(0).get("item_count")).isEqualTo(20);
@@ -552,8 +544,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
             HttpStatus.SC_OK);
 
     List<Map<String, Object>> data =
-        objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {
-        });
+        objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
     assertThat(data.get(0).get("userid")).isEqualTo(rowIdentifier);
     assertThat(data.get(0).get("item_count")).isEqualTo(99);
   }
@@ -662,8 +653,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(rowAdd),
             HttpStatus.SC_CREATED);
 
-    RowsResponse rowsResponse = objectMapper.readValue(body, new TypeReference<RowsResponse>() {
-    });
+    RowsResponse rowsResponse = objectMapper.readValue(body, new TypeReference<RowsResponse>() {});
     assertThat(rowsResponse.getRowsModified()).isEqualTo(1);
     assertThat(rowsResponse.getSuccess()).isTrue();
   }
