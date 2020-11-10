@@ -50,6 +50,7 @@ import org.apache.commons.exec.Executor;
 import org.apache.commons.exec.LogOutputStream;
 import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.FileUtils;
+import org.assertj.core.util.Strings;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
@@ -386,6 +387,16 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
 
       if (params.enableAuth()) {
         cmd.addArgument("--enable-auth");
+      }
+
+      if (params.useProxyProtocol()) {
+        cmd.addArgument("--use-proxy-protocol");
+        if (!Strings.isNullOrEmpty(params.proxyDnsName())) {
+          cmd.addArgument("--proxy-dns-name");
+          cmd.addArgument(params.proxyDnsName());
+        }
+        cmd.addArgument("--proxy-port");
+        cmd.addArgument(String.valueOf(params.proxyPort()));
       }
 
       cmd.addArgument("--listen");
