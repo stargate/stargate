@@ -139,24 +139,28 @@ public class RestUtils {
   }
 
   public static String putForm(
-          String authToken, String path, String requestBody, int expectedStatusCode)
-          throws IOException {
+      String authToken, String path, String requestBody, int expectedStatusCode)
+      throws IOException {
     OkHttpClient client = new OkHttpClient().newBuilder().build();
 
     Request request;
     if (authToken != null) {
       request =
-              new Request.Builder()
-                      .url(path)
-                      .put(RequestBody.create(MediaType.parse("application/x-www-form-urlencoded"), requestBody))
-                      .addHeader("X-Cassandra-Token", authToken)
-                      .build();
+          new Request.Builder()
+              .url(path)
+              .put(
+                  RequestBody.create(
+                      MediaType.parse("application/x-www-form-urlencoded"), requestBody))
+              .addHeader("X-Cassandra-Token", authToken)
+              .build();
     } else {
       request =
-              new Request.Builder()
-                      .url(path)
-                      .put(RequestBody.create(MediaType.parse("application/x-www-form-urlencoded"), requestBody))
-                      .build();
+          new Request.Builder()
+              .url(path)
+              .put(
+                  RequestBody.create(
+                      MediaType.parse("application/x-www-form-urlencoded"), requestBody))
+              .build();
     }
 
     Response response = client.newCall(request).execute();

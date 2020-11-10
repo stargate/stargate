@@ -112,7 +112,8 @@ public class DocumentService {
    * @param payload a JSON object, or a URL-encoded form with the relevant data in it
    * @param patching If this payload meant to be part of a PATCH request (this causes a small amount
    *     of extra validation if true)
-   * @param isJson if the request had a content type of application/json, else it will be interpreted as a URL encoded form
+   * @param isJson if the request had a content type of application/json, else it will be
+   *     interpreted as a URL encoded form
    * @return The full bind variable list for the subsequent inserts, and all first-level keys, as an
    *     ImmutablePair.
    */
@@ -335,10 +336,11 @@ public class DocumentService {
           bindMap.put("dbl_value", doubleValue);
           bindMap.put("bool_value", null);
           bindMap.put("text_value", null);
+        } else {
+          bindMap.put("dbl_value", null);
+          bindMap.put("bool_value", null);
+          bindMap.put("text_value", value);
         }
-        bindMap.put("dbl_value", null);
-        bindMap.put("bool_value", null);
-        bindMap.put("text_value", value);
       }
       logger.debug("{}", bindMap.values());
       bindVariableList.add(bindMap.values().toArray());

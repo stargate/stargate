@@ -92,7 +92,8 @@ public class DocumentServiceTest {
             List.class,
             String.class,
             String.class,
-            boolean.class, boolean.class);
+            boolean.class,
+            boolean.class);
     shredPayload.setAccessible(true);
     validateOpAndValue =
         DocumentService.class.getDeclaredMethod(
@@ -908,7 +909,7 @@ public class DocumentServiceTest {
         new ArrayList<>(),
         false,
         dbFactoryMock,
-            true);
+        true);
 
     verify(dbMock, times(1))
         .deleteThenInsertBatch(
@@ -939,7 +940,8 @@ public class DocumentServiceTest {
         "{\"some\": \"data\"}",
         new ArrayList<>(),
         true,
-        dbFactoryMock, true);
+        dbFactoryMock,
+        true);
 
     verify(dbMock, times(0))
         .deleteThenInsertBatch(
@@ -973,7 +975,8 @@ public class DocumentServiceTest {
                     "\"a\"",
                     new ArrayList<>(),
                     true,
-                    dbFactoryMock, true));
+                    dbFactoryMock,
+                    true));
 
     assertThat(thrown)
         .isInstanceOf(DocumentAPIRequestException.class)

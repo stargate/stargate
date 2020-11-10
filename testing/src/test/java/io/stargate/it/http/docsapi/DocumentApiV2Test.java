@@ -220,7 +220,8 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode expected =
         objectMapper.readTree(
             "{\"a\":\"b\", \"b\":null, \"c\":{\"b\": 3.3}, \"d\":[[null, null, true]]}");
-    assertThat(objectMapper.readTree(resp).toString()).isEqualTo(wrapResponse(expected, "1", null).toString());
+    assertThat(objectMapper.readTree(resp).toString())
+        .isEqualTo(wrapResponse(expected, "1", null).toString());
   }
 
   @Test

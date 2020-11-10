@@ -102,7 +102,11 @@ public class DocumentResourceV2 {
     String newId = UUID.randomUUID().toString();
     return handle(
         () -> {
-          boolean isJson = headers.getHeaderString(HttpHeaders.CONTENT_TYPE).toLowerCase().contains("application/json");
+          boolean isJson =
+              headers
+                  .getHeaderString(HttpHeaders.CONTENT_TYPE)
+                  .toLowerCase()
+                  .contains("application/json");
           documentService.putAtPath(
               authToken,
               namespace,
@@ -156,9 +160,21 @@ public class DocumentResourceV2 {
     logger.debug("Put: Collection = {}, id = {}", collection, id);
     return handle(
         () -> {
-          boolean isJson = headers.getHeaderString(HttpHeaders.CONTENT_TYPE).toLowerCase().contains("application/json");
+          boolean isJson =
+              headers
+                  .getHeaderString(HttpHeaders.CONTENT_TYPE)
+                  .toLowerCase()
+                  .contains("application/json");
           documentService.putAtPath(
-              authToken, namespace, collection, id, payload, new ArrayList<>(), false, dbFactory, isJson);
+              authToken,
+              namespace,
+              collection,
+              id,
+              payload,
+              new ArrayList<>(),
+              false,
+              dbFactory,
+              isJson);
           return Response.ok()
               .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
               .build();
@@ -203,7 +219,11 @@ public class DocumentResourceV2 {
     logger.debug("Put: Collection = {}, id = {}, path = {}", collection, id, path);
     return handle(
         () -> {
-          boolean isJson = headers.getHeaderString(HttpHeaders.CONTENT_TYPE).toLowerCase().contains("application/json");
+          boolean isJson =
+              headers
+                  .getHeaderString(HttpHeaders.CONTENT_TYPE)
+                  .toLowerCase()
+                  .contains("application/json");
           documentService.putAtPath(
               authToken, namespace, collection, id, payload, path, false, dbFactory, isJson);
           return Response.ok()
@@ -247,9 +267,21 @@ public class DocumentResourceV2 {
     logger.debug("Patch: Collection = {}, id = {}", collection, id);
     return handle(
         () -> {
-          boolean isJson = headers.getHeaderString(HttpHeaders.CONTENT_TYPE).toLowerCase().contains("application/json");
+          boolean isJson =
+              headers
+                  .getHeaderString(HttpHeaders.CONTENT_TYPE)
+                  .toLowerCase()
+                  .contains("application/json");
           documentService.putAtPath(
-              authToken, namespace, collection, id, payload, new ArrayList<>(), true, dbFactory, isJson);
+              authToken,
+              namespace,
+              collection,
+              id,
+              payload,
+              new ArrayList<>(),
+              true,
+              dbFactory,
+              isJson);
           return Response.ok()
               .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
               .build();
@@ -295,8 +327,12 @@ public class DocumentResourceV2 {
     logger.debug("Patch: Collection = {}, id = {}, path = {}", collection, id, path);
     return handle(
         () -> {
-            boolean isJson = headers.getHeaderString(HttpHeaders.CONTENT_TYPE).toLowerCase().contains("application/json");
-            documentService.putAtPath(
+          boolean isJson =
+              headers
+                  .getHeaderString(HttpHeaders.CONTENT_TYPE)
+                  .toLowerCase()
+                  .contains("application/json");
+          documentService.putAtPath(
               authToken, namespace, collection, id, payload, path, true, dbFactory, isJson);
           return Response.ok()
               .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
