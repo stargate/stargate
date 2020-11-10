@@ -18,6 +18,7 @@ package io.stargate.config.store.api;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -33,7 +34,8 @@ public class ConfigWithOverrides {
 
   /**
    * It returns the underlying config-map without any override applied. If you want to get a
-   * specific value with override, please use the {@link this#getWithOverrides(String)} method.
+   * specific value with override, please use the {@link this#getWithOverrides(String, Function)} or
+   * {@link this#getWithOverrides(String, Function)} method.
    */
   public Map<String, Object> getConfigMap() {
     return configMap;
@@ -139,17 +141,19 @@ public class ConfigWithOverrides {
    * <p>Prefixing with module name is done to avoid conflicts of overrides between modules.
    *
    * <p>Please keep in mind that if you are overriding settings via a System property or OS
-   * environment variable, it will always return the String value. If the underlying config map does
-   * not contain a String for the specific setting name, and the override is provided, you may get
-   * class cast problems. To alleviate this problem, you should assert that the underlying config
-   * map value for the setting that you plan to override is of a String type. You can also add a
-   * custom parsing logic with instanceof checks but it may be error-prone.
+   * environment variable, it will be a String value. If the underlying config map does contain a
+   * value of non String type, and the override is not provided, the {@code objectToStringMapper}
+   * function will be called. This function is transforming the object into a String type, and you
+   * can provide a custom for this transformation. If the underlying {@code configMap} does not
+   * contain a value for the given settingName, the objectToStringMapper is not called, so you don't
+   * need to handle nulls.
    *
    * @return the value with the highest priority or null if there is no value associated with the
    *     given settingName.
    */
   @Nullable
-  public Object getWithOverrides(String settingName) {
+  public String getWithOverrides(
+      String settingName, Function<Object, String> objectToStringMapper) {
     String settingNameWithModulePrefix = withModulePrefix(settingName);
     String systemProperty = System.getProperty(settingNameWithModulePrefix);
     if (systemProperty != null) {
@@ -160,7 +164,21 @@ public class ConfigWithOverrides {
     if (envVariable != null) {
       return envVariable;
     }
-    return configMap.get(settingName);
+    Object value = configMap.get(settingName);
+    if (value != null) {
+      return objectToStringMapper.apply(value);
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * This is a convenience method that calls the {@link this#getWithOverrides(String, Function)}
+   * with a {@link String#valueOf(Object)} mapper function.
+   */
+  @Nullable
+  public String getWithOverrides(String settingName) {
+    return getWithOverrides(settingName, String::valueOf);
   }
 
   private String withModulePrefix(String settingName) {
