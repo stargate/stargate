@@ -281,6 +281,11 @@ public class DocumentService {
       for (int i = 0; i < fieldNames.length; i++) {
         String fieldName = fieldNames[i];
         boolean isArrayElement = fieldName.startsWith("[");
+        if (!isArrayElement) {
+          // Unlike using JSON, try to allow any input by replacing illegal characters with _.
+          // Form shredding is only supposed to be used for benchmarking tests.
+          fieldName = DocumentDB.replaceIllegalChars(fieldName);
+        }
         if (isArrayElement) {
           if (i == 0 && patching) {
             throw new DocumentAPIRequestException(
@@ -288,12 +293,9 @@ public class DocumentService {
           }
 
           String innerPath = fieldName.substring(1, fieldName.length() - 1);
-          if (DocumentDB.containsIllegalChars(innerPath)) {
-            throw new DocumentAPIRequestException(
-                String.format(
-                    "The characters %s are not permitted in JSON field names, invalid field %s",
-                    DocumentDB.getForbiddenCharactersMessage(), fieldNames[i]));
-          }
+          // Unlike using JSON, try to allow any input by replacing illegal characters with _.
+          // Form shredding is only supposed to be used for benchmarking tests.
+          innerPath = DocumentDB.replaceIllegalChars(innerPath);
 
           int idx = Integer.parseInt(innerPath);
           if (idx > DocumentDB.MAX_ARRAY_LENGTH - 1) {
@@ -305,15 +307,6 @@ public class DocumentService {
           fieldName = "[" + leftPadTo6(innerPath) + "]";
         } else if (i == 0) {
           firstLevelKeys.add(fieldName);
-        }
-
-        if (!isArrayElement) {
-          if (DocumentDB.containsIllegalChars(fieldName)) {
-            throw new DocumentAPIRequestException(
-                String.format(
-                    "The characters %s are not permitted in JSON field names, invalid field %s",
-                    DocumentDB.getForbiddenCharactersMessage(), fieldName));
-          }
         }
 
         bindMap.put("p" + (i + path.size()), fieldName);
