@@ -85,7 +85,8 @@ public class WhereParser {
                     "Value entry for field %s, operation %s must be an array.", fieldName, rawOp));
           }
           ObjectReader reader = mapper.readerFor(new TypeReference<List<Object>>() {});
-          conditions.add(conditionToWhere(fieldName, op, reader.readValue(value)));
+          conditions.add(
+              conditionToWhere(tableData.column(fieldName), op, reader.readValue(value)));
         } else if (op == FilterOp.$CONTAINSENTRY) {
           JsonNode entryKey, entryValue;
           if (!value.isObject()
@@ -108,7 +109,7 @@ public class WhereParser {
           Column.ColumnType valueType = mapType.parameters().get(1);
           conditions.add(
               ImmutableWhereCondition.builder()
-                  .column(fieldName.toLowerCase())
+                  .column(tableData.column(fieldName))
                   .predicate(op.predicate)
                   .value(
                       Pair.with(
@@ -128,7 +129,7 @@ public class WhereParser {
             if (!value.isBoolean() || !value.booleanValue()) {
               throw new RuntimeException("`exists` only supports the value `true`");
             }
-            conditions.add(conditionToWhere(fieldName, op, true));
+            conditions.add(conditionToWhere(tableData.column(fieldName), op, true));
           } else {
             Object val = value.asText();
             Column.ColumnType columnType = tableData.column(fieldName).type();
@@ -160,7 +161,7 @@ public class WhereParser {
               }
               val = Converters.typeForValue(valueType, value.asText());
             }
-            conditions.add(conditionToWhere(fieldName, op, val));
+            conditions.add(conditionToWhere(tableData.column(fieldName), op, val));
           }
         }
       }
@@ -169,11 +170,11 @@ public class WhereParser {
     return conditions;
   }
 
-  private static WhereCondition<?> conditionToWhere(String fieldName, FilterOp op, Object value) {
+  private static WhereCondition<?> conditionToWhere(Column column, FilterOp op, Object value) {
     return ImmutableWhereCondition.builder()
         .value(value)
         .predicate(op.predicate)
-        .column(fieldName.toLowerCase())
+        .column(column)
         .build();
   }
 }

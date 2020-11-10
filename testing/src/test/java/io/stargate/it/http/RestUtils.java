@@ -18,6 +18,8 @@ package io.stargate.it.http;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import okhttp3.Headers;
+import okhttp3.Headers.Builder;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -51,18 +53,17 @@ public class RestUtils {
     return body.string();
   }
 
-  public static String post(
-      String authToken, String path, String requestBody, int expectedStatusCode)
-      throws IOException {
+  public static String postWithHeader(
+      Headers headers, String path, String requestBody, int expectedStatusCode) throws IOException {
     OkHttpClient client = new OkHttpClient().newBuilder().build();
 
     Request request;
-    if (authToken != null) {
+    if (headers != null) {
       request =
           new Request.Builder()
               .url(path)
               .post(RequestBody.create(MediaType.parse("application/json"), requestBody))
-              .addHeader("X-Cassandra-Token", authToken)
+              .headers(headers)
               .build();
     } else {
       request =
@@ -81,16 +82,27 @@ public class RestUtils {
     return body.string();
   }
 
+  public static String post(
+      String authToken, String path, String requestBody, int expectedStatusCode)
+      throws IOException {
+    return postWithHeader(
+        new Builder().add("X-Cassandra-Token", authToken).build(),
+        path,
+        requestBody,
+        expectedStatusCode);
+  }
+
   public static String generateJwt(
-      String path, String username, String password, int expectedStatusCode) throws IOException {
+      String path, String username, String password, String clientId, int expectedStatusCode)
+      throws IOException {
     OkHttpClient client = new OkHttpClient().newBuilder().build();
 
     RequestBody requestBody =
         RequestBody.create(
             MediaType.parse("application/x-www-form-urlencoded"),
             String.format(
-                "username=%s&password=%s&grant_type=password&client_id=user-service",
-                username, password));
+                "username=%s&password=%s&grant_type=password&client_id=%s",
+                username, password, clientId));
 
     Request request = new Request.Builder().url(path).post(requestBody).build();
 
