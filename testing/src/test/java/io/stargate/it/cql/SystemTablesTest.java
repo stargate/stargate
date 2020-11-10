@@ -40,12 +40,17 @@ class SystemTablesTest extends BaseOsgiIntegrationTest {
             .one();
     assertThat(localRow).isNotNull();
     assertThat(localRow.getInetAddress("listen_address")).isEqualTo(getNodeAddress(localNode));
+    assertThat(localRow.getSet("tokens", String.class)).hasSizeGreaterThan(1);
 
     ResultSet rs =
         session.execute(
             SimpleStatement.builder("SELECT * FROM system.peers").setNode(localNode).build());
     List<InetAddress> peersAddresses = new ArrayList<>();
-    rs.forEach(row -> peersAddresses.add(row.getInetAddress("peer")));
+    rs.forEach(
+        row -> {
+          peersAddresses.add(row.getInetAddress("peer"));
+          assertThat(row.getSet("tokens", String.class)).hasSizeGreaterThan(1);
+        });
     List<InetAddress> expectedPeersAddresses =
         Streams.stream(nodes).map(n -> getNodeAddress(n)).collect(Collectors.toList());
     assertThat(peersAddresses).containsExactlyInAnyOrderElementsOf(expectedPeersAddresses);

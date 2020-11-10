@@ -280,7 +280,10 @@ public class StargateSystemKeyspace {
   }
 
   private static long getSeed(InetAddressAndPort inetAddress) {
-    ByteBuffer bytes = ByteBuffer.wrap(inetAddress.addressBytes).putInt(inetAddress.port);
+    final int size = inetAddress.addressBytes.length + 4;
+    ByteBuffer bytes =
+        ByteBuffer.allocate(size).put(inetAddress.addressBytes).putInt(inetAddress.port);
+    bytes.rewind();
     return MurmurHash.hash2_64(bytes, bytes.position(), bytes.remaining(), 0);
   }
 }

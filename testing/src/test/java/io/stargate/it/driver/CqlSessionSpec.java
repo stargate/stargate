@@ -85,10 +85,6 @@ public @interface CqlSessionSpec {
    */
   boolean createSession() default true;
 
-  /**
-   * Whether to add Stargate nodes to the contact points.
-   *
-   * <p>If set to false then the tests will need to add their own contact points.
-   */
-  boolean useDefaultContactPoints() default true;
+  Class<? extends ContactPointResolver> contactPointResolver() default
+      DefaultContactPointResolver.class;
 }
