@@ -27,7 +27,7 @@ public class ConfigWithOverrides {
   private final Map<String, Object> configMap;
   private final String moduleName;
 
-  public ConfigWithOverrides(@Nonnull Map<String, Object> configMap, String moduleName) {
+  public ConfigWithOverrides(@Nonnull Map<String, Object> configMap, @Nonnull String moduleName) {
     this.configMap = configMap;
     this.moduleName = moduleName;
   }
@@ -55,7 +55,8 @@ public class ConfigWithOverrides {
    */
   @Nonnull
   @SuppressWarnings("unchecked")
-  public <T> List<T> getSettingValueList(String settingName, Class<T> expectedType) {
+  public <T> List<T> getSettingValueList(
+      @Nonnull String settingName, @Nonnull Class<T> expectedType) {
     List<?> settingValue = getSettingValue(settingName, List.class);
     return settingValue.stream()
         .map(
@@ -78,7 +79,7 @@ public class ConfigWithOverrides {
    */
   @Nonnull
   @SuppressWarnings("unchecked")
-  public <T> T getSettingValue(String settingName, Class<T> expectedType) {
+  public <T> T getSettingValue(@Nonnull String settingName, @Nonnull Class<T> expectedType) {
     Object configValue = configMap.get(settingName);
     if (configValue == null) {
       throw new IllegalArgumentException(
@@ -101,7 +102,8 @@ public class ConfigWithOverrides {
    */
   @Nonnull
   @SuppressWarnings("unchecked")
-  public <T> Optional<T> getOptionalSettingValue(String settingName, Class<T> expectedType) {
+  public <T> Optional<T> getOptionalSettingValue(
+      @Nonnull String settingName, @Nonnull Class<T> expectedType) {
     Object configValue = configMap.get(settingName);
     if (configValue == null) {
       return Optional.empty();
@@ -153,7 +155,7 @@ public class ConfigWithOverrides {
    */
   @Nullable
   public String getWithOverrides(
-      String settingName, Function<Object, String> objectToStringMapper) {
+      @Nonnull String settingName, @Nonnull Function<Object, String> objectToStringMapper) {
     String settingNameWithModulePrefix = withModulePrefix(settingName);
     String systemProperty = System.getProperty(settingNameWithModulePrefix);
     if (systemProperty != null) {
@@ -177,7 +179,7 @@ public class ConfigWithOverrides {
    * with a {@link String#valueOf(Object)} mapper function.
    */
   @Nullable
-  public String getWithOverrides(String settingName) {
+  public String getWithOverrides(@Nonnull String settingName) {
     return getWithOverrides(settingName, String::valueOf);
   }
 
