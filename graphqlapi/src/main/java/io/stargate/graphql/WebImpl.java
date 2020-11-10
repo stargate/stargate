@@ -42,7 +42,9 @@ public class WebImpl {
     server = new Server();
 
     ServerConnector connector = new ServerConnector(server);
-    connector.setHost(System.getProperty("stargate.listen_address"));
+    if (Boolean.getBoolean("stargate.bind_to_listen_address")) {
+      connector.setHost(System.getProperty("stargate.listen_address"));
+    }
     connector.setPort(8080);
     server.addConnector(connector);
 
