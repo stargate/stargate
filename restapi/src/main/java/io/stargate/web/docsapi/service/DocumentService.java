@@ -21,6 +21,8 @@ import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.resources.Db;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -109,7 +111,7 @@ public class DocumentService {
    * @param path The path within the document that is being written to. If empty, writes to the root
    *     of the document.
    * @param key The name of the document that will be written
-   * @param payload a JSON object
+   * @param payload a JSON object, or a URL-encoded form with the relevant data in it
    * @param patching If this payload meant to be part of a PATCH request (this causes a small amount
    *     of extra validation if true)
    * @return The full bind variable list for the subsequent inserts, and all first-level keys, as an
@@ -121,9 +123,27 @@ public class DocumentService {
       List<String> path,
       String key,
       String payload,
+      boolean patching)
+      throws UnsupportedEncodingException {
+    String trimmed = payload.trim();
+    boolean isJson = trimmed.startsWith("{") || trimmed.startsWith("[");
+    if (isJson) {
+      return shredJson(surfer, db, path, key, trimmed, patching);
+    } else {
+      return shredForm(db, path, key, trimmed, patching);
+    }
+  }
+
+  private ImmutablePair<List<Object[]>, List<String>> shredJson(
+      JsonSurfer surfer,
+      DocumentDB db,
+      List<String> path,
+      String key,
+      String jsonPayload,
       boolean patching) {
     List<Object[]> bindVariableList = new ArrayList<>();
     List<String> firstLevelKeys = new ArrayList<>();
+
     surfer
         .configBuilder()
         .bind(
@@ -227,7 +247,109 @@ public class DocumentService {
               }
             })
         .withErrorStrategy(new DocumentAPIErrorHandlingStrategy())
-        .buildAndSurf(payload);
+        .buildAndSurf(jsonPayload);
+    return ImmutablePair.of(bindVariableList, firstLevelKeys);
+  }
+
+  private ImmutablePair<List<Object[]>, List<String>> shredForm(
+      DocumentDB db, List<String> path, String key, String formPayload, boolean patching)
+      throws UnsupportedEncodingException {
+    List<Object[]> bindVariableList = new ArrayList<>();
+    List<String> firstLevelKeys = new ArrayList<>();
+    String[] pairs = formPayload.split("&");
+    for (String pair : pairs) {
+      String[] data = pair.split("=");
+      if (data.length != 2) {
+        continue;
+      }
+      String fullyQualifiedField = data[0];
+      String value = URLDecoder.decode(data[1], "UTF-8");
+      String[] fieldNames = fullyQualifiedField.split("\\.");
+      for (int i = 0; i < fieldNames.length; i++) {
+        fieldNames[i] = URLDecoder.decode(fieldNames[i], "UTF-8");
+      }
+
+      if (path.size() + fieldNames.length > DocumentDB.MAX_DEPTH) {
+        throw new DocumentAPIRequestException(
+            String.format("Max depth of %s exceeded", DocumentDB.MAX_DEPTH));
+      }
+
+      Map<String, Object> bindMap = db.newBindMap(path);
+      bindMap.put("key", key);
+
+      String leaf = null;
+      for (int i = 0; i < fieldNames.length; i++) {
+        String fieldName = fieldNames[i];
+        boolean isArrayElement = fieldName.startsWith("[");
+        if (isArrayElement) {
+          if (i == 0 && patching) {
+            throw new DocumentAPIRequestException(
+                "A patch operation must be done with a JSON object, not an array.");
+          }
+
+          String innerPath = fieldName.substring(1, fieldName.length() - 1);
+          if (DocumentDB.containsIllegalChars(innerPath)) {
+            throw new DocumentAPIRequestException(
+                String.format(
+                    "The characters %s are not permitted in JSON field names, invalid field %s",
+                    DocumentDB.getForbiddenCharactersMessage(), fieldNames[i]));
+          }
+
+          int idx = Integer.parseInt(innerPath);
+          if (idx > DocumentDB.MAX_ARRAY_LENGTH - 1) {
+            throw new DocumentAPIRequestException(
+                String.format("Max array length of %s exceeded.", DocumentDB.MAX_ARRAY_LENGTH));
+          }
+
+          // left-pad the array element to 6 characters
+          fieldName = "[" + leftPadTo6(innerPath) + "]";
+        } else if (i == 0) {
+          firstLevelKeys.add(fieldName);
+        }
+
+        if (!isArrayElement) {
+          if (DocumentDB.containsIllegalChars(fieldName)) {
+            throw new DocumentAPIRequestException(
+                String.format(
+                    "The characters %s are not permitted in JSON field names, invalid field %s",
+                    DocumentDB.getForbiddenCharactersMessage(), fieldName));
+          }
+        }
+
+        bindMap.put("p" + (i + path.size()), fieldName);
+        leaf = fieldName;
+      }
+      bindMap.put("leaf", leaf);
+
+      if (value.equals("null")) {
+        bindMap.put("dbl_value", null);
+        bindMap.put("bool_value", null);
+        bindMap.put("text_value", null);
+      } else if (value.equals("true") || value.equals("false")) {
+        bindMap.put("dbl_value", null);
+        bindMap.put("bool_value", Boolean.parseBoolean(value));
+        bindMap.put("text_value", null);
+      } else {
+        boolean isNumber;
+        Double doubleValue = null;
+        try {
+          doubleValue = Double.parseDouble(value);
+          isNumber = true;
+        } catch (NumberFormatException e) {
+          isNumber = false;
+        }
+        if (isNumber) {
+          bindMap.put("dbl_value", doubleValue);
+          bindMap.put("bool_value", null);
+          bindMap.put("text_value", null);
+        }
+        bindMap.put("dbl_value", null);
+        bindMap.put("bool_value", null);
+        bindMap.put("text_value", value);
+      }
+      logger.debug("{}", bindMap.values());
+      bindVariableList.add(bindMap.values().toArray());
+    }
     return ImmutablePair.of(bindVariableList, firstLevelKeys);
   }
 
@@ -240,7 +362,7 @@ public class DocumentService {
       List<PathSegment> path,
       boolean patching,
       Db dbFactory)
-      throws UnauthorizedException {
+      throws UnauthorizedException, UnsupportedEncodingException {
     DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
 
     JsonSurfer surfer = JsonSurferGson.INSTANCE;

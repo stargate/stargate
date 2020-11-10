@@ -79,7 +79,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}")
-  @Consumes("application/json")
+  @Consumes("application/json, application/x-www-form-urlencoded")
   @Produces("application/json")
   public Response postDoc(
       @Context HttpHeaders headers,
@@ -132,7 +132,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}/{document-id}")
-  @Consumes("application/json")
+  @Consumes("application/json, application/x-www-form-urlencoded")
   @Produces("application/json")
   public Response putDoc(
       @Context HttpHeaders headers,
@@ -175,7 +175,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}/{document-id}/{document-path: .*}")
-  @Consumes("application/json")
+  @Consumes("application/json, application/x-www-form-urlencoded")
   @Produces("application/json")
   public Response putDocPath(
       @Context HttpHeaders headers,
@@ -221,7 +221,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}/{document-id}")
-  @Consumes("application/json")
+  @Consumes("application/json, application/x-www-form-urlencoded")
   @Produces("application/json")
   public Response patchDoc(
       @Context HttpHeaders headers,
@@ -265,7 +265,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}/{document-id}/{document-path: .*}")
-  @Consumes("application/json")
+  @Consumes("application/json, application/x-www-form-urlencoded")
   @Produces("application/json")
   public Response patchDocPath(
       @Context HttpHeaders headers,
