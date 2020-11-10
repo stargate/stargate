@@ -182,6 +182,12 @@
       <version>2.6</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-all</artifactId>
+      <version>4.1.50.Final</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>

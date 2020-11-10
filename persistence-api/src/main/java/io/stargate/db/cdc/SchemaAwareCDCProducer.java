@@ -89,7 +89,7 @@ public abstract class SchemaAwareCDCProducer implements CDCProducer {
      *
      * @return The UUID of the schema version that caused a changed in the table.
      */
-    CompletableFuture<Void> ensureCreated(Table table) {
+    public CompletableFuture<Void> ensureCreated(Table table) {
       // Try to reuse the table schema for a given table hash code
       return creators.computeIfAbsent(table, k2 -> create(table));
     }
