@@ -269,7 +269,7 @@ public class StargateSystemKeyspace {
   }
 
   public static Set<String> generateRandomTokens(InetAddressAndPort inetAddress, int numTokens) {
-    Random random = new Random(getHash(inetAddress));
+    Random random = new Random(getSeed(inetAddress));
     IPartitioner partitioner = DatabaseDescriptor.getPartitioner();
     TokenFactory tokenFactory = partitioner.getTokenFactory();
     Set<String> tokens = new HashSet<>(numTokens);
@@ -279,7 +279,7 @@ public class StargateSystemKeyspace {
     return tokens;
   }
 
-  private static long getHash(InetAddressAndPort inetAddress) {
+  private static long getSeed(InetAddressAndPort inetAddress) {
     ByteBuffer bytes = ByteBuffer.wrap(inetAddress.addressBytes).putInt(inetAddress.port);
     return MurmurHash.hash2_64(bytes, bytes.position(), bytes.remaining(), 0);
   }
