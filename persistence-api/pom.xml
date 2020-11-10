@@ -90,6 +90,12 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>io.stargate.config.store.yaml</groupId>
+      <artifactId>config-store-yaml</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <exclusions>
@@ -113,6 +119,12 @@
       <artifactId>guava</artifactId>
       <version>27.0-jre</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.config-store</groupId>
+      <artifactId>config-store-api</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
   <build>

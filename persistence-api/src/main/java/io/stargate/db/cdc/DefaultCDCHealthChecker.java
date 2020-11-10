@@ -1,3 +1,18 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.db.cdc;
 
 import com.codahale.metrics.Clock;
@@ -9,8 +24,8 @@ import java.util.concurrent.atomic.AtomicLong;
 class DefaultCDCHealthChecker implements CDCHealthChecker {
   private double errorRateThreshold;
   private int minErrorsPerSecond;
-  static final int INTERVAL = 5;
-  static final long TICK_INTERVAL = TimeUnit.SECONDS.toNanos(INTERVAL);
+  public static final int INTERVAL = 5;
+  public static final long TICK_INTERVAL = TimeUnit.SECONDS.toNanos(INTERVAL);
 
   private AutoTickEWMA successes;
   private AutoTickEWMA errors;
@@ -81,7 +96,7 @@ class DefaultCDCHealthChecker implements CDCHealthChecker {
 
     TickClock defaultClock =
         new TickClock() {
-          private final Clock clock = com.codahale.metrics.Clock.defaultClock();
+          private final Clock clock = Clock.defaultClock();
 
           @Override
           public long getTick() {
@@ -91,7 +106,9 @@ class DefaultCDCHealthChecker implements CDCHealthChecker {
   }
 
   @Override
-  public void close() {}
+  public void close() {
+    // no-op
+  }
 
   private static class AutoTickEWMA {
     private static final double SECONDS_PER_MINUTE = 60.0;
@@ -107,12 +124,12 @@ class DefaultCDCHealthChecker implements CDCHealthChecker {
       lastTick = new AtomicLong(clock.getTick());
     }
 
-    void update() {
+    public void update() {
       instance.update(1);
     }
 
     /** Gets the rate with seconds as unit of time. */
-    double getRate() {
+    public double getRate() {
       tickIfNecessary();
       return instance.getRate(TimeUnit.SECONDS);
     }
