@@ -112,6 +112,7 @@ public class DocumentService {
    * @param payload a JSON object, or a URL-encoded form with the relevant data in it
    * @param patching If this payload meant to be part of a PATCH request (this causes a small amount
    *     of extra validation if true)
+   * @param isJson if the request had a content type of application/json, else it will be interpreted as a URL encoded form
    * @return The full bind variable list for the subsequent inserts, and all first-level keys, as an
    *     ImmutablePair.
    */
@@ -121,9 +122,9 @@ public class DocumentService {
       List<String> path,
       String key,
       String payload,
-      boolean patching) {
+      boolean patching,
+      boolean isJson) {
     String trimmed = payload.trim();
-    boolean isJson = trimmed.startsWith("{") || trimmed.startsWith("[");
     if (isJson) {
       return shredJson(surfer, db, path, key, trimmed, patching);
     } else {
@@ -353,7 +354,8 @@ public class DocumentService {
       String payload,
       List<PathSegment> path,
       boolean patching,
-      Db dbFactory)
+      Db dbFactory,
+      boolean isJson)
       throws UnauthorizedException {
     DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
 
@@ -375,7 +377,7 @@ public class DocumentService {
     }
 
     ImmutablePair<List<Object[]>, List<String>> shreddingResults =
-        shredPayload(surfer, db, convertedPath, id, payload, patching);
+        shredPayload(surfer, db, convertedPath, id, payload, patching, isJson);
 
     List<Object[]> bindVariableList = shreddingResults.left;
     List<String> firstLevelKeys = shreddingResults.right;

@@ -206,7 +206,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testBasicForms() throws IOException {
-    RestUtils.put(
+    RestUtils.putForm(
         authToken,
         hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
         "a=b&b=null&c.b=3.3&d.[0].[2]=true",
@@ -220,7 +220,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode expected =
         objectMapper.readTree(
             "{\"a\":\"b\", \"b\":null, \"c\":{\"b\": 3.3}, \"d\":[[null, null, true]]}");
-    assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(expected, "1", null));
+    assertThat(objectMapper.readTree(resp).toString()).isEqualTo(wrapResponse(expected, "1", null).toString());
   }
 
   @Test

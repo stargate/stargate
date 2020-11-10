@@ -39,8 +39,6 @@ public class DocumentResourceV2Test {
   private DocumentService documentServiceMock = mock(DocumentService.class);
   private Db dbFactoryMock = mock(Db.class);
   private DocumentResourceV2 documentResourceV2;
-  private Method wrapResponseId;
-  private Method wrapResponseIdPageState;
 
   @Before
   public void setup() {
@@ -52,6 +50,7 @@ public class DocumentResourceV2Test {
   @Test
   public void postDoc_success() throws JsonProcessingException {
     HttpHeaders headers = mock(HttpHeaders.class);
+    when(headers.getHeaderString(anyString())).thenReturn("application/json");
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
     String keyspace = "keyspace";
@@ -67,6 +66,7 @@ public class DocumentResourceV2Test {
   @Test
   public void putDoc_success() throws UnauthorizedException, JsonProcessingException {
     HttpHeaders headers = mock(HttpHeaders.class);
+    when(headers.getHeaderString(anyString())).thenReturn("application/json");
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
     String keyspace = "keyspace";
@@ -84,6 +84,7 @@ public class DocumentResourceV2Test {
   @Test
   public void putDocPath() throws JsonProcessingException {
     HttpHeaders headers = mock(HttpHeaders.class);
+    when(headers.getHeaderString(anyString())).thenReturn("application/json");
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
     String keyspace = "keyspace";
@@ -104,6 +105,7 @@ public class DocumentResourceV2Test {
   @Test
   public void patchDoc() throws JsonProcessingException {
     HttpHeaders headers = mock(HttpHeaders.class);
+    when(headers.getHeaderString(anyString())).thenReturn("application/json");
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
     String keyspace = "keyspace";
@@ -122,6 +124,7 @@ public class DocumentResourceV2Test {
   @Test
   public void patchDocPath() throws JsonProcessingException {
     HttpHeaders headers = mock(HttpHeaders.class);
+    when(headers.getHeaderString(anyString())).thenReturn("application/json");
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
     String keyspace = "keyspace";
