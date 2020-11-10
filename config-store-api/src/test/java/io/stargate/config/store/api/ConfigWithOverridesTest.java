@@ -54,7 +54,7 @@ class ConfigWithOverridesTest {
       ConfigWithOverrides configWithOverrides = new ConfigWithOverrides(configMap, MODULE_NAME);
 
       // when
-      Object result = configWithOverrides.getWithOverrides(SETTING_NAME);
+      String result = configWithOverrides.getWithOverrides(SETTING_NAME);
 
       // then
       assertThat(result).isEqualTo(expected);
@@ -65,6 +65,21 @@ class ConfigWithOverridesTest {
       System.clearProperty(FULL_SETTING_NAME);
       clearEnv(FULL_SETTING_NAME);
     }
+  }
+
+  @Test
+  public void shouldMapFromBooleanToStringUsingMapperFunctionPassedToGetWithOverrides() {
+    // given
+    Map<String, Object> options = new HashMap<>();
+    String settingName = "setting-a";
+    options.put(settingName, true);
+
+    // when
+    String value =
+        new ConfigWithOverrides(options, "ignored").getWithOverrides(settingName, String::valueOf);
+
+    // then
+    assertThat(value).isEqualTo("true");
   }
 
   @Test
