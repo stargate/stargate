@@ -124,7 +124,7 @@ public class DefaultConfigLoader implements ConfigLoader {
   }
 
   @NonNull
-  Entry<String, Object> toKafkaProducerSetting(Entry<String, Object> entry) {
+  protected Entry<String, Object> toKafkaProducerSetting(Entry<String, Object> entry) {
     Matcher matcher = CDC_KAFKA_PRODUCER_SETTING_PATTERN.matcher(entry.getKey());
     if (matcher.matches()) {
       return new SimpleEntry<>(matcher.group(2), entry.getValue());
