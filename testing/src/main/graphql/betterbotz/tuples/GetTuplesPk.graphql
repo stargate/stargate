@@ -1,0 +1,7 @@
+query GetTuplesPk($value: TuplesPkInput!) {
+    TuplesPk(value: $value) {
+        values {
+            id { item0, item1 }
+        }
+    }
+}

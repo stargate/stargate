@@ -50,6 +50,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +68,15 @@ class DmlSchemaBuilder {
   private final FieldFilterInputTypeCache fieldFilterInputTypes;
   private final NameMapping nameMapping;
   private final Keyspace keyspace;
+
+  /** Describes the different kind of types generated from a table */
+  private enum DmlType {
+    QueryOutput,
+    MutationOutput,
+    Input,
+    FilterInput,
+    Order
+  }
 
   DmlSchemaBuilder(
       Persistence persistence, AuthenticationService authenticationService, Keyspace keyspace) {
@@ -172,6 +183,9 @@ class DmlSchemaBuilder {
     GraphQLFieldDefinition query =
         GraphQLFieldDefinition.newFieldDefinition()
             .name(graphqlName)
+            .description(
+                String.format(
+                    "Query for the table '%s'.%s", table.name(), primaryKeyDescription(table)))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("value")
@@ -238,6 +252,7 @@ class DmlSchemaBuilder {
   private GraphQLType buildFilterInput(Table table) {
     return GraphQLInputObjectType.newInputObject()
         .name(nameMapping.getGraphqlName(table) + "FilterInput")
+        .description(getTypeDescription(table, DmlType.FilterInput))
         .fields(buildFilterInputFields(table))
         .build();
   }
@@ -245,6 +260,10 @@ class DmlSchemaBuilder {
   private GraphQLFieldDefinition buildUpdate(Table table) {
     return GraphQLFieldDefinition.newFieldDefinition()
         .name("update" + nameMapping.getGraphqlName(table))
+        .description(
+            String.format(
+                "Update mutation for the table '%s'.%s",
+                table.name(), primaryKeyDescription(table)))
         .argument(
             GraphQLArgument.newArgument()
                 .name("value")
@@ -266,6 +285,10 @@ class DmlSchemaBuilder {
   private GraphQLFieldDefinition buildInsert(Table table) {
     return GraphQLFieldDefinition.newFieldDefinition()
         .name("insert" + nameMapping.getGraphqlName(table))
+        .description(
+            String.format(
+                "Insert mutation for the table '%s'.%s",
+                table.name(), primaryKeyDescription(table)))
         .argument(
             GraphQLArgument.newArgument()
                 .name("value")
@@ -283,6 +306,10 @@ class DmlSchemaBuilder {
   private GraphQLFieldDefinition buildDelete(Table table) {
     return GraphQLFieldDefinition.newFieldDefinition()
         .name("delete" + nameMapping.getGraphqlName(table))
+        .description(
+            String.format(
+                "Delete mutation for the table '%s'.%s",
+                table.name(), primaryKeyDescription(table)))
         .argument(
             GraphQLArgument.newArgument()
                 .name("value")
@@ -327,6 +354,7 @@ class DmlSchemaBuilder {
   private GraphQLOutputType buildMutationResult(Table table) {
     return GraphQLObjectType.newObject()
         .name(nameMapping.getGraphqlName(table) + "MutationResult")
+        .description(getTypeDescription(table, DmlType.MutationOutput))
         .field(
             GraphQLFieldDefinition.newFieldDefinition()
                 .name("applied")
@@ -341,6 +369,7 @@ class DmlSchemaBuilder {
   private GraphQLType buildQueryOptionsInputType() {
     return GraphQLInputObjectType.newInputObject()
         .name("QueryOptions")
+        .description("The execution options for the query.")
         .field(
             GraphQLInputObjectField.newInputObjectField()
                 .name("consistency")
@@ -375,7 +404,10 @@ class DmlSchemaBuilder {
 
   private GraphQLType buildOrderType(Table table) {
     GraphQLEnumType.Builder input =
-        GraphQLEnumType.newEnum().name(nameMapping.getGraphqlName(table) + "Order");
+        GraphQLEnumType.newEnum()
+            .name(nameMapping.getGraphqlName(table) + "Order")
+            .description(getTypeDescription(table, DmlType.Order));
+
     for (Column column : table.columns()) {
       String graphqlName = nameMapping.getGraphqlName(table, column);
       if (graphqlName != null) {
@@ -388,7 +420,10 @@ class DmlSchemaBuilder {
 
   private GraphQLType buildInputType(Table table) {
     GraphQLInputObjectType.Builder input =
-        GraphQLInputObjectType.newInputObject().name(nameMapping.getGraphqlName(table) + "Input");
+        GraphQLInputObjectType.newInputObject()
+            .name(nameMapping.getGraphqlName(table) + "Input")
+            .description(getTypeDescription(table, DmlType.Input));
+
     for (Column column : table.columns()) {
       String graphqlName = nameMapping.getGraphqlName(table, column);
       if (graphqlName != null) {
@@ -437,7 +472,9 @@ class DmlSchemaBuilder {
 
   public GraphQLObjectType buildType(Table table) {
     GraphQLObjectType.Builder builder =
-        GraphQLObjectType.newObject().name(nameMapping.getGraphqlName(table));
+        GraphQLObjectType.newObject()
+            .name(nameMapping.getGraphqlName(table))
+            .description(getTypeDescription(table, DmlType.QueryOutput));
     for (Column column : table.columns()) {
       String graphqlName = nameMapping.getGraphqlName(table, column);
       if (graphqlName != null) {
@@ -490,6 +527,7 @@ class DmlSchemaBuilder {
   private static final GraphQLInputType MUTATION_OPTIONS =
       GraphQLInputObjectType.newInputObject()
           .name("MutationOptions")
+          .description("The execution options for the mutation.")
           .field(
               GraphQLInputObjectField.newInputObjectField()
                   .name("consistency")
@@ -517,4 +555,66 @@ class DmlSchemaBuilder {
                   .type(Scalars.GraphQLInt)
                   .build())
           .build();
+
+  private String getTypeDescription(Table table, DmlType dmlType) {
+    StringBuilder builder = new StringBuilder();
+    switch (dmlType) {
+      case Input:
+        builder.append("The input type");
+        break;
+      case FilterInput:
+        builder.append("The input type used for filtering with non-equality operators");
+        break;
+      case Order:
+        builder.append("The enum used to order a query result based on one or more fields");
+        break;
+      case QueryOutput:
+        builder.append("The type used to represent results of a query");
+        break;
+      case MutationOutput:
+        builder.append("The type used to represent results of a mutation");
+        break;
+      default:
+        builder.append("Type");
+        break;
+    }
+
+    builder.append(" for the table '");
+    builder.append(table.name());
+    builder.append("'.");
+
+    if (dmlType == DmlType.Input || dmlType == DmlType.FilterInput) {
+      primaryKeyDescription(table, builder);
+    }
+
+    return builder.toString();
+  }
+
+  private void primaryKeyDescription(Table table, StringBuilder builder) {
+    // Include partition key information that is relevant to making a query
+    List<String> primaryKeys =
+        Stream.concat(table.partitionKeyColumns().stream(), table.clusteringKeyColumns().stream())
+            .map(c -> nameMapping.getGraphqlName(table, c))
+            .collect(Collectors.toList());
+    builder.append("\nNote that ").append("'").append(primaryKeys.get(0)).append("'");
+    for (int i = 1; i < primaryKeys.size(); i++) {
+      if (i == primaryKeys.size() - 1) {
+        builder.append(" and ");
+      } else {
+        builder.append(", ");
+      }
+      builder.append("'").append(primaryKeys.get(i)).append("'");
+    }
+    if (primaryKeys.size() > 1) {
+      builder.append(" are the fields that correspond to the table primary key.");
+    } else {
+      builder.append(" is the field that corresponds to the table primary key.");
+    }
+  }
+
+  private String primaryKeyDescription(Table table) {
+    StringBuilder builder = new StringBuilder();
+    primaryKeyDescription(table, builder);
+    return builder.toString();
+  }
 }

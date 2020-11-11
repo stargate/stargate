@@ -109,9 +109,11 @@ public class DocumentService {
    * @param path The path within the document that is being written to. If empty, writes to the root
    *     of the document.
    * @param key The name of the document that will be written
-   * @param payload a JSON object
+   * @param payload a JSON object, or a URL-encoded form with the relevant data in it
    * @param patching If this payload meant to be part of a PATCH request (this causes a small amount
    *     of extra validation if true)
+   * @param isJson if the request had a content type of application/json, else it will be
+   *     interpreted as a URL encoded form
    * @return The full bind variable list for the subsequent inserts, and all first-level keys, as an
    *     ImmutablePair.
    */
@@ -121,9 +123,26 @@ public class DocumentService {
       List<String> path,
       String key,
       String payload,
+      boolean patching,
+      boolean isJson) {
+    String trimmed = payload.trim();
+    if (isJson) {
+      return shredJson(surfer, db, path, key, trimmed, patching);
+    } else {
+      return shredForm(db, path, key, trimmed, patching);
+    }
+  }
+
+  private ImmutablePair<List<Object[]>, List<String>> shredJson(
+      JsonSurfer surfer,
+      DocumentDB db,
+      List<String> path,
+      String key,
+      String jsonPayload,
       boolean patching) {
     List<Object[]> bindVariableList = new ArrayList<>();
     List<String> firstLevelKeys = new ArrayList<>();
+
     surfer
         .configBuilder()
         .bind(
@@ -227,7 +246,105 @@ public class DocumentService {
               }
             })
         .withErrorStrategy(new DocumentAPIErrorHandlingStrategy())
-        .buildAndSurf(payload);
+        .buildAndSurf(jsonPayload);
+    return ImmutablePair.of(bindVariableList, firstLevelKeys);
+  }
+
+  private ImmutablePair<List<Object[]>, List<String>> shredForm(
+      DocumentDB db, List<String> path, String key, String formPayload, boolean patching) {
+    List<Object[]> bindVariableList = new ArrayList<>();
+    List<String> firstLevelKeys = new ArrayList<>();
+    String[] pairs = formPayload.split("&");
+    for (String pair : pairs) {
+      String[] data = pair.split("=");
+      String fullyQualifiedField;
+      String value;
+      if (data.length == 2) {
+        fullyQualifiedField = data[0];
+        value = data[1];
+      } else if (data.length == 1) {
+        fullyQualifiedField = "data";
+        value = data[0];
+      } else {
+        continue;
+      }
+      String[] fieldNames = fullyQualifiedField.split("\\.");
+
+      if (path.size() + fieldNames.length > DocumentDB.MAX_DEPTH) {
+        throw new DocumentAPIRequestException(
+            String.format("Max depth of %s exceeded", DocumentDB.MAX_DEPTH));
+      }
+
+      Map<String, Object> bindMap = db.newBindMap(path);
+      bindMap.put("key", key);
+
+      String leaf = null;
+      for (int i = 0; i < fieldNames.length; i++) {
+        String fieldName = fieldNames[i];
+        boolean isArrayElement = fieldName.startsWith("[");
+        if (!isArrayElement) {
+          // Unlike using JSON, try to allow any input by replacing illegal characters with _.
+          // Form shredding is only supposed to be used for benchmarking tests.
+          fieldName = DocumentDB.replaceIllegalChars(fieldName);
+        }
+        if (isArrayElement) {
+          if (i == 0 && patching) {
+            throw new DocumentAPIRequestException(
+                "A patch operation must be done with a JSON object, not an array.");
+          }
+
+          String innerPath = fieldName.substring(1, fieldName.length() - 1);
+          // Unlike using JSON, try to allow any input by replacing illegal characters with _.
+          // Form shredding is only supposed to be used for benchmarking tests.
+          innerPath = DocumentDB.replaceIllegalChars(innerPath);
+
+          int idx = Integer.parseInt(innerPath);
+          if (idx > DocumentDB.MAX_ARRAY_LENGTH - 1) {
+            throw new DocumentAPIRequestException(
+                String.format("Max array length of %s exceeded.", DocumentDB.MAX_ARRAY_LENGTH));
+          }
+
+          // left-pad the array element to 6 characters
+          fieldName = "[" + leftPadTo6(innerPath) + "]";
+        } else if (i == 0) {
+          firstLevelKeys.add(fieldName);
+        }
+
+        bindMap.put("p" + (i + path.size()), fieldName);
+        leaf = fieldName;
+      }
+      bindMap.put("leaf", leaf);
+
+      if (value.equals("null")) {
+        bindMap.put("dbl_value", null);
+        bindMap.put("bool_value", null);
+        bindMap.put("text_value", null);
+      } else if (value.equals("true") || value.equals("false")) {
+        bindMap.put("dbl_value", null);
+        bindMap.put("bool_value", Boolean.parseBoolean(value));
+        bindMap.put("text_value", null);
+      } else {
+        boolean isNumber;
+        Double doubleValue = null;
+        try {
+          doubleValue = Double.parseDouble(value);
+          isNumber = true;
+        } catch (NumberFormatException e) {
+          isNumber = false;
+        }
+        if (isNumber) {
+          bindMap.put("dbl_value", doubleValue);
+          bindMap.put("bool_value", null);
+          bindMap.put("text_value", null);
+        } else {
+          bindMap.put("dbl_value", null);
+          bindMap.put("bool_value", null);
+          bindMap.put("text_value", value);
+        }
+      }
+      logger.debug("{}", bindMap.values());
+      bindVariableList.add(bindMap.values().toArray());
+    }
     return ImmutablePair.of(bindVariableList, firstLevelKeys);
   }
 
@@ -239,7 +356,8 @@ public class DocumentService {
       String payload,
       List<PathSegment> path,
       boolean patching,
-      Db dbFactory)
+      Db dbFactory,
+      boolean isJson)
       throws UnauthorizedException {
     DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
 
@@ -261,7 +379,7 @@ public class DocumentService {
     }
 
     ImmutablePair<List<Object[]>, List<String>> shreddingResults =
-        shredPayload(surfer, db, convertedPath, id, payload, patching);
+        shredPayload(surfer, db, convertedPath, id, payload, patching, isJson);
 
     List<Object[]> bindVariableList = shreddingResults.left;
     List<String> firstLevelKeys = shreddingResults.right;

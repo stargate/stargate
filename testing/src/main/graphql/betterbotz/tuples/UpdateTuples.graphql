@@ -1,0 +1,13 @@
+mutation UpdateTuples(
+    $value: TuplesInput!
+    $ifExists: Boolean
+    $options: MutationOptions
+) {
+    updateTuples(
+        value: $value
+        ifExists: $ifExists
+        options: $options
+    ) {
+        applied
+    }
+}

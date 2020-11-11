@@ -49,6 +49,15 @@ CREATE TYPE IF NOT EXISTS betterbotz."A"(b frozen<"B">);
 
 CREATE TABLE IF NOT EXISTS betterbotz."Udts"(a frozen<"A"> PRIMARY KEY, bs list<frozen<"B">>);
 
+CREATE TABLE IF NOT EXISTS betterbotz."Tuples"(
+    id uuid PRIMARY KEY,
+    tuple1 tuple<bigint>,
+    tuple2 tuple<float, float>,
+    tuple3 tuple<timeuuid, int, boolean>
+);
+
+CREATE TABLE IF NOT EXISTS betterbotz."TuplesPk"(id tuple<int, int> PRIMARY KEY);
+
 CREATE TABLE IF NOT EXISTS betterbotz."Scalars" (
     id uuid PRIMARY KEY,
     asciivalue ascii,

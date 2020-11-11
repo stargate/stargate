@@ -1,0 +1,13 @@
+mutation InsertTuples(
+    $value: TuplesInput!
+    $ifNotExists: Boolean
+    $options: MutationOptions
+) {
+    insertTuples(
+        value: $value
+        ifNotExists: $ifNotExists
+        options: $options
+    ) {
+        applied
+    }
+}
