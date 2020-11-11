@@ -43,7 +43,16 @@ abstract class FieldTypeCache<GraphqlT> {
 
   GraphqlT get(ColumnType type) {
     type = normalize(type);
-    return types.computeIfAbsent(type, this::compute);
+    return computeIfAbsent(type);
+  }
+
+  private GraphqlT computeIfAbsent(ColumnType type) {
+    GraphqlT result = types.get(type);
+    if (result == null) {
+      result = compute(type);
+      types.put(type, result);
+    }
+    return result;
   }
 
   /**
