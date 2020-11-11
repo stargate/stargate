@@ -1646,7 +1646,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?page-size=2&where={\"value\": {\"$eq\": \"a\"}}&raw=true",
+                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"a\"}}&raw=true",
             200);
 
     String expected = "{\"cool-search-id-2\":{\"value\":\"a\"}}";
@@ -1658,7 +1658,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?page-size=2&where={\"someStuff.someOtherStuff.value\": {\"$eq\": \"a\"}}&raw=true",
+                + "/collections/collection?page-size=2&where={\"someStuff.someOtherStuff.value\": {\"$eq\": \"a\"}}&raw=true",
             200);
 
     expected = "{\"cool-search-id\":{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}";
@@ -1670,7 +1670,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?page-size=2&where={\"someStuff.*.value\": {\"$eq\": \"a\"}}&raw=true",
+                + "/collections/collection?page-size=2&where={\"someStuff.*.value\": {\"$eq\": \"a\"}}&raw=true",
             200);
 
     expected = "{\"cool-search-id\":{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}";

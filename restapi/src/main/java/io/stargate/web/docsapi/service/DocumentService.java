@@ -1102,6 +1102,23 @@ public class DocumentService {
     return s.toString();
   }
 
+  private boolean pathsMatch(String path1, String path2) {
+    String[] parts1 = path1.split("\\.");
+    String[] parts2 = path2.split("\\.");
+    if (parts1.length != parts2.length) {
+      return false;
+    }
+
+    for (int i = 0; i < parts1.length; i++) {
+      String part1 = parts1[i];
+      String part2 = parts2[i];
+      if (!part1.equals("*") && !part2.equals("*") && !part1.equals(part2)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   private List<Row> filterToSelectionSet(
       List<Row> rows, List<String> fieldNames, List<String> requestedPath) {
     if (fieldNames.isEmpty()) {
@@ -1166,11 +1183,15 @@ public class DocumentService {
                       .filter(
                           r -> {
                             if (r == null || r.getString("leaf") == null) {
+                              System.out.println("Returning false");
                               return false;
                             }
-                            String parentPath = getParentPathFromRow(r);
-                            return StringUtils.equals(
-                                parentPath + "." + r.getString("leaf"), filterFieldPath);
+                            String[] parentPath = getParentPathFromRow(r).split("/");
+                            if (parentPath.length != 2) {
+                              return false;
+                            }
+                            String rowPath = parentPath[1];
+                            return pathsMatch(rowPath + r.getString("leaf"), filterFieldPath);
                           })
                       .findFirst();
               return fieldRow.isPresent() && allFiltersMatch(fieldRow.get(), inMemoryFilters);
