@@ -1,0 +1,10 @@
+query GetTuples($id: Uuid!) {
+    tuples(value: { id: $id}) {
+        values {
+            id
+            tuple1 { item0 }
+            tuple2 { item0, item1 }
+            tuple3 { item0, item1, item2 }
+        }
+    }
+}

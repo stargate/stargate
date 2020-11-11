@@ -38,6 +38,11 @@ import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery
 import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery.Value;
 import com.example.graphql.client.betterbotz.products.InsertProductsMutation;
 import com.example.graphql.client.betterbotz.products.UpdateProductsMutation;
+import com.example.graphql.client.betterbotz.tuples.GetTuplesPkQuery;
+import com.example.graphql.client.betterbotz.tuples.GetTuplesQuery;
+import com.example.graphql.client.betterbotz.tuples.InsertTuplesMutation;
+import com.example.graphql.client.betterbotz.tuples.InsertTuplesPkMutation;
+import com.example.graphql.client.betterbotz.tuples.UpdateTuplesMutation;
 import com.example.graphql.client.betterbotz.type.AUdtInput;
 import com.example.graphql.client.betterbotz.type.BUdtInput;
 import com.example.graphql.client.betterbotz.type.CollectionsNestedInput;
@@ -55,6 +60,8 @@ import com.example.graphql.client.betterbotz.type.ProductsInput;
 import com.example.graphql.client.betterbotz.type.QueryConsistency;
 import com.example.graphql.client.betterbotz.type.QueryOptions;
 import com.example.graphql.client.betterbotz.type.StringFilterInput;
+import com.example.graphql.client.betterbotz.type.TupleIntIntInput;
+import com.example.graphql.client.betterbotz.type.TuplesPkInput;
 import com.example.graphql.client.betterbotz.type.UdtsInput;
 import com.example.graphql.client.betterbotz.type.UuidFilterInput;
 import com.example.graphql.client.betterbotz.udts.GetUdtsQuery;
@@ -80,6 +87,7 @@ import com.google.common.io.CharStreams;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.db.schema.Column;
 import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.http.graphql.TupleHelper;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
@@ -1265,6 +1273,62 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         getObservable(client.mutate(insertMutation));
     assertThat(insertResult.getInsertCollectionsNested()).isPresent();
     assertCollectionsNested(client, id, list, set, map);
+  }
+
+  @Test
+  public void shouldInsertAndUpdateTuples() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    UUID id = UUID.randomUUID();
+    long tuple1Value = 1L;
+    float[] tuple2 = {1.3f, -90f};
+    Object[] tuple3 = {Uuids.timeBased(), 2, true};
+
+    getObservable(
+        client.mutate(
+            InsertTuplesMutation.builder()
+                .value(TupleHelper.createTupleInput(id, tuple1Value, tuple2, tuple3))
+                .build()));
+
+    TupleHelper.assertTuples(
+        getObservable(client.query(GetTuplesQuery.builder().id(id).build())),
+        tuple1Value,
+        tuple2,
+        tuple3);
+
+    tuple1Value = -1L;
+    tuple2 = new float[] {0, Float.MAX_VALUE};
+    tuple3 = new Object[] {Uuids.timeBased(), 3, false};
+
+    getObservable(
+        client.mutate(
+            UpdateTuplesMutation.builder()
+                .value(TupleHelper.createTupleInput(id, tuple1Value, tuple2, tuple3))
+                .build()));
+
+    TupleHelper.assertTuples(
+        getObservable(client.query(GetTuplesQuery.builder().id(id).build())),
+        tuple1Value,
+        tuple2,
+        tuple3);
+  }
+
+  @Test
+  public void shouldSupportTuplesAsPartitionKey() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    TuplesPkInput input =
+        TuplesPkInput.builder().id(TupleIntIntInput.builder().item0(10).item1(20).build()).build();
+    getObservable(client.mutate(InsertTuplesPkMutation.builder().value(input).build()));
+
+    GetTuplesPkQuery.Data result =
+        getObservable(client.query(GetTuplesPkQuery.builder().value(input).build()));
+
+    assertThat(result.getTuplesPk())
+        .isPresent()
+        .get()
+        .extracting(v -> v.getValues(), InstanceOfAssertFactories.OPTIONAL)
+        .isPresent()
+        .get(InstanceOfAssertFactories.LIST)
+        .hasSize(1);
   }
 
   @Test

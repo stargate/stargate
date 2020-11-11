@@ -16,6 +16,7 @@
 package io.stargate.graphql.schema.fetchers.dml;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
@@ -59,7 +60,7 @@ class DataTypeMapping {
     } else if (type.isUserDefined()) {
       formatUdt((UserDefinedType) type, value, nameMapping, out);
     } else if (type.isTuple()) {
-      throw new UnsupportedOperationException("Tuple support is not implemented yet");
+      formatTuple(type, value, nameMapping, out);
     } else { // primitive
       @SuppressWarnings("unchecked")
       TypeCodec<Object> codec = type.codec();
@@ -129,6 +130,26 @@ class DataTypeMapping {
     out.append('}');
   }
 
+  private static void formatTuple(
+      Column.ColumnType type, Object value, NameMapping nameMapping, StringBuilder out) {
+    out.append('(');
+    @SuppressWarnings("unchecked")
+    Map<String, Object> mapValue = (Map<String, Object>) value;
+    List<Column.ColumnType> subTypes = type.parameters();
+
+    for (int i = 0; i < subTypes.size(); i++) {
+      Object item = mapValue.get("item" + i);
+
+      if (i > 0) {
+        out.append(',');
+      }
+
+      format(subTypes.get(i), item, nameMapping, out);
+    }
+
+    out.append(')');
+  }
+
   /** Converts result Row into a map suitable to serve it via GraphQL. */
   static Map<String, Object> toGraphQLValue(NameMapping nameMapping, Table table, Row row) {
     List<Column> columns = row.columns();
@@ -187,7 +208,13 @@ class DataTypeMapping {
       }
       return result;
     } else if (type.isTuple()) {
-      throw new UnsupportedOperationException("Tuple support is not implemented yet");
+      TupleValue tuple = (TupleValue) dbValue;
+      Map<String, Object> result = new HashMap<>(tuple.size());
+      for (int i = 0; i < tuple.size(); i++) {
+        result.put(
+            "item" + i, toGraphQLValue(nameMapping, type.parameters().get(i), tuple.getObject(i)));
+      }
+      return result;
     } else { // primitive
       return dbValue;
     }
