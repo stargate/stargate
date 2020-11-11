@@ -61,7 +61,7 @@ import com.example.graphql.client.betterbotz.type.QueryConsistency;
 import com.example.graphql.client.betterbotz.type.QueryOptions;
 import com.example.graphql.client.betterbotz.type.StringFilterInput;
 import com.example.graphql.client.betterbotz.type.TupleIntIntInput;
-import com.example.graphql.client.betterbotz.type.TuplesPkInput;
+import com.example.graphql.client.betterbotz.type.Tuplx65_sPkInput;
 import com.example.graphql.client.betterbotz.type.UdtsInput;
 import com.example.graphql.client.betterbotz.type.UuidFilterInput;
 import com.example.graphql.client.betterbotz.udts.GetUdtsQuery;
@@ -1315,14 +1315,16 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   @Test
   public void shouldSupportTuplesAsPartitionKey() {
     ApolloClient client = getApolloClient("/graphql/betterbotz");
-    TuplesPkInput input =
-        TuplesPkInput.builder().id(TupleIntIntInput.builder().item0(10).item1(20).build()).build();
+    Tuplx65_sPkInput input =
+        Tuplx65_sPkInput.builder()
+            .id(TupleIntIntInput.builder().item0(10).item1(20).build())
+            .build();
     getObservable(client.mutate(InsertTuplesPkMutation.builder().value(input).build()));
 
     GetTuplesPkQuery.Data result =
         getObservable(client.query(GetTuplesPkQuery.builder().value(input).build()));
 
-    assertThat(result.getTuplesPk())
+    assertThat(result.getTuplx65_sPk())
         .isPresent()
         .get()
         .extracting(v -> v.getValues(), InstanceOfAssertFactories.OPTIONAL)

@@ -113,22 +113,22 @@ public class QueryFetcherTest extends DmlTestBase {
 
   public static Arguments[] typeDescriptions() {
     return new Arguments[] {
-      arguments("Books", "The type used to represent results of a query for the table 'books'."),
+      arguments("books", "The type used to represent results of a query for the table 'books'."),
       arguments(
-          "AuthorsInput",
+          "authorsInput",
           "The input type for the table 'authors'.\n"
               + "Note that 'author' and 'title' are the fields that correspond to"
               + " the table primary key."),
       arguments(
-          "BooksFilterInput",
+          "booksFilterInput",
           "The input type used for filtering with non-equality operators for the table 'books'.\n"
               + "Note that 'title' is the field that corresponds to the table primary key."),
       arguments(
-          "BooksOrder",
+          "booksOrder",
           "The enum used to order a query result based on one or more fields for the "
               + "table 'books'."),
       arguments(
-          "BooksMutationResult",
+          "booksMutationResult",
           "The type used to represent results of a mutation for the table 'books'."),
       arguments("MutationOptions", "The execution options for the mutation."),
       arguments("QueryOptions", "The execution options for the query."),
@@ -152,16 +152,16 @@ public class QueryFetcherTest extends DmlTestBase {
   public static Arguments[] mutationDescriptions() {
     return new Arguments[] {
       arguments(
-          "insertBooks",
+          "insertbooks",
           "Insert mutation for the table 'books'.\n"
               + "Note that 'title' is the field that corresponds to the table primary key."),
       arguments(
-          "deleteAuthors",
+          "deleteauthors",
           "Delete mutation for the table 'authors'.\n"
               + "Note that 'author' and 'title' are the fields that correspond to the table"
               + " primary key."),
       arguments(
-          "updateBooks",
+          "updatebooks",
           "Update mutation for the table 'books'.\n"
               + "Note that 'title' is the field that corresponds to the table primary key."),
     };

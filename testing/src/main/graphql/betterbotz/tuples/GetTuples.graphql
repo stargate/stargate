@@ -1,5 +1,5 @@
 query GetTuples($id: Uuid!) {
-    Tuples(value: { id: $id}) {
+    Tuplx65_s(value: { id: $id}) {
         values {
             id
             tuple1 { item0 }
