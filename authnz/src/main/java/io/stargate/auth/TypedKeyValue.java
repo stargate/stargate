@@ -3,13 +3,13 @@ package io.stargate.auth;
 import io.stargate.db.datastore.query.Value;
 import io.stargate.db.datastore.query.WhereCondition;
 
-public class TargetCell {
+public class TypedKeyValue {
 
   String name;
   String type;
   Object value;
 
-  public TargetCell(WhereCondition<?> w) {
+  public TypedKeyValue(WhereCondition<?> w) {
     this.name = w.column().name();
     if (w.column() != null && w.column().type() != null) {
       //noinspection ConstantConditions
@@ -19,7 +19,7 @@ public class TargetCell {
     this.value = w.value().isPresent() ? w.value().get() : null;
   }
 
-  public TargetCell(Value<?> v) {
+  public TypedKeyValue(Value<?> v) {
     this.name = v.column().name();
     if (v.column() != null && v.column().type() != null) {
       //noinspection ConstantConditions
@@ -29,7 +29,7 @@ public class TargetCell {
     this.value = v.value().isPresent() ? v.value().get() : null;
   }
 
-  public TargetCell(String name, String type, Object value) {
+  public TypedKeyValue(String name, String type, Object value) {
     this.name = name;
     this.type = type;
     this.value = value;
@@ -39,7 +39,7 @@ public class TargetCell {
     return name;
   }
 
-  public TargetCell setName(String name) {
+  public TypedKeyValue setName(String name) {
     this.name = name;
     return this;
   }
@@ -48,7 +48,7 @@ public class TargetCell {
     return type;
   }
 
-  public TargetCell setType(String type) {
+  public TypedKeyValue setType(String type) {
     this.type = type;
     return this;
   }
@@ -57,7 +57,7 @@ public class TargetCell {
     return value;
   }
 
-  public TargetCell setValue(Object value) {
+  public TypedKeyValue setValue(Object value) {
     this.value = value;
     return this;
   }

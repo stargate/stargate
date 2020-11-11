@@ -27,14 +27,15 @@ public interface AuthorizationService {
    *
    * @param action A {@link QueryBuilder} object to be executed and authorized against a token.
    * @param token The authenticated token to use for authorization.
-   * @param targetCells A list of {@link TargetCell} that will be used in the query and should be
-   *     authorized against the token.
+   * @param typedKeyValues A list of {@link TypedKeyValue} that will be used in the query and should
+   *     be authorized against the token.
    * @return On success will return the result of the query and otherwise will return an exception
    *     relating to the failure to authorize.
    * @throws Exception An exception relating to the failure to authorize.
    */
   ResultSet authorizedDataRead(
-      Callable<ResultSet> action, String token, List<TargetCell> targetCells) throws Exception;
+      Callable<ResultSet> action, String token, List<TypedKeyValue> typedKeyValues)
+      throws Exception;
 
   /**
    * Using the provided token will perform pre-authorization where possible and if successful
@@ -42,14 +43,15 @@ public interface AuthorizationService {
    *
    * @param action A {@link QueryBuilder} object to be executed and authorized against a token.
    * @param token The authenticated token to use for authorization.
-   * @param targetCells A list of {@link TargetCell} that will be used in the query and should be
-   *     authorized against the token.
+   * @param typedKeyValues A list of {@link TypedKeyValue} that will be used in the query and should
+   *     be authorized against the token.
    * @return On success will return the result of the query and otherwise will return an exception
    *     relating to the failure to authorize.
    * @throws Exception An exception relating to the failure to authorize.
    */
   ResultSet authorizedDataWrite(
-      Callable<ResultSet> action, String token, List<TargetCell> targetCells) throws Exception;
+      Callable<ResultSet> action, String token, List<TypedKeyValue> typedKeyValues)
+      throws Exception;
 
   /**
    * Using the provided token will perform pre-authorization where possible, executes the query

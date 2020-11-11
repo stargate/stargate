@@ -18,7 +18,7 @@ package io.stargate.web.resources.v2;
 import com.codahale.metrics.annotation.Timed;
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.stargate.auth.TargetCell;
+import io.stargate.auth.TypedKeyValue;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.query.ColumnOrder;
@@ -311,7 +311,7 @@ public class RowsResource {
                           .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                           .execute(),
                   token,
-                  values.stream().map(TargetCell::new).collect(Collectors.toList()));
+                  values.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
 
           Map<String, Object> keys = new HashMap<>();
           for (Column col : table.primaryKeyColumns()) {
@@ -422,7 +422,7 @@ public class RowsResource {
                           .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                           .execute(),
                   token,
-                  where.stream().map(TargetCell::new).collect(Collectors.toList()));
+                  where.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
 
           return Response.status(Response.Status.NO_CONTENT).build();
         });
@@ -509,7 +509,7 @@ public class RowsResource {
                         .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                         .execute(),
                 token,
-                where.stream().map(TargetCell::new).collect(Collectors.toList()));
+                where.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
 
     Object response = raw ? requestBody : new ResponseWrapper(requestBody);
     return Response.status(Response.Status.OK).entity(Converters.writeResponse(response)).build();
@@ -546,7 +546,7 @@ public class RowsResource {
                         .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                         .execute(),
                 token,
-                where.stream().map(TargetCell::new).collect(Collectors.toList()));
+                where.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
 
     List<Map<String, Object>> rows =
         r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());

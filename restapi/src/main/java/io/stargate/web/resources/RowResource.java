@@ -16,7 +16,7 @@
 package io.stargate.web.resources;
 
 import com.codahale.metrics.annotation.Timed;
-import io.stargate.auth.TargetCell;
+import io.stargate.auth.TypedKeyValue;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.query.ColumnOrder;
@@ -141,7 +141,7 @@ public class RowResource {
                               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                               .execute(),
                       token,
-                      wheres.stream().map(TargetCell::new).collect(Collectors.toList()));
+                      wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
 
           final List<Map<String, Object>> rows =
               r.rows().stream().map(Converters::row2Map).collect(Collectors.toList());
@@ -354,7 +354,7 @@ public class RowResource {
                               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                               .execute(),
                       token,
-                      wheres.stream().map(TargetCell::new).collect(Collectors.toList()));
+                      wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
 
           final List<Map<String, Object>> rows =
               r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
@@ -424,7 +424,7 @@ public class RowResource {
                           .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                           .execute(),
                   token,
-                  values.stream().map(TargetCell::new).collect(Collectors.toList()));
+                  values.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
 
           return Response.status(Response.Status.CREATED).entity(new RowsResponse(true, 1)).build();
         });
@@ -479,7 +479,7 @@ public class RowResource {
                           .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                           .execute(),
                   token,
-                  wheres.stream().map(TargetCell::new).collect(Collectors.toList()));
+                  wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
 
           return Response.status(Response.Status.NO_CONTENT).entity(new SuccessResponse()).build();
         });
@@ -545,7 +545,7 @@ public class RowResource {
                           .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                           .execute(),
                   token,
-                  wheres.stream().map(TargetCell::new).collect(Collectors.toList()));
+                  wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
 
           return Response.status(Response.Status.OK).entity(new SuccessResponse()).build();
         });

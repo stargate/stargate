@@ -19,7 +19,7 @@ import static io.stargate.auth.jwt.AuthnJwtService.CLAIMS_FIELD;
 import static io.stargate.auth.jwt.AuthnJwtService.STARGATE_PREFIX;
 
 import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.TargetCell;
+import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.Column;
@@ -46,10 +46,11 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public ResultSet authorizedDataRead(
-      Callable<ResultSet> action, String token, List<TargetCell> targetCells) throws Exception {
+      Callable<ResultSet> action, String token, List<TypedKeyValue> typedKeyValues)
+      throws Exception {
     JSONObject stargateClaims = extractClaimsFromJWT(token);
 
-    preCheckDataReadWrite(stargateClaims, targetCells);
+    preCheckDataReadWrite(stargateClaims, typedKeyValues);
 
     ResultSet result = action.call();
 
@@ -91,10 +92,11 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public ResultSet authorizedDataWrite(
-      Callable<ResultSet> action, String token, List<TargetCell> targetCells) throws Exception {
+      Callable<ResultSet> action, String token, List<TypedKeyValue> typedKeyValues)
+      throws Exception {
     JSONObject stargateClaims = extractClaimsFromJWT(token);
 
-    preCheckDataReadWrite(stargateClaims, targetCells);
+    preCheckDataReadWrite(stargateClaims, typedKeyValues);
 
     // Just return the result. No value in doing a post check since we can't roll back anyway.
     return action.call();
@@ -138,13 +140,13 @@ public class AuthzJwtService implements AuthorizationService {
     return payload.getJSONObject(CLAIMS_FIELD);
   }
 
-  private void preCheckDataReadWrite(JSONObject stargateClaims, List<TargetCell> targetCells)
+  private void preCheckDataReadWrite(JSONObject stargateClaims, List<TypedKeyValue> typedKeyValues)
       throws JSONException, UnauthorizedException {
-    for (TargetCell targetCell : targetCells) {
+    for (TypedKeyValue typedKeyValue : typedKeyValues) {
       // If one of the columns exist as a field in the JWT claims and the values do not match then
       // the request is not allowed.
-      if (stargateClaims.has(STARGATE_PREFIX + targetCell.getName())) {
-        String targetCellType = targetCell.getType().toLowerCase();
+      if (stargateClaims.has(STARGATE_PREFIX + typedKeyValue.getName())) {
+        String targetCellType = typedKeyValue.getType().toLowerCase();
         if (!(targetCellType.equals(Type.Varchar.cqlDefinition())
             || targetCellType.equals(Type.Text.cqlDefinition()))) {
           throw new IllegalArgumentException(
@@ -152,8 +154,8 @@ public class AuthzJwtService implements AuthorizationService {
         }
 
         String stargateClaimValue =
-            stargateClaims.getString(STARGATE_PREFIX + targetCell.getName());
-        String columnValue = (String) targetCell.getValue();
+            stargateClaims.getString(STARGATE_PREFIX + typedKeyValue.getName());
+        String columnValue = (String) typedKeyValue.getValue();
         if (!stargateClaimValue.equals(columnValue)) {
           throw new UnauthorizedException("Not allowed to access this resource");
         }

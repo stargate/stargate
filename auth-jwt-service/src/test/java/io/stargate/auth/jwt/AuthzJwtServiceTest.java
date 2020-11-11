@@ -30,7 +30,7 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import io.stargate.auth.TargetCell;
+import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ArrayListBackedRow;
 import io.stargate.db.datastore.ResultSet;
@@ -84,11 +84,11 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-role", "web-user");
     stargate_claims.put("x-stargate-userid", "123");
 
-    List<TargetCell> targetCells =
-        Collections.singletonList(new TargetCell("userid", Type.Text.name(), "123"));
+    List<TypedKeyValue> typedKeyValues =
+        Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
 
     ResultSet result =
-        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), targetCells);
+        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), typedKeyValues);
     assertThat(result.rows().get(0)).isEqualTo(row);
   }
 
@@ -101,11 +101,11 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-role", "web-user");
     stargate_claims.put("x-stargate-userid", "123");
 
-    List<TargetCell> targetCells =
-        Collections.singletonList(new TargetCell("userid", Type.Text.name(), "123"));
+    List<TypedKeyValue> typedKeyValues =
+        Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
 
     ResultSet result =
-        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), targetCells);
+        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), typedKeyValues);
     assertThat(result).isNull();
   }
 
@@ -122,11 +122,11 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-role", "web-user");
     stargate_claims.put("x-stargate-userid", "123");
 
-    List<TargetCell> targetCells =
-        Collections.singletonList(new TargetCell("userid", Type.Text.name(), "123"));
+    List<TypedKeyValue> typedKeyValues =
+        Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
 
     ResultSet result =
-        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), targetCells);
+        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), typedKeyValues);
     assertThat(result.rows()).isEqualTo(null);
   }
 
@@ -147,15 +147,15 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-role", "web-user");
     stargate_claims.put("x-stargate-userid", "456");
 
-    List<TargetCell> targetCells =
-        Collections.singletonList(new TargetCell("userid", Type.Text.name(), "123"));
+    List<TypedKeyValue> typedKeyValues =
+        Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
 
     UnauthorizedException ex =
         assertThrows(
             UnauthorizedException.class,
             () ->
                 mockAuthzJwtService.authorizedDataRead(
-                    action, signJWT(stargate_claims), targetCells));
+                    action, signJWT(stargate_claims), typedKeyValues));
     assertThat(ex).hasMessage("Not allowed to access this resource");
   }
 
@@ -177,11 +177,11 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-role", "web-user");
     stargate_claims.put("x-stargate-userid", "123");
 
-    List<TargetCell> targetCells =
-        Collections.singletonList(new TargetCell("userid", Type.Text.name(), "123"));
+    List<TypedKeyValue> typedKeyValues =
+        Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
 
     ResultSet result =
-        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), targetCells);
+        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), typedKeyValues);
     assertThat(result.rows()).isEqualTo(Collections.emptyList());
   }
 
@@ -203,17 +203,17 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-userid", "123");
     stargate_claims.put("x-stargate-item_count", 2);
 
-    List<TargetCell> targetCells =
+    List<TypedKeyValue> typedKeyValues =
         Arrays.asList(
-            new TargetCell("userid", Type.Text.name(), "123"),
-            new TargetCell("item_count", Type.Int.name(), 2));
+            new TypedKeyValue("userid", Type.Text.name(), "123"),
+            new TypedKeyValue("item_count", Type.Int.name(), 2));
 
     IllegalArgumentException ex =
         assertThrows(
             IllegalArgumentException.class,
             () ->
                 mockAuthzJwtService.authorizedDataRead(
-                    action, signJWT(stargate_claims), targetCells));
+                    action, signJWT(stargate_claims), typedKeyValues));
     assertThat(ex).hasMessage("Column must be of type text to be used for authorization");
   }
 
@@ -241,10 +241,10 @@ public class AuthzJwtServiceTest {
     Map<String, Object> stargate_claims = new HashMap<>();
     stargate_claims.put("x-stargate-role", "admin");
 
-    List<TargetCell> targetCells = Collections.emptyList();
+    List<TypedKeyValue> typedKeyValues = Collections.emptyList();
 
     ResultSet result =
-        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), targetCells);
+        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), typedKeyValues);
     assertThat(result.rows().get(0)).isEqualTo(row1);
     assertThat(result.rows().get(1)).isEqualTo(row2);
   }
