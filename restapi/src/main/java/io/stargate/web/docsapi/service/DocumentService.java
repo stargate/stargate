@@ -1156,7 +1156,7 @@ public class DocumentService {
     if (inMemoryFilters.size() == 0) {
       return rows;
     }
-    String filterField = inMemoryFilters.get(0).getField();
+    String filterFieldPath = inMemoryFilters.get(0).getFullFieldPath();
 
     return Lists.partition(rows, fieldsPerDoc).stream()
         .filter(
@@ -1164,7 +1164,14 @@ public class DocumentService {
               Optional<Row> fieldRow =
                   docChunk.stream()
                       .filter(
-                          r -> r != null && StringUtils.equals(r.getString("leaf"), filterField))
+                          r -> {
+                            if (r == null || r.getString("leaf") == null) {
+                              return false;
+                            }
+                            String parentPath = getParentPathFromRow(r);
+                            return StringUtils.equals(
+                                parentPath + "." + r.getString("leaf"), filterFieldPath);
+                          })
                       .findFirst();
               return fieldRow.isPresent() && allFiltersMatch(fieldRow.get(), inMemoryFilters);
             })
