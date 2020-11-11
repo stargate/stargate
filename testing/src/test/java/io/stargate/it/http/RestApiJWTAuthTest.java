@@ -44,8 +44,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 @StargateSpec(parametersCustomizer = "buildParameters")
@@ -103,6 +105,14 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
             .waitingFor(Wait.forHttp("/auth/realms/master"));
 
     keycloakContainer.start();
+
+    Slf4jLogConsumer logConsumer = new Slf4jLogConsumer(logger).withPrefix("keycloak");
+    Map<String, String> mdcCopy = MDC.getCopyOfContextMap();
+    if (mdcCopy != null) {
+      logConsumer.withMdc(mdcCopy);
+    }
+
+    keycloakContainer.followOutput(logConsumer);
 
     keycloakHost =
         "http://"

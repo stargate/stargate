@@ -47,6 +47,8 @@ steps:
     volumes:
       - path: '/cache/.m2'
         name: 'm2_cache'
+      - path: '/var/run/docker.sock'
+        name: '/var/run/docker.sock'
     env:
       - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
       - 'PERSISTENCE_BACKEND=cassandra-3.11'
@@ -59,6 +61,8 @@ steps:
     volumes:
       - path: '/cache/.m2'
         name: 'm2_cache'
+      - path: '/var/run/docker.sock'
+        name: '/var/run/docker.sock'
     env:
       - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
       - 'PERSISTENCE_BACKEND=cassandra-4.0'
@@ -71,6 +75,8 @@ steps:
     volumes:
       - path: '/cache/.m2'
         name: 'm2_cache'
+      - path: '/var/run/docker.sock'
+        name: '/var/run/docker.sock'
     env:
       - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
       - 'PERSISTENCE_BACKEND=dse-6.8'

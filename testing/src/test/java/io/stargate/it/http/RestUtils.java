@@ -86,7 +86,7 @@ public class RestUtils {
       String authToken, String path, String requestBody, int expectedStatusCode)
       throws IOException {
     return postWithHeader(
-        new Builder().add("X-Cassandra-Token", authToken).build(),
+        authToken == null ? null : new Builder().add("X-Cassandra-Token", authToken).build(),
         path,
         requestBody,
         expectedStatusCode);
