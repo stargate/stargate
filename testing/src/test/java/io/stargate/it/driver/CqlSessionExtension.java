@@ -381,7 +381,6 @@ public class CqlSessionExtension
   private OptionsMap defaultConfig() {
     OptionsMap config;
     config = OptionsMap.driverDefaults();
-    // config.put(TypedDriverOption.METADATA_TOKEN_MAP_ENABLED, false);
     config.put(
         TypedDriverOption.LOAD_BALANCING_POLICY_CLASS,
         DcInferringLoadBalancingPolicy.class.getName());

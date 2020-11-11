@@ -2,15 +2,19 @@ package io.stargate.it.cql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.metadata.Node;
+import com.datastax.oss.driver.api.core.metadata.TokenMap;
+import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.proxy.ProxyAddresses;
 import io.stargate.it.proxy.ProxyContactPointResolver;
 import io.stargate.it.proxy.ProxyExtension;
@@ -21,25 +25,16 @@ import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
-import org.assertj.core.data.Percentage;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @SkipWhenNotDse
 @SkipIfProxyDnsInvalid
 @StargateSpec(parametersCustomizer = "buildParameters")
-@CqlSessionSpec(
-    contactPointResolver = ProxyContactPointResolver.class,
-    initQueries = {
-      "CREATE TABLE IF NOT EXISTS test (k uuid PRIMARY KEY, v int)",
-    })
+@CqlSessionSpec(contactPointResolver = ProxyContactPointResolver.class)
 @ProxySpec(numProxies = 2)
 @ExtendWith({ProxyExtension.class, CqlSessionExtension.class})
 public class ProxyProtocolTest extends BaseOsgiIntegrationTest {
@@ -50,6 +45,7 @@ public class ProxyProtocolTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  @DisplayName("Should expose proxy addresses in system.local and system.peers")
   public void querySystemLocalAndPeers(
       CqlSession session, @ProxyAddresses List<InetSocketAddress> proxyAddresses) {
     for (InetSocketAddress proxyAddress : proxyAddresses) {
@@ -84,29 +80,27 @@ public class ProxyProtocolTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void queryDistribution(CqlSession session) {
-    final int numQueries = 100;
-    PreparedStatement preparedStatement = session.prepare("INSERT INTO test (k, v) VALUES (?, ?)");
+  @DisplayName("Should use all proxy addresses when using token-aware load balancing")
+  public void testTokenMapDistribution(
+      CqlSession session,
+      @ProxyAddresses List<InetSocketAddress> proxyAddresses,
+      @TestKeyspace CqlIdentifier keyspace) {
+    assertThat(session.getMetadata().getTokenMap()).isPresent();
+    final TokenMap tokenMap = session.getMetadata().getTokenMap().get();
 
-    class Counter {
-      public int count = 0;
+    Collection<Node> expectedReplicasTried = session.getMetadata().getNodes().values();
+    assertThat(proxyAddresses).hasSize(expectedReplicasTried.size());
 
-      void increment() {
-        ++count;
-      }
+    Set<Node> allReplicasTried = new HashSet<>();
+    for (int i = 0; i < 2 * expectedReplicasTried.size(); ++i) {
+      Set<Node> replicas =
+          tokenMap.getReplicas(
+              keyspace, TypeCodecs.UUID.encode(UUID.randomUUID(), ProtocolVersion.DEFAULT));
+      assertThat(replicas).isNotEmpty();
+      Node replica = replicas.iterator().next();
+      allReplicasTried.add(replica);
     }
 
-    Map<Node, Counter> counts = new HashMap<>();
-    for (int i = 0; i < numQueries; ++i) {
-      ResultSet rs = session.execute(preparedStatement.bind(UUID.randomUUID(), i));
-      counts
-          .computeIfAbsent(rs.getExecutionInfo().getCoordinator(), n -> new Counter())
-          .increment();
-    }
-
-    final int expectedCount = numQueries / counts.size();
-    for (Map.Entry<Node, Counter> entry : counts.entrySet()) {
-      assertThat(entry.getValue().count).isCloseTo(expectedCount, Percentage.withPercentage(25));
-    }
+    assertThat(allReplicasTried).containsExactlyInAnyOrderElementsOf(expectedReplicasTried);
   }
 }
