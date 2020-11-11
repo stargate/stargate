@@ -32,7 +32,7 @@ public enum FilterOperator {
   EQUAL("eq") {
     @Override
     public Condition buildCondition(String columnName, Term value) {
-      return Condition.column(columnName).isEqualTo(value);
+      return Condition.column(CqlIdentifier.fromInternal(columnName)).isEqualTo(value);
     }
 
     @Override
@@ -162,7 +162,8 @@ public enum FilterOperator {
     public Relation buildRelation(String columnName, Term key, Term value) {
       return Relation.mapValue(columnName, key).isEqualTo(value);
     }
-  };
+  },
+  ;
 
   private static final Map<String, FilterOperator> mapByFieldName = buildMapByFieldName();
   private final String fieldName;
