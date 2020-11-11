@@ -10,7 +10,7 @@ import org.junit.jupiter.api.BeforeAll;
 
 public class BaseCassandraTest {
   /**
-   * Only initialize DSE if it isn't already initialized.
+   * Only initialize Cassandra if it isn't already initialized.
    *
    * @throws IOException
    */
