@@ -21,6 +21,7 @@ import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLNonNull;
 import graphql.schema.GraphQLScalarType;
 import io.stargate.db.schema.Column;
+import io.stargate.graphql.schema.fetchers.dml.FilterOperator;
 
 /**
  * Caches GraphQL field "filter input" types, for example 'StringFilterInput' in:
