@@ -23,6 +23,7 @@ import io.stargate.db.schema.ImmutableListType;
 import io.stargate.graphql.schema.types.scalars.CustomScalars;
 import java.util.HashMap;
 import java.util.Map;
+import net.jcip.annotations.NotThreadSafe;
 
 /**
  * Caches a category of GraphQL field types, corresponding to table columns or UDT fields.
@@ -32,6 +33,7 @@ import java.util.Map;
  *
  * @param <GraphqlT> the returned GraphQL type.
  */
+@NotThreadSafe
 abstract class FieldTypeCache<GraphqlT> {
 
   protected final NameMapping nameMapping;
@@ -46,6 +48,9 @@ abstract class FieldTypeCache<GraphqlT> {
     return computeIfAbsent(type);
   }
 
+  // Reimplement HashMap#computeIfAbsent because it has a bug in JDK 8 (if the compute method adds
+  // other entries, they won't be visible).
+  // See https://bugs.openjdk.java.net/browse/JDK-8071667
   private GraphqlT computeIfAbsent(ColumnType type) {
     GraphqlT result = types.get(type);
     if (result == null) {
