@@ -4,6 +4,19 @@ set -euo pipefail
 
 echoinfo() { echo "[$(date -Is)] - $@" 1>&2; }
 
+
+apt-get update \
+&& apt-get install apt-transport-https ca-certificates curl software-properties-common -y
+
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable" \
+&& apt-get update \
+&& apt-cache policy docker-ce \
+&& apt-get install docker-ce -y
+
+usermod -aG docker ubuntu
+
 echoinfo "Starting test"
 # These directories are used by other steps so make sure the non-root user has access
 chown -R ubuntu:ubuntu /workspace/
@@ -17,6 +30,7 @@ echoinfo() { echo "[\$(date -Is)] - \$@" 1>&2; }
 export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
 export PATH=$PATH:\$JAVA_HOME/bin
 export MAVEN_OPTS="-Dmaven.repo.local=/cache/.m2"
+export TESTCONTAINERS_RYUK_DISABLED=true
 
 cd /workspace
 
