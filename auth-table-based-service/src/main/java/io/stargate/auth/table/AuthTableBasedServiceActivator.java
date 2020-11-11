@@ -56,7 +56,8 @@ public class AuthTableBasedServiceActivator implements BundleActivator, ServiceL
 
   @Override
   public synchronized void start(BundleContext context) {
-    if (AUTH_TABLE_IDENTIFIER.equals(System.getProperty("stargate.auth_id"))) {
+    if (AUTH_TABLE_IDENTIFIER
+        .equals(System.getProperty("stargate.auth_id", AUTH_TABLE_IDENTIFIER))) {
       this.context = context;
       log.info("Starting authnTableBasedService and authzTableBasedService....");
 
