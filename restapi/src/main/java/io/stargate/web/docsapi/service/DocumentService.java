@@ -1183,14 +1183,13 @@ public class DocumentService {
                       .filter(
                           r -> {
                             if (r == null || r.getString("leaf") == null) {
-                              System.out.println("Returning false");
                               return false;
                             }
                             String[] parentPath = getParentPathFromRow(r).split("/");
-                            if (parentPath.length != 2) {
-                              return false;
+                            String rowPath = "";
+                            if (parentPath.length == 2) {
+                              rowPath = parentPath[1];
                             }
-                            String rowPath = parentPath[1];
                             return pathsMatch(rowPath + r.getString("leaf"), filterFieldPath);
                           })
                       .findFirst();

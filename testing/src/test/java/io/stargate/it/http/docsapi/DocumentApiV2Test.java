@@ -93,6 +93,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @AfterEach
   public void teardown() {
+    session.execute(String.format("drop keyspace %s", keyspace));
     session.close();
   }
 
@@ -1661,7 +1662,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + "/collections/collection?page-size=2&where={\"someStuff.someOtherStuff.value\": {\"$eq\": \"a\"}}&raw=true",
             200);
 
-    expected = "{\"cool-search-id\":{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}";
+    expected = "{\"cool-search-id\":{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}}";
     assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(expected));
 
     r =
@@ -1673,7 +1674,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + "/collections/collection?page-size=2&where={\"someStuff.*.value\": {\"$eq\": \"a\"}}&raw=true",
             200);
 
-    expected = "{\"cool-search-id\":{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}";
+    expected = "{\"cool-search-id\":{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}}";
     assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(expected));
   }
 
