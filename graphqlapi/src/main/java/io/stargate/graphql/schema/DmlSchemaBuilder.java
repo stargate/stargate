@@ -464,7 +464,7 @@ class DmlSchemaBuilder {
     StringBuilder description =
         new StringBuilder("Warnings encountered during the CQL to GraphQL conversion.");
     if (warnings.isEmpty()) {
-      description.append("No warnings found, this will return an empty list.\n");
+      description.append("\nNo warnings found, this will return an empty list.");
     } else {
       description.append("\nThis will return:");
       for (String warning : warnings) {
