@@ -19,6 +19,7 @@ import com.datastax.oss.driver.api.core.Version;
 import com.datastax.oss.driver.api.testinfra.ccm.CcmBridge;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -51,6 +52,8 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
   private static final String DATACENTER = System.getProperty("stargate.test.backend.dc", "dc1");
   private static final String CLUSTER_NAME =
       System.getProperty("stargate.test.backend.cluster_name", "Test_Cluster");
+  private static final String CLUSTER_IMPL_CLASS_NAME =
+      System.getProperty("stargate.test.backend.cluster.impl.class", CcmCluster.class.getName());
 
   static {
     String version = System.getProperty(CCM_VERSION, "3.11.8");
@@ -59,6 +62,17 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
 
   public ExternalStorage() {
     super(ClusterSpec.class, STORE_KEY, Namespace.GLOBAL);
+  }
+
+  private Cluster createCluster(ClusterSpec spec, ExtensionContext context) {
+    try {
+      Class<?> cl = Class.forName(CLUSTER_IMPL_CLASS_NAME);
+      Constructor<?> constructor = cl.getConstructor(ClusterSpec.class, ExtensionContext.class);
+      return (Cluster) constructor.newInstance(spec, context);
+    } catch (Throwable e) {
+      LOG.error("Unable to create cluster object of type {}", CLUSTER_IMPL_CLASS_NAME, e);
+      throw new IllegalStateException(e);
+    }
   }
 
   @Override
@@ -81,7 +95,7 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
 
     LOG.info("Creating storage cluster {} for {}", spec, context.getUniqueId());
 
-    Cluster c = new Cluster(spec, context.getUniqueId());
+    Cluster c = createCluster(spec, context);
     c.start();
     return Optional.of(c);
   }
@@ -104,9 +118,9 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
   @Override
   public void beforeTestExecution(ExtensionContext context) {
     LOG.info(
-        "About to run {} with storage cluster version {}",
+        "About to run {} with storage cluster {}",
         context.getUniqueId(),
-        getResource(context).map(Cluster::clusterVersion).orElse("[missing]"));
+        getResource(context).map(Cluster::infoForTestLog).orElse("[missing]"));
   }
 
   @Override
@@ -116,19 +130,44 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
     throw throwable;
   }
 
-  protected static class Cluster extends ExternalResource.Holder
+  public abstract static class Cluster extends ExternalResource.Holder
       implements ClusterConnectionInfo, AutoCloseable {
 
     private final UUID id = UUID.randomUUID();
     private final ClusterSpec spec;
+    private final AtomicBoolean errorInTest = new AtomicBoolean();
+
+    protected Cluster(ClusterSpec spec) {
+      this.spec = spec;
+    }
+
+    @Override
+    public String id() {
+      return id.toString();
+    }
+
+    public abstract void start();
+
+    public abstract String infoForTestLog();
+
+    private void markError() {
+      errorInTest.set(true);
+    }
+
+    public boolean errorsDetected() {
+      return errorInTest.get();
+    }
+  }
+
+  public static class CcmCluster extends Cluster {
+
     private final String initSite;
     private final CcmBridge ccm;
     private final AtomicBoolean removed = new AtomicBoolean();
-    private final AtomicBoolean dumpLogs = new AtomicBoolean();
 
-    private Cluster(ClusterSpec spec, String displayName) {
-      this.spec = spec;
-      this.initSite = displayName;
+    public CcmCluster(ClusterSpec spec, ExtensionContext context) {
+      super(spec);
+      this.initSite = context.getUniqueId();
       this.ccm =
           CcmBridge.builder()
               .withCassandraConfiguration("cluster_name", CLUSTER_NAME)
@@ -136,6 +175,7 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
               .build();
     }
 
+    @Override
     public void start() {
       if (!EXTERNAL_BACKEND) {
         ccm.create();
@@ -176,8 +216,13 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
       }
     }
 
+    @Override
+    public String infoForTestLog() {
+      return "" + (isDse() ? "DSE " : "Cassandra ") + clusterVersion();
+    }
+
     private void dumpLogs() {
-      if (!dumpLogs.get()) {
+      if (!errorsDetected()) {
         return;
       }
 
@@ -211,15 +256,6 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
           throw new IllegalStateException(e);
         }
       }
-    }
-
-    private void markError() {
-      dumpLogs.set(true);
-    }
-
-    @Override
-    public String id() {
-      return id.toString();
     }
 
     @Override
