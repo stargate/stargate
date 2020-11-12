@@ -1,5 +1,5 @@
 query GetOrdersWithFilter($filter: OrdersFilterInput, $options: QueryOptions) {
-    orders(filter: $filter, options: $options) {
+    Orders(filter: $filter, options: $options) {
         pageState
         values {
             id

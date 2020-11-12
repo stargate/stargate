@@ -205,6 +205,26 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testBasicForms() throws IOException {
+    RestUtils.putForm(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        "a=b&b=null&c.b=3.3&d.[0].[2]=true",
+        200);
+
+    String resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    JsonNode expected =
+        objectMapper.readTree(
+            "{\"a\":\"b\", \"b\":null, \"c\":{\"b\": 3.3}, \"d\":[[null, null, true]]}");
+    assertThat(objectMapper.readTree(resp).toString())
+        .isEqualTo(wrapResponse(expected, "1", null).toString());
+  }
+
+  @Test
   public void testInvalidKeyspaceAndTable() throws IOException {
     JsonNode obj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));

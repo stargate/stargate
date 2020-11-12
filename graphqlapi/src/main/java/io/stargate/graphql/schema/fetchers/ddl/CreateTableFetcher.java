@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.fetchers.ddl;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.metadata.schema.ClusteringOrder;
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import com.datastax.oss.driver.api.querybuilder.schema.CreateTable;
@@ -35,8 +36,8 @@ public class CreateTableFetcher extends DdlQueryFetcher {
   public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {
     CreateTableStart start =
         SchemaBuilder.createTable(
-            dataFetchingEnvironment.getArgument("keyspaceName"),
-            (String) dataFetchingEnvironment.getArgument("tableName"));
+            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("keyspaceName")),
+            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("tableName")));
 
     Boolean ifNotExists = dataFetchingEnvironment.getArgument("ifNotExists");
     if (ifNotExists != null && ifNotExists) {
@@ -50,40 +51,40 @@ public class CreateTableFetcher extends DdlQueryFetcher {
       throw new IllegalArgumentException("partitionKeys must contain at least one element");
     }
     for (Map<String, Object> key : partitionKeys) {
-      if (table != null) {
-        table = table.withPartitionKey((String) key.get("name"), decodeType(key.get("type")));
-      } else {
-        table = start.withPartitionKey((String) key.get("name"), decodeType(key.get("type")));
-      }
+      table =
+          (table == null ? start : table)
+              .withPartitionKey(
+                  CqlIdentifier.fromInternal((String) key.get("name")),
+                  decodeType(key.get("type")));
     }
 
     List<Map<String, Object>> clusteringKeys =
         dataFetchingEnvironment.getArgument("clusteringKeys");
     if (clusteringKeys != null) {
       for (Map<String, Object> key : clusteringKeys) {
-        table = table.withClusteringColumn((String) key.get("name"), decodeType(key.get("type")));
+        table =
+            table.withClusteringColumn(
+                CqlIdentifier.fromInternal((String) key.get("name")), decodeType(key.get("type")));
       }
     }
 
     List<Map<String, Object>> values = dataFetchingEnvironment.getArgument("values");
     if (values != null) {
       for (Map<String, Object> key : values) {
-        table = table.withColumn((String) key.get("name"), decodeType(key.get("type")));
+        table =
+            table.withColumn(
+                CqlIdentifier.fromInternal((String) key.get("name")), decodeType(key.get("type")));
       }
     }
 
     CreateTableWithOptions options = null;
     if (clusteringKeys != null) {
       for (Map<String, Object> key : clusteringKeys) {
-        if (options == null) {
-          options =
-              table.withClusteringOrder(
-                  (String) key.get("name"), decodeClusteringOrder((String) key.get("order")));
-        } else {
-          options =
-              options.withClusteringOrder(
-                  (String) key.get("name"), decodeClusteringOrder((String) key.get("order")));
-        }
+        options =
+            (options == null ? table : options)
+                .withClusteringOrder(
+                    CqlIdentifier.fromInternal((String) key.get("name")),
+                    decodeClusteringOrder((String) key.get("order")));
       }
     }
     String query;

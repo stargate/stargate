@@ -20,25 +20,23 @@ import graphql.schema.GraphQLInputObjectField;
 import graphql.schema.GraphQLInputObjectType;
 import graphql.schema.GraphQLInputType;
 import graphql.schema.GraphQLList;
-import graphql.schema.GraphQLModifiedType;
-import graphql.schema.GraphQLNamedType;
 import graphql.schema.GraphQLNonNull;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLOutputType;
 import graphql.schema.GraphQLType;
 
-public class GqlMapBuilder {
+public class MapBuilder extends TypeBuilder {
   private final GraphQLType keyType;
   private final GraphQLType valueType;
   private final boolean isInput;
 
-  public GqlMapBuilder(GraphQLType keyType, GraphQLType valueType, boolean isInput) {
+  public MapBuilder(GraphQLType keyType, GraphQLType valueType, boolean isInput) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.isInput = isInput;
   }
 
-  public GraphQLType build() {
+  public GraphQLList build() {
     return new GraphQLList(buildKeyValueType());
   }
 
@@ -85,22 +83,5 @@ public class GqlMapBuilder {
                 .type((GraphQLOutputType) valueType)
                 .build())
         .build();
-  }
-
-  private static String getTypeName(GraphQLType type) {
-    if (type instanceof GraphQLNamedType) {
-      return ((GraphQLNamedType) type).getName();
-    }
-
-    String modifier = "";
-    if (type instanceof GraphQLList) {
-      modifier = "List";
-    }
-
-    if (!(type instanceof GraphQLModifiedType)) {
-      throw new RuntimeException(String.format("GraphQL type %s not supported in maps", type));
-    }
-
-    return modifier + getTypeName(((GraphQLModifiedType) type).getWrappedType());
   }
 }
