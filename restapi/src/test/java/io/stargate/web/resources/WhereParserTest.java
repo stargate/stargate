@@ -42,7 +42,7 @@ public class WhereParserTest {
             ImmutableWhereCondition.builder()
                 .value("Cliff")
                 .predicate(WhereCondition.Predicate.Eq)
-                .column("name")
+                .column(ImmutableColumn.create("name", Column.Type.Text))
                 .build());
 
     ImmutableTable table =
@@ -52,7 +52,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("name", Column.Type.Text))
             .build();
 
-    List<Where<?>> where = WhereParser.parseWhere(whereParam, table);
+    List<WhereCondition<?>> where = WhereParser.parseWhere(whereParam, table);
 
     assertThat(where).isEqualTo(whereExpected);
   }
@@ -168,12 +168,12 @@ public class WhereParserTest {
             ImmutableWhereCondition.builder()
                 .value(600.0)
                 .predicate(WhereCondition.Predicate.Gt)
-                .column("price")
+                .column(ImmutableColumn.create("price", Column.Type.Double))
                 .build(),
             ImmutableWhereCondition.builder()
                 .value(600.05)
                 .predicate(WhereCondition.Predicate.Lt)
-                .column("price")
+                .column(ImmutableColumn.create("price", Column.Type.Double))
                 .build());
 
     ImmutableTable table =
@@ -183,7 +183,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("price", Column.Type.Double))
             .build();
 
-    List<Where<?>> where = WhereParser.parseWhere(whereParam, table);
+    List<WhereCondition<?>> where = WhereParser.parseWhere(whereParam, table);
 
     assertThat(where).isEqualTo(whereExpected);
   }
@@ -197,17 +197,17 @@ public class WhereParserTest {
             ImmutableWhereCondition.builder()
                 .value(600.0)
                 .predicate(WhereCondition.Predicate.Gt)
-                .column("price")
+                .column(ImmutableColumn.create("price", Column.Type.Double))
                 .build(),
             ImmutableWhereCondition.builder()
                 .value(600.05)
                 .predicate(WhereCondition.Predicate.Lt)
-                .column("price")
+                .column(ImmutableColumn.create("price", Column.Type.Double))
                 .build(),
             ImmutableWhereCondition.builder()
                 .value(UUID.fromString("c72e7d29-3c67-4b60-8cf8-db439b2bf66c"))
                 .predicate(WhereCondition.Predicate.Eq)
-                .column("id")
+                .column(ImmutableColumn.create("id", Column.Type.Uuid))
                 .build());
 
     ImmutableTable table =
@@ -218,7 +218,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("id", Column.Type.Uuid))
             .build();
 
-    List<Where<?>> where = WhereParser.parseWhere(whereParam, table);
+    List<WhereCondition<?>> where = WhereParser.parseWhere(whereParam, table);
 
     assertThat(where).isEqualTo(whereExpected);
   }
@@ -250,7 +250,7 @@ public class WhereParserTest {
             ImmutableWhereCondition.builder()
                 .value(Arrays.asList("foo", "bar", "baz"))
                 .predicate(WhereCondition.Predicate.In)
-                .column("name")
+                .column(ImmutableColumn.create("name", Column.Type.Text))
                 .build());
 
     ImmutableTable table =
@@ -260,7 +260,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("name", Column.Type.Text))
             .build();
 
-    List<Where<?>> where = WhereParser.parseWhere(whereParam, table);
+    List<WhereCondition<?>> where = WhereParser.parseWhere(whereParam, table);
 
     assertThat(where).isEqualTo(whereExpected);
   }

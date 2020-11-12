@@ -217,13 +217,22 @@ public class KeyspacesResource {
                     requestBody.getOrDefault("replicas", 1));
           }
 
-          localDB
-              .query()
-              .create()
-              .keyspace(keyspaceName)
-              .ifNotExists()
-              .withReplication(replication)
-              .execute();
+          // Seems unnecessary but variable used in lambda expression should be final or effectively
+          // final
+          String finalReplication = replication;
+          db.getAuthorizationService()
+              .authorizedSchemaWrite(
+                  () ->
+                      localDB
+                          .query()
+                          .create()
+                          .keyspace(keyspaceName)
+                          .ifNotExists()
+                          .withReplication(finalReplication)
+                          .execute(),
+                  token,
+                  keyspaceName,
+                  null);
 
           return Response.status(Response.Status.CREATED)
               .entity(Converters.writeResponse(Collections.singletonMap("name", keyspaceName)))
@@ -255,12 +264,18 @@ public class KeyspacesResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          localDB
-              .query()
-              .drop()
-              .keyspace(keyspaceName)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+          db.getAuthorizationService()
+              .authorizedSchemaWrite(
+                  () ->
+                      localDB
+                          .query()
+                          .drop()
+                          .keyspace(keyspaceName)
+                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+                          .execute(),
+                  token,
+                  keyspaceName,
+                  null);
 
           return Response.status(Response.Status.NO_CONTENT).build();
         });

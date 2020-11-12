@@ -304,15 +304,21 @@ public class TablesResource {
                 .build();
           }
 
-          localDB
-              .query(
-                  String.format(
-                      "ALTER TABLE %s.%s %s",
-                      Converters.maybeQuote(keyspaceName),
-                      Converters.maybeQuote(tableName),
-                      tableOptions),
-                  ConsistencyLevel.LOCAL_QUORUM)
-              .get();
+          db.getAuthorizationService()
+              .authorizedSchemaWrite(
+                  () ->
+                      localDB
+                          .query(
+                              String.format(
+                                  "ALTER TABLE %s.%s %s",
+                                  Converters.maybeQuote(keyspaceName),
+                                  Converters.maybeQuote(tableName),
+                                  tableOptions),
+                              ConsistencyLevel.LOCAL_QUORUM)
+                          .get(),
+                  token,
+                  keyspaceName,
+                  tableName);
 
           return Response.status(Response.Status.CREATED)
               .entity(
@@ -350,12 +356,18 @@ public class TablesResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          localDB
-              .query()
-              .drop()
-              .table(keyspaceName, tableName)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+          db.getAuthorizationService()
+              .authorizedSchemaWrite(
+                  () ->
+                      localDB
+                          .query()
+                          .drop()
+                          .table(keyspaceName, tableName)
+                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+                          .execute(),
+                  token,
+                  keyspaceName,
+                  tableName);
 
           return Response.status(Response.Status.NO_CONTENT).build();
         });

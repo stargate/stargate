@@ -16,8 +16,8 @@
 package io.stargate.auth.table;
 
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.TypedKeyValue;
 import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.schema.Table;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -31,7 +31,7 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public ResultSet authorizedDataRead(
-      Callable<ResultSet> action, String token, List<String> primaryKeyValues, Table tableMetadata)
+      Callable<ResultSet> action, String token, List<TypedKeyValue> typedKeyValues)
       throws Exception {
     // Cannot perform authorization with a table based token so just return
     return action.call();
@@ -45,7 +45,7 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public ResultSet authorizedDataWrite(
-      Callable<ResultSet> action, String token, List<String> primaryKeyValues, Table tableMetadata)
+      Callable<ResultSet> action, String token, List<TypedKeyValue> typedKeyValues)
       throws Exception {
     // Cannot perform authorization with a table based token so just return
     return action.call();

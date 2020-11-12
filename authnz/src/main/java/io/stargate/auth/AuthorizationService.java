@@ -16,7 +16,6 @@
 package io.stargate.auth;
 
 import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.schema.Table;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -28,15 +27,14 @@ public interface AuthorizationService {
    *
    * @param action A {@link QueryBuilder} object to be executed and authorized against a token.
    * @param token The authenticated token to use for authorization.
-   * @param primaryKeyValues A list of primary key values that will be used in the query and should
+   * @param typedKeyValues A list of {@link TypedKeyValue} that will be used in the query and should
    *     be authorized against the token.
-   * @param tableMetadata The {@link Table} that will be queried against.
    * @return On success will return the result of the query and otherwise will return an exception
    *     relating to the failure to authorize.
    * @throws Exception An exception relating to the failure to authorize.
    */
   ResultSet authorizedDataRead(
-      Callable<ResultSet> action, String token, List<String> primaryKeyValues, Table tableMetadata)
+      Callable<ResultSet> action, String token, List<TypedKeyValue> typedKeyValues)
       throws Exception;
 
   /**
@@ -45,15 +43,14 @@ public interface AuthorizationService {
    *
    * @param action A {@link QueryBuilder} object to be executed and authorized against a token.
    * @param token The authenticated token to use for authorization.
-   * @param primaryKeyValues A list of primary key values that will be used in the query and should
+   * @param typedKeyValues A list of {@link TypedKeyValue} that will be used in the query and should
    *     be authorized against the token.
-   * @param tableMetadata The {@link Table} that will be queried against.
    * @return On success will return the result of the query and otherwise will return an exception
    *     relating to the failure to authorize.
    * @throws Exception An exception relating to the failure to authorize.
    */
   ResultSet authorizedDataWrite(
-      Callable<ResultSet> action, String token, List<String> primaryKeyValues, Table tableMetadata)
+      Callable<ResultSet> action, String token, List<TypedKeyValue> typedKeyValues)
       throws Exception;
 
   /**

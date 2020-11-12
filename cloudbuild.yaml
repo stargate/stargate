@@ -1,6 +1,6 @@
 steps:
   - id: 'pull image'
-    name: 'gcr.io/stargateio/stargate-builder:v1.0.2'
+    name: 'gcr.io/stargateio/stargate-builder:v1.0.3'
     entrypoint: 'bash'
     args: [ '-c', 'echo pulled builder' ]
   - id: 'fetch_secret'
@@ -41,7 +41,7 @@ steps:
       - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
   - id: 'cassandra-3.11'
     waitFor: [ 'build' ]
-    name: 'gcr.io/stargateio/stargate-builder:v1.0.2'
+    name: 'gcr.io/stargateio/stargate-builder:v1.0.3'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]
     volumes:
@@ -53,7 +53,7 @@ steps:
       - 'COMMIT_ID=$COMMIT_SHA'
   - id: 'cassandra-4.0'
     waitFor: [ 'build' ]
-    name: 'gcr.io/stargateio/stargate-builder:v1.0.2'
+    name: 'gcr.io/stargateio/stargate-builder:v1.0.3'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]
     volumes:
@@ -65,7 +65,7 @@ steps:
       - 'COMMIT_ID=$COMMIT_SHA'
   - id: 'dse-6.8'
     waitFor: [ 'build' ]
-    name: 'gcr.io/stargateio/stargate-builder:v1.0.2'
+    name: 'gcr.io/stargateio/stargate-builder:v1.0.3'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]
     volumes:

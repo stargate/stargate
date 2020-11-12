@@ -30,11 +30,13 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ArrayListBackedRow;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.Type;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -82,11 +84,11 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-role", "web-user");
     stargate_claims.put("x-stargate-userid", "123");
 
-    List<String> primaryKeyValues = Collections.singletonList("123");
+    List<TypedKeyValue> typedKeyValues =
+        Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
 
     ResultSet result =
-        mockAuthzJwtService.authorizedDataRead(
-            action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART);
+        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), typedKeyValues);
     assertThat(result.rows().get(0)).isEqualTo(row);
   }
 
@@ -99,11 +101,11 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-role", "web-user");
     stargate_claims.put("x-stargate-userid", "123");
 
-    List<String> primaryKeyValues = Collections.singletonList("123");
+    List<TypedKeyValue> typedKeyValues =
+        Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
 
     ResultSet result =
-        mockAuthzJwtService.authorizedDataRead(
-            action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART);
+        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), typedKeyValues);
     assertThat(result).isNull();
   }
 
@@ -120,40 +122,12 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-role", "web-user");
     stargate_claims.put("x-stargate-userid", "123");
 
-    List<String> primaryKeyValues = Collections.singletonList("123");
+    List<TypedKeyValue> typedKeyValues =
+        Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
 
     ResultSet result =
-        mockAuthzJwtService.authorizedDataRead(
-            action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART);
+        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), typedKeyValues);
     assertThat(result.rows()).isEqualTo(null);
-  }
-
-  @Test
-  public void executeDataReadWithAuthorizationMoreValuesThanKeys() throws Exception {
-    ResultSet resultSet = mock(ResultSet.class);
-    Map<String, Object> values = new HashMap<>();
-    values.put("userid", "123");
-    values.put("item_count", 2);
-    values.put("last_update_timestamp", Instant.now());
-    Row row = createRow(SHOPPING_CART.columns(), values);
-    when(resultSet.rows()).thenReturn(Collections.singletonList(row));
-
-    Callable<ResultSet> action = mock(Callable.class);
-    when(action.call()).thenReturn(resultSet);
-
-    Map<String, Object> stargate_claims = new HashMap<>();
-    stargate_claims.put("x-stargate-role", "web-user");
-    stargate_claims.put("x-stargate-userid", "123");
-
-    List<String> primaryKeyValues = Arrays.asList("123", "abc");
-
-    IllegalArgumentException ex =
-        assertThrows(
-            IllegalArgumentException.class,
-            () ->
-                mockAuthzJwtService.authorizedDataRead(
-                    action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART));
-    assertThat(ex).hasMessage("Provided more primary key values than exists");
   }
 
   @Test
@@ -173,14 +147,15 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-role", "web-user");
     stargate_claims.put("x-stargate-userid", "456");
 
-    List<String> primaryKeyValues = Collections.singletonList("123");
+    List<TypedKeyValue> typedKeyValues =
+        Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
 
     UnauthorizedException ex =
         assertThrows(
             UnauthorizedException.class,
             () ->
                 mockAuthzJwtService.authorizedDataRead(
-                    action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART));
+                    action, signJWT(stargate_claims), typedKeyValues));
     assertThat(ex).hasMessage("Not allowed to access this resource");
   }
 
@@ -202,11 +177,11 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-role", "web-user");
     stargate_claims.put("x-stargate-userid", "123");
 
-    List<String> primaryKeyValues = Collections.singletonList("123");
+    List<TypedKeyValue> typedKeyValues =
+        Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
 
     ResultSet result =
-        mockAuthzJwtService.authorizedDataRead(
-            action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART);
+        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), typedKeyValues);
     assertThat(result.rows()).isEqualTo(Collections.emptyList());
   }
 
@@ -228,14 +203,17 @@ public class AuthzJwtServiceTest {
     stargate_claims.put("x-stargate-userid", "123");
     stargate_claims.put("x-stargate-item_count", 2);
 
-    List<String> primaryKeyValues = Arrays.asList("123", "2");
+    List<TypedKeyValue> typedKeyValues =
+        Arrays.asList(
+            new TypedKeyValue("userid", Type.Text.name(), "123"),
+            new TypedKeyValue("item_count", Type.Int.name(), 2));
 
     IllegalArgumentException ex =
         assertThrows(
             IllegalArgumentException.class,
             () ->
                 mockAuthzJwtService.authorizedDataRead(
-                    action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART_NON_TEXT_PK));
+                    action, signJWT(stargate_claims), typedKeyValues));
     assertThat(ex).hasMessage("Column must be of type text to be used for authorization");
   }
 
@@ -263,11 +241,10 @@ public class AuthzJwtServiceTest {
     Map<String, Object> stargate_claims = new HashMap<>();
     stargate_claims.put("x-stargate-role", "admin");
 
-    List<String> primaryKeyValues = Collections.emptyList();
+    List<TypedKeyValue> typedKeyValues = Collections.emptyList();
 
     ResultSet result =
-        mockAuthzJwtService.authorizedDataRead(
-            action, signJWT(stargate_claims), primaryKeyValues, SHOPPING_CART);
+        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), typedKeyValues);
     assertThat(result.rows().get(0)).isEqualTo(row1);
     assertThat(result.rows().get(1)).isEqualTo(row2);
   }
