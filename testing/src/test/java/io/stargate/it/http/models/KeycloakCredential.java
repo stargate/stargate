@@ -2,9 +2,9 @@ package io.stargate.it.http.models;
 
 public class KeycloakCredential {
 
-  String type;
-  String value;
-  String temporary;
+  private String type;
+  private String value;
+  private String temporary;
 
   public KeycloakCredential() {}
 

@@ -21,7 +21,6 @@ import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateEnvironmentInfo;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,7 +28,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 /**
  * Note: all tests related to unset values assume that the protocol version is always 4 or higher.
  */
-@Disabled
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(
     initQueries = {

@@ -8,12 +8,10 @@ import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import java.util.List;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-@Disabled
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(
     initQueries = "CREATE TABLE test_warnings (k0 text, k1 int, v int, PRIMARY KEY (k0, k1))")

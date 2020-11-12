@@ -18,12 +18,10 @@ import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import java.nio.ByteBuffer;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-@Disabled
 @ExtendWith(CqlSessionExtension.class)
 public class PreparedStatementTest extends BaseOsgiIntegrationTest {
 

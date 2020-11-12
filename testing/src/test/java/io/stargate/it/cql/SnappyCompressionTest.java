@@ -4,11 +4,9 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.OptionsMap;
 import com.datastax.oss.driver.api.core.config.TypedDriverOption;
 import io.stargate.it.driver.CqlSessionSpec;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@Disabled
 @CqlSessionSpec(customOptions = "configureSnappy")
 public class SnappyCompressionTest extends AbstractCompressionTest {
 

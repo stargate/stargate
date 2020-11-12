@@ -22,12 +22,10 @@ import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateEnvironmentInfo;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-@Disabled
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(
     customOptions = "setPageSize",

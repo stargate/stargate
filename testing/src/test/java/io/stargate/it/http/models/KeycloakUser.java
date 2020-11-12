@@ -5,11 +5,11 @@ import java.util.Map;
 
 public class KeycloakUser {
 
-  String username;
-  boolean enabled;
-  boolean emailVerified;
-  Map<String, List<String>> attributes;
-  List<KeycloakCredential> credentials;
+  private String username;
+  private boolean enabled;
+  private boolean emailVerified;
+  private Map<String, List<String>> attributes;
+  private List<KeycloakCredential> credentials;
 
   public KeycloakUser() {}
 

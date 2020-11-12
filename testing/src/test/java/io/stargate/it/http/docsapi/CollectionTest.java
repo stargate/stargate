@@ -26,13 +26,10 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-@Disabled
 @NotThreadSafe
 public class CollectionTest extends BaseOsgiIntegrationTest {
-
   private String keyspace;
   private CqlSession session;
   private boolean isDse;

@@ -15,7 +15,6 @@ import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +23,6 @@ import org.mockito.Captor;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-@Disabled
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(customBuilder = "registerListener")
