@@ -1,5 +1,5 @@
 query GetCollectionsNested($value: CollectionsNestedInput) {
-    collectionsNested(value: $value) {
+    CollectionsNested(value: $value) {
         pageState
         values {
             id

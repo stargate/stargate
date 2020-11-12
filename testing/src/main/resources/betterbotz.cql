@@ -4,61 +4,61 @@
 CREATE KEYSPACE IF NOT EXISTS betterbotz
 WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1 };
 
-CREATE TABLE IF NOT EXISTS betterbotz.products (
+CREATE TABLE IF NOT EXISTS betterbotz."Products" (
     id uuid,
     name text,
     price decimal,
     created timestamp,
-    prod_name text,
-    customer_name text,
+    "prodName" text,
+    "customerName" text,
     description text,
     PRIMARY KEY ((id), name, price, created)
 );
 
-CREATE TABLE IF NOT EXISTS betterbotz.orders (
-    prod_name text,
-    customer_name text,
+CREATE TABLE IF NOT EXISTS betterbotz."Orders" (
+    "prodName" text,
+    "customerName" text,
     id uuid,
-    prod_id uuid,
+    "prodId" uuid,
     address text,
     description text,
     price decimal,
-    sell_price decimal,
-    PRIMARY KEY ((prod_name), customer_name)
+    "sellPrice" decimal,
+    PRIMARY KEY (("prodName"), "customerName")
 );
 
-CREATE TABLE IF NOT EXISTS betterbotz.collections_simple (
+CREATE TABLE IF NOT EXISTS betterbotz."CollectionsSimple" (
     id uuid PRIMARY KEY,
-    list_value1 frozen<list<int>>,
-    list_value2 frozen<list<timeuuid>>,
-    set_value1 frozen<set<text>>,
-    map_value1 frozen<map<int, text>>,
-    map_value2 frozen<map<uuid, bigint>>,
+    "listValue1" frozen<list<int>>,
+    "listValue2" frozen<list<timeuuid>>,
+    "setValue1" frozen<set<text>>,
+    "mapValue1" frozen<map<int, text>>,
+    "mapValue2" frozen<map<uuid, bigint>>,
 );
 
-CREATE TABLE IF NOT EXISTS betterbotz.collections_nested (
+CREATE TABLE IF NOT EXISTS betterbotz."CollectionsNested" (
     id uuid PRIMARY KEY,
-    list_value1 frozen<list<frozen<map<int, text>>>>,
-    set_value1 frozen<list<frozen<set<uuid>>>>,
-    map_value1 frozen<map<uuid, frozen<map<bigint, text>>>>
+    "listValue1" frozen<list<frozen<map<int, text>>>>,
+    "setValue1" frozen<list<frozen<set<uuid>>>>,
+    "mapValue1" frozen<map<uuid, frozen<map<bigint, text>>>>
 );
 
-CREATE TYPE IF NOT EXISTS betterbotz.b(i int);
+CREATE TYPE IF NOT EXISTS betterbotz."B"(i int);
 
-CREATE TYPE IF NOT EXISTS betterbotz.a(b frozen<b>);
+CREATE TYPE IF NOT EXISTS betterbotz."A"(b frozen<"B">);
 
-CREATE TABLE IF NOT EXISTS betterbotz.udts(a frozen<a> PRIMARY KEY, bs list<frozen<b>>);
+CREATE TABLE IF NOT EXISTS betterbotz."Udts"(a frozen<"A"> PRIMARY KEY, bs list<frozen<"B">>);
 
-CREATE TABLE IF NOT EXISTS betterbotz.tuples(
+CREATE TABLE IF NOT EXISTS betterbotz."Tuples"(
     id uuid PRIMARY KEY,
     tuple1 tuple<bigint>,
     tuple2 tuple<float, float>,
     tuple3 tuple<timeuuid, int, boolean>
 );
 
-CREATE TABLE IF NOT EXISTS betterbotz.tuples_pk(id tuple<int, int> PRIMARY KEY);
+CREATE TABLE IF NOT EXISTS betterbotz."TuplesPk"(id tuple<int, int> PRIMARY KEY);
 
-CREATE TABLE IF NOT EXISTS betterbotz.scalars (
+CREATE TABLE IF NOT EXISTS betterbotz."Scalars" (
     id uuid PRIMARY KEY,
     asciivalue ascii,
     bigintvalue bigint,

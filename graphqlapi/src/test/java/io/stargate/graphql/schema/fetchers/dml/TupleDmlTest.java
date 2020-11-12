@@ -70,7 +70,7 @@ public class TupleDmlTest extends DmlTestBase {
   @MethodSource("getValues")
   public void shouldParseTupleValues(int tupleIndex, Object[] values) {
     String column = String.format("value%d", tupleIndex);
-    String mutation = "mutation { insertTuples(value: { %s:%s, id:1 }) { applied } }";
+    String mutation = "mutation { inserttuples(value: { %s:%s, id:1 }) { applied } }";
     String expectedCQL =
         String.format(
             "INSERT INTO tuples_ks.tuples (id,%s) VALUES (1,%s)", column, toCqlLiteral(values));

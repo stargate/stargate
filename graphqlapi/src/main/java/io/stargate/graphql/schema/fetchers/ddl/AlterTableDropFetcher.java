@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.fetchers.ddl;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import com.datastax.oss.driver.api.querybuilder.schema.AlterTableDropColumnEnd;
 import com.datastax.oss.driver.api.querybuilder.schema.AlterTableStart;
@@ -34,8 +35,8 @@ public class AlterTableDropFetcher extends DdlQueryFetcher {
   public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {
     AlterTableStart start =
         SchemaBuilder.alterTable(
-            dataFetchingEnvironment.getArgument("keyspaceName"),
-            (String) dataFetchingEnvironment.getArgument("tableName"));
+            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("keyspaceName")),
+            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("tableName")));
 
     List<String> toDrop = dataFetchingEnvironment.getArgument("toDrop");
     if (toDrop.isEmpty()) {
@@ -45,9 +46,9 @@ public class AlterTableDropFetcher extends DdlQueryFetcher {
     AlterTableDropColumnEnd table = null;
     for (String column : toDrop) {
       if (table != null) {
-        table = table.dropColumn(column);
+        table = table.dropColumn(CqlIdentifier.fromInternal(column));
       } else {
-        table = start.dropColumn(column);
+        table = start.dropColumn(CqlIdentifier.fromInternal(column));
       }
     }
     return table.build().getQuery();

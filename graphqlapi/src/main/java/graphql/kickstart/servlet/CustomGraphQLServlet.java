@@ -113,7 +113,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
     if (path == null || path.length() < 2) {
       return defaultKeyspace;
     } else {
-      return path.substring(1).toLowerCase();
+      return path.substring(1);
     }
   }
 
@@ -179,8 +179,7 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
     ConcurrentMap<String, RequestHandlerReference> map = new ConcurrentHashMap<>();
 
     for (Keyspace keyspace : dataStore.schema().keyspaces()) {
-      // TODO not sure about toLowerCase, check how case sensitive keyspaces are handled
-      String keyspaceName = keyspace.name().toLowerCase();
+      String keyspaceName = keyspace.name();
       LOG.debug("Prepare handler for {}", keyspaceName);
       map.put(
           keyspaceName, new RequestHandlerReference(keyspace, persistence, authenticationService));

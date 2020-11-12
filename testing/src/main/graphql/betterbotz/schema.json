@@ -4341,7 +4341,7 @@
               "deprecationReason": null
             },
             {
-              "name": "deleteTuples",
+              "name": "deleteTuplx65_s",
               "description": null,
               "args": [
                 {
@@ -4352,7 +4352,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "INPUT_OBJECT",
-                      "name": "TuplesInput",
+                      "name": "Tuplx65_sInput",
                       "ofType": null
                     }
                   },
@@ -4373,7 +4373,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesFilterInput",
+                    "name": "Tuplx65_sFilterInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -4391,14 +4391,14 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesMutationResult",
+                "name": "Tuplx65_sMutationResult",
                 "ofType": null
               },
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "insertTuples",
+              "name": "insertTuplx65_s",
               "description": null,
               "args": [
                 {
@@ -4409,7 +4409,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "INPUT_OBJECT",
-                      "name": "TuplesInput",
+                      "name": "Tuplx65_sInput",
                       "ofType": null
                     }
                   },
@@ -4438,14 +4438,14 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesMutationResult",
+                "name": "Tuplx65_sMutationResult",
                 "ofType": null
               },
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "updateTuples",
+              "name": "updateTuplx65_s",
               "description": null,
               "args": [
                 {
@@ -4456,7 +4456,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "INPUT_OBJECT",
-                      "name": "TuplesInput",
+                      "name": "Tuplx65_sInput",
                       "ofType": null
                     }
                   },
@@ -4477,7 +4477,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesFilterInput",
+                    "name": "Tuplx65_sFilterInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -4495,14 +4495,14 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesMutationResult",
+                "name": "Tuplx65_sMutationResult",
                 "ofType": null
               },
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "deleteTuplesPk",
+              "name": "deleteTuplx65_sPk",
               "description": null,
               "args": [
                 {
@@ -4513,7 +4513,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "INPUT_OBJECT",
-                      "name": "TuplesPkInput",
+                      "name": "Tuplx65_sPkInput",
                       "ofType": null
                     }
                   },
@@ -4534,7 +4534,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesPkFilterInput",
+                    "name": "Tuplx65_sPkFilterInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -4552,14 +4552,14 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesPkMutationResult",
+                "name": "Tuplx65_sPkMutationResult",
                 "ofType": null
               },
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "insertTuplesPk",
+              "name": "insertTuplx65_sPk",
               "description": null,
               "args": [
                 {
@@ -4570,7 +4570,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "INPUT_OBJECT",
-                      "name": "TuplesPkInput",
+                      "name": "Tuplx65_sPkInput",
                       "ofType": null
                     }
                   },
@@ -4599,14 +4599,14 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesPkMutationResult",
+                "name": "Tuplx65_sPkMutationResult",
                 "ofType": null
               },
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "updateTuplesPk",
+              "name": "updateTuplx65_sPk",
               "description": null,
               "args": [
                 {
@@ -4617,7 +4617,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "INPUT_OBJECT",
-                      "name": "TuplesPkInput",
+                      "name": "Tuplx65_sPkInput",
                       "ofType": null
                     }
                   },
@@ -4638,7 +4638,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesPkFilterInput",
+                    "name": "Tuplx65_sPkFilterInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -4656,7 +4656,7 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesPkMutationResult",
+                "name": "Tuplx65_sPkMutationResult",
                 "ofType": null
               },
               "isDeprecated": false,
@@ -5809,7 +5809,7 @@
           "description": null,
           "fields": [
             {
-              "name": "products",
+              "name": "Products",
               "description": null,
               "args": [
                 {
@@ -5866,7 +5866,7 @@
               "deprecationReason": null
             },
             {
-              "name": "productsFilter",
+              "name": "ProductsFilter",
               "description": null,
               "args": [
                 {
@@ -5913,7 +5913,7 @@
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "orders",
+              "name": "Orders",
               "description": null,
               "args": [
                 {
@@ -5970,7 +5970,7 @@
               "deprecationReason": null
             },
             {
-              "name": "ordersFilter",
+              "name": "OrdersFilter",
               "description": null,
               "args": [
                 {
@@ -6017,7 +6017,7 @@
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "collectionsSimple",
+              "name": "CollectionsSimple",
               "description": null,
               "args": [
                 {
@@ -6074,7 +6074,7 @@
               "deprecationReason": null
             },
             {
-              "name": "collectionsSimpleFilter",
+              "name": "CollectionsSimpleFilter",
               "description": null,
               "args": [
                 {
@@ -6121,7 +6121,7 @@
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "collectionsNested",
+              "name": "CollectionsNested",
               "description": null,
               "args": [
                 {
@@ -6178,7 +6178,7 @@
               "deprecationReason": null
             },
             {
-              "name": "collectionsNestedFilter",
+              "name": "CollectionsNestedFilter",
               "description": null,
               "args": [
                 {
@@ -6225,7 +6225,7 @@
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "udts",
+              "name": "Udts",
               "description": null,
               "args": [
                 {
@@ -6282,7 +6282,7 @@
               "deprecationReason": null
             },
             {
-              "name": "udtsFilter",
+              "name": "UdtsFilter",
               "description": null,
               "args": [
                 {
@@ -6329,7 +6329,7 @@
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "tuples",
+              "name": "Tuplx65_s",
               "description": null,
               "args": [
                 {
@@ -6337,7 +6337,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesInput",
+                    "name": "Tuplx65_sInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -6347,7 +6347,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesFilterInput",
+                    "name": "Tuplx65_sFilterInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -6360,7 +6360,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "ENUM",
-                      "name": "TuplesOrder",
+                      "name": "Tuplx65_sOrder",
                       "ofType": null
                     }
                   },
@@ -6379,14 +6379,14 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesResult",
+                "name": "Tuplx65_sResult",
                 "ofType": null
               },
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "tuplesFilter",
+              "name": "Tuplx65_sFilter",
               "description": null,
               "args": [
                 {
@@ -6394,7 +6394,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesFilterInput",
+                    "name": "Tuplx65_sFilterInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -6407,7 +6407,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "ENUM",
-                      "name": "TuplesOrder",
+                      "name": "Tuplx65_sOrder",
                       "ofType": null
                     }
                   },
@@ -6426,14 +6426,14 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesResult",
+                "name": "Tuplx65_sResult",
                 "ofType": null
               },
               "isDeprecated": true,
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "tuplesPk",
+              "name": "Tuplx65_sPk",
               "description": null,
               "args": [
                 {
@@ -6441,7 +6441,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesPkInput",
+                    "name": "Tuplx65_sPkInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -6451,7 +6451,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesPkFilterInput",
+                    "name": "Tuplx65_sPkFilterInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -6464,7 +6464,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "ENUM",
-                      "name": "TuplesPkOrder",
+                      "name": "Tuplx65_sPkOrder",
                       "ofType": null
                     }
                   },
@@ -6483,14 +6483,14 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesPkResult",
+                "name": "Tuplx65_sPkResult",
                 "ofType": null
               },
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "tuplesPkFilter",
+              "name": "Tuplx65_sPkFilter",
               "description": null,
               "args": [
                 {
@@ -6498,7 +6498,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesPkFilterInput",
+                    "name": "Tuplx65_sPkFilterInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -6511,7 +6511,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "ENUM",
-                      "name": "TuplesPkOrder",
+                      "name": "Tuplx65_sPkOrder",
                       "ofType": null
                     }
                   },
@@ -6530,14 +6530,14 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesPkResult",
+                "name": "Tuplx65_sPkResult",
                 "ofType": null
               },
               "isDeprecated": true,
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "scalars",
+              "name": "Scalars",
               "description": null,
               "args": [
                 {
@@ -6594,7 +6594,7 @@
               "deprecationReason": null
             },
             {
-              "name": "scalarsFilter",
+              "name": "ScalarsFilter",
               "description": null,
               "args": [
                 {
@@ -8999,7 +8999,7 @@
         },
         {
           "kind": "OBJECT",
-          "name": "Tuples",
+          "name": "Tuplx65_s",
           "description": null,
           "fields": [
             {
@@ -9058,7 +9058,7 @@
         },
         {
           "kind": "INPUT_OBJECT",
-          "name": "TuplesFilterInput",
+          "name": "Tuplx65_sFilterInput",
           "description": null,
           "fields": null,
           "inputFields": [
@@ -9109,7 +9109,7 @@
         },
         {
           "kind": "INPUT_OBJECT",
-          "name": "TuplesInput",
+          "name": "Tuplx65_sInput",
           "description": null,
           "fields": null,
           "inputFields": [
@@ -9160,7 +9160,7 @@
         },
         {
           "kind": "OBJECT",
-          "name": "TuplesMutationResult",
+          "name": "Tuplx65_sMutationResult",
           "description": null,
           "fields": [
             {
@@ -9181,7 +9181,7 @@
               "args": [],
               "type": {
                 "kind": "OBJECT",
-                "name": "Tuples",
+                "name": "Tuplx65_s",
                 "ofType": null
               },
               "isDeprecated": false,
@@ -9195,7 +9195,7 @@
         },
         {
           "kind": "ENUM",
-          "name": "TuplesOrder",
+          "name": "Tuplx65_sOrder",
           "description": null,
           "fields": null,
           "inputFields": null,
@@ -9254,7 +9254,7 @@
         },
         {
           "kind": "OBJECT",
-          "name": "TuplesPk",
+          "name": "Tuplx65_sPk",
           "description": null,
           "fields": [
             {
@@ -9277,7 +9277,7 @@
         },
         {
           "kind": "INPUT_OBJECT",
-          "name": "TuplesPkFilterInput",
+          "name": "Tuplx65_sPkFilterInput",
           "description": null,
           "fields": null,
           "inputFields": [
@@ -9298,7 +9298,7 @@
         },
         {
           "kind": "INPUT_OBJECT",
-          "name": "TuplesPkInput",
+          "name": "Tuplx65_sPkInput",
           "description": null,
           "fields": null,
           "inputFields": [
@@ -9319,7 +9319,7 @@
         },
         {
           "kind": "OBJECT",
-          "name": "TuplesPkMutationResult",
+          "name": "Tuplx65_sPkMutationResult",
           "description": null,
           "fields": [
             {
@@ -9340,7 +9340,7 @@
               "args": [],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesPk",
+                "name": "Tuplx65_sPk",
                 "ofType": null
               },
               "isDeprecated": false,
@@ -9354,7 +9354,7 @@
         },
         {
           "kind": "ENUM",
-          "name": "TuplesPkOrder",
+          "name": "Tuplx65_sPkOrder",
           "description": null,
           "fields": null,
           "inputFields": null,
@@ -9377,7 +9377,7 @@
         },
         {
           "kind": "OBJECT",
-          "name": "TuplesPkResult",
+          "name": "Tuplx65_sPkResult",
           "description": null,
           "fields": [
             {
@@ -9404,7 +9404,7 @@
                   "name": null,
                   "ofType": {
                     "kind": "OBJECT",
-                    "name": "TuplesPk",
+                    "name": "Tuplx65_sPk",
                     "ofType": null
                   }
                 }
@@ -9420,7 +9420,7 @@
         },
         {
           "kind": "OBJECT",
-          "name": "TuplesResult",
+          "name": "Tuplx65_sResult",
           "description": null,
           "fields": [
             {
@@ -9447,7 +9447,7 @@
                   "name": null,
                   "ofType": {
                     "kind": "OBJECT",
-                    "name": "Tuples",
+                    "name": "Tuplx65_s",
                     "ofType": null
                   }
                 }
