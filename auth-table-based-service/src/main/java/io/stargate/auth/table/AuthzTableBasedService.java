@@ -59,10 +59,9 @@ public class AuthzTableBasedService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public ResultSet authorizedSchemaRead(
-      Callable<ResultSet> action, String token, String keyspace, String table) throws Exception {
+  public void authorizedSchemaRead(
+      String token, List<String> keyspaceNames, List<String> tableNames) throws Exception {
     // Cannot perform authorization with a table based token so just return
-    return action.call();
   }
 
   /**

@@ -109,9 +109,9 @@ public class AuthzJwtService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public ResultSet authorizedSchemaRead(
-      Callable<ResultSet> action, String token, String keyspace, String table) throws Exception {
-    return action.call();
+  public void authorizedSchemaRead(
+      String token, List<String> keyspaceNames, List<String> tableNames) throws Exception {
+    // Cannot perform authorization with a JWT token so just return
   }
 
   /**

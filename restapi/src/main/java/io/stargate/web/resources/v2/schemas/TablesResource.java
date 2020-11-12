@@ -95,10 +95,17 @@ public class TablesResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+
           List<TableResponse> tableResponses =
               db.getTables(localDB, keyspaceName).stream()
                   .map(this::getTable)
                   .collect(Collectors.toList());
+
+          db.getAuthorizationService()
+              .authorizedSchemaRead(
+                  token,
+                  Collections.singletonList(keyspaceName),
+                  tableResponses.stream().map(TableResponse::getName).collect(Collectors.toList()));
 
           Object response = raw ? tableResponses : new ResponseWrapper(tableResponses);
           return Response.status(Response.Status.OK)
@@ -139,6 +146,12 @@ public class TablesResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+          db.getAuthorizationService()
+              .authorizedSchemaRead(
+                  token,
+                  Collections.singletonList(keyspaceName),
+                  Collections.singletonList(tableName));
+
           Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
 
           TableResponse tableResponse = getTable(tableMetadata);
@@ -249,7 +262,12 @@ public class TablesResource {
                   Converters.maybeQuote(tableAdd.getName()),
                   columnDefinitions.toString(),
                   tableOptions);
-          localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM).get();
+          db.getAuthorizationService()
+              .authorizedSchemaWrite(
+                  () -> localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM).get(),
+                  token,
+                  keyspaceName,
+                  tableAdd.getName());
 
           return Response.status(Response.Status.CREATED)
               .entity(

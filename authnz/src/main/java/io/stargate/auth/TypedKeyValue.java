@@ -5,9 +5,9 @@ import io.stargate.db.datastore.query.WhereCondition;
 
 public class TypedKeyValue {
 
-  String name;
-  String type;
-  Object value;
+  private final String name;
+  private final Object value;
+  private String type;
 
   public TypedKeyValue(WhereCondition<?> w) {
     this.name = w.column().name();
@@ -39,26 +39,11 @@ public class TypedKeyValue {
     return name;
   }
 
-  public TypedKeyValue setName(String name) {
-    this.name = name;
-    return this;
-  }
-
   public String getType() {
     return type;
   }
 
-  public TypedKeyValue setType(String type) {
-    this.type = type;
-    return this;
-  }
-
   public Object getValue() {
     return value;
-  }
-
-  public TypedKeyValue setValue(Object value) {
-    this.value = value;
-    return this;
   }
 }

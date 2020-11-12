@@ -84,10 +84,17 @@ public class KeyspacesResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+
           List<Keyspace> keyspaces =
               localDB.schema().keyspaces().stream()
                   .map(k -> new Keyspace(k.name(), buildDatacenters(k)))
                   .collect(Collectors.toList());
+
+          db.getAuthorizationService()
+              .authorizedSchemaRead(
+                  token,
+                  keyspaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
+                  null);
 
           Object response = raw ? keyspaces : new ResponseWrapper(keyspaces);
           return Response.status(Response.Status.OK)
@@ -126,6 +133,8 @@ public class KeyspacesResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+          db.getAuthorizationService()
+              .authorizedSchemaRead(token, Collections.singletonList(keyspaceName), null);
 
           io.stargate.db.schema.Keyspace keyspace = localDB.schema().keyspace(keyspaceName);
           if (keyspace == null) {

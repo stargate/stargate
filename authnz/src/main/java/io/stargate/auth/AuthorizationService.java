@@ -54,20 +54,16 @@ public interface AuthorizationService {
       throws Exception;
 
   /**
-   * Using the provided token will perform pre-authorization where possible, executes the query
-   * provided, and then authorizes the response of the query.
+   * Using the provided token will perform pre-authorization of accessing the provided resources.
    *
-   * @param action A {@link QueryBuilder} object to be executed and authorized against a token.
    * @param token The authenticated token to use for authorization.
-   * @param keyspace Either the keyspace containing the resource to be read or the actual resource
-   *     being read.
-   * @param table The table within the provided keyspace that is being read.
-   * @return On success will return the result of the query and otherwise will return an exception
-   *     relating to the failure to authorize.
+   * @param keyspaceNames Either the keyspace(s) containing the resource(s) to be read or the actual
+   *     resource being read.
+   * @param tableNames The table(s) within the provided keyspace(s) that is being read.
    * @throws Exception An exception relating to the failure to authorize.
    */
-  ResultSet authorizedSchemaRead(
-      Callable<ResultSet> action, String token, String keyspace, String table) throws Exception;
+  void authorizedSchemaRead(String token, List<String> keyspaceNames, List<String> tableNames)
+      throws Exception;
 
   /**
    * Using the provided token will perform pre-authorization where possible and if successful

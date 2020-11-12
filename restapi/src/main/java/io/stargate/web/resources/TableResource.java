@@ -34,6 +34,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -94,12 +95,15 @@ public class TableResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          return Response.status(Response.Status.OK)
-              .entity(
-                  db.getTables(localDB, keyspaceName).stream()
-                      .map(Table::name)
-                      .collect(Collectors.toList()))
-              .build();
+          List<String> tableNames =
+              db.getTables(localDB, keyspaceName).stream()
+                  .map(Table::name)
+                  .collect(Collectors.toList());
+
+          db.getAuthorizationService()
+              .authorizedSchemaRead(token, Collections.singletonList(keyspaceName), tableNames);
+
+          return Response.status(Response.Status.OK).entity(tableNames).build();
         });
   }
 
@@ -242,6 +246,11 @@ public class TableResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+          db.getAuthorizationService()
+              .authorizedSchemaRead(
+                  token,
+                  Collections.singletonList(keyspaceName),
+                  Collections.singletonList(tableName));
 
           Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
 
