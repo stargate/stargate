@@ -62,6 +62,7 @@ public class DocumentServiceTest {
   private Method getParentPathFromRow;
   private Method filterToSelectionSet;
   private Method applyInMemoryFilters;
+  private Method pathsMatch;
   private Method checkEqualsOp;
   private Method checkInOp;
   private Method checkGtOp;
@@ -116,6 +117,8 @@ public class DocumentServiceTest {
         DocumentService.class.getDeclaredMethod(
             "applyInMemoryFilters", List.class, List.class, int.class);
     applyInMemoryFilters.setAccessible(true);
+    pathsMatch = DocumentService.class.getDeclaredMethod("pathsMatch", String.class, String.class);
+    pathsMatch.setAccessible(true);
     checkEqualsOp =
         DocumentService.class.getDeclaredMethod(
             "checkEqualsOp",
@@ -1564,6 +1567,30 @@ public class DocumentServiceTest {
                 ImmutableList.of("a", "b", "c"), "$nin", ImmutableList.of(true)));
     result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1);
     assertThat(result.size()).isEqualTo(0);
+  }
+
+  @Test
+  public void pathsMatch() throws InvocationTargetException, IllegalAccessException {
+    boolean res = (boolean) pathsMatch.invoke(service, "", "");
+    assertThat(res).isTrue();
+
+    res = (boolean) pathsMatch.invoke(service, "a", "a");
+    assertThat(res).isTrue();
+
+    res = (boolean) pathsMatch.invoke(service, "a", "b");
+    assertThat(res).isFalse();
+
+    res = (boolean) pathsMatch.invoke(service, "a.b", "a.b");
+    assertThat(res).isTrue();
+
+    res = (boolean) pathsMatch.invoke(service, "a.b", "a.c");
+    assertThat(res).isFalse();
+
+    res = (boolean) pathsMatch.invoke(service, "a.*.c", "a.b.c");
+    assertThat(res).isTrue();
+
+    res = (boolean) pathsMatch.invoke(service, "a.*.d", "a.b.c");
+    assertThat(res).isFalse();
   }
 
   @Test
