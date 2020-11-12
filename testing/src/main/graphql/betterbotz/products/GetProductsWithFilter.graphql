@@ -1,5 +1,5 @@
 query GetProductsWithFilter($filter: ProductsFilterInput, $options: QueryOptions) {
-    products(filter: $filter, options: $options) {
+    Products(filter: $filter, options: $options) {
         pageState
         values {
             id

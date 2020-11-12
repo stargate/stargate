@@ -1,9 +1,9 @@
 mutation InsertTuplesPk(
-    $value: TuplesPkInput!
+    $value: Tuplx65_sPkInput!
     $ifNotExists: Boolean
     $options: MutationOptions
 ) {
-    insertTuplesPk(
+    insertTuplx65_sPk(
         value: $value
         ifNotExists: $ifNotExists
         options: $options

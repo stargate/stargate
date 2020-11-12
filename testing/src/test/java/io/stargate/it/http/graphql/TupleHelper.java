@@ -6,15 +6,15 @@ import com.example.graphql.client.betterbotz.tuples.GetTuplesQuery;
 import com.example.graphql.client.betterbotz.type.TupleBigIntInput;
 import com.example.graphql.client.betterbotz.type.TupleFloat32Float32Input;
 import com.example.graphql.client.betterbotz.type.TupleTimeUuidIntBooleanInput;
-import com.example.graphql.client.betterbotz.type.TuplesInput;
+import com.example.graphql.client.betterbotz.type.Tuplx65_sInput;
 import java.util.UUID;
 import org.assertj.core.api.InstanceOfAssertFactories;
 
 /** Contains helper methods to test tuples in GraphQL */
 public class TupleHelper {
-  public static TuplesInput createTupleInput(
+  public static Tuplx65_sInput createTupleInput(
       UUID id, long tuple1, float[] tuple2, Object[] tuple3) {
-    return TuplesInput.builder()
+    return Tuplx65_sInput.builder()
         .id(id)
         .tuple1(TupleBigIntInput.builder().item0(String.valueOf(tuple1)).build())
         .tuple2(TupleFloat32Float32Input.builder().item0(tuple2[0]).item1(tuple2[1]).build())
@@ -29,7 +29,7 @@ public class TupleHelper {
 
   public static void assertTuples(
       GetTuplesQuery.Data result, long tuple1Value, float[] tuple2, Object[] tuple3) {
-    assertThat(result.getTuples())
+    assertThat(result.getTuplx65_s())
         .isPresent()
         .get()
         .extracting(v -> v.getValues(), InstanceOfAssertFactories.OPTIONAL)
@@ -37,7 +37,7 @@ public class TupleHelper {
         .get(InstanceOfAssertFactories.LIST)
         .hasSize(1);
 
-    GetTuplesQuery.Value item = result.getTuples().get().getValues().get().get(0);
+    GetTuplesQuery.Value item = result.getTuplx65_s().get().getValues().get().get(0);
     assertThat(item.getTuple1())
         .isPresent()
         .get()

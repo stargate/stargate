@@ -54,11 +54,11 @@ public class ScalarsDmlTest extends DmlTestBase {
     ImmutableTable.Builder tableBuilder =
         ImmutableTable.builder()
             .keyspace("scalars_ks")
-            .name("scalars")
+            .name("Scalars")
             .addColumns(
                 ImmutableColumn.builder()
-                    .keyspace("scalars")
-                    .table("scalars_table")
+                    .keyspace("scalars_ks")
+                    .table("Scalars")
                     .name("id")
                     .type(Column.Type.Int)
                     .kind(Column.Kind.PartitionKey)
@@ -76,7 +76,7 @@ public class ScalarsDmlTest extends DmlTestBase {
   private static ImmutableColumn getColumn(Column.Type type) {
     return ImmutableColumn.builder()
         .keyspace("scalars_ks")
-        .table("scalars")
+        .table("Scalars")
         .name(getName(type))
         .type(type)
         .kind(Column.Kind.Regular)
@@ -95,7 +95,7 @@ public class ScalarsDmlTest extends DmlTestBase {
     String name = getName(type);
     String expectedCQL =
         String.format(
-            "INSERT INTO scalars_ks.scalars (id,%s) VALUES (1,%s)",
+            "INSERT INTO scalars_ks.\"Scalars\" (id,%s) VALUES (1,%s)",
             name, expectedLiteral != null ? expectedLiteral : value.toString());
 
     assertSuccess(String.format(mutation, name, toGraphQLValue(value)), expectedCQL);
@@ -111,7 +111,7 @@ public class ScalarsDmlTest extends DmlTestBase {
     String name = getName(type);
     String expectedCQL =
         String.format(
-            "INSERT INTO scalars_ks.scalars (id,%s) VALUES (1,%s)",
+            "INSERT INTO scalars_ks.\"Scalars\" (id,%s) VALUES (1,%s)",
             name, expectedLiteral != null ? expectedLiteral : value.toString());
 
     assertSuccess(String.format(mutation, name, toGraphQLValue(value)), expectedCQL);
@@ -124,10 +124,10 @@ public class ScalarsDmlTest extends DmlTestBase {
     Row row = createRowForSingleValue(name, toRowCellValue(type, value));
     when(resultSet.currentPageRows()).thenReturn(Collections.singletonList(row));
     ExecutionResult result =
-        executeGraphQl(String.format("query { scalars { values { %s } } }", name));
+        executeGraphQl(String.format("query { Scalars { values { %s } } }", name));
     assertThat(result.getErrors()).isEmpty();
     assertThat(result.<Map<String, Object>>getData())
-        .extractingByKey("scalars", InstanceOfAssertFactories.MAP)
+        .extractingByKey("Scalars", InstanceOfAssertFactories.MAP)
         .extractingByKey("values", InstanceOfAssertFactories.LIST)
         .singleElement()
         .asInstanceOf(InstanceOfAssertFactories.MAP)
@@ -156,7 +156,7 @@ public class ScalarsDmlTest extends DmlTestBase {
     assertThat(queryCaptor.getValue())
         .matches(
             String.format(
-                "INSERT INTO scalars_ks.scalars \\(id,timeuuidvalue\\)" + " VALUES \\(1,%s\\)",
+                "INSERT INTO scalars_ks.\"Scalars\" \\(id,timeuuidvalue\\) VALUES \\(1,%s\\)",
                 UUID_REGEX));
 
     assertThat(result.<Map<String, Object>>getData())
@@ -180,7 +180,7 @@ public class ScalarsDmlTest extends DmlTestBase {
     assertThat(queryCaptor.getValue())
         .matches(
             String.format(
-                "INSERT INTO scalars_ks.scalars \\(id,uuidvalue\\)" + " VALUES \\(1,%s\\)",
+                "INSERT INTO scalars_ks.\"Scalars\" \\(id,uuidvalue\\) VALUES \\(1,%s\\)",
                 UUID_REGEX));
 
     assertThat(result.<Map<String, Object>>getData())

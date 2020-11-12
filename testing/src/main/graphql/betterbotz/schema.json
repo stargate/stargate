@@ -4341,8 +4341,8 @@
               "deprecationReason": null
             },
             {
-              "name": "deleteTuples",
-              "description": "Delete mutation for the table 'tuples'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "name": "deleteTuplx65_s",
+              "description": null,
               "args": [
                 {
                   "name": "value",
@@ -4352,7 +4352,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "INPUT_OBJECT",
-                      "name": "TuplesInput",
+                      "name": "Tuplx65_sInput",
                       "ofType": null
                     }
                   },
@@ -4373,7 +4373,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesFilterInput",
+                    "name": "Tuplx65_sFilterInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -4391,15 +4391,15 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesMutationResult",
+                "name": "Tuplx65_sMutationResult",
                 "ofType": null
               },
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "insertTuples",
-              "description": "Insert mutation for the table 'tuples'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "name": "insertTuplx65_s",
+              "description": null,
               "args": [
                 {
                   "name": "value",
@@ -4409,7 +4409,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "INPUT_OBJECT",
-                      "name": "TuplesInput",
+                      "name": "Tuplx65_sInput",
                       "ofType": null
                     }
                   },
@@ -4438,15 +4438,15 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesMutationResult",
+                "name": "Tuplx65_sMutationResult",
                 "ofType": null
               },
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "updateTuples",
-              "description": "Update mutation for the table 'tuples'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "name": "updateTuplx65_s",
+              "description": null,
               "args": [
                 {
                   "name": "value",
@@ -4456,7 +4456,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "INPUT_OBJECT",
-                      "name": "TuplesInput",
+                      "name": "Tuplx65_sInput",
                       "ofType": null
                     }
                   },
@@ -4477,7 +4477,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesFilterInput",
+                    "name": "Tuplx65_sFilterInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -4495,15 +4495,15 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesMutationResult",
+                "name": "Tuplx65_sMutationResult",
                 "ofType": null
               },
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "deleteTuplesPk",
-              "description": "Delete mutation for the table 'tuples_pk'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "name": "deleteTuplx65_sPk",
+              "description": null,
               "args": [
                 {
                   "name": "value",
@@ -4513,7 +4513,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "INPUT_OBJECT",
-                      "name": "TuplesPkInput",
+                      "name": "Tuplx65_sPkInput",
                       "ofType": null
                     }
                   },
@@ -4534,7 +4534,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesPkFilterInput",
+                    "name": "Tuplx65_sPkFilterInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -4552,15 +4552,15 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesPkMutationResult",
+                "name": "Tuplx65_sPkMutationResult",
                 "ofType": null
               },
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "insertTuplesPk",
-              "description": "Insert mutation for the table 'tuples_pk'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "name": "insertTuplx65_sPk",
+              "description": null,
               "args": [
                 {
                   "name": "value",
@@ -4570,7 +4570,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "INPUT_OBJECT",
-                      "name": "TuplesPkInput",
+                      "name": "Tuplx65_sPkInput",
                       "ofType": null
                     }
                   },
@@ -4599,15 +4599,15 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesPkMutationResult",
+                "name": "Tuplx65_sPkMutationResult",
                 "ofType": null
               },
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "updateTuplesPk",
-              "description": "Update mutation for the table 'tuples_pk'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "name": "updateTuplx65_sPk",
+              "description": null,
               "args": [
                 {
                   "name": "value",
@@ -4617,7 +4617,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "INPUT_OBJECT",
-                      "name": "TuplesPkInput",
+                      "name": "Tuplx65_sPkInput",
                       "ofType": null
                     }
                   },
@@ -4638,7 +4638,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesPkFilterInput",
+                    "name": "Tuplx65_sPkFilterInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -4656,7 +4656,7 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesPkMutationResult",
+                "name": "Tuplx65_sPkMutationResult",
                 "ofType": null
               },
               "isDeprecated": false,
@@ -5809,8 +5809,8 @@
           "description": null,
           "fields": [
             {
-              "name": "products",
-              "description": "Query for the table 'products'.\nNote that 'id', 'name', 'price' and 'created' are the fields that correspond to the table primary key.",
+              "name": "Products",
+              "description": null,
               "args": [
                 {
                   "name": "value",
@@ -5866,7 +5866,7 @@
               "deprecationReason": null
             },
             {
-              "name": "productsFilter",
+              "name": "ProductsFilter",
               "description": null,
               "args": [
                 {
@@ -5913,8 +5913,8 @@
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "orders",
-              "description": "Query for the table 'orders'.\nNote that 'prodName' and 'customerName' are the fields that correspond to the table primary key.",
+              "name": "Orders",
+              "description": null,
               "args": [
                 {
                   "name": "value",
@@ -5970,7 +5970,7 @@
               "deprecationReason": null
             },
             {
-              "name": "ordersFilter",
+              "name": "OrdersFilter",
               "description": null,
               "args": [
                 {
@@ -6017,8 +6017,8 @@
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "collectionsSimple",
-              "description": "Query for the table 'collections_simple'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "name": "CollectionsSimple",
+              "description": null,
               "args": [
                 {
                   "name": "value",
@@ -6074,7 +6074,7 @@
               "deprecationReason": null
             },
             {
-              "name": "collectionsSimpleFilter",
+              "name": "CollectionsSimpleFilter",
               "description": null,
               "args": [
                 {
@@ -6121,8 +6121,8 @@
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "collectionsNested",
-              "description": "Query for the table 'collections_nested'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "name": "CollectionsNested",
+              "description": null,
               "args": [
                 {
                   "name": "value",
@@ -6178,7 +6178,7 @@
               "deprecationReason": null
             },
             {
-              "name": "collectionsNestedFilter",
+              "name": "CollectionsNestedFilter",
               "description": null,
               "args": [
                 {
@@ -6225,8 +6225,8 @@
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "udts",
-              "description": "Query for the table 'udts'.\nNote that 'a' is the field that corresponds to the table primary key.",
+              "name": "Udts",
+              "description": null,
               "args": [
                 {
                   "name": "value",
@@ -6282,7 +6282,7 @@
               "deprecationReason": null
             },
             {
-              "name": "udtsFilter",
+              "name": "UdtsFilter",
               "description": null,
               "args": [
                 {
@@ -6329,15 +6329,15 @@
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "tuples",
-              "description": "Query for the table 'tuples'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "name": "Tuplx65_s",
+              "description": null,
               "args": [
                 {
                   "name": "value",
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesInput",
+                    "name": "Tuplx65_sInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -6347,7 +6347,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesFilterInput",
+                    "name": "Tuplx65_sFilterInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -6360,7 +6360,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "ENUM",
-                      "name": "TuplesOrder",
+                      "name": "Tuplx65_sOrder",
                       "ofType": null
                     }
                   },
@@ -6379,14 +6379,14 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesResult",
+                "name": "Tuplx65_sResult",
                 "ofType": null
               },
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "tuplesFilter",
+              "name": "Tuplx65_sFilter",
               "description": null,
               "args": [
                 {
@@ -6394,7 +6394,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesFilterInput",
+                    "name": "Tuplx65_sFilterInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -6407,7 +6407,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "ENUM",
-                      "name": "TuplesOrder",
+                      "name": "Tuplx65_sOrder",
                       "ofType": null
                     }
                   },
@@ -6426,22 +6426,22 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesResult",
+                "name": "Tuplx65_sResult",
                 "ofType": null
               },
               "isDeprecated": true,
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "tuplesPk",
-              "description": "Query for the table 'tuples_pk'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "name": "Tuplx65_sPk",
+              "description": null,
               "args": [
                 {
                   "name": "value",
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesPkInput",
+                    "name": "Tuplx65_sPkInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -6451,7 +6451,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesPkFilterInput",
+                    "name": "Tuplx65_sPkFilterInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -6464,7 +6464,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "ENUM",
-                      "name": "TuplesPkOrder",
+                      "name": "Tuplx65_sPkOrder",
                       "ofType": null
                     }
                   },
@@ -6483,14 +6483,14 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesPkResult",
+                "name": "Tuplx65_sPkResult",
                 "ofType": null
               },
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "tuplesPkFilter",
+              "name": "Tuplx65_sPkFilter",
               "description": null,
               "args": [
                 {
@@ -6498,7 +6498,7 @@
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "name": "TuplesPkFilterInput",
+                    "name": "Tuplx65_sPkFilterInput",
                     "ofType": null
                   },
                   "defaultValue": null
@@ -6511,7 +6511,7 @@
                     "name": null,
                     "ofType": {
                       "kind": "ENUM",
-                      "name": "TuplesPkOrder",
+                      "name": "Tuplx65_sPkOrder",
                       "ofType": null
                     }
                   },
@@ -6530,15 +6530,15 @@
               ],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesPkResult",
+                "name": "Tuplx65_sPkResult",
                 "ofType": null
               },
               "isDeprecated": true,
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "scalars",
-              "description": "Query for the table 'scalars'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "name": "Scalars",
+              "description": null,
               "args": [
                 {
                   "name": "value",
@@ -6594,7 +6594,7 @@
               "deprecationReason": null
             },
             {
-              "name": "scalarsFilter",
+              "name": "ScalarsFilter",
               "description": null,
               "args": [
                 {
@@ -8999,8 +8999,8 @@
         },
         {
           "kind": "OBJECT",
-          "name": "Tuples",
-          "description": "The type used to represent results of a query for the table 'tuples'.",
+          "name": "Tuplx65_s",
+          "description": null,
           "fields": [
             {
               "name": "id",
@@ -9058,8 +9058,8 @@
         },
         {
           "kind": "INPUT_OBJECT",
-          "name": "TuplesFilterInput",
-          "description": "The input type used for filtering with non-equality operators for the table 'tuples'.\nNote that 'id' is the field that corresponds to the table primary key.",
+          "name": "Tuplx65_sFilterInput",
+          "description": null,
           "fields": null,
           "inputFields": [
             {
@@ -9109,8 +9109,8 @@
         },
         {
           "kind": "INPUT_OBJECT",
-          "name": "TuplesInput",
-          "description": "The input type for the table 'tuples'.\nNote that 'id' is the field that corresponds to the table primary key.",
+          "name": "Tuplx65_sInput",
+          "description": null,
           "fields": null,
           "inputFields": [
             {
@@ -9160,8 +9160,8 @@
         },
         {
           "kind": "OBJECT",
-          "name": "TuplesMutationResult",
-          "description": "The type used to represent results of a mutation for the table 'tuples'.",
+          "name": "Tuplx65_sMutationResult",
+          "description": null,
           "fields": [
             {
               "name": "applied",
@@ -9181,7 +9181,7 @@
               "args": [],
               "type": {
                 "kind": "OBJECT",
-                "name": "Tuples",
+                "name": "Tuplx65_s",
                 "ofType": null
               },
               "isDeprecated": false,
@@ -9195,8 +9195,8 @@
         },
         {
           "kind": "ENUM",
-          "name": "TuplesOrder",
-          "description": "The enum used to order a query result based on one or more fields for the table 'tuples'.",
+          "name": "Tuplx65_sOrder",
+          "description": null,
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -9254,8 +9254,8 @@
         },
         {
           "kind": "OBJECT",
-          "name": "TuplesPk",
-          "description": "The type used to represent results of a query for the table 'tuples_pk'.",
+          "name": "Tuplx65_sPk",
+          "description": null,
           "fields": [
             {
               "name": "id",
@@ -9277,8 +9277,8 @@
         },
         {
           "kind": "INPUT_OBJECT",
-          "name": "TuplesPkFilterInput",
-          "description": "The input type used for filtering with non-equality operators for the table 'tuples_pk'.\nNote that 'id' is the field that corresponds to the table primary key.",
+          "name": "Tuplx65_sPkFilterInput",
+          "description": null,
           "fields": null,
           "inputFields": [
             {
@@ -9298,8 +9298,8 @@
         },
         {
           "kind": "INPUT_OBJECT",
-          "name": "TuplesPkInput",
-          "description": "The input type for the table 'tuples_pk'.\nNote that 'id' is the field that corresponds to the table primary key.",
+          "name": "Tuplx65_sPkInput",
+          "description": null,
           "fields": null,
           "inputFields": [
             {
@@ -9319,8 +9319,8 @@
         },
         {
           "kind": "OBJECT",
-          "name": "TuplesPkMutationResult",
-          "description": "The type used to represent results of a mutation for the table 'tuples_pk'.",
+          "name": "Tuplx65_sPkMutationResult",
+          "description": null,
           "fields": [
             {
               "name": "applied",
@@ -9340,7 +9340,7 @@
               "args": [],
               "type": {
                 "kind": "OBJECT",
-                "name": "TuplesPk",
+                "name": "Tuplx65_sPk",
                 "ofType": null
               },
               "isDeprecated": false,
@@ -9354,7 +9354,7 @@
         },
         {
           "kind": "ENUM",
-          "name": "TuplesPkOrder",
+          "name": "Tuplx65_sPkOrder",
           "description": "The enum used to order a query result based on one or more fields for the table 'tuples_pk'.",
           "fields": null,
           "inputFields": null,
@@ -9377,7 +9377,7 @@
         },
         {
           "kind": "OBJECT",
-          "name": "TuplesPkResult",
+          "name": "Tuplx65_sPkResult",
           "description": null,
           "fields": [
             {
@@ -9404,7 +9404,7 @@
                   "name": null,
                   "ofType": {
                     "kind": "OBJECT",
-                    "name": "TuplesPk",
+                    "name": "Tuplx65_sPk",
                     "ofType": null
                   }
                 }
@@ -9420,7 +9420,7 @@
         },
         {
           "kind": "OBJECT",
-          "name": "TuplesResult",
+          "name": "Tuplx65_sResult",
           "description": null,
           "fields": [
             {
@@ -9447,7 +9447,7 @@
                   "name": null,
                   "ofType": {
                     "kind": "OBJECT",
-                    "name": "Tuples",
+                    "name": "Tuplx65_s",
                     "ofType": null
                   }
                 }

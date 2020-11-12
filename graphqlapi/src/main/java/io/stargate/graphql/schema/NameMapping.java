@@ -20,13 +20,18 @@ import com.google.common.collect.HashBiMap;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
-import io.stargate.graphql.util.CaseUtil;
+import io.stargate.graphql.schema.NameConversions.IdentifierType;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NameMapping {
+
+  private static final Logger LOG = LoggerFactory.getLogger(NameMapping.class);
+
   private final BiMap<String, String> entityNames = HashBiMap.create();
   private final Map<String, BiMap<String, String>> columnNames;
   private final BiMap<String, String> udtNames = HashBiMap.create();
@@ -43,14 +48,20 @@ public class NameMapping {
 
   private void buildNames(Set<Table> tables) {
     for (Table table : tables) {
-      String graphqlName = CaseUtil.toCamel(table.name());
+      String graphqlName = NameConversions.toGraphql(table.name(), IdentifierType.TABLE);
       String clashingCqlName = entityNames.inverse().get(graphqlName);
       if (clashingCqlName != null) {
-        warnings.add(
+        String message =
             String.format(
                 "Couldn't convert table %s because its GraphQL name %s would collide with table %s",
-                table.name(), graphqlName, clashingCqlName));
+                table.name(), graphqlName, clashingCqlName);
+        warnings.add(message);
+        // Also log because this is a bug, it means there is a hole in our naming rules
+        LOG.warn(message);
       } else {
+        if (!graphqlName.equals(table.name())) {
+          warnings.add(String.format("Table %s mapped as %s", table.name(), graphqlName));
+        }
         entityNames.put(table.name(), graphqlName);
         columnNames.put(table.name(), buildColumnNames(table.columns()));
       }
@@ -59,15 +70,19 @@ public class NameMapping {
 
   private void buildNames(List<UserDefinedType> udts) {
     for (UserDefinedType udt : udts) {
-      // CQL allows tables and UDTs with the same name, append a suffix to avoid clashes.
-      String graphqlName = CaseUtil.toCamel(udt.name()) + "Udt";
+      String graphqlName = NameConversions.toGraphql(udt.name(), IdentifierType.UDT);
       String clashingCqlName = udtNames.inverse().get(graphqlName);
       if (clashingCqlName != null) {
-        warnings.add(
+        String message =
             String.format(
                 "Could not convert UDT %s because its GraphQL name %s would collide with UDT %s",
-                udt.name(), graphqlName, clashingCqlName));
+                udt.name(), graphqlName, clashingCqlName);
+        warnings.add(message);
+        LOG.warn(message);
       } else {
+        if (!graphqlName.equals(udt.name() + "Udt")) {
+          warnings.add(String.format("UDT %s mapped as %s", udt.name(), graphqlName));
+        }
         udtNames.put(udt.name(), graphqlName);
         fieldNames.put(udt.name(), buildColumnNames(udt.columns()));
       }
@@ -77,15 +92,23 @@ public class NameMapping {
   private BiMap<String, String> buildColumnNames(List<Column> columns) {
     BiMap<String, String> map = HashBiMap.create();
     for (Column column : columns) {
-      String graphqlName = CaseUtil.toLowerCamel(column.name());
+      String graphqlName = NameConversions.toGraphql(column.name(), IdentifierType.COLUMN);
       String clashingCqlName = map.inverse().get(graphqlName);
       if (clashingCqlName != null) {
-        warnings.add(
+        String message =
             String.format(
                 "Could not convert column %s in table/UDT %s because its GraphQL name %s "
                     + "would collide with column %s",
-                column.name(), column.table(), graphqlName, clashingCqlName));
+                column.name(), column.table(), graphqlName, clashingCqlName);
+        warnings.add(message);
+        LOG.warn(message);
       } else {
+        if (!graphqlName.equals(column.name())) {
+          warnings.add(
+              String.format(
+                  "Column %s in table/UDT %s mapped as %s",
+                  column.name(), column.table(), graphqlName));
+        }
         map.put(column.name(), graphqlName);
       }
     }

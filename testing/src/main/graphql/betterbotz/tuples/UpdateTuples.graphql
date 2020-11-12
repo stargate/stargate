@@ -1,9 +1,9 @@
 mutation UpdateTuples(
-    $value: TuplesInput!
+    $value: Tuplx65_sInput!
     $ifExists: Boolean
     $options: MutationOptions
 ) {
-    updateTuples(
+    updateTuplx65_s(
         value: $value
         ifExists: $ifExists
         options: $options

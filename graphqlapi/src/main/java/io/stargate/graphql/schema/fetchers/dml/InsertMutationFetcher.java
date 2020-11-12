@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.fetchers.dml;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.insert.Insert;
 import com.datastax.oss.driver.api.querybuilder.term.Term;
@@ -42,8 +43,7 @@ public class InsertMutationFetcher extends MutationFetcher {
   @Override
   protected String buildStatement(DataFetchingEnvironment environment, DataStore dataStore) {
     Insert insert =
-        QueryBuilder.insertInto(table.keyspace(), table.name())
-            .values(buildInsertValues(environment));
+        QueryBuilder.insertInto(keyspaceId, tableId).valuesByIds(buildInsertValues(environment));
 
     if (environment.containsArgument("ifNotExists")
         && environment.getArgument("ifNotExists") != null
@@ -60,14 +60,14 @@ public class InsertMutationFetcher extends MutationFetcher {
     return insert.asCql();
   }
 
-  private Map<String, Term> buildInsertValues(DataFetchingEnvironment environment) {
+  private Map<CqlIdentifier, Term> buildInsertValues(DataFetchingEnvironment environment) {
     Map<String, Object> value = environment.getArgument("value");
     Preconditions.checkNotNull(value, "Insert statement must contain at least one field");
 
-    Map<String, Term> insertMap = new LinkedHashMap<>();
+    Map<CqlIdentifier, Term> insertMap = new LinkedHashMap<>();
     for (Map.Entry<String, Object> entry : value.entrySet()) {
       Column column = getColumn(table, entry.getKey());
-      insertMap.put(column.name(), toCqlTerm(column, entry.getValue()));
+      insertMap.put(CqlIdentifier.fromInternal(column.name()), toCqlTerm(column, entry.getValue()));
     }
     return insertMap;
   }

@@ -1,5 +1,6 @@
 package io.stargate.graphql.schema.fetchers.dml;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.relation.Relation;
 import com.datastax.oss.driver.api.querybuilder.update.Assignment;
@@ -28,7 +29,7 @@ public class UpdateMutationFetcher extends MutationFetcher {
 
   @Override
   protected String buildStatement(DataFetchingEnvironment environment, DataStore dataStore) {
-    UpdateStart updateStart = QueryBuilder.update(table.keyspace(), table.name());
+    UpdateStart updateStart = QueryBuilder.update(keyspaceId, tableId);
 
     if (environment.containsArgument("options") && environment.getArgument("options") != null) {
       Map<String, Object> options = environment.getArgument("options");
@@ -61,7 +62,8 @@ public class UpdateMutationFetcher extends MutationFetcher {
       if (table.partitionKeyColumns().contains(column)
           || table.clusteringKeyColumns().contains(column)) {
         relations.add(
-            Relation.column(column.name()).isEqualTo(toCqlTerm(column, entry.getValue())));
+            Relation.column(CqlIdentifier.fromInternal(column.name()))
+                .isEqualTo(toCqlTerm(column, entry.getValue())));
       }
     }
     return relations;
@@ -74,7 +76,9 @@ public class UpdateMutationFetcher extends MutationFetcher {
       Column column = getColumn(table, entry.getKey());
       if (!(table.partitionKeyColumns().contains(column)
           || table.clusteringKeyColumns().contains(column))) {
-        assignments.add(Assignment.setColumn(column.name(), toCqlTerm(column, entry.getValue())));
+        assignments.add(
+            Assignment.setColumn(
+                CqlIdentifier.fromInternal(column.name()), toCqlTerm(column, entry.getValue())));
       }
     }
     return assignments;
