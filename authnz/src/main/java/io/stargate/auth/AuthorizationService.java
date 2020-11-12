@@ -62,7 +62,7 @@ public interface AuthorizationService {
    * @param tableNames The table(s) within the provided keyspace(s) that is being read.
    * @throws Exception An exception relating to the failure to authorize.
    */
-  void authorizedSchemaRead(String token, List<String> keyspaceNames, List<String> tableNames)
+  void authorizeSchemaRead(String token, List<String> keyspaceNames, List<String> tableNames)
       throws Exception;
 
   /**

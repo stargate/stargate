@@ -98,7 +98,7 @@ public class ColumnResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
           db.getAuthorizationService()
-              .authorizedSchemaRead(
+              .authorizeSchemaRead(
                   token,
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName));
@@ -220,7 +220,7 @@ public class ColumnResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
           db.getAuthorizationService()
-              .authorizedSchemaRead(
+              .authorizeSchemaRead(
                   token,
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName));

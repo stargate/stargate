@@ -102,7 +102,7 @@ public class TablesResource {
                   .collect(Collectors.toList());
 
           db.getAuthorizationService()
-              .authorizedSchemaRead(
+              .authorizeSchemaRead(
                   token,
                   Collections.singletonList(keyspaceName),
                   tableResponses.stream().map(TableResponse::getName).collect(Collectors.toList()));
@@ -147,7 +147,7 @@ public class TablesResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
           db.getAuthorizationService()
-              .authorizedSchemaRead(
+              .authorizeSchemaRead(
                   token,
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName));

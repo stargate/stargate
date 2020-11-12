@@ -71,7 +71,7 @@ public class KeyspaceResource {
           DataStore localDB = db.getDataStoreForToken(token);
 
           List<String> keyspaceNames = localDB.schema().keyspaceNames();
-          db.getAuthorizationService().authorizedSchemaRead(token, keyspaceNames, null);
+          db.getAuthorizationService().authorizeSchemaRead(token, keyspaceNames, null);
           return Response.status(Response.Status.OK).entity(keyspaceNames).build();
         });
   }

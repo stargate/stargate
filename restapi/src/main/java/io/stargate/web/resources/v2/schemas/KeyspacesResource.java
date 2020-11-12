@@ -91,7 +91,7 @@ public class KeyspacesResource {
                   .collect(Collectors.toList());
 
           db.getAuthorizationService()
-              .authorizedSchemaRead(
+              .authorizeSchemaRead(
                   token,
                   keyspaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
                   null);
@@ -134,7 +134,7 @@ public class KeyspacesResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
           db.getAuthorizationService()
-              .authorizedSchemaRead(token, Collections.singletonList(keyspaceName), null);
+              .authorizeSchemaRead(token, Collections.singletonList(keyspaceName), null);
 
           io.stargate.db.schema.Keyspace keyspace = localDB.schema().keyspace(keyspaceName);
           if (keyspace == null) {
