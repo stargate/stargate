@@ -12,7 +12,6 @@ public abstract class StargateNodeView extends AbstractVirtualTable {
   }
 
   DataSet.RowBuilder completeRow(DataSet.RowBuilder rowBuilder, StargateNodeInfo info) {
-    TokenFactory factory = StorageService.instance.getTokenFactory();
     return rowBuilder
         // + "rpc_address inet,"
         .addColumn("rpc_address", info::getRpcAddress)

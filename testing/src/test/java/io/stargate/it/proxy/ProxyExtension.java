@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ProxyExtension extends ExternalResource<ProxySpec, ProxyExtension.Proxy>
     implements ParameterResolver {
-  private static final Logger LOG = LoggerFactory.getLogger(TcpProxy.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ProxyExtension.class);
 
   public static final String STORE_KEY = "stargate-proxy";
 

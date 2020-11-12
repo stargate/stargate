@@ -38,9 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A default interceptor implementation that returns only stargate nodes for `system.peers` queries,
- * but also returns only the same, single token for all stargate nodes (they all own the whole ring)
- * for both `system.local` and `system.peers` tables.
+ * A default interceptor implementation that returns only stargate nodes for `system.peers` queries.
  */
 public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointStateChangeSubscriber {
   private static final Logger logger = LoggerFactory.getLogger(DefaultQueryInterceptor.class);
@@ -260,7 +258,6 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
 
   private void updateTokens(InetAddress endpoint) {
     final ExecutorService executor = StageManager.getStage(Stage.MUTATION);
-    TokenFactory factory = StorageService.instance.getTokenFactory();
     StargateSystemKeyspace.updatePeerInfo(
         endpoint,
         "tokens",
