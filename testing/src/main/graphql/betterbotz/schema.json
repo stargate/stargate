@@ -565,7 +565,7 @@
         {
           "kind": "OBJECT",
           "name": "CollectionsNested",
-          "description": "The type used to represent results of a query for the table 'collections_nested'.",
+          "description": "The type used to represent results of a query for the table 'CollectionsNested'.",
           "fields": [
             {
               "name": "id",
@@ -644,7 +644,7 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "CollectionsNestedFilterInput",
-          "description": "The input type used for filtering with non-equality operators for the table 'collections_nested'.\nNote that 'id' is the field that corresponds to the table primary key.",
+          "description": "The input type used for filtering with non-equality operators for the table 'CollectionsNested'.\nNote that 'id' is the field that corresponds to the table primary key.",
           "fields": null,
           "inputFields": [
             {
@@ -695,7 +695,7 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "CollectionsNestedInput",
-          "description": "The input type for the table 'collections_nested'.\nNote that 'id' is the field that corresponds to the table primary key.",
+          "description": "The input type for the table 'CollectionsNested'.\nNote that 'id' is the field that corresponds to the table primary key.",
           "fields": null,
           "inputFields": [
             {
@@ -766,7 +766,7 @@
         {
           "kind": "OBJECT",
           "name": "CollectionsNestedMutationResult",
-          "description": "The type used to represent results of a mutation for the table 'collections_nested'.",
+          "description": "The type used to represent results of a mutation for the table 'CollectionsNested'.",
           "fields": [
             {
               "name": "applied",
@@ -801,7 +801,7 @@
         {
           "kind": "ENUM",
           "name": "CollectionsNestedOrder",
-          "description": "The enum used to order a query result based on one or more fields for the table 'collections_nested'.",
+          "description": "The enum used to order a query result based on one or more fields for the table 'CollectionsNested'.",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -903,7 +903,7 @@
         {
           "kind": "OBJECT",
           "name": "CollectionsSimple",
-          "description": "The type used to represent results of a query for the table 'collections_simple'.",
+          "description": "The type used to represent results of a query for the table 'CollectionsSimple'.",
           "fields": [
             {
               "name": "id",
@@ -1006,7 +1006,7 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "CollectionsSimpleFilterInput",
-          "description": "The input type used for filtering with non-equality operators for the table 'collections_simple'.\nNote that 'id' is the field that corresponds to the table primary key.",
+          "description": "The input type used for filtering with non-equality operators for the table 'CollectionsSimple'.\nNote that 'id' is the field that corresponds to the table primary key.",
           "fields": null,
           "inputFields": [
             {
@@ -1077,7 +1077,7 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "CollectionsSimpleInput",
-          "description": "The input type for the table 'collections_simple'.\nNote that 'id' is the field that corresponds to the table primary key.",
+          "description": "The input type for the table 'CollectionsSimple'.\nNote that 'id' is the field that corresponds to the table primary key.",
           "fields": null,
           "inputFields": [
             {
@@ -1168,7 +1168,7 @@
         {
           "kind": "OBJECT",
           "name": "CollectionsSimpleMutationResult",
-          "description": "The type used to represent results of a mutation for the table 'collections_simple'.",
+          "description": "The type used to represent results of a mutation for the table 'CollectionsSimple'.",
           "fields": [
             {
               "name": "applied",
@@ -1203,7 +1203,7 @@
         {
           "kind": "ENUM",
           "name": "CollectionsSimpleOrder",
-          "description": "The enum used to order a query result based on one or more fields for the table 'collections_simple'.",
+          "description": "The enum used to order a query result based on one or more fields for the table 'CollectionsSimple'.",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -3537,7 +3537,7 @@
           "fields": [
             {
               "name": "deleteProducts",
-              "description": "Delete mutation for the table 'products'.\nNote that 'id', 'name', 'price' and 'created' are the fields that correspond to the table primary key.",
+              "description": "Delete mutation for the table 'Products'.\nNote that 'id', 'name', 'price' and 'created' are the fields that correspond to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -3594,7 +3594,7 @@
             },
             {
               "name": "insertProducts",
-              "description": "Insert mutation for the table 'products'.\nNote that 'id', 'name', 'price' and 'created' are the fields that correspond to the table primary key.",
+              "description": "Insert mutation for the table 'Products'.\nNote that 'id', 'name', 'price' and 'created' are the fields that correspond to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -3641,7 +3641,7 @@
             },
             {
               "name": "updateProducts",
-              "description": "Update mutation for the table 'products'.\nNote that 'id', 'name', 'price' and 'created' are the fields that correspond to the table primary key.",
+              "description": "Update mutation for the table 'Products'.\nNote that 'id', 'name', 'price' and 'created' are the fields that correspond to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -3698,7 +3698,7 @@
             },
             {
               "name": "deleteOrders",
-              "description": "Delete mutation for the table 'orders'.\nNote that 'prodName' and 'customerName' are the fields that correspond to the table primary key.",
+              "description": "Delete mutation for the table 'Orders'.\nNote that 'prodName' and 'customerName' are the fields that correspond to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -3755,7 +3755,7 @@
             },
             {
               "name": "insertOrders",
-              "description": "Insert mutation for the table 'orders'.\nNote that 'prodName' and 'customerName' are the fields that correspond to the table primary key.",
+              "description": "Insert mutation for the table 'Orders'.\nNote that 'prodName' and 'customerName' are the fields that correspond to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -3802,7 +3802,7 @@
             },
             {
               "name": "updateOrders",
-              "description": "Update mutation for the table 'orders'.\nNote that 'prodName' and 'customerName' are the fields that correspond to the table primary key.",
+              "description": "Update mutation for the table 'Orders'.\nNote that 'prodName' and 'customerName' are the fields that correspond to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -3859,7 +3859,7 @@
             },
             {
               "name": "deleteCollectionsSimple",
-              "description": "Delete mutation for the table 'collections_simple'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "description": "Delete mutation for the table 'CollectionsSimple'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -3916,7 +3916,7 @@
             },
             {
               "name": "insertCollectionsSimple",
-              "description": "Insert mutation for the table 'collections_simple'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "description": "Insert mutation for the table 'CollectionsSimple'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -3963,7 +3963,7 @@
             },
             {
               "name": "updateCollectionsSimple",
-              "description": "Update mutation for the table 'collections_simple'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "description": "Update mutation for the table 'CollectionsSimple'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -4020,7 +4020,7 @@
             },
             {
               "name": "deleteCollectionsNested",
-              "description": "Delete mutation for the table 'collections_nested'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "description": "Delete mutation for the table 'CollectionsNested'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -4077,7 +4077,7 @@
             },
             {
               "name": "insertCollectionsNested",
-              "description": "Insert mutation for the table 'collections_nested'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "description": "Insert mutation for the table 'CollectionsNested'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -4124,7 +4124,7 @@
             },
             {
               "name": "updateCollectionsNested",
-              "description": "Update mutation for the table 'collections_nested'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "description": "Update mutation for the table 'CollectionsNested'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -4181,7 +4181,7 @@
             },
             {
               "name": "deleteUdts",
-              "description": "Delete mutation for the table 'udts'.\nNote that 'a' is the field that corresponds to the table primary key.",
+              "description": "Delete mutation for the table 'Udts'.\nNote that 'a' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -4238,7 +4238,7 @@
             },
             {
               "name": "insertUdts",
-              "description": "Insert mutation for the table 'udts'.\nNote that 'a' is the field that corresponds to the table primary key.",
+              "description": "Insert mutation for the table 'Udts'.\nNote that 'a' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -4285,7 +4285,7 @@
             },
             {
               "name": "updateUdts",
-              "description": "Update mutation for the table 'udts'.\nNote that 'a' is the field that corresponds to the table primary key.",
+              "description": "Update mutation for the table 'Udts'.\nNote that 'a' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -4342,7 +4342,7 @@
             },
             {
               "name": "deleteTuplx65_s",
-              "description": null,
+              "description": "Delete mutation for the table 'Tuples'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -4399,7 +4399,7 @@
             },
             {
               "name": "insertTuplx65_s",
-              "description": null,
+              "description": "Insert mutation for the table 'Tuples'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -4446,7 +4446,7 @@
             },
             {
               "name": "updateTuplx65_s",
-              "description": null,
+              "description": "Update mutation for the table 'Tuples'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -4503,7 +4503,7 @@
             },
             {
               "name": "deleteTuplx65_sPk",
-              "description": null,
+              "description": "Delete mutation for the table 'TuplesPk'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -4560,7 +4560,7 @@
             },
             {
               "name": "insertTuplx65_sPk",
-              "description": null,
+              "description": "Insert mutation for the table 'TuplesPk'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -4607,7 +4607,7 @@
             },
             {
               "name": "updateTuplx65_sPk",
-              "description": null,
+              "description": "Update mutation for the table 'TuplesPk'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -4664,7 +4664,7 @@
             },
             {
               "name": "deleteScalars",
-              "description": "Delete mutation for the table 'scalars'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "description": "Delete mutation for the table 'Scalars'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -4721,7 +4721,7 @@
             },
             {
               "name": "insertScalars",
-              "description": "Insert mutation for the table 'scalars'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "description": "Insert mutation for the table 'Scalars'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -4768,7 +4768,7 @@
             },
             {
               "name": "updateScalars",
-              "description": "Update mutation for the table 'scalars'.\nNote that 'id' is the field that corresponds to the table primary key.",
+              "description": "Update mutation for the table 'Scalars'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -4902,7 +4902,7 @@
         {
           "kind": "OBJECT",
           "name": "Orders",
-          "description": "The type used to represent results of a query for the table 'orders'.",
+          "description": "The type used to represent results of a query for the table 'Orders'.",
           "fields": [
             {
               "name": "prodName",
@@ -5009,7 +5009,7 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "OrdersFilterInput",
-          "description": "The input type used for filtering with non-equality operators for the table 'orders'.\nNote that 'prodName' and 'customerName' are the fields that correspond to the table primary key.",
+          "description": "The input type used for filtering with non-equality operators for the table 'Orders'.\nNote that 'prodName' and 'customerName' are the fields that correspond to the table primary key.",
           "fields": null,
           "inputFields": [
             {
@@ -5100,7 +5100,7 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "OrdersInput",
-          "description": "The input type for the table 'orders'.\nNote that 'prodName' and 'customerName' are the fields that correspond to the table primary key.",
+          "description": "The input type for the table 'Orders'.\nNote that 'prodName' and 'customerName' are the fields that correspond to the table primary key.",
           "fields": null,
           "inputFields": [
             {
@@ -5191,7 +5191,7 @@
         {
           "kind": "OBJECT",
           "name": "OrdersMutationResult",
-          "description": "The type used to represent results of a mutation for the table 'orders'.",
+          "description": "The type used to represent results of a mutation for the table 'Orders'.",
           "fields": [
             {
               "name": "applied",
@@ -5226,7 +5226,7 @@
         {
           "kind": "ENUM",
           "name": "OrdersOrder",
-          "description": "The enum used to order a query result based on one or more fields for the table 'orders'.",
+          "description": "The enum used to order a query result based on one or more fields for the table 'Orders'.",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -5376,7 +5376,7 @@
         {
           "kind": "OBJECT",
           "name": "Products",
-          "description": "The type used to represent results of a query for the table 'products'.",
+          "description": "The type used to represent results of a query for the table 'Products'.",
           "fields": [
             {
               "name": "id",
@@ -5471,7 +5471,7 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "ProductsFilterInput",
-          "description": "The input type used for filtering with non-equality operators for the table 'products'.\nNote that 'id', 'name', 'price' and 'created' are the fields that correspond to the table primary key.",
+          "description": "The input type used for filtering with non-equality operators for the table 'Products'.\nNote that 'id', 'name', 'price' and 'created' are the fields that correspond to the table primary key.",
           "fields": null,
           "inputFields": [
             {
@@ -5552,7 +5552,7 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "ProductsInput",
-          "description": "The input type for the table 'products'.\nNote that 'id', 'name', 'price' and 'created' are the fields that correspond to the table primary key.",
+          "description": "The input type for the table 'Products'.\nNote that 'id', 'name', 'price' and 'created' are the fields that correspond to the table primary key.",
           "fields": null,
           "inputFields": [
             {
@@ -5633,7 +5633,7 @@
         {
           "kind": "OBJECT",
           "name": "ProductsMutationResult",
-          "description": "The type used to represent results of a mutation for the table 'products'.",
+          "description": "The type used to represent results of a mutation for the table 'Products'.",
           "fields": [
             {
               "name": "applied",
@@ -5668,7 +5668,7 @@
         {
           "kind": "ENUM",
           "name": "ProductsOrder",
-          "description": "The enum used to order a query result based on one or more fields for the table 'products'.",
+          "description": "The enum used to order a query result based on one or more fields for the table 'Products'.",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -5810,7 +5810,7 @@
           "fields": [
             {
               "name": "Products",
-              "description": null,
+              "description": "Query for the table 'Products'.\nNote that 'id', 'name', 'price' and 'created' are the fields that correspond to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -5914,7 +5914,7 @@
             },
             {
               "name": "Orders",
-              "description": null,
+              "description": "Query for the table 'Orders'.\nNote that 'prodName' and 'customerName' are the fields that correspond to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -6018,7 +6018,7 @@
             },
             {
               "name": "CollectionsSimple",
-              "description": null,
+              "description": "Query for the table 'CollectionsSimple'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -6122,7 +6122,7 @@
             },
             {
               "name": "CollectionsNested",
-              "description": null,
+              "description": "Query for the table 'CollectionsNested'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -6226,7 +6226,7 @@
             },
             {
               "name": "Udts",
-              "description": null,
+              "description": "Query for the table 'Udts'.\nNote that 'a' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -6330,7 +6330,7 @@
             },
             {
               "name": "Tuplx65_s",
-              "description": null,
+              "description": "Query for the table 'Tuples'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -6434,7 +6434,7 @@
             },
             {
               "name": "Tuplx65_sPk",
-              "description": null,
+              "description": "Query for the table 'TuplesPk'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -6538,7 +6538,7 @@
             },
             {
               "name": "Scalars",
-              "description": null,
+              "description": "Query for the table 'Scalars'.\nNote that 'id' is the field that corresponds to the table primary key.",
               "args": [
                 {
                   "name": "value",
@@ -6642,7 +6642,7 @@
             },
             {
               "name": "__conversionWarnings",
-              "description": "Warnings encountered during the CQL to GraphQL conversion.No warnings found, this will return an empty list.\n",
+              "description": "Warnings encountered during the CQL to GraphQL conversion.\nThis will return:\n- Table Tuples mapped as Tuplx65_s\n- Table TuplesPk mapped as Tuplx65_sPk",
               "args": [],
               "type": {
                 "kind": "LIST",
@@ -6757,7 +6757,7 @@
         {
           "kind": "OBJECT",
           "name": "Scalars",
-          "description": "The type used to represent results of a query for the table 'scalars'.",
+          "description": "The type used to represent results of a query for the table 'Scalars'.",
           "fields": [
             {
               "name": "id",
@@ -7020,7 +7020,7 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "ScalarsFilterInput",
-          "description": "The input type used for filtering with non-equality operators for the table 'scalars'.\nNote that 'id' is the field that corresponds to the table primary key.",
+          "description": "The input type used for filtering with non-equality operators for the table 'Scalars'.\nNote that 'id' is the field that corresponds to the table primary key.",
           "fields": null,
           "inputFields": [
             {
@@ -7241,7 +7241,7 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "ScalarsInput",
-          "description": "The input type for the table 'scalars'.\nNote that 'id' is the field that corresponds to the table primary key.",
+          "description": "The input type for the table 'Scalars'.\nNote that 'id' is the field that corresponds to the table primary key.",
           "fields": null,
           "inputFields": [
             {
@@ -7462,7 +7462,7 @@
         {
           "kind": "OBJECT",
           "name": "ScalarsMutationResult",
-          "description": "The type used to represent results of a mutation for the table 'scalars'.",
+          "description": "The type used to represent results of a mutation for the table 'Scalars'.",
           "fields": [
             {
               "name": "applied",
@@ -7497,7 +7497,7 @@
         {
           "kind": "ENUM",
           "name": "ScalarsOrder",
-          "description": "The enum used to order a query result based on one or more fields for the table 'scalars'.",
+          "description": "The enum used to order a query result based on one or more fields for the table 'Scalars'.",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -9000,7 +9000,7 @@
         {
           "kind": "OBJECT",
           "name": "Tuplx65_s",
-          "description": null,
+          "description": "The type used to represent results of a query for the table 'Tuples'.",
           "fields": [
             {
               "name": "id",
@@ -9059,7 +9059,7 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "Tuplx65_sFilterInput",
-          "description": null,
+          "description": "The input type used for filtering with non-equality operators for the table 'Tuples'.\nNote that 'id' is the field that corresponds to the table primary key.",
           "fields": null,
           "inputFields": [
             {
@@ -9110,7 +9110,7 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "Tuplx65_sInput",
-          "description": null,
+          "description": "The input type for the table 'Tuples'.\nNote that 'id' is the field that corresponds to the table primary key.",
           "fields": null,
           "inputFields": [
             {
@@ -9161,7 +9161,7 @@
         {
           "kind": "OBJECT",
           "name": "Tuplx65_sMutationResult",
-          "description": null,
+          "description": "The type used to represent results of a mutation for the table 'Tuples'.",
           "fields": [
             {
               "name": "applied",
@@ -9196,7 +9196,7 @@
         {
           "kind": "ENUM",
           "name": "Tuplx65_sOrder",
-          "description": null,
+          "description": "The enum used to order a query result based on one or more fields for the table 'Tuples'.",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -9255,7 +9255,7 @@
         {
           "kind": "OBJECT",
           "name": "Tuplx65_sPk",
-          "description": null,
+          "description": "The type used to represent results of a query for the table 'TuplesPk'.",
           "fields": [
             {
               "name": "id",
@@ -9278,7 +9278,7 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "Tuplx65_sPkFilterInput",
-          "description": null,
+          "description": "The input type used for filtering with non-equality operators for the table 'TuplesPk'.\nNote that 'id' is the field that corresponds to the table primary key.",
           "fields": null,
           "inputFields": [
             {
@@ -9299,7 +9299,7 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "Tuplx65_sPkInput",
-          "description": null,
+          "description": "The input type for the table 'TuplesPk'.\nNote that 'id' is the field that corresponds to the table primary key.",
           "fields": null,
           "inputFields": [
             {
@@ -9320,7 +9320,7 @@
         {
           "kind": "OBJECT",
           "name": "Tuplx65_sPkMutationResult",
-          "description": null,
+          "description": "The type used to represent results of a mutation for the table 'TuplesPk'.",
           "fields": [
             {
               "name": "applied",
@@ -9355,7 +9355,7 @@
         {
           "kind": "ENUM",
           "name": "Tuplx65_sPkOrder",
-          "description": "The enum used to order a query result based on one or more fields for the table 'tuples_pk'.",
+          "description": "The enum used to order a query result based on one or more fields for the table 'TuplesPk'.",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -9464,7 +9464,7 @@
         {
           "kind": "OBJECT",
           "name": "Udts",
-          "description": "The type used to represent results of a query for the table 'udts'.",
+          "description": "The type used to represent results of a query for the table 'Udts'.",
           "fields": [
             {
               "name": "a",
@@ -9503,7 +9503,7 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "UdtsFilterInput",
-          "description": "The input type used for filtering with non-equality operators for the table 'udts'.\nNote that 'a' is the field that corresponds to the table primary key.",
+          "description": "The input type used for filtering with non-equality operators for the table 'Udts'.\nNote that 'a' is the field that corresponds to the table primary key.",
           "fields": null,
           "inputFields": [
             {
@@ -9534,7 +9534,7 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "UdtsInput",
-          "description": "The input type for the table 'udts'.\nNote that 'a' is the field that corresponds to the table primary key.",
+          "description": "The input type for the table 'Udts'.\nNote that 'a' is the field that corresponds to the table primary key.",
           "fields": null,
           "inputFields": [
             {
@@ -9569,7 +9569,7 @@
         {
           "kind": "OBJECT",
           "name": "UdtsMutationResult",
-          "description": "The type used to represent results of a mutation for the table 'udts'.",
+          "description": "The type used to represent results of a mutation for the table 'Udts'.",
           "fields": [
             {
               "name": "applied",
@@ -9604,7 +9604,7 @@
         {
           "kind": "ENUM",
           "name": "UdtsOrder",
-          "description": "The enum used to order a query result based on one or more fields for the table 'udts'.",
+          "description": "The enum used to order a query result based on one or more fields for the table 'Udts'.",
           "fields": null,
           "inputFields": null,
           "interfaces": null,

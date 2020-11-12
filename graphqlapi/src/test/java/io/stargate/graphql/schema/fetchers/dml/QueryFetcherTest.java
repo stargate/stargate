@@ -95,7 +95,7 @@ public class QueryFetcherTest extends DmlTestBase {
   }
 
   public static Arguments[] operationsWithOptions() {
-    Parameters defaults = CassandraFetcher.defaultParameters;
+    Parameters defaults = CassandraFetcher.DEFAULT_PARAMETERS;
     return new Arguments[] {
       arguments(
           "query { books(options: { pageSize: 101, pageState: \"AWEA8H////4A\", consistency: LOCAL_QUORUM }) { values { title, author } } }",
@@ -112,6 +112,7 @@ public class QueryFetcherTest extends DmlTestBase {
               .consistencyLevel(ConsistencyLevel.LOCAL_ONE)
               .serialConsistencyLevel(ConsistencyLevel.SERIAL)
               .build()),
+      // Verify that the default parameters are pageSize = 100 and cl = LOCAL_QUORUM
       arguments(
           "query { books { values { title, author } } }",
           ImmutableParameters.builder()
@@ -121,16 +122,16 @@ public class QueryFetcherTest extends DmlTestBase {
               .build()),
       arguments("query { books(options: null) { values { title, author } } }", defaults),
       arguments(
-          "mutation { insertBooks(value: {title:\"a\", author:\"b\"}, options: { serialConsistency: LOCAL_SERIAL}) { applied } }",
+          "mutation { insertbooks(value: {title:\"a\", author:\"b\"}, options: {serialConsistency: LOCAL_SERIAL}) { applied } }",
           ImmutableParameters.builder()
               .from(defaults)
               .serialConsistencyLevel(ConsistencyLevel.LOCAL_SERIAL)
               .build()),
       arguments(
-          "mutation { insertBooks(value: {title:\"a\", author:\"b\"}, options: null) { applied } }",
+          "mutation { insertbooks(value: {title:\"a\", author:\"b\"}, options: null) { applied } }",
           defaults),
       arguments(
-          "mutation { insertBooks(value: {title:\"a\", author:\"b\"} ) { applied } }", defaults),
+          "mutation { insertbooks(value: {title:\"a\", author:\"b\"} ) { applied } }", defaults),
     };
   }
 

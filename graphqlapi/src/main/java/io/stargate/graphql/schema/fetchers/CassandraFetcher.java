@@ -24,7 +24,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
   public static final ConsistencyLevel DEFAULT_SERIAL_CONSISTENCY = ConsistencyLevel.SERIAL;
   public static final int DEFAULT_PAGE_SIZE = 100;
 
-  public static final Parameters defaultParameters =
+  public static final Parameters DEFAULT_PARAMETERS =
       Parameters.builder()
           .pageSize(DEFAULT_PAGE_SIZE)
           .consistencyLevel(DEFAULT_CONSISTENCY)
@@ -46,7 +46,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
     Parameters parameters;
     Map<String, Object> options = environment.getArgument("options");
     if (options != null) {
-      ImmutableParameters.Builder builder = Parameters.builder().from(defaultParameters);
+      ImmutableParameters.Builder builder = Parameters.builder().from(DEFAULT_PARAMETERS);
 
       Object consistency = options.get("consistency");
       if (consistency != null) {
@@ -70,7 +70,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
 
       parameters = builder.build();
     } else {
-      parameters = defaultParameters;
+      parameters = DEFAULT_PARAMETERS;
     }
 
     DataStore dataStore =
