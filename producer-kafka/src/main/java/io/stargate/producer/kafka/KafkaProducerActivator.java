@@ -34,7 +34,7 @@ public class KafkaProducerActivator extends BaseActivator {
   private static final Logger LOG = LoggerFactory.getLogger(KafkaProducerActivator.class);
   public static final String ENABLED_SETTING_NAME = "enabled";
   public static final String KAFKA_CDC_METRICS_PREFIX = "cdc.kafka";
-  public static final boolean IS_ENABLED_ON_DEFAULT = false;
+  public static final boolean IS_ENABLED_DEFAULT = false;
 
   private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private ServicePointer<ConfigStore> configStore = ServicePointer.create(ConfigStore.class);
@@ -66,7 +66,7 @@ public class KafkaProducerActivator extends BaseActivator {
                 .getConfigForModule(CONFIG_STORE_MODULE_NAME)
                 .getWithOverrides(ENABLED_SETTING_NAME))
         .map(Boolean::parseBoolean)
-        .orElse(IS_ENABLED_ON_DEFAULT);
+        .orElse(IS_ENABLED_DEFAULT);
   }
 
   @Override
