@@ -1,0 +1,6 @@
+cdc.kafka:
+  enabled: false
+  metrics.enabled: true
+  producer.bootstrap.servers: http://kafka-server
+  producer.schema.registry.url: http://schema-registry-url
+  topic.prefix-name: prefix

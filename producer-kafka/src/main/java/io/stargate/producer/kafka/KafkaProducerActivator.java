@@ -15,17 +15,26 @@
  */
 package io.stargate.producer.kafka;
 
+import static io.stargate.producer.kafka.configuration.DefaultConfigLoader.CONFIG_STORE_MODULE_NAME;
+
+import com.google.common.annotations.VisibleForTesting;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.cdc.CDCProducer;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /* Logic for registering the kafka producer as an OSGI bundle */
 public class KafkaProducerActivator extends BaseActivator {
+  private static final Logger LOG = LoggerFactory.getLogger(KafkaProducerActivator.class);
+  public static final String ENABLED_SETTING_NAME = "enabled";
   public static final String KAFKA_CDC_METRICS_PREFIX = "cdc.kafka";
+  public static final boolean IS_ENABLED_ON_DEFAULT = false;
 
   private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private ServicePointer<ConfigStore> configStore = ServicePointer.create(ConfigStore.class);
@@ -37,10 +46,27 @@ public class KafkaProducerActivator extends BaseActivator {
   @Nullable
   @Override
   protected ServiceAndProperties createService() {
-    CDCProducer producer =
-        new KafkaCDCProducer(
-            metrics.get().getRegistry(KAFKA_CDC_METRICS_PREFIX), configStore.get());
-    return new ServiceAndProperties(producer);
+    boolean isEnabled = isServiceEnabled(configStore.get());
+    if (isEnabled) {
+      LOG.info("CDC Kafka producer is enabled");
+      CDCProducer producer =
+          new KafkaCDCProducer(
+              metrics.get().getRegistry(KAFKA_CDC_METRICS_PREFIX), configStore.get());
+      return new ServiceAndProperties(producer);
+    } else {
+      LOG.info("CDC Kafka producer is disabled");
+      return null;
+    }
+  }
+
+  @VisibleForTesting
+  protected boolean isServiceEnabled(ConfigStore configStore) {
+    return Optional.ofNullable(
+            configStore
+                .getConfigForModule(CONFIG_STORE_MODULE_NAME)
+                .getWithOverrides(ENABLED_SETTING_NAME))
+        .map(Boolean::parseBoolean)
+        .orElse(IS_ENABLED_ON_DEFAULT);
   }
 
   @Override
