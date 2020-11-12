@@ -9,12 +9,15 @@ import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+@Disabled
 @ExtendWith(CqlSessionExtension.class)
 public class SupportedOptionsTest extends BaseOsgiIntegrationTest {
+
   @Test
   @DisplayName("Should contain expected supported options")
   public void supportedOptionsTest(CqlSession session) {

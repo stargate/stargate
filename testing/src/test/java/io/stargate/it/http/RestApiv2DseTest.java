@@ -19,12 +19,14 @@ import java.util.List;
 import java.util.Map;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+@Disabled
 // JUnit 5 requires both annotations, see
 // https://stackoverflow.com/questions/63250350/junit-5-enabledifsystemproperty-doesnt-work-as-expected
 @EnabledIfSystemProperty(named = "ccm.dse", matches = "true")

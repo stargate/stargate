@@ -20,13 +20,16 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+@Disabled
 @StargateSpec(nodes = 2)
 @ExtendWith(CqlSessionExtension.class)
 class SystemTablesTest extends BaseOsgiIntegrationTest {
+
   @Test
   @DisplayName("Should expose Stargate addresses in system.local and system.peers")
   public void querySystemLocalAndPeers(CqlSession session) {

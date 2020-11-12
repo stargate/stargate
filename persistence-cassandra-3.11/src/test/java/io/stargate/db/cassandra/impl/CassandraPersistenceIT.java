@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 
 /*
  * Copyright The Stargate Authors
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.BeforeAll;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@Disabled
 class CassandraPersistenceIT extends PersistenceTest {
 
   private static CassandraPersistence persistence;

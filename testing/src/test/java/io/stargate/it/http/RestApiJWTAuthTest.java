@@ -75,15 +75,13 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
 
   @SuppressWarnings("unused") // referenced in @StargateSpec
   public static void buildParameters(StargateParameters.Builder builder) throws IOException {
-    int mappedKeycloakPort = initKeycloakContainer();
+    initKeycloakContainer();
 
     builder.enableAuth(true);
     builder.putSystemProperties("stargate.auth_id", "AuthJwtService");
     builder.putSystemProperties(
         "stargate.auth.jwt_provider_url",
-        String.format(
-            "http://localhost:%d/auth/realms/stargate/protocol/openid-connect/certs",
-            mappedKeycloakPort));
+        String.format("%s/auth/realms/stargate/protocol/openid-connect/certs", keycloakHost));
   }
 
   @AfterAll
@@ -91,7 +89,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     keycloakContainer.stop();
   }
 
-  private static int initKeycloakContainer() throws IOException {
+  private static void initKeycloakContainer() throws IOException {
     int keycloakPort = 4444;
     keycloakContainer =
         new GenericContainer("quay.io/keycloak/keycloak:11.0.2")
@@ -121,8 +119,6 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
             + +keycloakContainer.getMappedPort(keycloakPort);
 
     setupKeycloakUsers();
-
-    return keycloakContainer.getMappedPort(keycloakPort);
   }
 
   private static void setupKeycloakUsers() throws IOException {

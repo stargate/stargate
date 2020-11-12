@@ -39,10 +39,13 @@ import okhttp3.ResponseBody;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+@Disabled
 @NotThreadSafe
 public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
+
   private String keyspace;
   private CqlSession session;
   private static String authToken;

@@ -12,10 +12,12 @@ import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+@Disabled
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(initQueries = "CREATE TABLE IF NOT EXISTS test (k INT PRIMARY KEY)")
 public class UseKeyspaceTest extends BaseOsgiIntegrationTest {
