@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.fetchers.ddl;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import com.datastax.oss.driver.api.querybuilder.schema.Drop;
 import graphql.schema.DataFetchingEnvironment;
@@ -31,8 +32,8 @@ public class DropTableFetcher extends DdlQueryFetcher {
   public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {
     Drop drop =
         SchemaBuilder.dropTable(
-            dataFetchingEnvironment.getArgument("keyspaceName"),
-            (String) dataFetchingEnvironment.getArgument("tableName"));
+            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("keyspaceName")),
+            CqlIdentifier.fromInternal((String) dataFetchingEnvironment.getArgument("tableName")));
 
     Boolean ifExists = dataFetchingEnvironment.getArgument("ifExists");
     if (ifExists != null && ifExists) {

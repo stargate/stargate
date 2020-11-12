@@ -138,6 +138,40 @@ public class RestUtils {
     return body.string();
   }
 
+  public static String putForm(
+      String authToken, String path, String requestBody, int expectedStatusCode)
+      throws IOException {
+    OkHttpClient client = new OkHttpClient().newBuilder().build();
+
+    Request request;
+    if (authToken != null) {
+      request =
+          new Request.Builder()
+              .url(path)
+              .put(
+                  RequestBody.create(
+                      MediaType.parse("application/x-www-form-urlencoded"), requestBody))
+              .addHeader("X-Cassandra-Token", authToken)
+              .build();
+    } else {
+      request =
+          new Request.Builder()
+              .url(path)
+              .put(
+                  RequestBody.create(
+                      MediaType.parse("application/x-www-form-urlencoded"), requestBody))
+              .build();
+    }
+
+    Response response = client.newCall(request).execute();
+    assertStatusCode(response, expectedStatusCode);
+
+    ResponseBody body = response.body();
+    assertThat(body).isNotNull();
+
+    return body.string();
+  }
+
   public static String patch(
       String authToken, String path, String requestBody, int expectedStatusCode)
       throws IOException {

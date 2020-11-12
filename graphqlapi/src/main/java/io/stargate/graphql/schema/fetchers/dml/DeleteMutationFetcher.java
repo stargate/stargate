@@ -22,7 +22,7 @@ public class DeleteMutationFetcher extends MutationFetcher {
   @Override
   protected String buildStatement(DataFetchingEnvironment environment, DataStore dataStore) {
     Delete delete =
-        QueryBuilder.deleteFrom(table.keyspace(), table.name())
+        QueryBuilder.deleteFrom(keyspaceId, tableId)
             .where(buildClause(table, environment))
             .if_(buildIfConditions(table, environment.getArgument("ifCondition")));
 

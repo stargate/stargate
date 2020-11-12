@@ -1,5 +1,5 @@
 query GetUdts($value: UdtsInput) {
-    udts(value: $value) {
+    Udts(value: $value) {
         pageState
         values {
             a { b { i } }

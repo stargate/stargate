@@ -62,11 +62,11 @@ public class SampleKeyspaces {
     UserDefinedType bType =
         ImmutableUserDefinedType.builder()
             .keyspace("udts")
-            .name("b")
+            .name("B")
             .addColumns(
                 ImmutableColumn.builder()
                     .keyspace("udts")
-                    .table("b")
+                    .table("B")
                     .name("i")
                     .type(Type.Int)
                     .kind(Column.Kind.Regular)
@@ -75,11 +75,11 @@ public class SampleKeyspaces {
     UserDefinedType aType =
         ImmutableUserDefinedType.builder()
             .keyspace("udts")
-            .name("a")
+            .name("A")
             .addColumns(
                 ImmutableColumn.builder()
                     .keyspace("udts")
-                    .table("a")
+                    .table("A")
                     .name("b")
                     .type(bType.frozen(true))
                     .kind(Column.Kind.Regular)
@@ -91,11 +91,11 @@ public class SampleKeyspaces {
         .addTables(
             ImmutableTable.builder()
                 .keyspace("udts")
-                .name("test_table")
+                .name("TestTable")
                 .addColumns(
                     ImmutableColumn.builder()
                         .keyspace("udts")
-                        .table("test_table")
+                        .table("TestTable")
                         .name("a")
                         .type(aType.frozen(true))
                         .kind(Column.Kind.PartitionKey)
@@ -110,11 +110,11 @@ public class SampleKeyspaces {
           .addTables(
               ImmutableTable.builder()
                   .keyspace("collections")
-                  .name("pk_list_table")
+                  .name("PkListTable")
                   .addColumns(
                       ImmutableColumn.builder()
                           .keyspace("collections")
-                          .table("pk_list_table")
+                          .table("PkListTable")
                           .name("l")
                           .type(Type.List.of(Type.Int).frozen())
                           .kind(Column.Kind.PartitionKey)
@@ -122,18 +122,18 @@ public class SampleKeyspaces {
                   .build(),
               ImmutableTable.builder()
                   .keyspace("collections")
-                  .name("regular_list_table")
+                  .name("RegularListTable")
                   .addColumns(
                       ImmutableColumn.builder()
                           .keyspace("collections")
-                          .table("regular_list_table")
+                          .table("RegularListTable")
                           .name("k")
                           .type(Type.Int)
                           .kind(Column.Kind.PartitionKey)
                           .build(),
                       ImmutableColumn.builder()
                           .keyspace("collections")
-                          .table("regular_list_table")
+                          .table("RegularListTable")
                           .name("l")
                           .type(Type.List.of(Type.Int))
                           .kind(Column.Kind.Regular)
@@ -141,11 +141,11 @@ public class SampleKeyspaces {
                   .build(),
               ImmutableTable.builder()
                   .keyspace("collections")
-                  .name("pk_set_table")
+                  .name("PkSetTable")
                   .addColumns(
                       ImmutableColumn.builder()
                           .keyspace("collections")
-                          .table("pk_set_table")
+                          .table("PkSetTable")
                           .name("s")
                           .type(Type.Set.of(Type.Int).frozen())
                           .kind(Column.Kind.PartitionKey)
@@ -153,18 +153,18 @@ public class SampleKeyspaces {
                   .build(),
               ImmutableTable.builder()
                   .keyspace("collections")
-                  .name("regular_set_table")
+                  .name("RegularSetTable")
                   .addColumns(
                       ImmutableColumn.builder()
                           .keyspace("collections")
-                          .table("regular_set_table")
+                          .table("RegularSetTable")
                           .name("k")
                           .type(Type.Int)
                           .kind(Column.Kind.PartitionKey)
                           .build(),
                       ImmutableColumn.builder()
                           .keyspace("collections")
-                          .table("regular_set_table")
+                          .table("RegularSetTable")
                           .name("s")
                           .type(Type.Set.of(Type.Int))
                           .kind(Column.Kind.Regular)
@@ -172,11 +172,11 @@ public class SampleKeyspaces {
                   .build(),
               ImmutableTable.builder()
                   .keyspace("collections")
-                  .name("pk_map_table")
+                  .name("PkMapTable")
                   .addColumns(
                       ImmutableColumn.builder()
                           .keyspace("collections")
-                          .table("pk_map_table")
+                          .table("PkMapTable")
                           .name("m")
                           .type(Type.Map.of(Type.Int, Type.Text).frozen())
                           .kind(Column.Kind.PartitionKey)
@@ -184,18 +184,18 @@ public class SampleKeyspaces {
                   .build(),
               ImmutableTable.builder()
                   .keyspace("collections")
-                  .name("regular_map_table")
+                  .name("RegularMapTable")
                   .addColumns(
                       ImmutableColumn.builder()
                           .keyspace("collections")
-                          .name("regular_map_table")
+                          .name("RegularMapTable")
                           .name("k")
                           .type(Type.Int)
                           .kind(Column.Kind.PartitionKey)
                           .build(),
                       ImmutableColumn.builder()
                           .keyspace("collections")
-                          .name("regular_map_table")
+                          .name("RegularMapTable")
                           .name("m")
                           .type(Type.Map.of(Type.Int, Type.Text))
                           .kind(Column.Kind.Regular)
@@ -203,11 +203,11 @@ public class SampleKeyspaces {
                   .build(),
               ImmutableTable.builder()
                   .keyspace("collections")
-                  .name("nested_collections")
+                  .name("NestedCollections")
                   .addColumns(
                       ImmutableColumn.builder()
                           .keyspace("collections")
-                          .name("nested_collections")
+                          .name("NestedCollections")
                           .name("k")
                           .type(Type.Int)
                           .kind(Column.Kind.PartitionKey)
@@ -217,7 +217,7 @@ public class SampleKeyspaces {
                       // check that we handle nesting correctly
                       ImmutableColumn.builder()
                           .keyspace("collections")
-                          .name("nested_collections")
+                          .name("NestedCollections")
                           .name("c")
                           .type(Type.Map.of(Type.Int, Type.List.of(Type.Set.of(Type.Text))))
                           .kind(Column.Kind.Regular)

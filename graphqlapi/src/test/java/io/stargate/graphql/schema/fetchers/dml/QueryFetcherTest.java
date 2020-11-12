@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import graphql.ExecutionResult;
+import graphql.schema.GraphQLNamedSchemaElement;
+import graphql.schema.GraphQLSchema;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.schema.Keyspace;
@@ -18,6 +20,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class QueryFetcherTest extends DmlTestBase {
+  private GraphQLSchema schema = createGraphQlSchema();
 
   @Override
   public Keyspace getKeyspace() {
@@ -68,6 +71,28 @@ public class QueryFetcherTest extends DmlTestBase {
     assertThat(parametersCaptor.getValue()).isEqualTo(expectedParameters);
   }
 
+  @ParameterizedTest
+  @MethodSource("typeDescriptions")
+  public void typeDescriptionTest(String typeName, String description) {
+    GraphQLNamedSchemaElement type = (GraphQLNamedSchemaElement) schema.getType(typeName);
+    assertThat(type).isNotNull();
+    assertThat(type.getDescription()).isEqualTo(description);
+  }
+
+  @ParameterizedTest
+  @MethodSource("queryDescriptions")
+  public void queryDescriptionTest(String name, String description) {
+    assertThat(schema.getQueryType().getFieldDefinition(name).getDescription())
+        .isEqualTo(description);
+  }
+
+  @ParameterizedTest
+  @MethodSource("mutationDescriptions")
+  public void mutationDescriptionTest(String name, String description) {
+    assertThat(schema.getMutationType().getFieldDefinition(name).getDescription())
+        .isEqualTo(description);
+  }
+
   public static Arguments[] operationsWithOptions() {
     return new Arguments[] {
       arguments(
@@ -78,11 +103,67 @@ public class QueryFetcherTest extends DmlTestBase {
               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
               .build()),
       arguments(
-          "mutation { insertBooks(value: {title:\"a\", author:\"b\"}, options: { consistency: LOCAL_ONE, serialConsistency: SERIAL}) { applied } }",
+          "mutation { insertbooks(value: {title:\"a\", author:\"b\"}, options: { consistency: LOCAL_ONE, serialConsistency: SERIAL}) { applied } }",
           ImmutableParameters.builder()
               .consistencyLevel(ConsistencyLevel.LOCAL_ONE)
               .serialConsistencyLevel(ConsistencyLevel.SERIAL)
               .build())
+    };
+  }
+
+  public static Arguments[] typeDescriptions() {
+    return new Arguments[] {
+      arguments("books", "The type used to represent results of a query for the table 'books'."),
+      arguments(
+          "authorsInput",
+          "The input type for the table 'authors'.\n"
+              + "Note that 'author' and 'title' are the fields that correspond to"
+              + " the table primary key."),
+      arguments(
+          "booksFilterInput",
+          "The input type used for filtering with non-equality operators for the table 'books'.\n"
+              + "Note that 'title' is the field that corresponds to the table primary key."),
+      arguments(
+          "booksOrder",
+          "The enum used to order a query result based on one or more fields for the "
+              + "table 'books'."),
+      arguments(
+          "booksMutationResult",
+          "The type used to represent results of a mutation for the table 'books'."),
+      arguments("MutationOptions", "The execution options for the mutation."),
+      arguments("QueryOptions", "The execution options for the query."),
+    };
+  }
+
+  public static Arguments[] queryDescriptions() {
+    return new Arguments[] {
+      arguments(
+          "books",
+          "Query for the table 'books'.\n"
+              + "Note that 'title' is the field that corresponds to the table primary key."),
+      arguments(
+          "authors",
+          "Query for the table 'authors'.\n"
+              + "Note that 'author' and 'title' are the fields that correspond to the"
+              + " table primary key."),
+    };
+  }
+
+  public static Arguments[] mutationDescriptions() {
+    return new Arguments[] {
+      arguments(
+          "insertbooks",
+          "Insert mutation for the table 'books'.\n"
+              + "Note that 'title' is the field that corresponds to the table primary key."),
+      arguments(
+          "deleteauthors",
+          "Delete mutation for the table 'authors'.\n"
+              + "Note that 'author' and 'title' are the fields that correspond to the table"
+              + " primary key."),
+      arguments(
+          "updatebooks",
+          "Update mutation for the table 'books'.\n"
+              + "Note that 'title' is the field that corresponds to the table primary key."),
     };
   }
 }
