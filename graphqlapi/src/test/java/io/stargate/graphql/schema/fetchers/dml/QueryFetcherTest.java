@@ -11,6 +11,7 @@ import io.stargate.db.Parameters;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.DmlTestBase;
 import io.stargate.graphql.schema.SampleKeyspaces;
+import io.stargate.graphql.schema.fetchers.CassandraFetcher;
 import java.nio.ByteBuffer;
 import java.util.Base64;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -94,20 +95,43 @@ public class QueryFetcherTest extends DmlTestBase {
   }
 
   public static Arguments[] operationsWithOptions() {
+    Parameters defaults = CassandraFetcher.DEFAULT_PARAMETERS;
     return new Arguments[] {
       arguments(
-          "query { books(options: { pageSize: 100, pageState: \"AWEA8H////4A\", consistency: LOCAL_QUORUM }) { values { title, author } } }",
+          "query { books(options: { pageSize: 101, pageState: \"AWEA8H////4A\", consistency: LOCAL_QUORUM }) { values { title, author } } }",
           ImmutableParameters.builder()
-              .pageSize(100)
+              .from(defaults)
+              .pageSize(101)
               .pagingState(ByteBuffer.wrap(Base64.getDecoder().decode("AWEA8H////4A")))
               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
               .build()),
       arguments(
           "mutation { insertbooks(value: {title:\"a\", author:\"b\"}, options: { consistency: LOCAL_ONE, serialConsistency: SERIAL}) { applied } }",
           ImmutableParameters.builder()
+              .from(defaults)
               .consistencyLevel(ConsistencyLevel.LOCAL_ONE)
               .serialConsistencyLevel(ConsistencyLevel.SERIAL)
-              .build())
+              .build()),
+      // Verify that the default parameters are pageSize = 100 and cl = LOCAL_QUORUM
+      arguments(
+          "query { books { values { title, author } } }",
+          ImmutableParameters.builder()
+              .pageSize(100)
+              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+              .serialConsistencyLevel(ConsistencyLevel.SERIAL)
+              .build()),
+      arguments("query { books(options: null) { values { title, author } } }", defaults),
+      arguments(
+          "mutation { insertbooks(value: {title:\"a\", author:\"b\"}, options: {serialConsistency: LOCAL_SERIAL}) { applied } }",
+          ImmutableParameters.builder()
+              .from(defaults)
+              .serialConsistencyLevel(ConsistencyLevel.LOCAL_SERIAL)
+              .build()),
+      arguments(
+          "mutation { insertbooks(value: {title:\"a\", author:\"b\"}, options: null) { applied } }",
+          defaults),
+      arguments(
+          "mutation { insertbooks(value: {title:\"a\", author:\"b\"} ) { applied } }", defaults),
     };
   }
 

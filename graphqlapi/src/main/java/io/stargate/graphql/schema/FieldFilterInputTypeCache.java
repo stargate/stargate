@@ -15,15 +15,13 @@
  */
 package io.stargate.graphql.schema;
 
-import static graphql.schema.GraphQLList.list;
-
-import graphql.schema.GraphQLInputObjectField;
 import graphql.schema.GraphQLInputObjectType;
 import graphql.schema.GraphQLInputType;
 import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLNonNull;
 import graphql.schema.GraphQLScalarType;
 import io.stargate.db.schema.Column;
+import io.stargate.graphql.schema.fetchers.dml.FilterOperator;
 
 /**
  * Caches GraphQL field "filter input" types, for example 'StringFilterInput' in:
@@ -89,10 +87,9 @@ public class FieldFilterInputTypeCache extends FieldTypeCache<GraphQLInputType> 
     // (some of them require ALLOW FILTERING depending on whether the index is on keys(m), values(m)
     // or entries(m), so if we enable the operators depending on the context, we might want to
     // consider that).
-    builder.field(GraphQLInputObjectField.newInputObjectField().name("containsKey").type(keyType));
-    builder.field(GraphQLInputObjectField.newInputObjectField().name("contains").type(valueType));
-    builder.field(
-        GraphQLInputObjectField.newInputObjectField().name("containsEntry").type(entryType));
+    builder.field(FilterOperator.CONTAINS_KEY.buildField(keyType));
+    builder.field(FilterOperator.CONTAINS.buildField(valueType));
+    builder.field(FilterOperator.CONTAINS_ENTRY.buildField(entryType));
 
     return builder.build();
   }
@@ -108,7 +105,7 @@ public class FieldFilterInputTypeCache extends FieldTypeCache<GraphQLInputType> 
     GraphQLInputObjectType.Builder builder = basicComparisons(gqlInputType);
 
     // 'contains' is allowed for regular columns with an SAI index
-    builder.field(GraphQLInputObjectField.newInputObjectField().name("contains").type(elementType));
+    builder.field(FilterOperator.CONTAINS.buildField(elementType));
 
     return builder.build();
   }
@@ -120,13 +117,13 @@ public class FieldFilterInputTypeCache extends FieldTypeCache<GraphQLInputType> 
   private static GraphQLInputObjectType.Builder basicComparisons(GraphQLInputType gqlInputType) {
     return GraphQLInputObjectType.newInputObject()
         .name(buildFilterName(gqlInputType))
-        .field(GraphQLInputObjectField.newInputObjectField().name("eq").type(gqlInputType))
-        .field(GraphQLInputObjectField.newInputObjectField().name("notEq").type(gqlInputType))
-        .field(GraphQLInputObjectField.newInputObjectField().name("gt").type(gqlInputType))
-        .field(GraphQLInputObjectField.newInputObjectField().name("gte").type(gqlInputType))
-        .field(GraphQLInputObjectField.newInputObjectField().name("lt").type(gqlInputType))
-        .field(GraphQLInputObjectField.newInputObjectField().name("lte").type(gqlInputType))
-        .field(GraphQLInputObjectField.newInputObjectField().name("in").type(list(gqlInputType)));
+        .field(FilterOperator.EQUAL.buildField(gqlInputType))
+        .field(FilterOperator.NOT_EQUAL.buildField(gqlInputType))
+        .field(FilterOperator.GREATER_THAN.buildField(gqlInputType))
+        .field(FilterOperator.GREATER_THAN_EQUAL.buildField(gqlInputType))
+        .field(FilterOperator.LESS_THAN.buildField(gqlInputType))
+        .field(FilterOperator.LESS_THAN_EQUAL.buildField(gqlInputType))
+        .field(FilterOperator.IN.buildField(gqlInputType));
   }
 
   private static String buildFilterName(GraphQLInputType gqlInputType) {

@@ -40,6 +40,7 @@ import io.stargate.db.Persistence;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
+import io.stargate.graphql.schema.fetchers.CassandraFetcher;
 import io.stargate.graphql.schema.fetchers.dml.DeleteMutationFetcher;
 import io.stargate.graphql.schema.fetchers.dml.InsertMutationFetcher;
 import io.stargate.graphql.schema.fetchers.dml.QueryFetcher;
@@ -382,6 +383,7 @@ class DmlSchemaBuilder {
                         .value("SERIAL")
                         .value("LOCAL_SERIAL")
                         .build())
+                .defaultValue(CassandraFetcher.DEFAULT_CONSISTENCY.toString())
                 .build())
         .field(
             GraphQLInputObjectField.newInputObjectField()
@@ -392,7 +394,7 @@ class DmlSchemaBuilder {
             GraphQLInputObjectField.newInputObjectField()
                 .name("pageSize")
                 .type(Scalars.GraphQLInt)
-                .defaultValue(100)
+                .defaultValue(CassandraFetcher.DEFAULT_PAGE_SIZE)
                 .build())
         .field(
             GraphQLInputObjectField.newInputObjectField()
@@ -538,6 +540,7 @@ class DmlSchemaBuilder {
                           .value("LOCAL_QUORUM")
                           .value("ALL")
                           .build())
+                  .defaultValue(CassandraFetcher.DEFAULT_CONSISTENCY.toString())
                   .build())
           .field(
               GraphQLInputObjectField.newInputObjectField()
@@ -548,6 +551,7 @@ class DmlSchemaBuilder {
                           .value("SERIAL")
                           .value("LOCAL_SERIAL")
                           .build())
+                  .defaultValue(CassandraFetcher.DEFAULT_SERIAL_CONSISTENCY.toString())
                   .build())
           .field(
               GraphQLInputObjectField.newInputObjectField()
