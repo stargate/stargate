@@ -11,6 +11,7 @@ import io.stargate.db.Parameters;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.DmlTestBase;
 import io.stargate.graphql.schema.SampleKeyspaces;
+import io.stargate.graphql.schema.fetchers.CassandraFetcher;
 import java.nio.ByteBuffer;
 import java.util.Base64;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -94,41 +95,64 @@ public class QueryFetcherTest extends DmlTestBase {
   }
 
   public static Arguments[] operationsWithOptions() {
+    Parameters defaults = CassandraFetcher.DEFAULT_PARAMETERS;
     return new Arguments[] {
       arguments(
-          "query { books(options: { pageSize: 100, pageState: \"AWEA8H////4A\", consistency: LOCAL_QUORUM }) { values { title, author } } }",
+          "query { books(options: { pageSize: 101, pageState: \"AWEA8H////4A\", consistency: LOCAL_QUORUM }) { values { title, author } } }",
           ImmutableParameters.builder()
-              .pageSize(100)
+              .from(defaults)
+              .pageSize(101)
               .pagingState(ByteBuffer.wrap(Base64.getDecoder().decode("AWEA8H////4A")))
               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
               .build()),
       arguments(
-          "mutation { insertBooks(value: {title:\"a\", author:\"b\"}, options: { consistency: LOCAL_ONE, serialConsistency: SERIAL}) { applied } }",
+          "mutation { insertbooks(value: {title:\"a\", author:\"b\"}, options: { consistency: LOCAL_ONE, serialConsistency: SERIAL}) { applied } }",
           ImmutableParameters.builder()
+              .from(defaults)
               .consistencyLevel(ConsistencyLevel.LOCAL_ONE)
               .serialConsistencyLevel(ConsistencyLevel.SERIAL)
-              .build())
+              .build()),
+      // Verify that the default parameters are pageSize = 100 and cl = LOCAL_QUORUM
+      arguments(
+          "query { books { values { title, author } } }",
+          ImmutableParameters.builder()
+              .pageSize(100)
+              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+              .serialConsistencyLevel(ConsistencyLevel.SERIAL)
+              .build()),
+      arguments("query { books(options: null) { values { title, author } } }", defaults),
+      arguments(
+          "mutation { insertbooks(value: {title:\"a\", author:\"b\"}, options: {serialConsistency: LOCAL_SERIAL}) { applied } }",
+          ImmutableParameters.builder()
+              .from(defaults)
+              .serialConsistencyLevel(ConsistencyLevel.LOCAL_SERIAL)
+              .build()),
+      arguments(
+          "mutation { insertbooks(value: {title:\"a\", author:\"b\"}, options: null) { applied } }",
+          defaults),
+      arguments(
+          "mutation { insertbooks(value: {title:\"a\", author:\"b\"} ) { applied } }", defaults),
     };
   }
 
   public static Arguments[] typeDescriptions() {
     return new Arguments[] {
-      arguments("Books", "The type used to represent results of a query for the table 'books'."),
+      arguments("books", "The type used to represent results of a query for the table 'books'."),
       arguments(
-          "AuthorsInput",
+          "authorsInput",
           "The input type for the table 'authors'.\n"
               + "Note that 'author' and 'title' are the fields that correspond to"
               + " the table primary key."),
       arguments(
-          "BooksFilterInput",
+          "booksFilterInput",
           "The input type used for filtering with non-equality operators for the table 'books'.\n"
               + "Note that 'title' is the field that corresponds to the table primary key."),
       arguments(
-          "BooksOrder",
+          "booksOrder",
           "The enum used to order a query result based on one or more fields for the "
               + "table 'books'."),
       arguments(
-          "BooksMutationResult",
+          "booksMutationResult",
           "The type used to represent results of a mutation for the table 'books'."),
       arguments("MutationOptions", "The execution options for the mutation."),
       arguments("QueryOptions", "The execution options for the query."),
@@ -152,16 +176,16 @@ public class QueryFetcherTest extends DmlTestBase {
   public static Arguments[] mutationDescriptions() {
     return new Arguments[] {
       arguments(
-          "insertBooks",
+          "insertbooks",
           "Insert mutation for the table 'books'.\n"
               + "Note that 'title' is the field that corresponds to the table primary key."),
       arguments(
-          "deleteAuthors",
+          "deleteauthors",
           "Delete mutation for the table 'authors'.\n"
               + "Note that 'author' and 'title' are the fields that correspond to the table"
               + " primary key."),
       arguments(
-          "updateBooks",
+          "updatebooks",
           "Update mutation for the table 'books'.\n"
               + "Note that 'title' is the field that corresponds to the table primary key."),
     };

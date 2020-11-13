@@ -1,5 +1,5 @@
 query GetOrdersByValue($value: OrdersInput) {
-    orders(value: $value) {
+    Orders(value: $value) {
         pageState
         values {
             id

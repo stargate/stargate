@@ -1,5 +1,6 @@
 package io.stargate.graphql.schema.fetchers.dml;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.querybuilder.condition.Condition;
 import com.datastax.oss.driver.api.querybuilder.relation.Relation;
 import com.datastax.oss.driver.api.querybuilder.term.Term;
@@ -19,6 +20,8 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
   protected final Table table;
   protected final NameMapping nameMapping;
+  protected final CqlIdentifier keyspaceId;
+  protected final CqlIdentifier tableId;
 
   protected DmlFetcher(
       Table table,
@@ -28,6 +31,8 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     super(persistence, authenticationService);
     this.table = table;
     this.nameMapping = nameMapping;
+    this.keyspaceId = CqlIdentifier.fromInternal(table.keyspace());
+    this.tableId = CqlIdentifier.fromInternal(this.table.name());
   }
 
   protected List<Condition> buildIfConditions(
@@ -38,6 +43,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     List<Condition> clause = new ArrayList<>();
     for (Map.Entry<String, Map<String, Object>> clauseEntry : columnList.entrySet()) {
       Column column = getColumn(table, clauseEntry.getKey());
+      CqlIdentifier columnId = CqlIdentifier.fromInternal(column.name());
 
       for (Map.Entry<String, Object> conditionMap : clauseEntry.getValue().entrySet()) {
         FilterOperator operator = FilterOperator.fromFieldName(conditionMap.getKey());
@@ -75,18 +81,19 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
       for (Map.Entry<String, Object> entry : value.entrySet()) {
         Column column = getColumn(table, entry.getKey());
         relations.add(
-            Relation.column(column.name()).isEqualTo(toCqlTerm(column, entry.getValue())));
+            Relation.column(CqlIdentifier.fromInternal(column.name()))
+                .isEqualTo(toCqlTerm(column, entry.getValue())));
       }
       return relations;
     }
   }
 
-  protected String getDBColumnName(Table table, String fieldName) {
+  protected CqlIdentifier getDBColumnName(Table table, String fieldName) {
     Column column = getColumn(table, fieldName);
     if (column == null) {
       return null;
     }
-    return column.name();
+    return CqlIdentifier.fromInternal(column.name());
   }
 
   protected Column getColumn(Table table, String fieldName) {

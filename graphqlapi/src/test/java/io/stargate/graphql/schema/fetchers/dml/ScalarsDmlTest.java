@@ -4,10 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.when;
 
-import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import graphql.ExecutionResult;
-import io.stargate.db.datastore.ArrayListBackedRow;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
@@ -27,13 +25,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -58,11 +54,11 @@ public class ScalarsDmlTest extends DmlTestBase {
     ImmutableTable.Builder tableBuilder =
         ImmutableTable.builder()
             .keyspace("scalars_ks")
-            .name("scalars")
+            .name("Scalars")
             .addColumns(
                 ImmutableColumn.builder()
-                    .keyspace("scalars")
-                    .table("scalars_table")
+                    .keyspace("scalars_ks")
+                    .table("Scalars")
                     .name("id")
                     .type(Column.Type.Int)
                     .kind(Column.Kind.PartitionKey)
@@ -80,7 +76,7 @@ public class ScalarsDmlTest extends DmlTestBase {
   private static ImmutableColumn getColumn(Column.Type type) {
     return ImmutableColumn.builder()
         .keyspace("scalars_ks")
-        .table("scalars")
+        .table("Scalars")
         .name(getName(type))
         .type(type)
         .kind(Column.Kind.Regular)
@@ -99,7 +95,7 @@ public class ScalarsDmlTest extends DmlTestBase {
     String name = getName(type);
     String expectedCQL =
         String.format(
-            "INSERT INTO scalars_ks.scalars (id,%s) VALUES (1,%s)",
+            "INSERT INTO scalars_ks.\"Scalars\" (id,%s) VALUES (1,%s)",
             name, expectedLiteral != null ? expectedLiteral : value.toString());
 
     assertSuccess(String.format(mutation, name, toGraphQLValue(value)), expectedCQL);
@@ -115,7 +111,7 @@ public class ScalarsDmlTest extends DmlTestBase {
     String name = getName(type);
     String expectedCQL =
         String.format(
-            "INSERT INTO scalars_ks.scalars (id,%s) VALUES (1,%s)",
+            "INSERT INTO scalars_ks.\"Scalars\" (id,%s) VALUES (1,%s)",
             name, expectedLiteral != null ? expectedLiteral : value.toString());
 
     assertSuccess(String.format(mutation, name, toGraphQLValue(value)), expectedCQL);
@@ -128,10 +124,10 @@ public class ScalarsDmlTest extends DmlTestBase {
     Row row = createRowForSingleValue(name, toRowCellValue(type, value));
     when(resultSet.currentPageRows()).thenReturn(Collections.singletonList(row));
     ExecutionResult result =
-        executeGraphQl(String.format("query { scalars { values { %s } } }", name));
+        executeGraphQl(String.format("query { Scalars { values { %s } } }", name));
     assertThat(result.getErrors()).isEmpty();
     assertThat(result.<Map<String, Object>>getData())
-        .extractingByKey("scalars", InstanceOfAssertFactories.MAP)
+        .extractingByKey("Scalars", InstanceOfAssertFactories.MAP)
         .extractingByKey("values", InstanceOfAssertFactories.LIST)
         .singleElement()
         .asInstanceOf(InstanceOfAssertFactories.MAP)
@@ -160,7 +156,7 @@ public class ScalarsDmlTest extends DmlTestBase {
     assertThat(queryCaptor.getValue())
         .matches(
             String.format(
-                "INSERT INTO scalars_ks.scalars \\(id,timeuuidvalue\\)" + " VALUES \\(1,%s\\)",
+                "INSERT INTO scalars_ks.\"Scalars\" \\(id,timeuuidvalue\\) VALUES \\(1,%s\\)",
                 UUID_REGEX));
 
     assertThat(result.<Map<String, Object>>getData())
@@ -184,7 +180,7 @@ public class ScalarsDmlTest extends DmlTestBase {
     assertThat(queryCaptor.getValue())
         .matches(
             String.format(
-                "INSERT INTO scalars_ks.scalars \\(id,uuidvalue\\)" + " VALUES \\(1,%s\\)",
+                "INSERT INTO scalars_ks.\"Scalars\" \\(id,uuidvalue\\) VALUES \\(1,%s\\)",
                 UUID_REGEX));
 
     assertThat(result.<Map<String, Object>>getData())
@@ -305,16 +301,7 @@ public class ScalarsDmlTest extends DmlTestBase {
     return type.name().toLowerCase() + "value";
   }
 
-  private static Row createRow(List<Column> columns, Map<String, Object> data) {
-    List<ByteBuffer> values = new ArrayList<>(columns.size());
-    for (Column column : columns) {
-      Object v = data.get(column.name());
-      values.add(v == null ? null : column.type().codec().encode(v, ProtocolVersion.DEFAULT));
-    }
-    return new ArrayListBackedRow(columns, values, ProtocolVersion.DEFAULT);
-  }
-
-  private static Row createRowForSingleValue(String columnName, Object value) {
+  private Row createRowForSingleValue(String columnName, Object value) {
     Map<String, Object> values = new HashMap<>();
     values.put(columnName, value);
     return createRow(Collections.singletonList(table.column(columnName)), values);

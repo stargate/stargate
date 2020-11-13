@@ -40,11 +40,11 @@ import io.stargate.db.Persistence;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
+import io.stargate.graphql.schema.fetchers.CassandraFetcher;
 import io.stargate.graphql.schema.fetchers.dml.DeleteMutationFetcher;
 import io.stargate.graphql.schema.fetchers.dml.InsertMutationFetcher;
 import io.stargate.graphql.schema.fetchers.dml.QueryFetcher;
 import io.stargate.graphql.schema.fetchers.dml.UpdateMutationFetcher;
-import io.stargate.graphql.util.CaseUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -180,28 +180,25 @@ class DmlSchemaBuilder {
   }
 
   private List<GraphQLFieldDefinition> buildQuery(Table table) {
+    String graphqlName = nameMapping.getGraphqlName(table);
     GraphQLFieldDefinition query =
         GraphQLFieldDefinition.newFieldDefinition()
-            .name(CaseUtil.toLowerCamel(table.name()))
+            .name(graphqlName)
             .description(
                 String.format(
                     "Query for the table '%s'.%s", table.name(), primaryKeyDescription(table)))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("value")
-                    .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "Input")))
+                    .type(new GraphQLTypeReference(graphqlName + "Input")))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("filter")
-                    .type(
-                        new GraphQLTypeReference(
-                            nameMapping.getGraphqlName(table) + "FilterInput")))
+                    .type(new GraphQLTypeReference(graphqlName + "FilterInput")))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("orderBy")
-                    .type(
-                        new GraphQLList(
-                            new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "Order"))))
+                    .type(new GraphQLList(new GraphQLTypeReference(graphqlName + "Order"))))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("options")
@@ -212,20 +209,16 @@ class DmlSchemaBuilder {
 
     GraphQLFieldDefinition filterQuery =
         GraphQLFieldDefinition.newFieldDefinition()
-            .name(CaseUtil.toLowerCamel(table.name()) + "Filter")
+            .name(graphqlName + "Filter")
             .deprecate("No longer supported. Use root type instead.")
             .argument(
                 GraphQLArgument.newArgument()
                     .name("filter")
-                    .type(
-                        new GraphQLTypeReference(
-                            nameMapping.getGraphqlName(table) + "FilterInput")))
+                    .type(new GraphQLTypeReference(graphqlName + "FilterInput")))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("orderBy")
-                    .type(
-                        new GraphQLList(
-                            new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "Order"))))
+                    .type(new GraphQLList(new GraphQLTypeReference(graphqlName + "Order"))))
             .argument(
                 GraphQLArgument.newArgument()
                     .name("options")
@@ -390,6 +383,7 @@ class DmlSchemaBuilder {
                         .value("SERIAL")
                         .value("LOCAL_SERIAL")
                         .build())
+                .defaultValue(CassandraFetcher.DEFAULT_CONSISTENCY.toString())
                 .build())
         .field(
             GraphQLInputObjectField.newInputObjectField()
@@ -400,7 +394,7 @@ class DmlSchemaBuilder {
             GraphQLInputObjectField.newInputObjectField()
                 .name("pageSize")
                 .type(Scalars.GraphQLInt)
-                .defaultValue(100)
+                .defaultValue(CassandraFetcher.DEFAULT_PAGE_SIZE)
                 .build())
         .field(
             GraphQLInputObjectField.newInputObjectField()
@@ -509,7 +503,7 @@ class DmlSchemaBuilder {
     StringBuilder description =
         new StringBuilder("Warnings encountered during the CQL to GraphQL conversion.");
     if (warnings.isEmpty()) {
-      description.append("No warnings found, this will return an empty list.\n");
+      description.append("\nNo warnings found, this will return an empty list.");
     } else {
       description.append("\nThis will return:");
       for (String warning : warnings) {
@@ -546,6 +540,7 @@ class DmlSchemaBuilder {
                           .value("LOCAL_QUORUM")
                           .value("ALL")
                           .build())
+                  .defaultValue(CassandraFetcher.DEFAULT_CONSISTENCY.toString())
                   .build())
           .field(
               GraphQLInputObjectField.newInputObjectField()
@@ -556,6 +551,7 @@ class DmlSchemaBuilder {
                           .value("SERIAL")
                           .value("LOCAL_SERIAL")
                           .build())
+                  .defaultValue(CassandraFetcher.DEFAULT_SERIAL_CONSISTENCY.toString())
                   .build())
           .field(
               GraphQLInputObjectField.newInputObjectField()

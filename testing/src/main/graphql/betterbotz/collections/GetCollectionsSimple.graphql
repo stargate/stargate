@@ -1,5 +1,5 @@
 query GetCollectionsSimple($value: CollectionsSimpleInput) {
-    collectionsSimple(value: $value) {
+    CollectionsSimple(value: $value) {
         pageState
         values {
             id
