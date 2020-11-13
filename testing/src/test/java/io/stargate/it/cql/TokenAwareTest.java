@@ -12,14 +12,19 @@ import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.storage.StargateEnvironmentInfo;
+import io.stargate.it.storage.StargateParameters;
+import io.stargate.it.storage.StargateSpec;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+@StargateSpec(nodes = 3)
 @ExtendWith(CqlSessionExtension.class)
 public class TokenAwareTest extends BaseOsgiIntegrationTest {
   @Test

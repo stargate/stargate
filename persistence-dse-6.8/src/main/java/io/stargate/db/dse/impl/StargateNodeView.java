@@ -2,9 +2,7 @@ package io.stargate.db.dse.impl;
 
 import org.apache.cassandra.db.virtual.AbstractVirtualTable;
 import org.apache.cassandra.db.virtual.DataSet;
-import org.apache.cassandra.dht.Token.TokenFactory;
 import org.apache.cassandra.schema.TableMetadata;
-import org.apache.cassandra.service.StorageService;
 
 public abstract class StargateNodeView extends AbstractVirtualTable {
   StargateNodeView(TableMetadata metadata) {
