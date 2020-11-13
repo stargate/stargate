@@ -1050,8 +1050,6 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   private Map<String, Object> executePost(String path, String query) throws IOException {
     OkHttpClient okHttpClient = getHttpClient();
     String url = String.format("http://%s:8080%s", stargate.seedAddress(), path);
-    HttpUrl.Builder httpBuilder = HttpUrl.parse(url).newBuilder();
-    httpBuilder.addQueryParameter("query", query);
     Map<String, Object> formData = new HashMap<>();
     formData.put("query", query);
 
@@ -1061,7 +1059,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .newCall(
                 new Request.Builder()
                     .post(RequestBody.create(JSON, objectMapper.writeValueAsBytes(formData)))
-                    .url(httpBuilder.build())
+                    .url(url)
                     .build())
             .execute();
     assertThat(response.code()).isEqualTo(HttpStatus.SC_OK);

@@ -20,8 +20,8 @@ import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
-import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
-import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl.BatchContext;
+import io.stargate.graphql.web.HttpAwareContext;
+import io.stargate.graphql.web.HttpAwareContext.BatchContext;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.AfterEach;
@@ -110,7 +110,7 @@ public abstract class GraphQlTestBase {
    */
   protected ExecutionResult executeGraphQl(String query) {
     // Use a context mock per execution
-    HTTPAwareContextImpl context = mock(HTTPAwareContextImpl.class);
+    HttpAwareContext context = mock(HttpAwareContext.class);
 
     // Use a dedicated batch executor per execution
     BatchContext batchContext = new BatchContext();
