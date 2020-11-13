@@ -19,10 +19,11 @@ import static io.stargate.auth.jwt.AuthnJwtService.CLAIMS_FIELD;
 import static io.stargate.auth.jwt.AuthnJwtService.STARGATE_PREFIX;
 
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.Column;
-import io.stargate.db.schema.Table;
+import io.stargate.db.schema.Column.Type;
 import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -41,22 +42,15 @@ public class AuthzJwtService implements AuthorizationService {
    * Using the provided JWT and the claims it contains will perform pre-authorization where
    * possible, executes the query provided, and then authorizes the response of the query.
    *
-   * @param action A {@link QueryBuilder} object to be executed and authorized against a JWT.
-   * @param token The authenticated JWT token to use for authorization.
-   * @param primaryKeyValues A list of primary key values that will be used in the query and should
-   *     be authorized against the JWT.
-   * @param tableMetadata The {@link Table} that will be queried against.
-   * @return On success will return the result of the query and otherwise will return an exception
-   *     relating to the failure to authorize.
-   * @throws Exception An exception relating to the failure to authorize.
+   * <p>{@inheritdoc}
    */
   @Override
   public ResultSet authorizedDataRead(
-      Callable<ResultSet> action, String token, List<String> primaryKeyValues, Table tableMetadata)
+      Callable<ResultSet> action, String token, List<TypedKeyValue> typedKeyValues)
       throws Exception {
     JSONObject stargateClaims = extractClaimsFromJWT(token);
 
-    preCheckDataReadWrite(stargateClaims, primaryKeyValues, tableMetadata);
+    preCheckDataReadWrite(stargateClaims, typedKeyValues);
 
     ResultSet result = action.call();
 
@@ -91,46 +85,44 @@ public class AuthzJwtService implements AuthorizationService {
   }
 
   /**
-   * TODO
+   * Using the provided JWT and the claims it contains will perform pre-authorization where possible
+   * and if successful executes the query provided.
    *
-   * @param action
-   * @param token
-   * @param primaryKeyValues
-   * @param tableMetadata
-   * @return
-   * @throws Exception
+   * <p>{@inheritdoc}
    */
   @Override
   public ResultSet authorizedDataWrite(
-      Callable<ResultSet> action, String token, List<String> primaryKeyValues, Table tableMetadata)
+      Callable<ResultSet> action, String token, List<TypedKeyValue> typedKeyValues)
       throws Exception {
     JSONObject stargateClaims = extractClaimsFromJWT(token);
 
-    preCheckDataReadWrite(stargateClaims, primaryKeyValues, tableMetadata);
+    preCheckDataReadWrite(stargateClaims, typedKeyValues);
 
     // Just return the result. No value in doing a post check since we can't roll back anyway.
     return action.call();
   }
 
+  /**
+   * Authorization for schema resource access is not provided by JWTs so all authorization will be
+   * deferred to the underlying permissions assigned to the role the JWT maps to.
+   *
+   * <p>{@inheritdoc}
+   */
   @Override
-  public ResultSet authorizedSchemaRead(
-      Callable<ResultSet> action, String token, String keyspace, String table) throws Exception {
-    JSONObject stargateClaims = extractClaimsFromJWT(token);
-
-    preCheckSchemaRead(stargateClaims, keyspace, table);
-
-    // TODO: [doug] 2020-11-2, Mon, 17:23 Finish implementing
-    return action.call();
+  public void authorizeSchemaRead(String token, List<String> keyspaceNames, List<String> tableNames)
+      throws Exception {
+    // Cannot perform authorization with a JWT token so just return
   }
 
+  /**
+   * Authorization for schema resource access is not provided by JWTs so all authorization will be
+   * deferred to the underlying permissions assigned to the role the JWT maps to.
+   *
+   * <p>{@inheritdoc}
+   */
   @Override
   public ResultSet authorizedSchemaWrite(
       Callable<ResultSet> action, String token, String keyspace, String table) throws Exception {
-    JSONObject stargateClaims = extractClaimsFromJWT(token);
-
-    preCheckSchemaWrite(stargateClaims, keyspace, table);
-
-    // Just return the result. No value in doing a post check since we can't roll back anyway.
     return action.call();
   }
 
@@ -148,35 +140,22 @@ public class AuthzJwtService implements AuthorizationService {
     return payload.getJSONObject(CLAIMS_FIELD);
   }
 
-  private void preCheckSchemaRead(JSONObject stargateClaims, String keyspace, String table) {
-    // TODO: [doug] 2020-11-2, Mon, 17:23 Finish implementing
-  }
-
-  private void preCheckSchemaWrite(JSONObject stargateClaims, String keyspace, String table) {
-    // TODO: [doug] 2020-11-2, Mon, 17:23 Finish implementing
-  }
-
-  private void preCheckDataReadWrite(
-      JSONObject stargateClaims, List<String> primaryKeyValues, Table tableMetadata)
+  private void preCheckDataReadWrite(JSONObject stargateClaims, List<TypedKeyValue> typedKeyValues)
       throws JSONException, UnauthorizedException {
-    List<Column> keys = tableMetadata.primaryKeyColumns();
-
-    if (primaryKeyValues.size() > keys.size()) {
-      throw new IllegalArgumentException("Provided more primary key values than exists");
-    }
-
-    for (int i = 0; i < primaryKeyValues.size(); i++) {
+    for (TypedKeyValue typedKeyValue : typedKeyValues) {
       // If one of the columns exist as a field in the JWT claims and the values do not match then
       // the request is not allowed.
-      if (stargateClaims.has(STARGATE_PREFIX + keys.get(i).name())) {
-
-        if (!Column.ofTypeText(keys.get(i).type())) {
+      if (stargateClaims.has(STARGATE_PREFIX + typedKeyValue.getName())) {
+        String targetCellType = typedKeyValue.getType().toLowerCase();
+        if (!(targetCellType.equals(Type.Varchar.cqlDefinition())
+            || targetCellType.equals(Type.Text.cqlDefinition()))) {
           throw new IllegalArgumentException(
               "Column must be of type text to be used for authorization");
         }
 
-        String stargateClaimValue = stargateClaims.getString(STARGATE_PREFIX + keys.get(i).name());
-        String columnValue = primaryKeyValues.get(i);
+        String stargateClaimValue =
+            stargateClaims.getString(STARGATE_PREFIX + typedKeyValue.getName());
+        String columnValue = (String) typedKeyValue.getValue();
         if (!stargateClaimValue.equals(columnValue)) {
           throw new UnauthorizedException("Not allowed to access this resource");
         }
