@@ -52,6 +52,7 @@ When using the `config-store-yaml`, the underlying Yaml file used to load the co
 [source,yaml]
 ----
 cdc.kafka:
+  enabled: true
   metrics.enabled: true
   producer.bootstrap.servers: http://kafka-server
   producer.schema.registry.url: http://schema-registry-url
@@ -59,6 +60,13 @@ cdc.kafka:
 
 ----
 This map must contain the required settings for running the Kafka CDC connector. There are multiple required settings:
+
+=== CDC Kafka enabled
+
+`enabled` - this setting states if the Kafka CDC producer should be created and registered within OSGi.
+If it is omitted, then the producer disabled by default. You can override this setting on runtime by the OS environment variable.
+Also, you can override it by setting the java system property via `System.setProperty("cdc.kafka.enabled", "true")` or
+by passing the command line argument to the process (`-Dcdc.kafka.enabled=true`).
 
 === Prefix Name
 
