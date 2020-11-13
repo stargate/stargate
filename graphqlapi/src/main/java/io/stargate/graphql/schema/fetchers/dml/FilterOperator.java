@@ -20,6 +20,7 @@ import static graphql.schema.GraphQLList.list;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.querybuilder.condition.Condition;
 import com.datastax.oss.driver.api.querybuilder.condition.ConditionBuilder;
+import com.datastax.oss.driver.api.querybuilder.relation.ArithmeticRelationBuilder;
 import com.datastax.oss.driver.api.querybuilder.relation.ColumnRelationBuilder;
 import com.datastax.oss.driver.api.querybuilder.relation.Relation;
 import com.datastax.oss.driver.api.querybuilder.term.Term;
@@ -32,90 +33,90 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 /** Represents the relational and equality operators for filtering in DML GraphQL queries. */
 public enum FilterOperator {
   EQUAL("eq") {
     @Override
-    protected Condition buildCondition(ConditionBuilder<Condition> conditionBuilder, Term value) {
-      return conditionBuilder.isEqualTo(value);
+    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
+      return buildSimpleCondition(column, value, nameMapping, ArithmeticRelationBuilder::isEqualTo);
     }
 
     @Override
-    protected Relation buildRelation(ColumnRelationBuilder<Relation> relationStart, Term value) {
-      return relationStart.isEqualTo(value);
+    public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
+      return buildSimpleRelation(column, value, nameMapping, ArithmeticRelationBuilder::isEqualTo);
     }
   },
   NOT_EQUAL("notEq") {
     @Override
-    protected Condition buildCondition(ConditionBuilder<Condition> conditionBuilder, Term value) {
-      return conditionBuilder.isNotEqualTo(value);
+    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
+      return buildSimpleCondition(
+          column, value, nameMapping, ArithmeticRelationBuilder::isNotEqualTo);
     }
 
     @Override
-    protected Relation buildRelation(ColumnRelationBuilder<Relation> relationStart, Term value) {
-      return relationStart.isNotEqualTo(value);
+    public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
+      return buildSimpleRelation(
+          column, value, nameMapping, ArithmeticRelationBuilder::isNotEqualTo);
     }
   },
   GREATER_THAN("gt") {
     @Override
-    protected Condition buildCondition(ConditionBuilder<Condition> conditionBuilder, Term value) {
-      return conditionBuilder.isGreaterThan(value);
+    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
+      return FilterOperator.buildSimpleCondition(
+          column, value, nameMapping, ArithmeticRelationBuilder::isGreaterThan);
     }
 
     @Override
-    protected Relation buildRelation(ColumnRelationBuilder<Relation> relationStart, Term value) {
-      return relationStart.isGreaterThan(value);
+    public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
+      return buildSimpleRelation(
+          column, value, nameMapping, ArithmeticRelationBuilder::isGreaterThan);
     }
   },
   GREATER_THAN_EQUAL("gte") {
     @Override
-    protected Condition buildCondition(ConditionBuilder<Condition> conditionBuilder, Term value) {
-      return conditionBuilder.isGreaterThanOrEqualTo(value);
+    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
+      return FilterOperator.buildSimpleCondition(
+          column, value, nameMapping, ArithmeticRelationBuilder::isGreaterThanOrEqualTo);
     }
 
     @Override
-    protected Relation buildRelation(ColumnRelationBuilder<Relation> relationStart, Term value) {
-      return relationStart.isGreaterThanOrEqualTo(value);
+    public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
+      return buildSimpleRelation(
+          column, value, nameMapping, ArithmeticRelationBuilder::isGreaterThanOrEqualTo);
     }
   },
   LESS_THAN("lt") {
     @Override
-    protected Condition buildCondition(ConditionBuilder<Condition> conditionBuilder, Term value) {
-      return conditionBuilder.isLessThan(value);
+    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
+      return FilterOperator.buildSimpleCondition(
+          column, value, nameMapping, ArithmeticRelationBuilder::isLessThan);
     }
 
     @Override
-    protected Relation buildRelation(ColumnRelationBuilder<Relation> relationStart, Term value) {
-      return relationStart.isLessThan(value);
+    public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
+      return buildSimpleRelation(column, value, nameMapping, ArithmeticRelationBuilder::isLessThan);
     }
   },
   LESS_THAN_EQUAL("lte") {
     @Override
-    protected Condition buildCondition(ConditionBuilder<Condition> conditionBuilder, Term value) {
-      return conditionBuilder.isLessThanOrEqualTo(value);
+    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
+      return FilterOperator.buildSimpleCondition(
+          column, value, nameMapping, ArithmeticRelationBuilder::isLessThanOrEqualTo);
     }
 
     @Override
-    protected Relation buildRelation(ColumnRelationBuilder<Relation> relationStart, Term value) {
-      return relationStart.isLessThanOrEqualTo(value);
+    public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
+      return buildSimpleRelation(
+          column, value, nameMapping, ArithmeticRelationBuilder::isLessThanOrEqualTo);
     }
   },
   IN("in") {
     @Override
-    protected Condition buildCondition(ConditionBuilder<Condition> conditionBuilder, Term value) {
-      throw new IllegalStateException("Single item call is not valid for IN operator");
-    }
-
-    @Override
     public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
       return Condition.column(column.name()).in(buildListLiterals(column, value, nameMapping));
-    }
-
-    @Override
-    protected Relation buildRelation(ColumnRelationBuilder<Relation> relationStart, Term value) {
-      throw new IllegalStateException("Single item call is not valid for IN operator");
     }
 
     @Override
@@ -134,50 +135,32 @@ public enum FilterOperator {
   },
   CONTAINS("contains") {
     @Override
-    protected Condition buildCondition(ConditionBuilder<Condition> conditionBuilder, Term value) {
+    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
       throw new IllegalStateException("CONTAINS can't be used on IF conditions");
     }
 
     @Override
-    public Relation buildRelation(
-        ColumnRelationBuilder<Relation> relationStart, Term elementValue) {
-      return relationStart.contains(elementValue);
-    }
-
-    @Override
     public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
-      return buildRelation(
-          Relation.column(CqlIdentifier.fromInternal(column.name())),
-          toCqlElementTerm(column, value, nameMapping));
+      return Relation.column(CqlIdentifier.fromInternal(column.name()))
+          .contains(toCqlElementTerm(column, value, nameMapping));
     }
   },
   CONTAINS_KEY("containsKey") {
     @Override
-    protected Condition buildCondition(ConditionBuilder<Condition> conditionBuilder, Term value) {
+    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
       throw new IllegalStateException("CONTAINS KEY can't be used on IF conditions");
     }
 
     @Override
-    protected Relation buildRelation(ColumnRelationBuilder<Relation> relationStart, Term key) {
-      return relationStart.containsKey(key);
-    }
-
-    @Override
     public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
-      return buildRelation(
-          Relation.column(CqlIdentifier.fromInternal(column.name())),
-          toCqlKeyTerm(column, value, nameMapping));
+      return Relation.column(CqlIdentifier.fromInternal(column.name()))
+          .containsKey(toCqlKeyTerm(column, value, nameMapping));
     }
   },
   CONTAINS_ENTRY("containsEntry") {
     @Override
-    protected Condition buildCondition(ConditionBuilder<Condition> conditionBuilder, Term value) {
+    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
       throw new IllegalStateException("CONTAINS ENTRY can't be used on IF conditions");
-    }
-
-    @Override
-    protected Relation buildRelation(ColumnRelationBuilder<Relation> relationStart, Term value) {
-      throw new IllegalStateException("CONTAINS ENTRY requires key and value terms");
     }
 
     @Override
@@ -211,23 +194,29 @@ public enum FilterOperator {
         .collect(Collectors.toMap(FilterOperator::getFieldName, o -> o));
   }
 
-  public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
-    return buildCondition(
+  public abstract Condition buildCondition(Column column, Object value, NameMapping nameMapping);
+
+  private static Condition buildSimpleCondition(
+      Column column,
+      Object value,
+      NameMapping nameMapping,
+      BiFunction<ConditionBuilder<Condition>, Term, Condition> operator) {
+    return operator.apply(
         Condition.column(CqlIdentifier.fromInternal(column.name())),
         DataTypeMapping.toCqlTerm(column.type(), value, nameMapping));
   }
 
-  protected abstract Condition buildCondition(
-      ConditionBuilder<Condition> conditionBuilder, Term value);
+  public abstract Relation buildRelation(Column column, Object value, NameMapping nameMapping);
 
-  public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
-    return buildRelation(
+  private static Relation buildSimpleRelation(
+      Column column,
+      Object value,
+      NameMapping nameMapping,
+      BiFunction<ColumnRelationBuilder<Relation>, Term, Relation> operator) {
+    return operator.apply(
         Relation.column(CqlIdentifier.fromInternal(column.name())),
         DataTypeMapping.toCqlTerm(column.type(), value, nameMapping));
   }
-
-  protected abstract Relation buildRelation(
-      ColumnRelationBuilder<Relation> relationStart, Term value);
 
   public GraphQLInputObjectField buildField(GraphQLInputType gqlInputType) {
     return GraphQLInputObjectField.newInputObjectField().name(fieldName).type(gqlInputType).build();
