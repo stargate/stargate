@@ -61,12 +61,17 @@ public class KafkaProducerActivator extends BaseActivator {
 
   @VisibleForTesting
   protected boolean isServiceEnabled(ConfigStore configStore) {
-    return Optional.ofNullable(
-            configStore
-                .getConfigForModule(CONFIG_STORE_MODULE_NAME)
-                .getWithOverrides(ENABLED_SETTING_NAME))
-        .map(Boolean::parseBoolean)
-        .orElse(IS_ENABLED_DEFAULT);
+    try {
+      return Optional.ofNullable(
+              configStore
+                  .getConfigForModule(CONFIG_STORE_MODULE_NAME)
+                  .getWithOverrides(ENABLED_SETTING_NAME))
+          .map(Boolean::parseBoolean)
+          .orElse(IS_ENABLED_DEFAULT);
+    } catch (Exception exception) {
+      LOG.error("isServiceEnabled failed, returning default.", exception);
+      return IS_ENABLED_DEFAULT;
+    }
   }
 
   @Override

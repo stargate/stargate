@@ -173,7 +173,8 @@ class KafkaProducerActivatorTest {
   }
 
   public static Stream<Path> activatorDisabledPaths() {
-    return Stream.of(getProducerDisabledPath(), getProducerEnabledNotSetPath());
+    return Stream.of(
+        getProducerDisabledPath(), getProducerEnabledNotSetPath(), Paths.get("non_existing"));
   }
 
   private static Path getProducerEnabledPath() {
