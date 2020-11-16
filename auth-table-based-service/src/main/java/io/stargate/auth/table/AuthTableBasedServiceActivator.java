@@ -107,7 +107,7 @@ public class AuthTableBasedServiceActivator implements BundleActivator, ServiceL
         Object service = context.getService(serviceEvent.getServiceReference());
 
         if (service instanceof Persistence) {
-          log.info("Setting persistence in RestApiActivator");
+          log.info("Setting persistence in AuthTableBasedServiceActivator");
           this.authnTableBasedService.setPersistence((Persistence) service);
         }
 

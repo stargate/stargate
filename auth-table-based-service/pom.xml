@@ -68,7 +68,7 @@
             <Bundle-SymbolicName>io.stargate.auth.table</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.auth.table.AuthTableBasedServiceActivator</Bundle-Activator>
             <Import-Package>io.stargate.auth, org.osgi.framework</Import-Package>
-            <Export-Package>io.stargate.auth.table</Export-Package>
+            <Export-Package>!*</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
           </instructions>

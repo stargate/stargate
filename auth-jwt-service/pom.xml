@@ -92,7 +92,7 @@
                         io.stargate.db,
                         com.codahale.metrics
                         ]]></Import-Package>
-            <Export-Package>io.stargate.auth.jwt</Export-Package>
+            <Export-Package>!*</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
           </instructions>
