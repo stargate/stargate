@@ -27,6 +27,7 @@ import io.stargate.db.schema.Table;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.cassandra.stargate.db.MutationEvent;
+import org.apache.cassandra.stargate.exceptions.CDCWriteException;
 import org.junit.jupiter.api.Test;
 
 public class CDCServiceTest {
@@ -70,7 +71,8 @@ public class CDCServiceTest {
 
     ExecutionException runtimeEx =
         assertThrows(ExecutionException.class, () -> service.publish(mockMutationEvent()).get());
-    assertThat(runtimeEx).hasCause(ex);
+    assertThat(runtimeEx).hasCauseInstanceOf(CDCWriteException.class);
+    assertThat(runtimeEx.getCause()).hasCause(ex);
   }
 
   @Test

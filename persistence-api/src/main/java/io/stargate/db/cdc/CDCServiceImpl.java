@@ -95,7 +95,7 @@ public final class CDCServiceImpl implements CDCService {
     final long start = System.nanoTime();
     CDCMetrics.instance.incrementInFlight();
     return orTimeout(producer.publish(mutation), config.getProducerTimeoutMs())
-        .whenComplete(
+        .handle(
             (r, e) -> {
               CDCMetrics.instance.decrementInFlight();
               CDCMetrics.instance.updateLatency(System.nanoTime() - start);
@@ -107,9 +107,13 @@ public final class CDCServiceImpl implements CDCService {
                 if (e instanceof TimeoutException) {
                   CDCMetrics.instance.markProducerTimedOut();
                 }
-              } else {
-                healthChecker.reportSendSuccess();
+
+                throw new CDCWriteException(
+                    "There was an error sending to the producer: " + e.getMessage(), e);
               }
+
+              healthChecker.reportSendSuccess();
+              return r;
             });
   }
 
