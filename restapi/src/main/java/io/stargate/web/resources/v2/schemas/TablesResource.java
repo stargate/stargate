@@ -95,10 +95,17 @@ public class TablesResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+
           List<TableResponse> tableResponses =
               db.getTables(localDB, keyspaceName).stream()
                   .map(this::getTable)
                   .collect(Collectors.toList());
+
+          db.getAuthorizationService()
+              .authorizeSchemaRead(
+                  token,
+                  Collections.singletonList(keyspaceName),
+                  tableResponses.stream().map(TableResponse::getName).collect(Collectors.toList()));
 
           Object response = raw ? tableResponses : new ResponseWrapper(tableResponses);
           return Response.status(Response.Status.OK)
@@ -139,6 +146,12 @@ public class TablesResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+          db.getAuthorizationService()
+              .authorizeSchemaRead(
+                  token,
+                  Collections.singletonList(keyspaceName),
+                  Collections.singletonList(tableName));
+
           Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
 
           TableResponse tableResponse = getTable(tableMetadata);
@@ -249,7 +262,12 @@ public class TablesResource {
                   Converters.maybeQuote(tableAdd.getName()),
                   columnDefinitions.toString(),
                   tableOptions);
-          localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM).get();
+          db.getAuthorizationService()
+              .authorizedSchemaWrite(
+                  () -> localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM).get(),
+                  token,
+                  keyspaceName,
+                  tableAdd.getName());
 
           return Response.status(Response.Status.CREATED)
               .entity(
@@ -304,15 +322,21 @@ public class TablesResource {
                 .build();
           }
 
-          localDB
-              .query(
-                  String.format(
-                      "ALTER TABLE %s.%s %s",
-                      Converters.maybeQuote(keyspaceName),
-                      Converters.maybeQuote(tableName),
-                      tableOptions),
-                  ConsistencyLevel.LOCAL_QUORUM)
-              .get();
+          db.getAuthorizationService()
+              .authorizedSchemaWrite(
+                  () ->
+                      localDB
+                          .query(
+                              String.format(
+                                  "ALTER TABLE %s.%s %s",
+                                  Converters.maybeQuote(keyspaceName),
+                                  Converters.maybeQuote(tableName),
+                                  tableOptions),
+                              ConsistencyLevel.LOCAL_QUORUM)
+                          .get(),
+                  token,
+                  keyspaceName,
+                  tableName);
 
           return Response.status(Response.Status.CREATED)
               .entity(
@@ -350,12 +374,18 @@ public class TablesResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          localDB
-              .query()
-              .drop()
-              .table(keyspaceName, tableName)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+          db.getAuthorizationService()
+              .authorizedSchemaWrite(
+                  () ->
+                      localDB
+                          .query()
+                          .drop()
+                          .table(keyspaceName, tableName)
+                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+                          .execute(),
+                  token,
+                  keyspaceName,
+                  tableName);
 
           return Response.status(Response.Status.NO_CONTENT).build();
         });

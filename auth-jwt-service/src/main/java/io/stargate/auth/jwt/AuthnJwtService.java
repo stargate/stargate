@@ -1,5 +1,21 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.auth.jwt;
 
+import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.proc.BadJOSEException;
 import com.nimbusds.jose.proc.SecurityContext;
@@ -13,30 +29,30 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AuthJwtService implements AuthenticationService {
+public class AuthnJwtService implements AuthenticationService {
 
-  private static final Logger logger = LoggerFactory.getLogger(AuthJwtService.class);
+  private static final Logger logger = LoggerFactory.getLogger(AuthnJwtService.class);
 
-  //  private final JwtValidator jwtValidator;
-  private static final String ROLE_FIELD = "x-stargate-role";
-  private static final String CLAIMS_FIELD = "stargate_claims";
+  protected static final String STARGATE_PREFIX = "x-stargate-";
+  protected static final String ROLE_FIELD = STARGATE_PREFIX + "role";
+  protected static final String CLAIMS_FIELD = "stargate_claims";
 
   private final ConfigurableJWTProcessor<? extends SecurityContext> jwtProcessor;
 
-  public AuthJwtService(ConfigurableJWTProcessor<? extends SecurityContext> jwtProcessor) {
+  public AuthnJwtService(ConfigurableJWTProcessor<? extends SecurityContext> jwtProcessor) {
     this.jwtProcessor = jwtProcessor;
   }
 
   @Override
   public String createToken(String key, String secret) {
     throw new UnsupportedOperationException(
-        "Creating a token is not supported for AuthJwtService. Tokens must be created out of band.");
+        "Creating a token is not supported for AuthnJwtService. Tokens must be created out of band.");
   }
 
   @Override
   public String createToken(String key) {
     throw new UnsupportedOperationException(
-        "Creating a token is not supported for AuthJwtService. Tokens must be created out of band.");
+        "Creating a token is not supported for AuthnJwtService. Tokens must be created out of band.");
   }
 
   /**
@@ -51,6 +67,10 @@ public class AuthJwtService implements AuthenticationService {
    */
   @Override
   public StoredCredentials validateToken(String token) throws UnauthorizedException {
+    if (Strings.isNullOrEmpty(token)) {
+      throw new UnauthorizedException("authorization failed - missing token");
+    }
+
     JWTClaimsSet claimsSet = validate(token);
     String roleName;
     try {
@@ -60,7 +80,7 @@ public class AuthJwtService implements AuthenticationService {
       throw new UnauthorizedException("Failed to parse claim from JWT", e);
     }
 
-    if (roleName == null || roleName.equals("")) {
+    if (Strings.isNullOrEmpty(roleName)) {
       throw new UnauthorizedException("JWT must have a value for " + ROLE_FIELD);
     }
 

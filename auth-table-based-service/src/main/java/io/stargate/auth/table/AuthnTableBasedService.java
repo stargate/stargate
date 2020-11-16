@@ -32,9 +32,9 @@ import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AuthTableBasedService implements AuthenticationService {
+public class AuthnTableBasedService implements AuthenticationService {
 
-  private static final Logger logger = LoggerFactory.getLogger(AuthTableBasedService.class);
+  private static final Logger logger = LoggerFactory.getLogger(AuthnTableBasedService.class);
 
   private Persistence persistence;
   private DataStore dataStore;

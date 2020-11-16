@@ -1,3 +1,18 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.auth.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,17 +45,17 @@ import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class AuthJwtServiceTest {
+public class AuthnJwtServiceTest {
 
   private DefaultJWTProcessor<?> jwtProcessorMocked;
-  private AuthJwtService mockAuthJwtService;
-  private AuthJwtService liveAuthJwtService;
+  private AuthnJwtService mockAuthnJwtService;
+  private AuthnJwtService liveAuthnJwtService;
   private SecretKey key;
 
   @BeforeEach
   void setup() {
     jwtProcessorMocked = mock(DefaultJWTProcessor.class);
-    mockAuthJwtService = new AuthJwtService(jwtProcessorMocked);
+    mockAuthnJwtService = new AuthnJwtService(jwtProcessorMocked);
 
     byte[] keyBytes = new byte[32];
     new SecureRandom().nextBytes(keyBytes);
@@ -48,17 +63,17 @@ public class AuthJwtServiceTest {
 
     ConfigurableJWTProcessor<SimpleSecurityContext> processor = new DefaultJWTProcessor<>();
     processor.setJWSKeySelector((header, context) -> Collections.singletonList(key));
-    liveAuthJwtService = new AuthJwtService(processor);
+    liveAuthnJwtService = new AuthnJwtService(processor);
   }
 
   @Test
   public void createTokenByKey() {
     UnsupportedOperationException ex =
         assertThrows(
-            UnsupportedOperationException.class, () -> mockAuthJwtService.createToken("user"));
+            UnsupportedOperationException.class, () -> mockAuthnJwtService.createToken("user"));
     assertThat(ex)
         .hasMessage(
-            "Creating a token is not supported for AuthJwtService. Tokens must be created out of band.");
+            "Creating a token is not supported for AuthnJwtService. Tokens must be created out of band.");
   }
 
   @Test
@@ -66,10 +81,10 @@ public class AuthJwtServiceTest {
     UnsupportedOperationException ex =
         assertThrows(
             UnsupportedOperationException.class,
-            () -> mockAuthJwtService.createToken("key", "secret"));
+            () -> mockAuthnJwtService.createToken("key", "secret"));
     assertThat(ex)
         .hasMessage(
-            "Creating a token is not supported for AuthJwtService. Tokens must be created out of band.");
+            "Creating a token is not supported for AuthnJwtService. Tokens must be created out of band.");
   }
 
   @Test
@@ -80,7 +95,7 @@ public class AuthJwtServiceTest {
     JWTClaimsSet jwtClaimsSet = new Builder().claim("stargate_claims", stargate_claims).build();
     when(jwtProcessorMocked.process("token", null)).thenReturn(jwtClaimsSet);
 
-    StoredCredentials storedCredentials = mockAuthJwtService.validateToken("token");
+    StoredCredentials storedCredentials = mockAuthnJwtService.validateToken("token");
 
     assertThat(storedCredentials).isNotNull();
     assertThat(storedCredentials.getRoleName()).isEqualTo("user");
@@ -94,7 +109,7 @@ public class AuthJwtServiceTest {
     when(jwtProcessorMocked.process("token", null)).thenReturn(jwtClaimsSet);
 
     UnauthorizedException ex =
-        assertThrows(UnauthorizedException.class, () -> mockAuthJwtService.validateToken("token"));
+        assertThrows(UnauthorizedException.class, () -> mockAuthnJwtService.validateToken("token"));
     assertThat(ex).hasMessage("Failed to parse claim from JWT");
   }
 
@@ -106,8 +121,20 @@ public class AuthJwtServiceTest {
     when(jwtProcessorMocked.process("token", null)).thenReturn(jwtClaimsSet);
 
     UnauthorizedException ex =
-        assertThrows(UnauthorizedException.class, () -> mockAuthJwtService.validateToken("token"));
+        assertThrows(UnauthorizedException.class, () -> mockAuthnJwtService.validateToken("token"));
     assertThat(ex).hasMessage("Failed to parse claim from JWT");
+  }
+
+  @Test
+  public void validateTokenEmptyRole() throws ParseException, JOSEException, BadJOSEException {
+    Map<String, Object> stargate_claims = new HashMap<>();
+    stargate_claims.put("x-stargate-role", "");
+    JWTClaimsSet jwtClaimsSet = new Builder().claim("stargate_claims", stargate_claims).build();
+    when(jwtProcessorMocked.process("token", null)).thenReturn(jwtClaimsSet);
+
+    UnauthorizedException ex =
+        assertThrows(UnauthorizedException.class, () -> mockAuthnJwtService.validateToken("token"));
+    assertThat(ex).hasMessage("JWT must have a value for x-stargate-role");
   }
 
   @Test
@@ -118,7 +145,7 @@ public class AuthJwtServiceTest {
     when(jwtProcessorMocked.process("token", null)).thenReturn(jwtClaimsSet);
 
     UnauthorizedException ex =
-        assertThrows(UnauthorizedException.class, () -> mockAuthJwtService.validateToken("token"));
+        assertThrows(UnauthorizedException.class, () -> mockAuthnJwtService.validateToken("token"));
     assertThat(ex).hasMessage("Failed to parse claim from JWT");
   }
 
@@ -128,17 +155,17 @@ public class AuthJwtServiceTest {
         .thenThrow(new BadJOSEException("The provided JWT is bad"));
 
     UnauthorizedException ex =
-        assertThrows(UnauthorizedException.class, () -> mockAuthJwtService.validateToken("token"));
+        assertThrows(UnauthorizedException.class, () -> mockAuthnJwtService.validateToken("token"));
     assertThat(ex).hasMessage("Invalid JWT: The provided JWT is bad");
   }
 
   @Test
   public void validateTokenMalformed() {
     ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
-    AuthJwtService authJwtService = new AuthJwtService(jwtProcessor);
+    AuthnJwtService authnJwtService = new AuthnJwtService(jwtProcessor);
 
     UnauthorizedException ex =
-        assertThrows(UnauthorizedException.class, () -> authJwtService.validateToken("token"));
+        assertThrows(UnauthorizedException.class, () -> authnJwtService.validateToken("token"));
     assertThat(ex)
         .hasMessage("Failed to process JWT: Invalid JWT serialization: Missing dot delimiter(s)");
   }
@@ -156,7 +183,7 @@ public class AuthJwtServiceTest {
 
     UnauthorizedException ex =
         assertThrows(
-            UnauthorizedException.class, () -> liveAuthJwtService.validateToken(jwt.serialize()));
+            UnauthorizedException.class, () -> liveAuthnJwtService.validateToken(jwt.serialize()));
     assertThat(ex).hasMessage("Invalid JWT: Expired JWT");
   }
 }

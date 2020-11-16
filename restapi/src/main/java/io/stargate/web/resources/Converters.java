@@ -58,9 +58,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Converters {
+
   private static final Logger logger = LoggerFactory.getLogger(Converters.class);
 
   private static final ObjectMapper mapper = new ObjectMapper();
+  private static final Pattern UNQUOTED_IDENTIFIER = Pattern.compile("[a-z][a-z0-9_]*");
+  private static final Pattern PATTERN_DOUBLE_QUOTE = Pattern.compile("\"", Pattern.LITERAL);
+  private static final String ESCAPED_DOUBLE_QUOTE = Matcher.quoteReplacement("\"\"");
 
   static {
     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -85,7 +89,8 @@ public class Converters {
   }
 
   public static WhereCondition<?> idToWhere(String val, String column, Table tableData) {
-    Column.ColumnType type = tableData.column(column).type();
+    Column col = tableData.column(column);
+    Column.ColumnType type = col.type();
     Object value = val;
 
     if (type != null) {
@@ -95,19 +100,20 @@ public class Converters {
     return ImmutableWhereCondition.builder()
         .value(value)
         .predicate(WhereCondition.Predicate.Eq)
-        .column(column.toLowerCase())
+        .column(col)
         .build();
   }
 
   public static Value<?> colToValue(String name, String value, Table tableData) {
-    Column.ColumnType type = tableData.column(name).type();
+    Column col = tableData.column(name);
+    Column.ColumnType type = col.type();
     Object valueObj = value;
 
     if (type != null) {
       valueObj = typeForStringValue(type, value);
     }
 
-    return Value.create(name, valueObj);
+    return Value.create(col, valueObj);
   }
 
   public static Object typeForStringValue(Column.ColumnType type, String value) {
@@ -251,14 +257,15 @@ public class Converters {
 
   public static Value<?> colToValue(Map.Entry<String, String> entry, Table tableData) {
     String name = entry.getKey();
-    Column.ColumnType type = tableData.column(name).type();
+    Column col = tableData.column(name);
+    Column.ColumnType type = col.type();
     Object value = entry.getValue();
 
     if (type != null) {
       value = typeForValue(type, entry.getValue());
     }
 
-    return Value.create(name, value);
+    return Value.create(col, value);
   }
 
   public static Object typeForValue(Column.ColumnType type, String value) {
@@ -463,10 +470,6 @@ public class Converters {
     }
     return tableOptions;
   }
-
-  private static final Pattern UNQUOTED_IDENTIFIER = Pattern.compile("[a-z][a-z0-9_]*");
-  private static final Pattern PATTERN_DOUBLE_QUOTE = Pattern.compile("\"", Pattern.LITERAL);
-  private static final String ESCAPED_DOUBLE_QUOTE = Matcher.quoteReplacement("\"\"");
 
   public static String maybeQuote(String text) {
     if (UNQUOTED_IDENTIFIER.matcher(text).matches() && !ReservedKeywords.isReserved(text))

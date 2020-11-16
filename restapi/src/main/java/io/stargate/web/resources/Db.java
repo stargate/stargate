@@ -16,6 +16,7 @@
 package io.stargate.web.resources;
 
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.ImmutableParameters;
@@ -31,9 +32,11 @@ import java.util.Optional;
 import javax.ws.rs.NotFoundException;
 
 public class Db {
+
   private final Persistence persistence;
   private final DataStore dataStore;
   private final AuthenticationService authenticationService;
+  private final AuthorizationService authorizationService;
 
   public Collection<Table> getTables(DataStore dataStore, String keyspaceName) {
     Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
@@ -57,8 +60,12 @@ public class Db {
     return tableMetadata;
   }
 
-  public Db(final Persistence persistence, AuthenticationService authenticationService) {
+  public Db(
+      final Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
     this.authenticationService = authenticationService;
+    this.authorizationService = authorizationService;
     this.persistence = persistence;
     this.dataStore = DataStore.create(persistence);
   }
@@ -69,6 +76,14 @@ public class Db {
 
   public Persistence getPersistence() {
     return this.persistence;
+  }
+
+  public AuthenticationService getAuthenticationService() {
+    return authenticationService;
+  }
+
+  public AuthorizationService getAuthorizationService() {
+    return authorizationService;
   }
 
   public DataStore getDataStoreForToken(String token) throws UnauthorizedException {

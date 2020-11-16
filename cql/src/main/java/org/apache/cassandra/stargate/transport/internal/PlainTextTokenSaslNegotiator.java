@@ -32,7 +32,9 @@ class PlainTextTokenSaslNegotiator implements Authenticator.SaslNegotiator {
 
   @Override
   public byte[] evaluateResponse(byte[] clientResponse) throws AuthenticationException {
-    if (attemptTokenAuthentication(clientResponse)) return null;
+    if (attemptTokenAuthentication(clientResponse)) {
+      return null;
+    }
     return wrapped.evaluateResponse(clientResponse);
   }
 

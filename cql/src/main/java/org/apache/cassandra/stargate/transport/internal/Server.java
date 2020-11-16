@@ -212,6 +212,7 @@ public class Server implements CassandraDaemon.Server {
   }
 
   public static class Builder {
+
     private final Persistence persistence;
     private final AuthenticationService authentication;
     private EventLoopGroup workerGroup;
