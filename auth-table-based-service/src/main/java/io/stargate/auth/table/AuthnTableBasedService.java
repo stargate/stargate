@@ -17,7 +17,6 @@ package io.stargate.auth.table;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import io.stargate.auth.AuthenticationService;
-import io.stargate.auth.PlainTextTokenSaslNegotiator;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Authenticator.SaslNegotiator;
@@ -267,12 +266,7 @@ public class AuthnTableBasedService implements AuthenticationService {
       SaslNegotiator wrapped,
       String tokenUsername,
       int tokenMaxLength) {
-    return new PlainTextTokenSaslNegotiator(
-        authentication, wrapped, tokenUsername, tokenMaxLength) {
-      @Override
-      public boolean attemptTokenAuthentication(byte[] clientResponse) {
-        return false;
-      }
-    };
+    return new PlainTextTableBasedTokenSaslNegotiator(
+        authentication, wrapped, tokenUsername, tokenMaxLength);
   }
 }
