@@ -32,6 +32,7 @@ import io.stargate.graphql.web.resources.PlaygroundResource;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
+import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.osgi.framework.Bundle;
@@ -42,7 +43,7 @@ public class DropwizardServer extends Application<Configuration> {
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
   private final Metrics metrics;
-  private volatile org.eclipse.jetty.server.Server jettyServer;
+  private volatile Server jettyServer;
 
   public DropwizardServer(
       Persistence persistence, AuthenticationService authenticationService, Metrics metrics) {
@@ -124,7 +125,7 @@ public class DropwizardServer extends Application<Configuration> {
   }
 
   public void stop() throws Exception {
-    org.eclipse.jetty.server.Server s = this.jettyServer;
+    Server s = this.jettyServer;
     if (s != null) {
       s.stop();
     }
