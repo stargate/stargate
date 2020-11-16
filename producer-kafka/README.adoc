@@ -96,6 +96,7 @@ The metrics framework has three settings that allow you to control it:
 - `metrics.include-tags` - whether the registered metric name should include tags(if exists). This setting is optional. If not specified, it will be set to `true`. It should contain a boolean value.
 - `metrics.name` - this is the prefix used to expose metrics on the `MetricRegistry`. This setting is optional. If not specified, it will be set to `producer`.
 The CDC connector also adds its own prefix to every metric: `cdc.kafka`. If you leave this setting unset, every metric will be prefixed with `cdc.kafka.producer.`
+When enabled it will add all link:https://docs.confluent.io/current/kafka/monitoring.html#producer-metrics[kafka producer metrics].
 
 == Schema Creation
 When the `createTableSchemaAsync()` is invoked on the CDC producer, it constructs the Avro `Schema` for key and value.
