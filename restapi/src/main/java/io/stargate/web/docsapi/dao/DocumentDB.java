@@ -87,6 +87,14 @@ public class DocumentDB {
     return forbiddenCharacters.stream().anyMatch(ch -> x.indexOf(ch) >= 0);
   }
 
+  public static String replaceIllegalChars(String x) {
+    String newStr = x;
+    for (Character y : forbiddenCharacters) {
+      newStr.replace(y, '_');
+    }
+    return newStr;
+  }
+
   public static List<Column> allColumns() {
     List<Column> allColumns = new ArrayList<>(allColumnNames.size());
     for (int i = 0; i < allColumnNames.size(); i++) {

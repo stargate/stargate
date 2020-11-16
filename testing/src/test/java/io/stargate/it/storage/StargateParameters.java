@@ -37,6 +37,21 @@ public interface StargateParameters {
     return Collections.emptyMap();
   }
 
+  @Value.Default
+  default boolean useProxyProtocol() {
+    return false;
+  }
+
+  @Value.Default
+  default String proxyDnsName() {
+    return "stargate.local";
+  }
+
+  @Value.Default
+  default int proxyPort() {
+    return 9043;
+  }
+
   static Builder builder() {
     return ImmutableStargateParameters.builder();
   }
@@ -45,6 +60,12 @@ public interface StargateParameters {
     Builder enableAuth(boolean auth);
 
     Builder putSystemProperties(String key, String value);
+
+    Builder useProxyProtocol(boolean enabled);
+
+    Builder proxyDnsName(String name);
+
+    Builder proxyPort(int port);
 
     StargateParameters build();
   }
