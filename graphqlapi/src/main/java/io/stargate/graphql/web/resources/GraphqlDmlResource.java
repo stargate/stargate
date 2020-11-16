@@ -32,6 +32,7 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -135,7 +136,7 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
   private GraphQL getDefaultGraphql(AsyncResponse asyncResponse) {
     GraphQL graphql = graphqlCache.getDefaultDml();
     if (graphql == null) {
-      replyWithGraphqlError(404, "No default keyspace defined", asyncResponse);
+      replyWithGraphqlError(Status.NOT_FOUND, "No default keyspace defined", asyncResponse);
       return null;
     } else {
       return graphql;
@@ -146,13 +147,13 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
     if (!KEYSPACE_NAME_PATTERN.matcher(keyspaceName).matches()) {
       LOG.warn("Invalid keyspace in URI, this could be an XSS attack: {}", keyspaceName);
       // Do not reflect back the value
-      replyWithGraphqlError(400, "Invalid keyspace name", asyncResponse);
+      replyWithGraphqlError(Status.BAD_REQUEST, "Invalid keyspace name", asyncResponse);
       return null;
     }
     GraphQL graphql = graphqlCache.getDml(keyspaceName);
     if (graphql == null) {
       replyWithGraphqlError(
-          404, String.format("Unknown keyspace '%s'", keyspaceName), asyncResponse);
+          Status.NOT_FOUND, String.format("Unknown keyspace '%s'", keyspaceName), asyncResponse);
       return null;
     } else {
       return graphql;

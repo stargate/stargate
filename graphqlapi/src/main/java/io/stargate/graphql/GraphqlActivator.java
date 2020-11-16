@@ -19,7 +19,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
-import io.stargate.graphql.web.Server;
+import io.stargate.graphql.web.DropwizardServer;
 import java.util.Arrays;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -43,7 +43,7 @@ public class GraphqlActivator extends BaseActivator {
   private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
 
   @GuardedBy("this")
-  private Server server;
+  private DropwizardServer server;
 
   public GraphqlActivator() {
     super("GraphQL");
@@ -70,7 +70,7 @@ public class GraphqlActivator extends BaseActivator {
       Persistence persistence, Metrics metrics, AuthenticationService authentication) {
     if (server == null) {
       try {
-        server = new Server(persistence, authentication, metrics);
+        server = new DropwizardServer(persistence, authentication, metrics);
         LOG.info("Starting GraphQL");
         server.run("server", "config.yaml");
       } catch (Exception e) {

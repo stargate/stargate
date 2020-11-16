@@ -33,6 +33,7 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +64,7 @@ public class GraphqlResourceBase {
 
     if (Strings.isNullOrEmpty(query)) {
       replyWithGraphqlError(
-          400, "You must provide a GraphQL query as a URL parameter", asyncResponse);
+          Status.BAD_REQUEST, "You must provide a GraphQL query as a URL parameter", asyncResponse);
     } else {
       try {
         ExecutionInput.Builder input =
@@ -79,7 +80,8 @@ public class GraphqlResourceBase {
 
         executeAsync(input.build(), graphql, asyncResponse);
       } catch (JsonProcessingException e) {
-        replyWithGraphqlError(400, "Could not parse variables: " + e.getMessage(), asyncResponse);
+        replyWithGraphqlError(
+            Status.BAD_REQUEST, "Could not parse variables: " + e.getMessage(), asyncResponse);
       }
     }
   }
@@ -104,14 +106,14 @@ public class GraphqlResourceBase {
     String query;
     if (Strings.isNullOrEmpty(queryFromBody) && Strings.isNullOrEmpty(queryFromUrl)) {
       replyWithGraphqlError(
-          400,
+          Status.BAD_REQUEST,
           "You must provide a GraphQL query, either as a query parameter or in the request body",
           asyncResponse);
     } else if (!Strings.isNullOrEmpty(queryFromBody) && !Strings.isNullOrEmpty(queryFromUrl)) {
       // The GraphQL spec doesn't specify what to do in this case, but it's probably better to error
       // out rather than pick one arbitrarily.
       replyWithGraphqlError(
-          400,
+          Status.BAD_REQUEST,
           "You can't provide a GraphQL query both as a query parameter and in the request body",
           asyncResponse);
     } else {
@@ -140,7 +142,9 @@ public class GraphqlResourceBase {
 
     if (Strings.isNullOrEmpty(query)) {
       replyWithGraphqlError(
-          400, "You must provide a GraphQL query in the request body", asyncResponse);
+          Status.BAD_REQUEST,
+          "You must provide a GraphQL query in the request body",
+          asyncResponse);
     } else {
       ExecutionInput input =
           ExecutionInput.newExecutionInput(query)
@@ -159,7 +163,7 @@ public class GraphqlResourceBase {
               if (error != null) {
                 LOG.error("Unexpected error while processing GraphQL request", error);
                 GraphqlResourceBase.replyWithGraphqlError(
-                    500, "Internal server error", asyncResponse);
+                    Status.INTERNAL_SERVER_ERROR, "Internal server error", asyncResponse);
               } else {
                 asyncResponse.resume(result.toSpecification());
               }
@@ -167,7 +171,7 @@ public class GraphqlResourceBase {
   }
 
   protected static void replyWithGraphqlError(
-      int status, String message, @Suspended AsyncResponse asyncResponse) {
+      Status status, String message, @Suspended AsyncResponse asyncResponse) {
     asyncResponse.resume(
         Response.status(status)
             .entity(ImmutableMap.of("errors", ImmutableList.of(message)))

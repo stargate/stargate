@@ -16,6 +16,7 @@
 package io.stargate.graphql.web;
 
 import io.dropwizard.Application;
+import io.dropwizard.Configuration;
 import io.dropwizard.cli.Cli;
 import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
@@ -36,14 +37,14 @@ import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
 
-public class Server extends Application<ApplicationConfiguration> {
+public class DropwizardServer extends Application<Configuration> {
 
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
   private final Metrics metrics;
   private volatile org.eclipse.jetty.server.Server jettyServer;
 
-  public Server(
+  public DropwizardServer(
       Persistence persistence, AuthenticationService authenticationService, Metrics metrics) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
@@ -57,7 +58,7 @@ public class Server extends Application<ApplicationConfiguration> {
    */
   @Override
   public void run(String... arguments) {
-    final Bootstrap<ApplicationConfiguration> bootstrap = new Bootstrap<>(this);
+    final Bootstrap<Configuration> bootstrap = new Bootstrap<>(this);
     addDefaultCommands(bootstrap);
     initialize(bootstrap);
 
@@ -67,8 +68,7 @@ public class Server extends Application<ApplicationConfiguration> {
   }
 
   @Override
-  public void run(
-      final ApplicationConfiguration applicationConfiguration, final Environment environment) {
+  public void run(final Configuration config, final Environment environment) {
 
     GraphqlCache graphqlCache = new GraphqlCache(persistence, authenticationService);
     environment
@@ -96,11 +96,13 @@ public class Server extends Application<ApplicationConfiguration> {
 
     enableCors(environment);
 
-    environment.lifecycle().addServerLifecycleListener(server -> Server.this.jettyServer = server);
+    environment
+        .lifecycle()
+        .addServerLifecycleListener(server -> DropwizardServer.this.jettyServer = server);
   }
 
   @Override
-  public void initialize(final Bootstrap<ApplicationConfiguration> bootstrap) {
+  public void initialize(final Bootstrap<Configuration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
     bootstrap.setMetricRegistry(metrics.getRegistry("graphqlapi"));
