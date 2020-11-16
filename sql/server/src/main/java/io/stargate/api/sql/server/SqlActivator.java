@@ -16,6 +16,7 @@
 package io.stargate.api.sql.server;
 
 import io.stargate.api.sql.server.avatica.AvaticaServer;
+import io.stargate.api.sql.server.postgres.PGServer;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
 import org.osgi.framework.BundleActivator;
@@ -41,7 +42,8 @@ public class SqlActivator implements BundleActivator {
           PERSISTENCE_IDENTIFIER, AuthenticationService.class.getName());
 
   private Tracker tracker;
-  private AvaticaServer server;
+  private AvaticaServer avaticaServer;
+  private PGServer pgServer;
 
   @Override
   public void start(BundleContext context) throws Exception {
@@ -56,23 +58,48 @@ public class SqlActivator implements BundleActivator {
   }
 
   private synchronized void stopServer() {
-    AvaticaServer s = this.server;
-    if (s != null) {
-      log.info("Stopping Avatica Server");
-      s.stop();
+    IllegalStateException ex = new IllegalStateException("Unable to stop service");
+    try {
+      AvaticaServer avaticaServer = this.avaticaServer;
+      if (avaticaServer != null) {
+        log.info("Stopping Avatica Server");
+        avaticaServer.stop();
+      }
+
+      this.avaticaServer = null;
+    } catch (Exception e) {
+      ex.addSuppressed(e);
     }
 
-    server = null;
+    try {
+      PGServer pgServer = this.pgServer;
+      if (pgServer != null) {
+        log.info("Stopping PostgreSQL protocol handler");
+        pgServer.stop();
+      }
+
+      this.pgServer = null;
+    } catch (Exception e) {
+      ex.addSuppressed(e);
+    }
+
+    if (ex.getSuppressed().length > 0) {
+      throw ex;
+    }
   }
 
   private synchronized void maybeStart(Persistence persistence, AuthenticationService auth) {
-    if (server != null) {
+    if (avaticaServer != null) {
       return;
     }
 
-    server = new AvaticaServer(persistence, auth);
+    avaticaServer = new AvaticaServer(persistence, auth);
     log.info("Starting Avatica Server");
-    server.start();
+    avaticaServer.start();
+
+    pgServer = new PGServer(persistence, auth);
+    log.info("Starting PostgreSQL protocol handler");
+    pgServer.start();
   }
 
   private class Tracker extends ServiceTracker<Object, Object> {

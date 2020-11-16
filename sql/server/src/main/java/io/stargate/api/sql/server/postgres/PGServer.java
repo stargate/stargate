@@ -29,6 +29,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.stargate.api.sql.server.postgres.transport.MessageDecoder;
 import io.stargate.api.sql.server.postgres.transport.MessageEncoder;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
@@ -54,6 +55,10 @@ public class PGServer {
   private final EventLoopGroup workerGroup;
   private final DataStore dataStore;
   private final AuthenticationService authenticator;
+
+  public PGServer(Persistence backend, AuthenticationService authenticator) {
+    this(DataStore.create(backend), authenticator, PORT);
+  }
 
   public PGServer(DataStore dataStore, AuthenticationService authenticator, int port) {
     this.dataStore = dataStore;
