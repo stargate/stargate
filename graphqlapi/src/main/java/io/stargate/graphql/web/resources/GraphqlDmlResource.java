@@ -150,6 +150,7 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       replyWithGraphqlError(Status.BAD_REQUEST, "Invalid keyspace name", asyncResponse);
       return null;
     }
+
     GraphQL graphql = graphqlCache.getDml(keyspaceName);
     if (graphql == null) {
       replyWithGraphqlError(

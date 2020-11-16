@@ -65,24 +65,25 @@ public class GraphqlResourceBase {
     if (Strings.isNullOrEmpty(query)) {
       replyWithGraphqlError(
           Status.BAD_REQUEST, "You must provide a GraphQL query as a URL parameter", asyncResponse);
-    } else {
-      try {
-        ExecutionInput.Builder input =
-            ExecutionInput.newExecutionInput(query)
-                .operationName(operationName)
-                .context(new HttpAwareContext(httpRequest));
+      return;
+    }
 
-        if (!Strings.isNullOrEmpty(variables)) {
-          @SuppressWarnings("unchecked")
-          Map<String, Object> parsedVariables = OBJECT_MAPPER.readValue(variables, Map.class);
-          input = input.variables(parsedVariables);
-        }
+    try {
+      ExecutionInput.Builder input =
+          ExecutionInput.newExecutionInput(query)
+              .operationName(operationName)
+              .context(new HttpAwareContext(httpRequest));
 
-        executeAsync(input.build(), graphql, asyncResponse);
-      } catch (JsonProcessingException e) {
-        replyWithGraphqlError(
-            Status.BAD_REQUEST, "Could not parse variables: " + e.getMessage(), asyncResponse);
+      if (!Strings.isNullOrEmpty(variables)) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> parsedVariables = OBJECT_MAPPER.readValue(variables, Map.class);
+        input = input.variables(parsedVariables);
       }
+
+      executeAsync(input.build(), graphql, asyncResponse);
+    } catch (JsonProcessingException e) {
+      replyWithGraphqlError(
+          Status.BAD_REQUEST, "Could not parse variables: " + e.getMessage(), asyncResponse);
     }
   }
 
@@ -109,24 +110,28 @@ public class GraphqlResourceBase {
           Status.BAD_REQUEST,
           "You must provide a GraphQL query, either as a query parameter or in the request body",
           asyncResponse);
-    } else if (!Strings.isNullOrEmpty(queryFromBody) && !Strings.isNullOrEmpty(queryFromUrl)) {
+      return;
+    }
+
+    if (!Strings.isNullOrEmpty(queryFromBody) && !Strings.isNullOrEmpty(queryFromUrl)) {
       // The GraphQL spec doesn't specify what to do in this case, but it's probably better to error
       // out rather than pick one arbitrarily.
       replyWithGraphqlError(
           Status.BAD_REQUEST,
           "You can't provide a GraphQL query both as a query parameter and in the request body",
           asyncResponse);
-    } else {
-      query = Strings.isNullOrEmpty(queryFromBody) ? queryFromUrl : queryFromBody;
-      ExecutionInput.Builder input =
-          ExecutionInput.newExecutionInput(query)
-              .operationName(operationName)
-              .context(new HttpAwareContext(httpRequest));
-      if (variables != null) {
-        input = input.variables(variables);
-      }
-      executeAsync(input.build(), graphql, asyncResponse);
+      return;
     }
+
+    query = Strings.isNullOrEmpty(queryFromBody) ? queryFromUrl : queryFromBody;
+    ExecutionInput.Builder input =
+        ExecutionInput.newExecutionInput(query)
+            .operationName(operationName)
+            .context(new HttpAwareContext(httpRequest));
+    if (variables != null) {
+      input = input.variables(variables);
+    }
+    executeAsync(input.build(), graphql, asyncResponse);
   }
 
   /**
@@ -145,13 +150,12 @@ public class GraphqlResourceBase {
           Status.BAD_REQUEST,
           "You must provide a GraphQL query in the request body",
           asyncResponse);
-    } else {
-      ExecutionInput input =
-          ExecutionInput.newExecutionInput(query)
-              .context(new HttpAwareContext(httpRequest))
-              .build();
-      executeAsync(input, graphql, asyncResponse);
+      return;
     }
+
+    ExecutionInput input =
+        ExecutionInput.newExecutionInput(query).context(new HttpAwareContext(httpRequest)).build();
+    executeAsync(input, graphql, asyncResponse);
   }
 
   protected static void executeAsync(
