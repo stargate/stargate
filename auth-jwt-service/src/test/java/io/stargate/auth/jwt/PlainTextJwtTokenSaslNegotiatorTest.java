@@ -1,4 +1,4 @@
-package org.apache.cassandra.stargate.transport.internal;
+package io.stargate.auth.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -7,6 +7,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.Credentials;
+import io.stargate.auth.PlainTextTokenSaslNegotiator;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.AuthenticatedUser;
@@ -15,55 +17,59 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
-import org.apache.cassandra.stargate.transport.internal.PlainTextTokenSaslNegotiator.Credentials;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 
-public class PlainTextTokenSaslNegotiatorTest {
+class PlainTextJwtTokenSaslNegotiatorTest {
+
   private final String TOKEN = "a24b121a-a385-44a6-8ae1-fe7542dbc490";
   private final String ROLE = "someRole";
+  private final int TOKEN_MAX_LENGTH = 4096;
+  private final String TOKEN_USERNAME = "token";
 
   @Test
   public void decodeCredentials() {
     Credentials credentials =
-        PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {0, 97, 98, 99, 0, 97, 98, 99});
-    assertThat(credentials.username).isEqualTo("abc");
-    assertThat(credentials.password).isEqualTo("abc");
+        PlainTextJwtTokenSaslNegotiator.decodeCredentials(
+            new byte[] {0, 97, 98, 99, 0, 97, 98, 99});
+    assertThat(credentials.getUsername()).isEqualTo("abc");
+    assertThat(credentials.getPassword()).isEqualTo("abc");
   }
 
   @Test
   public void invalidDecodeCredentials() {
     // Empty
-    assertThatThrownBy(() -> PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {}))
+    assertThatThrownBy(() -> PlainTextJwtTokenSaslNegotiator.decodeCredentials(new byte[] {}))
         .isInstanceOf(AuthenticationException.class)
         .hasMessage("Password must not be null");
 
     // Empty authzid
-    assertThatThrownBy(() -> PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {0}))
+    assertThatThrownBy(() -> PlainTextJwtTokenSaslNegotiator.decodeCredentials(new byte[] {0}))
         .isInstanceOf(AuthenticationException.class)
         .hasMessage("Password must not be null");
 
     // Empty authzid and authnid
-    assertThatThrownBy(() -> PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {0, 0}))
+    assertThatThrownBy(() -> PlainTextJwtTokenSaslNegotiator.decodeCredentials(new byte[] {0, 0}))
         .isInstanceOf(AuthenticationException.class)
         .hasMessage("Password must not be null");
 
     // Only authzid
     assertThatThrownBy(
-            () -> PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {97, 98, 99, 0, 0}))
+            () -> PlainTextJwtTokenSaslNegotiator.decodeCredentials(new byte[] {97, 98, 99, 0, 0}))
         .isInstanceOf(AuthenticationException.class)
         .hasMessage("Password must not be null");
 
     // Empty authzid, but valid authnid and password
     assertThatThrownBy(
-            () -> PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {0, 97, 0, 97, 0}))
+            () -> PlainTextJwtTokenSaslNegotiator.decodeCredentials(new byte[] {0, 97, 0, 97, 0}))
         .isInstanceOf(AuthenticationException.class)
         .hasMessage(
             "Credential format error: username or password is empty or contains NUL(\\0) character");
 
     // Non-empty authzid
     assertThatThrownBy(
-            () -> PlainTextTokenSaslNegotiator.decodeCredentials(new byte[] {97, 0, 97, 0, 97, 0}))
+            () ->
+                PlainTextJwtTokenSaslNegotiator.decodeCredentials(new byte[] {97, 0, 97, 0, 97, 0}))
         .isInstanceOf(AuthenticationException.class)
         .hasMessage(
             "Credential format error: username or password is empty or contains NUL(\\0) character");
@@ -71,8 +77,7 @@ public class PlainTextTokenSaslNegotiatorTest {
 
   @Test
   public void useToken() throws IOException, UnauthorizedException {
-    final byte[] clientResponse =
-        createClientResponse(PlainTextTokenSaslNegotiator.TOKEN_USERNAME, TOKEN);
+    final byte[] clientResponse = createClientResponse(TOKEN_USERNAME, TOKEN);
 
     StoredCredentials credentials = new StoredCredentials();
     credentials.setRoleName(ROLE);
@@ -80,7 +85,7 @@ public class PlainTextTokenSaslNegotiatorTest {
     when(authentication.validateToken(TOKEN)).thenReturn(credentials);
 
     PlainTextTokenSaslNegotiator negotiator =
-        new PlainTextTokenSaslNegotiator(null, authentication);
+        new PlainTextJwtTokenSaslNegotiator(authentication, null, TOKEN_USERNAME, 36);
     assertThat(negotiator.evaluateResponse(clientResponse)).isNull();
     assertThat(negotiator.isComplete()).isTrue();
     assertThat(negotiator.getAuthenticatedUser().name()).isEqualTo(ROLE);
@@ -96,7 +101,8 @@ public class PlainTextTokenSaslNegotiatorTest {
     doReturn(AuthenticatedUser.of(ROLE)).when(wrappedNegotiator).getAuthenticatedUser();
 
     PlainTextTokenSaslNegotiator negotiator =
-        new PlainTextTokenSaslNegotiator(wrappedNegotiator, null);
+        new PlainTextJwtTokenSaslNegotiator(
+            null, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH);
     assertThat(negotiator.evaluateResponse(clientResponse)).isNull();
     assertThat(negotiator.isComplete()).isTrue();
     assertThat(negotiator.getAuthenticatedUser().name()).isEqualTo(ROLE);
@@ -104,17 +110,17 @@ public class PlainTextTokenSaslNegotiatorTest {
 
   @Test
   public void tokenGreaterThanMaxLength() throws IOException {
-    final String tooLongToken =
-        StringUtils.repeat("a", PlainTextTokenSaslNegotiator.TOKEN_MAX_LENGTH + 1);
+    final String tooLongToken = StringUtils.repeat("a", TOKEN_MAX_LENGTH + 1);
 
     SaslNegotiator wrappedNegotiator = mock(SaslNegotiator.class);
     when(wrappedNegotiator.isComplete()).thenReturn(false);
 
     PlainTextTokenSaslNegotiator negotiator =
-        new PlainTextTokenSaslNegotiator(wrappedNegotiator, null);
+        new PlainTextJwtTokenSaslNegotiator(
+            null, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH);
     assertThat(
             negotiator.attemptTokenAuthentication(
-                createClientResponse(PlainTextTokenSaslNegotiator.TOKEN_USERNAME, tooLongToken)))
+                createClientResponse(TOKEN_USERNAME, tooLongToken)))
         .isFalse();
     assertThat(negotiator.isComplete()).isFalse();
   }
@@ -128,10 +134,9 @@ public class PlainTextTokenSaslNegotiatorTest {
     when(wrappedNegotiator.isComplete()).thenReturn(false);
 
     PlainTextTokenSaslNegotiator negotiator =
-        new PlainTextTokenSaslNegotiator(wrappedNegotiator, authentication);
-    assertThat(
-            negotiator.attemptTokenAuthentication(
-                createClientResponse(PlainTextTokenSaslNegotiator.TOKEN_USERNAME, TOKEN)))
+        new PlainTextJwtTokenSaslNegotiator(
+            authentication, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH);
+    assertThat(negotiator.attemptTokenAuthentication(createClientResponse(TOKEN_USERNAME, TOKEN)))
         .isFalse();
     assertThat(negotiator.isComplete()).isFalse();
   }
@@ -145,11 +150,10 @@ public class PlainTextTokenSaslNegotiatorTest {
     SaslNegotiator wrappedNegotiator = mock(SaslNegotiator.class);
     when(wrappedNegotiator.isComplete()).thenReturn(false);
 
-    PlainTextTokenSaslNegotiator negotiator =
-        new PlainTextTokenSaslNegotiator(wrappedNegotiator, authentication);
-    assertThat(
-            negotiator.attemptTokenAuthentication(
-                createClientResponse(PlainTextTokenSaslNegotiator.TOKEN_USERNAME, TOKEN)))
+    PlainTextJwtTokenSaslNegotiator negotiator =
+        new PlainTextJwtTokenSaslNegotiator(
+            authentication, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH);
+    assertThat(negotiator.attemptTokenAuthentication(createClientResponse(TOKEN_USERNAME, TOKEN)))
         .isFalse();
     assertThat(negotiator.isComplete()).isFalse();
   }

@@ -16,7 +16,9 @@
 package io.stargate.auth.table;
 
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
 import io.stargate.auth.TypedKeyValue;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ResultSet;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -35,6 +37,30 @@ public class AuthzTableBasedService implements AuthorizationService {
       throws Exception {
     // Cannot perform authorization with a table based token so just return
     return action.call();
+  }
+
+  /**
+   * Authorization for data access is not provided by table based tokens so all authorization will
+   * be deferred to the underlying permissions assigned to the role the token maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeDataRead(String token, String keyspaceNames, String tableNames)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a table based token so just return
+  }
+
+  /**
+   * Authorization for data access is not provided by table based tokens so all authorization will
+   * be deferred to the underlying permissions assigned to the role the token maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeDataWrite(String token, String keyspaceNames, String tableNames, Scope scope)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a table based token so just return
   }
 
   /**
@@ -76,5 +102,18 @@ public class AuthzTableBasedService implements AuthorizationService {
       Callable<ResultSet> action, String token, String keyspace, String table) throws Exception {
     // Cannot perform authorization with a table based token so just return
     return action.call();
+  }
+
+  /**
+   * Authorization for schema resource access is not provided by table based tokens so all
+   * authorization will be deferred to the underlying permissions assigned to the role the token
+   * maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeSchemaWrite(String token, String keyspace, String table, Scope scope)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a table based token so just return
   }
 }

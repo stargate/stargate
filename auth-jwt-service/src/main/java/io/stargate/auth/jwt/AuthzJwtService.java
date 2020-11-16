@@ -19,6 +19,7 @@ import static io.stargate.auth.jwt.AuthnJwtService.CLAIMS_FIELD;
 import static io.stargate.auth.jwt.AuthnJwtService.STARGATE_PREFIX;
 
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ResultSet;
@@ -85,6 +86,32 @@ public class AuthzJwtService implements AuthorizationService {
   }
 
   /**
+   * Authorization for data resource access without keys is not provided by JWTs so all
+   * authorization will be deferred to the underlying permissions assigned to the role the JWT maps
+   * to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeDataRead(String token, String keyspace, String table)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a JWT token so just return
+  }
+
+  /**
+   * Authorization for data resource access without keys is not provided by JWTs so all
+   * authorization will be deferred to the underlying permissions assigned to the role the JWT maps
+   * to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeDataWrite(String token, String keyspace, String table, Scope scope)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a JWT token so just return
+  }
+
+  /**
    * Using the provided JWT and the claims it contains will perform pre-authorization where possible
    * and if successful executes the query provided.
    *
@@ -124,6 +151,18 @@ public class AuthzJwtService implements AuthorizationService {
   public ResultSet authorizedSchemaWrite(
       Callable<ResultSet> action, String token, String keyspace, String table) throws Exception {
     return action.call();
+  }
+
+  /**
+   * Authorization for schema resource access is not provided by JWTs so all authorization will be
+   * deferred to the underlying permissions assigned to the role the JWT maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeSchemaWrite(String token, String keyspace, String table, Scope scope)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a JWT token so just return
   }
 
   private JSONObject extractClaimsFromJWT(String token) throws JSONException {
