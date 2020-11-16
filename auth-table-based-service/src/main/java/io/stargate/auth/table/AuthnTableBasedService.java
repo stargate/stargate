@@ -262,11 +262,7 @@ public class AuthnTableBasedService implements AuthenticationService {
 
   @Override
   public SaslNegotiator getSaslNegotiator(
-      AuthenticationService authentication,
-      SaslNegotiator wrapped,
-      String tokenUsername,
-      int tokenMaxLength) {
-    return new PlainTextTableBasedTokenSaslNegotiator(
-        authentication, wrapped, tokenUsername, tokenMaxLength);
+      SaslNegotiator wrapped, String tokenUsername, int tokenMaxLength) {
+    return new PlainTextTableBasedTokenSaslNegotiator(this, wrapped, tokenUsername, tokenMaxLength);
   }
 }

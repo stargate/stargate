@@ -92,12 +92,8 @@ public class AuthnJwtService implements AuthenticationService {
 
   @Override
   public SaslNegotiator getSaslNegotiator(
-      AuthenticationService authentication,
-      SaslNegotiator wrapped,
-      String tokenUsername,
-      int tokenMaxLength) {
-    return new PlainTextJwtTokenSaslNegotiator(
-        authentication, wrapped, tokenUsername, tokenMaxLength);
+      SaslNegotiator wrapped, String tokenUsername, int tokenMaxLength) {
+    return new PlainTextJwtTokenSaslNegotiator(this, wrapped, tokenUsername, tokenMaxLength);
   }
 
   /**

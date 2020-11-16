@@ -26,8 +26,5 @@ public interface AuthenticationService {
   StoredCredentials validateToken(String token) throws UnauthorizedException;
 
   SaslNegotiator getSaslNegotiator(
-      AuthenticationService authentication,
-      SaslNegotiator wrapped,
-      String tokenUsername,
-      int tokenMaxLength);
+      SaslNegotiator wrapped, String tokenUsername, int tokenMaxLength);
 }

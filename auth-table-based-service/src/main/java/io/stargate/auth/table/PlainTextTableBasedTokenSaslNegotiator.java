@@ -40,6 +40,8 @@ public class PlainTextTableBasedTokenSaslNegotiator extends PlainTextTokenSaslNe
         logger.error("Null credentials returned from authentication service");
         return false;
       }
+      // Not setting token in the password field here since a table based token doesn't give us the
+      // information we need for further authorization
     } catch (Exception e) {
       logger.error("Unable to validate token", e);
       return false;

@@ -133,7 +133,6 @@ public class ServerConnection extends Connection {
           authentication == null
               ? negotiator
               : authentication.getSaslNegotiator(
-                  authentication,
                   negotiator,
                   System.getProperty("stargate.cql_token_username", "token"),
                   Integer.parseInt(System.getProperty("stargate.cql_token_max_length", "36")));
