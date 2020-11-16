@@ -93,6 +93,7 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @AfterEach
   public void teardown() {
+    session.execute(String.format("drop keyspace %s", keyspace));
     session.close();
   }
 
@@ -202,6 +203,26 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
         "garbage", hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", 401);
     RestUtils.get(
         "garbage", hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection", 401);
+  }
+
+  @Test
+  public void testBasicForms() throws IOException {
+    RestUtils.putForm(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        "a=b&b=null&c.b=3.3&d.[0].[2]=true",
+        200);
+
+    String resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            200);
+    JsonNode expected =
+        objectMapper.readTree(
+            "{\"a\":\"b\", \"b\":null, \"c\":{\"b\": 3.3}, \"d\":[[null, null, true]]}");
+    assertThat(objectMapper.readTree(resp).toString())
+        .isEqualTo(wrapResponse(expected, "1", null).toString());
   }
 
   @Test
@@ -1600,6 +1621,61 @@ public class DocumentApiV2Test extends BaseOsgiIntegrationTest {
     searchResultStr = "[{\"products\": {\"food\": { \"Apple\": {\"sku\": \"100100010101001\"}}}}]";
     assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
+  }
+
+  @Test
+  public void testFullCollectionSearchFilterNesting() throws IOException {
+    JsonNode fullObj1 =
+        objectMapper.readTree("{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}");
+    JsonNode fullObj2 = objectMapper.readTree("{\"value\": \"a\"}");
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        fullObj1.toString(),
+        200);
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id-2",
+        fullObj2.toString(),
+        200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"a\"}}&raw=true",
+            200);
+
+    String expected = "{\"cool-search-id-2\":{\"value\":\"a\"}}";
+    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(expected));
+
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"someStuff.someOtherStuff.value\": {\"$eq\": \"a\"}}&raw=true",
+            200);
+
+    expected = "{\"cool-search-id\":{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}}";
+    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(expected));
+
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"someStuff.*.value\": {\"$eq\": \"a\"}}&raw=true",
+            200);
+
+    expected = "{\"cool-search-id\":{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}}";
+    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(expected));
   }
 
   @Test

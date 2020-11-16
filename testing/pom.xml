@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.23-SNAPSHOT</version>
+    <version>0.0.24-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.it</groupId>
   <artifactId>testing</artifactId>
@@ -183,6 +183,12 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-all</artifactId>
+      <version>4.1.50.Final</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers</artifactId>
       <version>1.15.0</version>
@@ -235,6 +241,7 @@
               <sourceDirName>${project.basedir}/src/main/graphql/betterbotz</sourceDirName>
               <customTypeMap>
                 <Timestamp>java.time.Instant</Timestamp>
+                <Float32>java.lang.Float</Float32>
               </customTypeMap>
             </configuration>
           </execution>

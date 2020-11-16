@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.23-SNAPSHOT</version>
+    <version>0.0.24-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.auth.table</groupId>
   <artifactId>auth-table-based-service</artifactId>
@@ -78,7 +78,7 @@
             <Bundle-SymbolicName>io.stargate.auth.table</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.auth.table.AuthTableBasedServiceActivator</Bundle-Activator>
             <Import-Package>io.stargate.auth, org.osgi.framework</Import-Package>
-            <Export-Package>io.stargate.auth.table</Export-Package>
+            <Export-Package>!*</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
           </instructions>

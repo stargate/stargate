@@ -15,7 +15,6 @@ import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.resources.Db;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -39,8 +38,6 @@ public class DocumentResourceV2Test {
   private DocumentService documentServiceMock = mock(DocumentService.class);
   private Db dbFactoryMock = mock(Db.class);
   private DocumentResourceV2 documentResourceV2;
-  private Method wrapResponseId;
-  private Method wrapResponseIdPageState;
 
   @Before
   public void setup() {
@@ -52,6 +49,7 @@ public class DocumentResourceV2Test {
   @Test
   public void postDoc_success() throws JsonProcessingException {
     HttpHeaders headers = mock(HttpHeaders.class);
+    when(headers.getHeaderString(anyString())).thenReturn("application/json");
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
     String keyspace = "keyspace";
@@ -67,6 +65,7 @@ public class DocumentResourceV2Test {
   @Test
   public void putDoc_success() throws UnauthorizedException, JsonProcessingException {
     HttpHeaders headers = mock(HttpHeaders.class);
+    when(headers.getHeaderString(anyString())).thenReturn("application/json");
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
     String keyspace = "keyspace";
@@ -84,6 +83,7 @@ public class DocumentResourceV2Test {
   @Test
   public void putDocPath() throws JsonProcessingException {
     HttpHeaders headers = mock(HttpHeaders.class);
+    when(headers.getHeaderString(anyString())).thenReturn("application/json");
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
     String keyspace = "keyspace";
@@ -104,6 +104,7 @@ public class DocumentResourceV2Test {
   @Test
   public void patchDoc() throws JsonProcessingException {
     HttpHeaders headers = mock(HttpHeaders.class);
+    when(headers.getHeaderString(anyString())).thenReturn("application/json");
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
     String keyspace = "keyspace";
@@ -122,6 +123,7 @@ public class DocumentResourceV2Test {
   @Test
   public void patchDocPath() throws JsonProcessingException {
     HttpHeaders headers = mock(HttpHeaders.class);
+    when(headers.getHeaderString(anyString())).thenReturn("application/json");
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
     String keyspace = "keyspace";

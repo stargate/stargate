@@ -62,6 +62,7 @@ public class DocumentServiceTest {
   private Method getParentPathFromRow;
   private Method filterToSelectionSet;
   private Method applyInMemoryFilters;
+  private Method pathsMatch;
   private Method checkEqualsOp;
   private Method checkInOp;
   private Method checkGtOp;
@@ -92,6 +93,7 @@ public class DocumentServiceTest {
             List.class,
             String.class,
             String.class,
+            boolean.class,
             boolean.class);
     shredPayload.setAccessible(true);
     validateOpAndValue =
@@ -115,6 +117,8 @@ public class DocumentServiceTest {
         DocumentService.class.getDeclaredMethod(
             "applyInMemoryFilters", List.class, List.class, int.class);
     applyInMemoryFilters.setAccessible(true);
+    pathsMatch = DocumentService.class.getDeclaredMethod("pathsMatch", String.class, String.class);
+    pathsMatch.setAccessible(true);
     checkEqualsOp =
         DocumentService.class.getDeclaredMethod(
             "checkEqualsOp",
@@ -287,7 +291,7 @@ public class DocumentServiceTest {
     ImmutablePair<List<Object[]>, List<String>> shredResult =
         (ImmutablePair<List<Object[]>, List<String>>)
             shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false);
+                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false, true);
     List<Object[]> bindVariables = shredResult.left;
     List<String> topLevelKeys = shredResult.right;
     assertThat(bindVariables.size()).isEqualTo(1);
@@ -383,7 +387,7 @@ public class DocumentServiceTest {
     ImmutablePair<List<Object[]>, List<String>> shredResult =
         (ImmutablePair<List<Object[]>, List<String>>)
             shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false);
+                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false, true);
     List<Object[]> bindVariables = shredResult.left;
     List<String> topLevelKeys = shredResult.right;
     assertThat(bindVariables.size()).isEqualTo(1);
@@ -479,7 +483,7 @@ public class DocumentServiceTest {
     ImmutablePair<List<Object[]>, List<String>> shredResult =
         (ImmutablePair<List<Object[]>, List<String>>)
             shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false);
+                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false, true);
     List<Object[]> bindVariables = shredResult.left;
     List<String> topLevelKeys = shredResult.right;
     assertThat(bindVariables.size()).isEqualTo(1);
@@ -576,7 +580,7 @@ public class DocumentServiceTest {
     ImmutablePair<List<Object[]>, List<String>> shredResult =
         (ImmutablePair<List<Object[]>, List<String>>)
             shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false);
+                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false, true);
     List<Object[]> bindVariables = shredResult.left;
     List<String> topLevelKeys = shredResult.right;
     assertThat(bindVariables.size()).isEqualTo(1);
@@ -673,7 +677,7 @@ public class DocumentServiceTest {
     ImmutablePair<List<Object[]>, List<String>> shredResult =
         (ImmutablePair<List<Object[]>, List<String>>)
             shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false);
+                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false, true);
     List<Object[]> bindVariables = shredResult.left;
     List<String> topLevelKeys = shredResult.right;
     assertThat(bindVariables.size()).isEqualTo(1);
@@ -769,7 +773,7 @@ public class DocumentServiceTest {
     ImmutablePair<List<Object[]>, List<String>> shredResult =
         (ImmutablePair<List<Object[]>, List<String>>)
             shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false);
+                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false, true);
     List<Object[]> bindVariables = shredResult.left;
     List<String> topLevelKeys = shredResult.right;
     assertThat(bindVariables.size()).isEqualTo(1);
@@ -866,7 +870,7 @@ public class DocumentServiceTest {
         catchThrowable(
             () ->
                 shredPayload.invoke(
-                    service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false));
+                    service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false, true));
     assertThat(thrown.getCause())
         .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessageContaining("are not permitted in JSON field names, invalid field coo]");
@@ -885,7 +889,7 @@ public class DocumentServiceTest {
         catchThrowable(
             () ->
                 shredPayload.invoke(
-                    service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, true));
+                    service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, true, true));
     assertThat(thrown.getCause())
         .isInstanceOf(DocumentAPIRequestException.class)
         .hasMessageContaining("A patch operation must be done with a JSON object, not an array.");
@@ -907,7 +911,8 @@ public class DocumentServiceTest {
         "{\"some\": \"data\"}",
         new ArrayList<>(),
         false,
-        dbFactoryMock);
+        dbFactoryMock,
+        true);
 
     verify(dbMock, times(1))
         .deleteThenInsertBatch(
@@ -938,7 +943,8 @@ public class DocumentServiceTest {
         "{\"some\": \"data\"}",
         new ArrayList<>(),
         true,
-        dbFactoryMock);
+        dbFactoryMock,
+        true);
 
     verify(dbMock, times(0))
         .deleteThenInsertBatch(
@@ -972,7 +978,8 @@ public class DocumentServiceTest {
                     "\"a\"",
                     new ArrayList<>(),
                     true,
-                    dbFactoryMock));
+                    dbFactoryMock,
+                    true));
 
     assertThat(thrown)
         .isInstanceOf(DocumentAPIRequestException.class)
@@ -1560,6 +1567,30 @@ public class DocumentServiceTest {
                 ImmutableList.of("a", "b", "c"), "$nin", ImmutableList.of(true)));
     result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1);
     assertThat(result.size()).isEqualTo(0);
+  }
+
+  @Test
+  public void pathsMatch() throws InvocationTargetException, IllegalAccessException {
+    boolean res = (boolean) pathsMatch.invoke(service, "", "");
+    assertThat(res).isTrue();
+
+    res = (boolean) pathsMatch.invoke(service, "a", "a");
+    assertThat(res).isTrue();
+
+    res = (boolean) pathsMatch.invoke(service, "a", "b");
+    assertThat(res).isFalse();
+
+    res = (boolean) pathsMatch.invoke(service, "a.b", "a.b");
+    assertThat(res).isTrue();
+
+    res = (boolean) pathsMatch.invoke(service, "a.b", "a.c");
+    assertThat(res).isFalse();
+
+    res = (boolean) pathsMatch.invoke(service, "a.*.c", "a.b.c");
+    assertThat(res).isTrue();
+
+    res = (boolean) pathsMatch.invoke(service, "a.*.d", "a.b.c");
+    assertThat(res).isFalse();
   }
 
   @Test
