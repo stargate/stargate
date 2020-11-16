@@ -558,16 +558,20 @@
         "x-cassandra-token": (tokenValue == null ? "" : tokenValue.trim()) || "populate_me"
       }
 
+      // We expose the GraphQL resources at the same level as the playground:
+      const playgroundUri = window.location.href
+      const baseUri = playgroundUri.substring(0, playgroundUri.lastIndexOf('/'))
+
       const tabs = [
         {
           name: 'graphql-schema',
-          endpoint: '/graphql-schema',
+          endpoint: baseUri + '/graphql-schema',
           headers: header,
           query: '{ keyspaces{ name } }',
         },
         {
           name: 'graphql',
-          endpoint: '/graphql/system',
+          endpoint: baseUri + '/graphql/system',
           headers: header
         },
       ]
@@ -575,7 +579,8 @@
       GraphQLPlayground.init(root, {
         shareEnabled: true,
         canSaveConfig: true,
-        tabs: tabs
+        tabs: tabs,
+        endpoint: baseUri + '/graphql/yourKeyspace'
       })
     })
 
