@@ -25,7 +25,7 @@ import java.util.List;
 public class HAProxyProtocolDetectingDecoder extends ByteToMessageDecoder {
   private static String NAME = "proxyProtocolDetectingDecoder";
 
-  // Neither of these header prefixes overlap with with CQL protocol message headers. The only
+  // Neither of these header prefixes overlap with valid CQL protocol message headers. The only
   // valid CQL request opcodes during startup are STARTUP (0x01) and OPTIONS (0x05).
 
   private static final byte[] BINARY_PREFIX = {
