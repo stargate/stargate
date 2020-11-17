@@ -18,7 +18,6 @@ package io.stargate.producer.kafka;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import io.dropwizard.kafka.metrics.DropwizardMetricsReporter;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.db.cdc.SchemaAwareCDCProducer;
 import io.stargate.db.schema.Table;
@@ -26,6 +25,7 @@ import io.stargate.producer.kafka.configuration.CDCKafkaConfig;
 import io.stargate.producer.kafka.configuration.DefaultConfigLoader;
 import io.stargate.producer.kafka.mapping.DefaultMappingService;
 import io.stargate.producer.kafka.mapping.MappingService;
+import io.stargate.producer.kafka.metrics.DropwizardMetricsReporter;
 import io.stargate.producer.kafka.producer.CompletableKafkaProducer;
 import io.stargate.producer.kafka.schema.KeyValueConstructor;
 import io.stargate.producer.kafka.schema.SchemaProvider;
@@ -38,8 +38,11 @@ import org.apache.cassandra.stargate.db.DeleteEvent;
 import org.apache.cassandra.stargate.db.MutationEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KafkaCDCProducer extends SchemaAwareCDCProducer {
+  private static final Logger LOGGER = LoggerFactory.getLogger(KafkaCDCProducer.class);
 
   private final DefaultConfigLoader configLoader;
 
@@ -70,7 +73,9 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   @Override
   public CompletableFuture<Void> init() {
+    LOGGER.debug("Initializing KafkaCCDProducer");
     CDCKafkaConfig cdcKafkaConfig = configLoader.loadConfig(configStore);
+    LOGGER.info("Using config: {}", cdcKafkaConfig);
 
     this.mappingService = new DefaultMappingService(cdcKafkaConfig.getTopicPrefixName());
     this.schemaProvider =

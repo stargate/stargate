@@ -17,6 +17,7 @@ package io.stargate.producer.kafka;
 
 import static io.stargate.producer.kafka.configuration.DefaultConfigLoader.CONFIG_STORE_MODULE_NAME;
 
+import com.datastax.oss.driver.shaded.guava.common.util.concurrent.UncheckedExecutionException;
 import com.google.common.annotations.VisibleForTesting;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.core.activator.BaseActivator;
@@ -25,6 +26,7 @@ import io.stargate.db.cdc.CDCProducer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +42,7 @@ public class KafkaProducerActivator extends BaseActivator {
   private ServicePointer<ConfigStore> configStore = ServicePointer.create(ConfigStore.class);
 
   public KafkaProducerActivator() {
-    super("Kafka producer", KafkaCDCProducer.class);
+    super("Kafka producer", CDCProducer.class);
   }
 
   @Nullable
@@ -52,6 +54,15 @@ public class KafkaProducerActivator extends BaseActivator {
       CDCProducer producer =
           new KafkaCDCProducer(
               metrics.get().getRegistry(KAFKA_CDC_METRICS_PREFIX), configStore.get());
+      try {
+        producer.init().get();
+      } catch (ExecutionException e) {
+        LOG.error("Problem when initializing the CDCProducer.", e);
+        throw new UncheckedExecutionException(e);
+      } catch (InterruptedException e) {
+        LOG.error("Interrupted when initializing the CDCProducer.", e);
+        throw new IllegalStateException(e);
+      }
       return new ServiceAndProperties(producer);
     } else {
       LOG.info("CDC Kafka producer is disabled");

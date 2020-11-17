@@ -66,11 +66,6 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>io.dropwizard.modules</groupId>
-      <artifactId>dropwizard-kafka</artifactId>
-      <version>1.6.0</version>
-	</dependency>
-    <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
       <version>${project.version}</version>
@@ -230,8 +225,10 @@
               io.stargate.db,
               !com.codahale.metrics.graphite.*,
               com.codahale.metrics,
+              io.stargate.producer.kafka.metrics.*,
               ]]>
             </Import-Package>
+            <Export-Package>io.stargate.producer.kafka.metrics</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>
