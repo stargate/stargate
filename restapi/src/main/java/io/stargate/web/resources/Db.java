@@ -101,11 +101,18 @@ public class Db {
     return storedCredentials.getRoleName();
   }
 
-  public DocumentDB getDocDataStoreForToken(String token) {
+  public DocumentDB getDocDataStoreForToken(String token) throws UnauthorizedException {
+    if (token == null) {
+      throw new UnauthorizedException("Missing token");
+    }
     return new DocumentDB(DataStore.create(persistence, docsTokensToRoles.get(token)));
   }
 
-  public DocumentDB getDocDataStoreForToken(String token, int pageSize, ByteBuffer pageState) {
+  public DocumentDB getDocDataStoreForToken(String token, int pageSize, ByteBuffer pageState)
+      throws UnauthorizedException {
+    if (token == null) {
+      throw new UnauthorizedException("Missing token");
+    }
     Parameters parameters =
         Parameters.builder().pageSize(pageSize).pagingState(Optional.ofNullable(pageState)).build();
 
