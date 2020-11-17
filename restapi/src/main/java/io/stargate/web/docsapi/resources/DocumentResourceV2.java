@@ -168,19 +168,27 @@ public class DocumentResourceV2 {
                   .getHeaderString(HttpHeaders.CONTENT_TYPE)
                   .toLowerCase()
                   .contains("application/json");
-          documentService.putAtPath(
-              authToken,
-              namespace,
-              collection,
-              id,
-              payload,
-              new ArrayList<>(),
-              false,
-              dbFactory,
-              isJson);
-          return Response.ok()
-              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
-              .build();
+          return documentService
+              .putAtPath(
+                  authToken,
+                  namespace,
+                  collection,
+                  id,
+                  payload,
+                  new ArrayList<>(),
+                  false,
+                  dbFactory,
+                  isJson)
+              .thenApply(
+                  success ->
+                      handle(
+                          () ->
+                              Response.ok()
+                                  .entity(
+                                      mapper.writeValueAsString(
+                                          new DocumentResponseWrapper<>(id, null, null)))
+                                  .build()))
+              .get();
         });
   }
 
@@ -228,11 +236,19 @@ public class DocumentResourceV2 {
                   .getHeaderString(HttpHeaders.CONTENT_TYPE)
                   .toLowerCase()
                   .contains("application/json");
-          documentService.putAtPath(
-              authToken, namespace, collection, id, payload, path, false, dbFactory, isJson);
-          return Response.ok()
-              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
-              .build();
+          return documentService
+              .putAtPath(
+                  authToken, namespace, collection, id, payload, path, false, dbFactory, isJson)
+              .thenApply(
+                  success ->
+                      handle(
+                          () ->
+                              Response.ok()
+                                  .entity(
+                                      mapper.writeValueAsString(
+                                          new DocumentResponseWrapper<>(id, null, null)))
+                                  .build()))
+              .get();
         });
   }
 

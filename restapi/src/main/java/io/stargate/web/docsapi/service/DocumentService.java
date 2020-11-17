@@ -351,7 +351,7 @@ public class DocumentService {
     return ImmutablePair.of(bindVariableList, firstLevelKeys);
   }
 
-  public void putAtPath(
+  public CompletableFuture<Boolean> putAtPath(
       String authToken,
       String keyspace,
       String collection,
@@ -398,10 +398,12 @@ public class DocumentService {
 
     long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
     if (patching) {
-      db.deletePatchedPathsThenInsertBatch(
-          keyspace, collection, id, bindVariableList, convertedPath, firstLevelKeys, now);
+      throw new RuntimeException("no");
+      //      db.deletePatchedPathsThenInsertBatch(
+      //          keyspace, collection, id, bindVariableList, convertedPath, firstLevelKeys, now);
     } else {
-      db.deleteThenInsertBatch(keyspace, collection, id, bindVariableList, convertedPath, now);
+      return db.deleteThenInsertBatch(
+          keyspace, collection, id, bindVariableList, convertedPath, now);
     }
   }
 

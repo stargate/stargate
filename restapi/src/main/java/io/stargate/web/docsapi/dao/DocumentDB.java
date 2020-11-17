@@ -484,7 +484,7 @@ public class DocumentDB {
    * Performs a delete of all the rows that are prefixed by the @param path, and then does an insert
    * using the @param vars provided, all in one batch.
    */
-  public void deleteThenInsertBatch(
+  public CompletableFuture<Boolean> deleteThenInsertBatch(
       String keyspace,
       String table,
       String key,
@@ -500,7 +500,7 @@ public class DocumentDB {
       statements.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
     }
 
-    dataStore.batch(statements, ConsistencyLevel.LOCAL_QUORUM).join();
+    return dataStore.batch(statements, ConsistencyLevel.LOCAL_QUORUM).thenApply(rs -> true);
   }
 
   /**
