@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -73,6 +74,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   private final long resolveDelaySecs;
   private final List<EventListener> listeners = new CopyOnWriteArrayList<>();
   private volatile Set<InetAddress> peers = Collections.emptySet();
+  private final Optional<QueryInterceptor> wrapped;
 
   /**
    * A class that takes a name and resolves {@link InetAddress}s. This interface exists to
@@ -90,17 +92,32 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
     Set<InetAddress> resolve(String name) throws UnknownHostException;
   }
 
+  public ProxyProtocolQueryInterceptor(QueryInterceptor wrapped) {
+    this(new DefaultResolver(), PROXY_DNS_NAME, PROXY_PORT, RESOLVE_DELAY_SECS, wrapped);
+  }
+
+  @VisibleForTesting
   public ProxyProtocolQueryInterceptor() {
-    this(new DefaultResolver(), PROXY_DNS_NAME, PROXY_PORT, RESOLVE_DELAY_SECS);
+    this(null);
   }
 
   @VisibleForTesting
   public ProxyProtocolQueryInterceptor(
       Resolver resolver, String proxyDnsName, int proxyPort, long resolveDelaySecs) {
+    this(resolver, proxyDnsName, proxyPort, resolveDelaySecs, null);
+  }
+
+  private ProxyProtocolQueryInterceptor(
+      Resolver resolver,
+      String proxyDnsName,
+      int proxyPort,
+      long resolveDelaySecs,
+      QueryInterceptor wrapped) {
     this.resolver = resolver;
     this.proxyDnsName = proxyDnsName;
     this.proxyPort = proxyPort;
     this.resolveDelaySecs = resolveDelaySecs;
+    this.wrapped = Optional.ofNullable(wrapped);
   }
 
   @Override
@@ -112,6 +129,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
       Security.setProperty("networkaddress.cache.ttl", "60");
     }
     resolvePeers();
+    wrapped.ifPresent(w -> w.initialize());
   }
 
   @Override
@@ -125,7 +143,9 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
     ClientState clientState = state.getClientState();
     if (!isSystemLocalOrPeers(statement)
         || !(clientState instanceof ClientStateWithPublicAddress)) {
-      return null;
+      return wrapped
+          .map(i -> i.interceptQuery(statement, state, options, customPayload, queryStartNanoTime))
+          .orElse(null);
     }
 
     SelectStatement selectStatement = (SelectStatement) statement;
@@ -162,6 +182,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   @Override
   public void register(EventListener listener) {
     listeners.add(listener);
+    wrapped.ifPresent(w -> w.register(listener));
   }
 
   private void resolvePeers() {
