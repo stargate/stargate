@@ -223,7 +223,7 @@
             <Import-Package><![CDATA[
               org.osgi.framework,
               io.stargate.db,
-              !com.codahale.metrics.graphite.*
+              !com.codahale.metrics.graphite.*,
               ]]>
             </Import-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
