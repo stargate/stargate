@@ -45,25 +45,16 @@ public abstract class GraphQlTestBase {
   protected GraphQL graphQl;
   protected GraphQLSchema graphQlSchema;
 
-  @Mock
-  protected Persistence persistence;
-  @Mock
-  protected AuthenticationService authenticationService;
-  @Mock
-  protected AuthorizationService authorizationService;
-  @Mock
-  protected ResultSet resultSet;
-  @Mock
-  private StoredCredentials storedCredentials;
+  @Mock protected Persistence persistence;
+  @Mock protected AuthenticationService authenticationService;
+  @Mock protected AuthorizationService authorizationService;
+  @Mock protected ResultSet resultSet;
+  @Mock private StoredCredentials storedCredentials;
 
-  @Captor
-  protected ArgumentCaptor<String> queryCaptor;
-  @Captor
-  protected ArgumentCaptor<Callable<ResultSet>> actionCaptor;
-  @Captor
-  protected ArgumentCaptor<List<String>> batchCaptor;
-  @Captor
-  protected ArgumentCaptor<Parameters> parametersCaptor;
+  @Captor protected ArgumentCaptor<String> queryCaptor;
+  @Captor protected ArgumentCaptor<Callable<ResultSet>> actionCaptor;
+  @Captor protected ArgumentCaptor<List<String>> batchCaptor;
+  @Captor protected ArgumentCaptor<Parameters> parametersCaptor;
 
   private MockedStatic<DataStore> dataStoreCreateMock;
 
@@ -79,10 +70,8 @@ public abstract class GraphQlTestBase {
       when(authorizationService.authorizedDataRead(actionCaptor.capture(), eq(token), any()))
           .then(
               i -> {
-
                 return actionCaptor.getValue().call();
-              }
-          );
+              });
       dataStoreCreateMock = mockStatic(DataStore.class);
       dataStoreCreateMock
           .when(() -> DataStore.create(eq(persistence), eq(roleName), parametersCaptor.capture()))

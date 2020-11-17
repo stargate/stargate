@@ -122,9 +122,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
           // Null out the value for now since UDTs are not allowed for use with custom authorization
           typedKeyValues.add(
               new TypedKeyValue(
-                  column.cqlName(),
-                  Objects.requireNonNull(column.type()).cqlDefinition(),
-                  null));
+                  column.cqlName(), Objects.requireNonNull(column.type()).cqlDefinition(), null));
           continue;
         }
 
@@ -142,9 +140,12 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
                     parsedObject));
           }
         } else {
-          typedKeyValues.add(typedKeyValueForDefaultRawTerm(((DefaultRelation) rel).getOperator(),
-              (DefaultRaw) term,
-              queryByEntries, column));
+          typedKeyValues.add(
+              typedKeyValueForDefaultRawTerm(
+                  ((DefaultRelation) rel).getOperator(),
+                  (DefaultRaw) term,
+                  queryByEntries,
+                  column));
         }
       }
     }
@@ -152,21 +153,33 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     return typedKeyValues;
   }
 
-  private TypedKeyValue typedKeyValueForDefaultRawTerm(String operator, DefaultRaw term,
-      boolean queryByEntries, Column column) {
+  private TypedKeyValue typedKeyValueForDefaultRawTerm(
+      String operator, DefaultRaw term, boolean queryByEntries, Column column) {
     Object parsedObject;
     if ("contains".equals(operator.trim().toLowerCase()) || queryByEntries) {
       if (column.ofTypeListOrSet()) {
-        parsedObject = Objects.requireNonNull(column.type()).parameters().get(0).codec()
-            .parse(term.getRawExpression());
+        parsedObject =
+            Objects.requireNonNull(column.type())
+                .parameters()
+                .get(0)
+                .codec()
+                .parse(term.getRawExpression());
       } else {
-        parsedObject = Objects.requireNonNull(column.type()).parameters().get(1).codec()
-            .parse(term.getRawExpression());
+        parsedObject =
+            Objects.requireNonNull(column.type())
+                .parameters()
+                .get(1)
+                .codec()
+                .parse(term.getRawExpression());
       }
 
     } else if ("contains key".equals(operator.trim().toLowerCase())) {
-      parsedObject = Objects.requireNonNull(column.type()).parameters().get(0).codec()
-          .parse(term.getRawExpression());
+      parsedObject =
+          Objects.requireNonNull(column.type())
+              .parameters()
+              .get(0)
+              .codec()
+              .parse(term.getRawExpression());
     } else {
       if (Objects.requireNonNull(column.type()).isUserDefined()) {
         // Null out the value for now since UDTs are not allowed for use with custom authorization
@@ -176,9 +189,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
       }
     }
     return new TypedKeyValue(
-        column.cqlName(),
-        Objects.requireNonNull(column.type()).cqlDefinition(),
-        parsedObject);
+        column.cqlName(), Objects.requireNonNull(column.type()).cqlDefinition(), parsedObject);
   }
 
   protected CqlIdentifier getDBColumnName(Table table, String fieldName) {
