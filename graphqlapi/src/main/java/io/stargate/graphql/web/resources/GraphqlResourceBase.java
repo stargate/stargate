@@ -17,6 +17,7 @@ package io.stargate.graphql.web.resources;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -100,12 +101,13 @@ public class GraphqlResourceBase {
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse) {
 
-    String queryFromBody = (jsonBody == null) ? null : jsonBody.getQuery();
-    String operationName = (jsonBody == null) ? null : jsonBody.getOperationName();
+    queryFromUrl = Strings.emptyToNull(queryFromUrl);
+    String queryFromBody = (jsonBody == null) ? null : Strings.emptyToNull(jsonBody.getQuery());
+    String operationName =
+        (jsonBody == null) ? null : Strings.emptyToNull(jsonBody.getOperationName());
     Map<String, Object> variables = (jsonBody == null) ? null : jsonBody.getVariables();
 
-    String query;
-    if (Strings.isNullOrEmpty(queryFromBody) && Strings.isNullOrEmpty(queryFromUrl)) {
+    if (queryFromBody == null && queryFromUrl == null) {
       replyWithGraphqlError(
           Status.BAD_REQUEST,
           "You must provide a GraphQL query, either as a query parameter or in the request body",
@@ -113,7 +115,7 @@ public class GraphqlResourceBase {
       return;
     }
 
-    if (!Strings.isNullOrEmpty(queryFromBody) && !Strings.isNullOrEmpty(queryFromUrl)) {
+    if (queryFromBody != null && queryFromUrl != null) {
       // The GraphQL spec doesn't specify what to do in this case, but it's probably better to error
       // out rather than pick one arbitrarily.
       replyWithGraphqlError(
@@ -123,7 +125,7 @@ public class GraphqlResourceBase {
       return;
     }
 
-    query = Strings.isNullOrEmpty(queryFromBody) ? queryFromUrl : queryFromBody;
+    String query = MoreObjects.firstNonNull(queryFromBody, queryFromUrl);
     ExecutionInput.Builder input =
         ExecutionInput.newExecutionInput(query)
             .operationName(operationName)
