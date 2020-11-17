@@ -6,11 +6,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.KeycloakContainer;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
-import io.stargate.it.http.models.AuthProviderResponse;
-import io.stargate.it.http.models.KeycloakCredential;
-import io.stargate.it.http.models.KeycloakUser;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
@@ -36,7 +34,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import okhttp3.Headers.Builder;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,11 +41,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
-import org.testcontainers.containers.BindMode;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
-import org.testcontainers.containers.wait.strategy.Wait;
 
 @StargateSpec(parametersCustomizer = "buildParameters")
 @ExtendWith(CqlSessionExtension.class)
@@ -57,8 +49,8 @@ import org.testcontainers.containers.wait.strategy.Wait;
       "CREATE ROLE IF NOT EXISTS 'web_user' WITH PASSWORD = 'web_user' AND LOGIN = TRUE",
       "CREATE KEYSPACE IF NOT EXISTS store WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}",
       "CREATE TABLE IF NOT EXISTS store.shopping_cart (userid text, item_count int, last_update_timestamp timestamp, PRIMARY KEY (userid, last_update_timestamp));",
-      "INSERT INTO store.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('9876', 2, toTimeStamp(toDate(now())))",
-      "INSERT INTO store.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('1234', 5, toTimeStamp(toDate(now())))",
+      "INSERT INTO store.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('9876', 2, toTimeStamp(now()))",
+      "INSERT INTO store.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('1234', 5, toTimeStamp(now()))",
       "GRANT MODIFY ON TABLE store.shopping_cart TO web_user",
       "GRANT SELECT ON TABLE store.shopping_cart TO web_user",
     })
@@ -66,24 +58,26 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(RestApiJWTAuthTest.class);
 
+  private static final ObjectMapper objectMapper = new ObjectMapper();
   private final String keyspaceName = "store";
   private final String tableName = "shopping_cart";
 
-  private static String authToken;
   private String host;
-  private static String keycloakHost;
-  private static GenericContainer keycloakContainer;
-  private static final ObjectMapper objectMapper = new ObjectMapper();
+
+  private static String authToken;
+  private static KeycloakContainer keycloakContainer;
 
   @SuppressWarnings("unused") // referenced in @StargateSpec
   public static void buildParameters(StargateParameters.Builder builder) throws IOException {
-    initKeycloakContainer();
+    keycloakContainer = new KeycloakContainer();
+    keycloakContainer.initKeycloakContainer();
 
     builder.enableAuth(true);
     builder.putSystemProperties("stargate.auth_id", "AuthJwtService");
     builder.putSystemProperties(
         "stargate.auth.jwt_provider_url",
-        String.format("%s/auth/realms/stargate/protocol/openid-connect/certs", keycloakHost));
+        String.format(
+            "%s/auth/realms/stargate/protocol/openid-connect/certs", keycloakContainer.host()));
   }
 
   @AfterAll
@@ -91,87 +85,13 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     keycloakContainer.stop();
   }
 
-  private static void initKeycloakContainer() throws IOException {
-    int keycloakPort = 4444;
-    keycloakContainer =
-        new GenericContainer("quay.io/keycloak/keycloak:11.0.2")
-            .withExposedPorts(keycloakPort)
-            .withEnv("KEYCLOAK_USER", "admin")
-            .withEnv("KEYCLOAK_PASSWORD", "admin")
-            .withEnv("KEYCLOAK_IMPORT", "/tmp/realm.json")
-            .withClasspathResourceMapping(
-                "stargate-realm.json", "/tmp/realm.json", BindMode.READ_ONLY)
-            .withCommand("-Djboss.http.port=" + keycloakPort)
-            .waitingFor(Wait.forHttp("/auth/realms/master"));
-
-    keycloakContainer.start();
-
-    Slf4jLogConsumer logConsumer = new Slf4jLogConsumer(logger).withPrefix("keycloak");
-    Map<String, String> mdcCopy = MDC.getCopyOfContextMap();
-    if (mdcCopy != null) {
-      logConsumer.withMdc(mdcCopy);
-    }
-
-    keycloakContainer.followOutput(logConsumer);
-
-    keycloakHost =
-        "http://"
-            + keycloakContainer.getContainerIpAddress()
-            + ":"
-            + keycloakContainer.getMappedPort(keycloakPort);
-
-    setupKeycloakUsers();
-  }
-
-  private static void setupKeycloakUsers() throws IOException {
-    String body =
-        RestUtils.generateJwt(
-            keycloakHost + "/auth/realms/master/protocol/openid-connect/token",
-            "admin",
-            "admin",
-            "admin-cli",
-            HttpStatus.SC_OK);
-
-    AuthProviderResponse authTokenResponse =
-        objectMapper.readValue(body, AuthProviderResponse.class);
-    String adminAuthToken = authTokenResponse.getAccessToken();
-    assertThat(adminAuthToken).isNotNull();
-
-    KeycloakCredential keycloakCredential =
-        new KeycloakCredential("password", "testuser1", "false");
-    Map<String, List<String>> attributes = new HashMap<>();
-    attributes.put("userid", Collections.singletonList("9876"));
-    attributes.put("role", Collections.singletonList("web_user"));
-    KeycloakUser keycloakUser =
-        new KeycloakUser(
-            "testuser1", true, true, attributes, Collections.singletonList(keycloakCredential));
-
-    RestUtils.postWithHeader(
-        new Builder().add("Authorization", "bearer " + adminAuthToken).build(),
-        keycloakHost + "/auth/admin/realms/stargate/users",
-        objectMapper.writeValueAsString(keycloakUser),
-        HttpStatus.SC_CREATED);
-  }
-
   @BeforeEach
   public void setup(StargateConnectionInfo cluster) throws IOException {
     host = "http://" + cluster.seedAddress();
-    //    host = "http://127.0.0.1";
 
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-    String body =
-        RestUtils.generateJwt(
-            keycloakHost + "/auth/realms/stargate/protocol/openid-connect/token",
-            "testuser1",
-            "testuser1",
-            "user-service",
-            HttpStatus.SC_OK);
-
-    AuthProviderResponse authTokenResponse =
-        objectMapper.readValue(body, AuthProviderResponse.class);
-    authToken = authTokenResponse.getAccessToken();
-    assertThat(authToken).isNotNull();
+    authToken = keycloakContainer.generateJWT();
   }
 
   @Test
