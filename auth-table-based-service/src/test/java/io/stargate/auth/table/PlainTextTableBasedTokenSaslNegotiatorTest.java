@@ -33,7 +33,7 @@ class PlainTextTableBasedTokenSaslNegotiatorTest {
         PlainTextTableBasedTokenSaslNegotiator.decodeCredentials(
             new byte[] {0, 97, 98, 99, 0, 97, 98, 99});
     assertThat(credentials.getUsername()).isEqualTo("abc");
-    assertThat(credentials.getPassword()).isEqualTo("abc");
+    assertThat(credentials.getPassword()).isEqualTo(new char[] {'a', 'b', 'c'});
   }
 
   @Test
@@ -93,7 +93,8 @@ class PlainTextTableBasedTokenSaslNegotiatorTest {
     when(authentication.validateToken(TOKEN)).thenReturn(credentials);
 
     PlainTextTokenSaslNegotiator negotiator =
-        new PlainTextTableBasedTokenSaslNegotiator(authentication, null, TOKEN_USERNAME, 36);
+        new PlainTextTableBasedTokenSaslNegotiator(
+            authentication, null, TOKEN_USERNAME, TOKEN_MAX_LENGTH);
     assertThat(negotiator.evaluateResponse(clientResponse)).isNull();
     assertThat(negotiator.isComplete()).isTrue();
     assertThat(negotiator.getAuthenticatedUser().name()).isEqualTo(ROLE);
