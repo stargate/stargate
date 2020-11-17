@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
 import io.reactivex.Single;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Authenticator;
 import io.stargate.db.Batch;
 import io.stargate.db.BoundStatement;
@@ -104,6 +105,7 @@ public class DsePersistence
 
   // C* listener that ensures that our Stargate schema remains up-to-date with the internal C* one.
   private SchemaChangeListener schemaChangeListener;
+  private AtomicReference<AuthorizationService> authorizationService;
 
   public DsePersistence() {
     super("DataStax Enterprise");
@@ -188,11 +190,15 @@ public class DsePersistence
 
     waitForSchema(STARTUP_DELAY_MS);
 
-    if (USE_PROXY_PROTOCOL) interceptor = new ProxyProtocolQueryInterceptor();
-    else interceptor = new DefaultQueryInterceptor();
+    if (USE_PROXY_PROTOCOL) {
+      interceptor = new ProxyProtocolQueryInterceptor();
+    } else {
+      interceptor = new DefaultQueryInterceptor();
+    }
 
     interceptor.initialize();
     stargateHandler().register(interceptor);
+    stargateHandler().setAuthorizationService(this.authorizationService);
 
     authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
   }
@@ -309,7 +315,12 @@ public class DsePersistence
     return ClientState.forExternalCalls(clientInfo.remoteAddress(), null);
   }
 
+  public void setAuthorizationService(AtomicReference<AuthorizationService> authorizationService) {
+    this.authorizationService = authorizationService;
+  }
+
   private class DseConnection extends AbstractConnection {
+
     private final ClientState clientState;
     private final ServerConnection fakeServerConnection;
 
