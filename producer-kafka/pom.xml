@@ -223,12 +223,9 @@
             <Import-Package><![CDATA[
               org.osgi.framework,
               io.stargate.db,
-              !com.codahale.metrics.graphite.*,
-              com.codahale.metrics,
-              io.stargate.producer.kafka.metrics.*,
+              !com.codahale.metrics.graphite.*
               ]]>
             </Import-Package>
-            <Export-Package>io.stargate.producer.kafka.metrics</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>
