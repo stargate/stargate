@@ -149,8 +149,7 @@ public class StargateQueryHandler implements QueryHandler {
           castStatement.table());
 
       try {
-        authorization.authorizeDataRead(
-            authToken, castStatement.keyspace(), castStatement.table());
+        authorization.authorizeDataRead(authToken, castStatement.keyspace(), castStatement.table());
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format(
