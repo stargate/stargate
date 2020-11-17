@@ -2,6 +2,7 @@ package io.stargate.graphql.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -15,6 +16,7 @@ import graphql.GraphQLError;
 import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
@@ -23,6 +25,7 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl.BatchContext;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,14 +45,25 @@ public abstract class GraphQlTestBase {
   protected GraphQL graphQl;
   protected GraphQLSchema graphQlSchema;
 
-  @Mock protected Persistence persistence;
-  @Mock protected AuthenticationService authenticationService;
-  @Mock protected ResultSet resultSet;
-  @Mock private StoredCredentials storedCredentials;
+  @Mock
+  protected Persistence persistence;
+  @Mock
+  protected AuthenticationService authenticationService;
+  @Mock
+  protected AuthorizationService authorizationService;
+  @Mock
+  protected ResultSet resultSet;
+  @Mock
+  private StoredCredentials storedCredentials;
 
-  @Captor protected ArgumentCaptor<String> queryCaptor;
-  @Captor protected ArgumentCaptor<List<String>> batchCaptor;
-  @Captor protected ArgumentCaptor<Parameters> parametersCaptor;
+  @Captor
+  protected ArgumentCaptor<String> queryCaptor;
+  @Captor
+  protected ArgumentCaptor<Callable<ResultSet>> actionCaptor;
+  @Captor
+  protected ArgumentCaptor<List<String>> batchCaptor;
+  @Captor
+  protected ArgumentCaptor<Parameters> parametersCaptor;
 
   private MockedStatic<DataStore> dataStoreCreateMock;
 
@@ -62,6 +76,13 @@ public abstract class GraphQlTestBase {
       String roleName = "mock role name";
       when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
       when(storedCredentials.getRoleName()).thenReturn(roleName);
+      when(authorizationService.authorizedDataRead(actionCaptor.capture(), eq(token), any()))
+          .then(
+              i -> {
+
+                return actionCaptor.getValue().call();
+              }
+          );
       dataStoreCreateMock = mockStatic(DataStore.class);
       dataStoreCreateMock
           .when(() -> DataStore.create(eq(persistence), eq(roleName), parametersCaptor.capture()))

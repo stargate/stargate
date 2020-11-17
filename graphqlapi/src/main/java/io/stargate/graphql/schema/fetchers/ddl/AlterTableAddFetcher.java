@@ -21,6 +21,7 @@ import com.datastax.oss.driver.api.querybuilder.schema.AlterTableAddColumnEnd;
 import com.datastax.oss.driver.api.querybuilder.schema.AlterTableStart;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import java.util.List;
 import java.util.Map;
@@ -28,8 +29,10 @@ import java.util.Map;
 public class AlterTableAddFetcher extends DdlQueryFetcher {
 
   public AlterTableAddFetcher(
-      Persistence persistence, AuthenticationService authenticationService) {
-    super(persistence, authenticationService);
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(persistence, authenticationService, authorizationService);
   }
 
   public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {

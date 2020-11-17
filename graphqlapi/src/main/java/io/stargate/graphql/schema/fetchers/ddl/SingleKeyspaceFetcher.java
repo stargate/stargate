@@ -17,6 +17,7 @@ package io.stargate.graphql.schema.fetchers.ddl;
 
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Keyspace;
@@ -26,13 +27,16 @@ import java.util.Map;
 public class SingleKeyspaceFetcher extends CassandraFetcher<Map<String, Object>> {
 
   public SingleKeyspaceFetcher(
-      Persistence persistence, AuthenticationService authenticationService) {
-    super(persistence, authenticationService);
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(persistence, authenticationService, authorizationService);
   }
 
   @Override
   protected Map<String, Object> get(DataFetchingEnvironment environment, DataStore dataStore) {
     String keyspaceName = environment.getArgument("name");
+    // TODO: [doug] 2020-11-17, Tue, 2:25 check here
     Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
     if (keyspace == null) {
       return null;

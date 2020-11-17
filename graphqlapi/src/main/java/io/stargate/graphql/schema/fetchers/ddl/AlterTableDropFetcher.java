@@ -21,14 +21,17 @@ import com.datastax.oss.driver.api.querybuilder.schema.AlterTableDropColumnEnd;
 import com.datastax.oss.driver.api.querybuilder.schema.AlterTableStart;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import java.util.List;
 
 public class AlterTableDropFetcher extends DdlQueryFetcher {
 
   public AlterTableDropFetcher(
-      Persistence persistence, AuthenticationService authenticationService) {
-    super(persistence, authenticationService);
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(persistence, authenticationService, authorizationService);
   }
 
   @Override

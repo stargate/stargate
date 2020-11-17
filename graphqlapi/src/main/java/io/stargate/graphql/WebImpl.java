@@ -20,6 +20,7 @@ import com.codahale.metrics.servlet.InstrumentedFilter;
 import graphql.kickstart.servlet.CustomGraphQLServlet;
 import graphql.kickstart.servlet.SchemaGraphQLServlet;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import java.io.IOException;
@@ -37,7 +38,11 @@ public class WebImpl {
 
   private final Server server;
 
-  public WebImpl(Persistence persistence, Metrics metrics, AuthenticationService authentication)
+  public WebImpl(
+      Persistence persistence,
+      Metrics metrics,
+      AuthenticationService authentication,
+      AuthorizationService authorizationService)
       throws IOException {
     server = new Server();
 
@@ -51,9 +56,12 @@ public class WebImpl {
     ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
     context.setContextPath("/");
     ServletHolder servletHolder =
-        new ServletHolder(new CustomGraphQLServlet(persistence, authentication));
+        new ServletHolder(
+            new CustomGraphQLServlet(persistence, authentication, authorizationService));
     context.addServlet(servletHolder, "/graphql/*");
-    ServletHolder schema = new ServletHolder(new SchemaGraphQLServlet(persistence, authentication));
+    ServletHolder schema =
+        new ServletHolder(
+            new SchemaGraphQLServlet(persistence, authentication, authorizationService));
     context.addServlet(schema, "/graphql-schema");
 
     ServletHolder playground =

@@ -21,6 +21,7 @@ import graphql.kickstart.execution.GraphQLQueryInvoker;
 import graphql.kickstart.execution.config.DefaultExecutionStrategyProvider;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.EventListener;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
@@ -54,17 +55,22 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
 
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
+  private final AuthorizationService authorizationService;
   private final String defaultKeyspace;
 
   private final ConcurrentMap<String, RequestHandlerReference> keyspaceHandlers;
 
   public CustomGraphQLServlet(
-      Persistence persistence, AuthenticationService authenticationService) {
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
+    this.authorizationService = authorizationService;
     DataStore dataStore = DataStore.create(persistence);
     this.defaultKeyspace = findDefaultKeyspace(dataStore);
-    this.keyspaceHandlers = initKeyspaceHandlers(persistence, dataStore, authenticationService);
+    this.keyspaceHandlers =
+        initKeyspaceHandlers(persistence, dataStore, authenticationService, authorizationService);
 
     persistence.registerEventListener(this);
   }
@@ -174,7 +180,10 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
   }
 
   private static ConcurrentMap<String, RequestHandlerReference> initKeyspaceHandlers(
-      Persistence persistence, DataStore dataStore, AuthenticationService authenticationService) {
+      Persistence persistence,
+      DataStore dataStore,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
 
     ConcurrentMap<String, RequestHandlerReference> map = new ConcurrentHashMap<>();
 
@@ -182,7 +191,9 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
       String keyspaceName = keyspace.name();
       LOG.debug("Prepare handler for {}", keyspaceName);
       map.put(
-          keyspaceName, new RequestHandlerReference(keyspace, persistence, authenticationService));
+          keyspaceName,
+          new RequestHandlerReference(
+              keyspace, persistence, authenticationService, authorizationService));
     }
     return map;
   }
@@ -205,7 +216,8 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
       } else {
         keyspaceHandlers.put(
             keyspaceName,
-            new RequestHandlerReference(keyspace, persistence, authenticationService));
+            new RequestHandlerReference(
+                keyspace, persistence, authenticationService, authorizationService));
       }
       LOG.debug("Done refreshing handler for keyspace {}", keyspaceName);
     } catch (Exception e) {
@@ -315,14 +327,19 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
     private final Keyspace keyspace;
     private final Persistence persistence;
     private final AuthenticationService authenticationService;
+    private final AuthorizationService authorizationService;
 
     private volatile HttpRequestHandlerImpl handler;
 
     RequestHandlerReference(
-        Keyspace keyspace, Persistence persistence, AuthenticationService authenticationService) {
+        Keyspace keyspace,
+        Persistence persistence,
+        AuthenticationService authenticationService,
+        AuthorizationService authorizationService) {
       this.keyspace = keyspace;
       this.persistence = persistence;
       this.authenticationService = authenticationService;
+      this.authorizationService = authorizationService;
     }
 
     HttpRequestHandler get() {
@@ -341,7 +358,8 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
 
     private HttpRequestHandlerImpl computeHandler() {
       GraphQLSchema schema =
-          SchemaFactory.newDmlSchema(persistence, authenticationService, keyspace);
+          SchemaFactory.newDmlSchema(
+              persistence, authenticationService, authorizationService, keyspace);
       GraphQLConfiguration configuration =
           GraphQLConfiguration.with(schema)
               .with(

@@ -22,6 +22,7 @@ import graphql.GraphQLException;
 import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Table;
@@ -36,8 +37,9 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       Table table,
       NameMapping nameMapping,
       Persistence persistence,
-      AuthenticationService authenticationService) {
-    super(table, nameMapping, persistence, authenticationService);
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(table, nameMapping, persistence, authenticationService, authorizationService);
   }
 
   @Override
@@ -70,6 +72,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       return f;
     }
 
+    // TODO: [doug] 2020-11-17, Tue, 2:25 check here
     // Execute as a single statement
     return dataStore
         .query(statement)
@@ -104,6 +107,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       // All the statements were added successfully
       // Use the dataStore containing the options
       DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
+      // TODO: [doug] 2020-11-17, Tue, 2:25 check here
       batchContext.setExecutionResult(batchDataStore.batch(batchContext.getStatements()));
     }
 
