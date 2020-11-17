@@ -22,7 +22,7 @@ public class MutationFetcherTest extends DmlTestBase {
   @Test
   @DisplayName("Atomic mutations with single selection should use normal execution")
   public void mutationAtomicSingleSelectionTest() {
-    assertSuccess(
+    assertQuery(
         "mutation @atomic { m1: insertbooks(value: { title: \"a\" } ) { applied } }",
         "INSERT INTO library.books (title) VALUES ('a')");
   }

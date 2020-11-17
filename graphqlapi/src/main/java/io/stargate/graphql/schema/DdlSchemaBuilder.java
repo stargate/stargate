@@ -37,7 +37,9 @@ import io.stargate.graphql.schema.fetchers.ddl.AlterTableAddFetcher;
 import io.stargate.graphql.schema.fetchers.ddl.AlterTableDropFetcher;
 import io.stargate.graphql.schema.fetchers.ddl.CreateKeyspaceFetcher;
 import io.stargate.graphql.schema.fetchers.ddl.CreateTableFetcher;
+import io.stargate.graphql.schema.fetchers.ddl.CreateTypeFetcher;
 import io.stargate.graphql.schema.fetchers.ddl.DropTableFetcher;
+import io.stargate.graphql.schema.fetchers.ddl.DropTypeFetcher;
 import io.stargate.graphql.schema.fetchers.ddl.SingleKeyspaceFetcher;
 import java.util.HashMap;
 
@@ -59,7 +61,9 @@ class DdlSchemaBuilder {
                 buildCreateTable(),
                 buildAlterTableAdd(),
                 buildAlterTableDrop(),
-                buildDrop(),
+                buildDropTable(),
+                buildCreateType(),
+                buildDropType(),
                 buildCreateKeyspace()))
         .query(buildQuery(buildKeyspaceByName(), buildKeyspaces()))
         .build();
@@ -93,7 +97,7 @@ class DdlSchemaBuilder {
         .build();
   }
 
-  private GraphQLFieldDefinition buildDrop() {
+  private GraphQLFieldDefinition buildDropTable() {
     return GraphQLFieldDefinition.newFieldDefinition()
         .name("dropTable")
         .argument(
@@ -103,6 +107,34 @@ class DdlSchemaBuilder {
         .argument(GraphQLArgument.newArgument().name("ifExists").type(Scalars.GraphQLBoolean))
         .type(Scalars.GraphQLBoolean)
         .dataFetcher(new DropTableFetcher(persistence, authenticationService))
+        .build();
+  }
+
+  private GraphQLFieldDefinition buildCreateType() {
+    return GraphQLFieldDefinition.newFieldDefinition()
+        .name("createType")
+        .argument(
+            GraphQLArgument.newArgument().name("keyspaceName").type(nonNull(Scalars.GraphQLString)))
+        .argument(
+            GraphQLArgument.newArgument().name("typeName").type(nonNull(Scalars.GraphQLString)))
+        .argument(
+            GraphQLArgument.newArgument().name("fields").type(nonNull(list(buildColumnInput()))))
+        .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
+        .type(Scalars.GraphQLBoolean)
+        .dataFetcher(new CreateTypeFetcher(persistence, authenticationService))
+        .build();
+  }
+
+  private GraphQLFieldDefinition buildDropType() {
+    return GraphQLFieldDefinition.newFieldDefinition()
+        .name("dropType")
+        .argument(
+            GraphQLArgument.newArgument().name("keyspaceName").type(nonNull(Scalars.GraphQLString)))
+        .argument(
+            GraphQLArgument.newArgument().name("typeName").type(nonNull(Scalars.GraphQLString)))
+        .argument(GraphQLArgument.newArgument().name("ifExists").type(Scalars.GraphQLBoolean))
+        .type(Scalars.GraphQLBoolean)
+        .dataFetcher(new DropTypeFetcher(persistence, authenticationService))
         .build();
   }
 
@@ -185,6 +217,19 @@ class DdlSchemaBuilder {
                 GraphQLFieldDefinition.newFieldDefinition()
                     .name("tables")
                     .type(list(buildTableType())))
+            .field(
+                GraphQLFieldDefinition.newFieldDefinition()
+                    .name("type")
+                    .argument(
+                        GraphQLArgument.newArgument()
+                            .name("name")
+                            .type(nonNull(Scalars.GraphQLString))
+                            .build())
+                    .type(buildUdtType()))
+            .field(
+                GraphQLFieldDefinition.newFieldDefinition()
+                    .name("types")
+                    .type(list(buildUdtType())))
             .build());
   }
 
@@ -203,14 +248,41 @@ class DdlSchemaBuilder {
             .build());
   }
 
+  private GraphQLObjectType buildUdtType() {
+    return register(
+        GraphQLObjectType.newObject()
+            .name("Type")
+            .field(
+                GraphQLFieldDefinition.newFieldDefinition()
+                    .name("fields")
+                    .type(list(buildFieldType())))
+            .field(
+                GraphQLFieldDefinition.newFieldDefinition()
+                    .name("name")
+                    .type(nonNull(Scalars.GraphQLString)))
+            .build());
+  }
+
   private GraphQLType buildColumnType() {
     return register(
         GraphQLObjectType.newObject()
             .name("Column")
+            .field(GraphQLFieldDefinition.newFieldDefinition().name("kind").type(buildColumnKind()))
             .field(
                 GraphQLFieldDefinition.newFieldDefinition()
-                    .name("kind")
-                    .type(nonNull(buildColumnKind())))
+                    .name("name")
+                    .type(nonNull(Scalars.GraphQLString)))
+            .field(
+                GraphQLFieldDefinition.newFieldDefinition()
+                    .name("type")
+                    .type(nonNull(buildDataType())))
+            .build());
+  }
+
+  private GraphQLType buildFieldType() {
+    return register(
+        GraphQLObjectType.newObject()
+            .name("Field")
             .field(
                 GraphQLFieldDefinition.newFieldDefinition()
                     .name("name")
@@ -247,10 +319,14 @@ class DdlSchemaBuilder {
                 GraphQLFieldDefinition.newFieldDefinition()
                     .name("subTypes")
                     .type(list(new GraphQLTypeReference("DataType"))))
+            .field(
+                GraphQLFieldDefinition.newFieldDefinition()
+                    .name("frozen")
+                    .type(Scalars.GraphQLBoolean))
             .build());
   }
 
-  private GraphQLType buildColumnKind() {
+  private GraphQLEnumType buildColumnKind() {
     return register(
         GraphQLEnumType.newEnum()
             .name("ColumnKind")
@@ -429,6 +505,11 @@ class DdlSchemaBuilder {
                 GraphQLInputObjectField.newInputObjectField()
                     .name("name")
                     .type(Scalars.GraphQLString))
+            .field(
+                GraphQLInputObjectField.newInputObjectField()
+                    .name("frozen")
+                    .type(Scalars.GraphQLBoolean)
+                    .build())
             .build());
   }
 
