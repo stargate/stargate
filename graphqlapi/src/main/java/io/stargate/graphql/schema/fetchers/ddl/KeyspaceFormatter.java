@@ -21,10 +21,13 @@ import graphql.schema.SelectedField;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
+import io.stargate.db.schema.UserDefinedType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /** Helper class to format keyspace metadata into a GraphQL result object. */
 class KeyspaceFormatter {
@@ -41,20 +44,52 @@ class KeyspaceFormatter {
   static Map<String, Object> formatResult(Keyspace keyspace, DataFetchingEnvironment environment) {
     ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
     builder.put("name", keyspace.name());
-    if (environment.getSelectionSet().getField("tables") != null) {
-      builder.put("tables", buildTables(keyspace.tables()));
-    }
+    formatChildren(
+        builder,
+        "table",
+        keyspace::tables,
+        keyspace::table,
+        KeyspaceFormatter::buildTable,
+        environment);
+    formatChildren(
+        builder,
+        "type",
+        keyspace::userDefinedTypes,
+        keyspace::userDefinedType,
+        KeyspaceFormatter::buildUdt,
+        environment);
 
-    SelectedField tableField;
-    if ((tableField = environment.getSelectionSet().getField("table")) != null) {
-      String tableName = (String) tableField.getArguments().get("name");
-      Table table = keyspace.table(tableName);
-      if (table != null) {
-        builder.put("table", buildTable(table));
-      }
-    }
     builder.put("dcs", buildDcs(keyspace));
     return builder.build();
+  }
+
+  private static <ChildT> void formatChildren(
+      ImmutableMap.Builder<String, Object> builder,
+      String childFieldName,
+      Supplier<Iterable<ChildT>> allChildrenGetter,
+      Function<String, ChildT> childByNameGetter,
+      Function<ChildT, Map<String, Object>> converter,
+      DataFetchingEnvironment environment) {
+
+    // All children query, for example `keyspace(name: "ks") { tables }`
+    String allChildrenName = childFieldName + "s";
+    if (environment.getSelectionSet().getField(allChildrenName) != null) {
+      List<Map<String, Object>> formattedChildren = new ArrayList<>();
+      for (ChildT child : allChildrenGetter.get()) {
+        formattedChildren.add(converter.apply(child));
+      }
+      builder.put(allChildrenName, formattedChildren);
+    }
+
+    // Named child query, for example `keyspace(name: "ks") { table(name: "t") }`
+    SelectedField childField = environment.getSelectionSet().getField(childFieldName);
+    if (childField != null) {
+      String name = (String) childField.getArguments().get("name");
+      ChildT child = childByNameGetter.apply(name);
+      if (child != null) {
+        builder.put(childFieldName, converter.apply(child));
+      }
+    }
   }
 
   private static List<Map<String, String>> buildDcs(Keyspace keyspace) {
@@ -71,57 +106,64 @@ class KeyspaceFormatter {
     return list;
   }
 
-  private static List<Map<String, Object>> buildTables(Set<Table> tables) {
-    List<Map<String, Object>> list = new ArrayList<>();
-    for (Table table : tables) {
-      list.add(buildTable(table));
-    }
-    return list;
-  }
-
   private static Map<String, Object> buildTable(Table table) {
     return ImmutableMap.of(
         "name", table.name(),
-        "columns", buildColumns(table.columns()));
+        "columns", buildColumns(table.columns(), true));
   }
 
-  private static List<Map<String, Object>> buildColumns(List<Column> columns) {
+  private static Map<String, Object> buildUdt(UserDefinedType type) {
+    return ImmutableMap.of(
+        "name", type.name(),
+        "fields", buildColumns(type.columns(), false));
+  }
+
+  private static List<Map<String, Object>> buildColumns(List<Column> columns, boolean includeKind) {
     List<Map<String, Object>> list = new ArrayList<>();
     for (Column column : columns) {
-      list.add(buildColumn(column));
+      list.add(buildColumn(column, includeKind));
     }
     return list;
   }
 
-  private static Map<String, Object> buildColumn(Column column) {
-    return ImmutableMap.of(
-        "kind", buildColumnKind(column),
-        "name", column.name(),
-        "type", buildDataType(column.type()));
+  private static Map<String, Object> buildColumn(Column column, boolean includeKind) {
+    return includeKind
+        ? ImmutableMap.of(
+            "kind", buildColumnKind(column),
+            "name", column.name(),
+            "type", buildDataType(column.type()))
+        : ImmutableMap.of(
+            "name", column.name(),
+            "type", buildDataType(column.type()));
   }
 
-  private static Map<String, Object> buildDataType(Column.ColumnType columntype) {
-    if (columntype.isParameterized()) {
+  private static Map<String, Object> buildDataType(Column.ColumnType columnType) {
+    if (columnType.isUserDefined()) {
       return ImmutableMap.of(
-          "basic", buildBasicType(columntype),
-          "info", buildDataTypeInfo(columntype));
+          "basic",
+          buildBasicType(columnType),
+          "info",
+          ImmutableMap.of("name", columnType.name(), "frozen", columnType.isFrozen()));
+    } else if (columnType.isCollection() || columnType.isTuple()) {
+      return ImmutableMap.of(
+          "basic", buildBasicType(columnType),
+          "info", buildParameterizedDataTypeInfo(columnType));
+    } else {
+      return ImmutableMap.of("basic", buildBasicType(columnType));
     }
-
-    return ImmutableMap.of("basic", buildBasicType(columntype));
   }
 
-  private static Map<String, List<Map<String, Object>>> buildDataTypeInfo(
-      Column.ColumnType columntype) {
-    assert columntype.isParameterized();
+  private static Map<String, Object> buildParameterizedDataTypeInfo(Column.ColumnType columnType) {
+    assert columnType.isParameterized();
     List<Map<String, Object>> list = new ArrayList<>();
-    for (Column.ColumnType type : columntype.parameters()) {
+    for (Column.ColumnType type : columnType.parameters()) {
       list.add(buildDataType(type));
     }
-    return ImmutableMap.of("subTypes", list);
+    return ImmutableMap.of("subTypes", list, "frozen", columnType.isFrozen());
   }
 
-  private static String buildBasicType(Column.ColumnType columntype) {
-    return columntype.rawType().name().toUpperCase();
+  private static String buildBasicType(Column.ColumnType columnType) {
+    return columnType.rawType().name().toUpperCase();
   }
 
   private static String buildColumnKind(Column column) {

@@ -2,7 +2,6 @@ package io.stargate.graphql.schema.fetchers.dml;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.querybuilder.condition.Condition;
-import com.datastax.oss.driver.api.querybuilder.relation.ColumnRelationBuilder;
 import com.datastax.oss.driver.api.querybuilder.relation.Relation;
 import com.datastax.oss.driver.api.querybuilder.term.Term;
 import com.google.common.collect.ImmutableList;
@@ -14,11 +13,8 @@ import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
@@ -49,48 +45,12 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
       Column column = getColumn(table, clauseEntry.getKey());
       CqlIdentifier columnId = CqlIdentifier.fromInternal(column.name());
 
-      for (Map.Entry<String, Object> condition : clauseEntry.getValue().entrySet()) {
-        if (condition.getKey().equals("in")) {
-          clause.add(
-              Condition.column(columnId).in(buildListLiterals(column, condition.getValue())));
-          continue;
-        }
-
-        Term dbValue = toCqlTerm(column, condition.getValue());
-        switch (condition.getKey()) {
-          case "eq":
-            clause.add(Condition.column(columnId).isEqualTo(dbValue));
-            break;
-          case "notEq":
-            clause.add(Condition.column(columnId).isNotEqualTo(dbValue));
-            break;
-          case "gt":
-            clause.add(Condition.column(columnId).isGreaterThan(dbValue));
-            break;
-          case "gte":
-            clause.add(Condition.column(columnId).isGreaterThanOrEqualTo(dbValue));
-            break;
-          case "lt":
-            clause.add(Condition.column(columnId).isLessThan(dbValue));
-            break;
-          case "lte":
-            clause.add(Condition.column(columnId).isLessThanOrEqualTo(dbValue));
-            break;
-          default:
-            break;
-        }
+      for (Map.Entry<String, Object> conditionMap : clauseEntry.getValue().entrySet()) {
+        FilterOperator operator = FilterOperator.fromFieldName(conditionMap.getKey());
+        clause.add(operator.buildCondition(column, conditionMap.getValue(), nameMapping));
       }
     }
     return clause;
-  }
-
-  private List<Term> buildListLiterals(Column column, Object o) {
-    if (o instanceof Collection<?>) {
-      Collection<?> values = (Collection<?>) o;
-      return values.stream().map(item -> toCqlTerm(column, item)).collect(Collectors.toList());
-    }
-
-    return Collections.singletonList(toCqlTerm(column, o));
   }
 
   protected List<Relation> buildFilterConditions(
@@ -102,53 +62,8 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     for (Map.Entry<String, Map<String, Object>> clauseEntry : columnList.entrySet()) {
       Column column = getColumn(table, clauseEntry.getKey());
       for (Map.Entry<String, Object> condition : clauseEntry.getValue().entrySet()) {
-
-        ColumnRelationBuilder<Relation> relationStart =
-            Relation.column(CqlIdentifier.fromInternal(column.name()));
-        Relation relation;
-        if (condition.getKey().equals("in")) {
-          relation = relationStart.in(buildListLiterals(column, condition.getValue()));
-        } else if (condition.getKey().equals("contains")) {
-          relation = relationStart.contains(toCqlElementTerm(column, condition.getValue()));
-        } else if (condition.getKey().equals("containsKey")) {
-          relation = relationStart.containsKey(toCqlKeyTerm(column, condition.getValue()));
-        } else if (condition.getKey().equals("containsEntry")) {
-          Column.ColumnType mapType = column.type();
-          assert mapType != null && mapType.isMap();
-          Map<String, Object> entry = (Map<String, Object>) condition.getValue();
-          Column.ColumnType keyType = mapType.parameters().get(0);
-          Term keyTerm = toCqlTerm(keyType, entry.get("key"));
-          Column.ColumnType valueType = mapType.parameters().get(1);
-          Term valueTerm = toCqlTerm(valueType, entry.get("value"));
-          relation =
-              Relation.mapValue(CqlIdentifier.fromInternal(column.name()), keyTerm)
-                  .isEqualTo(valueTerm);
-        } else {
-          Term rightTerm = toCqlTerm(column, condition.getValue());
-          switch (condition.getKey()) {
-            case "eq":
-              relation = relationStart.isEqualTo(rightTerm);
-              break;
-            case "notEq":
-              relation = relationStart.isNotEqualTo(rightTerm);
-              break;
-            case "gt":
-              relation = relationStart.isGreaterThan(rightTerm);
-              break;
-            case "gte":
-              relation = relationStart.isGreaterThanOrEqualTo(rightTerm);
-              break;
-            case "lt":
-              relation = relationStart.isLessThan(rightTerm);
-              break;
-            case "lte":
-              relation = relationStart.isLessThanOrEqualTo(rightTerm);
-              break;
-            default:
-              throw new IllegalStateException("Unsupported relation type " + condition.getKey());
-          }
-        }
-        relations.add(relation);
+        FilterOperator operator = FilterOperator.fromFieldName(condition.getKey());
+        relations.add(operator.buildRelation(column, condition.getValue(), nameMapping));
       }
     }
     return relations;
@@ -187,24 +102,6 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
   }
 
   protected Term toCqlTerm(Column column, Object value) {
-    return toCqlTerm(column.type(), value);
-  }
-
-  private Term toCqlElementTerm(Column column, Object value) {
-    Column.ColumnType collectionType = column.type();
-    assert collectionType != null && collectionType.isCollection();
-    Column.ColumnType elementType = collectionType.parameters().get(collectionType.isMap() ? 1 : 0);
-    return toCqlTerm(elementType, value);
-  }
-
-  private Term toCqlKeyTerm(Column column, Object value) {
-    Column.ColumnType mapType = column.type();
-    assert mapType != null && mapType.isMap();
-    Column.ColumnType keyType = mapType.parameters().get(0);
-    return toCqlTerm(keyType, value);
-  }
-
-  private Term toCqlTerm(Column.ColumnType type, Object value) {
-    return DataTypeMapping.toCqlTerm(type, value, nameMapping);
+    return DataTypeMapping.toCqlTerm(column.type(), value, nameMapping);
   }
 }
