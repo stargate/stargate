@@ -25,6 +25,7 @@ import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -404,9 +405,8 @@ public class DocumentService {
     }
   }
 
-  public JsonNode getJsonAtPath(
-      DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path)
-      throws ExecutionException, InterruptedException {
+  public CompletableFuture<JsonNode> getJsonAtPath(
+      DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path) {
     List<Where<Object>> predicates = new ArrayList<>();
     predicates.add(
         ImmutableWhereCondition.builder()
@@ -434,21 +434,25 @@ public class DocumentService {
       }
     }
 
-    ResultSet r = db.executeSelect(keyspace, collection, predicates);
-    List<Row> rows = r.rows();
+    return db.futureSelect(keyspace, collection, predicates)
+        .thenApply(
+            rs -> {
+              List<Row> rows = rs.rows();
 
-    if (rows.size() == 0) return null;
-    ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result = convertToJsonDoc(rows, false);
-    if (!result.right.isEmpty()) {
-      logger.info(String.format("Deleting %d dead leaves", result.right.size()));
-      db.deleteDeadLeaves(keyspace, collection, id, result.right);
-    }
-    JsonNode node = result.left.at(pathStr.toString());
-    if (node.isMissingNode()) {
-      return null;
-    }
+              if (rows.size() == 0) return null;
+              ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result =
+                  convertToJsonDoc(rows, false);
+              if (!result.right.isEmpty()) {
+                logger.info(String.format("Deleting %d dead leaves", result.right.size()));
+                db.deleteDeadLeaves(keyspace, collection, id, result.right);
+              }
+              JsonNode node = result.left.at(pathStr.toString());
+              if (node.isMissingNode()) {
+                return null;
+              }
 
-    return node;
+              return node;
+            });
   }
 
   private void validateOpAndValue(String op, JsonNode value, String fieldName) {

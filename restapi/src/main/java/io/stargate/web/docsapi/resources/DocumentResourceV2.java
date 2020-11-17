@@ -586,24 +586,31 @@ public class DocumentResourceV2 {
                   "When selecting `fields`, the field referenced by `where` must be in the selection.");
             }
           }
-
-          JsonNode node;
           if (filters.isEmpty()) {
             DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
-            node = documentService.getJsonAtPath(db, namespace, collection, id, path);
-            if (node == null) {
-              return Response.noContent().build();
-            }
+            return documentService
+                .getJsonAtPath(db, namespace, collection, id, path)
+                .thenApply(
+                    node ->
+                        handle(
+                            () -> {
+                              if (node == null) {
+                                return Response.noContent().build();
+                              }
 
-            String json;
-            if (raw == null || !raw) {
-              json = mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, node));
-            } else {
-              json = mapper.writeValueAsString(node);
-            }
+                              String json;
+                              if (raw == null || !raw) {
+                                json =
+                                    mapper.writeValueAsString(
+                                        new DocumentResponseWrapper<>(id, null, node));
+                              } else {
+                                json = mapper.writeValueAsString(node);
+                              }
 
-            logger.debug(json);
-            return Response.ok(json).build();
+                              logger.debug(json);
+                              return Response.ok(json).build();
+                            }))
+                .get();
           } else {
             ByteBuffer pageState = null;
             if (pageStateParam != null) {

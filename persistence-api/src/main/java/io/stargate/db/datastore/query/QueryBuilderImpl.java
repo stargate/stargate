@@ -27,7 +27,6 @@ import com.github.misberner.duzzt.annotations.DSLAction;
 import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
 import com.github.misberner.duzzt.annotations.SubExpr;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.PreparedStatement;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.CollectionIndexingType;
@@ -749,8 +748,13 @@ public class QueryBuilderImpl {
     this.writeTimeColumn = columnName;
   }
 
-  public CompletableFuture<ResultSet> future() {
-    return prepare().thenCompose(PreparedStatement::execute);
+  public CompletableFuture<ResultSet> future(Object... args) {
+    return prepare()
+        .thenCompose(
+            p ->
+                this.consistencyLevel == null
+                    ? p.execute(args)
+                    : p.execute(this.consistencyLevel, args));
   }
 
   @DSLAction

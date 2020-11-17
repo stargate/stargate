@@ -16,6 +16,7 @@ import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -284,6 +285,17 @@ public class DocumentDB {
         .where(predicates)
         .withWriteTimeColumn("leaf")
         .execute();
+  }
+
+  public CompletableFuture<ResultSet> futureSelect(
+      String keyspace, String collection, List<Where<Object>> predicates) {
+    return this.builder()
+        .select()
+        .column(DocumentDB.allColumns())
+        .from(keyspace, collection)
+        .where(predicates)
+        .withWriteTimeColumn("leaf")
+        .future();
   }
 
   public ResultSet executeSelect(
