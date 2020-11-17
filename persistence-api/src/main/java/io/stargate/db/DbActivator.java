@@ -11,9 +11,9 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 public class DbActivator extends BaseActivator {
-  private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
-  private final ServicePointer<CDCProducer> cdcProducer = ServicePointer.create(CDCProducer.class);
-  private final ServicePointer<ConfigStore> configStore = ServicePointer.create(ConfigStore.class);
+  private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  private ServicePointer<CDCProducer> cdcProducer = ServicePointer.create(CDCProducer.class);
+  private ServicePointer<ConfigStore> configStore = ServicePointer.create(ConfigStore.class);
   private CDCService cdcService;
 
   public DbActivator() {
@@ -24,7 +24,6 @@ public class DbActivator extends BaseActivator {
   @Override
   protected ServiceAndProperties createService() {
     cdcService = new CDCServiceImpl(cdcProducer.get(), metrics.get(), configStore.get());
-    cdcService.init();
     return null;
   }
 

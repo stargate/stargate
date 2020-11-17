@@ -19,7 +19,5 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.cassandra.stargate.db.MutationEvent;
 
 public interface CDCService extends AutoCloseable {
-  void init();
-
   CompletableFuture<Void> publish(MutationEvent mutation);
 }

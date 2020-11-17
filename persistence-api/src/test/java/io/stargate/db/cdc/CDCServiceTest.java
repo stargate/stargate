@@ -86,34 +86,6 @@ public class CDCServiceTest {
     assertThat(runtimeEx).hasRootCauseMessage("Timed out after 20ms");
   }
 
-  @Test
-  public void initShouldCallInitOfTheUnderlyingProducer() {
-    // given
-    CDCProducer producer = mock(CDCProducer.class);
-    when(producer.init()).thenReturn(CompletableFuture.completedFuture(null));
-    CDCServiceImpl cdcService = new ServiceBuilder().withProducer(producer).build();
-
-    // when
-    cdcService.init();
-
-    // then
-    verify(producer, times(1)).init();
-  }
-
-  @Test
-  public void closeShouldCallCloseOfTheUnderlyingProducer() throws Exception {
-    // given
-    CDCProducer producer = mock(CDCProducer.class);
-    when(producer.close()).thenReturn(CompletableFuture.completedFuture(null));
-    CDCServiceImpl cdcService = new ServiceBuilder().withProducer(producer).build();
-
-    // when
-    cdcService.close();
-
-    // then
-    verify(producer, times(1)).close();
-  }
-
   static class ServiceBuilder {
     CDCConfig config = mock(CDCConfig.class);
     CDCProducer producer = mock(CDCProducer.class);
@@ -123,11 +95,6 @@ public class CDCServiceTest {
       withTrackingByCDC(true);
       withHealth(true);
       withProducerFuture(CompletableFuture.completedFuture(null));
-    }
-
-    ServiceBuilder withProducer(CDCProducer cdcProducer) {
-      this.producer = cdcProducer;
-      return this;
     }
 
     ServiceBuilder withTrackingByCDC(boolean value) {

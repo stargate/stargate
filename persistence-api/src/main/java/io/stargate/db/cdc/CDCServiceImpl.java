@@ -20,7 +20,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.ThreadFactoryBuilder;
-import com.datastax.oss.driver.shaded.guava.common.util.concurrent.UncheckedExecutionException;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.cdc.config.CDCConfig;
@@ -77,19 +76,6 @@ public final class CDCServiceImpl implements CDCService {
     this.config = config;
 
     CDCMetrics.instance.init(registry);
-  }
-
-  @Override
-  public void init() {
-    try {
-      producer.init().get();
-    } catch (ExecutionException e) {
-      logger.error("Problem when initializing the CDCProducer.", e);
-      throw new UncheckedExecutionException(e);
-    } catch (InterruptedException e) {
-      logger.error("Interrupted when initializing the CDCProducer.", e);
-      throw new IllegalStateException(e);
-    }
   }
 
   @Override
