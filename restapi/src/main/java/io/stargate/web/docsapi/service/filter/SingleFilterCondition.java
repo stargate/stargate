@@ -73,6 +73,7 @@ public class SingleFilterCondition implements FilterCondition {
   }
 
   public String getFullFieldPath() {
+    if (getPathString().isEmpty()) return field;
     return getPathString() + "." + field;
   }
 

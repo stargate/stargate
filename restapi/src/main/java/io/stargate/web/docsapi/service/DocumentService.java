@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.PathSegment;
 import org.apache.commons.lang3.StringUtils;
@@ -41,6 +42,7 @@ import org.slf4j.LoggerFactory;
 public class DocumentService {
   private static final Logger logger = LoggerFactory.getLogger(DocumentService.class);
   private static final ObjectMapper mapper = new ObjectMapper();
+  private static final Pattern PERIOD_PATTERN = Pattern.compile("\\.");
 
   /*
    * Converts a JSON path string (e.g. "$.a.b.c[0]") into a JSON path string
@@ -48,7 +50,7 @@ public class DocumentService {
    * This is to allow escaping of certain characters, such as space, $, and @.
    */
   private String convertToBracketedPath(String path) {
-    String[] parts = path.split("\\.");
+    String[] parts = PERIOD_PATTERN.split(path);
     StringBuilder newPath = new StringBuilder();
     for (int i = 0; i < parts.length; i++) {
       String part = parts[i];
@@ -268,7 +270,7 @@ public class DocumentService {
       } else {
         continue;
       }
-      String[] fieldNames = fullyQualifiedField.split("\\.");
+      String[] fieldNames = PERIOD_PATTERN.split(fullyQualifiedField);
 
       if (path.size() + fieldNames.length > DocumentDB.MAX_DEPTH) {
         throw new DocumentAPIRequestException(
@@ -523,7 +525,7 @@ public class DocumentService {
         throw new DocumentAPIRequestException(
             "The field(s) you are searching for can't be the empty string!");
       }
-      String[] fieldNamePath = fieldName.split("\\.");
+      String[] fieldNamePath = PERIOD_PATTERN.split(fieldName);
       List<String> convertedFieldNamePath =
           Arrays.asList(fieldNamePath).stream()
               .map(this::convertArrayPath)
@@ -1102,6 +1104,23 @@ public class DocumentService {
     return s.toString();
   }
 
+  private boolean pathsMatch(String path1, String path2) {
+    String[] parts1 = PERIOD_PATTERN.split(path1);
+    String[] parts2 = PERIOD_PATTERN.split(path2);
+    if (parts1.length != parts2.length) {
+      return false;
+    }
+
+    for (int i = 0; i < parts1.length; i++) {
+      String part1 = parts1[i];
+      String part2 = parts2[i];
+      if (!part1.equals("*") && !part2.equals("*") && !part1.equals(part2)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   private List<Row> filterToSelectionSet(
       List<Row> rows, List<String> fieldNames, List<String> requestedPath) {
     if (fieldNames.isEmpty()) {
@@ -1119,7 +1138,7 @@ public class DocumentService {
       String path = getParentPathFromRow(row);
       if (!currentPath.equals(path)
           && !currentPath.isEmpty()
-          && currentPath.split("\\.").length == requestedPath.size()) {
+          && PERIOD_PATTERN.split(currentPath).length == requestedPath.size()) {
         for (int i = 0; i < selectionSet.size() - docSize; i++) {
           normalizedList.add(null);
         }
@@ -1128,13 +1147,13 @@ public class DocumentService {
       currentPath = path;
 
       if (selectionSet.contains(row.getString("leaf"))
-          && currentPath.split("\\.").length == requestedPath.size()) {
+          && PERIOD_PATTERN.split(currentPath).length == requestedPath.size()) {
         normalizedList.add(row);
         docSize++;
       }
     }
 
-    if (currentPath.split("\\.").length == requestedPath.size()) {
+    if (PERIOD_PATTERN.split(currentPath).length == requestedPath.size()) {
       for (int i = 0; i < selectionSet.size() - docSize; i++) {
         normalizedList.add(null);
       }
@@ -1156,7 +1175,7 @@ public class DocumentService {
     if (inMemoryFilters.size() == 0) {
       return rows;
     }
-    String filterField = inMemoryFilters.get(0).getField();
+    String filterFieldPath = inMemoryFilters.get(0).getFullFieldPath();
 
     return Lists.partition(rows, fieldsPerDoc).stream()
         .filter(
@@ -1164,7 +1183,17 @@ public class DocumentService {
               Optional<Row> fieldRow =
                   docChunk.stream()
                       .filter(
-                          r -> r != null && StringUtils.equals(r.getString("leaf"), filterField))
+                          r -> {
+                            if (r == null || r.getString("leaf") == null) {
+                              return false;
+                            }
+                            String[] parentPath = getParentPathFromRow(r).split("/");
+                            String rowPath = "";
+                            if (parentPath.length == 2) {
+                              rowPath = parentPath[1];
+                            }
+                            return pathsMatch(rowPath + r.getString("leaf"), filterFieldPath);
+                          })
                       .findFirst();
               return fieldRow.isPresent() && allFiltersMatch(fieldRow.get(), inMemoryFilters);
             })

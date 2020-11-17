@@ -78,8 +78,8 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
             .where(buildClause(this.table, environment))
             .orderByIds(buildOrderBy(environment));
 
-    if (environment.containsArgument("options")) {
-      Map<String, Object> options = environment.getArgument("options");
+    Map<String, Object> options = environment.getArgument("options");
+    if (options != null) {
       Object limit = options.get("limit");
       if (limit != null) {
         select = select.limit((Integer) limit);
