@@ -21,7 +21,7 @@ public class DeleteMutationFetcherCollectionsTest extends DmlTestBase {
   @MethodSource("successfulQueries")
   @DisplayName("Should execute GraphQL with collections and generate expected CQL query")
   public void collectionsTest(String graphQlQuery, String expectedCqlQuery) {
-    assertSuccess(String.format("mutation { %s }", graphQlQuery), expectedCqlQuery);
+    assertQuery(String.format("mutation { %s }", graphQlQuery), expectedCqlQuery);
   }
 
   public static Arguments[] successfulQueries() {

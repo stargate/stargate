@@ -21,7 +21,7 @@ public class QueryFetcherCollectionsTest extends DmlTestBase {
   @MethodSource("successfulQueries")
   @DisplayName("Should execute GraphQL with collections and generate expected CQL query")
   public void collectionsTest(String graphQlQuery, String expectedCqlQuery) {
-    assertSuccess(String.format("query { %s }", graphQlQuery), expectedCqlQuery);
+    assertQuery(String.format("query { %s }", graphQlQuery), expectedCqlQuery);
   }
 
   public static Arguments[] successfulQueries() {

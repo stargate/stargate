@@ -8,7 +8,7 @@ import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
+import io.stargate.graphql.web.HttpAwareContext;
 import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.Map;
@@ -38,7 +38,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
 
   @Override
   public final ResultT get(DataFetchingEnvironment environment) throws Exception {
-    HTTPAwareContextImpl httpAwareContext = environment.getContext();
+    HttpAwareContext httpAwareContext = environment.getContext();
 
     String token = httpAwareContext.getAuthToken();
     StoredCredentials storedCredentials = authenticationService.validateToken(token);
