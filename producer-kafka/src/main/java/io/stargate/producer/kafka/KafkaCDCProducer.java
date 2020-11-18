@@ -31,7 +31,6 @@ import io.stargate.producer.kafka.schema.SchemaProvider;
 import io.stargate.producer.kafka.schema.SchemaRegistryProvider;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import org.apache.avro.generic.GenericRecord;
@@ -44,7 +43,6 @@ import org.slf4j.LoggerFactory;
 
 public class KafkaCDCProducer extends SchemaAwareCDCProducer {
   private static final Logger LOGGER = LoggerFactory.getLogger(KafkaCDCProducer.class);
-  private static final Executor KAFKA_INIT_EXECUTOR = Executors.newSingleThreadExecutor();
   private final ClassLoader contextClassLoader = getClass().getClassLoader();
   private final DefaultConfigLoader configLoader;
 
@@ -101,7 +99,7 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
                 currentThread.setContextClassLoader(ldr);
               }
             },
-            KAFKA_INIT_EXECUTOR);
+            Executors.newSingleThreadExecutor());
     return kafkaProducer.thenAccept(toVoid());
   }
 
