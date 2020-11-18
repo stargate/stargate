@@ -30,6 +30,7 @@ import io.stargate.web.docsapi.dao.DocumentDB;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import javax.ws.rs.NotFoundException;
 
@@ -105,7 +106,16 @@ public class Db {
     if (token == null) {
       throw new UnauthorizedException("Missing token");
     }
-    return new DocumentDB(DataStore.create(persistence, docsTokensToRoles.get(token)));
+    String role;
+    try {
+      role = docsTokensToRoles.get(token);
+    } catch (CompletionException e) {
+      if (e.getCause() instanceof UnauthorizedException) {
+        throw (UnauthorizedException) e.getCause();
+      }
+      throw e;
+    }
+    return new DocumentDB(DataStore.create(persistence, role));
   }
 
   public DocumentDB getDocDataStoreForToken(String token, int pageSize, ByteBuffer pageState)
@@ -115,8 +125,16 @@ public class Db {
     }
     Parameters parameters =
         Parameters.builder().pageSize(pageSize).pagingState(Optional.ofNullable(pageState)).build();
-
-    return new DocumentDB(DataStore.create(persistence, docsTokensToRoles.get(token), parameters));
+    String role;
+    try {
+      role = docsTokensToRoles.get(token);
+    } catch (CompletionException e) {
+      if (e.getCause() instanceof UnauthorizedException) {
+        throw (UnauthorizedException) e.getCause();
+      }
+      throw e;
+    }
+    return new DocumentDB(DataStore.create(persistence, role, parameters));
   }
 
   public boolean isDse() {
