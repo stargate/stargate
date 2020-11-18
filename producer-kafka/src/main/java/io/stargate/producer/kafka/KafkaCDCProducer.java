@@ -29,9 +29,7 @@ import io.stargate.producer.kafka.producer.CompletableKafkaProducer;
 import io.stargate.producer.kafka.schema.KeyValueConstructor;
 import io.stargate.producer.kafka.schema.SchemaProvider;
 import io.stargate.producer.kafka.schema.SchemaRegistryProvider;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.cassandra.stargate.db.DeleteEvent;
@@ -43,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 public class KafkaCDCProducer extends SchemaAwareCDCProducer {
   private static final Logger LOGGER = LoggerFactory.getLogger(KafkaCDCProducer.class);
+  private static final ExecutorService KAFKA_INIT_EXECUTOR = Executors.newSingleThreadExecutor();
   private final ClassLoader contextClassLoader = getClass().getClassLoader();
   private final DefaultConfigLoader configLoader;
 
@@ -99,7 +98,7 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
                 currentThread.setContextClassLoader(ldr);
               }
             },
-            Executors.newSingleThreadExecutor());
+            KAFKA_INIT_EXECUTOR);
     return kafkaProducer.thenAccept(toVoid());
   }
 
@@ -169,10 +168,12 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   @Override
   public CompletableFuture<Void> close() {
-    return kafkaProducer.thenAccept(
-        producer -> {
-          producer.flush();
-          producer.close();
-        });
+    return kafkaProducer
+        .thenAccept(
+            producer -> {
+              producer.flush();
+              producer.close();
+            })
+        .thenAccept(v -> KAFKA_INIT_EXECUTOR.shutdown());
   }
 }
