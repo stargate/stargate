@@ -32,7 +32,7 @@ public class QueryFetcherTest extends DmlTestBase {
   @MethodSource("successfulQueries")
   @DisplayName("Should execute GraphQL and generate expected CQL query")
   public void queryTest(String graphQlQuery, String expectedCqlQuery) {
-    assertSuccess(String.format("query { %s }", graphQlQuery), expectedCqlQuery);
+    assertQuery(String.format("query { %s }", graphQlQuery), expectedCqlQuery);
   }
 
   public static Arguments[] successfulQueries() {

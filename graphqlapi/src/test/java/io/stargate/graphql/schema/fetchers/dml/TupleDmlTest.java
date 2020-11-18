@@ -75,7 +75,7 @@ public class TupleDmlTest extends DmlTestBase {
         String.format(
             "INSERT INTO tuples_ks.tuples (id,%s) VALUES (1,%s)", column, toCqlLiteral(values));
 
-    assertSuccess(String.format(mutation, column, toGraphQLValue(values)), expectedCQL);
+    assertQuery(String.format(mutation, column, toGraphQLValue(values)), expectedCQL);
   }
 
   @ParameterizedTest

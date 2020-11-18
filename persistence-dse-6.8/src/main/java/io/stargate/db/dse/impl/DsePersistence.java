@@ -190,11 +190,8 @@ public class DsePersistence
 
     waitForSchema(STARTUP_DELAY_MS);
 
-    if (USE_PROXY_PROTOCOL) {
-      interceptor = new ProxyProtocolQueryInterceptor();
-    } else {
-      interceptor = new DefaultQueryInterceptor();
-    }
+    interceptor = new DefaultQueryInterceptor();
+    if (USE_PROXY_PROTOCOL) interceptor = new ProxyProtocolQueryInterceptor(interceptor);
 
     interceptor.initialize();
     stargateHandler().register(interceptor);
