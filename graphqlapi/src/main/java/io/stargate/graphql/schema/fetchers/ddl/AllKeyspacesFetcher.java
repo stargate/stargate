@@ -48,10 +48,14 @@ public class AllKeyspacesFetcher extends CassandraFetcher<List<Map<String, Objec
       String keyspaceName = (String) keyspace.get("name");
       @SuppressWarnings("unchecked")
       List<Map<String, Object>> tables = (List<Map<String, Object>>) keyspace.get("tables");
+
+      List<String> tableNames = null;
+      if (tables != null) {
+        tableNames = tables.stream().map(t -> (String) t.get("name")).collect(Collectors.toList());
+      }
+
       authorizationService.authorizeSchemaRead(
-          token,
-          Collections.singletonList(keyspaceName),
-          tables.stream().map(t -> (String) t.get("name")).collect(Collectors.toList()));
+          token, Collections.singletonList(keyspaceName), tableNames);
     }
     return keyspaces;
   }

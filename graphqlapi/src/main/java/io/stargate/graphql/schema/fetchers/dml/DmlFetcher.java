@@ -17,6 +17,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.db.Persistence;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
@@ -122,7 +123,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
         Column column = getColumn(table, columnId.asInternal());
         assert term != null;
 
-        if (Objects.requireNonNull(column.type()).isUserDefined()) {
+        if (isOrContainsUDT(Objects.requireNonNull(column.type()))) {
           // Null out the value for now since UDTs are not allowed for use with custom authorization
           typedKeyValues.add(
               new TypedKeyValue(
@@ -194,6 +195,20 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     }
     return new TypedKeyValue(
         column.cqlName(), Objects.requireNonNull(column.type()).cqlDefinition(), parsedObject);
+  }
+
+  protected boolean isOrContainsUDT(ColumnType type) {
+    if (type.isUserDefined()) {
+      return true;
+    } else if (type.isCollection()) {
+      if (type.rawType() == Column.Type.List || type.rawType() == Column.Type.Set) {
+        return type.parameters().get(0).isUserDefined();
+      } else if (type.rawType() == Column.Type.Map) {
+        return type.parameters().get(1).isUserDefined();
+      }
+    }
+
+    return false;
   }
 
   protected CqlIdentifier getDBColumnName(Table table, String fieldName) {

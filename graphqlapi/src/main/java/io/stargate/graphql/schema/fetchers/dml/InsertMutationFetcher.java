@@ -30,6 +30,7 @@ import io.stargate.auth.TypedKeyValue;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import io.stargate.graphql.schema.NameMapping;
@@ -86,39 +87,34 @@ public class InsertMutationFetcher extends MutationFetcher {
       CqlIdentifier key = entry.getKey();
       Term term = entry.getValue();
       Column column = getColumn(table, key.asInternal());
+      ColumnType type = column.type();
 
-      if (Objects.requireNonNull(column.type()).isUserDefined()) {
+      if (isOrContainsUDT(Objects.requireNonNull(type))) {
         // Null out the value for now since UDTs are not allowed for use with custom authorization
         typedKeyValues.add(
             new TypedKeyValue(
-                column.cqlName(), Objects.requireNonNull(column.type()).cqlDefinition(), null));
+                column.cqlName(), Objects.requireNonNull(type).cqlDefinition(), null));
         continue;
       }
 
       if (term instanceof TupleTerm) {
         for (Term component : ((TupleTerm) term).getComponents()) {
           Object parsedObject =
-              Objects.requireNonNull(column.type())
+              Objects.requireNonNull(type)
                   .codec()
                   .parse(((DefaultRaw) component).getRawExpression());
 
           typedKeyValues.add(
               new TypedKeyValue(
-                  column.cqlName(),
-                  Objects.requireNonNull(column.type()).cqlDefinition(),
-                  parsedObject));
+                  column.cqlName(), Objects.requireNonNull(type).cqlDefinition(), parsedObject));
         }
       } else {
         Object parsedObject =
-            Objects.requireNonNull(column.type())
-                .codec()
-                .parse(((DefaultRaw) term).getRawExpression());
+            Objects.requireNonNull(type).codec().parse(((DefaultRaw) term).getRawExpression());
 
         typedKeyValues.add(
             new TypedKeyValue(
-                column.cqlName(),
-                Objects.requireNonNull(column.type()).cqlDefinition(),
-                parsedObject));
+                column.cqlName(), Objects.requireNonNull(type).cqlDefinition(), parsedObject));
       }
     }
 
