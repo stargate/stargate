@@ -55,6 +55,11 @@
       <version>${avro.version}</version>
     </dependency>
     <dependency>
+      <groupId>io.dropwizard.modules</groupId>
+      <artifactId>dropwizard-kafka</artifactId>
+      <version>1.6.0</version>
+    </dependency>
+    <dependency>
       <groupId>io.confluent</groupId>
       <artifactId>kafka-avro-serializer</artifactId>
       <version>${schema-registry.version}</version>

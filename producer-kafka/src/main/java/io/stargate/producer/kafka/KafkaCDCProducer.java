@@ -15,7 +15,6 @@
  */
 package io.stargate.producer.kafka;
 
-
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -26,7 +25,6 @@ import io.stargate.producer.kafka.configuration.CDCKafkaConfig;
 import io.stargate.producer.kafka.configuration.DefaultConfigLoader;
 import io.stargate.producer.kafka.mapping.DefaultMappingService;
 import io.stargate.producer.kafka.mapping.MappingService;
-import io.stargate.producer.kafka.metrics.DropwizardMetricsReporter;
 import io.stargate.producer.kafka.producer.CompletableKafkaProducer;
 import io.stargate.producer.kafka.schema.KeyValueConstructor;
 import io.stargate.producer.kafka.schema.SchemaProvider;
@@ -68,8 +66,9 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   /**
    * It registers the provided MetricRegistry in the Dropwizard shared metrics registry (see {@link
-   * SharedMetricRegistries}). The {@link DropwizardMetricsReporter} is getting the metrics registry
-   * via {@code SharedMetricRegistries.getOrCreate("default")} in the constructor.
+   * SharedMetricRegistries}). The {@link io.dropwizard.kafka.metrics.DropwizardMetricsReporter} is
+   * getting the metrics registry via {@code SharedMetricRegistries.getOrCreate("default")} in the
+   * constructor.
    */
   private void registerMetrics(MetricRegistry registry) {
     SharedMetricRegistries.add("default", registry);

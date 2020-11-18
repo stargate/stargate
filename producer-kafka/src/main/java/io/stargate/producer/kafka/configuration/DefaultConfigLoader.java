@@ -17,9 +17,9 @@ package io.stargate.producer.kafka.configuration;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.dropwizard.kafka.metrics.DropwizardMetricsReporter;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.config.store.api.ConfigWithOverrides;
-import io.stargate.producer.kafka.metrics.DropwizardMetricsReporter;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Map;
 import java.util.Map.Entry;
