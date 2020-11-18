@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 import static org.mockito.quality.Strictness.LENIENT;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
@@ -22,11 +23,15 @@ import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
-import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
-import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl.BatchContext;
+import io.stargate.db.schema.Schema;
+import io.stargate.graphql.web.HttpAwareContext;
+import io.stargate.graphql.web.HttpAwareContext.BatchContext;
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -90,6 +95,11 @@ public abstract class GraphQlTestBase {
                           batchParameters = dataStoreParameters;
                           return CompletableFuture.completedFuture(mock(ResultSet.class));
                         });
+
+                Schema schema = createCqlSchema();
+                if (schema != null) {
+                  when(dataStore.schema()).thenReturn(schema);
+                }
                 return dataStore;
               });
     } catch (Exception e) {
@@ -111,6 +121,16 @@ public abstract class GraphQlTestBase {
     }
   }
 
+  /**
+   * Allows subclasses to mock the schema metadata that will be returned by the persistence layer.
+   * This is useful for DDL fetcher tests that create a {@link DdlSchemaBuilder} in {@link
+   * #createGraphQlSchema()} (this method is invoked first, so any keyspace created here will be
+   * visible when {@link #createGraphQlSchema()} runs).
+   */
+  protected Schema createCqlSchema() {
+    return null;
+  }
+
   protected abstract GraphQLSchema createGraphQlSchema();
 
   /**
@@ -120,7 +140,7 @@ public abstract class GraphQlTestBase {
    */
   protected ExecutionResult executeGraphQl(String query) {
     // Use a context mock per execution
-    HTTPAwareContextImpl context = mock(HTTPAwareContextImpl.class);
+    HttpAwareContext context = mock(HttpAwareContext.class);
 
     // Use a dedicated batch executor per execution
     BatchContext batchContext = new BatchContext();
@@ -133,20 +153,39 @@ public abstract class GraphQlTestBase {
   /**
    * Convenience method to execute a GraphQL query and assert that it generates the given CQL query.
    */
-  protected void assertSuccess(String graphQlQuery, String expectedCqlQuery) {
-    ExecutionResult result = executeGraphQl(graphQlQuery);
+  protected void assertQuery(String graphqlQuery, String expectedCqlQuery) {
+    ExecutionResult result = executeGraphQl(graphqlQuery);
     assertThat(result.getErrors()).isEmpty();
     assertThat(queryCaptor.getValue()).isEqualTo(expectedCqlQuery);
+  }
+
+  /**
+   * Convenience method to execute a GraphQL query and assert that it returns the given JSON
+   * response.
+   */
+  protected void assertResponse(String graphqlQuery, String expectedJsonResponse) {
+    ExecutionResult result = executeGraphQl(graphqlQuery);
+    assertThat(result.getErrors()).isEmpty();
+    assertThat((Object) result.getData()).isEqualTo(parseJson(expectedJsonResponse));
   }
 
   /**
    * Convenience method to execute a GraphQL query and assert that it generates an error containing
    * the given message.
    */
-  protected void assertError(String graphQlQuery, String expectedError) {
-    ExecutionResult result = executeGraphQl(graphQlQuery);
+  protected void assertError(String graphqlQuery, String expectedError) {
+    ExecutionResult result = executeGraphQl(graphqlQuery);
     assertThat(result.getErrors()).as("Expected an error but the query succeeded").isNotEmpty();
     GraphQLError error = result.getErrors().get(0);
     assertThat(error.getMessage()).contains(expectedError);
+  }
+
+  private Map<?, ?> parseJson(String json) {
+    try {
+      return new ObjectMapper().readValue(json, Map.class);
+    } catch (IOException e) {
+      Assertions.fail("Unexpected error while parsing " + json, e);
+      return null; // never reached
+    }
   }
 }

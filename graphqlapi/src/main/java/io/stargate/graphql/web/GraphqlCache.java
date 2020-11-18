@@ -13,12 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package graphql.kickstart.servlet;
+package io.stargate.graphql.web;
 
+import graphql.GraphQL;
 import graphql.execution.AsyncExecutionStrategy;
-import graphql.kickstart.execution.GraphQLObjectMapper;
-import graphql.kickstart.execution.GraphQLQueryInvoker;
-import graphql.kickstart.execution.config.DefaultExecutionStrategyProvider;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
@@ -29,117 +27,64 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
-import io.stargate.graphql.graphqlservlet.GraphqlCustomContextBuilder;
-import io.stargate.graphql.graphqlservlet.StargateGraphqlErrorHandler;
 import io.stargate.graphql.schema.SchemaFactory;
-import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.regex.Pattern;
-import javax.servlet.Servlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventListener {
+/**
+ * Manages the {@link GraphQL} instances used by our REST resources.
+ *
+ * <p>This includes staying up to date with CQL schema changes.
+ */
+public class GraphqlCache implements EventListener {
 
-  private static final Logger LOG = LoggerFactory.getLogger(CustomGraphQLServlet.class);
-  private static final Pattern KEYSPACE_NAME_PATTERN = Pattern.compile("\\w+");
+  private static final Logger LOG = LoggerFactory.getLogger(GraphqlCache.class);
 
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
+
+  private final GraphQL ddlGraphql;
   private final String defaultKeyspace;
+  private final ConcurrentMap<String, DmlGraphqlReference> dmlGraphqls;
 
-  private final ConcurrentMap<String, RequestHandlerReference> keyspaceHandlers;
-
-  public CustomGraphQLServlet(
+  GraphqlCache(
       Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
+
+    this.ddlGraphql =
+        newGraphql(
+            SchemaFactory.newDdlSchema(persistence, authenticationService, authorizationService));
     DataStore dataStore = DataStore.create(persistence);
     this.defaultKeyspace = findDefaultKeyspace(dataStore);
-    this.keyspaceHandlers =
-        initKeyspaceHandlers(persistence, dataStore, authenticationService, authorizationService);
+    this.dmlGraphqls =
+        initDmlGraphqls(persistence, dataStore, authenticationService, authorizationService);
 
     persistence.registerEventListener(this);
   }
 
-  protected void doGet(HttpServletRequest request, HttpServletResponse response) {
-    handle(request, response);
+  public GraphQL getDdl() {
+    return ddlGraphql;
   }
 
-  protected void doPost(HttpServletRequest request, HttpServletResponse response) {
-    handle(request, response);
+  public GraphQL getDml(String keyspace) {
+    DmlGraphqlReference ref = dmlGraphqls.get(keyspace);
+    return ref == null ? null : ref.get();
   }
 
-  private void handle(HttpServletRequest request, HttpServletResponse response) {
-    String keyspaceName = getKeyspaceName(request);
-    if (keyspaceName == null) {
-      failOnNoDefaultKeyspace(response);
-    } else if (!KEYSPACE_NAME_PATTERN.matcher(keyspaceName).matches()) {
-      // Do not reflect back the value, to avoid XSS attacks
-      response.setStatus(500);
-    } else {
-      RequestHandlerReference requestHandlerRef = keyspaceHandlers.get(keyspaceName);
-      if (requestHandlerRef == null) {
-        failOnUnknownKeyspace(keyspaceName, response);
-      } else {
-        HttpRequestHandler requestHandler;
-        try {
-          requestHandler = requestHandlerRef.get();
-        } catch (Exception e) {
-          LOG.error("Error initializing the GraphQL schema", e);
-          keyspaceHandlers.remove(keyspaceName, requestHandlerRef);
-          response.setStatus(500);
-          return;
-        }
-        try {
-          requestHandler.handle(request, response);
-        } catch (Exception e) {
-          LOG.error("Error processing a GraphQL request", e);
-          response.setStatus(500);
-        }
-      }
-    }
-  }
-
-  public String getKeyspaceName(HttpServletRequest request) {
-    String path = request.getPathInfo();
-    if (path == null || path.length() < 2) {
-      return defaultKeyspace;
-    } else {
-      return path.substring(1);
-    }
-  }
-
-  private void failOnNoDefaultKeyspace(HttpServletResponse response) {
-    String message = "No keyspace specified, and no default keyspace could be determined";
-    failWith404(response, message);
-  }
-
-  private void failOnUnknownKeyspace(String keyspaceName, HttpServletResponse response) {
-    failWith404(response, "Unknown keyspace " + keyspaceName);
-  }
-
-  private void failWith404(HttpServletResponse response, String message) {
-    response.setStatus(404);
-    try {
-      // TODO wrap this in a GraphQL error response
-      response.getWriter().println(message);
-    } catch (IOException e) {
-      // ignore
-    }
+  public GraphQL getDefaultDml() {
+    return defaultKeyspace == null ? null : getDml(defaultKeyspace);
   }
 
   /** Populate a default keyspace to allow for omitting the keyspace from the path of requests. */
@@ -179,30 +124,29 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
     }
   }
 
-  private static ConcurrentMap<String, RequestHandlerReference> initKeyspaceHandlers(
+  private static ConcurrentMap<String, DmlGraphqlReference> initDmlGraphqls(
       Persistence persistence,
       DataStore dataStore,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService) {
-
-    ConcurrentMap<String, RequestHandlerReference> map = new ConcurrentHashMap<>();
+    ConcurrentMap<String, DmlGraphqlReference> map = new ConcurrentHashMap<>();
 
     for (Keyspace keyspace : dataStore.schema().keyspaces()) {
       String keyspaceName = keyspace.name();
-      LOG.debug("Prepare handler for {}", keyspaceName);
+      LOG.debug("Prepare GraphQL schema for {}", keyspaceName);
       map.put(
           keyspaceName,
-          new RequestHandlerReference(
+          new DmlGraphqlReference(
               keyspace, persistence, authenticationService, authorizationService));
     }
     return map;
   }
 
-  private void addOrReplaceKeyspaceHandler(
+  private void addOrReplaceDmlGraphql(
       String keyspaceName, String reason, String... reasonArguments) {
     if (LOG.isDebugEnabled()) {
       LOG.debug(
-          "Refreshing handler for keyspace {} because {}",
+          "Refreshing GraphQL schema for keyspace {} because {}",
           keyspaceName,
           String.format(reason, reasonArguments));
     }
@@ -211,17 +155,17 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
       Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
       if (keyspace == null) {
         // This happens when come from a notification for a keyspace that was just dropped
-        LOG.debug("Removing handler for keyspace {} because it was dropped", keyspaceName);
-        keyspaceHandlers.remove(keyspaceName);
+        LOG.debug("Removing GraphQL schema for keyspace {} because it was dropped", keyspaceName);
+        dmlGraphqls.remove(keyspaceName);
       } else {
-        keyspaceHandlers.put(
+        dmlGraphqls.put(
             keyspaceName,
-            new RequestHandlerReference(
+            new DmlGraphqlReference(
                 keyspace, persistence, authenticationService, authorizationService));
       }
-      LOG.debug("Done refreshing handler for keyspace {}", keyspaceName);
+      LOG.debug("Done refreshing GraphQL schema for keyspace {}", keyspaceName);
     } catch (Exception e) {
-      LOG.error("Error while refreshing handler for keyspace {}", keyspaceName, e);
+      LOG.error("Error while refreshing GraphQL schema for keyspace {}", keyspaceName, e);
     }
   }
 
@@ -231,107 +175,108 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
 
   @Override
   public void onCreateKeyspace(String keyspaceName) {
-    addOrReplaceKeyspaceHandler(keyspaceName, "it was created");
+    addOrReplaceDmlGraphql(keyspaceName, "it was created");
   }
 
   @Override
   public void onDropKeyspace(String keyspaceName) {
     // Note that if the keyspace contained any children, we probably already removed the handler
     // while processing those children's DROP events.
-    RequestHandlerReference removed = keyspaceHandlers.remove(keyspaceName);
+    DmlGraphqlReference removed = dmlGraphqls.remove(keyspaceName);
     if (removed != null) {
-      LOG.debug("Removing handler for keyspace {} because it was dropped", keyspaceName);
+      LOG.debug("Removing GraphQL schema for keyspace {} because it was dropped", keyspaceName);
     }
   }
 
   @Override
   public void onCreateTable(String keyspaceName, String table) {
-    addOrReplaceKeyspaceHandler(keyspaceName, "table %s was created", table);
+    addOrReplaceDmlGraphql(keyspaceName, "table %s was created", table);
   }
 
   @Override
   public void onCreateView(String keyspaceName, String view) {
-    addOrReplaceKeyspaceHandler(keyspaceName, "view %s was created", view);
+    addOrReplaceDmlGraphql(keyspaceName, "view %s was created", view);
   }
 
   @Override
   public void onCreateType(String keyspaceName, String type) {
-    addOrReplaceKeyspaceHandler(keyspaceName, "type %s was created", type);
+    addOrReplaceDmlGraphql(keyspaceName, "type %s was created", type);
   }
 
   @Override
   public void onCreateFunction(String keyspaceName, String function, List<String> argumentTypes) {
-    addOrReplaceKeyspaceHandler(keyspaceName, "function %s was created", function);
+    addOrReplaceDmlGraphql(keyspaceName, "function %s was created", function);
   }
 
   @Override
   public void onCreateAggregate(String keyspaceName, String aggregate, List<String> argumentTypes) {
-    addOrReplaceKeyspaceHandler(keyspaceName, "aggregate %s was created", aggregate);
+    addOrReplaceDmlGraphql(keyspaceName, "aggregate %s was created", aggregate);
   }
 
   @Override
   public void onAlterTable(String keyspaceName, String table) {
-    addOrReplaceKeyspaceHandler(keyspaceName, "table %s was altered", table);
+    addOrReplaceDmlGraphql(keyspaceName, "table %s was altered", table);
   }
 
   @Override
   public void onAlterView(String keyspaceName, String view) {
-    addOrReplaceKeyspaceHandler(keyspaceName, "view %s was altered", view);
+    addOrReplaceDmlGraphql(keyspaceName, "view %s was altered", view);
   }
 
   @Override
   public void onAlterType(String keyspaceName, String type) {
-    addOrReplaceKeyspaceHandler(keyspaceName, "type %s was altered", type);
+    addOrReplaceDmlGraphql(keyspaceName, "type %s was altered", type);
   }
 
   @Override
   public void onAlterFunction(String keyspaceName, String function, List<String> argumentTypes) {
-    addOrReplaceKeyspaceHandler(keyspaceName, "function %s was altered", function);
+    addOrReplaceDmlGraphql(keyspaceName, "function %s was altered", function);
   }
 
   @Override
   public void onAlterAggregate(String keyspaceName, String aggregate, List<String> argumentTypes) {
-    addOrReplaceKeyspaceHandler(keyspaceName, "aggregate %s was altered", aggregate);
+    addOrReplaceDmlGraphql(keyspaceName, "aggregate %s was altered", aggregate);
   }
 
   @Override
   public void onDropTable(String keyspaceName, String table) {
-    addOrReplaceKeyspaceHandler(keyspaceName, "table %s was dropped", table);
+    addOrReplaceDmlGraphql(keyspaceName, "table %s was dropped", table);
   }
 
   @Override
   public void onDropView(String keyspaceName, String view) {
-    addOrReplaceKeyspaceHandler(keyspaceName, "view %s was dropped", view);
+    addOrReplaceDmlGraphql(keyspaceName, "view %s was dropped", view);
   }
 
   @Override
   public void onDropType(String keyspaceName, String type) {
-    addOrReplaceKeyspaceHandler(keyspaceName, "type %s was dropped", type);
+    addOrReplaceDmlGraphql(keyspaceName, "type %s was dropped", type);
   }
 
   @Override
   public void onDropFunction(String keyspaceName, String function, List<String> argumentTypes) {
-    addOrReplaceKeyspaceHandler(keyspaceName, "function %s was dropped", function);
+    addOrReplaceDmlGraphql(keyspaceName, "function %s was dropped", function);
   }
 
   @Override
   public void onDropAggregate(String keyspaceName, String aggregate, List<String> argumentTypes) {
-    addOrReplaceKeyspaceHandler(keyspaceName, "aggregate %s was dropped", aggregate);
+    addOrReplaceDmlGraphql(keyspaceName, "aggregate %s was dropped", aggregate);
   }
 
   /**
-   * Holds an {@link HttpRequestHandlerImpl} instance lazily: the construction of the GraphQL schema
-   * will only happen the first time the keyspace is queried.
+   * Lazily holds the {@link GraphQL} instance for the DML operations on a particular keyspace: it
+   * will only be initialized if the keyspace is queried.
    */
-  static class RequestHandlerReference {
+  static class DmlGraphqlReference {
+
     private final Keyspace keyspace;
     private final Persistence persistence;
     private final AuthenticationService authenticationService;
     private final AuthorizationService authorizationService;
 
-    private volatile HttpRequestHandlerImpl handler;
+    private volatile GraphQL graphql;
 
-    RequestHandlerReference(
+    DmlGraphqlReference(
         Keyspace keyspace,
         Persistence persistence,
         AuthenticationService authenticationService,
@@ -342,39 +287,28 @@ public class CustomGraphQLServlet extends HttpServlet implements Servlet, EventL
       this.authorizationService = authorizationService;
     }
 
-    HttpRequestHandler get() {
+    GraphQL get() {
       // Double-checked locking
-      HttpRequestHandlerImpl result = handler;
+      GraphQL result = graphql;
       if (result != null) {
         return result;
       }
       synchronized (this) {
-        if (handler == null) {
-          handler = computeHandler();
+        if (graphql == null) {
+          graphql =
+              newGraphql(
+                  SchemaFactory.newDmlSchema(
+                      persistence, authenticationService, authorizationService, keyspace));
         }
-        return handler;
+        return graphql;
       }
     }
+  }
 
-    private HttpRequestHandlerImpl computeHandler() {
-      GraphQLSchema schema =
-          SchemaFactory.newDmlSchema(
-              persistence, authenticationService, authorizationService, keyspace);
-      GraphQLConfiguration configuration =
-          GraphQLConfiguration.with(schema)
-              .with(
-                  // Queries and mutations within the same request run in parallel
-                  GraphQLQueryInvoker.newBuilder()
-                      .withExecutionStrategyProvider(
-                          new DefaultExecutionStrategyProvider(new AsyncExecutionStrategy()))
-                      .build())
-              .with(new GraphqlCustomContextBuilder())
-              .with(
-                  GraphQLObjectMapper.newBuilder()
-                      .withGraphQLErrorHandler(new StargateGraphqlErrorHandler())
-                      .build())
-              .build();
-      return new HttpRequestHandlerImpl(configuration);
-    }
+  private static GraphQL newGraphql(GraphQLSchema schema) {
+    return GraphQL.newGraphQL(schema)
+        // Use parallel execution strategy for mutations (serial is default)
+        .mutationExecutionStrategy(new AsyncExecutionStrategy())
+        .build();
   }
 }

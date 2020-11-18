@@ -17,8 +17,7 @@ package io.stargate.graphql.schema.fetchers.ddl;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
-import com.datastax.oss.driver.api.querybuilder.schema.AlterTableDropColumnEnd;
-import com.datastax.oss.driver.api.querybuilder.schema.AlterTableStart;
+import com.datastax.oss.driver.api.querybuilder.schema.Drop;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
@@ -26,11 +25,10 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
 import io.stargate.graphql.web.HttpAwareContext;
-import java.util.List;
 
-public class AlterTableDropFetcher extends DdlQueryFetcher {
+public class DropTypeFetcher extends DdlQueryFetcher {
 
-  public AlterTableDropFetcher(
+  public DropTypeFetcher(
       Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService) {
@@ -38,32 +36,22 @@ public class AlterTableDropFetcher extends DdlQueryFetcher {
   }
 
   @Override
-  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment)
-      throws UnauthorizedException {
+  String getQuery(DataFetchingEnvironment dataFetchingEnvironment) throws UnauthorizedException {
     String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
-    String tableName = dataFetchingEnvironment.getArgument("tableName");
+    String typeName = dataFetchingEnvironment.getArgument("typeName");
 
     HttpAwareContext httpAwareContext = dataFetchingEnvironment.getContext();
     String token = httpAwareContext.getAuthToken();
-    authorizationService.authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
+    // Permissions on a type are the same as keyspace
+    authorizationService.authorizeSchemaWrite(token, keyspaceName, null, Scope.DROP);
 
-    AlterTableStart start =
-        SchemaBuilder.alterTable(
-            CqlIdentifier.fromInternal(keyspaceName), CqlIdentifier.fromInternal(tableName));
-
-    List<String> toDrop = dataFetchingEnvironment.getArgument("toDrop");
-    if (toDrop.isEmpty()) {
-      // TODO see if we can enforce that through the schema instead
-      throw new IllegalArgumentException("toDrop must contain at least one element");
+    Drop dropType =
+        SchemaBuilder.dropType(
+            CqlIdentifier.fromInternal(keyspaceName), CqlIdentifier.fromInternal(typeName));
+    Boolean ifExists = dataFetchingEnvironment.getArgument("ifExists");
+    if (ifExists != null && ifExists) {
+      dropType = dropType.ifExists();
     }
-    AlterTableDropColumnEnd table = null;
-    for (String column : toDrop) {
-      if (table != null) {
-        table = table.dropColumn(CqlIdentifier.fromInternal(column));
-      } else {
-        table = start.dropColumn(CqlIdentifier.fromInternal(column));
-      }
-    }
-    return table.build().getQuery();
+    return dropType.asCql();
   }
 }

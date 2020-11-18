@@ -14,8 +14,8 @@ import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
-import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import io.stargate.graphql.schema.NameMapping;
+import io.stargate.graphql.web.HttpAwareContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +43,7 @@ public class UpdateMutationFetcher extends MutationFetcher {
       }
     }
 
-    HTTPAwareContextImpl httpAwareContext = environment.getContext();
+    HttpAwareContext httpAwareContext = environment.getContext();
     String token = httpAwareContext.getAuthToken();
 
     List<Relation> relations = buildPkCKWhere(table, environment);

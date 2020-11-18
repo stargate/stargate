@@ -24,7 +24,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
-import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
+import io.stargate.graphql.web.HttpAwareContext;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +43,7 @@ public class CreateKeyspaceFetcher extends DdlQueryFetcher {
       throws UnauthorizedException {
     String keyspaceName = dataFetchingEnvironment.getArgument("name");
 
-    HTTPAwareContextImpl httpAwareContext = dataFetchingEnvironment.getContext();
+    HttpAwareContext httpAwareContext = dataFetchingEnvironment.getContext();
     String token = httpAwareContext.getAuthToken();
     authorizationService.authorizeSchemaWrite(token, keyspaceName, null, Scope.CREATE);
 

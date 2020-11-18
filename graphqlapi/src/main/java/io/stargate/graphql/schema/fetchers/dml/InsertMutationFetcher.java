@@ -32,8 +32,8 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Table;
-import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import io.stargate.graphql.schema.NameMapping;
+import io.stargate.graphql.web.HttpAwareContext;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -56,7 +56,7 @@ public class InsertMutationFetcher extends MutationFetcher {
       throws Exception {
     Map<CqlIdentifier, Term> cqlIdentifierTermMap = buildInsertValues(environment);
 
-    HTTPAwareContextImpl httpAwareContext = environment.getContext();
+    HttpAwareContext httpAwareContext = environment.getContext();
     String token = httpAwareContext.getAuthToken();
 
     authorizationService.authorizedDataWrite(

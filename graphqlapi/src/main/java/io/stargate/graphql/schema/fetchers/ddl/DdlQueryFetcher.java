@@ -15,8 +15,10 @@
  */
 package io.stargate.graphql.schema.fetchers.ddl;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.DataTypes;
+import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
@@ -49,18 +51,20 @@ public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
       throws UnauthorizedException;
 
   protected DataType decodeType(Object typeObject) {
-    // TODO can these casts fail? If so add proper error handling.
     @SuppressWarnings("unchecked")
     Map<String, Object> type = (Map<String, Object>) typeObject;
     String basic = (String) type.get("basic");
     @SuppressWarnings("unchecked")
     Map<String, Object> info = (Map<String, Object>) type.get("info");
-    List<?> subTypes;
+    String name = info == null ? null : (String) info.get("name");
+    List<?> subTypes = info == null ? null : (List<?>) info.get("subTypes");
+    boolean frozen = info != null && info.containsKey("frozen") && (Boolean) info.get("frozen");
 
     switch (basic) {
       case "INT":
-      case "INET":
         return DataTypes.INT;
+      case "INET":
+        return DataTypes.INET;
       case "TIMEUUID":
         return DataTypes.TIMEUUID;
       case "TIMESTAMP":
@@ -99,26 +103,53 @@ public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
       case "FLOAT":
         return DataTypes.FLOAT;
       case "LIST":
-        subTypes = (List<?>) info.get("subTypes");
+        if (info == null) {
+          throw new IllegalArgumentException(
+              "List type should contain an 'info' field specifying the sub type");
+        }
         if (subTypes == null || subTypes.size() != 1) {
           throw new IllegalArgumentException("List sub types should contain 1 item");
         }
-        return DataTypes.listOf(decodeType(subTypes.get(0)));
+        return DataTypes.listOf(decodeType(subTypes.get(0)), frozen);
       case "SET":
-        subTypes = (List<?>) info.get("subTypes");
+        if (info == null) {
+          throw new IllegalArgumentException(
+              "Set type should contain an 'info' field specifying the sub type");
+        }
         if (subTypes == null || subTypes.size() != 1) {
           throw new IllegalArgumentException("Set sub types should contain 1 item");
         }
         subTypes = (List<?>) info.get("subTypes");
-        return DataTypes.setOf(decodeType(subTypes.get(0)));
+        return DataTypes.setOf(decodeType(subTypes.get(0)), frozen);
       case "MAP":
-        subTypes = (List<?>) info.get("subTypes");
+        if (info == null) {
+          throw new IllegalArgumentException(
+              "Map type should contain an 'info' field specifying the sub types");
+        }
         if (subTypes == null || subTypes.size() != 2) {
           throw new IllegalArgumentException("Map sub types should contain 2 items");
         }
-        return DataTypes.mapOf(decodeType(subTypes.get(0)), decodeType(subTypes.get(1)));
+        return DataTypes.mapOf(decodeType(subTypes.get(0)), decodeType(subTypes.get(1)), frozen);
+      case "UDT":
+        if (name == null) {
+          throw new IllegalArgumentException(
+              "UDT type should contain an 'info' field specifying the UDT name");
+        }
+        return SchemaBuilder.udt(CqlIdentifier.fromInternal(name), frozen);
+      case "TUPLE":
+        if (info == null) {
+          throw new IllegalArgumentException(
+              "TUPLE type should contain an 'info' field specifying the sub types");
+        }
+        if (subTypes.isEmpty()) {
+          throw new IllegalArgumentException("TUPLE type should have at least one sub type");
+        }
+        DataType[] decodedSubTypes = new DataType[subTypes.size()];
+        for (int i = 0; i < subTypes.size(); i++) {
+          decodedSubTypes[i] = decodeType(subTypes.get(i));
+        }
+        return DataTypes.tupleOf(decodedSubTypes);
     }
-
     throw new RuntimeException(String.format("Data type %s is not supported", basic));
   }
 }

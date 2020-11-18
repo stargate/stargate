@@ -29,8 +29,8 @@ import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.Table;
-import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import io.stargate.graphql.schema.NameMapping;
+import io.stargate.graphql.web.HttpAwareContext;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -55,7 +55,7 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
   protected Map<String, Object> get(DataFetchingEnvironment environment, DataStore dataStore)
       throws Exception {
     String statement = buildQuery(environment);
-    HTTPAwareContextImpl httpAwareContext = environment.getContext();
+    HttpAwareContext httpAwareContext = environment.getContext();
     String token = httpAwareContext.getAuthToken();
 
     ResultSet resultSet =

@@ -13,25 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.graphql;
+package io.stargate.graphql.web.resources;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.URL;
 import java.util.stream.Collectors;
-import javax.servlet.http.HttpServlet;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.osgi.framework.Bundle;
 
-public class PlaygroundServlet extends HttpServlet {
+@Produces(MediaType.TEXT_HTML)
+@Path("/playground")
+@Singleton
+public class PlaygroundResource {
 
   private final String playgroundFile;
 
-  public PlaygroundServlet(Bundle bundle) throws IOException {
+  @Inject
+  public PlaygroundResource(Bundle bundle) throws IOException {
     // From
     // https://raw.githubusercontent.com/prisma-labs/graphql-playground/master/packages/graphql-playground-html/withAnimation.html
     URL entry = bundle.getEntry("/playground.html");
@@ -42,12 +50,8 @@ public class PlaygroundServlet extends HttpServlet {
             .collect(Collectors.joining("\n"));
   }
 
-  @Override
-  protected void doGet(HttpServletRequest request, HttpServletResponse response) {
-    response.setStatus(HttpServletResponse.SC_OK);
-    response.setContentType("text/html");
-    response.setCharacterEncoding("utf-8");
-
+  @GET
+  public Response get(@Context HttpServletRequest request) {
     String token = request.getHeader("x-cassandra-token");
 
     // Replace the templated text with the token if it exist. Using java.lang.String.replaceFirst
@@ -55,19 +59,7 @@ public class PlaygroundServlet extends HttpServlet {
     // the percent signs that exist in the string.
     String formattedPlaygroundFile =
         playgroundFile.replaceFirst("AUTHENTICATION_TOKEN", token == null ? "" : token);
-    ByteArrayInputStream byteArrayInputStream =
-        new ByteArrayInputStream(formattedPlaygroundFile.getBytes());
-    try {
-      OutputStream os = response.getOutputStream();
 
-      byte[] buffer = new byte[1024];
-      int bytesRead;
-
-      while ((bytesRead = byteArrayInputStream.read(buffer)) != -1) {
-        os.write(buffer, 0, bytesRead);
-      }
-    } catch (IOException e) {
-      response.setStatus(500);
-    }
+    return Response.ok(formattedPlaygroundFile).build();
   }
 }

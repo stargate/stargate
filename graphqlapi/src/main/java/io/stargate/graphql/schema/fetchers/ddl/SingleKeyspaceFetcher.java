@@ -22,8 +22,8 @@ import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.SchemaEntity;
-import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
+import io.stargate.graphql.web.HttpAwareContext;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -42,7 +42,7 @@ public class SingleKeyspaceFetcher extends CassandraFetcher<Map<String, Object>>
       throws Exception {
     String keyspaceName = environment.getArgument("name");
 
-    HTTPAwareContextImpl httpAwareContext = environment.getContext();
+    HttpAwareContext httpAwareContext = environment.getContext();
     String token = httpAwareContext.getAuthToken();
 
     Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);

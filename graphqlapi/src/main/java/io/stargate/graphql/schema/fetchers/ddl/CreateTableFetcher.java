@@ -27,7 +27,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
-import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
+import io.stargate.graphql.web.HttpAwareContext;
 import java.util.List;
 import java.util.Map;
 
@@ -45,7 +45,7 @@ public class CreateTableFetcher extends DdlQueryFetcher {
     String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
     String tableName = dataFetchingEnvironment.getArgument("tableName");
 
-    HTTPAwareContextImpl httpAwareContext = dataFetchingEnvironment.getContext();
+    HttpAwareContext httpAwareContext = dataFetchingEnvironment.getContext();
     String token = httpAwareContext.getAuthToken();
     authorizationService.authorizeSchemaWrite(token, keyspaceName, tableName, Scope.CREATE);
 

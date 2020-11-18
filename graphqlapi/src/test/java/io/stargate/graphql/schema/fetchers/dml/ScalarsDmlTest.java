@@ -98,7 +98,7 @@ public class ScalarsDmlTest extends DmlTestBase {
             "INSERT INTO scalars_ks.\"Scalars\" (id,%s) VALUES (1,%s)",
             name, expectedLiteral != null ? expectedLiteral : value.toString());
 
-    assertSuccess(String.format(mutation, name, toGraphQLValue(value)), expectedCQL);
+    assertQuery(String.format(mutation, name, toGraphQLValue(value)), expectedCQL);
   }
 
   @ParameterizedTest
@@ -114,7 +114,7 @@ public class ScalarsDmlTest extends DmlTestBase {
             "INSERT INTO scalars_ks.\"Scalars\" (id,%s) VALUES (1,%s)",
             name, expectedLiteral != null ? expectedLiteral : value.toString());
 
-    assertSuccess(String.format(mutation, name, toGraphQLValue(value)), expectedCQL);
+    assertQuery(String.format(mutation, name, toGraphQLValue(value)), expectedCQL);
   }
 
   @ParameterizedTest
