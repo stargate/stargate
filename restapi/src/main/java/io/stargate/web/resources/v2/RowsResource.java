@@ -18,6 +18,7 @@ package io.stargate.web.resources.v2;
 import com.codahale.metrics.annotation.Timed;
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.stargate.auth.Scope;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
@@ -303,15 +304,16 @@ public class RowsResource {
 
           db.getAuthorizationService()
               .authorizedDataWrite(
-                  () ->
-                      localDB
-                          .query()
-                          .insertInto(keyspaceName, tableName)
-                          .value(values)
-                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                          .execute(),
                   token,
-                  values.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
+                  values.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
+                  Scope.MODIFY);
+
+          localDB
+              .query()
+              .insertInto(keyspaceName, tableName)
+              .value(values)
+              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+              .execute();
 
           Map<String, Object> keys = new HashMap<>();
           for (Column col : table.primaryKeyColumns()) {
@@ -413,17 +415,17 @@ public class RowsResource {
 
           db.getAuthorizationService()
               .authorizedDataWrite(
-                  () ->
-                      localDB
-                          .query()
-                          .delete()
-                          .from(keyspaceName, tableName)
-                          .where(where)
-                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                          .execute(),
                   token,
-                  where.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
+                  where.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
+                  Scope.DELETE);
 
+          localDB
+              .query()
+              .delete()
+              .from(keyspaceName, tableName)
+              .where(where)
+              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+              .execute();
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }
@@ -497,19 +499,20 @@ public class RowsResource {
             .map((e) -> Converters.colToValue(e, tableMetadata))
             .collect(Collectors.toList());
 
+    db.getAuthorizationService()
+        .authorizedDataWrite(
+            token,
+            where.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
+            Scope.MODIFY);
+
     final ResultSet r =
-        db.getAuthorizationService()
-            .authorizedDataWrite(
-                () ->
-                    localDB
-                        .query()
-                        .update(keyspaceName, tableName)
-                        .value(changes)
-                        .where(where)
-                        .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                        .execute(),
-                token,
-                where.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
+        localDB
+            .query()
+            .update(keyspaceName, tableName)
+            .value(changes)
+            .where(where)
+            .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+            .execute();
 
     Object response = raw ? requestBody : new ResponseWrapper(requestBody);
     return Response.status(Response.Status.OK).entity(Converters.writeResponse(response)).build();

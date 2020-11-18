@@ -17,6 +17,7 @@ package io.stargate.web.resources.v2.schemas;
 
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.stargate.auth.Scope;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
@@ -230,19 +231,15 @@ public class KeyspacesResource {
           // final
           String finalReplication = replication;
           db.getAuthorizationService()
-              .authorizedSchemaWrite(
-                  () ->
-                      localDB
-                          .query()
-                          .create()
-                          .keyspace(keyspaceName)
-                          .ifNotExists()
-                          .withReplication(finalReplication)
-                          .execute(),
-                  token,
-                  keyspaceName,
-                  null);
+              .authorizeSchemaWrite(token, keyspaceName, null, Scope.CREATE);
 
+          localDB
+              .query()
+              .create()
+              .keyspace(keyspaceName)
+              .ifNotExists()
+              .withReplication(finalReplication)
+              .execute();
           return Response.status(Response.Status.CREATED)
               .entity(Converters.writeResponse(Collections.singletonMap("name", keyspaceName)))
               .build();
@@ -273,19 +270,14 @@ public class KeyspacesResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          db.getAuthorizationService()
-              .authorizedSchemaWrite(
-                  () ->
-                      localDB
-                          .query()
-                          .drop()
-                          .keyspace(keyspaceName)
-                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                          .execute(),
-                  token,
-                  keyspaceName,
-                  null);
+          db.getAuthorizationService().authorizeSchemaWrite(token, keyspaceName, null, Scope.DROP);
 
+          localDB
+              .query()
+              .drop()
+              .keyspace(keyspaceName)
+              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+              .execute();
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }

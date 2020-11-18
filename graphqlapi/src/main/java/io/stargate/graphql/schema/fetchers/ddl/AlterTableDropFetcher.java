@@ -22,7 +22,10 @@ import com.datastax.oss.driver.api.querybuilder.schema.AlterTableStart;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
+import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import java.util.List;
 
 public class AlterTableDropFetcher extends DdlQueryFetcher {
@@ -35,11 +38,18 @@ public class AlterTableDropFetcher extends DdlQueryFetcher {
   }
 
   @Override
-  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {
+  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment)
+      throws UnauthorizedException {
+    String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
+    String tableName = dataFetchingEnvironment.getArgument("tableName");
+
+    HTTPAwareContextImpl httpAwareContext = dataFetchingEnvironment.getContext();
+    String token = httpAwareContext.getAuthToken();
+    authorizationService.authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
+
     AlterTableStart start =
         SchemaBuilder.alterTable(
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("keyspaceName")),
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("tableName")));
+            CqlIdentifier.fromInternal(keyspaceName), CqlIdentifier.fromInternal(tableName));
 
     List<String> toDrop = dataFetchingEnvironment.getArgument("toDrop");
     if (toDrop.isEmpty()) {

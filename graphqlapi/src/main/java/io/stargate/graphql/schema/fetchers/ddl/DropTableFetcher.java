@@ -21,7 +21,10 @@ import com.datastax.oss.driver.api.querybuilder.schema.Drop;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
+import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 
 public class DropTableFetcher extends DdlQueryFetcher {
 
@@ -33,11 +36,18 @@ public class DropTableFetcher extends DdlQueryFetcher {
   }
 
   @Override
-  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {
+  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment)
+      throws UnauthorizedException {
+    String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
+    String tableName = dataFetchingEnvironment.getArgument("tableName");
+
+    HTTPAwareContextImpl httpAwareContext = dataFetchingEnvironment.getContext();
+    String token = httpAwareContext.getAuthToken();
+    authorizationService.authorizeSchemaWrite(token, keyspaceName, tableName, Scope.DROP);
+
     Drop drop =
         SchemaBuilder.dropTable(
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("keyspaceName")),
-            CqlIdentifier.fromInternal((String) dataFetchingEnvironment.getArgument("tableName")));
+            CqlIdentifier.fromInternal(keyspaceName), CqlIdentifier.fromInternal(tableName));
 
     Boolean ifExists = dataFetchingEnvironment.getArgument("ifExists");
     if (ifExists != null && ifExists) {

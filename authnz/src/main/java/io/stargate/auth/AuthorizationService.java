@@ -66,20 +66,16 @@ public interface AuthorizationService {
       throws UnauthorizedException;
 
   /**
-   * Using the provided token will perform pre-authorization where possible and if successful
-   * executes the query provided.
+   * Using the provided token will perform pre-authorization where possible.
    *
-   * @param action A {@link QueryBuilder} object to be executed and authorized against a token.
    * @param token The authenticated token to use for authorization.
    * @param typedKeyValues A list of {@link TypedKeyValue} that will be used in the query and should
    *     be authorized against the token.
-   * @return On success will return the result of the query and otherwise will return an exception
-   *     relating to the failure to authorize.
-   * @throws Exception An exception relating to the failure to authorize.
+   * @param scope The {@link Scope} of the action to be performed.
+   * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
-  ResultSet authorizedDataWrite(
-      Callable<ResultSet> action, String token, List<TypedKeyValue> typedKeyValues)
-      throws Exception;
+  void authorizedDataWrite(String token, List<TypedKeyValue> typedKeyValues, Scope scope)
+      throws UnauthorizedException;
 
   /**
    * Using the provided token will perform pre-authorization of accessing the provided resources.
@@ -92,22 +88,6 @@ public interface AuthorizationService {
    */
   void authorizeSchemaRead(String token, List<String> keyspaceNames, List<String> tableNames)
       throws Exception;
-
-  /**
-   * Using the provided token will perform pre-authorization where possible and if successful
-   * executes the query provided.
-   *
-   * @param action A {@link QueryBuilder} object to be executed and authorized against a token.
-   * @param token The authenticated token to use for authorization.
-   * @param keyspace Either the keyspace containing the resource to be modified or the actual
-   *     resource being modified.
-   * @param table The table within the provided keyspace that is being modified.
-   * @return On success will return the result of the query and otherwise will return an exception
-   *     relating to the failure to authorize.
-   * @throws Exception An exception relating to the failure to authorize.
-   */
-  ResultSet authorizedSchemaWrite(
-      Callable<ResultSet> action, String token, String keyspace, String table) throws Exception;
 
   /**
    * Using the provided token will perform pre-authorization where possible and if not successful

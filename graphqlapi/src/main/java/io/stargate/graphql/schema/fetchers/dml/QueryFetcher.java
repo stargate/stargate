@@ -56,8 +56,8 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
       throws Exception {
     String statement = buildQuery(environment);
     HTTPAwareContextImpl httpAwareContext = environment.getContext();
-
     String token = httpAwareContext.getAuthToken();
+
     ResultSet resultSet =
         authorizationService.authorizedDataRead(
             () -> dataStore.query(statement).get(),

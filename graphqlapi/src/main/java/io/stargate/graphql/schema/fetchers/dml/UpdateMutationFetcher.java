@@ -9,10 +9,12 @@ import com.datastax.oss.driver.api.querybuilder.update.UpdateStart;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
+import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import io.stargate.graphql.schema.NameMapping;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +32,8 @@ public class UpdateMutationFetcher extends MutationFetcher {
   }
 
   @Override
-  protected String buildStatement(DataFetchingEnvironment environment, DataStore dataStore) {
+  protected String buildStatement(DataFetchingEnvironment environment, DataStore dataStore)
+      throws Exception {
     UpdateStart updateStart = QueryBuilder.update(keyspaceId, tableId);
 
     if (environment.containsArgument("options") && environment.getArgument("options") != null) {
@@ -39,6 +42,13 @@ public class UpdateMutationFetcher extends MutationFetcher {
         updateStart = updateStart.usingTtl((Integer) options.get("ttl"));
       }
     }
+
+    HTTPAwareContextImpl httpAwareContext = environment.getContext();
+    String token = httpAwareContext.getAuthToken();
+
+    List<Relation> relations = buildPkCKWhere(table, environment);
+    authorizationService.authorizedDataWrite(
+        token, buildTypedKeyValueList(relations), Scope.MODIFY);
 
     Update update =
         updateStart

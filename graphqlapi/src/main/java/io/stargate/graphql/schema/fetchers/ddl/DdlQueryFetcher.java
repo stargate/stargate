@@ -20,6 +20,7 @@ import com.datastax.oss.driver.api.core.type.DataTypes;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
@@ -40,12 +41,12 @@ public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
 
   @Override
   protected Boolean get(DataFetchingEnvironment environment, DataStore dataStore) throws Exception {
-    // TODO: [doug] 2020-11-17, Tue, 2:25 check here
     dataStore.query(getQuery(environment)).get();
     return true;
   }
 
-  abstract String getQuery(DataFetchingEnvironment dataFetchingEnvironment);
+  abstract String getQuery(DataFetchingEnvironment dataFetchingEnvironment)
+      throws UnauthorizedException;
 
   protected DataType decodeType(Object typeObject) {
     // TODO can these casts fail? If so add proper error handling.

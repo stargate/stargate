@@ -100,8 +100,12 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
   protected List<TypedKeyValue> buildTypedKeyValueList(
       Table table, DataFetchingEnvironment environment) {
+    return buildTypedKeyValueList(buildClause(table, environment));
+  }
+
+  protected List<TypedKeyValue> buildTypedKeyValueList(List<Relation> relations) {
     List<TypedKeyValue> typedKeyValues = new ArrayList<>();
-    for (Relation rel : buildClause(table, environment)) {
+    for (Relation rel : relations) {
       if (rel instanceof DefaultRelation) {
         LeftOperand leftOperand = ((DefaultRelation) rel).getLeftOperand();
         Term term = ((DefaultRelation) rel).getRightOperand();

@@ -16,6 +16,7 @@
 package io.stargate.web.resources.v2.schemas;
 
 import com.codahale.metrics.annotation.Timed;
+import io.stargate.auth.Scope;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
@@ -262,13 +263,11 @@ public class TablesResource {
                   Converters.maybeQuote(tableAdd.getName()),
                   columnDefinitions.toString(),
                   tableOptions);
-          db.getAuthorizationService()
-              .authorizedSchemaWrite(
-                  () -> localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM).get(),
-                  token,
-                  keyspaceName,
-                  tableAdd.getName());
 
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, keyspaceName, tableAdd.getName(), Scope.CREATE);
+
+          localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM).get();
           return Response.status(Response.Status.CREATED)
               .entity(
                   Converters.writeResponse(Collections.singletonMap("name", tableAdd.getName())))
@@ -323,20 +322,17 @@ public class TablesResource {
           }
 
           db.getAuthorizationService()
-              .authorizedSchemaWrite(
-                  () ->
-                      localDB
-                          .query(
-                              String.format(
-                                  "ALTER TABLE %s.%s %s",
-                                  Converters.maybeQuote(keyspaceName),
-                                  Converters.maybeQuote(tableName),
-                                  tableOptions),
-                              ConsistencyLevel.LOCAL_QUORUM)
-                          .get(),
-                  token,
-                  keyspaceName,
-                  tableName);
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
+
+          localDB
+              .query(
+                  String.format(
+                      "ALTER TABLE %s.%s %s",
+                      Converters.maybeQuote(keyspaceName),
+                      Converters.maybeQuote(tableName),
+                      tableOptions),
+                  ConsistencyLevel.LOCAL_QUORUM)
+              .get();
 
           return Response.status(Response.Status.CREATED)
               .entity(
@@ -375,18 +371,14 @@ public class TablesResource {
           DataStore localDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizedSchemaWrite(
-                  () ->
-                      localDB
-                          .query()
-                          .drop()
-                          .table(keyspaceName, tableName)
-                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                          .execute(),
-                  token,
-                  keyspaceName,
-                  tableName);
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.DROP);
 
+          localDB
+              .query()
+              .drop()
+              .table(keyspaceName, tableName)
+              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+              .execute();
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }

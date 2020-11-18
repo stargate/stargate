@@ -70,11 +70,9 @@ public class AuthzTableBasedService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public ResultSet authorizedDataWrite(
-      Callable<ResultSet> action, String token, List<TypedKeyValue> typedKeyValues)
-      throws Exception {
+  public void authorizedDataWrite(String token, List<TypedKeyValue> typedKeyValues, Scope scope)
+      throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
-    return action.call();
   }
 
   /**
@@ -88,20 +86,6 @@ public class AuthzTableBasedService implements AuthorizationService {
   public void authorizeSchemaRead(String token, List<String> keyspaceNames, List<String> tableNames)
       throws Exception {
     // Cannot perform authorization with a table based token so just return
-  }
-
-  /**
-   * Authorization for schema resource access is not provided by table based tokens so all
-   * authorization will be deferred to the underlying permissions assigned to the role the token
-   * maps to.
-   *
-   * <p>{@inheritdoc}
-   */
-  @Override
-  public ResultSet authorizedSchemaWrite(
-      Callable<ResultSet> action, String token, String keyspace, String table) throws Exception {
-    // Cannot perform authorization with a table based token so just return
-    return action.call();
   }
 
   /**

@@ -21,7 +21,10 @@ import com.datastax.oss.driver.api.querybuilder.schema.CreateKeyspaceStart;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
+import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,10 +39,16 @@ public class CreateKeyspaceFetcher extends DdlQueryFetcher {
   }
 
   @Override
-  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {
+  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment)
+      throws UnauthorizedException {
+    String keyspaceName = dataFetchingEnvironment.getArgument("name");
+
+    HTTPAwareContextImpl httpAwareContext = dataFetchingEnvironment.getContext();
+    String token = httpAwareContext.getAuthToken();
+    authorizationService.authorizeSchemaWrite(token, keyspaceName, null, Scope.CREATE);
+
     CreateKeyspaceStart start =
-        SchemaBuilder.createKeyspace(
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("name")));
+        SchemaBuilder.createKeyspace(CqlIdentifier.fromInternal(keyspaceName));
     boolean ifNotExists =
         dataFetchingEnvironment.getArgumentOrDefault("ifNotExists", Boolean.FALSE);
     if (ifNotExists) {

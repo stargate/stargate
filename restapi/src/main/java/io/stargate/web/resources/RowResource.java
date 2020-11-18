@@ -16,6 +16,7 @@
 package io.stargate.web.resources;
 
 import com.codahale.metrics.annotation.Timed;
+import io.stargate.auth.Scope;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
@@ -416,16 +417,16 @@ public class RowResource {
 
           db.getAuthorizationService()
               .authorizedDataWrite(
-                  () ->
-                      localDB
-                          .query()
-                          .insertInto(keyspaceName, tableName)
-                          .value(values)
-                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                          .execute(),
                   token,
-                  values.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
+                  values.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
+                  Scope.MODIFY);
 
+          localDB
+              .query()
+              .insertInto(keyspaceName, tableName)
+              .value(values)
+              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+              .execute();
           return Response.status(Response.Status.CREATED).entity(new RowsResponse(true, 1)).build();
         });
   }
@@ -470,17 +471,17 @@ public class RowResource {
               buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI());
           db.getAuthorizationService()
               .authorizedDataWrite(
-                  () ->
-                      localDB
-                          .query()
-                          .delete()
-                          .from(keyspaceName, tableName)
-                          .where(wheres)
-                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                          .execute(),
                   token,
-                  wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
+                  wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
+                  Scope.DELETE);
 
+          localDB
+              .query()
+              .delete()
+              .from(keyspaceName, tableName)
+              .where(wheres)
+              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+              .execute();
           return Response.status(Response.Status.NO_CONTENT).entity(new SuccessResponse()).build();
         });
   }
@@ -536,17 +537,17 @@ public class RowResource {
               buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI());
           db.getAuthorizationService()
               .authorizedDataWrite(
-                  () ->
-                      localDB
-                          .query()
-                          .update(keyspaceName, tableName)
-                          .value(changes)
-                          .where(wheres)
-                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                          .execute(),
                   token,
-                  wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
+                  wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
+                  Scope.MODIFY);
 
+          localDB
+              .query()
+              .update(keyspaceName, tableName)
+              .value(changes)
+              .where(wheres)
+              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+              .execute();
           return Response.status(Response.Status.OK).entity(new SuccessResponse()).build();
         });
   }

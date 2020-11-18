@@ -20,9 +20,12 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class AllKeyspacesFetcher extends CassandraFetcher<List<Map<String, Object>>> {
 
@@ -34,9 +37,22 @@ public class AllKeyspacesFetcher extends CassandraFetcher<List<Map<String, Objec
   }
 
   @Override
-  protected List<Map<String, Object>> get(
-      DataFetchingEnvironment environment, DataStore dataStore) {
-    // TODO: [doug] 2020-11-17, Tue, 2:25 check here
-    return KeyspaceFormatter.formatResult(dataStore.schema().keyspaces(), environment);
+  protected List<Map<String, Object>> get(DataFetchingEnvironment environment, DataStore dataStore)
+      throws Exception {
+    HTTPAwareContextImpl httpAwareContext = environment.getContext();
+    String token = httpAwareContext.getAuthToken();
+
+    List<Map<String, Object>> keyspaces =
+        KeyspaceFormatter.formatResult(dataStore.schema().keyspaces(), environment);
+    for (Map<String, Object> keyspace : keyspaces) {
+      String keyspaceName = (String) keyspace.get("name");
+      @SuppressWarnings("unchecked")
+      List<Map<String, Object>> tables = (List<Map<String, Object>>) keyspace.get("tables");
+      authorizationService.authorizeSchemaRead(
+          token,
+          Collections.singletonList(keyspaceName),
+          tables.stream().map(t -> (String) t.get("name")).collect(Collectors.toList()));
+    }
+    return keyspaces;
   }
 }

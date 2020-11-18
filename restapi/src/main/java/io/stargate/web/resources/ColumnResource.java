@@ -16,6 +16,7 @@
 package io.stargate.web.resources;
 
 import com.codahale.metrics.annotation.Timed;
+import io.stargate.auth.Scope;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
@@ -168,19 +169,15 @@ public class ColumnResource {
                   .build();
 
           db.getAuthorizationService()
-              .authorizedSchemaWrite(
-                  () ->
-                      localDB
-                          .query()
-                          .alter()
-                          .table(keyspaceName, tableName)
-                          .addColumn(column)
-                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                          .execute(),
-                  token,
-                  keyspaceName,
-                  tableName);
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
 
+          localDB
+              .query()
+              .alter()
+              .table(keyspaceName, tableName)
+              .addColumn(column)
+              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+              .execute();
           return Response.status(Response.Status.CREATED).entity(new SuccessResponse()).build();
         });
   }
@@ -274,19 +271,15 @@ public class ColumnResource {
           DataStore localDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizedSchemaWrite(
-                  () ->
-                      localDB
-                          .query()
-                          .alter()
-                          .table(keyspaceName, tableName)
-                          .dropColumn(columnName)
-                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                          .execute(),
-                  token,
-                  keyspaceName,
-                  tableName);
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
 
+          localDB
+              .query()
+              .alter()
+              .table(keyspaceName, tableName)
+              .dropColumn(columnName)
+              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+              .execute();
           return Response.status(Response.Status.NO_CONTENT).entity(new SuccessResponse()).build();
         });
   }
@@ -333,21 +326,17 @@ public class ColumnResource {
                   + Converters.maybeQuote(columnUpdate.getNewName());
 
           db.getAuthorizationService()
-              .authorizedSchemaWrite(
-                  () ->
-                      localDB
-                          .query(
-                              String.format(
-                                  "ALTER TABLE %s.%s %s",
-                                  Converters.maybeQuote(keyspaceName),
-                                  Converters.maybeQuote(tableName),
-                                  alterInstructions),
-                              ConsistencyLevel.LOCAL_QUORUM)
-                          .get(),
-                  token,
-                  keyspaceName,
-                  tableName);
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
 
+          localDB
+              .query(
+                  String.format(
+                      "ALTER TABLE %s.%s %s",
+                      Converters.maybeQuote(keyspaceName),
+                      Converters.maybeQuote(tableName),
+                      alterInstructions),
+                  ConsistencyLevel.LOCAL_QUORUM)
+              .get();
           return Response.status(Response.Status.OK).entity(new SuccessResponse()).build();
         });
   }

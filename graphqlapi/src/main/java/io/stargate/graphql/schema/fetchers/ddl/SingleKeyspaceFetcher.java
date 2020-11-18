@@ -21,8 +21,12 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.SchemaEntity;
+import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
+import java.util.Collections;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class SingleKeyspaceFetcher extends CassandraFetcher<Map<String, Object>> {
 
@@ -34,13 +38,23 @@ public class SingleKeyspaceFetcher extends CassandraFetcher<Map<String, Object>>
   }
 
   @Override
-  protected Map<String, Object> get(DataFetchingEnvironment environment, DataStore dataStore) {
+  protected Map<String, Object> get(DataFetchingEnvironment environment, DataStore dataStore)
+      throws Exception {
     String keyspaceName = environment.getArgument("name");
-    // TODO: [doug] 2020-11-17, Tue, 2:25 check here
+
+    HTTPAwareContextImpl httpAwareContext = environment.getContext();
+    String token = httpAwareContext.getAuthToken();
+
     Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
     if (keyspace == null) {
       return null;
     }
+
+    authorizationService.authorizeSchemaRead(
+        token,
+        Collections.singletonList(keyspaceName),
+        keyspace.tables().stream().map(SchemaEntity::name).collect(Collectors.toList()));
+
     return KeyspaceFormatter.formatResult(keyspace, environment);
   }
 }
