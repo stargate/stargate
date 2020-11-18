@@ -116,16 +116,6 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>io.dropwizard.metrics</groupId>
-      <artifactId>metrics-ganglia</artifactId>
-      <version>3.2.6</version>
-    </dependency>
-    <dependency>
-      <groupId>io.dropwizard.metrics</groupId>
-      <artifactId>metrics-graphite</artifactId>
-      <version>4.1.2</version>
-    </dependency>
-    <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-core</artifactId>
       <version>4.9.0</version>
@@ -224,6 +214,7 @@
               org.osgi.framework,
               io.stargate.db,
               !com.codahale.metrics.graphite.*,
+              com.codahale.metrics,
               ]]>
             </Import-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
