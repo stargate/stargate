@@ -89,7 +89,6 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
             () -> {
               Thread currentThread = Thread.currentThread();
               ClassLoader ldr = currentThread.getContextClassLoader();
-              System.out.println("class loader in thread:" + ldr);
               try {
                 // Note: Apache Kafka expects to find certain dependencies
                 // using the thread context class loader.
