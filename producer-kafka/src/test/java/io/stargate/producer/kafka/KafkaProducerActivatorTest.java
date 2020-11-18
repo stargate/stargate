@@ -170,7 +170,7 @@ class KafkaProducerActivatorTest {
         getProducerDisabledPath(), getProducerEnabledNotSetPath(), Paths.get("non_existing"));
   }
 
-  static Path getProducerEnabledPath() {
+  private static Path getProducerEnabledPath() {
     return Paths.get(
         Objects.requireNonNull(
                 KafkaProducerActivatorTest.class
