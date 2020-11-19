@@ -55,6 +55,11 @@
       <version>${avro.version}</version>
     </dependency>
     <dependency>
+      <groupId>io.dropwizard.modules</groupId>
+      <artifactId>dropwizard-kafka</artifactId>
+      <version>1.6.0</version>
+    </dependency>
+    <dependency>
       <groupId>io.confluent</groupId>
       <artifactId>kafka-avro-serializer</artifactId>
       <version>${schema-registry.version}</version>
@@ -65,11 +70,6 @@
         </exclusion>
       </exclusions>
     </dependency>
-    <dependency>
-      <groupId>io.dropwizard.modules</groupId>
-      <artifactId>dropwizard-kafka</artifactId>
-      <version>1.6.0</version>
-	</dependency>
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
@@ -119,16 +119,6 @@
       <artifactId>sjk-core</artifactId>
       <version>0.14</version>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.dropwizard.metrics</groupId>
-      <artifactId>metrics-ganglia</artifactId>
-      <version>3.2.6</version>
-    </dependency>
-    <dependency>
-      <groupId>io.dropwizard.metrics</groupId>
-      <artifactId>metrics-graphite</artifactId>
-      <version>4.1.2</version>
     </dependency>
     <dependency>
       <groupId>com.datastax.oss</groupId>

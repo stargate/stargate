@@ -18,7 +18,6 @@ package io.stargate.producer.kafka;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import io.dropwizard.kafka.metrics.DropwizardMetricsReporter;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.db.cdc.SchemaAwareCDCProducer;
 import io.stargate.db.schema.Table;
@@ -30,17 +29,20 @@ import io.stargate.producer.kafka.producer.CompletableKafkaProducer;
 import io.stargate.producer.kafka.schema.KeyValueConstructor;
 import io.stargate.producer.kafka.schema.SchemaProvider;
 import io.stargate.producer.kafka.schema.SchemaRegistryProvider;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.cassandra.stargate.db.DeleteEvent;
 import org.apache.cassandra.stargate.db.MutationEvent;
 import org.apache.cassandra.stargate.db.RowUpdateEvent;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KafkaCDCProducer extends SchemaAwareCDCProducer {
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(KafkaCDCProducer.class);
+  private final ExecutorService KAFKA_INIT_EXECUTOR = Executors.newSingleThreadExecutor();
+  private final ClassLoader contextClassLoader = getClass().getClassLoader();
   private final DefaultConfigLoader configLoader;
 
   private final ConfigStore configStore;
@@ -61,8 +63,9 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   /**
    * It registers the provided MetricRegistry in the Dropwizard shared metrics registry (see {@link
-   * SharedMetricRegistries}). The {@link DropwizardMetricsReporter} is getting the metrics registry
-   * via {@code SharedMetricRegistries.getOrCreate("default")} in the constructor.
+   * SharedMetricRegistries}). The {@link io.dropwizard.kafka.metrics.DropwizardMetricsReporter} is
+   * getting the metrics registry via {@code SharedMetricRegistries.getOrCreate("default")} in the
+   * constructor.
    */
   private void registerMetrics(MetricRegistry registry) {
     SharedMetricRegistries.add("default", registry);
@@ -70,8 +73,9 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   @Override
   public CompletableFuture<Void> init() {
+    LOGGER.debug("Initializing KafkaCCDProducer");
     CDCKafkaConfig cdcKafkaConfig = configLoader.loadConfig(configStore);
-
+    LOGGER.info("Using config: {}", cdcKafkaConfig);
     this.mappingService = new DefaultMappingService(cdcKafkaConfig.getTopicPrefixName());
     this.schemaProvider =
         new SchemaRegistryProvider(cdcKafkaConfig.getSchemaRegistryUrl(), mappingService);
@@ -79,7 +83,22 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
     kafkaProducer =
         CompletableFuture.supplyAsync(
-            () -> new CompletableKafkaProducer<>(cdcKafkaConfig.getKafkaProducerSettings()));
+            () -> {
+              Thread currentThread = Thread.currentThread();
+              ClassLoader ldr = currentThread.getContextClassLoader();
+              try {
+                // Note: Apache Kafka expects to find certain dependencies
+                // using the thread context class loader.
+                // However, in our OSGi framework,
+                // the default context class loader is the system class loader,
+                // which does not contain module jars.
+                currentThread.setContextClassLoader(contextClassLoader);
+                return new CompletableKafkaProducer<>(cdcKafkaConfig.getKafkaProducerSettings());
+              } finally {
+                currentThread.setContextClassLoader(ldr);
+              }
+            },
+            KAFKA_INIT_EXECUTOR);
     return kafkaProducer.thenAccept(toVoid());
   }
 
@@ -149,10 +168,12 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   @Override
   public CompletableFuture<Void> close() {
-    return kafkaProducer.thenAccept(
-        producer -> {
-          producer.flush();
-          producer.close();
-        });
+    return kafkaProducer
+        .thenAccept(
+            producer -> {
+              producer.flush();
+              producer.close();
+            })
+        .thenAccept(v -> KAFKA_INIT_EXECUTOR.shutdown());
   }
 }

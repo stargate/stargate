@@ -71,4 +71,20 @@ public class CDCKafkaConfig {
   public MetricsConfig getMetricsConfig() {
     return metricsConfig;
   }
+
+  @Override
+  public String toString() {
+    return "CDCKafkaConfig{"
+        + "topicPrefixName='"
+        + topicPrefixName
+        + '\''
+        + ", schemaRegistryUrl='"
+        + schemaRegistryUrl
+        + '\''
+        + ", kafkaProducerSettings="
+        + kafkaProducerSettings
+        + ", metricsConfig="
+        + metricsConfig
+        + '}';
+  }
 }

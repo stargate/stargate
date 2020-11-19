@@ -1,5 +1,5 @@
 cdc.kafka:
   metrics.enabled: true
-  producer.bootstrap.servers: http://kafka-server
+  producer.bootstrap.servers: http://localhost:9091
   producer.schema.registry.url: http://schema-registry-url
   topic.prefix-name: prefix

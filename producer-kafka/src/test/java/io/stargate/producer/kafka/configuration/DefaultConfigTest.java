@@ -243,7 +243,7 @@ class DefaultConfigTest {
     assertThat(cdcKafkaConfig.getKafkaProducerSettings())
         .contains(
             new SimpleEntry<>(SCHEMA_REGISTRY_URL_SETTING_NAME, "http://schema-registry-url"),
-            new SimpleEntry<>(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "http://kafka-server"));
+            new SimpleEntry<>(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "http://localhost:9091"));
     assertThat(cdcKafkaConfig.getTopicPrefixName()).isEqualTo("prefix");
     assertThat(cdcKafkaConfig.getSchemaRegistryUrl()).isEqualTo("http://schema-registry-url");
     assertThat(cdcKafkaConfig.getMetricsConfig())

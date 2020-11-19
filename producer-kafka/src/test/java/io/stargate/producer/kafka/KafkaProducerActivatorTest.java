@@ -30,6 +30,7 @@ import io.stargate.config.store.api.ConfigStore;
 import io.stargate.config.store.api.ConfigWithOverrides;
 import io.stargate.config.store.yaml.ConfigStoreYaml;
 import io.stargate.core.metrics.api.Metrics;
+import io.stargate.db.cdc.CDCProducer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Hashtable;
@@ -54,7 +55,7 @@ class KafkaProducerActivatorTest {
     KafkaProducerActivator activator = new KafkaProducerActivator();
     mockFilterForBothServices(bundleContext);
     activator.start(bundleContext);
-    ConfigStore configStore = mockConfigStore("true");
+    ConfigStore configStore = new ConfigStoreYaml(getProducerEnabledPath(), new MetricRegistry());
 
     // when
     activator.tracker.startIfAllRegistered(mock(ServiceReference.class), mockMetrics());
@@ -63,9 +64,7 @@ class KafkaProducerActivatorTest {
     // then should not register service
     verify(bundleContext, times(1))
         .registerService(
-            eq(KafkaCDCProducer.class.getName()),
-            any(KafkaCDCProducer.class),
-            eq(new Hashtable<>()));
+            eq(CDCProducer.class.getName()), any(KafkaCDCProducer.class), eq(new Hashtable<>()));
     Assertions.assertThat(activator.started).isTrue();
   }
 
@@ -86,9 +85,7 @@ class KafkaProducerActivatorTest {
     // then should not register service
     verify(bundleContext, times(0))
         .registerService(
-            eq(KafkaCDCProducer.class.getName()),
-            any(KafkaCDCProducer.class),
-            eq(new Hashtable<>()));
+            eq(CDCProducer.class.getName()), any(KafkaCDCProducer.class), eq(new Hashtable<>()));
   }
 
   @Test
@@ -105,9 +102,7 @@ class KafkaProducerActivatorTest {
     // then should not register service
     verify(bundleContext, times(0))
         .registerService(
-            eq(KafkaCDCProducer.class.getName()),
-            any(KafkaCDCProducer.class),
-            eq(new Hashtable<>()));
+            eq(CDCProducer.class.getName()), any(KafkaCDCProducer.class), eq(new Hashtable<>()));
     Assertions.assertThat(activator.started).isFalse();
   }
 
@@ -125,9 +120,7 @@ class KafkaProducerActivatorTest {
     // then should not register service
     verify(bundleContext, times(0))
         .registerService(
-            eq(KafkaCDCProducer.class.getName()),
-            any(KafkaCDCProducer.class),
-            eq(new Hashtable<>()));
+            eq(CDCProducer.class.getName()), any(KafkaCDCProducer.class), eq(new Hashtable<>()));
     Assertions.assertThat(activator.started).isFalse();
   }
 
