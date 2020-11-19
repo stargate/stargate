@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
 
 public class KafkaCDCProducer extends SchemaAwareCDCProducer {
   private static final Logger LOGGER = LoggerFactory.getLogger(KafkaCDCProducer.class);
-  private static final ExecutorService KAFKA_INIT_EXECUTOR = Executors.newSingleThreadExecutor();
+  private final ExecutorService KAFKA_INIT_EXECUTOR = Executors.newSingleThreadExecutor();
   private final ClassLoader contextClassLoader = getClass().getClassLoader();
   private final DefaultConfigLoader configLoader;
 
