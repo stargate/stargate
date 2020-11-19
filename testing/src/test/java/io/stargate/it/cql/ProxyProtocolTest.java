@@ -92,7 +92,7 @@ public class ProxyProtocolTest extends BaseOsgiIntegrationTest {
     assertThat(proxyAddresses).hasSize(expectedReplicasTried.size());
 
     Set<Node> allReplicasTried = new HashSet<>();
-    for (int i = 0; i < 2 * expectedReplicasTried.size(); ++i) {
+    for (int i = 0; i < 10 * expectedReplicasTried.size(); ++i) {
       Set<Node> replicas =
           tokenMap.getReplicas(
               keyspace, TypeCodecs.UUID.encode(UUID.randomUUID(), ProtocolVersion.DEFAULT));
