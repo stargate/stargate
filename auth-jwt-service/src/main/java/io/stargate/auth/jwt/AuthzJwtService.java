@@ -47,7 +47,11 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public ResultSet authorizedDataRead(
-      Callable<ResultSet> action, String token, List<TypedKeyValue> typedKeyValues)
+      Callable<ResultSet> action,
+      String token,
+      String keyspace,
+      String table,
+      List<TypedKeyValue> typedKeyValues)
       throws Exception {
     JSONObject stargateClaims = extractClaimsFromJWT(token);
 

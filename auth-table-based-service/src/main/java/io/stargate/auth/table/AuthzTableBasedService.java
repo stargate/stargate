@@ -33,7 +33,11 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public ResultSet authorizedDataRead(
-      Callable<ResultSet> action, String token, List<TypedKeyValue> typedKeyValues)
+      Callable<ResultSet> action,
+      String token,
+      String keyspace,
+      String table,
+      List<TypedKeyValue> typedKeyValues)
       throws Exception {
     // Cannot perform authorization with a table based token so just return
     return action.call();

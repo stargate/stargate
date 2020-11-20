@@ -88,7 +88,8 @@ public class AuthzJwtServiceTest {
         Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
 
     ResultSet result =
-        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), typedKeyValues);
+        mockAuthzJwtService.authorizedDataRead(
+            action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues);
     assertThat(result.rows().get(0)).isEqualTo(row);
   }
 
@@ -105,7 +106,8 @@ public class AuthzJwtServiceTest {
         Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
 
     ResultSet result =
-        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), typedKeyValues);
+        mockAuthzJwtService.authorizedDataRead(
+            action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues);
     assertThat(result).isNull();
   }
 
@@ -126,7 +128,8 @@ public class AuthzJwtServiceTest {
         Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
 
     ResultSet result =
-        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), typedKeyValues);
+        mockAuthzJwtService.authorizedDataRead(
+            action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues);
     assertThat(result.rows()).isEqualTo(null);
   }
 
@@ -155,7 +158,7 @@ public class AuthzJwtServiceTest {
             UnauthorizedException.class,
             () ->
                 mockAuthzJwtService.authorizedDataRead(
-                    action, signJWT(stargate_claims), typedKeyValues));
+                    action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues));
     assertThat(ex).hasMessage("Not allowed to access this resource");
   }
 
@@ -181,7 +184,8 @@ public class AuthzJwtServiceTest {
         Collections.singletonList(new TypedKeyValue("userid", Type.Text.name(), "123"));
 
     ResultSet result =
-        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), typedKeyValues);
+        mockAuthzJwtService.authorizedDataRead(
+            action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues);
     assertThat(result.rows()).isEqualTo(Collections.emptyList());
   }
 
@@ -213,7 +217,7 @@ public class AuthzJwtServiceTest {
             IllegalArgumentException.class,
             () ->
                 mockAuthzJwtService.authorizedDataRead(
-                    action, signJWT(stargate_claims), typedKeyValues));
+                    action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues));
     assertThat(ex).hasMessage("Column must be of type text to be used for authorization");
   }
 
@@ -244,7 +248,8 @@ public class AuthzJwtServiceTest {
     List<TypedKeyValue> typedKeyValues = Collections.emptyList();
 
     ResultSet result =
-        mockAuthzJwtService.authorizedDataRead(action, signJWT(stargate_claims), typedKeyValues);
+        mockAuthzJwtService.authorizedDataRead(
+            action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues);
     assertThat(result.rows().get(0)).isEqualTo(row1);
     assertThat(result.rows().get(1)).isEqualTo(row2);
   }

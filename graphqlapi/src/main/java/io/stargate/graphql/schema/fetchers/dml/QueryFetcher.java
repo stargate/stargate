@@ -62,6 +62,8 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
         authorizationService.authorizedDataRead(
             () -> dataStore.query(statement).get(),
             token,
+            keyspaceId.asInternal(),
+            table.name(),
             buildTypedKeyValueList(table, environment));
 
     Map<String, Object> result = new HashMap<>();

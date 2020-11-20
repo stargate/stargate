@@ -549,6 +549,8 @@ public class RowsResource {
                         .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                         .execute(),
                 token,
+                tableMetadata.keyspace(),
+                tableMetadata.name(),
                 where.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
 
     List<Map<String, Object>> rows =

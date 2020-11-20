@@ -3,6 +3,7 @@ package io.stargate.graphql.schema;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -72,7 +73,8 @@ public abstract class GraphQlTestBase {
       String roleName = "mock role name";
       when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
       when(storedCredentials.getRoleName()).thenReturn(roleName);
-      when(authorizationService.authorizedDataRead(actionCaptor.capture(), eq(token), any()))
+      when(authorizationService.authorizedDataRead(
+              actionCaptor.capture(), eq(token), anyString(), anyString(), any()))
           .then(
               i -> {
                 return actionCaptor.getValue().call();

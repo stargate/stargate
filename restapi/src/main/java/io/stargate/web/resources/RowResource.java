@@ -142,6 +142,8 @@ public class RowResource {
                               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                               .execute(),
                       token,
+                      keyspaceName,
+                      tableName,
                       wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
 
           final List<Map<String, Object>> rows =
@@ -211,6 +213,8 @@ public class RowResource {
                               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                               .execute(),
                       token,
+                      keyspaceName,
+                      tableName,
                       Collections.emptyList());
 
           final List<Map<String, Object>> rows =
@@ -355,6 +359,8 @@ public class RowResource {
                               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                               .execute(),
                       token,
+                      keyspaceName,
+                      tableName,
                       wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
 
           final List<Map<String, Object>> rows =

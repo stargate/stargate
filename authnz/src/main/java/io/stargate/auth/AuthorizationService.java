@@ -27,6 +27,8 @@ public interface AuthorizationService {
    *
    * @param action A {@link QueryBuilder} object to be executed and authorized against a token.
    * @param token The authenticated token to use for authorization.
+   * @param keyspace The keyspace containing the table with data to be read.
+   * @param table The table within the provided keyspace containing the data to be read.
    * @param typedKeyValues A list of {@link TypedKeyValue} that will be used in the query and should
    *     be authorized against the token.
    * @return On success will return the result of the query and otherwise will return an exception
@@ -34,7 +36,11 @@ public interface AuthorizationService {
    * @throws Exception An exception relating to the failure to authorize.
    */
   ResultSet authorizedDataRead(
-      Callable<ResultSet> action, String token, List<TypedKeyValue> typedKeyValues)
+      Callable<ResultSet> action,
+      String token,
+      String keyspace,
+      String table,
+      List<TypedKeyValue> typedKeyValues)
       throws Exception;
 
   /**
@@ -43,8 +49,7 @@ public interface AuthorizationService {
    * higher level of authorization is acceptable.
    *
    * @param token The authenticated token to use for authorization.
-   * @param keyspace Either the keyspace containing the resource to be modified or the actual
-   *     resource being modified.
+   * @param keyspace The keyspace containing the table with data to be read.
    * @param table The table within the provided keyspace containing the data to be read.
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */

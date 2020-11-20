@@ -35,7 +35,7 @@ public class AuthTableBasedServiceActivator implements BundleActivator, ServiceL
   private static final Logger log = LoggerFactory.getLogger(AuthTableBasedServiceActivator.class);
 
   private BundleContext context;
-  private ServiceReference persistenceReference;
+  private ServiceReference<?> persistenceReference;
   private ServiceRegistration<?> authnRegistration;
   private ServiceRegistration<?> authzRegistration;
   static Hashtable<String, String> props = new Hashtable<>();
