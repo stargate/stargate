@@ -106,8 +106,7 @@ public class StargateQueryHandler implements QueryHandler {
       authorizeByToken(customPayload.get("token"), statement);
     }
 
-    return QueryProcessor.instance.processStatement(
-        statement, queryState, options, queryStartNanoTime);
+    return QueryProcessor.instance.process(statement, queryState, options, queryStartNanoTime);
   }
 
   @Override
