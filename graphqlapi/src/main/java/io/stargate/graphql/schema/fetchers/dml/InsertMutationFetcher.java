@@ -87,34 +87,27 @@ public class InsertMutationFetcher extends MutationFetcher {
       CqlIdentifier key = entry.getKey();
       Term term = entry.getValue();
       Column column = getColumn(table, key.asInternal());
-      ColumnType type = column.type();
+      ColumnType columnType = Objects.requireNonNull(column.type());
 
-      if (isOrContainsUDT(Objects.requireNonNull(type))) {
+      if (isOrContainsUDT(columnType)) {
         // Null out the value for now since UDTs are not allowed for use with custom authorization
-        typedKeyValues.add(
-            new TypedKeyValue(
-                column.cqlName(), Objects.requireNonNull(type).cqlDefinition(), null));
+        typedKeyValues.add(new TypedKeyValue(column.cqlName(), columnType.cqlDefinition(), null));
         continue;
       }
 
       if (term instanceof TupleTerm) {
         for (Term component : ((TupleTerm) term).getComponents()) {
           Object parsedObject =
-              Objects.requireNonNull(type)
-                  .codec()
-                  .parse(((DefaultRaw) component).getRawExpression());
+              columnType.codec().parse(((DefaultRaw) component).getRawExpression());
 
           typedKeyValues.add(
-              new TypedKeyValue(
-                  column.cqlName(), Objects.requireNonNull(type).cqlDefinition(), parsedObject));
+              new TypedKeyValue(column.cqlName(), columnType.cqlDefinition(), parsedObject));
         }
       } else {
-        Object parsedObject =
-            Objects.requireNonNull(type).codec().parse(((DefaultRaw) term).getRawExpression());
+        Object parsedObject = columnType.codec().parse(((DefaultRaw) term).getRawExpression());
 
         typedKeyValues.add(
-            new TypedKeyValue(
-                column.cqlName(), Objects.requireNonNull(type).cqlDefinition(), parsedObject));
+            new TypedKeyValue(column.cqlName(), columnType.cqlDefinition(), parsedObject));
       }
     }
 

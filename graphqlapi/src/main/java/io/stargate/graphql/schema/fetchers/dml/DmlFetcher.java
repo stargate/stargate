@@ -123,26 +123,20 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
         Column column = getColumn(table, columnId.asInternal());
         assert term != null;
 
-        if (isOrContainsUDT(Objects.requireNonNull(column.type()))) {
+        ColumnType columnType = Objects.requireNonNull(column.type());
+        if (isOrContainsUDT(columnType)) {
           // Null out the value for now since UDTs are not allowed for use with custom authorization
-          typedKeyValues.add(
-              new TypedKeyValue(
-                  column.cqlName(), Objects.requireNonNull(column.type()).cqlDefinition(), null));
+          typedKeyValues.add(new TypedKeyValue(column.cqlName(), columnType.cqlDefinition(), null));
           continue;
         }
 
         if (term instanceof TupleTerm) {
           for (Term component : ((TupleTerm) term).getComponents()) {
             Object parsedObject =
-                Objects.requireNonNull(column.type())
-                    .codec()
-                    .parse(((DefaultRaw) component).getRawExpression());
+                columnType.codec().parse(((DefaultRaw) component).getRawExpression());
 
             typedKeyValues.add(
-                new TypedKeyValue(
-                    column.cqlName(),
-                    Objects.requireNonNull(column.type()).cqlDefinition(),
-                    parsedObject));
+                new TypedKeyValue(column.cqlName(), columnType.cqlDefinition(), parsedObject));
           }
         } else {
           typedKeyValues.add(
@@ -161,40 +155,25 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
   private TypedKeyValue typedKeyValueForDefaultRawTerm(
       String operator, DefaultRaw term, boolean queryByEntries, Column column) {
     Object parsedObject;
+    ColumnType columnType = Objects.requireNonNull(column.type());
     if ("contains".equals(operator.trim().toLowerCase()) || queryByEntries) {
       if (column.ofTypeListOrSet()) {
-        parsedObject =
-            Objects.requireNonNull(column.type())
-                .parameters()
-                .get(0)
-                .codec()
-                .parse(term.getRawExpression());
+        parsedObject = columnType.parameters().get(0).codec().parse(term.getRawExpression());
       } else {
-        parsedObject =
-            Objects.requireNonNull(column.type())
-                .parameters()
-                .get(1)
-                .codec()
-                .parse(term.getRawExpression());
+        parsedObject = columnType.parameters().get(1).codec().parse(term.getRawExpression());
       }
 
     } else if ("contains key".equals(operator.trim().toLowerCase())) {
-      parsedObject =
-          Objects.requireNonNull(column.type())
-              .parameters()
-              .get(0)
-              .codec()
-              .parse(term.getRawExpression());
+      parsedObject = columnType.parameters().get(0).codec().parse(term.getRawExpression());
     } else {
-      if (Objects.requireNonNull(column.type()).isUserDefined()) {
+      if (columnType.isUserDefined()) {
         // Null out the value for now since UDTs are not allowed for use with custom authorization
         parsedObject = null;
       } else {
-        parsedObject = Objects.requireNonNull(column.type()).codec().parse(term.getRawExpression());
+        parsedObject = columnType.codec().parse(term.getRawExpression());
       }
     }
-    return new TypedKeyValue(
-        column.cqlName(), Objects.requireNonNull(column.type()).cqlDefinition(), parsedObject);
+    return new TypedKeyValue(column.cqlName(), columnType.cqlDefinition(), parsedObject);
   }
 
   protected boolean isOrContainsUDT(ColumnType type) {
