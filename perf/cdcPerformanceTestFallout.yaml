@@ -1,0 +1,275 @@
+# number of persistence nodes
+backend_nodes: 5
+# replication factor
+rf: 3
+# number of stargate nodes
+stargate_nodes: 2
+
+# stargate branch
+stargate_branch: master
+
+# topic prefix
+topic_prefix: fallout_perf_test
+keyspace_table: a_manu_v2.widgets
+
+---
+ensemble:
+  observer:
+    node.count: 1
+    provisioner:
+      name: ctool
+      properties:
+        cloud.provider: nebula
+        cloud.tenant: dse-automation # todo change
+        cloud.instance.type: m3.large
+        cloud.instance.platform: bionic
+        mark_for_reuse: true
+    configuration_manager:
+      - name: ctool_monitoring
+        properties:
+          graphite.create_server: true
+          export.enabled: false
+          export.prefix: cdc_perfromance
+          export.metrics:
+            - AVERAGE_CONTEXT_SWITCH
+            - AVERAGE_LOAD
+            - AVERAGE_DISK_IO
+            - AVERAGE_MEMORY
+            - AVERAGE_NETWORK_IO
+            - AVERAGE_CPU
+            - AVERAGE_GC
+  servers:
+    - name: backend
+      node.count: {{backend_nodes}}
+      provisioner:
+        name: ctool
+        properties:
+          cloud.provider: nebula
+          cloud.tenant: moonshot-v2 # todo
+          cloud.instance.type: ms2.small
+          cloud.instance.platform: bionic
+      configuration_manager:
+        - name: ctool
+          properties:
+            product.type: dse
+            product.install.type: tarball
+            product.version: 6.8.3
+            java.version: "1.8_241"
+            cassandra.yaml:
+              allocate_tokens_for_local_replication_factor: {{rf}}
+        - name: ctool_monitoring
+          properties:
+            components: OS,JVM,CASSANDRA-CORE,DSE-DB
+    - name: stargate
+      node.count: {{stargate_nodes}}
+      provisioner:
+        name: ctool
+        properties:
+          cloud.provider: nebula
+          cloud.tenant: moonshot-v2
+          cloud.instance.type: ms2.small
+          cloud.instance.platform: bionic
+      configuration_manager:
+        - name: ctool
+          properties:
+            product.type: none
+            stargate.install: true
+            stargate.backend_cluster: backend
+            stargate.branch_or_commit: {{stargate_branch}}
+            stargate.core_version: git:{{stargate_branch}}
+            stargate.persistence_version: git:{{stargate_branch}}
+        - name: prometheus
+  clients:
+    - name: load_generator
+      node.count: 1
+      provisioner:
+        name: ctool
+        properties:
+          cloud.provider: nebula
+          cloud.tenant: moonshot-v2
+          cloud.instance.type: ms2.small
+          cloud.instance.platform: bionic
+      configuration_manager:
+        - name: ctool
+          properties:
+            install.maven: true
+        - name: gatling
+          properties:
+            git.repository: git@github.com:riptano/dse-benchmarks.git
+            git.branch: master
+    - name: kafkabrokers
+        node.count: 3
+        provisioner:
+          name: ctool
+          properties:
+            cloud.provider: nebula
+            cloud.tenant: moonshot-v2
+            cloud.instance.type: ms1.small
+            cloud.instance.platform: bionic
+            mark_for_reuse: true
+        configuration_manager:
+          - name: ctool
+            properties:
+              install.maven: true
+              java.version: openjdk8
+          - name: ctool_monitoring
+            properties:
+              components: os
+workload:
+  phases:
+    - dowlnoad-confluent:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          export_output: false
+          script: |
+            cd ${FALLOUT_SCRATCH_DIR}
+            curl -O http://packages.confluent.io/archive/5.2/confluent-community-5.2.1-2.12.tar.gz
+            mkdir confluent; tar xzf confluent-community-5.2.1-2.12.tar.gz -C confluent --strip-components=1
+    - set-properties-all-brokers:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          export_output: false
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+
+            # set broker ids
+            sed -i "s/broker.id=.*/broker.id=${FALLOUT_NODE_ORDINAL}/" confluent/etc/kafka/server.properties
+            # set zookeeper ids
+            mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo ${FALLOUT_NODE_ORDINAL} >> /tmp/zookeeper/myid
+
+            BROKER_FIRST_ADDRESS=${FALLOUT_KAFKABROKERS_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
+            BROKER_SECOND_ADDRESS=${FALLOUT_KAFKABROKERS_NODE1_NODE_INFO_PUBLICNETWORKADDRESS}
+            BROKER_THIRD_ADDRESS=${FALLOUT_KAFKABROKERS_NODE2_NODE_INFO_PUBLICNETWORKADDRESS}
+            # set broker ips in kafka server props
+            sed -i "s/zookeeper.connect=.*/zookeeper.connect=$BROKER_FIRST_ADDRESS:2181,$BROKER_SECOND_ADDRESS:2181,$BROKER_THIRD_ADDRESS:2181/" confluent/etc/kafka/server.properties
+            # disable confluent metrics
+            sed -i "s/confluent.support.metrics.enable=.*/confluent.support.metrics.enable=false/" confluent/etc/kafka/server.properties
+            # initLimit is timeouts ZooKeeper uses to limit the length of time the ZooKeeper servers in quorum have to connect to a leader
+            echo "initLimit=5" >> confluent/etc/kafka/zookeeper.properties
+            # syncLimit limits how far out of date a server can be from a leader
+            echo "syncLimit=2" >> confluent/etc/kafka/zookeeper.properties
+            # set ips of zookeeper nodes
+            echo "server.0=$BROKER_FIRST_ADDRESS:2888:3888" >> confluent/etc/kafka/zookeeper.properties
+            echo "server.1=$BROKER_SECOND_ADDRESS:2888:3888" >> confluent/etc/kafka/zookeeper.properties
+            echo "server.2=$BROKER_THIRD_ADDRESS:2888:3888" >> confluent/etc/kafka/zookeeper.properties
+            # start zookeeper, kafka on all brokers, and schema registry
+            confluent/bin/zookeeper-server-start confluent/etc/kafka/zookeeper.properties &> zookeeper.log &
+            confluent/bin/kafka-server-start confluent/etc/kafka/server.properties &> kafka.log &
+            # delay between starting kafka and schema-registry (the next step)
+            sleep 2m
+            sudo apt-get install -y maven
+            echo "kafkastore.bootstrap.servers=PLAINTEXT://$BROKER_FIRST_ADDRESS:9092,PLAINTEXT://$BROKER_SECOND_ADDRESS:9092,PLAINTEXT://$BROKER_THIRD_ADDRESS:9092" >> confluent/etc/schema-registry/schema-registry.properties
+    - start-schema-registry-broker-0:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          target.ordinals: 0
+          export_output: false
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+            ./confluent/bin/schema-registry-start confluent/etc/schema-registry/schema-registry.properties &> schema-registry.log &
+            sleep 30s
+    - start-schema-registry-broker-1:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          target.ordinals: 1
+          export_output: false
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+            ./confluent/bin/schema-registry-start confluent/etc/schema-registry/schema-registry.properties &> schema-registry.log &
+            sleep 30s
+    - start-schema-registry-broker-2:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          target.ordinals: 2
+          export_output: false
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+            ./confluent/bin/schema-registry-start confluent/etc/schema-registry/schema-registry.properties &> schema-registry.log &
+            sleep 30s
+    - create-topics-brokers-0:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          target.ordinals: 0
+          export_output: false
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+            confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic {{topic_prefix}}.{{keyspace_table}} --config retention.ms=-1 delete.topic.enable=true
+    - copy-stargate-config:
+      module: bash
+        properties:
+          target.group: stargate
+          export_output: false
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+            BROKER_FIRST_ADDRESS=${FALLOUT_KAFKABROKERS_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
+            BROKER_SECOND_ADDRESS=${FALLOUT_KAFKABROKERS_NODE1_NODE_INFO_PUBLICNETWORKADDRESS}
+            BROKER_THIRD_ADDRESS=${FALLOUT_KAFKABROKERS_NODE2_NODE_INFO_PUBLICNETWORKADDRESS}
+            SCHEMA_REGISTRY_URLS=$(echo "http://$BROKER_FIRST_ADDRESS:8081,http://$BROKER_SECOND_ADDRESS:8081,http://$BROKER_THIRD_ADDRESS:8081")
+            KAFKA_BROKERS_URLS=$(echo "kafkastore.bootstrap.servers=PLAINTEXT://$BROKER_FIRST_ADDRESS:9092,PLAINTEXT://$BROKER_SECOND_ADDRESS:9092,PLAINTEXT://$BROKER_THIRD_ADDRESS:9092")
+            # generate staragate config file
+            {
+              echo "cdc.kafka:"
+              echo "  enabled: true"
+              echo "  metrics.enabled: true"
+              echo "  producer.bootstrap.servers: ${KAFKA_BROKERS_URLS}"
+              echo "  producer.schema.registry.url: ${SCHEMA_REGISTRY_URLS}"
+              echo "  topic.prefix-name: {{topic_prefix}}"
+              echo "\n"
+              echo "cdc.core:"
+              echo "  enabledTables:"
+              echo "   - {{keyspace_table}}"
+            } >stargate-config.yaml
+            # put it in the directory that stargate expects
+            sudo mkdir /etc/stargate
+            sudo mv stargate-config.yaml /etc/stargate
+    - sleep_before_write_10:
+        module: sleep
+        properties:
+          duration: 3m
+    - execute_write_10:
+        module: gatling
+        properties:
+          server_group: stargate
+          requires_data_set: false
+          timeout: 36H
+          maven_args: >
+            scala:testCompile
+            gatling:execute
+            -Dgatling.disableCompiler
+            -Dgatling.outputName=write_10
+            -DworkloadName=write_10
+            -Dgatling.simulationClass=stargate.rest.v2.RestApiBenchmark
+            -DtimeoutInSeconds=10
+            -Dusers=10
+            -DuserTrans=100000
+            -Dmode=writeOnly
+            -Dgatling.data.writers.0=console
+            -Dgatling.data.writers.1=file
+            -DsleepTimeForSchema=30000
+    - verify-number-of-cdc-events:
+        module: bash
+        properties:
+          target.group: server
+          target.ordinals: 0
+          export_output: false
+          timeout: 1 hours
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+
+  checkers:
+    verify_success:
+      checker: nofail
+
