@@ -101,7 +101,7 @@ public abstract class ExternalResource<A extends Annotation, R extends ExternalR
     process(context);
   }
 
-  protected abstract static class Holder implements Store.CloseableResource {
+  public abstract static class Holder implements Store.CloseableResource {
     private String location;
     private String type;
     private Store store;

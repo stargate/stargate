@@ -45,6 +45,7 @@ import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.glassfish.jersey.server.ManagedAsync;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +63,7 @@ public class DocumentResourceV2 {
   private final int DEFAULT_PAGE_SIZE = 100;
 
   @POST
+  @ManagedAsync
   @ApiOperation(
       value = "Create a new document",
       notes = "Auto-generates an ID for the newly created document",
@@ -128,6 +130,7 @@ public class DocumentResourceV2 {
   }
 
   @PUT
+  @ManagedAsync
   @ApiOperation(value = "Create or update a document with the provided document-id")
   @ApiResponses(
       value = {
@@ -182,6 +185,7 @@ public class DocumentResourceV2 {
   }
 
   @PUT
+  @ManagedAsync
   @ApiOperation(
       value = "Replace data at a path in a document",
       notes = "Removes whatever was previously present at the path")
@@ -233,6 +237,7 @@ public class DocumentResourceV2 {
   }
 
   @PATCH
+  @ManagedAsync
   @ApiOperation(
       value = "Update data at the root of a document",
       notes = "Merges data at the root with requested data.")
@@ -289,6 +294,7 @@ public class DocumentResourceV2 {
   }
 
   @PATCH
+  @ManagedAsync
   @ApiOperation(
       value = "Update data at a path in a document",
       notes =
@@ -341,6 +347,7 @@ public class DocumentResourceV2 {
   }
 
   @DELETE
+  @ManagedAsync
   @ApiOperation(value = "Delete a document", notes = "Delete a document")
   @ApiResponses(
       value = {
@@ -378,6 +385,7 @@ public class DocumentResourceV2 {
   }
 
   @DELETE
+  @ManagedAsync
   @ApiOperation(value = "Delete a path in a document", notes = "Delete a path in a document")
   @ApiResponses(
       value = {
@@ -418,6 +426,7 @@ public class DocumentResourceV2 {
   }
 
   @GET
+  @ManagedAsync
   @ApiOperation(
       value = "Get a document",
       notes = "Retrieve the JSON representation of the document")
@@ -487,6 +496,7 @@ public class DocumentResourceV2 {
   }
 
   @GET
+  @ManagedAsync
   @ApiOperation(
       value = "Get a path in a document",
       notes =
@@ -632,6 +642,7 @@ public class DocumentResourceV2 {
   }
 
   @GET
+  @ManagedAsync
   @ApiOperation(
       value = "Search documents in a collection",
       notes =
