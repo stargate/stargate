@@ -92,9 +92,11 @@ public class AuthnJwtService implements AuthenticationService {
 
   @Override
   public SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped) {
-    return new PlainTextJwtTokenSaslNegotiator(this, wrapped,
+    return new PlainTextJwtTokenSaslNegotiator(
+        this,
+        wrapped,
         System.getProperty("stargate.cql_token_username", "token"),
-        Integer.parseInt(System.getProperty("stargate.cql_token_max_length", "4096"));
+        Integer.parseInt(System.getProperty("stargate.cql_token_max_length", "4096")));
   }
 
   /**
