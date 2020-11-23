@@ -8,6 +8,7 @@ import com.datastax.bdp.db.nodes.virtual.PeersSystemView;
 import com.datastax.bdp.db.util.ProductVersion;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.reactivex.Single;
@@ -26,6 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -56,7 +58,6 @@ import org.slf4j.LoggerFactory;
  * `system.peers` is populated with A-records from a provided DNS name.
  */
 public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
-
   public static final String PROXY_DNS_NAME =
       System.getProperty("stargate.proxy_protocol.dns_name");
   public static final int PROXY_PORT =
@@ -73,6 +74,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   private final int proxyPort;
   private final long resolveDelaySecs;
   private final List<EventListener> listeners = new CopyOnWriteArrayList<>();
+  private final Map<InetAddress, Set<String>> tokensCache = new ConcurrentHashMap<>();
   private volatile Set<InetAddress> peers = Collections.emptySet();
   private final Optional<QueryInterceptor> wrapped;
 
@@ -202,6 +204,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
               listener.onUp(peer, proxyPort);
             }
             for (InetAddress peer : removed) {
+              tokensCache.remove(peer);
               listener.onLeaveCluster(peer, proxyPort);
             }
           }
@@ -220,9 +223,9 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
    *
    * @param name
    * @param publicAddress
-   * @return A {@link ByteBuffer} value for a given system local/peers column.
+   * @return a {@link ByteBuffer} value for a given system local/peers column.
    */
-  private static ByteBuffer buildColumnValue(String name, InetAddress publicAddress) {
+  private ByteBuffer buildColumnValue(String name, InetAddress publicAddress) {
     switch (name) {
       case "key":
         return UTF8Type.instance.decompose("local");
@@ -255,10 +258,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
       case "schema_version":
         return UUIDType.instance.decompose(StargateSystemKeyspace.SCHEMA_VERSION);
       case "tokens":
-        return SetType.getInstance(UTF8Type.instance, false)
-            .decompose(
-                Collections.singleton(
-                    DatabaseDescriptor.getPartitioner().getMinimumToken().toString()));
+        return SetType.getInstance(UTF8Type.instance, false).decompose(getTokens(publicAddress));
       case "native_transport_port": // Fallthrough intentional
       case "native_transport_port_ssl":
         return Int32Type.instance.decompose(PROXY_PORT);
@@ -276,13 +276,36 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   }
 
   /**
+   * Get tokens generated for a public address.
+   *
+   * <p>This caches generated tokens for known peer addresses; otherwise, it re-calculates tokens
+   * every call for unknown addresses. This prevents {@code tokensCache} from growing without bound
+   * as {@code publicAddress} is provided by the client (proxy). This could use something like
+   * {@link LoadingCache} with maximum size, but then that requires exposing yet another
+   * configuration value to users.
+   *
+   * @param publicAddress
+   * @return a list of random token calculated using the the public address as a seed.
+   */
+  private Set<String> getTokens(InetAddress publicAddress) {
+    if (peers.contains(publicAddress)) {
+      return tokensCache.computeIfAbsent(
+          publicAddress,
+          pa -> StargateSystemKeyspace.generateRandomTokens(pa, DatabaseDescriptor.getNumTokens()));
+    } else {
+      return StargateSystemKeyspace.generateRandomTokens(
+          publicAddress, DatabaseDescriptor.getNumTokens());
+    }
+  }
+
+  /**
    * Builds a row using the {@link CQLStatement}'s result metadata. This doesn't handles special
    * cases like aggregates, null is returned in those cases, but it should be good enough for
    * handling system tables.
    *
    * @param metadata
    * @param publicAddress
-   * @return A list of {@link ByteBuffer} values for a system local/peers row.
+   * @return a list of {@link ByteBuffer} values for a system local/peers row.
    */
   private List<ByteBuffer> buildRow(ResultMetadata metadata, InetAddress publicAddress) {
     List<ByteBuffer> row = Lists.newArrayListWithCapacity(metadata.names.size());
@@ -292,7 +315,6 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   }
 
   private static class DefaultResolver implements Resolver {
-
     @Override
     public Set<InetAddress> resolve(String name) throws UnknownHostException {
       return Arrays.stream(InetAddress.getAllByName(name)).collect(Collectors.toSet());

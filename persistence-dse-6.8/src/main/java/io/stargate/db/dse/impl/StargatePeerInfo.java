@@ -1,6 +1,7 @@
 package io.stargate.db.dse.impl;
 
 import java.net.InetAddress;
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.utils.Throwables;
 
 public class StargatePeerInfo extends StargateNodeInfo {
@@ -8,6 +9,7 @@ public class StargatePeerInfo extends StargateNodeInfo {
 
   public StargatePeerInfo(InetAddress peer) {
     this.peer = peer;
+    setTokens(StargateSystemKeyspace.generateRandomTokens(peer, DatabaseDescriptor.getNumTokens()));
   }
 
   public InetAddress getPeer() {
