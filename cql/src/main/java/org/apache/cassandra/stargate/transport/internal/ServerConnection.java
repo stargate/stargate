@@ -130,12 +130,7 @@ public class ServerConnection extends Connection {
               .newSaslNegotiator(clientInfo.remoteAddress().getAddress(), certificates());
 
       saslNegotiator =
-          authentication == null
-              ? negotiator
-              : authentication.getSaslNegotiator(
-                  negotiator,
-                  System.getProperty("stargate.cql_token_username", "token"),
-                  Integer.parseInt(System.getProperty("stargate.cql_token_max_length", "36")));
+          authentication == null ? negotiator : authentication.getSaslNegotiator(negotiator);
     }
     return saslNegotiator;
   }

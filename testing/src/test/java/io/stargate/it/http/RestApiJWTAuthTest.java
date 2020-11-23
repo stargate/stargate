@@ -132,6 +132,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     assertThat(rows.getCount()).isGreaterThan(0);
 
     for (Map<String, Object> row : rows.getRows()) {
+      logger.info("row: {}", row);
       assertThat(row.get("userid")).isEqualTo("9876");
       assertThat((int) row.get("item_count")).isGreaterThan(0);
       assertThat(row.get("last_update_timestamp")).isNotNull();
@@ -140,12 +141,13 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getRowV1() throws IOException {
-    String body = getRowV1(tableName, "");
+    String body = getRowV1(tableName, "9876");
 
     Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
     assertThat(rows.getCount()).isGreaterThan(0);
 
     for (Map<String, Object> row : rows.getRows()) {
+      logger.info("row: {}", row);
       assertThat(row.get("userid")).isEqualTo("9876");
       assertThat((int) row.get("item_count")).isGreaterThan(0);
       assertThat(row.get("last_update_timestamp")).isNotNull();
