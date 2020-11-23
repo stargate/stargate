@@ -20,7 +20,7 @@ ensemble:
       name: ctool
       properties:
         cloud.provider: nebula
-        cloud.tenant: dse-automation # todo change
+        cloud.tenant: dse-automation # todo acquire permissions in this tenant
         cloud.instance.type: m3.large
         cloud.instance.platform: bionic
         mark_for_reuse: true
@@ -45,7 +45,7 @@ ensemble:
         name: ctool
         properties:
           cloud.provider: nebula
-          cloud.tenant: moonshot-v2 # todo
+          cloud.tenant: moonshot-v2
           cloud.instance.type: ms2.small
           cloud.instance.platform: bionic
       configuration_manager:
@@ -62,6 +62,7 @@ ensemble:
             components: OS,JVM,CASSANDRA-CORE,DSE-DB
     - name: stargate
       node.count: {{stargate_nodes}}
+      runlevel: STARTED_SERVICES_CONFIGURED
       provisioner:
         name: ctool
         properties:
@@ -78,6 +79,7 @@ ensemble:
             stargate.branch_or_commit: {{stargate_branch}}
             stargate.core_version: git:{{stargate_branch}}
             stargate.persistence_version: git:{{stargate_branch}}
+            product.start: false
         - name: prometheus
   clients:
     - name: load_generator
@@ -234,6 +236,12 @@ workload:
             # put it in the directory that stargate expects
             sudo mkdir /etc/stargate
             sudo mv stargate-config.yaml /etc/stargate
+    - start_stargate:
+        module: runlevel
+          properties:
+            runlevel: STARTED_SERVICES_RUNNING
+            role: SERVER
+            node_group: stargate
     - sleep_before_write_10:
         module: sleep
         properties:
@@ -258,16 +266,26 @@ workload:
             -Dgatling.data.writers.0=console
             -Dgatling.data.writers.1=file
             -DsleepTimeForSchema=30000
+    - wait_for_cdc_complete:
+        module: sleep
+        properties:
+          duration: 10m #todo it may need to be adapted
     - verify-number-of-cdc-events:
         module: bash
         properties:
-          target.group: server
+          target.group: kafkabrokers
           target.ordinals: 0
           export_output: false
           timeout: 1 hours
           script: |
             set -ex
             cd ${FALLOUT_SCRATCH_DIR}
+            BROKER_FIRST_ADDRESS=${FALLOUT_KAFKABROKERS_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
+            BROKER_SECOND_ADDRESS=${FALLOUT_KAFKABROKERS_NODE1_NODE_INFO_PUBLICNETWORKADDRESS}
+            BROKER_THIRD_ADDRESS=${FALLOUT_KAFKABROKERS_NODE2_NODE_INFO_PUBLICNETWORKADDRESS}
+            KAFKA_BROKERS_URLS=$(echo "kafkastore.bootstrap.servers=PLAINTEXT://$BROKER_FIRST_ADDRESS:9092,PLAINTEXT://$BROKER_SECOND_ADDRESS:9092,PLAINTEXT://$BROKER_THIRD_ADDRESS:9092")
+            number_of_records_in_kafka=$(./kafka-run-class kafka.tools.GetOffsetShell --broker-list $KAFKA_BROKERS_URLS --topic  my-topic --time -1 | while IFS=: read topic_name partition_id number; do echo "$number"; done | paste -sd+ - | bc)
+            echo "number of records in kafka is $number_of_records_in_kafka"
 
   checkers:
     verify_success:
