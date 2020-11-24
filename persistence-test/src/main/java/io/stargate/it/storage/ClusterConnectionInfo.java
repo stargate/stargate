@@ -38,4 +38,9 @@ public interface ClusterConnectionInfo {
   String datacenter();
 
   String rack();
+
+  /** Indicates whether the cluster supports CQL COUNTERs. */
+  default boolean supportsCounters() {
+    return true;
+  }
 }

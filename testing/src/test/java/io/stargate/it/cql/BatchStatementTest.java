@@ -2,6 +2,7 @@ package io.stargate.it.cql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.BatchStatement;
@@ -227,6 +228,8 @@ public class BatchStatementTest extends BaseOsgiIntegrationTest {
   @Test
   @DisplayName("Should execute counter batch")
   public void counterTest(CqlSession session, TestInfo name) {
+    assumeTrue(backend.supportsCounters());
+
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.COUNTER);
 
     for (int i = 1; i <= 3; i++) {
