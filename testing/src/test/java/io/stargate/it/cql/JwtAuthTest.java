@@ -32,16 +32,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @CqlSessionSpec(
     initQueries = {
       "CREATE ROLE IF NOT EXISTS 'web_user' WITH PASSWORD = 'web_user' AND LOGIN = TRUE",
-      "CREATE KEYSPACE IF NOT EXISTS store WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}",
-      "CREATE TABLE IF NOT EXISTS store.shopping_cart (userid text, item_count int, last_update_timestamp timestamp, PRIMARY KEY (userid, last_update_timestamp));",
-      "INSERT INTO store.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('9876', 2, toTimeStamp(now()))",
-      "INSERT INTO store.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('1234', 5, toTimeStamp(now()))",
-      "GRANT MODIFY ON TABLE store.shopping_cart TO web_user",
-      "GRANT SELECT ON TABLE store.shopping_cart TO web_user",
+      "CREATE KEYSPACE IF NOT EXISTS store2 WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}",
+      "CREATE TABLE IF NOT EXISTS store2.shopping_cart (userid text, item_count int, last_update_timestamp timestamp, PRIMARY KEY (userid, last_update_timestamp));",
+      "INSERT INTO store2.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('9876', 2, toTimeStamp(now()))",
+      "INSERT INTO store2.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('1234', 5, toTimeStamp(now()))",
+      "GRANT MODIFY ON TABLE store2.shopping_cart TO web_user",
+      "GRANT SELECT ON TABLE store2.shopping_cart TO web_user",
     })
 public class JwtAuthTest extends BaseOsgiIntegrationTest {
 
-  private final String keyspaceName = "store";
+  private final String keyspaceName = "store2";
   private final String tableName = "shopping_cart";
 
   private static String authToken;
