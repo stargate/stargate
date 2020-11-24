@@ -47,13 +47,7 @@ class KeyspaceFormatter {
       String token) {
     List<Map<String, Object>> list = new ArrayList<>();
     for (Keyspace keyspace : keyspaces) {
-      try {
-        authorizationService.authorizeSchemaRead(
-            token, Collections.singletonList(keyspace.name()), null);
-        list.add(formatResult(keyspace, environment, authorizationService, token));
-      } catch (Exception e) {
-        LOG.info("Not returning keyspace {} due to not being authorized", keyspace);
-      }
+      list.add(formatResult(keyspace, environment, authorizationService, token));
     }
     return list;
   }
@@ -64,6 +58,13 @@ class KeyspaceFormatter {
       AuthorizationService authorizationService,
       String token) {
     ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
+    try {
+      authorizationService.authorizeSchemaRead(
+          token, Collections.singletonList(keyspace.name()), null);
+    } catch (UnauthorizedException e) {
+      LOG.debug("Not returning keyspace {} due to not being authorized", keyspace.name());
+      return builder.build();
+    }
     builder.put("name", keyspace.name());
     formatChildren(
         builder,
@@ -113,7 +114,7 @@ class KeyspaceFormatter {
                 Collections.singletonList(keyspaceName),
                 Collections.singletonList(((ImmutableTable) child).name()));
           } catch (UnauthorizedException e) {
-            LOG.info(
+            LOG.debug(
                 "Not returning table {}.{} due to not being authorized",
                 keyspaceName,
                 ((ImmutableTable) child).name());
@@ -134,7 +135,7 @@ class KeyspaceFormatter {
           authorizationService.authorizeSchemaRead(
               token, Collections.singletonList(keyspaceName), Collections.singletonList(name));
         } catch (UnauthorizedException e) {
-          LOG.info("Not returning table {}.{} due to not being authorized", keyspaceName, name);
+          LOG.debug("Not returning table {}.{} due to not being authorized", keyspaceName, name);
           return; // Not authorized so return and don't add this table to the list
         }
       }
