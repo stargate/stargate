@@ -165,7 +165,7 @@
               !io.dropwizard.logging,
               io.dropwizard.*,
               org.osgi.framework,
-              com.codahale.metrics,
+              com.codahale.metrics.*,
               io.stargate.core.*
             ]]></Import-Package>
             <Export-Package>!*</Export-Package>

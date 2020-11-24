@@ -16,8 +16,13 @@
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-core</artifactId>
-            <version>4.1.9</version>
+            <version>4.1.11</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-healthchecks</artifactId>
+            <version>4.1.11</version>
         </dependency>
         <dependency>
             <groupId>io.dropwizard</groupId>
@@ -66,12 +71,12 @@
                         <Bundle-SymbolicName>io.stargate.core</Bundle-SymbolicName>
                         <Bundle-Activator>io.stargate.core.CoreActivator</Bundle-Activator>
                         <Import-Package><![CDATA[
-                          com.codahale.metrics,
+                          com.codahale.metrics.*,
                           org.osgi.framework,
                         ]]></Import-Package>
                         <Export-Package><![CDATA[
                           io.stargate.core.*,
-                          com.codahale.metrics
+                          com.codahale.metrics.*,
                         ]]></Export-Package>
                         <DynamicImport-Package>*</DynamicImport-Package>
                         <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
