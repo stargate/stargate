@@ -123,6 +123,15 @@ public class JwtAuthTest extends BaseOsgiIntegrationTest {
   public void createTableUnauthorized(
       CqlSessionBuilder builder, @TestKeyspace CqlIdentifier keyspaceId) {
     try (CqlSession tokenSession = builder.withAuthCredentials("token", authToken).build()) {
+
+      String errorMessage =
+          "User web_user has no CREATE permission on <keyspace ks_\\d*_JwtAuthTest> or any of its parents";
+
+      if (backend.isDse()) {
+        errorMessage =
+            "User web_user has no CREATE permission on <all tables in ks_\\d*_JwtAuthTest> or any of its parents";
+      }
+
       assertThatThrownBy(
               () ->
                   tokenSession.execute(
@@ -130,8 +139,7 @@ public class JwtAuthTest extends BaseOsgiIntegrationTest {
                           "CREATE TABLE IF NOT EXISTS %s.test (k INT PRIMARY KEY)",
                           keyspaceId.asCql(false))))
           .isInstanceOf(UnauthorizedException.class)
-          .hasMessageMatching(
-              "User web_user has no CREATE permission on <keyspace ks_\\d*_JwtAuthTest> or any of its parents");
+          .hasMessageMatching(errorMessage);
     }
   }
 
@@ -170,10 +178,17 @@ public class JwtAuthTest extends BaseOsgiIntegrationTest {
               String.format(
                   "INSERT INTO %s.jwt_auth_test (k, v) VALUES (?, ?)", keyspaceId.asCql(false)));
 
+      String errorMessage =
+          "User web_user has no MODIFY permission on <table ks_\\d*_JwtAuthTest.jwt_auth_test> or any of its parents";
+
+      if (backend.isDse()) {
+        errorMessage =
+            "User web_user has no UPDATE permission on <table ks_\\d*_JwtAuthTest.jwt_auth_test> or any of its parents";
+      }
+
       assertThatThrownBy(() -> tokenSession.execute(prepared.bind("foo", "bar")))
           .isInstanceOf(UnauthorizedException.class)
-          .hasMessageMatching(
-              "User web_user has no MODIFY permission on <table ks_\\d*_JwtAuthTest.jwt_auth_test> or any of its parents");
+          .hasMessageMatching(errorMessage);
     }
   }
 
@@ -207,6 +222,15 @@ public class JwtAuthTest extends BaseOsgiIntegrationTest {
   public void insertNotAuthorized(
       CqlSessionBuilder builder, @TestKeyspace CqlIdentifier keyspaceId) {
     try (CqlSession tokenSession = builder.withAuthCredentials("token", authToken).build()) {
+
+      String errorMessage =
+          "User web_user has no MODIFY permission on <table ks_\\d*_JwtAuthTest.jwt_auth_test> or any of its parents";
+
+      if (backend.isDse()) {
+        errorMessage =
+            "User web_user has no UPDATE permission on <table ks_\\d*_JwtAuthTest.jwt_auth_test> or any of its parents";
+      }
+
       assertThatThrownBy(
               () ->
                   tokenSession.execute(
@@ -216,8 +240,7 @@ public class JwtAuthTest extends BaseOsgiIntegrationTest {
                       "foo",
                       "bar"))
           .isInstanceOf(UnauthorizedException.class)
-          .hasMessageMatching(
-              "User web_user has no MODIFY permission on <table ks_\\d*_JwtAuthTest.jwt_auth_test> or any of its parents");
+          .hasMessageMatching(errorMessage);
     }
   }
 
@@ -275,6 +298,15 @@ public class JwtAuthTest extends BaseOsgiIntegrationTest {
   public void updateNotAuthorized(
       CqlSessionBuilder builder, @TestKeyspace CqlIdentifier keyspaceId) {
     try (CqlSession tokenSession = builder.withAuthCredentials("token", authToken).build()) {
+
+      String errorMessage =
+          "User web_user has no MODIFY permission on <table ks_\\d*_JwtAuthTest.jwt_auth_test> or any of its parents";
+
+      if (backend.isDse()) {
+        errorMessage =
+            "User web_user has no UPDATE permission on <table ks_\\d*_JwtAuthTest.jwt_auth_test> or any of its parents";
+      }
+
       assertThatThrownBy(
               () ->
                   tokenSession.execute(
@@ -283,8 +315,7 @@ public class JwtAuthTest extends BaseOsgiIntegrationTest {
                       "bar",
                       "foo"))
           .isInstanceOf(UnauthorizedException.class)
-          .hasMessageMatching(
-              "User web_user has no MODIFY permission on <table ks_\\d*_JwtAuthTest.jwt_auth_test> or any of its parents");
+          .hasMessageMatching(errorMessage);
     }
   }
 
