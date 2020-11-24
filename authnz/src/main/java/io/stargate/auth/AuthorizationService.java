@@ -38,6 +38,34 @@ public interface AuthorizationService {
       throws Exception;
 
   /**
+   * Using the provided token will perform pre-authorization and if not successful throws an
+   * exception. Intended to be used when the keys for the query are not readily accessible or when a
+   * higher level of authorization is acceptable.
+   *
+   * @param token The authenticated token to use for authorization.
+   * @param keyspace Either the keyspace containing the resource to be modified or the actual
+   *     resource being modified.
+   * @param table The table within the provided keyspace containing the data to be read.
+   * @throws UnauthorizedException An exception relating to the failure to authorize.
+   */
+  void authorizeDataRead(String token, String keyspace, String table) throws UnauthorizedException;
+
+  /**
+   * Using the provided token will perform pre-authorization and if not successful throws an
+   * exception. Intended to be used when the keys for the query are not readily accessible or when a
+   * higher level of authorization is acceptable.
+   *
+   * @param token The authenticated token to use for authorization.
+   * @param keyspace Either the keyspace containing the resource to be modified or the actual
+   *     resource being modified.
+   * @param table The table within the provided keyspace containing the data to be modified.
+   * @param scope The table within the provided keyspace that is being modified.
+   * @throws UnauthorizedException An exception relating to the failure to authorize.
+   */
+  void authorizeDataWrite(String token, String keyspace, String table, Scope scope)
+      throws UnauthorizedException;
+
+  /**
    * Using the provided token will perform pre-authorization where possible and if successful
    * executes the query provided.
    *
@@ -80,4 +108,18 @@ public interface AuthorizationService {
    */
   ResultSet authorizedSchemaWrite(
       Callable<ResultSet> action, String token, String keyspace, String table) throws Exception;
+
+  /**
+   * Using the provided token will perform pre-authorization where possible and if not successful
+   * throws an exception.
+   *
+   * @param token The authenticated token to use for authorization.
+   * @param keyspace Either the keyspace containing the resource to be modified or the actual
+   *     resource being modified.
+   * @param table The table within the provided keyspace that is being modified.
+   * @param scope The {@link Scope} of the action to be performed.
+   * @throws UnauthorizedException An exception relating to the failure to authorize.
+   */
+  void authorizeSchemaWrite(String token, String keyspace, String table, Scope scope)
+      throws UnauthorizedException;
 }

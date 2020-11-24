@@ -15,13 +15,22 @@
  */
 package io.stargate.db;
 
+import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface AuthenticatedUser {
+
   String name();
+
+  @Nullable
+  String token();
 
   static AuthenticatedUser of(String userName) {
     return ImmutableAuthenticatedUser.builder().name(userName).build();
+  }
+
+  static AuthenticatedUser of(String userName, String token) {
+    return ImmutableAuthenticatedUser.builder().name(userName).token(token).build();
   }
 }

@@ -19,6 +19,7 @@ import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.Authenticator.SaslNegotiator;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
@@ -257,5 +258,14 @@ public class AuthnTableBasedService implements AuthenticationService {
     }
 
     return storedCredentials;
+  }
+
+  @Override
+  public SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped) {
+    return new PlainTextTableBasedTokenSaslNegotiator(
+        this,
+        wrapped,
+        System.getProperty("stargate.cql_token_username", "token"),
+        Integer.parseInt(System.getProperty("stargate.cql_token_max_length", "36")));
   }
 }

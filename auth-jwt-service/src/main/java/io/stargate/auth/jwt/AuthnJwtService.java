@@ -24,6 +24,7 @@ import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.Authenticator.SaslNegotiator;
 import java.text.ParseException;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -87,6 +88,15 @@ public class AuthnJwtService implements AuthenticationService {
     StoredCredentials storedCredentials = new StoredCredentials();
     storedCredentials.setRoleName(roleName);
     return storedCredentials;
+  }
+
+  @Override
+  public SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped) {
+    return new PlainTextJwtTokenSaslNegotiator(
+        this,
+        wrapped,
+        System.getProperty("stargate.cql_token_username", "token"),
+        Integer.parseInt(System.getProperty("stargate.cql_token_max_length", "4096")));
   }
 
   /**

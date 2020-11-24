@@ -9,7 +9,6 @@ import com.google.common.collect.ImmutableList;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import io.dropwizard.testing.junit5.ResourceExtension;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
@@ -35,7 +34,7 @@ class ColumnResourceTest {
   }
 
   @Test
-  void listAllColumnsSuccess() throws UnauthorizedException {
+  void listAllColumnsSuccess() throws Exception {
     DataStore dataStore = mock(DataStore.class);
     AuthorizationService authorizationService = mock(AuthorizationService.class);
     Table table = mock(Table.class);

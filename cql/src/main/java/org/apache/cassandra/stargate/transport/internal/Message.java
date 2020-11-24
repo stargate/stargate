@@ -37,7 +37,9 @@ import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -334,8 +336,30 @@ public abstract class Message {
           assert message instanceof Request;
           Request req = (Request) message;
           Connection connection = ctx.channel().attr(Connection.attributeKey).get();
+
+          if (connection != null
+              && ((ServerConnection) connection).clientInfo() != null
+              && ((ServerConnection) connection).clientInfo().getAuthToken() != null) {
+            if (customPayload != null) {
+              message
+                  .getCustomPayload()
+                  .put(
+                      "token",
+                      StandardCharsets.UTF_8.encode(
+                          ((ServerConnection) connection).clientInfo().getAuthToken()));
+            } else {
+              customPayload =
+                  Collections.singletonMap(
+                      "token",
+                      StandardCharsets.UTF_8.encode(
+                          ((ServerConnection) connection).clientInfo().getAuthToken()));
+              message.setCustomPayload(customPayload);
+            }
+          }
           req.attach(connection);
-          if (isTracing) req.setTracingRequested();
+          if (isTracing) {
+            req.setTracingRequested();
+          }
         } else {
           assert message instanceof Response;
           if (isTracing) ((Response) message).setTracingId(tracingId);

@@ -85,13 +85,7 @@
             <Bundle-Description>AuthJWTService component for project</Bundle-Description>
             <Bundle-SymbolicName>io.stargate.auth.jwt</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.auth.jwt.AuthJWTServiceActivator</Bundle-Activator>
-            <Import-Package><![CDATA[
-                        io.stargate.auth,
-                        org.osgi.framework,
-                        io.stargate.core,
-                        io.stargate.db,
-                        com.codahale.metrics
-                        ]]></Import-Package>
+            <Import-Package>io.stargate.auth, org.osgi.framework</Import-Package>
             <Export-Package>!*</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
