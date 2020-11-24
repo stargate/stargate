@@ -134,7 +134,7 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public void authorizeSchemaRead(String token, List<String> keyspaceNames, List<String> tableNames)
-      throws Exception {
+      throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
 

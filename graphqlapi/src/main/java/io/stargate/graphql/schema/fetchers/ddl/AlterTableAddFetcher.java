@@ -35,8 +35,8 @@ public class AlterTableAddFetcher extends TableFetcher {
     super(persistence, authenticationService, authorizationService);
   }
 
-  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment, String keyspaceName,
-      String tableName) {
+  public String getQuery(
+      DataFetchingEnvironment dataFetchingEnvironment, String keyspaceName, String tableName) {
     AlterTableStart start =
         SchemaBuilder.alterTable(
             CqlIdentifier.fromInternal(keyspaceName), CqlIdentifier.fromInternal(tableName));

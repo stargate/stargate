@@ -88,7 +88,7 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public void authorizeSchemaRead(String token, List<String> keyspaceNames, List<String> tableNames)
-      throws Exception {
+      throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
 

@@ -33,8 +33,8 @@ public class DropTableFetcher extends TableFetcher {
   }
 
   @Override
-  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment, String keyspaceName,
-      String tableName) {
+  public String getQuery(
+      DataFetchingEnvironment dataFetchingEnvironment, String keyspaceName, String tableName) {
     Drop drop =
         SchemaBuilder.dropTable(
             CqlIdentifier.fromInternal(keyspaceName), CqlIdentifier.fromInternal(tableName));

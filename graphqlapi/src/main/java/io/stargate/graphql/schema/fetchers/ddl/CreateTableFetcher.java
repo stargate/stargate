@@ -37,8 +37,8 @@ public class CreateTableFetcher extends TableFetcher {
     super(persistence, authenticationService, authorizationService);
   }
 
-  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment, String keyspaceName,
-      String tableName) {
+  public String getQuery(
+      DataFetchingEnvironment dataFetchingEnvironment, String keyspaceName, String tableName) {
     CreateTableStart start =
         SchemaBuilder.createTable(
             CqlIdentifier.fromInternal(keyspaceName), CqlIdentifier.fromInternal(tableName));

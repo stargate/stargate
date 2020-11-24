@@ -10,7 +10,8 @@ import io.stargate.graphql.web.HttpAwareContext;
 
 public abstract class TableFetcher extends DdlQueryFetcher {
 
-  protected TableFetcher(Persistence persistence,
+  protected TableFetcher(
+      Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService) {
     super(persistence, authenticationService, authorizationService);
@@ -39,6 +40,6 @@ public abstract class TableFetcher extends DdlQueryFetcher {
     return getQuery(dataFetchingEnvironment, keyspaceName, tableName);
   }
 
-  abstract String getQuery(DataFetchingEnvironment dataFetchingEnvironment, String keyspaceName,
-      String tableName);
+  abstract String getQuery(
+      DataFetchingEnvironment dataFetchingEnvironment, String keyspaceName, String tableName);
 }

@@ -18,30 +18,51 @@ package io.stargate.graphql.schema.fetchers.ddl;
 import com.google.common.collect.ImmutableMap;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.ImmutableTable;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Helper class to format keyspace metadata into a GraphQL result object. */
 class KeyspaceFormatter {
 
+  private static final Logger LOG = LoggerFactory.getLogger(KeyspaceFormatter.class);
+
   static List<Map<String, Object>> formatResult(
-      Set<Keyspace> keyspaces, DataFetchingEnvironment environment) {
+      Set<Keyspace> keyspaces,
+      DataFetchingEnvironment environment,
+      AuthorizationService authorizationService,
+      String token) {
     List<Map<String, Object>> list = new ArrayList<>();
     for (Keyspace keyspace : keyspaces) {
-      list.add(formatResult(keyspace, environment));
+      try {
+        authorizationService.authorizeSchemaRead(
+            token, Collections.singletonList(keyspace.name()), null);
+        list.add(formatResult(keyspace, environment, authorizationService, token));
+      } catch (Exception e) {
+        LOG.info("Not returning keyspace {} due to not being authorized", keyspace);
+      }
     }
     return list;
   }
 
-  static Map<String, Object> formatResult(Keyspace keyspace, DataFetchingEnvironment environment) {
+  static Map<String, Object> formatResult(
+      Keyspace keyspace,
+      DataFetchingEnvironment environment,
+      AuthorizationService authorizationService,
+      String token) {
     ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
     builder.put("name", keyspace.name());
     formatChildren(
@@ -50,14 +71,20 @@ class KeyspaceFormatter {
         keyspace::tables,
         keyspace::table,
         KeyspaceFormatter::buildTable,
-        environment);
+        environment,
+        keyspace.name(),
+        authorizationService,
+        token);
     formatChildren(
         builder,
         "type",
         keyspace::userDefinedTypes,
         keyspace::userDefinedType,
         KeyspaceFormatter::buildUdt,
-        environment);
+        environment,
+        keyspace.name(),
+        authorizationService,
+        token);
 
     builder.put("dcs", buildDcs(keyspace));
     return builder.build();
@@ -69,13 +96,30 @@ class KeyspaceFormatter {
       Supplier<Iterable<ChildT>> allChildrenGetter,
       Function<String, ChildT> childByNameGetter,
       Function<ChildT, Map<String, Object>> converter,
-      DataFetchingEnvironment environment) {
+      DataFetchingEnvironment environment,
+      String keyspaceName,
+      AuthorizationService authorizationService,
+      String token) {
 
     // All children query, for example `keyspace(name: "ks") { tables }`
     String allChildrenName = childFieldName + "s";
     if (environment.getSelectionSet().getField(allChildrenName) != null) {
       List<Map<String, Object>> formattedChildren = new ArrayList<>();
       for (ChildT child : allChildrenGetter.get()) {
+        if (childFieldName.equals("table")) {
+          try {
+            authorizationService.authorizeSchemaRead(
+                token,
+                Collections.singletonList(keyspaceName),
+                Collections.singletonList(((ImmutableTable) child).name()));
+          } catch (UnauthorizedException e) {
+            LOG.info(
+                "Not returning table {}.{} due to not being authorized",
+                keyspaceName,
+                ((ImmutableTable) child).name());
+            continue; // Not authorized so continue and don't add this table to the list
+          }
+        }
         formattedChildren.add(converter.apply(child));
       }
       builder.put(allChildrenName, formattedChildren);
@@ -85,6 +129,15 @@ class KeyspaceFormatter {
     SelectedField childField = environment.getSelectionSet().getField(childFieldName);
     if (childField != null) {
       String name = (String) childField.getArguments().get("name");
+      if (childFieldName.equals("table")) {
+        try {
+          authorizationService.authorizeSchemaRead(
+              token, Collections.singletonList(keyspaceName), Collections.singletonList(name));
+        } catch (UnauthorizedException e) {
+          LOG.info("Not returning table {}.{} due to not being authorized", keyspaceName, name);
+          return; // Not authorized so return and don't add this table to the list
+        }
+      }
       ChildT child = childByNameGetter.apply(name);
       if (child != null) {
         builder.put(childFieldName, converter.apply(child));

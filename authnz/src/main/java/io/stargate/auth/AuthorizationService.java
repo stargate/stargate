@@ -89,10 +89,10 @@ public interface AuthorizationService {
    * @param keyspaceNames Either the keyspace(s) containing the resource(s) to be read or the actual
    *     resource being read.
    * @param tableNames The table(s) within the provided keyspace(s) that is being read.
-   * @throws Exception An exception relating to the failure to authorize.
+   * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeSchemaRead(String token, List<String> keyspaceNames, List<String> tableNames)
-      throws Exception;
+      throws UnauthorizedException;
 
   /**
    * Using the provided token will perform pre-authorization where possible and if not successful
