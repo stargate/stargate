@@ -47,19 +47,19 @@ import org.slf4j.LoggerFactory;
 @CqlSessionSpec(
     initQueries = {
       "CREATE ROLE IF NOT EXISTS 'web_user' WITH PASSWORD = 'web_user' AND LOGIN = TRUE",
-      "CREATE KEYSPACE IF NOT EXISTS store WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}",
-      "CREATE TABLE IF NOT EXISTS store.shopping_cart (userid text, item_count int, last_update_timestamp timestamp, PRIMARY KEY (userid, last_update_timestamp));",
-      "INSERT INTO store.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('9876', 2, toTimeStamp(now()))",
-      "INSERT INTO store.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('1234', 5, toTimeStamp(now()))",
-      "GRANT MODIFY ON TABLE store.shopping_cart TO web_user",
-      "GRANT SELECT ON TABLE store.shopping_cart TO web_user",
+      "CREATE KEYSPACE IF NOT EXISTS store1 WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}",
+      "CREATE TABLE IF NOT EXISTS store1.shopping_cart (userid text, item_count int, last_update_timestamp timestamp, PRIMARY KEY (userid, last_update_timestamp));",
+      "INSERT INTO store1.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('9876', 2, toTimeStamp(now()))",
+      "INSERT INTO store1.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('1234', 5, toTimeStamp(now()))",
+      "GRANT MODIFY ON TABLE store1.shopping_cart TO web_user",
+      "GRANT SELECT ON TABLE store1.shopping_cart TO web_user",
     })
 public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(RestApiJWTAuthTest.class);
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
-  private final String keyspaceName = "store";
+  private final String keyspaceName = "store1";
   private final String tableName = "shopping_cart";
 
   private String host;
@@ -132,6 +132,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     assertThat(rows.getCount()).isGreaterThan(0);
 
     for (Map<String, Object> row : rows.getRows()) {
+      logger.info("row: {}", row);
       assertThat(row.get("userid")).isEqualTo("9876");
       assertThat((int) row.get("item_count")).isGreaterThan(0);
       assertThat(row.get("last_update_timestamp")).isNotNull();
@@ -140,12 +141,13 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getRowV1() throws IOException {
-    String body = getRowV1(tableName, "");
+    String body = getRowV1(tableName, "9876");
 
     Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
     assertThat(rows.getCount()).isGreaterThan(0);
 
     for (Map<String, Object> row : rows.getRows()) {
+      logger.info("row: {}", row);
       assertThat(row.get("userid")).isEqualTo("9876");
       assertThat((int) row.get("item_count")).isGreaterThan(0);
       assertThat(row.get("last_update_timestamp")).isNotNull();
@@ -172,9 +174,12 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     List<Map<String, Object>> data =
         objectMapper.convertValue(
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
-    assertThat(data.get(0).get("userid")).isEqualTo("9876");
-    assertThat(data.get(0).get("item_count")).isEqualTo(2);
-    assertThat(data.get(0).get("last_update_timestamp")).isNotNull();
+
+    for (Map<String, Object> row : data) {
+      assertThat(row.get("userid")).isEqualTo("9876");
+      assertThat((int) row.get("item_count")).isGreaterThan(0);
+      assertThat(row.get("last_update_timestamp")).isNotNull();
+    }
   }
 
   @Test

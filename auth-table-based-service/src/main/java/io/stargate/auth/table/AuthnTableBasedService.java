@@ -261,8 +261,11 @@ public class AuthnTableBasedService implements AuthenticationService {
   }
 
   @Override
-  public SaslNegotiator getSaslNegotiator(
-      SaslNegotiator wrapped, String tokenUsername, int tokenMaxLength) {
-    return new PlainTextTableBasedTokenSaslNegotiator(this, wrapped, tokenUsername, tokenMaxLength);
+  public SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped) {
+    return new PlainTextTableBasedTokenSaslNegotiator(
+        this,
+        wrapped,
+        System.getProperty("stargate.cql_token_username", "token"),
+        Integer.parseInt(System.getProperty("stargate.cql_token_max_length", "36")));
   }
 }

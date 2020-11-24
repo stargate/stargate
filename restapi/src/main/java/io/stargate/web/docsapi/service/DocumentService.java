@@ -283,7 +283,7 @@ public class DocumentService {
       String leaf = null;
       for (int i = 0; i < fieldNames.length; i++) {
         String fieldName = fieldNames[i];
-        boolean isArrayElement = fieldName.startsWith("[");
+        boolean isArrayElement = fieldName.startsWith("[") && fieldName.endsWith("]");
         if (!isArrayElement) {
           // Unlike using JSON, try to allow any input by replacing illegal characters with _.
           // Form shredding is only supposed to be used for benchmarking tests.
@@ -300,7 +300,12 @@ public class DocumentService {
           // Form shredding is only supposed to be used for benchmarking tests.
           innerPath = DocumentDB.replaceIllegalChars(innerPath);
 
-          int idx = Integer.parseInt(innerPath);
+          int idx = 0;
+          try {
+            idx = Integer.parseInt(innerPath);
+          } catch (NumberFormatException e) {
+            // do nothing
+          }
           if (idx > DocumentDB.MAX_ARRAY_LENGTH - 1) {
             throw new DocumentAPIRequestException(
                 String.format("Max array length of %s exceeded.", DocumentDB.MAX_ARRAY_LENGTH));
@@ -386,7 +391,7 @@ public class DocumentService {
     List<Object[]> bindVariableList = shreddingResults.left;
     List<String> firstLevelKeys = shreddingResults.right;
 
-    if (bindVariableList.size() == 0) {
+    if (bindVariableList.size() == 0 && isJson) {
       throw new DocumentAPIRequestException(
           "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: "
               + payload

@@ -172,6 +172,11 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     }
   }
 
+  private static Instant now() {
+    // Avoid using Instants with nanosecond precision as nanos may be lost on the server side
+    return Instant.ofEpochMilli(System.currentTimeMillis());
+  }
+
   private static void createSessionAndSchema() throws Exception {
     session =
         CqlSession.builder()
@@ -766,7 +771,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .id(productId)
             .name("Shiny Legs")
             .price("3199.99")
-            .created(Instant.now())
+            .created(now())
             .description("Normal legs but shiny.")
             .build();
 
@@ -782,6 +787,11 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   }
 
   public GetProductsWithFilterQuery.Value getProduct(ApolloClient client, String productId) {
+    List<GetProductsWithFilterQuery.Value> valuesList = getProductValues(client, productId);
+    return valuesList.get(0);
+  }
+
+  public List<Value> getProductValues(ApolloClient client, String productId) {
     ProductsFilterInput filterInput =
         ProductsFilterInput.builder().id(UuidFilterInput.builder().eq(productId).build()).build();
 
@@ -795,9 +805,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(result.getProducts()).isPresent();
     GetProductsWithFilterQuery.Products products = result.getProducts().get();
     assertThat(products.getValues()).isPresent();
-    List<GetProductsWithFilterQuery.Value> valuesList = products.getValues().get();
-
-    return valuesList.get(0);
+    return products.getValues().get();
   }
 
   public InsertProductsMutation.InsertProducts insertProduct(
@@ -818,7 +826,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .id(productId)
             .name("Shiny Legs")
             .price("3199.99")
-            .created(Instant.now())
+            .created(now())
             .description("Normal legs but shiny.")
             .build();
 
@@ -855,7 +863,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .id(productId)
             .name("Shiny Legs")
             .price("3199.99")
-            .created(Instant.now())
+            .created(now())
             .description("Normal legs but shiny.")
             .build();
 
@@ -870,12 +878,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
 
     assertThat(result.getDeleteProducts()).isPresent();
 
-    assertThatThrownBy(
-            () -> {
-              getProduct(client, productId);
-            })
-        .isInstanceOf(IndexOutOfBoundsException.class)
-        .hasMessageContaining("Index: 0, Size: 0");
+    assertThat(getProductValues(client, productId)).hasSize(0);
   }
 
   @Test
@@ -897,7 +900,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                     .price(price)
                     .name(productName)
                     .customerName(customer)
-                    .created(Instant.now())
+                    .created(now())
                     .description(description)
                     .build())
             .orderValue(
@@ -1010,7 +1013,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                     .prodName("prod 1")
                     .price("1")
                     .name("prod1")
-                    .created(Instant.now())
+                    .created(now())
                     .build())
             .orderValue(
                 OrdersInput.builder()
@@ -1170,7 +1173,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         arguments(Column.Type.Smallint, 32_767),
         arguments(Column.Type.Text, "abc123", "'abc123'"),
         arguments(Column.Type.Time, "23:59:31.123456789"),
-        arguments(Column.Type.Timestamp, formatInstant(Instant.now())),
+        arguments(Column.Type.Timestamp, formatInstant(now())),
         arguments(Column.Type.Tinyint, -128),
         arguments(Column.Type.Tinyint, 1),
         arguments(Column.Type.Timeuuid, Uuids.timeBased().toString()),
@@ -1341,7 +1344,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
               .id(UUID.randomUUID().toString())
               .name(name)
               .price("1.0")
-              .created(Instant.now())
+              .created(now())
               .build());
     }
 
