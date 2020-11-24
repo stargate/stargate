@@ -21,12 +21,9 @@ import com.datastax.oss.driver.api.querybuilder.schema.Drop;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.Scope;
-import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
-import io.stargate.graphql.web.HttpAwareContext;
 
-public class DropTableFetcher extends DdlQueryFetcher {
+public class DropTableFetcher extends TableFetcher {
 
   public DropTableFetcher(
       Persistence persistence,
@@ -36,15 +33,8 @@ public class DropTableFetcher extends DdlQueryFetcher {
   }
 
   @Override
-  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment)
-      throws UnauthorizedException {
-    String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
-    String tableName = dataFetchingEnvironment.getArgument("tableName");
-
-    HttpAwareContext httpAwareContext = dataFetchingEnvironment.getContext();
-    String token = httpAwareContext.getAuthToken();
-    authorizationService.authorizeSchemaWrite(token, keyspaceName, tableName, Scope.DROP);
-
+  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment, String keyspaceName,
+      String tableName) {
     Drop drop =
         SchemaBuilder.dropTable(
             CqlIdentifier.fromInternal(keyspaceName), CqlIdentifier.fromInternal(tableName));

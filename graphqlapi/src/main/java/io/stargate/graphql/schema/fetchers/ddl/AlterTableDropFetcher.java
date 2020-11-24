@@ -22,13 +22,10 @@ import com.datastax.oss.driver.api.querybuilder.schema.AlterTableStart;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.Scope;
-import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
-import io.stargate.graphql.web.HttpAwareContext;
 import java.util.List;
 
-public class AlterTableDropFetcher extends DdlQueryFetcher {
+public class AlterTableDropFetcher extends TableFetcher {
 
   public AlterTableDropFetcher(
       Persistence persistence,
@@ -38,15 +35,8 @@ public class AlterTableDropFetcher extends DdlQueryFetcher {
   }
 
   @Override
-  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment)
-      throws UnauthorizedException {
-    String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
-    String tableName = dataFetchingEnvironment.getArgument("tableName");
-
-    HttpAwareContext httpAwareContext = dataFetchingEnvironment.getContext();
-    String token = httpAwareContext.getAuthToken();
-    authorizationService.authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
-
+  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment, String keyspaceName,
+      String tableName) {
     AlterTableStart start =
         SchemaBuilder.alterTable(
             CqlIdentifier.fromInternal(keyspaceName), CqlIdentifier.fromInternal(tableName));
