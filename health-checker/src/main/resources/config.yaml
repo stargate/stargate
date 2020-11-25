@@ -1,5 +1,6 @@
 server:
   type: health-checker
+  applicationContextPath: /checker/
   adminContextPath: /
   connector:
     type: http
