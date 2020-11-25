@@ -1,9 +1,23 @@
+/*
+ * Copyright 2018-2020 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.producer.kafka.health;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
 import com.codahale.metrics.health.HealthCheck.Result;
-import io.stargate.producer.kafka.IntegrationTestBase;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,7 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.util.SocketUtils;
 
-class KafkaHealthCheckIT extends IntegrationTestBase {
+class KafkaHealthCheckIT {
 
   private EmbeddedKafkaBroker embeddedKafkaBroker;
 
@@ -29,8 +43,10 @@ class KafkaHealthCheckIT extends IntegrationTestBase {
 
   @Test
   public void shouldReportThatKafkaIsHealthy() {
-    // when
+    // given
     startKafka(1);
+
+    // when
     KafkaHealthCheck kafkaHealthCheck =
         new KafkaHealthCheck(createKafkaSettings(embeddedKafkaBroker.getBrokersAsString()));
 
@@ -44,9 +60,9 @@ class KafkaHealthCheckIT extends IntegrationTestBase {
   @Test
   public void shouldReportThatKafkaIsUnhealthyWhenBrokerNonReachable() {
     // when
-    int freePort = SocketUtils.findAvailableTcpPort();
     KafkaHealthCheck kafkaHealthCheck =
-        new KafkaHealthCheck(createKafkaSettings("127.0.0.1:" + freePort));
+        new KafkaHealthCheck(
+            createKafkaSettings("127.0.0.1:" + SocketUtils.findAvailableTcpPort()));
     Result result = kafkaHealthCheck.check();
 
     // then
@@ -59,8 +75,10 @@ class KafkaHealthCheckIT extends IntegrationTestBase {
 
   @Test
   public void shouldReportThatKafkaIsUnhealthyWhenNotEnoughReplicas() {
-    // when
+    // given
     startKafka(2);
+
+    // when
     KafkaHealthCheck kafkaHealthCheck =
         new KafkaHealthCheck(createKafkaSettings(embeddedKafkaBroker.getBrokersAsString()));
 
@@ -74,8 +92,8 @@ class KafkaHealthCheckIT extends IntegrationTestBase {
   @Test
   public void shouldReportThatKafkaIsUnhealthyAndTransitionToHealthyWhenBrokerStarted() {
     // when
-    int freePort = SocketUtils.findAvailableTcpPort();
-    Map<String, Object> kafkaSettings = createKafkaSettings("127.0.0.1:" + freePort);
+    Map<String, Object> kafkaSettings =
+        createKafkaSettings("127.0.0.1:" + SocketUtils.findAvailableTcpPort());
     KafkaHealthCheck kafkaHealthCheck = new KafkaHealthCheck(kafkaSettings);
 
     // then
@@ -83,7 +101,7 @@ class KafkaHealthCheckIT extends IntegrationTestBase {
     assertThat(result.isHealthy()).isFalse();
     assertThat(result.getMessage()).isEqualTo("Kafka cluster DOWN");
 
-    // when start kafka again
+    // when start kafka
     startKafka(1);
     // replace the broker with a new live-broker url
     kafkaSettings.put(
@@ -97,7 +115,7 @@ class KafkaHealthCheckIT extends IntegrationTestBase {
   }
 
   @NotNull
-  private Map<String, Object> createKafkaSettings(String brokers) {
+  static Map<String, Object> createKafkaSettings(String brokers) {
     HashMap<String, Object> map = new HashMap<>();
     map.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, brokers);
     return map;
