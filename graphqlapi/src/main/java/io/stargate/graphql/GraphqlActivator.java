@@ -19,6 +19,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
+import io.stargate.graphql.web.DropwizardServer;
 import java.util.Arrays;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -42,7 +43,7 @@ public class GraphqlActivator extends BaseActivator {
   private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
 
   @GuardedBy("this")
-  private WebImpl web;
+  private DropwizardServer server;
 
   public GraphqlActivator() {
     super("GraphQL");
@@ -67,11 +68,11 @@ public class GraphqlActivator extends BaseActivator {
 
   private synchronized void maybeStartService(
       Persistence persistence, Metrics metrics, AuthenticationService authentication) {
-    if (web == null) {
+    if (server == null) {
       try {
-        web = new WebImpl(persistence, metrics, authentication);
+        server = new DropwizardServer(persistence, authentication, metrics);
         LOG.info("Starting GraphQL");
-        web.start();
+        server.run("server", "config.yaml");
       } catch (Exception e) {
         LOG.error("Unexpected error while stopping GraphQL", e);
       }
@@ -79,10 +80,10 @@ public class GraphqlActivator extends BaseActivator {
   }
 
   private synchronized void maybeStopService() {
-    if (web != null) {
+    if (server != null) {
       try {
         LOG.info("Stopping GraphQL");
-        web.stop();
+        server.stop();
       } catch (Exception e) {
         LOG.error("Unexpected error while stopping GraphQL", e);
       }

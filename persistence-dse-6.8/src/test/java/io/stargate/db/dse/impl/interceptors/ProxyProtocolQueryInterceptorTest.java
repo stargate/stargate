@@ -22,7 +22,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
@@ -187,7 +186,8 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
       arguments("schema_version", StargateSystemKeyspace.SCHEMA_VERSION),
       arguments(
           "tokens",
-          Collections.singleton(DatabaseDescriptor.getPartitioner().getMinimumToken().toString())),
+          StargateSystemKeyspace.generateRandomTokens(
+              PUBLIC_ADDRESS1, DatabaseDescriptor.getNumTokens())),
       arguments("native_transport_port", 9042),
       arguments("native_transport_port_ssl", 9042),
       arguments("storage_port", DatabaseDescriptor.getStoragePort()),

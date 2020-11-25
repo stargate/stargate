@@ -34,4 +34,10 @@ public @interface ProxySpec {
    * @see SkipIfProxyDnsInvalid
    */
   String verifyProxyDnsName() default "stargate.local";
+
+  /**
+   * Indicates whether proxy instances started from this specification can be shared among different
+   * tests.
+   */
+  boolean shared() default false;
 }
