@@ -15,4 +15,15 @@
  */
 package io.stargate.api.sql.server.postgres.msg;
 
-public class ExtendedQueryMessage extends PGClientMessage {}
+import io.reactivex.Flowable;
+import io.stargate.api.sql.server.postgres.Connection;
+
+public abstract class ExtendedQueryMessage extends PGClientMessage {
+
+  public abstract Flowable<PGServerMessage> process(Connection connection);
+
+  @Override
+  public final Flowable<PGServerMessage> dispatch(Connection connection) {
+    return connection.extendedQuery(this);
+  }
+}

@@ -17,14 +17,10 @@ package io.stargate.api.sql.server.postgres;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
 import io.reactivex.Single;
-import io.reactivex.SingleEmitter;
-import io.reactivex.SingleOnSubscribe;
-import io.reactivex.annotations.NonNull;
 import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.PublishSubject;
 import io.stargate.api.sql.server.postgres.msg.AuthenticationOk;
@@ -33,23 +29,29 @@ import io.stargate.api.sql.server.postgres.msg.BindComplete;
 import io.stargate.api.sql.server.postgres.msg.EncryptionResponse;
 import io.stargate.api.sql.server.postgres.msg.ErrorResponse;
 import io.stargate.api.sql.server.postgres.msg.Execute;
+import io.stargate.api.sql.server.postgres.msg.ExtendedQueryMessage;
 import io.stargate.api.sql.server.postgres.msg.NoticeResponse;
 import io.stargate.api.sql.server.postgres.msg.PGClientMessage;
 import io.stargate.api.sql.server.postgres.msg.PGServerMessage;
 import io.stargate.api.sql.server.postgres.msg.ParameterStatus;
 import io.stargate.api.sql.server.postgres.msg.Parse;
 import io.stargate.api.sql.server.postgres.msg.ParseComplete;
+import io.stargate.api.sql.server.postgres.msg.Query;
 import io.stargate.api.sql.server.postgres.msg.ReadyForQuery;
 import io.stargate.api.sql.server.postgres.msg.RowDescription;
 import io.stargate.api.sql.server.postgres.msg.StartupMessage;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.db.datastore.DataStore;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,13 +60,20 @@ public class Connection {
 
   private static final Logger LOG = LoggerFactory.getLogger(Connection.class);
 
+  private static final AtomicInteger threadCount = new AtomicInteger();
+
   private final Channel channel;
-  private final DataStore dataStore;
   private final SqlParser parser;
   private final AuthenticationService authenticationService;
   // TODO: use async API with DataStore
-  private final ScheduledExecutorService executor = new ScheduledThreadPoolExecutor(4);
-  private final Scheduler scheduler = Schedulers.from(executor);
+  private final ScheduledExecutorService executor =
+      new ScheduledThreadPoolExecutor(
+          4,
+          runnable -> {
+            Thread thread = new Thread(runnable, "psql-" + threadCount.getAndIncrement());
+            thread.setContextClassLoader(Connection.class.getClassLoader());
+            return thread;
+          });
 
   private final ConcurrentMap<String, Statement> statements = new ConcurrentHashMap<>();
   private final ConcurrentMap<String, Portal> portals = new ConcurrentHashMap<>();
@@ -75,17 +84,15 @@ public class Connection {
   public Connection(
       Channel channel, DataStore dataStore, AuthenticationService authenticationService) {
     this.channel = channel;
-    this.dataStore = dataStore;
     this.parser = new SqlParser(dataStore);
     this.authenticationService = authenticationService;
 
-    ChannelHandlerContext ctx = channel.pipeline().lastContext();
     publisher = PublishSubject.create();
     Scheduler channelScheduler = Schedulers.from(channel.eventLoop());
     publisher
         .observeOn(channelScheduler)
         .toFlowable(BackpressureStrategy.BUFFER)
-        .concatMap(this::process)
+        .concatMap(m -> m.dispatch(this))
         .doOnNext(
             msg -> {
               LOG.info("write: " + msg.getClass().getSimpleName());
@@ -109,49 +116,57 @@ public class Connection {
         .subscribe();
   }
 
+  public Flowable<PGServerMessage> simpleQuery(Query message) {
+    LOG.info("simple: " + message.getClass().getSimpleName());
+    return Flowable.just(message)
+        .concatMap(this::execute)
+        // Note: we do not "remember" errors in the simple query sub-protocol
+        .onErrorResumeNext(this::toErrorMessage)
+        .concatWith(Flowable.just(ReadyForQuery.instance()));
+  }
+
+  public Flowable<PGServerMessage> extendedQuery(ExtendedQueryMessage message) {
+    LOG.info("dispatching extended: " + message.getClass().getSimpleName());
+    return Flowable.just(message)
+        .concatMap(
+            msg -> {
+              if (error != null) {
+                LOG.info("skipped: " + msg.getClass().getSimpleName());
+                return Flowable.empty();
+              }
+
+              return msg.process(this);
+            })
+        .onErrorResumeNext(
+            th -> {
+              error = th;
+              return toErrorMessage(th);
+            });
+  }
+
   public void enqueue(PGClientMessage msg) {
     LOG.info("enqueue: " + msg.getClass().getSimpleName());
     publisher.onNext(msg);
   }
 
-  public boolean hasErrors() {
-    return error != null;
-  }
-
   private Flowable<PGServerMessage> toErrorMessage(Throwable th) {
-    LOG.error(
-        "Error while processing a PostgreSQL message (closing connection): {}", th.toString(), th);
-    error = th;
+    LOG.error("Error while processing a PostgreSQL message: {}", th.toString(), th);
     return Flowable.just(ErrorResponse.error(th));
-  }
-
-  private Flowable<PGServerMessage> process(PGClientMessage message) {
-    try {
-      LOG.info("dispatching: " + message.getClass().getSimpleName());
-      return message.process(this).onErrorResumeNext(this::toErrorMessage);
-    } catch (Exception e) {
-      return toErrorMessage(e);
-    }
   }
 
   private <T> Single<T> exec(T value) {
     return Single.create(
-        new SingleOnSubscribe<T>() {
-          @Override
-          public void subscribe(@NonNull SingleEmitter<T> emitter) throws Exception {
-            //        LOG.info("exec1: " + value.getClass().getSimpleName());
+        emitter -> {
+          ScheduledFuture<?> future =
+              executor.schedule(
+                  () -> {
+                    //          LOG.info("exec2: " + value.getClass().getSimpleName());
+                    emitter.onSuccess(value);
+                  },
+                  20,
+                  TimeUnit.MILLISECONDS);
 
-            ScheduledFuture<?> future =
-                executor.schedule(
-                    () -> {
-                      //          LOG.info("exec2: " + value.getClass().getSimpleName());
-                      emitter.onSuccess(value);
-                    },
-                    20,
-                    TimeUnit.MILLISECONDS);
-
-            emitter.setCancellable(() -> future.cancel(true));
-          }
+          emitter.setCancellable(() -> future.cancel(true));
         });
   }
 
@@ -183,12 +198,11 @@ public class Connection {
 
   public Single<PGServerMessage> prepare(Parse message) {
     return exec(message)
-        .map(msg -> statements.compute(msg.getName(), (k, v) -> prepareInternal(msg)))
+        .map(msg -> statements.compute(msg.getName(), (k, v) -> prepareInternal(msg.getSql())))
         .map(__ -> ParseComplete.instance());
   }
 
-  private Statement prepareInternal(Parse message) {
-    String sql = message.getSql().trim();
+  private Statement prepareInternal(String sql) {
     return parser.parse(sql);
   }
 
@@ -209,6 +223,25 @@ public class Connection {
             });
 
     return new Portal(statement, message.getResultFormatCodes());
+  }
+
+  private Flowable<PGServerMessage> execute(Query message) {
+    return exec(message)
+        .flatMapPublisher(msg -> Flowable.fromIterable(sqlCommands(message)))
+        .concatMap(this::executeSimple);
+  }
+
+  private List<String> sqlCommands(Query message) {
+    String commandBlock = message.getSql();
+    String[] commands = commandBlock.split(";"); // TODO: handle escapes
+    return Arrays.asList(commands);
+  }
+
+  private Flowable<PGServerMessage> executeSimple(String sql) {
+    Statement statement = prepareInternal(sql);
+    Portal portal = new Portal(statement, new int[0]);
+    return Flowable.just((PGServerMessage) RowDescription.from(portal))
+        .concatWith(portal.execute(this));
   }
 
   public Flowable<PGServerMessage> execute(Execute message) {

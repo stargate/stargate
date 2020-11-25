@@ -19,19 +19,26 @@ import io.netty.buffer.ByteBuf;
 import io.reactivex.Flowable;
 import io.stargate.api.sql.server.postgres.Connection;
 
-public class Flush extends PGClientMessage {
+public class Query extends PGClientMessage {
 
-  private Flush() {}
+  private final String sql;
 
-  public static Flush create(int bodySize, ByteBuf bytes) {
-    // no body
-    bytes.skipBytes(bodySize); // just in case, bodySize should be 0
-    return new Flush();
+  private Query(String sql) {
+    this.sql = sql;
+  }
+
+  public static Query create(int bodySize, ByteBuf bytes) {
+    String sql = readString(bytes);
+
+    return new Query(sql);
+  }
+
+  public String getSql() {
+    return sql;
   }
 
   @Override
   public Flowable<PGServerMessage> dispatch(Connection connection) {
-    connection.flush();
-    return Flowable.empty();
+    return connection.simpleQuery(this);
   }
 }

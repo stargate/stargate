@@ -45,7 +45,7 @@ public class Parse extends ExtendedQueryMessage {
   }
 
   @Override
-  public Flowable<PGServerMessage> dispatch(Connection connection) {
+  public Flowable<PGServerMessage> process(Connection connection) {
     return connection.prepare(this).toFlowable();
   }
 

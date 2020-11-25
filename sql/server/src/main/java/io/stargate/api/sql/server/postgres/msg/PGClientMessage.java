@@ -19,28 +19,10 @@ import io.netty.buffer.ByteBuf;
 import io.reactivex.Flowable;
 import io.stargate.api.sql.server.postgres.Connection;
 import java.nio.charset.StandardCharsets;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class PGClientMessage {
-  private static final Logger LOG = LoggerFactory.getLogger(PGClientMessage.class);
+public abstract class PGClientMessage {
 
-  public final Flowable<PGServerMessage> process(Connection connection) {
-    if (skip(connection)) {
-      LOG.info("skipped: " + getClass().getSimpleName());
-      return Flowable.empty();
-    }
-
-    return dispatch(connection);
-  }
-
-  protected boolean skip(Connection connection) {
-    return connection.hasErrors();
-  }
-
-  protected Flowable<PGServerMessage> dispatch(Connection connection) {
-    throw new IllegalStateException("Dispatch not implemented in " + getClass());
-  }
+  public abstract Flowable<PGServerMessage> dispatch(Connection connection);
 
   protected static String readString(ByteBuf in) {
     in.markReaderIndex();

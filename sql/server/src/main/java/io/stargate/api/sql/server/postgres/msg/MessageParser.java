@@ -43,6 +43,9 @@ public class MessageParser {
       case 'P':
         msg = Parse.create(bodySize, bytes);
         break;
+      case 'Q':
+        msg = Query.create(bodySize, bytes);
+        break;
       case 'S':
         msg = Sync.create(bodySize, bytes);
         break;

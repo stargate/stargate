@@ -19,7 +19,7 @@ import io.netty.buffer.ByteBuf;
 import io.reactivex.Flowable;
 import io.stargate.api.sql.server.postgres.Connection;
 
-public class Describe extends PGClientMessage {
+public class Describe extends ExtendedQueryMessage {
 
   private final boolean statement;
   private final String name;
@@ -51,7 +51,7 @@ public class Describe extends PGClientMessage {
   }
 
   @Override
-  protected Flowable<PGServerMessage> dispatch(Connection connection) {
+  public Flowable<PGServerMessage> process(Connection connection) {
     if (isStatement()) {
       throw new UnsupportedOperationException("Describe is not supported for statements");
     }

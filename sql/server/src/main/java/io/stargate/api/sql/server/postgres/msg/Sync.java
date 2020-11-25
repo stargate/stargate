@@ -30,11 +30,6 @@ public class Sync extends PGClientMessage {
   }
 
   @Override
-  protected boolean skip(Connection connection) {
-    return false;
-  }
-
-  @Override
   public Flowable<PGServerMessage> dispatch(Connection connection) {
     return connection.sync().toFlowable();
   }

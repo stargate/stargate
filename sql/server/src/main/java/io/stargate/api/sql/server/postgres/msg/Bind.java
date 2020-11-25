@@ -75,7 +75,7 @@ public class Bind extends ExtendedQueryMessage {
   }
 
   @Override
-  public Flowable<PGServerMessage> dispatch(Connection connection) {
+  public Flowable<PGServerMessage> process(Connection connection) {
     return connection.bind(this).toFlowable();
   }
 
