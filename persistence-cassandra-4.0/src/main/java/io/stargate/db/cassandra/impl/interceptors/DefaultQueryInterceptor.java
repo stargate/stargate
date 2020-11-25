@@ -10,7 +10,6 @@ import io.stargate.db.cassandra.impl.StargateSystemKeyspace;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,7 +21,6 @@ import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.SelectStatement;
-import org.apache.cassandra.dht.Token.TokenFactory;
 import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
@@ -39,9 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A default interceptor implementation that returns only stargate nodes for `system.peers` queries,
- * but also returns only the same, single token for all stargate nodes (they all own the whole ring)
- * for both `system.local` and `system.peers` tables.
+ * A default interceptor implementation that returns only stargate nodes for `system.peers` queries.
  */
 public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointStateChangeSubscriber {
   private static final Logger logger = LoggerFactory.getLogger(DefaultQueryInterceptor.class);
@@ -272,12 +268,10 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
   }
 
   private void updateTokens(InetAddressAndPort endpoint) {
-    TokenFactory factory = StorageService.instance.getTokenFactory();
     StargateSystemKeyspace.updatePeerInfo(
         endpoint,
         "tokens",
-        Collections.singleton(
-            factory.toString(DatabaseDescriptor.getPartitioner().getMinimumToken())));
+        StargateSystemKeyspace.generateRandomTokens(endpoint, DatabaseDescriptor.getNumTokens()));
   }
 
   private void notifyDown(InetAddressAndPort endpoint) {
