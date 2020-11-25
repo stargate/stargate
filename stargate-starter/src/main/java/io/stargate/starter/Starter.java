@@ -329,10 +329,7 @@ public class Starter {
 
     if (bindToListenAddressOnly) {
       // Restrict the listen address for Jersey endpoints
-      System.setProperty("dw.server.applicationConnectors[0].bindHost", listenHostStr);
-      // We can't use the system property for admin connectors, because only health-checker has one
-      // (and referencing adminConnectors[0] would trigger an error for the other bundles).
-      // Instead this is done programmatically in health-checker's Server class.
+      System.setProperty("dw.server.connector.bindHost", listenHostStr);
     }
 
     // Don't step on native logback functionality. If someone wants to use built in logback args

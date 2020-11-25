@@ -13,9 +13,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.dropwizard.Application;
 import io.dropwizard.cli.Cli;
 import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
-import io.dropwizard.jetty.ConnectorFactory;
-import io.dropwizard.jetty.HttpConnectorFactory;
-import io.dropwizard.server.DefaultServerFactory;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
@@ -54,8 +51,6 @@ public class Server extends Application<ApplicationConfiguration> {
   public void run(
       final ApplicationConfiguration applicationConfiguration, final Environment environment) {
 
-    maybeBindToListenAddressOnly(applicationConfiguration);
-
     environment.getObjectMapper().configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
     environment.getObjectMapper().registerModule(new JavaTimeModule());
 
@@ -73,21 +68,6 @@ public class Server extends Application<ApplicationConfiguration> {
     // Export all DropWizard metrics to Prometheus, they will be picked up later by the
     // Prometheus MetricsServlet.
     CollectorRegistry.defaultRegistry.register(new DropwizardExports(metrics.getRegistry()));
-  }
-
-  private void maybeBindToListenAddressOnly(ApplicationConfiguration applicationConfiguration) {
-    boolean bindToListenAddressOnly = Boolean.getBoolean("stargate.bind_to_listen_address");
-    if (bindToListenAddressOnly) {
-      DefaultServerFactory server =
-          (DefaultServerFactory) applicationConfiguration.getServerFactory();
-      ConnectorFactory connector = server.getAdminConnectors().get(0);
-      if (connector instanceof HttpConnectorFactory) {
-        ((HttpConnectorFactory) connector)
-            .setBindHost(System.getProperty("stargate.listen_address"));
-      } else {
-        throw new AssertionError("Unexpected connector class: " + connector.getClass().getName());
-      }
-    }
   }
 
   @Override

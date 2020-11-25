@@ -1,8 +1,6 @@
 server:
   type: health-checker
-  applicationConnectors:
-    - type: http
-      port: 8084
-  adminConnectors:
-    - type: http
-      port: 8085
+  adminContextPath: /
+  connector:
+    type: http
+    port: 8084
