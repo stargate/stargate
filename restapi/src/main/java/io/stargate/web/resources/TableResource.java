@@ -16,6 +16,7 @@
 package io.stargate.web.resources;
 
 import com.codahale.metrics.annotation.Timed;
+import io.stargate.auth.Scope;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
@@ -204,12 +205,9 @@ public class TableResource {
                   columnDefinitions.toString(),
                   tableOptions);
           db.getAuthorizationService()
-              .authorizedSchemaWrite(
-                  () -> localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM).get(),
-                  token,
-                  keyspaceName,
-                  tableAdd.getName());
+              .authorizeSchemaWrite(token, keyspaceName, tableAdd.getName(), Scope.CREATE);
 
+          localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM).get();
           return Response.status(Response.Status.CREATED).entity(new SuccessResponse()).build();
         });
   }
@@ -330,18 +328,14 @@ public class TableResource {
           DataStore localDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizedSchemaWrite(
-                  () ->
-                      localDB
-                          .query()
-                          .drop()
-                          .table(keyspaceName, tableName)
-                          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                          .execute(),
-                  token,
-                  keyspaceName,
-                  tableName);
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.DROP);
 
+          localDB
+              .query()
+              .drop()
+              .table(keyspaceName, tableName)
+              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+              .execute();
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }
