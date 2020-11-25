@@ -22,6 +22,7 @@ public class SchemaRegistryHealthCheck extends HealthCheck {
   private final CachedSchemaRegistryClient schemaRegistryClient;
 
   public SchemaRegistryHealthCheck(String schemaRegistryUrl) {
+    // max capacity is not important for this client, it will not get any subject by id
     schemaRegistryClient = new CachedSchemaRegistryClient(schemaRegistryUrl, 10);
   }
 

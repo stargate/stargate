@@ -30,7 +30,7 @@ public class KafkaHealthCheck extends HealthCheck {
   public static final int DEFAULT_TIMEOUT_MILLIS = 5_000; // default is 60 seconds
   private static final DescribeClusterOptions DESCRIBE_OPTIONS =
       new DescribeClusterOptions().timeoutMs(DEFAULT_TIMEOUT_MILLIS);
-  private Map<String, Object> kafkaSettings;
+  private final Map<String, Object> kafkaSettings;
 
   public KafkaHealthCheck(Map<String, Object> kafkaSettings) {
     this.kafkaSettings = kafkaSettings;

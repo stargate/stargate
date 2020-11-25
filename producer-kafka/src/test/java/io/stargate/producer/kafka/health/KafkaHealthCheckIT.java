@@ -115,7 +115,7 @@ class KafkaHealthCheckIT {
   }
 
   @NotNull
-  static Map<String, Object> createKafkaSettings(String brokers) {
+  private static Map<String, Object> createKafkaSettings(String brokers) {
     HashMap<String, Object> map = new HashMap<>();
     map.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, brokers);
     return map;
