@@ -6,7 +6,9 @@ import com.codahale.metrics.health.HealthCheck.Result;
 import io.stargate.producer.kafka.IntegrationTestBase;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.errors.TimeoutException;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -25,7 +27,7 @@ class KafkaHealthCheckIT extends IntegrationTestBase {
   }
 
   @Test
-  public void shouldReportThatKafkaIsHealthy() throws Exception {
+  public void shouldReportThatKafkaIsHealthy() {
     // when
     startKafka(1);
     KafkaHealthCheck kafkaHealthCheck =
@@ -39,7 +41,7 @@ class KafkaHealthCheckIT extends IntegrationTestBase {
   }
 
   @Test
-  public void shouldReportThatKafkaIsUnhealthy() throws Exception {
+  public void shouldReportThatKafkaIsUnhealthyWhenBrokerNonReachable() {
     // when
     int freePort = SocketUtils.findAvailableTcpPort();
     KafkaHealthCheck kafkaHealthCheck =
@@ -49,6 +51,45 @@ class KafkaHealthCheckIT extends IntegrationTestBase {
     // then
     assertThat(result.isHealthy()).isFalse();
     assertThat(result.getMessage()).isEqualTo("Kafka cluster DOWN");
+    assertThat(result.getError())
+        .isInstanceOf(ExecutionException.class)
+        .hasCauseInstanceOf(TimeoutException.class);
+  }
+
+  @Test
+  public void shouldReportThatKafkaIsUnhealthyWhenNotEnoughReplicas() {
+    // when
+    startKafka(2);
+    KafkaHealthCheck kafkaHealthCheck =
+        new KafkaHealthCheck(createKafkaSettings(embeddedKafkaBroker.getBrokersAsString()));
+
+    // then
+    Result result = kafkaHealthCheck.check();
+    assertThat(result.isHealthy()).isFalse();
+    assertThat(result.getMessage()).isEqualTo("Kafka cluster is under replicated");
+    assertDetails(result.getDetails());
+  }
+
+  @Test
+  public void shouldReportThatKafkaIsUnhealthyAndTransitionToHealthyWhenBrokerStarted() {
+    // when
+    startKafka(1);
+    KafkaHealthCheck kafkaHealthCheck =
+        new KafkaHealthCheck(createKafkaSettings(embeddedKafkaBroker.getBrokersAsString()));
+    stopKafka();
+
+    // then
+    Result result = kafkaHealthCheck.check();
+    assertThat(result.isHealthy()).isFalse();
+    assertThat(result.getMessage()).isEqualTo("Kafka cluster DOWN");
+
+    // when start kafka again
+    startKafka(1);
+
+    // then report as up
+    result = kafkaHealthCheck.check();
+    assertThat(result.isHealthy()).isTrue();
+    assertThat(result.getMessage()).isEqualTo("Kafka cluster UP");
     assertDetails(result.getDetails());
   }
 
@@ -63,7 +104,7 @@ class KafkaHealthCheckIT extends IntegrationTestBase {
     assertThat(details).containsEntry("nodes", 1);
   }
 
-  private void startKafka(int replicationFactor) throws Exception {
+  private void startKafka(int replicationFactor) {
     embeddedKafkaBroker = new EmbeddedKafkaBroker(1);
     embeddedKafkaBroker.brokerProperties(
         Collections.singletonMap(

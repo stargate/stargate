@@ -37,24 +37,27 @@ public class KafkaHealthCheck extends HealthCheck {
   }
 
   @Override
-  protected Result check() throws Exception {
-    DescribeClusterResult result = adminClient.describeCluster();
-    String brokerId = result.controller().get().idString();
-    int replicationFactor = getReplicationFactor(brokerId, adminClient);
-    int nodes = result.nodes().get().size();
+  protected Result check() {
     ResultBuilder resultBuilder = Result.builder();
-    if (nodes >= replicationFactor) {
-      resultBuilder = resultBuilder.healthy().withMessage("Kafka cluster UP");
-    } else {
-      resultBuilder = resultBuilder.unhealthy().withMessage("Kafka cluster DOWN");
-      ;
-    }
 
-    return resultBuilder
-        .withDetail("clusterId", result.clusterId().get())
-        .withDetail("brokerId", brokerId)
-        .withDetail("nodes", nodes)
-        .build();
+    DescribeClusterResult result = adminClient.describeCluster(DESCRIBE_OPTIONS);
+    try {
+      String brokerId = result.controller().get().idString();
+      int replicationFactor = getReplicationFactor(brokerId, adminClient);
+      int nodes = result.nodes().get().size();
+      if (nodes >= replicationFactor) {
+        resultBuilder = resultBuilder.healthy().withMessage("Kafka cluster UP");
+      } else {
+        resultBuilder = resultBuilder.unhealthy().withMessage("Kafka cluster is under replicated");
+      }
+      return resultBuilder
+          .withDetail("clusterId", result.clusterId().get())
+          .withDetail("brokerId", brokerId)
+          .withDetail("nodes", nodes)
+          .build();
+    } catch (InterruptedException | ExecutionException e) {
+      return resultBuilder.unhealthy(e).withMessage("Kafka cluster DOWN").build();
+    }
   }
 
   private int getReplicationFactor(String brokerId, AdminClient adminClient)
