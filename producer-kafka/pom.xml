@@ -220,6 +220,8 @@
               io.stargate.db,
               !com.codahale.metrics.graphite.*,
               com.codahale.metrics,
+              com.codahale.metrics.health,
+              com.codahale.metrics.health.jvm,
               ]]>
             </Import-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
