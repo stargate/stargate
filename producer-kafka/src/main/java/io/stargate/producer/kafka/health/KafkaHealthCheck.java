@@ -26,37 +26,39 @@ import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.common.config.ConfigResource;
 
 public class KafkaHealthCheck extends HealthCheck {
-  private final AdminClient adminClient;
   public static final String REPLICATION_PROPERTY = "transaction.state.log.replication.factor";
-  public static final int DEFAULT_TIMEOUT_MILLIS = 5_000;
+  public static final int DEFAULT_TIMEOUT_MILLIS = 5_000; // default is 60 seconds
   private static final DescribeClusterOptions DESCRIBE_OPTIONS =
       new DescribeClusterOptions().timeoutMs(DEFAULT_TIMEOUT_MILLIS);
+  private Map<String, Object> kafkaSettings;
 
   public KafkaHealthCheck(Map<String, Object> kafkaSettings) {
-    this.adminClient = AdminClient.create(kafkaSettings);
+    this.kafkaSettings = kafkaSettings;
   }
 
   @Override
   protected Result check() {
-    ResultBuilder resultBuilder = Result.builder();
-
-    DescribeClusterResult result = adminClient.describeCluster(DESCRIBE_OPTIONS);
-    try {
-      String brokerId = result.controller().get().idString();
-      int replicationFactor = getReplicationFactor(brokerId, adminClient);
-      int nodes = result.nodes().get().size();
-      if (nodes >= replicationFactor) {
-        resultBuilder = resultBuilder.healthy().withMessage("Kafka cluster UP");
-      } else {
-        resultBuilder = resultBuilder.unhealthy().withMessage("Kafka cluster is under replicated");
+    try (AdminClient adminClient = AdminClient.create(kafkaSettings)) {
+      ResultBuilder resultBuilder = Result.builder();
+      DescribeClusterResult result = adminClient.describeCluster(DESCRIBE_OPTIONS);
+      try {
+        String brokerId = result.controller().get().idString();
+        int replicationFactor = getReplicationFactor(brokerId, adminClient);
+        int nodes = result.nodes().get().size();
+        if (nodes >= replicationFactor) {
+          resultBuilder = resultBuilder.healthy().withMessage("Kafka cluster UP");
+        } else {
+          resultBuilder =
+              resultBuilder.unhealthy().withMessage("Kafka cluster is under replicated");
+        }
+        return resultBuilder
+            .withDetail("clusterId", result.clusterId().get())
+            .withDetail("brokerId", brokerId)
+            .withDetail("nodes", nodes)
+            .build();
+      } catch (InterruptedException | ExecutionException e) {
+        return resultBuilder.unhealthy(e).withMessage("Kafka cluster DOWN").build();
       }
-      return resultBuilder
-          .withDetail("clusterId", result.clusterId().get())
-          .withDetail("brokerId", brokerId)
-          .withDetail("nodes", nodes)
-          .build();
-    } catch (InterruptedException | ExecutionException e) {
-      return resultBuilder.unhealthy(e).withMessage("Kafka cluster DOWN").build();
     }
   }
 

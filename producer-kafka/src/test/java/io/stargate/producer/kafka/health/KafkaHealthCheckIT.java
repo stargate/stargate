@@ -5,6 +5,7 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import com.codahale.metrics.health.HealthCheck.Result;
 import io.stargate.producer.kafka.IntegrationTestBase;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -73,10 +74,9 @@ class KafkaHealthCheckIT extends IntegrationTestBase {
   @Test
   public void shouldReportThatKafkaIsUnhealthyAndTransitionToHealthyWhenBrokerStarted() {
     // when
-    startKafka(1);
-    KafkaHealthCheck kafkaHealthCheck =
-        new KafkaHealthCheck(createKafkaSettings(embeddedKafkaBroker.getBrokersAsString()));
-    stopKafka();
+    int freePort = SocketUtils.findAvailableTcpPort();
+    Map<String, Object> kafkaSettings = createKafkaSettings("127.0.0.1:" + freePort);
+    KafkaHealthCheck kafkaHealthCheck = new KafkaHealthCheck(kafkaSettings);
 
     // then
     Result result = kafkaHealthCheck.check();
@@ -85,6 +85,9 @@ class KafkaHealthCheckIT extends IntegrationTestBase {
 
     // when start kafka again
     startKafka(1);
+    // replace the broker with a new live-broker url
+    kafkaSettings.put(
+        ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaBroker.getBrokersAsString());
 
     // then report as up
     result = kafkaHealthCheck.check();
@@ -95,7 +98,9 @@ class KafkaHealthCheckIT extends IntegrationTestBase {
 
   @NotNull
   private Map<String, Object> createKafkaSettings(String brokers) {
-    return Collections.singletonMap(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, brokers);
+    HashMap<String, Object> map = new HashMap<>();
+    map.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, brokers);
+    return map;
   }
 
   private void assertDetails(Map<String, Object> details) {
