@@ -33,6 +33,7 @@ import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory.Builder;
@@ -53,14 +54,18 @@ public class PGServer {
 
   private final InetSocketAddress socket;
   private final EventLoopGroup workerGroup;
-  private final DataStore dataStore;
+  private final Supplier<DataStore> dataStore;
   private final AuthenticationService authenticator;
 
   public PGServer(Persistence backend, AuthenticationService authenticator) {
-    this(DataStore.create(backend), authenticator, PORT);
+    this(DataStore.create(backend), authenticator);
   }
 
-  public PGServer(DataStore dataStore, AuthenticationService authenticator, int port) {
+  public PGServer(DataStore dataStore, AuthenticationService authenticator) {
+    this(() -> dataStore, authenticator, PORT);
+  }
+
+  public PGServer(Supplier<DataStore> dataStore, AuthenticationService authenticator, int port) {
     this.dataStore = dataStore;
     this.authenticator = authenticator;
 
@@ -88,7 +93,8 @@ public class PGServer {
                     ch.pipeline().addLast(new MessageDecoder());
                     ch.pipeline()
                         .addLast(
-                            new MessageDispatcher(new Connection(ch, dataStore, authenticator)));
+                            new MessageDispatcher(
+                                new Connection(ch, dataStore.get(), authenticator)));
                   }
                 });
 
