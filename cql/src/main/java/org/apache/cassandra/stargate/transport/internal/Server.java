@@ -27,7 +27,6 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.group.ChannelGroup;
@@ -35,13 +34,10 @@ import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.ByteToMessageDecoder;
-import io.netty.handler.codec.haproxy.HAProxyMessage;
-import io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
-import io.netty.util.Attribute;
 import io.netty.util.Version;
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.GlobalEventExecutor;
@@ -444,19 +440,7 @@ public class Server implements CassandraDaemon.Server {
       }
 
       if (USE_PROXY_PROTOCOL) {
-        pipeline.addLast("proxyProtocolDecoder", new HAProxyMessageDecoder());
-        pipeline.addLast(
-            "proxyProtocol",
-            new SimpleChannelInboundHandler<HAProxyMessage>() {
-              @Override
-              protected void channelRead0(ChannelHandlerContext ctx, HAProxyMessage msg)
-                  throws Exception {
-                Attribute<ProxyInfo> attrProxy = ctx.channel().attr(ProxyInfo.attributeKey);
-                attrProxy.set(
-                    new ProxyInfo(
-                        new InetSocketAddress(msg.destinationAddress(), msg.destinationPort())));
-              }
-            });
+        pipeline.addLast("proxyProtocol", new HAProxyProtocolDetectingDecoder());
       }
 
       // pipeline.addLast("debug", new LoggingHandler());

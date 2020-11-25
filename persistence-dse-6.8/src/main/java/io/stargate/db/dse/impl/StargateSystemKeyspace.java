@@ -5,6 +5,10 @@ import com.datastax.bdp.db.nodes.virtual.LocalNodeSystemView;
 import com.datastax.bdp.db.nodes.virtual.PeersSystemView;
 import com.datastax.bdp.db.util.ProductVersion;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -13,11 +17,14 @@ import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.db.virtual.VirtualKeyspace;
+import org.apache.cassandra.dht.IPartitioner;
+import org.apache.cassandra.dht.Token.TokenFactory;
 import org.apache.cassandra.schema.SchemaConstants;
 import org.apache.cassandra.schema.SchemaManager;
 import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.utils.FBUtilities;
+import org.apache.cassandra.utils.MurmurHash;
 
 public class StargateSystemKeyspace {
   public static final String SYSTEM_KEYSPACE_NAME = "stargate_system";
@@ -41,7 +48,6 @@ public class StargateSystemKeyspace {
   public void persistLocalMetadata() {
     local.setClusterName(DatabaseDescriptor.getClusterName());
     local.setReleaseVersion(ProductVersion.getReleaseVersion().toString());
-    local.setDseVersion(ProductVersion.getDSEVersion().toString());
     local.setCqlVersion(QueryProcessor.CQL_VERSION);
     local.setNativeProtocolVersion(String.valueOf(ProtocolVersion.CURRENT.asInt()));
     local.setDataCenter(DatabaseDescriptor.getLocalDataCenter());
@@ -56,6 +62,9 @@ public class StargateSystemKeyspace {
     local.setStoragePortSsl(DatabaseDescriptor.getSSLStoragePort());
     local.setJmxPort(DatabaseDescriptor.getJMXPort().orElse(null));
     local.setHostId(Nodes.local().get().getHostId());
+    local.setTokens(
+        StargateSystemKeyspace.generateRandomTokens(
+            FBUtilities.getNativeTransportBroadcastAddress(), DatabaseDescriptor.getNumTokens()));
   }
 
   public static boolean isSystemLocal(SelectStatement statement) {
@@ -88,5 +97,21 @@ public class StargateSystemKeyspace {
     legacy.clusteringColumns().forEach(cm -> builder.addClusteringColumn(cm.name, cm.type));
     legacy.regularColumns().forEach(cm -> builder.addRegularColumn(cm.name, cm.type.freeze()));
     return builder.build();
+  }
+
+  public static Set<String> generateRandomTokens(InetAddress inetAddress, int numTokens) {
+    Random random = new Random(getSeed(inetAddress));
+    IPartitioner partitioner = DatabaseDescriptor.getPartitioner();
+    TokenFactory tokenFactory = partitioner.getTokenFactory();
+    Set<String> tokens = new HashSet<>(numTokens);
+    while (tokens.size() < numTokens) {
+      tokens.add(tokenFactory.toString(partitioner.getRandomToken(random)));
+    }
+    return tokens;
+  }
+
+  private static long getSeed(InetAddress inetAddress) {
+    ByteBuffer bytes = ByteBuffer.wrap(inetAddress.getAddress());
+    return MurmurHash.hash2_64(bytes, bytes.position(), bytes.remaining(), 0);
   }
 }

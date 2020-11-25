@@ -3,6 +3,7 @@ package io.stargate.it.driver;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.config.OptionsMap;
+import io.stargate.it.storage.StargateEnvironmentInfo;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
@@ -86,9 +87,11 @@ public @interface CqlSessionSpec {
   boolean createSession() default true;
 
   /**
-   * Whether to add Stargate nodes to the contact points.
+   * The class to use for resolving contact points.
    *
-   * <p>If set to false then the tests will need to add their own contact points.
+   * <p>This can be used to customize the contact points used connect the session. The default
+   * implementation resolves contact points using {@link StargateEnvironmentInfo#nodes()}.
    */
-  boolean useDefaultContactPoints() default true;
+  Class<? extends ContactPointResolver> contactPointResolver() default
+      DefaultContactPointResolver.class;
 }
