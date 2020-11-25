@@ -59,7 +59,7 @@ public class InsertMutationFetcher extends MutationFetcher {
     HttpAwareContext httpAwareContext = environment.getContext();
     String token = httpAwareContext.getAuthToken();
 
-    authorizationService.authorizedDataWrite(
+    authorizationService.authorizeDataWrite(
         token, buildTypedKeyValueList(cqlIdentifierTermMap), Scope.MODIFY);
 
     Insert insert =

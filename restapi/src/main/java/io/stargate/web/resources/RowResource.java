@@ -422,7 +422,7 @@ public class RowResource {
                   .collect(Collectors.toList());
 
           db.getAuthorizationService()
-              .authorizedDataWrite(
+              .authorizeDataWrite(
                   token,
                   values.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
                   Scope.MODIFY);
@@ -476,7 +476,7 @@ public class RowResource {
           List<WhereCondition<?>> wheres =
               buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI());
           db.getAuthorizationService()
-              .authorizedDataWrite(
+              .authorizeDataWrite(
                   token,
                   wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
                   Scope.DELETE);
@@ -542,7 +542,7 @@ public class RowResource {
           List<WhereCondition<?>> wheres =
               buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI());
           db.getAuthorizationService()
-              .authorizedDataWrite(
+              .authorizeDataWrite(
                   token,
                   wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
                   Scope.MODIFY);

@@ -32,8 +32,7 @@ public class DeleteMutationFetcher extends MutationFetcher {
     String token = httpAwareContext.getAuthToken();
 
     List<Relation> relations = buildClause(table, environment);
-    authorizationService.authorizedDataWrite(
-        token, buildTypedKeyValueList(relations), Scope.DELETE);
+    authorizationService.authorizeDataWrite(token, buildTypedKeyValueList(relations), Scope.DELETE);
 
     Delete delete =
         QueryBuilder.deleteFrom(keyspaceId, tableId)

@@ -117,7 +117,7 @@ public class AuthzJwtService implements AuthorizationService {
 
   /** {@inheritdoc} */
   @Override
-  public void authorizedDataWrite(String token, List<TypedKeyValue> typedKeyValues, Scope scope)
+  public void authorizeDataWrite(String token, List<TypedKeyValue> typedKeyValues, Scope scope)
       throws UnauthorizedException {
     JSONObject stargateClaims = extractClaimsFromJWT(token);
 

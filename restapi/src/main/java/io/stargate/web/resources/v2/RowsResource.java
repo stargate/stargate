@@ -303,7 +303,7 @@ public class RowsResource {
                   .collect(Collectors.toList());
 
           db.getAuthorizationService()
-              .authorizedDataWrite(
+              .authorizeDataWrite(
                   token,
                   values.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
                   Scope.MODIFY);
@@ -414,7 +414,7 @@ public class RowsResource {
           }
 
           db.getAuthorizationService()
-              .authorizedDataWrite(
+              .authorizeDataWrite(
                   token,
                   where.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
                   Scope.DELETE);
@@ -500,7 +500,7 @@ public class RowsResource {
             .collect(Collectors.toList());
 
     db.getAuthorizationService()
-        .authorizedDataWrite(
+        .authorizeDataWrite(
             token,
             where.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
             Scope.MODIFY);
