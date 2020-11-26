@@ -1,5 +1,5 @@
 server:
-  type: simple
+  type: auth-api
   applicationContextPath: /
   connector:
     type: http

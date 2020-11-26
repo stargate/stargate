@@ -1,5 +1,5 @@
 server:
-  type: simple
+  type: rest-api
   applicationContextPath: /
   connector:
     type: http
