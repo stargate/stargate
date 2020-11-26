@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.25-SNAPSHOT</version>
+    <version>0.0.27-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.auth.jwt</groupId>
   <artifactId>auth-jwt-service</artifactId>
