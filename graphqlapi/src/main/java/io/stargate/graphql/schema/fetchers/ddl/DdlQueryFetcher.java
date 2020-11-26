@@ -21,6 +21,8 @@ import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
@@ -32,8 +34,11 @@ import java.util.Map;
  */
 public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
 
-  protected DdlQueryFetcher(Persistence persistence, AuthenticationService authenticationService) {
-    super(persistence, authenticationService);
+  protected DdlQueryFetcher(
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(persistence, authenticationService, authorizationService);
   }
 
   @Override
@@ -42,7 +47,8 @@ public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
     return true;
   }
 
-  abstract String getQuery(DataFetchingEnvironment dataFetchingEnvironment);
+  abstract String getQuery(DataFetchingEnvironment dataFetchingEnvironment)
+      throws UnauthorizedException;
 
   protected DataType decodeType(Object typeObject) {
     @SuppressWarnings("unchecked")

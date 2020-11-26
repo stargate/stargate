@@ -22,6 +22,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import java.util.List;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
@@ -68,9 +69,10 @@ public class KeyspaceResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
-          return Response.status(Response.Status.OK)
-              .entity(localDB.schema().keyspaceNames())
-              .build();
+
+          List<String> keyspaceNames = localDB.schema().keyspaceNames();
+          db.getAuthorizationService().authorizeSchemaRead(token, keyspaceNames, null);
+          return Response.status(Response.Status.OK).entity(keyspaceNames).build();
         });
   }
 }

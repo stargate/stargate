@@ -25,6 +25,21 @@ public class SingleKeyspaceFetcherCollectionsTest extends KeyspaceFetcherTestBas
 
   public static Arguments[] successfulQueries() {
     return new Arguments[] {
+      arguments(
+          "query { "
+              + "keyspace(name:\"collections\") {"
+              + "    tables {"
+              + "      name"
+              + "    }"
+              + "}"
+              + "}",
+          "{\"keyspace\":{\"tables\":[{\"name\":\"PkListTable\"},\n"
+              + "    {\"name\":\"RegularListTable\"},\n"
+              + "    {\"name\":\"PkSetTable\"},\n"
+              + "    {\"name\":\"RegularSetTable\"},\n"
+              + "    {\"name\":\"PkMapTable\"},\n"
+              + "    {\"name\":\"RegularMapTable\"},\n"
+              + "    {\"name\":\"NestedCollections\"}]}}"),
       // Frozen list column:
       arguments(
           "query { "
