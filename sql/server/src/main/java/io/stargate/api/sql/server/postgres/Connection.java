@@ -275,6 +275,10 @@ public class Connection {
     channel.flush();
   }
 
+  public void terminate() {
+    channel.close();
+  }
+
   public Flowable<PGServerMessage> describePortal(String name) {
     Portal portal = portals.get(name);
     if (portal == null) {

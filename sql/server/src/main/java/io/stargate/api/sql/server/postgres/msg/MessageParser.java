@@ -49,6 +49,9 @@ public class MessageParser {
       case 'S':
         msg = Sync.create(bodySize, bytes);
         break;
+      case 'X':
+        msg = Terminate.instance(); // no message body
+        break;
 
       default:
         throw new IllegalStateException("Unsupported message type: " + type);

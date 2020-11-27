@@ -20,12 +20,14 @@ import io.stargate.api.sql.plan.PreparedSqlQuery;
 import io.stargate.api.sql.server.postgres.msg.CommandComplete;
 import io.stargate.api.sql.server.postgres.msg.DataRow;
 import io.stargate.api.sql.server.postgres.msg.PGServerMessage;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 public class Portal {
@@ -57,10 +59,11 @@ public class Portal {
       Object[] values = (Object[]) row;
       int idx = 0;
       for (FieldInfo field : fields) {
-        result.add(field, values[idx++]);
+        result.add(field, toPGValue(field, values[idx++]));
       }
     } else {
-      result.add(fields.get(0), row);
+      FieldInfo field = fields.get(0);
+      result.add(field, toPGValue(field, row));
     }
 
     return result;
@@ -107,6 +110,19 @@ public class Portal {
     return new FieldInfo(type.getName(), format, pgType);
   }
 
+  private static Object toPGValue(FieldInfo field, Object value) {
+    switch (field.getType()) {
+      case Timestamp:
+        return SqlFunctions.internalToTimestamp((Long) value);
+      case Time:
+        return SqlFunctions.internalToTime((Integer) value);
+      case Date:
+        return SqlFunctions.internalToDate((Integer) value);
+    }
+
+    return value;
+  }
+
   private static PGType toPGType(RelDataType type) {
     SqlTypeName sqlType = type.getSqlTypeName();
     switch (sqlType) {
@@ -114,6 +130,25 @@ public class Portal {
         return PGType.Varchar;
       case INTEGER:
         return PGType.Int4;
+      case BIGINT:
+        return PGType.Int8;
+      case BOOLEAN:
+        return PGType.Bool;
+      case DATE:
+        return PGType.Date;
+      case TIME:
+        return PGType.Time;
+      case TIMESTAMP:
+        return PGType.Timestamp;
+      case TINYINT:
+        // Note: the 1-byte char type is treated as a String by the PostgreSQL JDBC driver
+        return PGType.Int2;
+      case DECIMAL:
+        return PGType.Numeric;
+      case DOUBLE:
+        return PGType.Float8;
+      case SMALLINT:
+        return PGType.Int2;
       default:
         throw new IllegalArgumentException("Unsupported SQL type: " + sqlType);
     }

@@ -18,7 +18,15 @@ package io.stargate.api.sql.server.postgres;
 import java.util.Arrays;
 
 public enum PGType {
+  Bool(16, 1),
+  Date(1082, 4),
+  Time(1083, 8),
+  Timestamp(1114, 8),
+  Float8(701, 8),
+  Int2(21, 2),
   Int4(23, 4),
+  Int8(20, 8),
+  Numeric(1700, -1),
   Varchar(1043, -1);
 
   private final int oid;
