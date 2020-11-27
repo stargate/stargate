@@ -15,6 +15,8 @@
  */
 package io.stargate.api.sql.server.postgres;
 
+import java.util.Arrays;
+
 public enum PGType {
   Int4(23, 4),
   Varchar(1043, -1);
@@ -25,6 +27,13 @@ public enum PGType {
   PGType(int oid, int length) {
     this.oid = oid;
     this.length = length;
+  }
+
+  static PGType of(int oid) {
+    return Arrays.stream(values())
+        .filter(t -> t.oid == oid)
+        .findFirst()
+        .orElseThrow(() -> new IllegalArgumentException("Unsupported type OID: " + oid));
   }
 
   public int oid() {

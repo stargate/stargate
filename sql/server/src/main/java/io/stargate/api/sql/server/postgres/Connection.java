@@ -59,6 +59,9 @@ public class Connection {
 
   private static final Logger LOG = LoggerFactory.getLogger(Connection.class);
 
+  private static final int MAX_MESSAGES_BEFORE_FLUSH =
+      Integer.getInteger("stargate.pgsql.max.message.before.flushg", 100);
+
   private static final AtomicInteger threadCount = new AtomicInteger();
 
   private final Channel channel;
@@ -78,6 +81,7 @@ public class Connection {
   private final ConcurrentMap<String, Portal> portals = new ConcurrentHashMap<>();
   private final ConcurrentMap<String, String> properties = new ConcurrentHashMap<>();
   private final PublishSubject<PGClientMessage> publisher;
+  private int messagesWritten;
   private Throwable error = null;
 
   public Connection(
@@ -96,7 +100,10 @@ public class Connection {
             msg -> {
               LOG.info("write: " + msg.getClass().getSimpleName());
               channel.write(msg);
-              if (msg.flush()) {
+              messagesWritten++;
+
+              boolean shouldFlush = messagesWritten % MAX_MESSAGES_BEFORE_FLUSH == 0;
+              if (shouldFlush || msg.flush()) {
                 LOG.info("flush: " + msg.getClass().getSimpleName());
                 channel.flush();
               }

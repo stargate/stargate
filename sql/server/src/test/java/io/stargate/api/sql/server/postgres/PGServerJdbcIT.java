@@ -19,46 +19,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.stargate.api.sql.AbstractDataStoreTest;
-import io.stargate.auth.AuthenticationService;
-import io.stargate.db.datastore.DataStore;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicReference;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
-class PGServerJdbcIT extends AbstractDataStoreTest {
-
-  private static final int TEST_PORT = 5432;
-  private static final AtomicReference<DataStore> dataStoreRef = new AtomicReference<>();
-
-  private static PGServer server;
-
-  @BeforeAll
-  public static void startServer() {
-    AuthenticationService authenticator = Mockito.mock(AuthenticationService.class);
-    server = new PGServer(dataStoreRef::get, authenticator, TEST_PORT);
-    server.start();
-  }
-
-  @AfterAll
-  public static void stopServer() throws ExecutionException, InterruptedException {
-    server.stop();
-  }
-
-  @BeforeEach
-  public void setDataStore() {
-    dataStoreRef.set(dataStore);
-  }
+class PGServerJdbcIT extends PGServerTestBase {
 
   private Connection openConnection() throws SQLException {
     return DriverManager.getConnection(

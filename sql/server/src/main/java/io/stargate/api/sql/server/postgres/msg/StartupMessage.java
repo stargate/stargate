@@ -22,6 +22,8 @@ import io.stargate.api.sql.server.postgres.Connection;
 public class StartupMessage extends PGClientMessage {
 
   private static final long PROTOCOL_V3 = 0x30000;
+  public static final long PROTOCOL_CURRENT = PROTOCOL_V3;
+
   private static final long SSL_REQUEST = 80877103; // 1234 5679
   private static final long GSS_REQUEST = 80877104; // 1234 5680
 

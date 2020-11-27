@@ -47,7 +47,7 @@ public class Portal {
               count.incrementAndGet();
               return toDataRow(row);
             })
-        .concatWith(Flowable.just(CommandComplete.forSelect(count.get())));
+        .concatWith(Flowable.defer(() -> Flowable.just(CommandComplete.forSelect(count.get()))));
   }
 
   private PGServerMessage toDataRow(Object row) {
