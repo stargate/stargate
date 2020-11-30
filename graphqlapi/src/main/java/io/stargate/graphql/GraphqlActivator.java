@@ -18,6 +18,7 @@ package io.stargate.graphql;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 /** Activator for the web bundle */
 public class GraphqlActivator extends BaseActivator {
+
   private static final Logger LOG = LoggerFactory.getLogger(GraphqlActivator.class);
 
   private static final String AUTH_IDENTIFIER =
@@ -40,6 +42,8 @@ public class GraphqlActivator extends BaseActivator {
 
   private ServicePointer<AuthenticationService> authentication =
       ServicePointer.create(AuthenticationService.class, "AuthIdentifier", AUTH_IDENTIFIER);
+  private ServicePointer<AuthorizationService> authorization =
+      ServicePointer.create(AuthorizationService.class, "AuthIdentifier", AUTH_IDENTIFIER);
   private ServicePointer<Persistence> persistence =
       ServicePointer.create(Persistence.class, "Identifier", PERSISTENCE_IDENTIFIER);
   private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
@@ -59,7 +63,7 @@ public class GraphqlActivator extends BaseActivator {
   @Nullable
   protected ServiceAndProperties createService() {
     healthCheckRegistry.get().register("graphql", graphqlHealthCheck);
-    maybeStartService(persistence.get(), metrics.get(), authentication.get());
+    maybeStartService(persistence.get(), metrics.get(), authentication.get(), authorization.get());
     return null;
   }
 
@@ -70,14 +74,17 @@ public class GraphqlActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(persistence, metrics, healthCheckRegistry, authentication);
+    return Arrays.asList(persistence, metrics, healthCheckRegistry, authentication, authorization);
   }
 
   private synchronized void maybeStartService(
-      Persistence persistence, Metrics metrics, AuthenticationService authentication) {
+      Persistence persistence,
+      Metrics metrics,
+      AuthenticationService authentication,
+      AuthorizationService authorizationService) {
     if (server == null) {
       try {
-        server = new DropwizardServer(persistence, authentication, metrics);
+        server = new DropwizardServer(persistence, authentication, authorizationService, metrics);
         LOG.info("Starting GraphQL");
         server.run("server", "config.yaml");
         graphqlHealthCheck.healthy = true;

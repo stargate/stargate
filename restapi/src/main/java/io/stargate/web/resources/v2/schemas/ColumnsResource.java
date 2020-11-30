@@ -16,6 +16,7 @@
 package io.stargate.web.resources.v2.schemas;
 
 import com.codahale.metrics.annotation.Timed;
+import io.stargate.auth.Scope;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
@@ -91,6 +92,11 @@ public class ColumnsResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+          db.getAuthorizationService()
+              .authorizeSchemaRead(
+                  token,
+                  Collections.singletonList(keyspaceName),
+                  Collections.singletonList(tableName));
 
           final Table tableMetadata;
           try {
@@ -167,6 +173,9 @@ public class ColumnsResource {
                   .type(Column.Type.fromCqlDefinitionOf(columnDefinition.getTypeDefinition()))
                   .build();
 
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
+
           localDB
               .query()
               .alter()
@@ -174,7 +183,6 @@ public class ColumnsResource {
               .addColumn(column)
               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
               .execute();
-
           return Response.status(Response.Status.CREATED)
               .entity(
                   Converters.writeResponse(
@@ -217,6 +225,11 @@ public class ColumnsResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+          db.getAuthorizationService()
+              .authorizeSchemaRead(
+                  token,
+                  Collections.singletonList(keyspaceName),
+                  Collections.singletonList(tableName));
 
           final Table tableMetadata;
           try {
@@ -290,6 +303,10 @@ public class ColumnsResource {
                   + Converters.maybeQuote(columnName)
                   + " TO "
                   + Converters.maybeQuote(columnUpdate.getName());
+
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
+
           localDB
               .query(
                   String.format(
@@ -299,7 +316,6 @@ public class ColumnsResource {
                       alterInstructions),
                   ConsistencyLevel.LOCAL_QUORUM)
               .get();
-
           return Response.status(Response.Status.OK)
               .entity(
                   Converters.writeResponse(
@@ -337,6 +353,9 @@ public class ColumnsResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
+
           localDB
               .query()
               .alter()
@@ -344,7 +363,6 @@ public class ColumnsResource {
               .dropColumn(columnName)
               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
               .execute();
-
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }

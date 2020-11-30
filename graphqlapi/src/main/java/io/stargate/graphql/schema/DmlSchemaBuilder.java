@@ -36,6 +36,7 @@ import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeReference;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
@@ -62,6 +63,7 @@ class DmlSchemaBuilder {
 
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
+  private final AuthorizationService authorizationService;
   private final Map<Table, GraphQLOutputType> entityResultMap = new HashMap<>();
   private final List<String> warnings = new ArrayList<>();
   private final FieldInputTypeCache fieldInputTypes;
@@ -80,9 +82,13 @@ class DmlSchemaBuilder {
   }
 
   DmlSchemaBuilder(
-      Persistence persistence, AuthenticationService authenticationService, Keyspace keyspace) {
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService,
+      Keyspace keyspace) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
+    this.authorizationService = authorizationService;
     this.keyspace = keyspace;
 
     this.nameMapping = new NameMapping(keyspace.tables(), keyspace.userDefinedTypes(), warnings);
@@ -204,7 +210,9 @@ class DmlSchemaBuilder {
                     .name("options")
                     .type(new GraphQLTypeReference("QueryOptions")))
             .type(buildEntityResultOutput(table))
-            .dataFetcher(new QueryFetcher(table, nameMapping, persistence, authenticationService))
+            .dataFetcher(
+                new QueryFetcher(
+                    table, nameMapping, persistence, authenticationService, authorizationService))
             .build();
 
     GraphQLFieldDefinition filterQuery =
@@ -224,7 +232,9 @@ class DmlSchemaBuilder {
                     .name("options")
                     .type(new GraphQLTypeReference("QueryOptions")))
             .type(buildEntityResultOutput(table))
-            .dataFetcher(new QueryFetcher(table, nameMapping, persistence, authenticationService))
+            .dataFetcher(
+                new QueryFetcher(
+                    table, nameMapping, persistence, authenticationService, authorizationService))
             .build();
 
     return ImmutableList.of(query, filterQuery);
@@ -279,7 +289,8 @@ class DmlSchemaBuilder {
         .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
         .dataFetcher(
-            new UpdateMutationFetcher(table, nameMapping, persistence, authenticationService))
+            new UpdateMutationFetcher(
+                table, nameMapping, persistence, authenticationService, authorizationService))
         .build();
   }
 
@@ -300,7 +311,8 @@ class DmlSchemaBuilder {
         .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
         .dataFetcher(
-            new InsertMutationFetcher(table, nameMapping, persistence, authenticationService))
+            new InsertMutationFetcher(
+                table, nameMapping, persistence, authenticationService, authorizationService))
         .build();
   }
 
@@ -325,7 +337,8 @@ class DmlSchemaBuilder {
         .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
         .dataFetcher(
-            new DeleteMutationFetcher(table, nameMapping, persistence, authenticationService))
+            new DeleteMutationFetcher(
+                table, nameMapping, persistence, authenticationService, authorizationService))
         .build();
   }
 

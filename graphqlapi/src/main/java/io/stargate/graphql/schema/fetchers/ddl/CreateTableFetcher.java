@@ -23,21 +23,25 @@ import com.datastax.oss.driver.api.querybuilder.schema.CreateTableStart;
 import com.datastax.oss.driver.api.querybuilder.schema.CreateTableWithOptions;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import java.util.List;
 import java.util.Map;
 
-public class CreateTableFetcher extends DdlQueryFetcher {
+public class CreateTableFetcher extends TableFetcher {
 
-  public CreateTableFetcher(Persistence persistence, AuthenticationService authenticationService) {
-    super(persistence, authenticationService);
+  public CreateTableFetcher(
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(persistence, authenticationService, authorizationService);
   }
 
-  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {
+  public String getQuery(
+      DataFetchingEnvironment dataFetchingEnvironment, String keyspaceName, String tableName) {
     CreateTableStart start =
         SchemaBuilder.createTable(
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("keyspaceName")),
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("tableName")));
+            CqlIdentifier.fromInternal(keyspaceName), CqlIdentifier.fromInternal(tableName));
 
     Boolean ifNotExists = dataFetchingEnvironment.getArgument("ifNotExists");
     if (ifNotExists != null && ifNotExists) {

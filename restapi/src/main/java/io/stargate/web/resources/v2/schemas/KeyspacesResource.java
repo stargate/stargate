@@ -17,6 +17,7 @@ package io.stargate.web.resources.v2.schemas;
 
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.stargate.auth.Scope;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
@@ -84,10 +85,17 @@ public class KeyspacesResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+
           List<Keyspace> keyspaces =
               localDB.schema().keyspaces().stream()
                   .map(k -> new Keyspace(k.name(), buildDatacenters(k)))
                   .collect(Collectors.toList());
+
+          db.getAuthorizationService()
+              .authorizeSchemaRead(
+                  token,
+                  keyspaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
+                  null);
 
           Object response = raw ? keyspaces : new ResponseWrapper(keyspaces);
           return Response.status(Response.Status.OK)
@@ -126,6 +134,8 @@ public class KeyspacesResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+          db.getAuthorizationService()
+              .authorizeSchemaRead(token, Collections.singletonList(keyspaceName), null);
 
           io.stargate.db.schema.Keyspace keyspace = localDB.schema().keyspace(keyspaceName);
           if (keyspace == null) {
@@ -217,14 +227,19 @@ public class KeyspacesResource {
                     requestBody.getOrDefault("replicas", 1));
           }
 
+          // Seems unnecessary but variable used in lambda expression should be final or effectively
+          // final
+          String finalReplication = replication;
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, keyspaceName, null, Scope.CREATE);
+
           localDB
               .query()
               .create()
               .keyspace(keyspaceName)
               .ifNotExists()
-              .withReplication(replication)
+              .withReplication(finalReplication)
               .execute();
-
           return Response.status(Response.Status.CREATED)
               .entity(Converters.writeResponse(Collections.singletonMap("name", keyspaceName)))
               .build();
@@ -255,13 +270,14 @@ public class KeyspacesResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
+          db.getAuthorizationService().authorizeSchemaWrite(token, keyspaceName, null, Scope.DROP);
+
           localDB
               .query()
               .drop()
               .keyspace(keyspaceName)
               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
               .execute();
-
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }

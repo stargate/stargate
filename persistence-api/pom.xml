@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.25-SNAPSHOT</version>
+    <version>0.0.27-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db</groupId>
   <artifactId>persistence-api</artifactId>
@@ -85,6 +85,11 @@
       <groupId>org.apache.cassandra</groupId>
       <artifactId>cassandra-all</artifactId>
       <version>4.0-alpha4</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

@@ -389,6 +389,7 @@ public class CqlSessionExtension
     config.put(TypedDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(180));
     config.put(TypedDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180));
     config.put(TypedDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5));
+    config.put(TypedDriverOption.REQUEST_TRACE_ATTEMPTS, 180 / 5);
     config.put(TypedDriverOption.REQUEST_WARN_IF_SET_KEYSPACE, false);
     return config;
   }

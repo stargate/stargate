@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.25-SNAPSHOT</version>
+    <version>0.0.27-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.auth.api</groupId>
   <artifactId>auth-api</artifactId>
@@ -22,7 +22,7 @@
     </dependency>
     <dependency>
       <groupId>io.stargate.auth</groupId>
-      <artifactId>authentication</artifactId>
+      <artifactId>authnz</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -33,6 +33,22 @@
     <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.db</groupId>
+      <artifactId>persistence-api</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.hibernate.validator</groupId>
+          <artifactId>hibernate-validator</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>

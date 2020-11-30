@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.stargate.db.datastore.query.ImmutableWhereCondition;
-import io.stargate.db.datastore.query.Where;
+import io.stargate.db.datastore.query.WhereCondition;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import io.stargate.web.resources.Converters;
@@ -35,14 +35,15 @@ import org.javatuples.Pair;
 public class WhereParser {
   private static final ObjectMapper mapper = new ObjectMapper();
 
-  public static List<Where<?>> parseWhere(String whereParam, Table tableData) throws IOException {
+  public static List<WhereCondition<?>> parseWhere(String whereParam, Table tableData)
+      throws IOException {
     JsonNode filterJson;
     try {
       filterJson = mapper.readTree(whereParam);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Input provided is not valid json");
     }
-    List<Where<?>> conditions = new ArrayList<>();
+    List<WhereCondition<?>> conditions = new ArrayList<>();
 
     if (!filterJson.isObject()) {
       throw new RuntimeException("Was expecting a JSON object as input for where parameter.");
@@ -84,7 +85,8 @@ public class WhereParser {
                     "Value entry for field %s, operation %s must be an array.", fieldName, rawOp));
           }
           ObjectReader reader = mapper.readerFor(new TypeReference<List<Object>>() {});
-          conditions.add(conditionToWhere(fieldName, op, reader.readValue(value)));
+          conditions.add(
+              conditionToWhere(tableData.column(fieldName), op, reader.readValue(value)));
         } else if (op == FilterOp.$CONTAINSENTRY) {
           JsonNode entryKey, entryValue;
           if (!value.isObject()
@@ -107,7 +109,7 @@ public class WhereParser {
           Column.ColumnType valueType = mapType.parameters().get(1);
           conditions.add(
               ImmutableWhereCondition.builder()
-                  .column(fieldName.toLowerCase())
+                  .column(tableData.column(fieldName))
                   .predicate(op.predicate)
                   .value(
                       Pair.with(
@@ -127,7 +129,7 @@ public class WhereParser {
             if (!value.isBoolean() || !value.booleanValue()) {
               throw new RuntimeException("`exists` only supports the value `true`");
             }
-            conditions.add(conditionToWhere(fieldName, op, true));
+            conditions.add(conditionToWhere(tableData.column(fieldName), op, true));
           } else {
             Object val = value.asText();
             Column.ColumnType columnType = tableData.column(fieldName).type();
@@ -159,7 +161,7 @@ public class WhereParser {
               }
               val = Converters.typeForValue(valueType, value.asText());
             }
-            conditions.add(conditionToWhere(fieldName, op, val));
+            conditions.add(conditionToWhere(tableData.column(fieldName), op, val));
           }
         }
       }
@@ -168,11 +170,11 @@ public class WhereParser {
     return conditions;
   }
 
-  private static Where<?> conditionToWhere(String fieldName, FilterOp op, Object value) {
+  private static WhereCondition<?> conditionToWhere(Column column, FilterOp op, Object value) {
     return ImmutableWhereCondition.builder()
         .value(value)
         .predicate(op.predicate)
-        .column(fieldName.toLowerCase())
+        .column(column)
         .build();
   }
 }
