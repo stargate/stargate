@@ -41,7 +41,7 @@ public class CassandraPersistenceActivator extends BaseActivator {
           System.getProperty("stargate.auth_id", "AuthTableBasedService"));
 
   public CassandraPersistenceActivator() {
-    super("persistence-cassandra-3.11", Persistence.class);
+    super("persistence-cassandra-4.0", Persistence.class);
   }
 
   @VisibleForTesting
@@ -91,7 +91,7 @@ public class CassandraPersistenceActivator extends BaseActivator {
 
     c.dynamic_snitch = Boolean.getBoolean("stargate.dynamic_snitch");
     c.cluster_name = clusterName;
-    c.num_tokens = 8;
+    c.num_tokens = Integer.getInteger("stargate.num_tokens", 256);
     c.commitlog_sync = Config.CommitLogSync.periodic;
     c.commitlog_sync_period_in_ms = 10000;
     c.internode_compression = Config.InternodeCompression.none;
@@ -109,8 +109,7 @@ public class CassandraPersistenceActivator extends BaseActivator {
     c.endpoint_snitch = snitchClass;
     c.storage_port = listenPort;
     c.listen_address = listenAddress;
-    c.broadcast_address = listenAddress;
-    c.start_rpc = false;
+    c.broadcast_address = System.getProperty("stargate.broadcast_address", listenAddress);
     c.seed_provider =
         new ParameterizedClass(
             StargateSeedProvider.class.getName(), Collections.singletonMap("seeds", seedList));
@@ -125,17 +124,17 @@ public class CassandraPersistenceActivator extends BaseActivator {
     props.put("Identifier", "CassandraPersistence");
     // TODO copy metrics if this gets invoked more than once?
     CassandraMetricsRegistry.actualRegistry =
-        metrics.get().getRegistry("persistence-cassandra-311");
+        metrics.get().getRegistry("persistence-cassandra-4.0");
 
     try {
       // Throw away data directory since stargate is ephemeral anyway
-      File baseDir = Files.createTempDirectory("stargate-cassandra-3.11").toFile();
+      File baseDir = Files.createTempDirectory("stargate-cassandra-4.0").toFile();
 
       cassandraDB.setAuthorizationService(new AtomicReference<>(authorizationService.get()));
       cassandraDB.initialize(makeConfig(baseDir));
       return new ServiceAndProperties(cassandraDB, props);
     } catch (IOException e) {
-      logger.error("Error initializing cassandra persistance", e);
+      logger.error("Error initializing cassandra persistence", e);
       throw new IOError(e);
     }
   }
