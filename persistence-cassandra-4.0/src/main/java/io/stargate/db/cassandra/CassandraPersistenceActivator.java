@@ -89,7 +89,6 @@ public class CassandraPersistenceActivator extends BaseActivator {
       c.authorizer = CassandraAuthorizer.class.getCanonicalName();
     }
 
-    c.dynamic_snitch = Boolean.getBoolean("stargate.dynamic_snitch");
     c.cluster_name = clusterName;
     c.num_tokens = Integer.getInteger("stargate.num_tokens", 256);
     c.commitlog_sync = Config.CommitLogSync.periodic;
