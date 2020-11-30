@@ -124,7 +124,8 @@ public class CassandraPersistenceActivator extends BaseActivator {
     c.endpoint_snitch = snitchClass;
     c.storage_port = listenPort;
     c.listen_address = listenAddress;
-    c.broadcast_address = System.getProperty("stargate.broadcast_address", listenAddress);
+    c.broadcast_address = listenAddress;
+    c.start_rpc = false;
     c.seed_provider =
         new ParameterizedClass(
             StargateSeedProvider.class.getName(), Collections.singletonMap("seeds", seedList));
