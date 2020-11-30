@@ -29,6 +29,7 @@ import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,6 +77,8 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     implements ParameterResolver {
   private static final Logger LOG = LoggerFactory.getLogger(StargateContainer.class);
 
+  private static final String ARGS_PROVIDER_CLASS_NAME =
+      System.getProperty("stargate.test.args.provider.class", ArgumentProviderImpl.class.getName());
   private static final File LIB_DIR = initLibDir();
   private static final int PROCESS_WAIT_MINUTES =
       Integer.getInteger("stargate.test.process.wait.timeout.minutes", 10);
@@ -87,8 +90,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
    */
   private static final Queue<Integer> jmxPorts = initJmxPorts(MAX_NODES);
 
-  // the first 10 addresses are reserved for storage nodes
-  private static final AtomicInteger stargateAddressStart = new AtomicInteger(11);
+  private static final AtomicInteger stargateAddressStart = new AtomicInteger(1);
   private static final AtomicInteger stargateInstanceSeq = new AtomicInteger();
 
   public static final String STORE_KEY = "stargate-container";
@@ -100,6 +102,19 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     }
 
     return new File(dir);
+  }
+
+  private static File starterJar() {
+    File[] files = LIB_DIR.listFiles();
+    Assertions.assertNotNull(files, "No files in " + LIB_DIR.getAbsolutePath());
+    return Arrays.stream(files)
+        .filter(f -> f.getName().startsWith("stargate-starter"))
+        .filter(f -> f.getName().endsWith(".jar"))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "Unable to find Stargate Starter jar in: " + LIB_DIR.getAbsolutePath()));
   }
 
   private static Queue<Integer> initJmxPorts(int maxNodeCount) {
@@ -210,7 +225,8 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
   }
 
   private static boolean isDebug() {
-    return getRuntimeMXBean().getInputArguments().toString().contains("-agentlib:jdwp");
+    String args = getRuntimeMXBean().getInputArguments().toString();
+    return args.contains("-agentlib:jdwp") || args.contains("-Xrunjdwp");
   }
 
   protected static class Container extends ExternalResource.Holder
@@ -362,27 +378,8 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
                 + debuggerPort);
       }
 
-      cmd.addArgument("-jar");
-      cmd.addArgument(env.stargateJar().getAbsolutePath());
-      cmd.addArgument("--cluster-seed");
-      cmd.addArgument(backend.seedAddress());
-      cmd.addArgument("--seed-port");
-      cmd.addArgument(String.valueOf(backend.storagePort()));
-      cmd.addArgument("--cluster-name");
-      cmd.addArgument(clusterName);
-
-      Version backendVersion = Version.parse(backend.clusterVersion());
-      String version = String.format("%d.%d", backendVersion.getMajor(), backendVersion.getMinor());
-      cmd.addArgument("--cluster-version");
-      cmd.addArgument(version);
-
-      cmd.addArgument("--dc");
-      cmd.addArgument(datacenter);
-      cmd.addArgument("--rack");
-      cmd.addArgument(rack);
-
-      if (backend.isDse()) {
-        cmd.addArgument("--dse");
+      for (String arg : args(backend)) {
+        cmd.addArgument(arg);
       }
 
       if (params.enableAuth()) {
@@ -406,6 +403,16 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
       cmd.addArgument(String.valueOf(cqlPort));
       cmd.addArgument("--jmx-port");
       cmd.addArgument(String.valueOf(env.jmxPort(nodeIndex)));
+    }
+
+    private Collection<String> args(ClusterConnectionInfo backend) {
+      try {
+        Class<?> argsProviderClass = Class.forName(ARGS_PROVIDER_CLASS_NAME);
+        ArgumentProvider provider = (ArgumentProvider) argsProviderClass.newInstance();
+        return provider.commandArguments(backend);
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
+      }
     }
 
     private void start() {
@@ -544,8 +551,11 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     private final Map<Integer, String> listenAddresses = new HashMap<>();
 
     private synchronized String listenAddress(int index) {
+      // Note: 127.0.1.N addresses are used by proxy protocol testing,
+      // so we allocate from the 127.0.2.X range here, to avoid conflicts with other
+      // services that may be listening on the common range of 127.0.0.Y addresses.
       return listenAddresses.computeIfAbsent(
-          index, i -> "127.0.0." + stargateAddressStart.getAndIncrement());
+          index, i -> "127.0.2." + stargateAddressStart.getAndIncrement());
     }
 
     private synchronized int jmxPort(int index) {
@@ -565,19 +575,6 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
       return 9043;
     }
 
-    private File stargateJar() {
-      File[] files = LIB_DIR.listFiles();
-      Assertions.assertNotNull(files, "No files in " + LIB_DIR.getAbsolutePath());
-      return Arrays.stream(files)
-          .filter(f -> f.getName().startsWith("stargate-starter"))
-          .filter(f -> f.getName().endsWith(".jar"))
-          .findFirst()
-          .orElseThrow(
-              () ->
-                  new IllegalStateException(
-                      "Unable to find Stargate Starter jar in: " + LIB_DIR.getAbsolutePath()));
-    }
-
     public File cacheDir(int nodeIndex) throws IOException {
       return Files.createTempDirectory("stargate-node-" + nodeIndex + "-felix-cache").toFile();
     }
@@ -585,6 +582,42 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     @Override
     public synchronized void close() {
       jmxPorts.addAll(ports.values());
+    }
+  }
+
+  public interface ArgumentProvider {
+    Collection<String> commandArguments(ClusterConnectionInfo backend);
+  }
+
+  public static class ArgumentProviderImpl implements ArgumentProvider {
+
+    @Override
+    public Collection<String> commandArguments(ClusterConnectionInfo backend) {
+      Collection<String> args = new ArrayList<>();
+      args.add("-jar");
+      args.add(starterJar().getAbsolutePath());
+      args.add("--cluster-seed");
+      args.add(backend.seedAddress());
+      args.add("--seed-port");
+      args.add(String.valueOf(backend.storagePort()));
+      args.add("--cluster-name");
+      args.add(backend.clusterName());
+
+      Version backendVersion = Version.parse(backend.clusterVersion());
+      String version = String.format("%d.%d", backendVersion.getMajor(), backendVersion.getMinor());
+      args.add("--cluster-version");
+      args.add(version);
+
+      args.add("--dc");
+      args.add(backend.datacenter());
+      args.add("--rack");
+      args.add(backend.rack());
+
+      if (backend.isDse()) {
+        args.add("--dse");
+      }
+
+      return args;
     }
   }
 }

@@ -16,6 +16,7 @@
 package io.stargate.web.resources.v2.schemas;
 
 import com.codahale.metrics.annotation.Timed;
+import io.stargate.auth.Scope;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
@@ -95,10 +96,17 @@ public class TablesResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+
           List<TableResponse> tableResponses =
               db.getTables(localDB, keyspaceName).stream()
                   .map(this::getTable)
                   .collect(Collectors.toList());
+
+          db.getAuthorizationService()
+              .authorizeSchemaRead(
+                  token,
+                  Collections.singletonList(keyspaceName),
+                  tableResponses.stream().map(TableResponse::getName).collect(Collectors.toList()));
 
           Object response = raw ? tableResponses : new ResponseWrapper(tableResponses);
           return Response.status(Response.Status.OK)
@@ -139,6 +147,12 @@ public class TablesResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+          db.getAuthorizationService()
+              .authorizeSchemaRead(
+                  token,
+                  Collections.singletonList(keyspaceName),
+                  Collections.singletonList(tableName));
+
           Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
 
           TableResponse tableResponse = getTable(tableMetadata);
@@ -249,8 +263,11 @@ public class TablesResource {
                   Converters.maybeQuote(tableAdd.getName()),
                   columnDefinitions.toString(),
                   tableOptions);
-          localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM).get();
 
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, keyspaceName, tableAdd.getName(), Scope.CREATE);
+
+          localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM).get();
           return Response.status(Response.Status.CREATED)
               .entity(
                   Converters.writeResponse(Collections.singletonMap("name", tableAdd.getName())))
@@ -304,6 +321,9 @@ public class TablesResource {
                 .build();
           }
 
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
+
           localDB
               .query(
                   String.format(
@@ -350,13 +370,15 @@ public class TablesResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.DROP);
+
           localDB
               .query()
               .drop()
               .table(keyspaceName, tableName)
               .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
               .execute();
-
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }

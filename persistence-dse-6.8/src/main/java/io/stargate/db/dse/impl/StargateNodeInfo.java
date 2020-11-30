@@ -1,6 +1,7 @@
 package io.stargate.db.dse.impl;
 
 import java.net.InetAddress;
+import java.util.Set;
 import java.util.UUID;
 
 public abstract class StargateNodeInfo implements Cloneable {
@@ -11,10 +12,10 @@ public abstract class StargateNodeInfo implements Cloneable {
   private volatile InetAddress nativeAddress;
   private volatile Integer nativePort;
   private volatile Integer nativePortSsl;
-  private volatile String dseVersion;
   private volatile Integer jmxPort;
   private volatile Integer storagePort;
   private volatile Integer storagePortSsl;
+  private volatile Set<String> tokens;
 
   public UUID getHostId() {
     return hostId;
@@ -68,14 +69,6 @@ public abstract class StargateNodeInfo implements Cloneable {
     this.nativePort = nativePort;
   }
 
-  public String getDseVersion() {
-    return dseVersion;
-  }
-
-  public void setDseVersion(String dseVersion) {
-    this.dseVersion = dseVersion;
-  }
-
   public Integer getJmxPort() {
     return jmxPort;
   }
@@ -106,6 +99,14 @@ public abstract class StargateNodeInfo implements Cloneable {
 
   public void setNativePortSsl(Integer nativePortSsl) {
     this.nativePortSsl = nativePortSsl;
+  }
+
+  public Set<String> getTokens() {
+    return tokens;
+  }
+
+  public void setTokens(Set<String> tokens) {
+    this.tokens = tokens;
   }
 
   public abstract StargateNodeInfo copy();

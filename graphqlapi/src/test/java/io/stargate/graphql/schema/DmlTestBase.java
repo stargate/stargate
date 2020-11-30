@@ -15,7 +15,8 @@ public abstract class DmlTestBase extends GraphQlTestBase {
 
   @Override
   protected GraphQLSchema createGraphQlSchema() {
-    return SchemaFactory.newDmlSchema(persistence, authenticationService, getKeyspace());
+    return SchemaFactory.newDmlSchema(
+        persistence, authenticationService, authorizationService, getKeyspace());
   }
 
   public abstract Keyspace getKeyspace();

@@ -16,9 +16,11 @@
 package io.stargate.graphql;
 
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
+import io.stargate.graphql.web.DropwizardServer;
 import java.util.Arrays;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -28,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 /** Activator for the web bundle */
 public class GraphqlActivator extends BaseActivator {
+
   private static final Logger LOG = LoggerFactory.getLogger(GraphqlActivator.class);
 
   private static final String AUTH_IDENTIFIER =
@@ -37,12 +40,14 @@ public class GraphqlActivator extends BaseActivator {
 
   private ServicePointer<AuthenticationService> authentication =
       ServicePointer.create(AuthenticationService.class, "AuthIdentifier", AUTH_IDENTIFIER);
+  private ServicePointer<AuthorizationService> authorization =
+      ServicePointer.create(AuthorizationService.class, "AuthIdentifier", AUTH_IDENTIFIER);
   private ServicePointer<Persistence> persistence =
       ServicePointer.create(Persistence.class, "Identifier", PERSISTENCE_IDENTIFIER);
   private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
 
   @GuardedBy("this")
-  private WebImpl web;
+  private DropwizardServer server;
 
   public GraphqlActivator() {
     super("GraphQL");
@@ -51,7 +56,7 @@ public class GraphqlActivator extends BaseActivator {
   @Override
   @Nullable
   protected ServiceAndProperties createService() {
-    maybeStartService(persistence.get(), metrics.get(), authentication.get());
+    maybeStartService(persistence.get(), metrics.get(), authentication.get(), authorization.get());
     return null;
   }
 
@@ -62,16 +67,19 @@ public class GraphqlActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(persistence, metrics, authentication);
+    return Arrays.asList(persistence, metrics, authentication, authorization);
   }
 
   private synchronized void maybeStartService(
-      Persistence persistence, Metrics metrics, AuthenticationService authentication) {
-    if (web == null) {
+      Persistence persistence,
+      Metrics metrics,
+      AuthenticationService authentication,
+      AuthorizationService authorizationService) {
+    if (server == null) {
       try {
-        web = new WebImpl(persistence, metrics, authentication);
+        server = new DropwizardServer(persistence, authentication, authorizationService, metrics);
         LOG.info("Starting GraphQL");
-        web.start();
+        server.run("server", "config.yaml");
       } catch (Exception e) {
         LOG.error("Unexpected error while stopping GraphQL", e);
       }
@@ -79,10 +87,10 @@ public class GraphqlActivator extends BaseActivator {
   }
 
   private synchronized void maybeStopService() {
-    if (web != null) {
+    if (server != null) {
       try {
         LOG.info("Stopping GraphQL");
-        web.stop();
+        server.stop();
       } catch (Exception e) {
         LOG.error("Unexpected error while stopping GraphQL", e);
       }

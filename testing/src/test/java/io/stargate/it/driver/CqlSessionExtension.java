@@ -9,7 +9,6 @@ import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.config.OptionsMap;
 import com.datastax.oss.driver.api.core.config.TypedDriverOption;
 import com.datastax.oss.driver.internal.core.loadbalancing.DcInferringLoadBalancingPolicy;
-import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateContainer;
 import io.stargate.it.storage.StargateEnvironmentInfo;
 import java.lang.reflect.AnnotatedElement;
@@ -18,6 +17,7 @@ import java.lang.reflect.Parameter;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -153,6 +153,7 @@ public class CqlSessionExtension
   private volatile CqlSessionSpec cqlSessionSpec;
   private volatile CqlIdentifier keyspaceId;
   private volatile CqlSession session;
+  private volatile List<InetSocketAddress> contactPoints;
 
   @Override
   public void beforeAll(ExtensionContext context) {
@@ -244,6 +245,18 @@ public class CqlSessionExtension
 
     cqlSessionSpec = getCqlSessionSpec(context);
 
+    try {
+      contactPoints =
+          cqlSessionSpec.contactPointResolver().getConstructor().newInstance().resolve(context);
+    } catch (Exception e) {
+      throw new IllegalStateException(
+          String.format(
+              "Unable to resolve contact points using @%s.contactPointResolver == %s.class",
+              CqlSessionSpec.class.getSimpleName(),
+              cqlSessionSpec.contactPointResolver().getSimpleName()),
+          e);
+    }
+
     if (cqlSessionSpec.createSession()) {
       LOG.debug("Creating new session for {}", context.getElement());
       session = newSessionBuilder(stargate, context).build();
@@ -307,18 +320,13 @@ public class CqlSessionExtension
     maybeCustomizeOptions(options, cqlSessionSpec, context);
     CqlSessionBuilder builder = CqlSession.builder().withAuthCredentials("cassandra", "cassandra");
     builder = maybeCustomizeBuilder(builder, cqlSessionSpec, context);
-    builder.withConfigLoader(DriverConfigLoader.fromMap(options));
-    if (cqlSessionSpec.useDefaultContactPoints()) {
-      for (StargateConnectionInfo node : stargate.nodes()) {
-        builder.addContactPoint(new InetSocketAddress(node.seedAddress(), node.cqlPort()));
-      }
-    }
+    builder.withConfigLoader(DriverConfigLoader.fromMap(options)).addContactPoints(contactPoints);
     return builder;
   }
 
   /** @see CqlSessionHelper#waitForStargateNodes(CqlSession) */
   private void waitForStargateNodes(CqlSession session) {
-    int expectedNodeCount = stargate.nodes().size();
+    int expectedNodeCount = contactPoints.size();
     if (expectedNodeCount > 1) {
       await()
           .atMost(Duration.ofMinutes(10))
@@ -373,7 +381,6 @@ public class CqlSessionExtension
   private OptionsMap defaultConfig() {
     OptionsMap config;
     config = OptionsMap.driverDefaults();
-    config.put(TypedDriverOption.METADATA_TOKEN_MAP_ENABLED, false);
     config.put(
         TypedDriverOption.LOAD_BALANCING_POLICY_CLASS,
         DcInferringLoadBalancingPolicy.class.getName());
@@ -382,6 +389,7 @@ public class CqlSessionExtension
     config.put(TypedDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(180));
     config.put(TypedDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180));
     config.put(TypedDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5));
+    config.put(TypedDriverOption.REQUEST_TRACE_ATTEMPTS, 180 / 5);
     config.put(TypedDriverOption.REQUEST_WARN_IF_SET_KEYSPACE, false);
     return config;
   }

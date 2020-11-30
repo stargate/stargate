@@ -200,7 +200,7 @@ one Stargate node.
 
 Integration tests can be started / debugged individually in an IDE.
 
-If `ccm` is used to mange storage nodes during tests, it should be accessible from the IDE's
+If `ccm` is used to manage storage nodes during tests, it should be accessible from the IDE's
 execution environment (`PATH`).
 
 ### Using JUnit Console Launcher

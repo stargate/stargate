@@ -22,11 +22,12 @@ import graphql.GraphQLException;
 import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Table;
-import io.stargate.graphql.graphqlservlet.HTTPAwareContextImpl;
 import io.stargate.graphql.schema.NameMapping;
+import io.stargate.graphql.web.HttpAwareContext;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -36,8 +37,9 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       Table table,
       NameMapping nameMapping,
       Persistence persistence,
-      AuthenticationService authenticationService) {
-    super(table, nameMapping, persistence, authenticationService);
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(table, nameMapping, persistence, authenticationService, authorizationService);
   }
 
   @Override
@@ -82,8 +84,8 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       String statement,
       Exception buildException) {
     int selections = environment.getOperationDefinition().getSelectionSet().getSelections().size();
-    HTTPAwareContextImpl context = environment.getContext();
-    HTTPAwareContextImpl.BatchContext batchContext = context.getBatchContext();
+    HttpAwareContext context = environment.getContext();
+    HttpAwareContext.BatchContext batchContext = context.getBatchContext();
 
     if (environment.getArgument("options") != null) {
       // Users should specify query options once in the batch
@@ -112,6 +114,6 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
         .thenApply(v -> ImmutableMap.of("value", environment.getArgument("value")));
   }
 
-  protected abstract String buildStatement(
-      DataFetchingEnvironment environment, DataStore dataStore);
+  protected abstract String buildStatement(DataFetchingEnvironment environment, DataStore dataStore)
+      throws Exception;
 }

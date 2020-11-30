@@ -15,7 +15,10 @@
  */
 package io.stargate.web.resources;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.ImmutableParameters;
@@ -28,12 +31,21 @@ import io.stargate.web.docsapi.dao.DocumentDB;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
 import javax.ws.rs.NotFoundException;
 
 public class Db {
+
   private final Persistence persistence;
   private final DataStore dataStore;
   private final AuthenticationService authenticationService;
+  private final AuthorizationService authorizationService;
+  private final LoadingCache<String, String> docsTokensToRoles =
+      Caffeine.newBuilder()
+          .maximumSize(10_000)
+          .expireAfterWrite(1, TimeUnit.MINUTES)
+          .build(token -> getRoleNameForToken(token));
 
   public Collection<Table> getTables(DataStore dataStore, String keyspaceName) {
     Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
@@ -57,8 +69,12 @@ public class Db {
     return tableMetadata;
   }
 
-  public Db(final Persistence persistence, AuthenticationService authenticationService) {
+  public Db(
+      final Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
     this.authenticationService = authenticationService;
+    this.authorizationService = authorizationService;
     this.persistence = persistence;
     this.dataStore = DataStore.create(persistence);
   }
@@ -69,6 +85,14 @@ public class Db {
 
   public Persistence getPersistence() {
     return this.persistence;
+  }
+
+  public AuthenticationService getAuthenticationService() {
+    return authenticationService;
+  }
+
+  public AuthorizationService getAuthorizationService() {
+    return authorizationService;
   }
 
   public DataStore getDataStoreForToken(String token) throws UnauthorizedException {
@@ -88,19 +112,44 @@ public class Db {
     return DataStore.create(this.persistence, storedCredentials.getRoleName(), parameters);
   }
 
-  public DocumentDB getDocDataStoreForToken(String token) throws UnauthorizedException {
+  public String getRoleNameForToken(String token) throws UnauthorizedException {
     StoredCredentials storedCredentials = authenticationService.validateToken(token);
-    return new DocumentDB(DataStore.create(persistence, storedCredentials.getRoleName()));
+    return storedCredentials.getRoleName();
+  }
+
+  public DocumentDB getDocDataStoreForToken(String token) throws UnauthorizedException {
+    if (token == null) {
+      throw new UnauthorizedException("Missing token");
+    }
+    String role;
+    try {
+      role = docsTokensToRoles.get(token);
+    } catch (CompletionException e) {
+      if (e.getCause() instanceof UnauthorizedException) {
+        throw (UnauthorizedException) e.getCause();
+      }
+      throw e;
+    }
+    return new DocumentDB(DataStore.create(persistence, role));
   }
 
   public DocumentDB getDocDataStoreForToken(String token, int pageSize, ByteBuffer pageState)
       throws UnauthorizedException {
-    StoredCredentials storedCredentials = authenticationService.validateToken(token);
+    if (token == null) {
+      throw new UnauthorizedException("Missing token");
+    }
     Parameters parameters =
         Parameters.builder().pageSize(pageSize).pagingState(Optional.ofNullable(pageState)).build();
-
-    return new DocumentDB(
-        DataStore.create(persistence, storedCredentials.getRoleName(), parameters));
+    String role;
+    try {
+      role = docsTokensToRoles.get(token);
+    } catch (CompletionException e) {
+      if (e.getCause() instanceof UnauthorizedException) {
+        throw (UnauthorizedException) e.getCause();
+      }
+      throw e;
+    }
+    return new DocumentDB(DataStore.create(persistence, role, parameters));
   }
 
   public boolean isDse() {

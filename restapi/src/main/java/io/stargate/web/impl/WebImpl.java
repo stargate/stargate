@@ -16,6 +16,7 @@
 package io.stargate.web.impl;
 
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 
@@ -23,6 +24,7 @@ public class WebImpl {
 
   private Persistence persistence;
   private AuthenticationService authenticationService;
+  private AuthorizationService authorizationService;
   private Metrics metrics;
 
   public Persistence getPersistence() {
@@ -41,6 +43,10 @@ public class WebImpl {
     this.authenticationService = authenticationService;
   }
 
+  public void setAuthorizationService(AuthorizationService authorizationService) {
+    this.authorizationService = authorizationService;
+  }
+
   public Metrics getMetrics() {
     return metrics;
   }
@@ -50,7 +56,9 @@ public class WebImpl {
   }
 
   public void start() throws Exception {
-    Server server = new Server(persistence, this.authenticationService, this.metrics);
+    Server server =
+        new Server(
+            persistence, this.authenticationService, this.authorizationService, this.metrics);
     server.run("server", "config.yaml");
   }
 }
