@@ -205,7 +205,8 @@ class DdlSchemaBuilder {
                     "Whether the operation will succeed if the keyspace does not exist. "
                         + "Defaults to false if absent."))
         .type(Scalars.GraphQLBoolean)
-        .dataFetcher(new DropKeyspaceFetcher(persistence, authenticationService))
+        .dataFetcher(
+            new DropKeyspaceFetcher(persistence, authenticationService, authorizationService))
         .build();
   }
 
