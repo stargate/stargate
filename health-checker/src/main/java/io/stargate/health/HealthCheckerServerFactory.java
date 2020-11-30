@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.dropwizard.jersey.filter.AllowedMethodsFilter;
 import io.dropwizard.jetty.MutableServletContextHandler;
 import io.dropwizard.jetty.NonblockingServletHolder;
-import io.dropwizard.server.DefaultServerFactory;
+import io.dropwizard.server.SimpleServerFactory;
 import java.util.EnumSet;
 import java.util.stream.Collectors;
 import javax.servlet.DispatcherType;
@@ -22,7 +22,7 @@ import org.eclipse.jetty.server.Server;
  * server.type} option in {@code config.yaml}.
  */
 @JsonTypeName("health-checker")
-public class HealthCheckerServerFactory extends DefaultServerFactory {
+public class HealthCheckerServerFactory extends SimpleServerFactory {
 
   @Override
   protected Handler createAdminServlet(
