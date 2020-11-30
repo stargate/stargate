@@ -169,7 +169,7 @@ public abstract class BaseActivator implements BundleActivator {
    */
   protected List<ServiceAndProperties> createServices() {
     return Collections.singletonList(createService());
-  };
+  }
 
   /**
    * Clients should override this method to create the Service that may be be registered in the OSGi
