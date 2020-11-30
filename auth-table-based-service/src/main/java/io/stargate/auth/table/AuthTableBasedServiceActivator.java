@@ -26,7 +26,10 @@ public class AuthTableBasedServiceActivator extends BaseActivator {
   private final AuthTableBasedService authTableBasedService = new AuthTableBasedService();
   static Hashtable<String, String> props = new Hashtable<>();
   private final ServicePointer<Persistence> persistence =
-      ServicePointer.create(Persistence.class, "stargate.persistence_id", "CassandraPersistence");
+      ServicePointer.create(
+          Persistence.class,
+          "Identifier",
+          System.getProperty("stargate.persistence_id", "CassandraPersistence"));
 
   static {
     props.put("AuthIdentifier", "AuthTableBasedService");

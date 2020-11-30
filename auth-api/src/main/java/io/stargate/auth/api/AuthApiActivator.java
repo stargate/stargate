@@ -45,7 +45,6 @@ public class AuthApiActivator extends BaseActivator {
     web.setMetrics(metric.get());
     try {
       this.web.start();
-      log.info("Started authApiServer....");
     } catch (Exception e) {
       log.error("Failed", e);
     }
