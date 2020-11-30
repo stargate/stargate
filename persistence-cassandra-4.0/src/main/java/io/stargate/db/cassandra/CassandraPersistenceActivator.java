@@ -41,7 +41,7 @@ public class CassandraPersistenceActivator extends BaseActivator {
           System.getProperty("stargate.auth_id", "AuthTableBasedService"));
 
   public CassandraPersistenceActivator() {
-    super("persistence-cassandra-4.0", Persistence.class);
+    super("persistence-cassandra-4.0");
   }
 
   @VisibleForTesting
@@ -132,7 +132,7 @@ public class CassandraPersistenceActivator extends BaseActivator {
 
       cassandraDB.setAuthorizationService(new AtomicReference<>(authorizationService.get()));
       cassandraDB.initialize(makeConfig(baseDir));
-      return new ServiceAndProperties(cassandraDB, props);
+      return new ServiceAndProperties(cassandraDB, Persistence.class, props);
     } catch (IOException e) {
       logger.error("Error initializing cassandra persistence", e);
       throw new IOError(e);
