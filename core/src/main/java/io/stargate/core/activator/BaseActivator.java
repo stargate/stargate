@@ -119,8 +119,8 @@ public abstract class BaseActivator implements BundleActivator {
             context.registerService(
                 service.targetServiceClass.getName(), service.service, service.properties);
       }
-      logger.info("Started {}", activatorName);
     }
+    logger.info("Started {}", activatorName);
   }
 
   public class Tracker extends ServiceTracker<Object, Object> {
