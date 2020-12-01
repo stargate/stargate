@@ -15,10 +15,11 @@
  */
 package io.stargate.core.activator;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.util.*;
-import javax.annotation.Nullable;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
@@ -38,8 +39,6 @@ public abstract class BaseActivator implements BundleActivator {
 
   public boolean started;
 
-  @VisibleForTesting
-  @GuardedBy("this")
   public Tracker tracker;
 
   private List<ServiceRegistration<?>> targetServiceRegistrations = new ArrayList<>();
@@ -67,7 +66,6 @@ public abstract class BaseActivator implements BundleActivator {
     tracker.open();
   }
 
-  @VisibleForTesting
   String constructDependenciesFilter() {
     StringBuilder builder = new StringBuilder("(|");
 
@@ -145,7 +143,6 @@ public abstract class BaseActivator implements BundleActivator {
       return service;
     }
 
-    @VisibleForTesting
     public void startIfAllRegistered(ServiceReference<Object> ref, Object service) {
       if (service == null) {
         return;
@@ -223,7 +220,7 @@ public abstract class BaseActivator implements BundleActivator {
 
     private T service;
 
-    private ServicePointer(Class<T> expectedClass, @Nullable String identifier) {
+    private ServicePointer(Class<T> expectedClass, String identifier) {
       this.expectedClass = expectedClass;
       this.identifier = Optional.ofNullable(identifier);
     }
