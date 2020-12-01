@@ -19,15 +19,15 @@ import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 
-public class TestServiceActivator extends BaseActivator {
+public class TestServiceActivatorTwoServices extends BaseActivator {
 
   public boolean stopCalled;
 
   ServicePointer<DependentService1> service1 = ServicePointer.create(DependentService1.class);
   ServicePointer<DependentService2> service2 = ServicePointer.create(DependentService2.class);
 
-  public TestServiceActivator() {
-    super("Config Store Test Activator");
+  public TestServiceActivatorTwoServices() {
+    super("Test Activator");
   }
 
   @Override
@@ -36,12 +36,15 @@ public class TestServiceActivator extends BaseActivator {
   }
 
   @Override
-  protected ServiceAndProperties createService() {
+  protected List<ServiceAndProperties> createServices() {
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "id_1");
 
-    return new ServiceAndProperties(
-        new TestService(service1.get(), service2.get()), TestService.class, props);
+    return Arrays.asList(
+        new ServiceAndProperties(
+            new TestService(service1.get(), service2.get()), TestService.class, props),
+        new ServiceAndProperties(
+            new TestServiceTwo(service1.get(), service2.get()), TestServiceTwo.class, props));
   }
 
   @Override
