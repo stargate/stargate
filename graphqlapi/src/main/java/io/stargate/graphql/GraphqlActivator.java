@@ -15,6 +15,8 @@
  */
 package io.stargate.graphql;
 
+import com.codahale.metrics.health.HealthCheck;
+import com.codahale.metrics.health.HealthCheckRegistry;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
@@ -45,6 +47,10 @@ public class GraphqlActivator extends BaseActivator {
   private ServicePointer<Persistence> persistence =
       ServicePointer.create(Persistence.class, "Identifier", PERSISTENCE_IDENTIFIER);
   private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  private final ServicePointer<HealthCheckRegistry> healthCheckRegistry =
+      ServicePointer.create(HealthCheckRegistry.class);
+
+  private final GraphqlHealthCheck graphqlHealthCheck = new GraphqlHealthCheck();
 
   @GuardedBy("this")
   private DropwizardServer server;
@@ -56,6 +62,7 @@ public class GraphqlActivator extends BaseActivator {
   @Override
   @Nullable
   protected ServiceAndProperties createService() {
+    healthCheckRegistry.get().register("graphql", graphqlHealthCheck);
     maybeStartService(persistence.get(), metrics.get(), authentication.get(), authorization.get());
     return null;
   }
@@ -67,7 +74,7 @@ public class GraphqlActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(persistence, metrics, authentication, authorization);
+    return Arrays.asList(persistence, metrics, healthCheckRegistry, authentication, authorization);
   }
 
   private synchronized void maybeStartService(
@@ -80,8 +87,10 @@ public class GraphqlActivator extends BaseActivator {
         server = new DropwizardServer(persistence, authentication, authorizationService, metrics);
         LOG.info("Starting GraphQL");
         server.run("server", "config.yaml");
+        graphqlHealthCheck.healthy = true;
       } catch (Exception e) {
         LOG.error("Unexpected error while stopping GraphQL", e);
+        graphqlHealthCheck.healthy = false;
       }
     }
   }
@@ -94,6 +103,19 @@ public class GraphqlActivator extends BaseActivator {
       } catch (Exception e) {
         LOG.error("Unexpected error while stopping GraphQL", e);
       }
+      graphqlHealthCheck.healthy = false;
+    }
+  }
+
+  private static class GraphqlHealthCheck extends HealthCheck {
+
+    private volatile boolean healthy = false;
+
+    @Override
+    protected Result check() throws Exception {
+      return healthy
+          ? Result.healthy("Ready to process requests")
+          : Result.unhealthy("Server not started");
     }
   }
 }
