@@ -493,7 +493,7 @@ public abstract class PersistenceTest {
             assertThat(row).isNotNull();
             assertThat(row.getObject(c.name())).isEqualTo(v);
           } catch (Exception e) {
-            fail(e.getMessage());
+            fail(e.getMessage(), e);
           }
         });
   }
