@@ -15,13 +15,10 @@
  */
 package io.stargate.core.activator;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import javax.annotation.Nullable;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
@@ -43,18 +40,16 @@ public abstract class BaseActivator implements BundleActivator {
 
   public boolean started;
 
-  @VisibleForTesting
-  @GuardedBy("this")
   public Tracker tracker;
 
-  @Nullable private ServiceRegistration<?> targetServiceRegistration;
+  private ServiceRegistration<?> targetServiceRegistration;
 
   /**
    * @param activatorName - The name used when logging the progress of registration.
    * @param targetServiceClass - This class will be used when registering the service. If null, then
    *     the registration will not happen.
    */
-  public BaseActivator(String activatorName, @Nullable Class<?> targetServiceClass) {
+  public BaseActivator(String activatorName, Class<?> targetServiceClass) {
     this.activatorName = activatorName;
     this.targetServiceClass = Optional.ofNullable(targetServiceClass);
   }
@@ -85,7 +80,6 @@ public abstract class BaseActivator implements BundleActivator {
     tracker.open();
   }
 
-  @VisibleForTesting
   String constructDependenciesFilter() {
     StringBuilder builder = new StringBuilder("(|");
 
@@ -160,7 +154,6 @@ public abstract class BaseActivator implements BundleActivator {
       return service;
     }
 
-    @VisibleForTesting
     public void startIfAllRegistered(ServiceReference<Object> ref, Object service) {
       if (service == null) {
         return;
@@ -185,7 +178,6 @@ public abstract class BaseActivator implements BundleActivator {
    * @return ServiceAndProperties that has the service for OSGi registration and the properties that
    *     will be passed or null if there is no registration service required.
    */
-  @Nullable
   protected abstract ServiceAndProperties createService();
 
   /**
@@ -219,7 +211,7 @@ public abstract class BaseActivator implements BundleActivator {
 
     private T service;
 
-    private ServicePointer(Class<T> expectedClass, @Nullable String identifier) {
+    private ServicePointer(Class<T> expectedClass, String identifier) {
       this.expectedClass = expectedClass;
       this.identifier = Optional.ofNullable(identifier);
     }

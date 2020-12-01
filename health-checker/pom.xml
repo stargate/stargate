@@ -178,7 +178,7 @@
               io.dropwizard.*,
               org.osgi.framework,
               com.codahale.metrics,
-              com.codahale.metrics.health,
+              com.codahale.metrics.*,
               io.stargate.core.*
             ]]></Import-Package>
             <Export-Package>!*</Export-Package>

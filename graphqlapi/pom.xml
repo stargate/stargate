@@ -186,7 +186,7 @@
                             org.apache.cassandra.stargate.*,
                             io.stargate.core,
                             com.codahale.metrics,
-                            com.codahale.metrics.health,
+                            com.codahale.metrics.*,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
