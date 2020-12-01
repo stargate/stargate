@@ -21,22 +21,25 @@ import com.datastax.oss.driver.api.querybuilder.schema.AlterTableDropColumnEnd;
 import com.datastax.oss.driver.api.querybuilder.schema.AlterTableStart;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import java.util.List;
 
-public class AlterTableDropFetcher extends DdlQueryFetcher {
+public class AlterTableDropFetcher extends TableFetcher {
 
   public AlterTableDropFetcher(
-      Persistence persistence, AuthenticationService authenticationService) {
-    super(persistence, authenticationService);
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(persistence, authenticationService, authorizationService);
   }
 
   @Override
-  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {
+  public String getQuery(
+      DataFetchingEnvironment dataFetchingEnvironment, String keyspaceName, String tableName) {
     AlterTableStart start =
         SchemaBuilder.alterTable(
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("keyspaceName")),
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("tableName")));
+            CqlIdentifier.fromInternal(keyspaceName), CqlIdentifier.fromInternal(tableName));
 
     List<String> toDrop = dataFetchingEnvironment.getArgument("toDrop");
     if (toDrop.isEmpty()) {

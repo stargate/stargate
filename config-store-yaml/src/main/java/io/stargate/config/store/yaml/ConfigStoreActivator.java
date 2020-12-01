@@ -36,7 +36,7 @@ public class ConfigStoreActivator extends BaseActivator {
 
   // for testing purpose
   public ConfigStoreActivator(String configYamlLocation) {
-    super("Config Store YAML", ConfigStore.class);
+    super("Config Store YAML");
     this.configYamlLocation = configYamlLocation;
   }
 
@@ -57,6 +57,7 @@ public class ConfigStoreActivator extends BaseActivator {
     return new ServiceAndProperties(
         new ConfigStoreYaml(
             Paths.get(configYamlLocation), metrics.getRegistry(CONFIG_STORE_YAML_METRICS_PREFIX)),
+        ConfigStore.class,
         props);
   }
 

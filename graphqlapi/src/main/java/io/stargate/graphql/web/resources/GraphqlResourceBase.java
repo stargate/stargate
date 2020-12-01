@@ -15,7 +15,6 @@
  */
 package io.stargate.graphql.web.resources;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
@@ -25,6 +24,7 @@ import graphql.ExecutionInput;
 import graphql.GraphQL;
 import io.stargate.graphql.web.HttpAwareContext;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
+import java.io.IOException;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Produces;
@@ -82,7 +82,7 @@ public class GraphqlResourceBase {
       }
 
       executeAsync(input.build(), graphql, asyncResponse);
-    } catch (JsonProcessingException e) {
+    } catch (IOException e) {
       replyWithGraphqlError(
           Status.BAD_REQUEST, "Could not parse variables: " + e.getMessage(), asyncResponse);
     }

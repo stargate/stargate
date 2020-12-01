@@ -20,15 +20,25 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.function.Predicate;
 import javax.validation.constraints.NotNull;
 
 public interface ResultSet extends Iterable<Row> {
+
+  ResultSet withRowInspector(Predicate<Row> authzFilter);
+
   class Empty implements ResultSet {
+
     private boolean waitedForSchemaAgreement;
 
     private Empty(boolean waitedForSchemaAgreement) {
 
       this.waitedForSchemaAgreement = waitedForSchemaAgreement;
+    }
+
+    @Override
+    public ResultSet withRowInspector(Predicate<Row> authzFilter) {
+      return this;
     }
 
     @Override
