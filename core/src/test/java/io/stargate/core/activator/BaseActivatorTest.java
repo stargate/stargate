@@ -300,6 +300,43 @@ class BaseActivatorTest {
   }
 
   @Test
+  public void shouldUngetTwoServices() throws Exception {
+    // given
+    BundleContext bundleContext = mock(BundleContext.class);
+    TestServiceActivatorTwoServices activator = new TestServiceActivatorTwoServices();
+    mockFilterForBothServices(bundleContext);
+    activator.start(bundleContext);
+    ServiceReference<?> targetServiceReferenceFirst =
+        mockServiceRegistration(bundleContext, TestService.class);
+    ServiceReference<?> targetServiceReferenceSecond =
+        mockServiceRegistration(bundleContext, TestServiceTwo.class);
+
+    // when
+    ServiceReference<Object> serviceReference = mock(ServiceReference.class);
+    activator.tracker.startIfAllRegistered(serviceReference, mock(DependentService1.class));
+    activator.tracker.startIfAllRegistered(serviceReference, mock(DependentService2.class));
+
+    // then should not register service
+    verify(bundleContext, times(1))
+        .registerService(
+            eq(TestService.class.getName()), any(TestService.class), eq(EXPECTED_PROPERTIES));
+    verify(bundleContext, times(1))
+        .registerService(
+            eq(TestServiceTwo.class.getName()), any(TestServiceTwo.class), eq(EXPECTED_PROPERTIES));
+    assertThat(activator.started).isTrue();
+
+    // when
+    activator.stop(bundleContext);
+
+    // then
+    assertThat(activator.stopCalled).isTrue();
+
+    // and unget services
+    verify(bundleContext, times(1)).ungetService(eq(targetServiceReferenceFirst));
+    verify(bundleContext, times(1)).ungetService(eq(targetServiceReferenceSecond));
+  }
+
+  @Test
   public void shouldStartButNotRegisterNotUngetAndInvokeStopIfTargetClassNotSpecified()
       throws Exception {
     // given
@@ -352,13 +389,17 @@ class BaseActivatorTest {
 
   @SuppressWarnings("unchecked")
   private ServiceReference<?> mockServiceRegistration(BundleContext bundleContext) {
+    return mockServiceRegistration(bundleContext, TestService.class);
+  }
+
+  private ServiceReference<?> mockServiceRegistration(
+      BundleContext bundleContext, Class<?> serviceClass) {
     ServiceRegistration<?> serviceRegistration = mock(ServiceRegistration.class);
     ServiceReference serviceReference = mock(ServiceReference.class);
     when(serviceRegistration.getReference()).thenReturn(serviceReference);
     doReturn(serviceRegistration)
         .when(bundleContext)
-        .registerService(
-            eq(TestService.class.getName()), any(TestService.class), eq(EXPECTED_PROPERTIES));
+        .registerService(eq(serviceClass.getName()), any(serviceClass), eq(EXPECTED_PROPERTIES));
     return serviceReference;
   }
 

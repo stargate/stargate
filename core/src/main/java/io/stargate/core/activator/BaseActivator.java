@@ -42,7 +42,7 @@ public abstract class BaseActivator implements BundleActivator {
   @GuardedBy("this")
   public Tracker tracker;
 
-  @Nullable private ServiceRegistration<?> targetServiceRegistration;
+  private List<ServiceRegistration<?>> targetServiceRegistrations = new ArrayList<>();
 
   /** @param activatorName - The name used when logging the progress of registration. */
   public BaseActivator(String activatorName) {
@@ -98,10 +98,12 @@ public abstract class BaseActivator implements BundleActivator {
   }
 
   private void deregisterService() {
-    if (targetServiceRegistration != null) {
-      ServiceReference<?> reference = targetServiceRegistration.getReference();
-      logger.info("Unget service {} from {}", reference.getBundle(), activatorName);
-      context.ungetService(reference);
+    for (ServiceRegistration<?> serviceRegistration : targetServiceRegistrations) {
+      if (serviceRegistration != null) {
+        ServiceReference<?> reference = serviceRegistration.getReference();
+        logger.info("Unget service {} from {}", reference.getBundle(), activatorName);
+        context.ungetService(reference);
+      }
     }
   }
 
@@ -115,9 +117,9 @@ public abstract class BaseActivator implements BundleActivator {
     for (ServiceAndProperties service : services) {
       if (service != null) {
         logger.info("Registering {} as {}", activatorName, service.targetServiceClass.getName());
-        this.targetServiceRegistration =
+        targetServiceRegistrations.add(
             context.registerService(
-                service.targetServiceClass.getName(), service.service, service.properties);
+                service.targetServiceClass.getName(), service.service, service.properties));
       }
     }
     logger.info("Started {}", activatorName);

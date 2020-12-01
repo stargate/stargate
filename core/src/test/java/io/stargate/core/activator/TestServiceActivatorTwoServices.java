@@ -27,7 +27,7 @@ public class TestServiceActivatorTwoServices extends BaseActivator {
   ServicePointer<DependentService2> service2 = ServicePointer.create(DependentService2.class);
 
   public TestServiceActivatorTwoServices() {
-    super("Config Store Test Activator");
+    super("Test Activator");
   }
 
   @Override
