@@ -211,7 +211,8 @@ public abstract class BaseActivator implements BundleActivator {
 
   /**
    * @return List of dependent services that this component relies on. It does not wait for them to
-   *     be available vefore calling {@link this#createServices()}.
+   *     be available before calling {@link this#createServices()}. The init of those services is
+   *     lazy, meaning that they can be set after the {@link this#createServices()} is called.
    */
   protected List<LazyServicePointer<?>> lazyDependencies() {
     return Collections.emptyList();
