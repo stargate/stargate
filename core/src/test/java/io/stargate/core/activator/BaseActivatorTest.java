@@ -195,6 +195,29 @@ class BaseActivatorTest {
   }
 
   @Test
+  public void shouldRegisterTwoServices() throws InvalidSyntaxException {
+    // given
+    BundleContext bundleContext = mock(BundleContext.class);
+    TestServiceActivatorTwoServices activator = new TestServiceActivatorTwoServices();
+    mockFilterForBothServices(bundleContext);
+    activator.start(bundleContext);
+
+    // when
+    ServiceReference<Object> serviceReference = mock(ServiceReference.class);
+    activator.tracker.startIfAllRegistered(serviceReference, mock(DependentService1.class));
+    activator.tracker.startIfAllRegistered(serviceReference, mock(DependentService2.class));
+
+    // then should not register service
+    verify(bundleContext, times(1))
+        .registerService(
+            eq(TestService.class.getName()), any(TestService.class), eq(EXPECTED_PROPERTIES));
+    verify(bundleContext, times(1))
+        .registerService(
+            eq(TestServiceTwo.class.getName()), any(TestServiceTwo.class), eq(EXPECTED_PROPERTIES));
+    assertThat(activator.started).isTrue();
+  }
+
+  @Test
   public void shouldStartIfBothServicesAreDifferentOrderingOfNotifications()
       throws InvalidSyntaxException {
     // given
@@ -341,7 +364,7 @@ class BaseActivatorTest {
 
   private BaseActivator createBaseActivator(List<ServicePointer<?>> serviceDependencies) {
 
-    return new BaseActivator("ignored", Object.class) {
+    return new BaseActivator("ignored") {
       @Override
       protected ServiceAndProperties createService() {
         return null;

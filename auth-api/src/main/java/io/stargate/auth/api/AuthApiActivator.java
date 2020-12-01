@@ -17,126 +17,48 @@ package io.stargate.auth.api;
 
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.api.impl.WebImpl;
+import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
-import org.osgi.framework.BundleActivator;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.InvalidSyntaxException;
-import org.osgi.framework.ServiceEvent;
-import org.osgi.framework.ServiceListener;
-import org.osgi.framework.ServiceReference;
+import java.util.Arrays;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AuthApiActivator implements BundleActivator, ServiceListener {
+public class AuthApiActivator extends BaseActivator {
   private static final Logger log = LoggerFactory.getLogger(AuthApiActivator.class);
 
-  private BundleContext context;
   private final WebImpl web = new WebImpl();
-  private ServiceReference authenticationServiceReference;
-  private ServiceReference<?> metricsReference;
+  private final ServicePointer<Metrics> metric = ServicePointer.create(Metrics.class);
+  private final ServicePointer<AuthenticationService> authenticationService =
+      ServicePointer.create(
+          AuthenticationService.class,
+          "AuthIdentifier",
+          System.getProperty("stargate.auth_id", "AuthTableBasedService"));
 
-  static String AUTH_IDENTIFIER = System.getProperty("stargate.auth_id", "AuthTableBasedService");
-
-  @Override
-  public void start(BundleContext context) throws Exception {
-    this.context = context;
-    log.info("Starting apiServer....");
-    synchronized (web) {
-      try {
-        String authFilter = String.format("(AuthIdentifier=%s)", AUTH_IDENTIFIER);
-        String metricsFilter = String.format("(objectClass=%s)", Metrics.class.getName());
-        context.addServiceListener(this, String.format("(|%s%s)", authFilter, metricsFilter));
-      } catch (InvalidSyntaxException ise) {
-        throw new RuntimeException(ise);
-      }
-
-      ServiceReference[] refs =
-          context.getServiceReferences(AuthenticationService.class.getName(), null);
-      if (refs != null) {
-        for (ServiceReference ref : refs) {
-          // Get the service object.
-          Object service = context.getService(ref);
-          if (service instanceof AuthenticationService
-              && ref.getProperty("AuthIdentifier") != null
-              && ref.getProperty("AuthIdentifier").equals(AUTH_IDENTIFIER)) {
-            log.info("Setting authenticationService in AuthApiActivator");
-            this.web.setAuthenticationService((AuthenticationService) service);
-            break;
-          }
-        }
-      }
-
-      metricsReference = context.getServiceReference(Metrics.class.getName());
-      if (metricsReference != null) {
-        log.info("Setting metrics in AuthApiActivator");
-        this.web.setMetrics((Metrics) context.getService(metricsReference));
-      }
-
-      if (this.web.getAuthenticationService() != null && this.web.getMetrics() != null) {
-        try {
-          this.web.start();
-          log.info("Started authApiServer....");
-        } catch (Exception e) {
-          log.error("Failed", e);
-        }
-      }
-    }
+  public AuthApiActivator() {
+    super("authApiServer");
   }
 
   @Override
-  public void stop(BundleContext context) {
-    if (authenticationServiceReference != null) {
-      context.ungetService(authenticationServiceReference);
+  protected ServiceAndProperties createService() {
+    web.setAuthenticationService(authenticationService.get());
+    web.setMetrics(metric.get());
+    try {
+      this.web.start();
+    } catch (Exception e) {
+      log.error("Failed", e);
     }
 
-    if (metricsReference != null) {
-      context.ungetService(metricsReference);
-    }
+    return null;
   }
 
   @Override
-  public void serviceChanged(ServiceEvent serviceEvent) {
-    int type = serviceEvent.getType();
-    String[] objectClass = (String[]) serviceEvent.getServiceReference().getProperty("objectClass");
-    synchronized (web) {
-      switch (type) {
-        case (ServiceEvent.REGISTERED):
-          log.info("Service of type " + objectClass[0] + " registered.");
-          Object service = context.getService(serviceEvent.getServiceReference());
+  protected void stopService() {
+    // no-op
+  }
 
-          if (service instanceof AuthenticationService
-              && serviceEvent.getServiceReference().getProperty("AuthIdentifier") != null
-              && serviceEvent
-                  .getServiceReference()
-                  .getProperty("AuthIdentifier")
-                  .equals(AUTH_IDENTIFIER)) {
-            log.info("Setting authenticationService in AuthApiActivator");
-            this.web.setAuthenticationService((AuthenticationService) service);
-          } else if (service instanceof Metrics) {
-            log.info("Setting metrics in AuthApiActivator");
-            this.web.setMetrics(((Metrics) service));
-          }
-
-          if (this.web.getAuthenticationService() != null && this.web.getMetrics() != null) {
-            try {
-              this.web.start();
-              log.info("Started authApiServer.... (via svc changed)");
-            } catch (Exception e) {
-              log.error("Failed", e);
-            }
-          }
-          break;
-        case (ServiceEvent.UNREGISTERING):
-          log.info("Service of type " + objectClass[0] + " unregistered.");
-          context.ungetService(serviceEvent.getServiceReference());
-          break;
-        case (ServiceEvent.MODIFIED):
-          // TODO: [doug] 2020-06-15, Mon, 12:58 do something here...
-          log.info("Service of type " + objectClass[0] + " modified.");
-          break;
-        default:
-          break;
-      }
-    }
+  @Override
+  protected List<ServicePointer<?>> dependencies() {
+    return Arrays.asList(metric, authenticationService);
   }
 }
