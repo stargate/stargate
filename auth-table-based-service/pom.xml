@@ -4,14 +4,20 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.25-SNAPSHOT</version>
+    <version>0.0.27-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.auth.table</groupId>
   <artifactId>auth-table-based-service</artifactId>
   <dependencies>
     <dependency>
       <groupId>io.stargate.auth</groupId>
-      <artifactId>authentication</artifactId>
+      <artifactId>authnz</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.core</groupId>
+      <artifactId>core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -54,6 +60,16 @@
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -68,7 +84,7 @@
             <Bundle-SymbolicName>io.stargate.auth.table</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.auth.table.AuthTableBasedServiceActivator</Bundle-Activator>
             <Import-Package>io.stargate.auth, org.osgi.framework</Import-Package>
-            <Export-Package>io.stargate.auth.table</Export-Package>
+            <Export-Package>!*</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
           </instructions>

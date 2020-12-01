@@ -8,11 +8,14 @@ import com.datastax.oss.driver.api.querybuilder.update.Update;
 import com.datastax.oss.driver.api.querybuilder.update.UpdateStart;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
+import io.stargate.graphql.web.HttpAwareContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,12 +26,14 @@ public class UpdateMutationFetcher extends MutationFetcher {
       Table table,
       NameMapping nameMapping,
       Persistence persistence,
-      AuthenticationService authenticationService) {
-    super(table, nameMapping, persistence, authenticationService);
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(table, nameMapping, persistence, authenticationService, authorizationService);
   }
 
   @Override
-  protected String buildStatement(DataFetchingEnvironment environment, DataStore dataStore) {
+  protected String buildStatement(DataFetchingEnvironment environment, DataStore dataStore)
+      throws Exception {
     UpdateStart updateStart = QueryBuilder.update(keyspaceId, tableId);
 
     if (environment.containsArgument("options") && environment.getArgument("options") != null) {
@@ -37,6 +42,12 @@ public class UpdateMutationFetcher extends MutationFetcher {
         updateStart = updateStart.usingTtl((Integer) options.get("ttl"));
       }
     }
+
+    HttpAwareContext httpAwareContext = environment.getContext();
+    String token = httpAwareContext.getAuthToken();
+
+    List<Relation> relations = buildPkCKWhere(table, environment);
+    authorizationService.authorizeDataWrite(token, buildTypedKeyValueList(relations), Scope.MODIFY);
 
     Update update =
         updateStart

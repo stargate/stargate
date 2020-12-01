@@ -42,7 +42,7 @@ public class KafkaProducerActivator extends BaseActivator {
   private ServicePointer<ConfigStore> configStore = ServicePointer.create(ConfigStore.class);
 
   public KafkaProducerActivator() {
-    super("Kafka producer", CDCProducer.class);
+    super("Kafka producer");
   }
 
   @Nullable
@@ -63,7 +63,7 @@ public class KafkaProducerActivator extends BaseActivator {
         LOG.error("Interrupted when initializing the CDCProducer.", e);
         throw new IllegalStateException(e);
       }
-      return new ServiceAndProperties(producer);
+      return new ServiceAndProperties(producer, CDCProducer.class);
     } else {
       LOG.info("CDC Kafka producer is disabled");
       return null;

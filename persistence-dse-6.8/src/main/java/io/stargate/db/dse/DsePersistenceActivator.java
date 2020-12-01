@@ -1,6 +1,7 @@
 package io.stargate.db.dse;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.common.StargateConfigSnitch;
@@ -14,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.cassandra.auth.CassandraAuthorizer;
 import org.apache.cassandra.auth.PasswordAuthenticator;
 import org.apache.cassandra.config.Config;
@@ -34,10 +36,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DsePersistenceActivator implements BundleActivator, ServiceListener {
+
   private static final Logger logger = LoggerFactory.getLogger(DsePersistenceActivator.class);
+
   private DsePersistence dseDB;
   private File baseDir;
   private volatile BundleContext context;
+  private final AtomicReference<AuthorizationService> authorizationService =
+      new AtomicReference<>();
+
+  private static final String AUTH_IDENTIFIER =
+      System.getProperty("stargate.auth_id", "AuthTableBasedService");
 
   @VisibleForTesting
   public static Config makeConfig(File baseDir) throws IOException {
@@ -121,7 +130,7 @@ public class DsePersistenceActivator implements BundleActivator, ServiceListener
   }
 
   @Override
-  public void start(BundleContext context) {
+  public void start(BundleContext context) throws InvalidSyntaxException {
     logger.info("Starting DSE Stargate Backend");
     dseDB = new DsePersistence();
     this.context = context;
@@ -133,8 +142,11 @@ public class DsePersistenceActivator implements BundleActivator, ServiceListener
       setMetrics(metrics);
     }
 
+    String authFilter;
     try {
-      context.addServiceListener(this, String.format("(objectClass=%s)", Metrics.class.getName()));
+      authFilter = String.format("(AuthIdentifier=%s)", AUTH_IDENTIFIER);
+      context.addServiceListener(
+          this, String.format("(|(objectClass=%s)%s)", Metrics.class.getName(), authFilter));
     } catch (InvalidSyntaxException ise) {
       throw new RuntimeException(ise);
     }
@@ -146,6 +158,7 @@ public class DsePersistenceActivator implements BundleActivator, ServiceListener
       // Throw away data directory since stargate is ephemeral anyway
       baseDir = Files.createTempDirectory("stargate-dse").toFile();
 
+      dseDB.setAuthorizationService(authorizationService);
       dseDB.initialize(makeConfig(baseDir));
     } catch (IOException e) {
       throw new IOError(e);
@@ -153,6 +166,16 @@ public class DsePersistenceActivator implements BundleActivator, ServiceListener
 
     ServiceRegistration<?> registration =
         context.registerService(Persistence.class.getName(), dseDB, props);
+
+    ServiceReference<?>[] refs =
+        context.getServiceReferences(AuthorizationService.class.getName(), authFilter);
+    if (refs != null) {
+      Object service = context.getService(refs[0]);
+      if (service instanceof AuthorizationService) {
+        logger.info("Setting authorizationService in DsePersistenceActivator");
+        this.authorizationService.set((AuthorizationService) service);
+      }
+    }
   }
 
   @Override
@@ -178,6 +201,9 @@ public class DsePersistenceActivator implements BundleActivator, ServiceListener
       if (service instanceof Metrics) {
         logger.debug("Setting metrics in serviceChanged");
         setMetrics((Metrics) service);
+      } else if (service instanceof AuthorizationService) {
+        logger.debug("Setting authorization in serviceChanged");
+        this.authorizationService.set((AuthorizationService) service);
       }
     }
   }

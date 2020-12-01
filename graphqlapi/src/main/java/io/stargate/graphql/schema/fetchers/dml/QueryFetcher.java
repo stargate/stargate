@@ -24,11 +24,13 @@ import com.google.common.collect.ImmutableMap;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
+import io.stargate.graphql.web.HttpAwareContext;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -36,7 +38,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
@@ -45,16 +46,25 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
       Table table,
       NameMapping nameMapping,
       Persistence persistence,
-      AuthenticationService authenticationService) {
-    super(table, nameMapping, persistence, authenticationService);
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(table, nameMapping, persistence, authenticationService, authorizationService);
   }
 
   @Override
   protected Map<String, Object> get(DataFetchingEnvironment environment, DataStore dataStore)
       throws Exception {
     String statement = buildQuery(environment);
-    CompletableFuture<ResultSet> rs = dataStore.query(statement);
-    ResultSet resultSet = rs.get();
+    HttpAwareContext httpAwareContext = environment.getContext();
+    String token = httpAwareContext.getAuthToken();
+
+    ResultSet resultSet =
+        authorizationService.authorizedDataRead(
+            () -> dataStore.query(statement).get(),
+            token,
+            keyspaceId.asInternal(),
+            table.name(),
+            buildTypedKeyValueList(table, environment));
 
     Map<String, Object> result = new HashMap<>();
     result.put(

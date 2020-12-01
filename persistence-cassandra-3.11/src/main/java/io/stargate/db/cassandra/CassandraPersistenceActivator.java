@@ -16,7 +16,7 @@
 package io.stargate.db.cassandra;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.stargate.core.BundleUtils;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.cassandra.impl.CassandraPersistence;
@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.cassandra.auth.CassandraAuthorizer;
 import org.apache.cassandra.auth.PasswordAuthenticator;
 import org.apache.cassandra.config.Config;
@@ -53,6 +54,11 @@ public class CassandraPersistenceActivator implements BundleActivator, ServiceLi
   private static final Logger logger = LoggerFactory.getLogger(CassandraPersistenceActivator.class);
 
   private volatile BundleContext context;
+  private final AtomicReference<AuthorizationService> authorizationService =
+      new AtomicReference<>();
+
+  private static final String AUTH_IDENTIFIER =
+      System.getProperty("stargate.auth_id", "AuthTableBasedService");
 
   @VisibleForTesting
   public static Config makeConfig(File baseDir) throws IOException {
@@ -129,7 +135,7 @@ public class CassandraPersistenceActivator implements BundleActivator, ServiceLi
   }
 
   @Override
-  public void start(BundleContext context) {
+  public void start(BundleContext context) throws InvalidSyntaxException {
     logger.info("Starting persistence-cassandra-3.11...");
     this.context = context;
 
@@ -140,8 +146,11 @@ public class CassandraPersistenceActivator implements BundleActivator, ServiceLi
       setMetrics(metrics);
     }
 
+    String authFilter;
     try {
-      context.addServiceListener(this, String.format("(objectClass=%s)", Metrics.class.getName()));
+      authFilter = String.format("(AuthIdentifier=%s)", AUTH_IDENTIFIER);
+      context.addServiceListener(
+          this, String.format("(|(objectClass=%s)%s)", Metrics.class.getName(), authFilter));
     } catch (InvalidSyntaxException ise) {
       throw new RuntimeException(ise);
     }
@@ -154,6 +163,7 @@ public class CassandraPersistenceActivator implements BundleActivator, ServiceLi
       // Throw away data directory since stargate is ephemeral anyway
       File baseDir = Files.createTempDirectory("stargate-cassandra-3.11").toFile();
 
+      cassandraDB.setAuthorizationService(authorizationService);
       cassandraDB.initialize(makeConfig(baseDir));
     } catch (IOException e) {
       logger.error("Error initializing cassandra persistance", e);
@@ -161,6 +171,16 @@ public class CassandraPersistenceActivator implements BundleActivator, ServiceLi
     }
     ServiceRegistration<?> registration =
         context.registerService(Persistence.class, cassandraDB, props);
+
+    ServiceReference<?>[] refs =
+        context.getServiceReferences(AuthorizationService.class.getName(), authFilter);
+    if (refs != null) {
+      Object service = context.getService(refs[0]);
+      if (service instanceof AuthorizationService) {
+        logger.info("Setting authorizationService in CassandraPersistenceActivator");
+        this.authorizationService.set((AuthorizationService) service);
+      }
+    }
   }
 
   @Override
@@ -170,11 +190,18 @@ public class CassandraPersistenceActivator implements BundleActivator, ServiceLi
 
   @Override
   public void serviceChanged(ServiceEvent serviceEvent) {
-    Metrics metrics = BundleUtils.getRegisteredService(context, serviceEvent, Metrics.class);
-
-    if (metrics != null) {
-      logger.debug("Setting metrics in serviceChanged");
-      setMetrics(metrics);
+    int type = serviceEvent.getType();
+    String[] objectClass = (String[]) serviceEvent.getServiceReference().getProperty("objectClass");
+    if (type == ServiceEvent.REGISTERED) {
+      logger.info("Service of type " + objectClass[0] + " registered.");
+      Object service = context.getService(serviceEvent.getServiceReference());
+      if (service instanceof Metrics) {
+        logger.debug("Setting metrics in serviceChanged");
+        setMetrics((Metrics) service);
+      } else if (service instanceof AuthorizationService) {
+        logger.debug("Setting authorization in serviceChanged");
+        this.authorizationService.set((AuthorizationService) service);
+      }
     }
   }
 
