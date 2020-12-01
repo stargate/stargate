@@ -18,6 +18,7 @@ package io.stargate.web.resources;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.ImmutableParameters;
@@ -35,9 +36,11 @@ import java.util.concurrent.TimeUnit;
 import javax.ws.rs.NotFoundException;
 
 public class Db {
+
   private final Persistence persistence;
   private final DataStore dataStore;
   private final AuthenticationService authenticationService;
+  private final AuthorizationService authorizationService;
   private final LoadingCache<String, String> docsTokensToRoles =
       Caffeine.newBuilder()
           .maximumSize(10_000)
@@ -66,8 +69,12 @@ public class Db {
     return tableMetadata;
   }
 
-  public Db(final Persistence persistence, AuthenticationService authenticationService) {
+  public Db(
+      final Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
     this.authenticationService = authenticationService;
+    this.authorizationService = authorizationService;
     this.persistence = persistence;
     this.dataStore = DataStore.create(persistence);
   }
@@ -78,6 +85,14 @@ public class Db {
 
   public Persistence getPersistence() {
     return this.persistence;
+  }
+
+  public AuthenticationService getAuthenticationService() {
+    return authenticationService;
+  }
+
+  public AuthorizationService getAuthorizationService() {
+    return authorizationService;
   }
 
   public DataStore getDataStoreForToken(String token) throws UnauthorizedException {

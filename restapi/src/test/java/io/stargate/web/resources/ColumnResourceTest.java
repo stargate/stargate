@@ -1,12 +1,14 @@
 package io.stargate.web.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import io.dropwizard.testing.junit5.ResourceExtension;
-import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
@@ -32,14 +34,16 @@ class ColumnResourceTest {
   }
 
   @Test
-  void listAllColumnsSuccess() throws UnauthorizedException {
+  void listAllColumnsSuccess() throws Exception {
     DataStore dataStore = mock(DataStore.class);
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
     Table table = mock(Table.class);
     Column column1 = ImmutableColumn.create("c1", Column.Kind.Static, Column.Type.Text);
     Column column2 = ImmutableColumn.create("c2", Column.Kind.Regular, Column.Type.Int);
     List<Column> columns = ImmutableList.of(column1, column2);
 
     when(db.getDataStoreForToken("token")).thenReturn(dataStore);
+    when(db.getAuthorizationService()).thenReturn(authorizationService);
     when(db.getTable(dataStore, "keySpaceName", "tableName")).thenReturn(table);
     when(table.columns()).thenReturn(columns);
 

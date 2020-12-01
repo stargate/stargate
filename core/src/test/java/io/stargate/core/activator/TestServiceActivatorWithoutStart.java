@@ -16,9 +16,6 @@
 package io.stargate.core.activator;
 
 public class TestServiceActivatorWithoutStart extends TestServiceActivator {
-  public TestServiceActivatorWithoutStart() {
-    super(null);
-  }
 
   @Override
   protected ServiceAndProperties createService() {

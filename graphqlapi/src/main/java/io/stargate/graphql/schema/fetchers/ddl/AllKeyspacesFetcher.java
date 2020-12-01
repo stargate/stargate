@@ -17,21 +17,30 @@ package io.stargate.graphql.schema.fetchers.ddl;
 
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
+import io.stargate.graphql.web.HttpAwareContext;
 import java.util.List;
 import java.util.Map;
 
 public class AllKeyspacesFetcher extends CassandraFetcher<List<Map<String, Object>>> {
 
-  public AllKeyspacesFetcher(Persistence persistence, AuthenticationService authenticationService) {
-    super(persistence, authenticationService);
+  public AllKeyspacesFetcher(
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(persistence, authenticationService, authorizationService);
   }
 
   @Override
   protected List<Map<String, Object>> get(
       DataFetchingEnvironment environment, DataStore dataStore) {
-    return KeyspaceFormatter.formatResult(dataStore.schema().keyspaces(), environment);
+    HttpAwareContext httpAwareContext = environment.getContext();
+    String token = httpAwareContext.getAuthToken();
+
+    return KeyspaceFormatter.formatResult(
+        dataStore.schema().keyspaces(), environment, authorizationService, token);
   }
 }

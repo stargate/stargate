@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
-  <version>0.0.25-SNAPSHOT</version>
+  <version>0.0.27-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
@@ -127,8 +127,9 @@
         <module>graphqlapi</module>
         <module>restapi</module>
         <module>auth-api</module>
-        <module>authentication</module>
+        <module>authnz</module>
         <module>auth-table-based-service</module>
+        <module>auth-jwt-service</module>
         <module>health-checker</module>
         <module>config-store-api</module>
         <module>config-store-yaml</module>
@@ -153,8 +154,9 @@
         <module>graphqlapi</module>
         <module>restapi</module>
         <module>auth-api</module>
-        <module>authentication</module>
+        <module>authnz</module>
         <module>auth-table-based-service</module>
+        <module>auth-jwt-service</module>
         <module>health-checker</module>
         <module>config-store-api</module>
         <module>config-store-yaml</module>
@@ -492,11 +494,6 @@
         <groupId>org.junit.jupiter</groupId>
         <artifactId>junit-jupiter-params</artifactId>
         <version>${junit.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard</groupId>
-        <artifactId>dropwizard-testing</artifactId>
-        <version>${dropwizard.version}</version>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>

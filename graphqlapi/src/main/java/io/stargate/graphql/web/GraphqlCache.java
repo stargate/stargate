@@ -19,6 +19,7 @@ import graphql.GraphQL;
 import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.EventListener;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
@@ -48,19 +49,27 @@ public class GraphqlCache implements EventListener {
 
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
+  private final AuthorizationService authorizationService;
 
   private final GraphQL ddlGraphql;
   private final String defaultKeyspace;
   private final ConcurrentMap<String, DmlGraphqlReference> dmlGraphqls;
 
-  GraphqlCache(Persistence persistence, AuthenticationService authenticationService) {
+  GraphqlCache(
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
+    this.authorizationService = authorizationService;
 
-    this.ddlGraphql = newGraphql(SchemaFactory.newDdlSchema(persistence, authenticationService));
+    this.ddlGraphql =
+        newGraphql(
+            SchemaFactory.newDdlSchema(persistence, authenticationService, authorizationService));
     DataStore dataStore = DataStore.create(persistence);
     this.defaultKeyspace = findDefaultKeyspace(dataStore);
-    this.dmlGraphqls = initDmlGraphqls(persistence, dataStore, authenticationService);
+    this.dmlGraphqls =
+        initDmlGraphqls(persistence, dataStore, authenticationService, authorizationService);
 
     persistence.registerEventListener(this);
   }
@@ -116,13 +125,19 @@ public class GraphqlCache implements EventListener {
   }
 
   private static ConcurrentMap<String, DmlGraphqlReference> initDmlGraphqls(
-      Persistence persistence, DataStore dataStore, AuthenticationService authenticationService) {
+      Persistence persistence,
+      DataStore dataStore,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
     ConcurrentMap<String, DmlGraphqlReference> map = new ConcurrentHashMap<>();
 
     for (Keyspace keyspace : dataStore.schema().keyspaces()) {
       String keyspaceName = keyspace.name();
       LOG.debug("Prepare GraphQL schema for {}", keyspaceName);
-      map.put(keyspaceName, new DmlGraphqlReference(keyspace, persistence, authenticationService));
+      map.put(
+          keyspaceName,
+          new DmlGraphqlReference(
+              keyspace, persistence, authenticationService, authorizationService));
     }
     return map;
   }
@@ -144,7 +159,9 @@ public class GraphqlCache implements EventListener {
         dmlGraphqls.remove(keyspaceName);
       } else {
         dmlGraphqls.put(
-            keyspaceName, new DmlGraphqlReference(keyspace, persistence, authenticationService));
+            keyspaceName,
+            new DmlGraphqlReference(
+                keyspace, persistence, authenticationService, authorizationService));
       }
       LOG.debug("Done refreshing GraphQL schema for keyspace {}", keyspaceName);
     } catch (Exception e) {
@@ -251,17 +268,23 @@ public class GraphqlCache implements EventListener {
    * will only be initialized if the keyspace is queried.
    */
   static class DmlGraphqlReference {
+
     private final Keyspace keyspace;
     private final Persistence persistence;
     private final AuthenticationService authenticationService;
+    private final AuthorizationService authorizationService;
 
     private volatile GraphQL graphql;
 
     DmlGraphqlReference(
-        Keyspace keyspace, Persistence persistence, AuthenticationService authenticationService) {
+        Keyspace keyspace,
+        Persistence persistence,
+        AuthenticationService authenticationService,
+        AuthorizationService authorizationService) {
       this.keyspace = keyspace;
       this.persistence = persistence;
       this.authenticationService = authenticationService;
+      this.authorizationService = authorizationService;
     }
 
     GraphQL get() {
@@ -273,7 +296,9 @@ public class GraphqlCache implements EventListener {
       synchronized (this) {
         if (graphql == null) {
           graphql =
-              newGraphql(SchemaFactory.newDmlSchema(persistence, authenticationService, keyspace));
+              newGraphql(
+                  SchemaFactory.newDmlSchema(
+                      persistence, authenticationService, authorizationService, keyspace));
         }
         return graphql;
       }

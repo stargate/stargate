@@ -21,7 +21,7 @@ public abstract class KeyspaceFetcherTestBase extends GraphQlTestBase {
 
   @Override
   protected GraphQLSchema createGraphQlSchema() {
-    return SchemaFactory.newDdlSchema(persistence, authenticationService);
+    return SchemaFactory.newDdlSchema(persistence, authenticationService, authorizationService);
   }
 
   public abstract Keyspace getKeyspace();

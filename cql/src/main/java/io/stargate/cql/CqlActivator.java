@@ -16,100 +16,65 @@
 package io.stargate.cql;
 
 import io.stargate.auth.AuthenticationService;
+import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.cql.impl.CqlImpl;
 import io.stargate.db.Persistence;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.List;
 import org.apache.cassandra.config.Config;
-import org.osgi.framework.BundleActivator;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.Filter;
-import org.osgi.framework.InvalidSyntaxException;
-import org.osgi.framework.ServiceReference;
-import org.osgi.util.tracker.ServiceTracker;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jetbrains.annotations.Nullable;
 
-public class CqlActivator implements BundleActivator {
-  private static final Logger log = LoggerFactory.getLogger(CqlActivator.class);
-
+public class CqlActivator extends BaseActivator {
   private CqlImpl cql;
-  private Tracker tracker;
+  private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  private final ServicePointer<AuthenticationService> authentication =
+      ServicePointer.create(
+          AuthenticationService.class,
+          "AuthIdentifier",
+          System.getProperty("stargate.auth_id", "AuthTableBasedService"));
+  private final ServicePointer<Persistence> persistence =
+      ServicePointer.create(
+          Persistence.class,
+          "Identifier",
+          System.getProperty("stargate.persistence_id", "CassandraPersistence"));
 
-  private static final String AUTH_IDENTIFIER =
-      System.getProperty("stargate.auth_id", "AuthTableBasedService");
-  private static final String PERSISTENCE_IDENTIFIER =
-      System.getProperty("stargate.persistence_id", "CassandraPersistence");
   private static final boolean USE_AUTH_SERVICE =
       Boolean.parseBoolean(System.getProperty("stargate.cql_use_auth_service", "false"));
 
-  private static final String DEPENDENCIES_FILTER =
-      String.format(
-          "(|(AuthIdentifier=%s)(Identifier=%s)(objectClass=%s))",
-          AUTH_IDENTIFIER, PERSISTENCE_IDENTIFIER, Metrics.class.getName());
-
-  @Override
-  public void start(BundleContext context) throws InvalidSyntaxException {
-    tracker = new Tracker(context, context.createFilter(DEPENDENCIES_FILTER));
-    tracker.open();
+  public CqlActivator() {
+    super("CQL");
   }
 
+  @Nullable
   @Override
-  public void stop(BundleContext context) {
-    maybeStopService();
-    tracker.close();
-  }
-
-  private synchronized void maybeStartService(
-      Persistence persistence, Metrics metrics, AuthenticationService authentication) {
+  protected ServiceAndProperties createService() {
     if (cql != null) { // Already started
-      return;
+      return null;
     }
-    cql = new CqlImpl(makeConfig(), persistence, metrics, authentication);
-    log.info("Starting CQL");
+    cql = new CqlImpl(makeConfig(), persistence.get(), metrics.get(), authentication.get());
     cql.start();
+
+    return null;
   }
 
-  private synchronized void maybeStopService() {
+  @Override
+  protected void stopService() {
     if (cql == null) { // Not started
       return;
     }
-    log.info("Stopping CQL");
     cql.stop();
     cql = null;
   }
 
-  private class Tracker extends ServiceTracker<Object, Object> {
-    private Persistence persistence;
-    private Metrics metrics;
-    private AuthenticationService authentication;
-
-    public Tracker(BundleContext context, Filter filter) {
-      super(context, filter, null);
-    }
-
-    @Override
-    public Object addingService(ServiceReference<Object> ref) {
-      Object service = super.addingService(ref);
-      if (persistence == null && service instanceof Persistence) {
-        log.info("Using backend persistence: {}", ref.getBundle());
-        persistence = (Persistence) service;
-      } else if (metrics == null && service instanceof Metrics) {
-        log.info("Using metrics: {}", ref.getBundle());
-        metrics = (Metrics) service;
-      } else if (USE_AUTH_SERVICE
-          && authentication == null
-          && service instanceof AuthenticationService) {
-        log.info("Using authentication service: {}", ref.getBundle());
-        authentication = (AuthenticationService) service;
-      }
-
-      if (persistence != null && metrics != null && (!USE_AUTH_SERVICE || authentication != null)) {
-        maybeStartService(persistence, metrics, authentication);
-      }
-
-      return service;
+  @Override
+  protected List<ServicePointer<?>> dependencies() {
+    if (USE_AUTH_SERVICE) {
+      return Arrays.asList(metrics, persistence, authentication);
+    } else {
+      return Arrays.asList(metrics, persistence);
     }
   }
 

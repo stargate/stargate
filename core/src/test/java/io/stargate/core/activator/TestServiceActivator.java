@@ -26,17 +26,13 @@ public class TestServiceActivator extends BaseActivator {
   ServicePointer<DependentService1> service1 = ServicePointer.create(DependentService1.class);
   ServicePointer<DependentService2> service2 = ServicePointer.create(DependentService2.class);
 
+  public TestServiceActivator() {
+    super("Config Store Test Activator");
+  }
+
   @Override
   protected List<ServicePointer<?>> dependencies() {
     return Arrays.asList(service1, service2);
-  }
-
-  public TestServiceActivator() {
-    this(TestService.class);
-  }
-
-  public TestServiceActivator(Class<?> targetService) {
-    super("Config Store Test Activator", targetService);
   }
 
   @Override
@@ -44,7 +40,8 @@ public class TestServiceActivator extends BaseActivator {
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "id_1");
 
-    return new ServiceAndProperties(new TestService(service1.get(), service2.get()), props);
+    return new ServiceAndProperties(
+        new TestService(service1.get(), service2.get()), TestService.class, props);
   }
 
   @Override

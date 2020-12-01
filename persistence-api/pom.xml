@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.25-SNAPSHOT</version>
+    <version>0.0.27-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db</groupId>
   <artifactId>persistence-api</artifactId>
@@ -125,6 +125,11 @@
       <artifactId>config-store-api</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
   <build>
