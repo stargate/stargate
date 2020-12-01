@@ -590,7 +590,7 @@ public class RowResource {
     Object value = val;
 
     if (type != null) {
-      value = Converters.typeForStringValue(type, (String) val);
+      value = Converters.parse(type, (String) val);
     }
 
     return value;

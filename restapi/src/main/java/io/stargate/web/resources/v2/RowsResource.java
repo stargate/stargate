@@ -37,31 +37,13 @@ import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.service.WhereParser;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.*;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.inject.Inject;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.PATCH;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
@@ -295,13 +277,14 @@ public class RowsResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          Map<String, String> requestBody = mapper.readValue(payload, Map.class);
+          @SuppressWarnings("unchecked")
+          Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
 
           Table table = db.getTable(localDB, keyspaceName, tableName);
 
           List<ValueModifier> values =
               requestBody.entrySet().stream()
-                  .map((e) -> Converters.colToValue(e, table))
+                  .map(e -> Converters.colToValue(e.getKey(), e.getValue(), table))
                   .collect(Collectors.toList());
 
           BoundQuery query =
@@ -495,10 +478,11 @@ public class RowsResource {
           .build();
     }
 
-    Map<String, String> requestBody = mapper.readValue(payload, Map.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
     List<ValueModifier> changes =
         requestBody.entrySet().stream()
-            .map((e) -> Converters.colToValue(e, tableMetadata))
+            .map(e -> Converters.colToValue(e.getKey(), e.getValue(), tableMetadata))
             .collect(Collectors.toList());
 
     BoundQuery query =
