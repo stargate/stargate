@@ -573,11 +573,7 @@ The following software have components provided under the terms of this license:
 - Hibernate Validator Engine (from )
 - JBoss Logging 3 (from http://www.jboss.org)
 - Java Native Access (from https://github.com/java-native-access/jna)
-- Java Native Access (from https://github.com/java-native-access/jna)
-- Java Native Access (from https://github.com/java-native-access/jna)
 - Java Native Access Platform (from https://github.com/java-native-access/jna)
-- Java Native Access Platform (from https://github.com/java-native-access/jna)
-- Javassist (from http://www.javassist.org/)
 - Javassist (from http://www.javassist.org/)
 - Logback Access Module (from )
 - Logback Classic Module (from )
@@ -587,7 +583,6 @@ The following software have components provided under the terms of this license:
 - SpotBugs Annotations (from https://spotbugs.github.io/)
 - fastutil (from http://fasutil.di.unimi.it/)
 - jnr-posix (from )
-- jnr-posix (from )
 
 ========================================================================
 LGPL-2.1-or-later
@@ -595,11 +590,8 @@ LGPL-2.1-or-later
 The following software have components provided under the terms of this license:
 
 - Javassist (from http://www.javassist.org/)
-- Javassist (from http://www.javassist.org/)
-- SnakeYAML (from http://www.snakeyaml.org)
 - SnakeYAML (from http://www.snakeyaml.org)
 - SpotBugs Annotations (from https://spotbugs.github.io/)
-- jnr-posix (from )
 - jnr-posix (from )
 
 ========================================================================
@@ -624,18 +616,13 @@ MIT
 The following software have components provided under the terms of this license:
 
 - Animal Sniffer Annotations (from )
-- Animal Sniffer Annotations (from )
 - Apollo GraphQL API (from https://github.com/apollographql/apollo-android/)
 - Apollo GraphQL Normalized Cache APIs (from https://github.com/apollographql/apollo-android/)
 - Apollo GraphQL Normalized Cache Common APIs (from https://github.com/apollographql/apollo-android/)
 - Apollo GraphQL Runtime (from https://github.com/apollographql/apollo-android/)
 - Apollo GraphQL http cache api (from https://github.com/apollographql/apollo-android/)
 - Checker Qual (from https://checkerframework.org)
-- Checker Qual (from https://checkerframework.org)
-- Checker Qual (from https://checkerframework.org)
-- Checker Qual (from https://checkerframework.org)
 - Duct Tape (from https://github.com/rnorth/${project.artifactId})
-- JCL 1.1.1 implemented over SLF4J (from http://www.slf4j.org)
 - JCL 1.1.1 implemented over SLF4J (from http://www.slf4j.org)
 - JUL to SLF4J bridge (from http://www.slf4j.org)
 - Jetty :: Utilities (from http://www.eclipse.org/jetty)
@@ -647,12 +634,8 @@ The following software have components provided under the terms of this license:
 - Mockito (from http://mockito.org)
 - Mockito (from http://www.mockito.org)
 - Netty/All-in-One (from )
-- Netty/All-in-One (from )
-- Netty/All-in-One (from )
-- Netty/All-in-One (from )
 - Netty/Common (from )
 - SLF4J API Module (from http://www.slf4j.org)
-- TestContainers Core (from )
 - TestContainers Core (from )
 - UUID (from https://github.com/benasher44/uuid/)
 - Visible Assertions (from https://github.com/rnorth/visible-assertions)
@@ -660,7 +643,6 @@ The following software have components provided under the terms of this license:
 - fastutil (from http://fasutil.di.unimi.it/)
 - gmetric4j (from http://github.com/ganglia/gmetric4j)
 - graphql-java (from https://github.com/graphql-java/graphql-java)
-- jbcrypt (from http://www.mindrot.org/)
 - jbcrypt (from http://www.mindrot.org/)
 - jersey-container-servlet (from git://java.net/jersey~code/project/jersey-container-servlet)
 - jersey-container-servlet-core (from git://java.net/jersey~code/project/jersey-container-servlet-core)
@@ -675,7 +657,6 @@ The following software have components provided under the terms of this license:
 - jsurfer-core (from https://repo1.maven.org/maven2/com/github/jsurfer/jsurfer-core)
 - jsurfer-gson (from https://repo1.maven.org/maven2/com/github/jsurfer/jsurfer-gson)
 - mockito-inline (from https://github.com/mockito/mockito)
-- mockito-inline (from https://github.com/mockito/mockito)
 - mockito-junit-jupiter (from https://github.com/mockito/mockito)
 - msal4j (from https://github.com/AzureAD/microsoft-authentication-library-for-java)
 - msal4j-persistence-extension (from https://github.com/AzureAD/microsoft-authentication-extensions-for-java)
@@ -687,7 +668,6 @@ MPL-1.1
 The following software have components provided under the terms of this license:
 
 - Javassist (from http://www.javassist.org/)
-- Javassist (from http://www.javassist.org/)
 - RabbitMQ Java Client (from http://www.rabbitmq.com)
 
 ========================================================================
@@ -695,7 +675,6 @@ MPL-2.0
 ========================================================================
 The following software have components provided under the terms of this license:
 
-- Javassist (from http://www.javassist.org/)
 - Javassist (from http://www.javassist.org/)
 - RabbitMQ Java Client (from http://www.rabbitmq.com)
 
@@ -715,10 +694,7 @@ The following software have components provided under the terms of this license:
 - AOP alliance (from http://aopalliance.sourceforge.net)
 - ConcurrentLinkedHashMap (from http://code.google.com/p/concurrentlinkedhashmap)
 - Guava: Google Core Libraries for Java (from https://github.com/google/guava.git)
-- Guava: Google Core Libraries for Java (from https://github.com/google/guava.git)
 - Joda-Time (from http://www.joda.org/joda-time/)
-- Joda-Time (from http://www.joda.org/joda-time/)
-- Metrics Core (from https://github.com/dropwizard/metrics)
 - Metrics Core (from https://github.com/dropwizard/metrics)
 - Metrics Core Library (from )
 - Scala Library (from http://www.scala-lang.org/)
@@ -730,9 +706,6 @@ SPL-1.0
 ========================================================================
 The following software have components provided under the terms of this license:
 
-- Checker Qual (from https://checkerframework.org)
-- Checker Qual (from https://checkerframework.org)
-- Checker Qual (from https://checkerframework.org)
 - Checker Qual (from https://checkerframework.org)
 
 ========================================================================
@@ -763,7 +736,6 @@ WTFPL
 The following software have components provided under the terms of this license:
 
 - Reflections (from http://github.com/ronmamo/reflections)
-- Reflections (from http://github.com/ronmamo/reflections)
 
 ========================================================================
 public-domain
@@ -771,21 +743,17 @@ public-domain
 The following software have components provided under the terms of this license:
 
 - Guava: Google Core Libraries for Java (from https://github.com/google/guava.git)
-- Guava: Google Core Libraries for Java (from https://github.com/google/guava.git)
-- Guava: Google Core Libraries for Java (from https://github.com/google/guava.git)
 - HdrHistogram (from http://hdrhistogram.github.io/HdrHistogram/)
 - Joda-Time (from http://www.joda.org/joda-time/)
 - Microsoft Azure client library for Blob Storage (from https://github.com/Azure/azure-sdk-for-java)
 - Prometheus Java Simpleclient (from )
 - RabbitMQ Java Client (from http://www.rabbitmq.com)
 - Shaded Guava artifact for use in the DataStax Java driver for Apache Cassandra® (from https://github.com/datastax/java-driver-shaded-guava)
-- Shaded Guava artifact for use in the DataStax Java driver for Apache Cassandra® (from https://github.com/datastax/java-driver-shaded-guava)
 - config (from https://github.com/typesafehub/config)
 - graphql-java (from https://github.com/graphql-java/graphql-java)
 - jersey-core-common (from )
 - jersey-core-server (from git://java.net/jersey~code/jersey-server)
 - msal4j (from https://github.com/AzureAD/microsoft-authentication-library-for-java)
-- value (from )
 
 ========================================================================
 unknown
@@ -794,7 +762,6 @@ The following software have components provided under the terms of this license:
 
 - Checker Qual (from https://checkerframework.org)
 - ClassMate (from http://github.com/cowtowncoder/java-classmate)
-- JSON in Java (from https://github.com/douglascrockford/JSON-java)
 - JSON in Java (from https://github.com/douglascrockford/JSON-java)
 - JUnit Jupiter (Aggregator) (from https://junit.org/junit5/)
 - Java Native Access (from https://github.com/java-native-access/jna)
