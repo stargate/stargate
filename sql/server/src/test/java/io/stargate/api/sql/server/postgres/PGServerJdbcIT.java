@@ -98,4 +98,18 @@ class PGServerJdbcIT extends PGServerTestBase {
     statement.close();
     connection.close();
   }
+
+  @Test
+  public void simpleInsertWithPlaceholder() throws SQLException {
+    withAnyInsertInfo(table2).returningNothing();
+
+    Connection connection = openConnection();
+    assertThat(connection).isNotNull();
+
+    PreparedStatement statement =
+        connection.prepareStatement("insert into test_ks.test2 (x, y) values (?, ?)");
+    statement.setInt(1, 123);
+    statement.setString(2, "abc");
+    assertThat(statement.executeUpdate()).isEqualTo(1);
+  }
 }

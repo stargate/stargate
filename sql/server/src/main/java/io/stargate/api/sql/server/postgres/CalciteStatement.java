@@ -16,7 +16,7 @@
 package io.stargate.api.sql.server.postgres;
 
 import io.stargate.api.sql.plan.PreparedSqlQuery;
-import java.util.Collections;
+import java.util.List;
 
 public class CalciteStatement extends Statement {
 
@@ -32,7 +32,12 @@ public class CalciteStatement extends Statement {
   }
 
   @Override
-  public Iterable<Object> execute(Connection connection) {
-    return prepared.execute(Collections.emptyList());
+  public Iterable<Object> execute(Connection connection, List<?> parameters) {
+    return prepared.execute(parameters);
+  }
+
+  @Override
+  public String toString() {
+    return prepared.kind().toString();
   }
 }

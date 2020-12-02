@@ -19,27 +19,31 @@ import io.netty.buffer.ByteBuf;
 import io.reactivex.Flowable;
 import io.stargate.api.sql.server.postgres.Connection;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.List;
 
 public class Bind extends ExtendedQueryMessage {
 
   private final String portalName;
   private final String statementName;
   private final int[] paramFormatCodes;
-  private final Collection<byte[]> params;
+  private final List<byte[]> params;
   private final int[] resultFormatCodes;
 
   private Bind(
       String portalName,
       String statementName,
       int[] paramFormatCodes,
-      Collection<byte[]> params,
+      List<byte[]> params,
       int[] resultFormatCodes) {
     this.portalName = portalName;
     this.statementName = statementName;
     this.paramFormatCodes = paramFormatCodes;
     this.params = params;
     this.resultFormatCodes = resultFormatCodes;
+  }
+
+  public static Bind empty() {
+    return new Bind("", "", new int[0], new ArrayList<>(0), new int[0]);
   }
 
   public static Bind create(int bodySize, ByteBuf bytes) {
@@ -53,10 +57,19 @@ public class Bind extends ExtendedQueryMessage {
     }
 
     int numParams = bytes.readUnsignedShort();
-    Collection<byte[]> params = new ArrayList<>(numParams);
+
+    if (numCodes > 1 && numCodes != numParams) {
+      throw new IllegalArgumentException(
+          String.format(
+              "The number of parameters (%d) does not "
+                  + "match the number of parameter format codes (%d)",
+              numParams, numCodes));
+    }
+
+    ArrayList<byte[]> params = new ArrayList<>(numParams);
     while (numParams-- > 0) {
       int paramSize = bytes.readInt();
-      if (paramSize == 0) {
+      if (paramSize < 0) {
         params.add(null);
       } else {
         byte[] value = new byte[paramSize];
@@ -89,5 +102,25 @@ public class Bind extends ExtendedQueryMessage {
 
   public int[] getResultFormatCodes() {
     return resultFormatCodes;
+  }
+
+  public int numberOfParameters() {
+    return params.size();
+  }
+
+  public int parameterFormat(int index) {
+    if (paramFormatCodes.length == 0) {
+      return 0; // text by default
+    }
+
+    if (paramFormatCodes.length == 1) {
+      return paramFormatCodes[0];
+    }
+
+    return paramFormatCodes[index];
+  }
+
+  public byte[] parameterBytes(int index) {
+    return params.get(index);
   }
 }

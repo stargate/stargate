@@ -16,6 +16,7 @@
 package io.stargate.api.sql.server.postgres;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,8 +44,13 @@ public class SetStatement extends Statement {
   }
 
   @Override
-  public Iterable<Object> execute(Connection connection) {
+  public Iterable<Object> execute(Connection connection, List<?> parameters) {
     connection.setProperty(key, value);
     return Collections.emptyList();
+  }
+
+  @Override
+  public String toString() {
+    return "SET " + key + " = " + value;
   }
 }

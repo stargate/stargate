@@ -161,9 +161,17 @@ public class TypeUtils {
         BigDecimal i = (BigDecimal) jdbcValue;
         return i.toBigInteger();
       case Date:
-        return ((Date) jdbcValue).toLocalDate();
+        if (jdbcValue instanceof LocalDate) {
+          return jdbcValue;
+        } else {
+          return ((Date) jdbcValue).toLocalDate();
+        }
       case Time:
-        return ((Time) jdbcValue).toLocalTime();
+        if (jdbcValue instanceof LocalTime) {
+          return jdbcValue;
+        } else {
+          return ((Time) jdbcValue).toLocalTime();
+        }
       case Timestamp:
         return ((Timestamp) jdbcValue).toInstant();
       case Duration:

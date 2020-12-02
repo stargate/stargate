@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
+import org.javatuples.Pair;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -77,13 +78,13 @@ class PGServerPlainSocketIT extends PGServerTestBase {
     Assertions.assertThat(c.in.readInt()).isEqualTo(8); // msg size
     Assertions.assertThat(c.in.readInt()).isEqualTo(0); // auth success
 
-    // expect ParameterStatus response
-    Assertions.assertThat(c.in.readByte()).isEqualTo((byte) 'S');
-    size = c.in.readInt();
-    String paramName = c.readString(size);
-    String paramValue = c.readString(size);
-    assertThat(paramName).isEqualTo("server_version");
-    assertThat(paramValue).isEqualTo("13.0");
+    Pair<String, String> serverVersion = readParameter(c);
+    assertThat(serverVersion.getValue0()).isEqualTo("server_version");
+    assertThat(serverVersion.getValue1()).isEqualTo("13.0");
+
+    Pair<String, String> timeZone = readParameter(c);
+    assertThat(timeZone.getValue0()).isEqualTo("TimeZone");
+    assertThat(timeZone.getValue1()).isEqualTo("GMT");
 
     Map<String, String> notice = readNotice(c, 'N');
     assertThat(notice).containsEntry("S", "WARNING");
@@ -108,6 +109,14 @@ class PGServerPlainSocketIT extends PGServerTestBase {
     }
 
     return data;
+  }
+
+  private Pair<String, String> readParameter(DB c) throws IOException {
+    readExpectedMsgType(c, 'S');
+    int size = c.in.readInt();
+    String paramName = c.readString(size);
+    String paramValue = c.readString(size);
+    return Pair.with(paramName, paramValue);
   }
 
   private void writeQuery(DB c, String sql) throws IOException {

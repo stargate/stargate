@@ -80,6 +80,15 @@ public class QueryPlannerTest extends AbstractDataStoreTest {
   }
 
   @Test
+  public void selectWithPostgresBindMarkers() throws Exception {
+    withTwoRowsInTable2();
+    PreparedSqlQuery prepared = prepare("SELECT x as z, y from test2 where y = $1");
+    List<Object[]> result = execute(prepared, "row_2");
+    assertThat(result).extracting(a -> a[0]).containsExactly(2);
+    assertThat(result).extracting(a -> a[1]).containsExactly("row_2");
+  }
+
+  @Test
   public void simpleInsert() throws Exception {
     withQuery(table2, "INSERT INTO test_ks.test2 (x, y) VALUES (?, ?)", 11, "aaa")
         .returningNothing();
@@ -91,6 +100,28 @@ public class QueryPlannerTest extends AbstractDataStoreTest {
   }
 
   @Test
+  public void insertWithBindMarkers() throws Exception {
+    withQuery(table2, "INSERT INTO test_ks.test2 (x, y) VALUES (?, ?)", 11, "aaa")
+        .returningNothing();
+
+    PreparedSqlQuery prepared = prepare("INSERT INTO test2 (x, y) VALUES (?, ?)");
+
+    List<Object[]> result = execute(prepared, 11, "aaa");
+    assertThat(result).extracting(a -> a[0]).containsExactly(1);
+  }
+
+  @Test
+  public void insertWithPostgresBindMarkers() throws Exception {
+    withQuery(table2, "INSERT INTO test_ks.test2 (x, y) VALUES (?, ?)", 11, "aaa")
+        .returningNothing();
+
+    PreparedSqlQuery prepared = prepare("INSERT INTO test2 (x, y) VALUES ($2, $1)");
+
+    List<Object[]> result = execute(prepared, "aaa", 11);
+    assertThat(result).extracting(a -> a[0]).containsExactly(1);
+  }
+
+  @Test
   public void simpleUpdate() throws Exception {
     withTwoRowsInTable2();
     withQuery(table2, "INSERT INTO %s (x, y) VALUES (?, ?)", 1, "bbb").returningNothing();
@@ -98,6 +129,17 @@ public class QueryPlannerTest extends AbstractDataStoreTest {
     PreparedSqlQuery prepared = prepare("UPDATE test2 SET y = 'bbb' WHERE y = 'row_1'");
 
     List<Object[]> result = execute(prepared);
+    assertThat(result).extracting(a -> a[0]).containsExactly(1);
+  }
+
+  @Test
+  public void updateWithPostgresBindMarkers() throws Exception {
+    withTwoRowsInTable2();
+    withQuery(table2, "INSERT INTO %s (x, y) VALUES (?, ?)", 1, "bbb").returningNothing();
+
+    PreparedSqlQuery prepared = prepare("UPDATE test2 SET y = $2 WHERE y = $1");
+
+    List<Object[]> result = execute(prepared, "row_1", "bbb");
     assertThat(result).extracting(a -> a[0]).containsExactly(1);
   }
 

@@ -32,6 +32,10 @@ public class ParameterStatus extends PGServerMessage {
     return new ParameterStatus("server_version", version);
   }
 
+  public static ParameterStatus timeZone() {
+    return new ParameterStatus("TimeZone", "GMT");
+  }
+
   @Override
   public void write(ByteBuf out) {
     out.writeByte('S'); // message type

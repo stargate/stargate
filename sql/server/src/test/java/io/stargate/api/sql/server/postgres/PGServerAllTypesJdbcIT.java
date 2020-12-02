@@ -31,6 +31,7 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -56,16 +57,6 @@ class PGServerAllTypesJdbcIT extends PGServerTestBase {
       SqlGetter<String> getByName,
       SqlGetter<Integer> getByPosition)
       throws SQLException {
-    validateValue(column, expectedValue, expectedValue, getByName, getByPosition);
-  }
-
-  private void validateValue(
-      String column,
-      Object valueByName,
-      Object valueByPosition,
-      SqlGetter<String> getByName,
-      SqlGetter<Integer> getByPosition)
-      throws SQLException {
     withAnySelectFrom(table3).returning(ImmutableList.of(sampleValues(table3, false)));
 
     Connection connection = openConnection();
@@ -74,12 +65,12 @@ class PGServerAllTypesJdbcIT extends PGServerTestBase {
     ResultSet rs1 =
         statement.executeQuery(String.format("select %s from test_ks.supported_types", column));
     assertThat(rs1.next()).isTrue();
-    assertThat(getByName.from(rs1, column)).isEqualTo(valueByName);
-    assertThat(getByPosition.from(rs1, 1)).isEqualTo(valueByPosition);
+    assertThat(getByName.from(rs1, column)).isEqualTo(expectedValue);
+    assertThat(getByPosition.from(rs1, 1)).isEqualTo(expectedValue);
 
     ResultSet rs2 = statement.executeQuery("select * from test_ks.supported_types");
     assertThat(rs2.next()).isTrue();
-    assertThat(getByName.from(rs2, column)).isEqualTo(valueByName);
+    assertThat(getByName.from(rs2, column)).isEqualTo(expectedValue);
   }
 
   private <V> void validateParameter(String column, V value, SqlSetter<Integer, V> setter)
@@ -119,19 +110,23 @@ class PGServerAllTypesJdbcIT extends PGServerTestBase {
       value = ((Short) value).intValue();
     }
 
-    validateValue(column, value, value, ResultSet::getObject, ResultSet::getObject);
+    validateValue(column, value, ResultSet::getObject, ResultSet::getObject);
   }
 
-  //  @ParameterizedTest
-  //  @MethodSource("allColumnParams")
-  //  public void allSetObject(String column, Object value)
-  //      throws SQLException {
-  //    validateParameter(column, value, PreparedStatement::setObject);
-  //  }
+  @ParameterizedTest
+  @MethodSource("allColumnParams")
+  public void allSetObject(String column, Object value) throws SQLException {
+    validateParameter(column, value, PreparedStatement::setObject);
+  }
 
   @Test
   public void getAscii() throws SQLException {
     validateValue("c_ascii", "example", ResultSet::getString, ResultSet::getString);
+  }
+
+  @Test
+  public void setAscii() throws SQLException {
+    validateParameter("c_ascii", "example", PreparedStatement::setString);
   }
 
   @Test
@@ -140,13 +135,28 @@ class PGServerAllTypesJdbcIT extends PGServerTestBase {
   }
 
   @Test
+  public void setBigint() throws SQLException {
+    validateParameter("c_bigint", Long.MAX_VALUE, PreparedStatement::setLong);
+  }
+
+  @Test
   public void getBoolean() throws SQLException {
     validateValue("c_boolean", false, ResultSet::getBoolean, ResultSet::getBoolean);
   }
 
   @Test
+  public void setBoolean() throws SQLException {
+    validateParameter("c_boolean", false, PreparedStatement::setBoolean);
+  }
+
+  @Test
   public void getCounter() throws SQLException {
     validateValue("c_counter", Long.MAX_VALUE, ResultSet::getLong, ResultSet::getLong);
+  }
+
+  @Test
+  public void setCounter() throws SQLException {
+    validateParameter("c_counter", Long.MAX_VALUE, PreparedStatement::setLong);
   }
 
   @Test
@@ -156,9 +166,24 @@ class PGServerAllTypesJdbcIT extends PGServerTestBase {
   }
 
   @Test
+  public void setDate() throws SQLException {
+    validateParameter("c_date", Date.valueOf(LocalDate.of(2020, 1, 2)), PreparedStatement::setDate);
+  }
+
+  @Test
+  public void setLocalDate() throws SQLException {
+    validateParameter("c_date", LocalDate.of(2020, 1, 2), PreparedStatement::setObject);
+  }
+
+  @Test
   public void getDecimal() throws SQLException {
     validateValue(
         "c_decimal", BIG_DECIMAL_EXAMPLE, ResultSet::getBigDecimal, ResultSet::getBigDecimal);
+  }
+
+  @Test
+  public void setDecimal() throws SQLException {
+    validateParameter("c_decimal", BIG_DECIMAL_EXAMPLE, PreparedStatement::setBigDecimal);
   }
 
   @Test
@@ -167,8 +192,18 @@ class PGServerAllTypesJdbcIT extends PGServerTestBase {
   }
 
   @Test
+  public void setDouble() throws SQLException {
+    validateParameter("c_double", Double.MAX_VALUE, PreparedStatement::setDouble);
+  }
+
+  @Test
   public void getDuration() throws SQLException {
     validateValue("c_duration", "P1M2DT3S", ResultSet::getString, ResultSet::getString);
+  }
+
+  @Test
+  public void setDuration() throws SQLException {
+    validateParameter("c_duration", "P1M2DT3S", PreparedStatement::setString);
   }
 
   @Test
@@ -177,8 +212,18 @@ class PGServerAllTypesJdbcIT extends PGServerTestBase {
   }
 
   @Test
+  public void setInet() throws SQLException {
+    validateParameter("c_inet", "127.0.0.1", PreparedStatement::setString);
+  }
+
+  @Test
   public void getInt() throws SQLException {
     validateValue("c_int", Integer.MAX_VALUE, ResultSet::getInt, ResultSet::getInt);
+  }
+
+  @Test
+  public void setInt() throws SQLException {
+    validateParameter("c_int", Integer.MAX_VALUE, PreparedStatement::setInt);
   }
 
   @Test
@@ -187,13 +232,33 @@ class PGServerAllTypesJdbcIT extends PGServerTestBase {
   }
 
   @Test
+  public void setSmallint() throws SQLException {
+    validateParameter("c_smallint", Short.MAX_VALUE, PreparedStatement::setShort);
+  }
+
+  @Test
   public void getText() throws SQLException {
     validateValue("c_text", "example", ResultSet::getString, ResultSet::getString);
   }
 
   @Test
+  public void setText() throws SQLException {
+    validateParameter("c_text", "example", PreparedStatement::setString);
+  }
+
+  @Test
   public void getTime() throws SQLException {
     validateValue("c_time", Time.valueOf("23:42:11"), ResultSet::getTime, ResultSet::getTime);
+  }
+
+  @Test
+  public void setTime() throws SQLException {
+    validateParameter("c_time", Time.valueOf("23:42:11"), PreparedStatement::setTime);
+  }
+
+  @Test
+  public void setLocalTime() throws SQLException {
+    validateParameter("c_time", LocalTime.of(23, 42, 11), PreparedStatement::setObject);
   }
 
   @Test
@@ -203,9 +268,19 @@ class PGServerAllTypesJdbcIT extends PGServerTestBase {
   }
 
   @Test
+  public void setTimestamp() throws SQLException {
+    validateParameter("c_timestamp", new Timestamp(0), PreparedStatement::setTimestamp);
+  }
+
+  @Test
   public void getTimeuuid() throws SQLException {
     validateValue(
         "c_timeuuid", Uuids.startOf(1).toString(), ResultSet::getString, ResultSet::getString);
+  }
+
+  @Test
+  public void setTimeuuid() throws SQLException {
+    validateParameter("c_timeuuid", Uuids.startOf(1).toString(), PreparedStatement::setString);
   }
 
   @Test
@@ -214,9 +289,19 @@ class PGServerAllTypesJdbcIT extends PGServerTestBase {
   }
 
   @Test
+  public void setTinyint() throws SQLException {
+    validateParameter("c_tinyint", Byte.MAX_VALUE, PreparedStatement::setByte);
+  }
+
+  @Test
   public void getUuid() throws SQLException {
     validateValue(
         "c_uuid", Uuids.startOf(1).toString(), ResultSet::getString, ResultSet::getString);
+  }
+
+  @Test
+  public void setUuid() throws SQLException {
+    validateParameter("c_uuid", Uuids.startOf(1).toString(), PreparedStatement::setString);
   }
 
   @FunctionalInterface

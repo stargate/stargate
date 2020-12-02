@@ -30,6 +30,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpretable;
@@ -50,18 +53,27 @@ import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlExplain;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
@@ -75,6 +87,8 @@ import org.apache.calcite.tools.Programs;
  * Calcite. It drives query parsing, planning and optimization.
  */
 public class QueryPlanner {
+
+  private static final Pattern PG_PLACEHOLDER = Pattern.compile("\\$[0-9]+");
 
   private static final SqlParser.Config CONFIG = makeConfig();
 
@@ -95,6 +109,8 @@ public class QueryPlanner {
 
     SqlParser sqlParser = SqlParser.create(sql, CONFIG);
     SqlNode sqlNode = sqlParser.parseQuery();
+
+    replacePostgresMarkers(sqlNode);
 
     VolcanoPlanner planner = new VolcanoPlanner(null, Contexts.EMPTY_CONTEXT);
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
@@ -177,6 +193,81 @@ public class QueryPlanner {
         isDml(sqlNode),
         parameterRowType,
         explain);
+  }
+
+  private SqlDynamicParam maybeConvertPostgresMarker(SqlNode node) {
+    if (node != null && node.getKind() == SqlKind.IDENTIFIER) {
+      SqlIdentifier id = (SqlIdentifier) node;
+      if (id.isSimple()) {
+        String str = id.getSimple();
+        if (PG_PLACEHOLDER.matcher(str).matches()) {
+          int pos = Integer.parseInt(str.substring(1)) - 1; // adjust for JDBC index convention
+          return new SqlDynamicParam(pos, id.getParserPosition());
+        }
+      }
+    }
+    return null;
+  }
+
+  private void replacePostgresMarkers(SqlCall call) {
+    for (int i = 0; i < call.operandCount(); i++) {
+      SqlNode operand = call.operand(i);
+      SqlDynamicParam param = maybeConvertPostgresMarker(operand);
+      if (param != null) {
+        call.setOperand(i, param);
+      }
+    }
+  }
+
+  private void replacePostgresMarkers(SqlNodeList list) {
+    for (int i = 0; i < list.size(); i++) {
+      SqlNode operand = list.get(i);
+      SqlDynamicParam param = maybeConvertPostgresMarker(operand);
+      if (param != null) {
+        list.set(i, param);
+      }
+    }
+  }
+
+  private void replacePostgresMarkers(SqlNode sqlNode) {
+    sqlNode.accept(
+        new SqlBasicVisitor<Void>() {
+          @Override
+          public Void visit(SqlCall call) {
+            replacePostgresMarkers(call);
+            return super.visit(call);
+          }
+
+          @Override
+          public Void visit(SqlNodeList nodeList) {
+            replacePostgresMarkers(nodeList);
+            return super.visit(nodeList);
+          }
+        });
+  }
+
+  private List<RelDataType> extractParams(RelNode node) {
+    SortedMap<Integer, RexDynamicParam> params = new TreeMap<>();
+
+    RexShuttle rexVisitor =
+        new RexShuttle() {
+          @Override
+          public RexNode visitDynamicParam(RexDynamicParam param) {
+            params.put(param.getIndex(), param);
+            return super.visitDynamicParam(param);
+          }
+        };
+
+    node.accept(
+        new RelHomogeneousShuttle() {
+          @Override
+          public RelNode visit(RelNode node) {
+            node.accept(rexVisitor);
+            return super.visit(node);
+          }
+        });
+
+    return params.values().stream().map(RexDynamicParam::getType).collect(Collectors.toList());
   }
 
   private boolean isDml(SqlNode sqlNode) {

@@ -17,6 +17,7 @@ package io.stargate.api.sql.server.postgres.msg;
 
 import io.netty.buffer.ByteBuf;
 import java.nio.charset.StandardCharsets;
+import org.apache.calcite.sql.SqlKind;
 
 public class CommandComplete extends PGServerMessage {
 
@@ -32,6 +33,25 @@ public class CommandComplete extends PGServerMessage {
 
   public static CommandComplete forSelect(long rowCount) {
     return new CommandComplete("SELECT " + rowCount);
+  }
+
+  public static CommandComplete forDml(SqlKind kind, long rowCount) {
+    String pgKind;
+    switch (kind) {
+      case INSERT:
+        pgKind = "INSERT";
+        break;
+      case UPDATE:
+        pgKind = "UPDATE";
+        break;
+      case DELETE:
+        pgKind = "UPDATE";
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported statement kind: " + kind);
+    }
+
+    return new CommandComplete(pgKind + " " + rowCount);
   }
 
   @Override

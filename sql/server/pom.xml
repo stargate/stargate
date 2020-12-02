@@ -82,7 +82,6 @@
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
       <version>42.2.16</version>
-      <scope>test</scope>
     </dependency>
   </dependencies>
   <build>

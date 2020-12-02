@@ -17,10 +17,12 @@ package io.stargate.api.sql.server.postgres;
 
 import io.reactivex.Flowable;
 import io.stargate.api.sql.plan.PreparedSqlQuery;
+import io.stargate.api.sql.server.postgres.msg.Bind;
 import io.stargate.api.sql.server.postgres.msg.CommandComplete;
 import io.stargate.api.sql.server.postgres.msg.DataRow;
+import io.stargate.api.sql.server.postgres.msg.NoData;
 import io.stargate.api.sql.server.postgres.msg.PGServerMessage;
-import java.sql.Timestamp;
+import io.stargate.api.sql.server.postgres.msg.RowDescription;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -34,14 +36,28 @@ public class Portal {
 
   private final Statement statement;
   private final List<FieldInfo> fields;
+  private final List<Object> parameters;
 
-  public Portal(Statement statement, int[] resultFormatCodes) {
+  public Portal(Statement statement, Bind bind) {
     this.statement = statement;
-    this.fields = fields(statement, resultFormatCodes);
+    this.fields = fields(statement, bind.getResultFormatCodes());
+    this.parameters = parameters(statement, bind);
+  }
+
+  private boolean isDml() {
+    return statement.prepared() != null && statement.prepared().isDml();
   }
 
   public Flowable<PGServerMessage> execute(Connection connection) {
-    Iterable<Object> rows = statement.execute(connection);
+    Iterable<Object> rows = statement.execute(connection, parameters);
+
+    if (isDml()) {
+      // expect one row with the update count
+      Object next = rows.iterator().next();
+      long count = ((Number) next).longValue();
+      return Flowable.just(CommandComplete.forDml(statement.prepared().kind(), count));
+    }
+
     AtomicLong count = new AtomicLong();
     return Flowable.fromIterable(rows)
         .map(
@@ -142,7 +158,7 @@ public class Portal {
         return PGType.Timestamp;
       case TINYINT:
         // Note: the 1-byte char type is treated as a String by the PostgreSQL JDBC driver
-        return PGType.Int2;
+        return PGType.Int2tiny;
       case DECIMAL:
         return PGType.Numeric;
       case DOUBLE:
@@ -151,6 +167,45 @@ public class Portal {
         return PGType.Int2;
       default:
         throw new IllegalArgumentException("Unsupported SQL type: " + sqlType);
+    }
+  }
+
+  private static List<Object> parameters(Statement statement, Bind bind) {
+    PreparedSqlQuery prepared = statement.prepared();
+    if (prepared == null) {
+      return Collections.emptyList();
+    }
+
+    bind.numberOfParameters();
+    List<RelDataTypeField> fields = prepared.getParametersType().getFieldList();
+
+    if (fields.size() != bind.numberOfParameters()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Statement has %d parameters, but %d are bound",
+              fields.size(), bind.numberOfParameters()));
+    }
+
+    List<Object> values = new ArrayList<>(fields.size());
+
+    int idx = 0;
+    for (RelDataTypeField field : fields) {
+      int format = bind.parameterFormat(idx);
+      byte[] bytes = bind.parameterBytes(idx);
+      idx++;
+
+      PGType pgType = toPGType(field.getType());
+      values.add(pgType.parse(bytes, format));
+    }
+
+    return values;
+  }
+
+  public PGServerMessage describe() {
+    if (isDml()) {
+      return NoData.instance();
+    } else {
+      return RowDescription.from(this);
     }
   }
 }

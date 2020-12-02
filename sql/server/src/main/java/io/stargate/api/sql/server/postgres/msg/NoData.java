@@ -13,16 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.api.sql.server.postgres;
+package io.stargate.api.sql.server.postgres.msg;
 
-import io.stargate.api.sql.plan.PreparedSqlQuery;
-import java.util.List;
+import io.netty.buffer.ByteBuf;
 
-public abstract class Statement {
+public class NoData extends PGServerMessage {
 
-  public abstract Iterable<Object> execute(Connection connection, List<?> parameters);
+  private static final NoData INSTANCE = new NoData();
 
-  public PreparedSqlQuery prepared() {
-    return null;
+  private NoData() {}
+
+  public static NoData instance() {
+    return INSTANCE;
+  }
+
+  @Override
+  public void write(ByteBuf out) {
+    out.writeByte('n');
+    out.writeInt(4); // just the size int4, no body
   }
 }

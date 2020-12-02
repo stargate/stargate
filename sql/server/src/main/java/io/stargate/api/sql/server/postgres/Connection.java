@@ -192,6 +192,7 @@ public class Connection {
               return Flowable.just(
                   new AuthenticationOk(),
                   ParameterStatus.serverVersion("13.0"),
+                  ParameterStatus.timeZone(),
                   NoticeResponse.warning("PostgreSQL protocol support is experimental in Stargate"),
                   ReadyForQuery.instance());
             });
@@ -228,7 +229,7 @@ public class Connection {
               throw new IllegalStateException("Unknown statement: " + statementName);
             });
 
-    return new Portal(statement, message.getResultFormatCodes());
+    return new Portal(statement, message);
   }
 
   private Flowable<PGServerMessage> execute(Query message) {
@@ -245,7 +246,7 @@ public class Connection {
 
   private Flowable<PGServerMessage> executeSimple(String sql) {
     Statement statement = prepareInternal(sql);
-    Portal portal = new Portal(statement, new int[0]);
+    Portal portal = new Portal(statement, Bind.empty());
     return Flowable.just((PGServerMessage) RowDescription.from(portal))
         .concatWith(portal.execute(this));
   }
@@ -285,6 +286,6 @@ public class Connection {
       throw new IllegalArgumentException("Unknown portal: '" + name + "'");
     }
 
-    return Flowable.just(RowDescription.from(portal));
+    return Flowable.just(portal.describe());
   }
 }
