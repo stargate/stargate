@@ -16,17 +16,27 @@
 package io.stargate.producer.kafka.health;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.health.HealthCheck.Result;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Stream;
+import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.Node;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.util.SocketUtils;
 
@@ -112,6 +122,68 @@ class KafkaHealthCheckIT {
     assertThat(result.isHealthy()).isTrue();
     assertThat(result.getMessage()).isEqualTo("Kafka cluster UP");
     assertDetails(result.getDetails());
+  }
+
+  @ParameterizedTest
+  @MethodSource("clusterInfoProvider")
+  public void shouldReturnUnhealthyWhenRequiredDataIsNotPresent(
+      Collection<Node> nodes, Node controller, String clusterId, String errorMessage)
+      throws ExecutionException, InterruptedException {
+    // given
+    DescribeClusterResult describeClusterResult = mock(DescribeClusterResult.class);
+    when(describeClusterResult.clusterId()).thenReturn(KafkaFuture.completedFuture(clusterId));
+    when(describeClusterResult.controller()).thenReturn(KafkaFuture.completedFuture(controller));
+    when(describeClusterResult.nodes()).thenReturn(KafkaFuture.completedFuture(nodes));
+
+    // when
+    Result result = KafkaHealthCheck.validateIfDataWasReported(describeClusterResult);
+
+    // then
+    assertThat(result).isNotNull();
+    assertThat(result.isHealthy()).isFalse();
+    assertThat(result.getMessage()).isEqualTo(errorMessage);
+  }
+
+  @Test
+  public void shouldReturnNullWhenRequiredDataIsPresent()
+      throws ExecutionException, InterruptedException {
+    // given
+    DescribeClusterResult describeClusterResult = mock(DescribeClusterResult.class);
+    when(describeClusterResult.clusterId()).thenReturn(KafkaFuture.completedFuture("cluster_id"));
+    when(describeClusterResult.controller())
+        .thenReturn(KafkaFuture.completedFuture(mock(Node.class)));
+    when(describeClusterResult.nodes())
+        .thenReturn(KafkaFuture.completedFuture(Collections.singleton(mock(Node.class))));
+
+    // when
+    Result result = KafkaHealthCheck.validateIfDataWasReported(describeClusterResult);
+
+    // then
+    assertThat(result).isNull();
+  }
+
+  public static Stream<Arguments> clusterInfoProvider() {
+    Collection<Node> nodesInCluster = Collections.singleton(mock(Node.class));
+    Node controller = mock(Node.class);
+
+    return Stream.of(
+        Arguments.of(nodesInCluster, controller, null, "no cluster id available"),
+        Arguments.of(nodesInCluster, null, "cluster_id", "no active controller exists"),
+        Arguments.of(Collections.emptyList(), controller, "cluster_id", "no nodes found"),
+        Arguments.of(
+            nodesInCluster, null, null, "no cluster id available,no active controller exists"),
+        Arguments.of(
+            Collections.emptyList(), controller, null, "no nodes found,no cluster id available"),
+        Arguments.of(
+            Collections.emptyList(),
+            null,
+            "cluster_id",
+            "no nodes found,no active controller exists"),
+        Arguments.of(
+            Collections.emptyList(),
+            null,
+            null,
+            "no nodes found,no cluster id available,no active controller exists"));
   }
 
   @NotNull

@@ -30,6 +30,7 @@ import static io.stargate.producer.kafka.schema.SchemasTestConstants.PARTITION_K
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.health.HealthCheckRegistry;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
@@ -81,7 +82,8 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     String topicName = createTopicName(tableMetadata);
 
     ConfigStore configStore = mockConfigStoreWithProducerSettings();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(new MetricRegistry(), configStore, new HealthCheckRegistry());
     kafkaCDCProducer.init().get();
 
     // when
@@ -122,7 +124,8 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     String topicName = createTopicName(tableMetadata);
 
     ConfigStore configStore = mockConfigStoreWithProducerSettings();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(new MetricRegistry(), configStore, new HealthCheckRegistry());
     kafkaCDCProducer.init().get();
 
     // when
@@ -163,7 +166,8 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     String topicName = createTopicName(tableMetadata);
 
     ConfigStore configStore = mockConfigStoreWithProducerSettings();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(new MetricRegistry(), configStore, new HealthCheckRegistry());
     kafkaCDCProducer.init().get();
 
     // when
@@ -230,7 +234,8 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     String topicName = createTopicName(tableMetadata);
 
     ConfigStore configStore = mockConfigStoreWithProducerSettings();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(new MetricRegistry(), configStore, new HealthCheckRegistry());
     kafkaCDCProducer.init().get();
 
     // when
@@ -380,7 +385,8 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     String topicName = createTopicName(tableMetadata);
 
     ConfigStore configStore = mockConfigStoreWithProducerSettings();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(new MetricRegistry(), configStore, new HealthCheckRegistry());
     kafkaCDCProducer.init().get();
 
     // when
@@ -420,7 +426,8 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     String topicName = createTopicName(tableMetadata);
 
     ConfigStore configStore = mockConfigStoreWithProducerSettings();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(new MetricRegistry(), configStore, new HealthCheckRegistry());
     kafkaCDCProducer.init().get();
 
     // normal map
@@ -494,7 +501,8 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     String topicNameSecond = createTopicName(tableMetadataFirst);
 
     ConfigStore configStore = mockConfigStoreWithProducerSettings();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(new MetricRegistry(), configStore, new HealthCheckRegistry());
     kafkaCDCProducer.init().get();
 
     // when

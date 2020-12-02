@@ -17,6 +17,7 @@ package io.stargate.producer.kafka;
 
 import static io.stargate.producer.kafka.configuration.DefaultConfigLoader.CONFIG_STORE_MODULE_NAME;
 
+import com.codahale.metrics.health.HealthCheckRegistry;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.UncheckedExecutionException;
 import com.google.common.annotations.VisibleForTesting;
 import io.stargate.config.store.api.ConfigStore;
@@ -40,6 +41,8 @@ public class KafkaProducerActivator extends BaseActivator {
 
   private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private ServicePointer<ConfigStore> configStore = ServicePointer.create(ConfigStore.class);
+  private final ServicePointer<HealthCheckRegistry> healthCheckRegistry =
+      ServicePointer.create(HealthCheckRegistry.class);
 
   public KafkaProducerActivator() {
     super("Kafka producer");
@@ -53,7 +56,9 @@ public class KafkaProducerActivator extends BaseActivator {
       LOG.info("CDC Kafka producer is enabled");
       CDCProducer producer =
           new KafkaCDCProducer(
-              metrics.get().getRegistry(KAFKA_CDC_METRICS_PREFIX), configStore.get());
+              metrics.get().getRegistry(KAFKA_CDC_METRICS_PREFIX),
+              configStore.get(),
+              healthCheckRegistry.get());
       try {
         producer.init().get();
       } catch (ExecutionException e) {
@@ -92,6 +97,6 @@ public class KafkaProducerActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(metrics, configStore);
+    return Arrays.asList(metrics, configStore, healthCheckRegistry);
   }
 }

@@ -16,8 +16,8 @@
 package io.stargate.producer.kafka.health;
 
 import com.codahale.metrics.health.HealthCheck;
-import java.util.Collections;
-import java.util.Map;
+import com.google.common.annotations.VisibleForTesting;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
@@ -32,6 +32,10 @@ public class KafkaHealthCheck extends HealthCheck {
       new DescribeClusterOptions().timeoutMs(DEFAULT_TIMEOUT_MILLIS);
   private final Map<String, Object> kafkaSettings;
 
+  /**
+   * It requires only {@link
+   * org.apache.kafka.clients.producer.ProducerConfig#BOOTSTRAP_SERVERS_CONFIG} setting
+   */
   public KafkaHealthCheck(Map<String, Object> kafkaSettings) {
     this.kafkaSettings = kafkaSettings;
   }
@@ -42,6 +46,9 @@ public class KafkaHealthCheck extends HealthCheck {
       ResultBuilder resultBuilder = Result.builder();
       DescribeClusterResult result = adminClient.describeCluster(DESCRIBE_OPTIONS);
       try {
+        Result errorMessage = validateIfDataWasReported(result);
+        if (errorMessage != null) return errorMessage;
+
         String brokerId = result.controller().get().idString();
         int replicationFactor = getReplicationFactor(brokerId, adminClient);
         int nodes = result.nodes().get().size();
@@ -60,6 +67,32 @@ public class KafkaHealthCheck extends HealthCheck {
         return resultBuilder.unhealthy(e).withMessage("Kafka cluster DOWN").build();
       }
     }
+  }
+
+  @VisibleForTesting
+  static Result validateIfDataWasReported(DescribeClusterResult result)
+      throws InterruptedException, ExecutionException {
+    boolean nodesNotEmpty = !result.nodes().get().isEmpty();
+    boolean clusterIdAvailable = result.clusterId().get() != null;
+    boolean aControllerExists = result.controller().get() != null;
+    List<String> errors = new ArrayList<>();
+    if (!nodesNotEmpty) {
+      errors.add("no nodes found");
+    }
+
+    if (!clusterIdAvailable) {
+      errors.add("no cluster id available");
+    }
+
+    if (!aControllerExists) {
+      errors.add("no active controller exists");
+    }
+
+    if (!errors.isEmpty()) {
+      String errorMessage = String.join(",", errors);
+      return Result.unhealthy(errorMessage);
+    }
+    return null;
   }
 
   private int getReplicationFactor(String brokerId, AdminClient adminClient)
