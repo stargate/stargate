@@ -34,11 +34,11 @@ import org.slf4j.LoggerFactory;
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(
     initQueries = {
-        "CREATE ROLE IF NOT EXISTS 'read_only_user' WITH PASSWORD = 'read_only_user' AND LOGIN = TRUE",
-        "CREATE KEYSPACE IF NOT EXISTS table_token_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}",
-        "CREATE TABLE IF NOT EXISTS table_token_test.tbl_test (key text PRIMARY KEY, value text);",
-        "INSERT INTO table_token_test.tbl_test (key, value) VALUES ('a', 'alpha')",
-        "GRANT SELECT ON KEYSPACE table_token_test TO read_only_user",
+      "CREATE ROLE IF NOT EXISTS 'read_only_user' WITH PASSWORD = 'read_only_user' AND LOGIN = TRUE",
+      "CREATE KEYSPACE IF NOT EXISTS table_token_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}",
+      "CREATE TABLE IF NOT EXISTS table_token_test.tbl_test (key text PRIMARY KEY, value text);",
+      "INSERT INTO table_token_test.tbl_test (key, value) VALUES ('a', 'alpha')",
+      "GRANT SELECT ON KEYSPACE table_token_test TO read_only_user",
     })
 public class RestApiTableTokenAuthTest extends BaseOsgiIntegrationTest {
 
@@ -78,8 +78,7 @@ public class RestApiTableTokenAuthTest extends BaseOsgiIntegrationTest {
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
-            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {
-            });
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
 
     for (Map<String, Object> row : data) {
       assertThat(row.get("key")).isNotNull();
