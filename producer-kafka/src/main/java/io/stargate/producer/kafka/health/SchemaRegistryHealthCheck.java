@@ -19,6 +19,7 @@ import com.codahale.metrics.health.HealthCheck;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 
 public class SchemaRegistryHealthCheck extends HealthCheck {
+  public static final String SCHEMA_REGISTRY_HEALTH_CHECK_PREFIX = "cdc.producer.schema-registry";
   private final CachedSchemaRegistryClient schemaRegistryClient;
 
   public SchemaRegistryHealthCheck(String schemaRegistryUrl) {

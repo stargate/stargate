@@ -110,9 +110,10 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   private void registerHealthChecks(CDCKafkaConfig cdcKafkaConfig) {
     healthCheckRegistry.register(
-        "cdc.producer.kafka", new KafkaHealthCheck(cdcKafkaConfig.getKafkaProducerSettings()));
+        KafkaHealthCheck.KAFKA_HEALTH_CHECK_PREFIX,
+        new KafkaHealthCheck(cdcKafkaConfig.getKafkaProducerSettings()));
     healthCheckRegistry.register(
-        "cdc.producer.schema-registry",
+        SchemaRegistryHealthCheck.SCHEMA_REGISTRY_HEALTH_CHECK_PREFIX,
         new SchemaRegistryHealthCheck(cdcKafkaConfig.getSchemaRegistryUrl()));
   }
 

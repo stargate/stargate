@@ -26,6 +26,7 @@ import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.common.config.ConfigResource;
 
 public class KafkaHealthCheck extends HealthCheck {
+  public static final String KAFKA_HEALTH_CHECK_PREFIX = "cdc.producer.kafka";
   public static final String REPLICATION_PROPERTY = "transaction.state.log.replication.factor";
   public static final int DEFAULT_TIMEOUT_MILLIS = 5_000; // default is 60 seconds
   private static final DescribeClusterOptions DESCRIBE_OPTIONS =
