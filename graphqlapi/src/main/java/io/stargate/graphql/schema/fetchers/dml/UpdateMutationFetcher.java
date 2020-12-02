@@ -47,7 +47,8 @@ public class UpdateMutationFetcher extends MutationFetcher {
     String token = httpAwareContext.getAuthToken();
 
     List<Relation> relations = buildPkCKWhere(table, environment);
-    authorizationService.authorizeDataWrite(token, buildTypedKeyValueList(relations), Scope.MODIFY);
+    authorizationService.authorizeDataWrite(
+        token, table.keyspace(), table.name(), buildTypedKeyValueList(relations), Scope.MODIFY);
 
     Update update =
         updateStart

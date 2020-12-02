@@ -60,7 +60,11 @@ public class InsertMutationFetcher extends MutationFetcher {
     String token = httpAwareContext.getAuthToken();
 
     authorizationService.authorizeDataWrite(
-        token, buildTypedKeyValueList(cqlIdentifierTermMap), Scope.MODIFY);
+        token,
+        keyspaceId.asInternal(),
+        tableId.asInternal(),
+        buildTypedKeyValueList(cqlIdentifierTermMap),
+        Scope.MODIFY);
 
     Insert insert =
         QueryBuilder.insertInto(keyspaceId, tableId).valuesByIds(buildInsertValues(environment));

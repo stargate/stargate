@@ -424,6 +424,8 @@ public class RowResource {
           db.getAuthorizationService()
               .authorizeDataWrite(
                   token,
+                  keyspaceName,
+                  tableName,
                   values.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
                   Scope.MODIFY);
 
@@ -478,6 +480,8 @@ public class RowResource {
           db.getAuthorizationService()
               .authorizeDataWrite(
                   token,
+                  keyspaceName,
+                  tableName,
                   wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
                   Scope.DELETE);
 
@@ -544,6 +548,8 @@ public class RowResource {
           db.getAuthorizationService()
               .authorizeDataWrite(
                   token,
+                  keyspaceName,
+                  tableName,
                   wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
                   Scope.MODIFY);
 
