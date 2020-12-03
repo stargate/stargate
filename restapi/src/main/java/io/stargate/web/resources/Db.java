@@ -21,10 +21,10 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
@@ -76,7 +76,8 @@ public class Db {
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.persistence = persistence;
-    this.dataStore = DataStore.create(persistence);
+    this.dataStore =
+        DataStore.create(persistence, DataStoreOptions.defaultsWithAutoPreparedQueries());
   }
 
   public DataStore getDataStore() {
@@ -97,19 +98,29 @@ public class Db {
 
   public DataStore getDataStoreForToken(String token) throws UnauthorizedException {
     StoredCredentials storedCredentials = authenticationService.validateToken(token);
-    return DataStore.create(persistence, storedCredentials.getRoleName());
+    return DataStore.create(
+        persistence,
+        storedCredentials.getRoleName(),
+        DataStoreOptions.defaultsWithAutoPreparedQueries());
   }
 
   public DataStore getDataStoreForToken(String token, int pageSize, ByteBuffer pagingState)
       throws UnauthorizedException {
     StoredCredentials storedCredentials = authenticationService.validateToken(token);
+    return getDataStoreInternal(storedCredentials.getRoleName(), pageSize, pagingState);
+  }
+
+  private DataStore getDataStoreInternal(String role, int pageSize, ByteBuffer pagingState)
+      throws UnauthorizedException {
     Parameters parameters =
-        ImmutableParameters.builder()
+        Parameters.builder()
             .pageSize(pageSize)
             .pagingState(Optional.ofNullable(pagingState))
             .build();
 
-    return DataStore.create(this.persistence, storedCredentials.getRoleName(), parameters);
+    DataStoreOptions options =
+        DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
+    return DataStore.create(this.persistence, role, options);
   }
 
   public String getRoleNameForToken(String token) throws UnauthorizedException {
@@ -118,19 +129,7 @@ public class Db {
   }
 
   public DocumentDB getDocDataStoreForToken(String token) throws UnauthorizedException {
-    if (token == null) {
-      throw new UnauthorizedException("Missing token");
-    }
-    String role;
-    try {
-      role = docsTokensToRoles.get(token);
-    } catch (CompletionException e) {
-      if (e.getCause() instanceof UnauthorizedException) {
-        throw (UnauthorizedException) e.getCause();
-      }
-      throw e;
-    }
-    return new DocumentDB(DataStore.create(persistence, role));
+    return new DocumentDB(getDataStoreForToken(token));
   }
 
   public DocumentDB getDocDataStoreForToken(String token, int pageSize, ByteBuffer pageState)
@@ -138,8 +137,6 @@ public class Db {
     if (token == null) {
       throw new UnauthorizedException("Missing token");
     }
-    Parameters parameters =
-        Parameters.builder().pageSize(pageSize).pagingState(Optional.ofNullable(pageState)).build();
     String role;
     try {
       role = docsTokensToRoles.get(token);
@@ -149,7 +146,7 @@ public class Db {
       }
       throw e;
     }
-    return new DocumentDB(DataStore.create(persistence, role, parameters));
+    return new DocumentDB(getDataStoreInternal(role, pageSize, pageState));
   }
 
   public boolean isDse() {

@@ -1,6 +1,8 @@
 package io.stargate.web.docsapi.dao;
 
-import static java.lang.String.format;
+import static io.stargate.db.query.TypedValue.javaValues;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -10,17 +12,16 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 import io.stargate.db.BatchType;
-import io.stargate.db.BoundStatement;
 import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.PreparedStatement;
-import io.stargate.db.datastore.PreparedStatement.Bound;
 import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.query.BoundQuery;
+import io.stargate.db.query.Query;
+import io.stargate.db.query.TypedValue.Codec;
 import io.stargate.db.schema.Schema;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
-import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -55,83 +56,90 @@ public class DocumentDBTest {
 
   @Test
   public void getInsertStatement() {
-    PreparedStatement stmt =
-        documentDB.getInsertStatement("keyspace", "table", 1, new Object[0]).preparedStatement();
-    assertThat(stmt.preparedQueryString())
+    BoundQuery query =
+        documentDB.getInsertStatement(
+            "keyspace", "table", 1, new Object[DocumentDB.allColumns().size()]);
+    assertThat(query.queryString())
         .isEqualTo(
-            "INSERT INTO \"keyspace\".\"table\" (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (:key, :p0, :p1, :p2, :p3, :p4, :p5, :p6, :p7, :p8, :p9, :p10, :p11, :p12, :p13, :p14, :p15, :p16, :p17, :p18, :p19, :p20, :p21, :p22, :p23, :p24, :p25, :p26, :p27, :p28, :p29, :p30, :p31, :p32, :p33, :p34, :p35, :p36, :p37, :p38, :p39, :p40, :p41, :p42, :p43, :p44, :p45, :p46, :p47, :p48, :p49, :p50, :p51, :p52, :p53, :p54, :p55, :p56, :p57, :p58, :p59, :p60, :p61, :p62, :p63, :leaf, :text_value, :dbl_value, :bool_value) USING TIMESTAMP ?");
+            "INSERT INTO keyspace.table(key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?");
   }
 
   @Test
   public void getPrefixDeleteStatement() {
-    PreparedStatement stmt =
-        documentDB
-            .getPrefixDeleteStatement("keyspace", "table", "k", 1, ImmutableList.of("a", "b", "c"))
-            .preparedStatement();
-    assertThat(stmt.preparedQueryString())
+    BoundQuery query =
+        documentDB.getPrefixDeleteStatement(
+            "keyspace", "table", "k", 1, ImmutableList.of("a", "b", "c"));
+    assertThat(query.queryString())
         .isEqualTo(
-            "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = :key AND p0 = :p0 AND p1 = :p1 AND p2 = :p2");
+            "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ?");
+    assertThat(javaValues(query.values())).isEqualTo(asList(1, "k", "a", "b", "c"));
   }
 
   @Test
   public void getSubpathArrayDeleteStatement() {
-    PreparedStatement stmt =
-        documentDB
-            .getSubpathArrayDeleteStatement(
-                "keyspace", "table", "k", 1, ImmutableList.of("a", "b", "c", "d"))
-            .preparedStatement();
-    assertThat(stmt.preparedQueryString())
+    BoundQuery query =
+        documentDB.getSubpathArrayDeleteStatement(
+            "keyspace", "table", "k", 1, ImmutableList.of("a", "b", "c", "d"));
+    assertThat(query.queryString())
         .isEqualTo(
-            "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = :key AND p0 = :p0 AND p1 = :p1 AND p2 = :p2 AND p3 = :p3 AND p4 >= '[000000]' AND p4 <= '[999999]' ");
+            "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND p4 >= ? AND p4 <= ? ");
+    assertThat(javaValues(query.values()))
+        .isEqualTo(asList(1, "k", "a", "b", "c", "d", "[000000]", "[999999]"));
   }
 
   @Test
   public void getPathKeysDeleteStatement() {
-    PreparedStatement stmt =
-        documentDB
-            .getPathKeysDeleteStatement(
-                "keyspace",
-                "table",
-                "k",
-                1,
-                ImmutableList.of("a", "b", "c", "d", "e"),
-                ImmutableList.of("a", "few", "keys"))
-            .preparedStatement();
-    assertThat(stmt.preparedQueryString())
+    BoundQuery query =
+        documentDB.getPathKeysDeleteStatement(
+            "keyspace",
+            "table",
+            "k",
+            1,
+            ImmutableList.of("a", "b", "c", "d", "e"),
+            ImmutableList.of("a", "few", "keys"));
+    assertThat(query.queryString())
         .isEqualTo(
-            "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = :key AND p0 = :p0 AND p1 = :p1 AND p2 = :p2 AND p3 = :p3 AND p4 = :p4 AND p5 IN (:p5,:p6,:p7) ");
+            "DELETE FROM keyspace.table USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND p4 = ? AND p5 IN ?");
+    assertThat(javaValues(query.values()))
+        .isEqualTo(asList(1, "k", "a", "b", "c", "d", "e", ImmutableList.of("a", "few", "keys")));
   }
 
   @Test
   public void getExactPathDeleteStatement() {
-    PreparedStatement stmt =
-        documentDB
-            .getExactPathDeleteStatement(
-                "keyspace", "table", "key", 1, ImmutableList.of("a", "b", "c", "d", "e"))
-            .preparedStatement();
-    String expected =
-        "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ?  WHERE key = :key AND p0 = :p0 AND p1 = :p1 AND p2 = :p2 AND p3 = :p3 AND p4 = :p4";
-
-    for (int i = 5; i < 64; i++) {
-      expected += " AND p" + i + " = ''";
+    BoundQuery query =
+        documentDB.getExactPathDeleteStatement(
+            "keyspace", "table", "key", 1, ImmutableList.of("a", "b", "c", "d", "e"));
+    StringBuilder expected =
+        new StringBuilder("DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ?  WHERE key = ?");
+    for (int i = 0; i < 64; i++) {
+      expected.append(" AND p").append(i).append(" = ?");
     }
-    assertThat(stmt.preparedQueryString()).isEqualTo(expected);
+    assertThat(query.queryString()).isEqualTo(expected.toString());
+
+    List<Object> expectedValues = new ArrayList<>();
+    expectedValues.add(1);
+    expectedValues.add("key");
+    expectedValues.addAll(ImmutableList.of("a", "b", "c", "d", "e"));
+    for (int i = 5; i < 64; i++) {
+      expectedValues.add("");
+    }
+    assertThat(javaValues(query.values())).isEqualTo(expectedValues);
   }
 
   // Args are either "normal" value, Object[] or List<Object>. In the latter cases, we "inline" the
   // array/list.
-  private static Object[] makeValues(Object... valuesOrArraysOfValues) {
+  private static List<Object> makeValues(Object... valuesOrArraysOfValues) {
     List<Object> allValues = new ArrayList<>();
     for (Object value : valuesOrArraysOfValues) {
       allValues.addAll(maybeUnpack(value));
     }
-    return allValues.toArray();
+    return allValues;
   }
 
   private static List<Object> maybeUnpack(Object value) {
-    if (value instanceof Object[]) return Arrays.asList((Object[]) value);
+    if (value instanceof Object[]) return asList((Object[]) value);
     if (value instanceof List) return (List) value;
-    return Collections.singletonList(value);
+    return singletonList(value);
   }
 
   @Test
@@ -144,20 +152,20 @@ public class DocumentDBTest {
     map.put("dbl_value", null);
     map.put("text_value", null);
     Object[] values = map.values().toArray();
-    documentDB.deleteThenInsertBatch(
-        "keyspace", "table", "key", Collections.singletonList(values), path, 1L);
+    documentDB.deleteThenInsertBatch("keyspace", "table", "key", singletonList(values), path, 1L);
 
-    List<PreparedStatement.Bound> expectedStmts = new ArrayList<>();
-    expectedStmts.add(
-        new TestPreparedStatement(
-                "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = :key AND p0 = :p0 AND p1 = :p1 AND p2 = :p2")
-            .bind(makeValues(0L, "key", path)));
-    expectedStmts.add(
-        new TestPreparedStatement(
-                "INSERT INTO \"keyspace\".\"table\" (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (:key, :p0, :p1, :p2, :p3, :p4, :p5, :p6, :p7, :p8, :p9, :p10, :p11, :p12, :p13, :p14, :p15, :p16, :p17, :p18, :p19, :p20, :p21, :p22, :p23, :p24, :p25, :p26, :p27, :p28, :p29, :p30, :p31, :p32, :p33, :p34, :p35, :p36, :p37, :p38, :p39, :p40, :p41, :p42, :p43, :p44, :p45, :p46, :p47, :p48, :p49, :p50, :p51, :p52, :p53, :p54, :p55, :p56, :p57, :p58, :p59, :p60, :p61, :p62, :p63, :leaf, :text_value, :dbl_value, :bool_value) USING TIMESTAMP ?")
-            .bind(makeValues(values, 1L)));
+    List<BoundQuery> generatedQueries = ds.getRecentStatements();
+    assertThat(generatedQueries).hasSize(2);
 
-    assertThat(ds.getRecentStatements()).isEqualTo(expectedStmts);
+    assertThat(generatedQueries.get(0).queryString())
+        .isEqualTo(
+            "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = :key AND p0 = :p0 AND p1 = :p1 AND p2 = :p2");
+    assertThat(javaValues(generatedQueries.get(0).values())).isEqualTo(makeValues(0L, "key", path));
+
+    assertThat(generatedQueries.get(1).queryString())
+        .isEqualTo(
+            "INSERT INTO \"keyspace\".\"table\" (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?");
+    assertThat(javaValues(generatedQueries.get(1).values())).isEqualTo(makeValues(values, 1L));
   }
 
   @Test
@@ -172,26 +180,35 @@ public class DocumentDBTest {
     map.put("text_value", null);
     Object[] values = map.values().toArray();
     documentDB.deletePatchedPathsThenInsertBatch(
-        "keyspace", "table", "key", Collections.singletonList(values), path, patchedKeys, 1L);
+        "keyspace", "table", "key", singletonList(values), path, patchedKeys, 1L);
 
-    List<PreparedStatement.Bound> expectedStmts = new ArrayList<>();
-    expectedStmts.add(
-        new TestPreparedStatement(
-                "INSERT INTO \"keyspace\".\"table\" (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (:key, :p0, :p1, :p2, :p3, :p4, :p5, :p6, :p7, :p8, :p9, :p10, :p11, :p12, :p13, :p14, :p15, :p16, :p17, :p18, :p19, :p20, :p21, :p22, :p23, :p24, :p25, :p26, :p27, :p28, :p29, :p30, :p31, :p32, :p33, :p34, :p35, :p36, :p37, :p38, :p39, :p40, :p41, :p42, :p43, :p44, :p45, :p46, :p47, :p48, :p49, :p50, :p51, :p52, :p53, :p54, :p55, :p56, :p57, :p58, :p59, :p60, :p61, :p62, :p63, :leaf, :text_value, :dbl_value, :bool_value) USING TIMESTAMP ?")
-            .bind(makeValues(values, 1L)));
-    expectedStmts.add(
-        new TestPreparedStatement(
-                "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ?  WHERE key = :key AND p0 = :p0 AND p1 = :p1 AND p2 = :p2 AND p3 = '' AND p4 = '' AND p5 = '' AND p6 = '' AND p7 = '' AND p8 = '' AND p9 = '' AND p10 = '' AND p11 = '' AND p12 = '' AND p13 = '' AND p14 = '' AND p15 = '' AND p16 = '' AND p17 = '' AND p18 = '' AND p19 = '' AND p20 = '' AND p21 = '' AND p22 = '' AND p23 = '' AND p24 = '' AND p25 = '' AND p26 = '' AND p27 = '' AND p28 = '' AND p29 = '' AND p30 = '' AND p31 = '' AND p32 = '' AND p33 = '' AND p34 = '' AND p35 = '' AND p36 = '' AND p37 = '' AND p38 = '' AND p39 = '' AND p40 = '' AND p41 = '' AND p42 = '' AND p43 = '' AND p44 = '' AND p45 = '' AND p46 = '' AND p47 = '' AND p48 = '' AND p49 = '' AND p50 = '' AND p51 = '' AND p52 = '' AND p53 = '' AND p54 = '' AND p55 = '' AND p56 = '' AND p57 = '' AND p58 = '' AND p59 = '' AND p60 = '' AND p61 = '' AND p62 = '' AND p63 = ''")
-            .bind(makeValues(0L, "key", path)));
-    expectedStmts.add(
-        new TestPreparedStatement(
-                "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = :key AND p0 = :p0 AND p1 = :p1 AND p2 = :p2 AND p3 >= '[000000]' AND p3 <= '[999999]' ")
-            .bind(makeValues(0L, "key", path)));
-    expectedStmts.add(
-        new TestPreparedStatement(
-                "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = :key AND p0 = :p0 AND p1 = :p1 AND p2 = :p2 AND p3 IN (:p3) ")
-            .bind(makeValues(0L, "key", path, patchedKeys)));
-    assertThat(ds.getRecentStatements()).isEqualTo(expectedStmts);
+    List<BoundQuery> generatedQueries = ds.getRecentStatements();
+    assertThat(generatedQueries).hasSize(4);
+
+    assertThat(generatedQueries.get(0).queryString())
+        .isEqualTo(
+            "INSERT INTO \"keyspace\".\"table\" (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?");
+    assertThat(javaValues(generatedQueries.get(0).values())).isEqualTo(makeValues(values, 1L));
+
+    assertThat(generatedQueries.get(1).queryString())
+        .isEqualTo(
+            "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ?  WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND p4 = ? AND p5 = ? AND p6 = ? AND p7 = ? AND p8 = ? AND p9 = ? AND p10 = ? AND p11 = ? AND p12 = ? AND p13 = ? AND p14 = ? AND p15 = ? AND p16 = ? AND p17 = ? AND p18 = ? AND p19 = ? AND p20 = ? AND p21 = ? AND p22 = ? AND p23 = ? AND p24 = ? AND p25 = ? AND p26 = ? AND p27 = ? AND p28 = ? AND p29 = ? AND p30 = ? AND p31 = ? AND p32 = ? AND p33 = ? AND p34 = ? AND p35 = ? AND p36 = ? AND p37 = ? AND p38 = ? AND p39 = ? AND p40 = ? AND p41 = ? AND p42 = ? AND p43 = ? AND p44 = ? AND p45 = ? AND p46 = ? AND p47 = ? AND p48 = ? AND p49 = ? AND p50 = ? AND p51 = ? AND p52 = ? AND p53 = ? AND p54 = ? AND p55 = ? AND p56 = ? AND p57 = ? AND p58 = ? AND p59 = ? AND p60 = ? AND p61 = ? AND p62 = ? AND p63 = ?");
+    String[] emptyStrings = new String[61];
+    Arrays.fill(emptyStrings, "");
+    assertThat(javaValues(generatedQueries.get(1).values()))
+        .isEqualTo(makeValues(0L, "key", path, emptyStrings));
+
+    assertThat(generatedQueries.get(2).queryString())
+        .isEqualTo(
+            "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 >= ? AND p3 <= ?");
+    assertThat(javaValues(generatedQueries.get(2).values()))
+        .isEqualTo(makeValues(0L, "key", path, "[000000]", "[999999]"));
+
+    assertThat(generatedQueries.get(3).queryString())
+        .isEqualTo(
+            "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 IN ?");
+    assertThat(javaValues(generatedQueries.get(3).values()))
+        .isEqualTo(makeValues(0L, "key", path, singletonList(patchedKeys)));
   }
 
   @Test
@@ -209,12 +226,13 @@ public class DocumentDBTest {
 
     documentDB.delete("keyspace", "table", "key", path, 1L);
 
-    List<PreparedStatement.Bound> expectedStmts = new ArrayList<>();
-    expectedStmts.add(
-        new TestPreparedStatement(
-                "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = :key AND p0 = :p0 AND p1 = :p1 AND p2 = :p2")
-            .bind(makeValues(1L, "key", path)));
-    assertThat(ds.getRecentStatements()).isEqualTo(expectedStmts);
+    List<BoundQuery> generatedQueries = ds.getRecentStatements();
+    assertThat(generatedQueries).hasSize(1);
+
+    assertThat(generatedQueries.get(0).queryString())
+        .isEqualTo(
+            "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ?");
+    assertThat(javaValues(generatedQueries.get(0).values())).isEqualTo(makeValues(1L, "key", path));
   }
 
   @Test
@@ -235,132 +253,49 @@ public class DocumentDBTest {
 
     documentDB.deleteDeadLeaves("keyspace", "table", "key", 1L, deadLeaves);
 
-    List<PreparedStatement.Bound> expectedStmts = new ArrayList<>();
-    expectedStmts.add(
-        new TestPreparedStatement(
-                "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = :key AND p0 = :p0 AND p1 IN (:p1) ")
-            .bind(1L, "key", "a", "b"));
-    expectedStmts.add(
-        new TestPreparedStatement(
-                "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = :key AND p0 = :p0 AND p1 >= '[000000]' AND p1 <= '[999999]' ")
-            .bind(1L, "key", "b"));
-    assertThat(ds.getRecentStatements()).isEqualTo(expectedStmts);
+    List<BoundQuery> generatedQueries = ds.getRecentStatements();
+    assertThat(generatedQueries).hasSize(2);
+
+    assertThat(generatedQueries.get(0).queryString())
+        .isEqualTo(
+            "DELETE FROM keyspace.table USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 IN (?)");
+    assertThat(javaValues(generatedQueries.get(0).values()))
+        .isEqualTo(asList(1L, "key", "a", singletonList("b")));
+
+    assertThat(generatedQueries.get(1).queryString())
+        .isEqualTo(
+            "DELETE FROM keyspace.table USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 >= ? AND p1 <= ?");
+    assertThat(javaValues(generatedQueries.get(1).values()))
+        .isEqualTo(makeValues(1L, "key", "b", "[000000]", "[999999]"));
   }
 
-  private class TestPreparedStatement implements PreparedStatement {
-    private String cql;
-    private TestDataStore testDataStore;
+  private static class TestDataStore implements DataStore {
+    private final List<BoundQuery> recentQueries = new ArrayList<>();
 
-    public TestPreparedStatement(String cql) {
-      this(cql, null);
-    }
-
-    public TestPreparedStatement(String cql, TestDataStore testDataStore) {
-      this.cql = cql;
-      this.testDataStore = testDataStore;
-    }
-
-    public int hashCode() {
-      return this.cql.hashCode();
-    }
-
-    public boolean equals(Object other) {
-      return other instanceof TestPreparedStatement
-          && ((TestPreparedStatement) other).cql.equals(this.cql);
+    @Override
+    public Codec valueCodec() {
+      return Codec.testCodec();
     }
 
     @Override
-    public String preparedQueryString() {
-      return cql;
+    public <B extends BoundQuery> CompletableFuture<Query<B>> prepare(Query<B> query) {
+      return CompletableFuture.completedFuture(query);
     }
 
     @Override
-    public Bound bind(Object... values) {
-      return new TestBound(values);
-    }
-
-    @Override
-    public String toString() {
-      return format("Prepared[%s]", this.cql);
-    }
-
-    private class TestBound implements Bound {
-      private final Object[] values;
-
-      TestBound(Object[] values) {
-        this.values = values;
-      }
-
-      @Override
-      public PreparedStatement preparedStatement() {
-        return TestPreparedStatement.this;
-      }
-
-      @Override
-      public List<Object> values() {
-        return Arrays.asList(values);
-      }
-
-      @Override
-      public CompletableFuture<ResultSet> execute(UnaryOperator<Parameters> parametersModifier) {
-        if (testDataStore != null) {
-          testDataStore.recentStatements.add(this);
-        }
-        return CompletableFuture.completedFuture(ResultSet.empty());
-      }
-
-      @Override
-      public BoundStatement toPersistenceStatement(ProtocolVersion protocolVersion) {
-        return null;
-      }
-
-      public int hashCode() {
-        return Objects.hash(preparedStatement(), Objects.hash(values));
-      }
-
-      public boolean equals(Object other) {
-        if (!(other instanceof TestBound)) return false;
-
-        TestBound that = (TestBound) other;
-        return this.preparedStatement().equals(that.preparedStatement())
-            && Arrays.equals(this.values, that.values);
-      }
-
-      @Override
-      public String toString() {
-        return format("%s with values %s", preparedStatement(), Arrays.toString(values));
-      }
-    }
-  }
-
-  private class TestDataStore implements DataStore {
-    private final List<PreparedStatement.Bound> recentStatements = new ArrayList<>();
-
-    @Override
-    public CompletableFuture<ResultSet> query(
-        String queryString, UnaryOperator<Parameters> parametersModifier, Object... values) {
+    public CompletableFuture<ResultSet> execute(
+        BoundQuery query, UnaryOperator<Parameters> parametersModifier) {
+      this.recentQueries.add(query);
       return CompletableFuture.completedFuture(ResultSet.empty());
-    }
-
-    @Override
-    public CompletableFuture<PreparedStatement> prepare(String s) {
-      return CompletableFuture.completedFuture(new TestPreparedStatement(s, this));
     }
 
     @Override
     public CompletableFuture<ResultSet> batch(
-        List<Bound> statements, BatchType batchType, UnaryOperator<Parameters> parametersModifier) {
-      System.out.println(statements);
-      this.recentStatements.addAll(statements);
+        Collection<BoundQuery> queries,
+        BatchType batchType,
+        UnaryOperator<Parameters> parametersModifier) {
+      this.recentQueries.addAll(queries);
       return CompletableFuture.completedFuture(ResultSet.empty());
-    }
-
-    @Override
-    public CompletableFuture<ResultSet> batch(List<String> queries) {
-      CompletableFuture<ResultSet> f = new CompletableFuture<>();
-      f.completeExceptionally(
-          new RuntimeException("Call to batch() was not faked in TestDataStore"));
-      return f;
     }
 
     @Override
@@ -376,9 +311,9 @@ public class DocumentDBTest {
     @Override
     public void waitForSchemaAgreement() {}
 
-    public List<PreparedStatement.Bound> getRecentStatements() {
-      List<PreparedStatement.Bound> recent = new ArrayList<>(this.recentStatements);
-      this.recentStatements.clear();
+    public List<BoundQuery> getRecentStatements() {
+      List<BoundQuery> recent = new ArrayList<>(this.recentQueries);
+      this.recentQueries.clear();
       return recent;
     }
   }

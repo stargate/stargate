@@ -34,9 +34,12 @@
 <script src="./swagger-ui-standalone-preset.js" charset="UTF-8"></script>
 <script>
     window.onload = function() {
+      const swaggerUri = window.location.href
+      const baseUri = swaggerUri.substring(0, swaggerUri.lastIndexOf('/swagger-ui'))
+
       // Begin Swagger UI call region
       const ui = SwaggerUIBundle({
-        url: "/swagger.json",
+        url: baseUri + "/swagger.json",
         dom_id: '#swagger-ui',
         deepLinking: true,
         presets: [

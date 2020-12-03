@@ -13,9 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.api.core.data.UdtValue;
-import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -107,113 +107,116 @@ public class ColumnTest {
 
   @Test
   public void toStringNullValue() {
-    String msg = "Parameter value cannot be null";
-    assertThatThrownBy(() -> Type.Ascii.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Bigint.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Blob.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Boolean.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Counter.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Date.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Decimal.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Double.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Duration.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Float.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Int.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Smallint.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Text.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Time.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Timestamp.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Timeuuid.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Tinyint.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Uuid.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Varchar.toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Varint.toString(null)).hasMessage(msg);
+    assertThat(Type.Ascii.toString(null)).isEqualTo("null");
+    assertThat(Type.Bigint.toString(null)).isEqualTo("null");
+    assertThat(Type.Blob.toString(null)).isEqualTo("null");
+    assertThat(Type.Boolean.toString(null)).isEqualTo("null");
+    assertThat(Type.Counter.toString(null)).isEqualTo("null");
+    assertThat(Type.Date.toString(null)).isEqualTo("null");
+    assertThat(Type.Decimal.toString(null)).isEqualTo("null");
+    assertThat(Type.Double.toString(null)).isEqualTo("null");
+    assertThat(Type.Duration.toString(null)).isEqualTo("null");
+    assertThat(Type.Float.toString(null)).isEqualTo("null");
+    assertThat(Type.Int.toString(null)).isEqualTo("null");
+    assertThat(Type.Smallint.toString(null)).isEqualTo("null");
+    assertThat(Type.Text.toString(null)).isEqualTo("null");
+    assertThat(Type.Time.toString(null)).isEqualTo("null");
+    assertThat(Type.Timestamp.toString(null)).isEqualTo("null");
+    assertThat(Type.Timeuuid.toString(null)).isEqualTo("null");
+    assertThat(Type.Tinyint.toString(null)).isEqualTo("null");
+    assertThat(Type.Uuid.toString(null)).isEqualTo("null");
+    assertThat(Type.Varchar.toString(null)).isEqualTo("null");
+    assertThat(Type.Varint.toString(null)).isEqualTo("null");
 
-    assertThatThrownBy(() -> Type.List.of(Type.Int).toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Set.of(Type.Int).toString(null)).hasMessage(msg);
-    assertThatThrownBy(() -> Type.Map.of(Type.Int, Type.Int).toString(null)).hasMessage(msg);
-    assertThatThrownBy(
-            () -> Type.Tuple.of(Type.Varchar, Type.Tuple.of(Type.Int, Type.Double)).toString(null))
-        .hasMessage(msg);
+    assertThat(Type.List.of(Type.Int).toString(null)).isEqualTo("null");
+    assertThat(Type.Set.of(Type.Int).toString(null)).isEqualTo("null");
+    assertThat(Type.Map.of(Type.Int, Type.Int).toString(null)).isEqualTo("null");
+    assertThat(Type.Tuple.of(Type.Varchar, Type.Tuple.of(Type.Int, Type.Double)).toString(null))
+        .isEqualTo("null");
 
     Keyspace ks =
         Schema.build().keyspace("test").type("udt1").column("a", Type.Int).build().keyspace("test");
 
-    assertThatThrownBy(() -> ks.userDefinedType("udt1").toString(null)).hasMessage(msg);
+    assertThat(ks.userDefinedType("udt1").toString(null)).isEqualTo("null");
   }
 
-  private String codecCannotProcessMsg(TypeCodec<?> codec, Class<?> clazz) {
+  private <T> String invalidValueMsg(ColumnType type, T value, Class<T> clazz) {
     return String.format(
-        "Codec '%s' cannot process value of type '%s'",
-        codec.getClass().getSimpleName(), clazz.getName());
+        "Java value %s of type '%s' is not a valid value for CQL type %s",
+        value, clazz.getName(), type.cqlDefinition());
   }
 
   @Test
-  public void testToStringWithInvalidTypes() {
+  public void testToStringWithInvalidTypes() throws UnknownHostException {
     assertThatThrownBy(() -> Type.Ascii.toString(2L))
-        .hasMessage(codecCannotProcessMsg(Type.Ascii.codec(), Long.class));
+        .hasMessage(invalidValueMsg(Type.Ascii, 2L, Long.class));
 
     assertThatThrownBy(() -> Type.Bigint.toString("2L"))
-        .hasMessage(codecCannotProcessMsg(Type.Bigint.codec(), String.class));
+        .hasMessage(invalidValueMsg(Type.Bigint, "2L", String.class));
 
-    assertThatThrownBy(() -> Type.Blob.toString(ByteBuffer.wrap(new byte[] {34}).toString()))
-        .hasMessage(codecCannotProcessMsg(Type.Blob.codec(), String.class));
+    String bufferValueStr = ByteBuffer.wrap(new byte[] {34}).toString();
+    assertThatThrownBy(() -> Type.Blob.toString(bufferValueStr))
+        .hasMessage(invalidValueMsg(Type.Blob, bufferValueStr, String.class));
 
     assertThatThrownBy(() -> Type.Boolean.toString("1L"))
-        .hasMessage(codecCannotProcessMsg(Type.Boolean.codec(), String.class));
+        .hasMessage(invalidValueMsg(Type.Boolean, "1L", String.class));
 
     assertThatThrownBy(() -> Type.Counter.toString("2L"))
-        .hasMessage(codecCannotProcessMsg(Type.Counter.codec(), String.class));
+        .hasMessage(invalidValueMsg(Type.Counter, "2L", String.class));
 
-    assertThatThrownBy(() -> Type.Date.toString(LocalDate.of(2001, 1, 1).toString()))
-        .hasMessage(codecCannotProcessMsg(Type.Date.codec(), String.class));
+    String dateStr = LocalDate.of(2001, 1, 1).toString();
+    assertThatThrownBy(() -> Type.Date.toString(dateStr))
+        .hasMessage(invalidValueMsg(Type.Date, dateStr, String.class));
 
     assertThatThrownBy(() -> Type.Decimal.toString(new BigDecimal(2).toString()))
-        .hasMessage(codecCannotProcessMsg(Type.Decimal.codec(), String.class));
+        .hasMessage(invalidValueMsg(Type.Decimal, new BigDecimal(2).toString(), String.class));
 
     assertThatThrownBy(() -> Type.Double.toString("2d"))
-        .hasMessage(codecCannotProcessMsg(Type.Double.codec(), String.class));
+        .hasMessage(invalidValueMsg(Type.Double, "2d", String.class));
 
-    assertThatThrownBy(() -> Type.Duration.toString(CqlDuration.newInstance(2, 1, 3).toString()))
-        .hasMessage(codecCannotProcessMsg(Type.Duration.codec(), String.class));
+    String durationStr = CqlDuration.newInstance(2, 1, 3).toString();
+    assertThatThrownBy(() -> Type.Duration.toString(durationStr))
+        .hasMessage(invalidValueMsg(Type.Duration, durationStr, String.class));
 
     assertThatThrownBy(() -> Type.Float.toString("2"))
-        .hasMessage(codecCannotProcessMsg(Type.Float.codec(), String.class));
+        .hasMessage(invalidValueMsg(Type.Float, "2", String.class));
 
-    assertThatThrownBy(
-            () ->
-                Type.Inet.toString(InetAddress.getByAddress(new byte[] {127, 0, 0, 1}).toString()))
-        .hasMessage(codecCannotProcessMsg(Type.Inet.codec(), String.class));
+    String inetStr = InetAddress.getByAddress(new byte[] {127, 0, 0, 1}).toString();
+    assertThatThrownBy(() -> Type.Inet.toString(inetStr))
+        .hasMessage(invalidValueMsg(Type.Inet, inetStr, String.class));
 
     assertThatThrownBy(() -> Type.Int.toString("2"))
-        .hasMessage(codecCannotProcessMsg(Type.Int.codec(), String.class));
+        .hasMessage(invalidValueMsg(Type.Int, "2", String.class));
 
     assertThatThrownBy(() -> Type.Smallint.toString("2"))
-        .hasMessage(codecCannotProcessMsg(Type.Smallint.codec(), String.class));
+        .hasMessage(invalidValueMsg(Type.Smallint, "2", String.class));
 
     assertThatThrownBy(() -> Type.Text.toString(2))
-        .hasMessage(codecCannotProcessMsg(Type.Text.codec(), Integer.class));
+        .hasMessage(invalidValueMsg(Type.Text, 2, Integer.class));
 
-    assertThatThrownBy(() -> Type.Time.toString(LocalTime.ofSecondOfDay(2).toString()))
-        .hasMessage(codecCannotProcessMsg(Type.Time.codec(), String.class));
+    String timeStr = LocalTime.ofSecondOfDay(2).toString();
+    assertThatThrownBy(() -> Type.Time.toString(timeStr))
+        .hasMessage(invalidValueMsg(Type.Time, timeStr, String.class));
 
-    assertThatThrownBy(() -> Type.Timestamp.toString(Instant.ofEpochSecond(100).toString()))
-        .hasMessage(codecCannotProcessMsg(Type.Timestamp.codec(), String.class));
+    String instantStr = Instant.ofEpochSecond(100).toString();
+    assertThatThrownBy(() -> Type.Timestamp.toString(instantStr))
+        .hasMessage(invalidValueMsg(Type.Timestamp, instantStr, String.class));
 
-    assertThatThrownBy(() -> Type.Timeuuid.toString(UUID.randomUUID().toString()))
-        .hasMessage(codecCannotProcessMsg(Type.Timeuuid.codec(), String.class));
+    String uuidStr = UUID.randomUUID().toString();
+    assertThatThrownBy(() -> Type.Timeuuid.toString(uuidStr))
+        .hasMessage(invalidValueMsg(Type.Timeuuid, uuidStr, String.class));
+
+    assertThatThrownBy(() -> Type.Uuid.toString(uuidStr))
+        .hasMessage(invalidValueMsg(Type.Uuid, uuidStr, String.class));
 
     assertThatThrownBy(() -> Type.Tinyint.toString("2"))
-        .hasMessage(codecCannotProcessMsg(Type.Tinyint.codec(), String.class));
-
-    assertThatThrownBy(() -> Type.Uuid.toString(UUID.randomUUID().toString()))
-        .hasMessage(codecCannotProcessMsg(Type.Uuid.codec(), String.class));
+        .hasMessage(invalidValueMsg(Type.Tinyint, "2", String.class));
 
     assertThatThrownBy(() -> Type.Varchar.toString(2L))
-        .hasMessage(codecCannotProcessMsg(Type.Varchar.codec(), Long.class));
+        .hasMessage(invalidValueMsg(Type.Varchar, 2L, Long.class));
 
     assertThatThrownBy(() -> Type.Varint.toString(BigInteger.valueOf(2L).toString()))
-        .hasMessage(codecCannotProcessMsg(Type.Varint.codec(), String.class));
+        .hasMessage(invalidValueMsg(Type.Varint, BigInteger.valueOf(2L).toString(), String.class));
   }
 
   @Test
@@ -257,16 +260,17 @@ public class ColumnTest {
 
   @Test
   public void testToStringWithInvalidTypesOnCollections() {
-    assertThatThrownBy(() -> Type.List.of(Type.Int).toString(Arrays.asList(1, 2, 3).toString()))
-        .hasMessage(codecCannotProcessMsg(Type.List.of(Type.Int).codec(), String.class));
+    String listStr = Arrays.asList(1, 2, 3).toString();
+    assertThatThrownBy(() -> Type.List.of(Type.Int).toString(listStr))
+        .hasMessage(invalidValueMsg(Type.List.of(Type.Int), listStr, String.class));
 
-    assertThatThrownBy(
-            () -> Type.Set.of(Type.Int).toString(new HashSet<>(Arrays.asList(1, 2, 3)).toString()))
-        .hasMessage(codecCannotProcessMsg(Type.Set.of(Type.Int).codec(), String.class));
+    String setStr = new HashSet<>(Arrays.asList(1, 2, 3)).toString();
+    assertThatThrownBy(() -> Type.Set.of(Type.Int).toString(setStr))
+        .hasMessage(invalidValueMsg(Type.Set.of(Type.Int), setStr, String.class));
 
-    assertThatThrownBy(
-            () -> Type.Map.of(Type.Int, Type.Int).toString(ImmutableMap.of(1, 1).toString()))
-        .hasMessage(codecCannotProcessMsg(Type.Map.of(Type.Int, Type.Int).codec(), String.class));
+    String mapStr = ImmutableMap.of(1, 1).toString();
+    assertThatThrownBy(() -> Type.Map.of(Type.Int, Type.Int).toString(mapStr))
+        .hasMessage(invalidValueMsg(Type.Map.of(Type.Int, Type.Int), mapStr, String.class));
   }
 
   @Test
@@ -302,7 +306,7 @@ public class ColumnTest {
     Column.ColumnType tupleType = Type.Tuple.of(Type.Varchar, Type.Tuple.of(Type.Int, Type.Double));
     TupleValue tuple = tupleType.create("Test", tupleType.parameters().get(1).create(2, 3.0));
     assertThatThrownBy(() -> tupleType.toString(tuple.toString()))
-        .hasMessage(codecCannotProcessMsg(tupleType.codec(), String.class));
+        .hasMessage(invalidValueMsg(tupleType, tuple.toString(), String.class));
   }
 
   @Test
@@ -312,7 +316,7 @@ public class ColumnTest {
 
     UserDefinedType udt = ks.userDefinedType("udt1");
     assertThatThrownBy(() -> udt.toString(udt.create(1).toString()))
-        .hasMessage(codecCannotProcessMsg(udt.codec(), String.class));
+        .hasMessage(invalidValueMsg(udt, udt.create(1).toString(), String.class));
   }
 
   @Test
@@ -692,5 +696,30 @@ public class ColumnTest {
     assertThat(tuple.parameterMap().get("field3").isFrozen()).isTrue();
     assertThat(tuple.parameterMap().get("field4").isFrozen()).isTrue();
     assertThat(tuple.parameterMap().get("field5").isFrozen()).isTrue();
+  }
+
+  @Test
+  public void testfromCqlDefinitionOf() {
+    String keyspaceName = "ks";
+    UserDefinedType udt =
+        ImmutableUserDefinedType.builder()
+            .keyspace(keyspaceName)
+            .name("my_udt")
+            .addColumns(Column.create("f1", Type.Int), Column.create("f2", Type.Text))
+            .build();
+    Keyspace ks = ImmutableKeyspace.builder().name(keyspaceName).addUserDefinedTypes(udt).build();
+
+    assertThat(Type.fromCqlDefinitionOf(ks, "text")).isEqualTo(Type.Text);
+    assertThat(Type.fromCqlDefinitionOf(ks, "int")).isEqualTo(Type.Int);
+    assertThat(Type.fromCqlDefinitionOf(ks, "list<text>")).isEqualTo(Type.List.of(Type.Text));
+    assertThat(Type.fromCqlDefinitionOf(ks, "set<bigint>")).isEqualTo(Type.Set.of(Type.Bigint));
+    assertThat(Type.fromCqlDefinitionOf(ks, "map<text, bigint>"))
+        .isEqualTo(Type.Map.of(Type.Text, Type.Bigint));
+    assertThat(Type.fromCqlDefinitionOf(ks, "my_udt")).isEqualTo(udt);
+    assertThat(Type.fromCqlDefinitionOf(ks, "set<my_udt>")).isEqualTo(Type.Set.of(udt));
+    assertThat(Type.fromCqlDefinitionOf(ks, "frozen<list<int>>"))
+        .isEqualTo(Type.List.of(Type.Int).frozen());
+    assertThat(Type.fromCqlDefinitionOf(ks, "frozen<map<text, my_udt>>"))
+        .isEqualTo(Type.Map.of(Type.Text, udt).frozen());
   }
 }

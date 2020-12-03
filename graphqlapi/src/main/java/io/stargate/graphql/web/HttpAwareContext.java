@@ -17,6 +17,7 @@ package io.stargate.graphql.web;
 
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.query.BoundQuery;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -49,11 +50,11 @@ public class HttpAwareContext {
   }
 
   /**
-   * Encapsulates logic to add multiple statements contained in the same operation that need to be
+   * Encapsulates logic to add multiple queries contained in the same operation that need to be
    * executed in a batch.
    */
   public static class BatchContext {
-    private final List<String> statements = new ArrayList<>();
+    private final List<BoundQuery> queries = new ArrayList<>();
     private final CompletableFuture<ResultSet> executionFuture = new CompletableFuture<>();
     private AtomicReference<DataStore> dataStore = new AtomicReference<>();
 
@@ -61,8 +62,8 @@ public class HttpAwareContext {
       return executionFuture;
     }
 
-    public synchronized List<String> getStatements() {
-      return statements;
+    public synchronized List<BoundQuery> getQueries() {
+      return queries;
     }
 
     public void setExecutionResult(CompletableFuture<ResultSet> result) {
@@ -80,9 +81,9 @@ public class HttpAwareContext {
       executionFuture.completeExceptionally(ex);
     }
 
-    public synchronized int add(String query) {
-      statements.add(query);
-      return statements.size();
+    public synchronized int add(BoundQuery query) {
+      queries.add(query);
+      return queries.size();
     }
 
     /** Sets the data store and returns whether it was already set */

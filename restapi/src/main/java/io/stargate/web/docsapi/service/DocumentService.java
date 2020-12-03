@@ -9,9 +9,8 @@ import com.google.gson.*;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
-import io.stargate.db.datastore.query.ImmutableWhereCondition;
-import io.stargate.db.datastore.query.Where;
-import io.stargate.db.datastore.query.WhereCondition;
+import io.stargate.db.query.Predicate;
+import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.DocumentAPIErrorHandlingStrategy;
@@ -412,25 +411,15 @@ public class DocumentService {
   public JsonNode getJsonAtPath(
       DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path)
       throws ExecutionException, InterruptedException {
-    List<Where<Object>> predicates = new ArrayList<>();
-    predicates.add(
-        ImmutableWhereCondition.builder()
-            .column("key")
-            .predicate(WhereCondition.Predicate.Eq)
-            .value(id)
-            .build());
+    List<BuiltCondition> predicates = new ArrayList<>();
+    predicates.add(BuiltCondition.of("key", Predicate.EQ, id));
 
     StringBuilder pathStr = new StringBuilder();
 
     for (int i = 0; i < path.size(); i++) {
       String pathSegment = path.get(i).getPath();
       String convertedPath = convertArrayPath(pathSegment);
-      predicates.add(
-          ImmutableWhereCondition.builder()
-              .column("p" + i)
-              .predicate(WhereCondition.Predicate.Eq)
-              .value(convertedPath)
-              .build());
+      predicates.add(BuiltCondition.of("p" + i, Predicate.EQ, convertedPath));
 
       if (!pathSegment.equals(convertedPath)) {
         pathStr.append("/").append(pathSegment, 1, pathSegment.length() - 1);
@@ -894,13 +883,8 @@ public class DocumentService {
       finalPagingState = null;
     }
 
-    List<Where<Object>> predicate =
-        ImmutableList.of(
-            ImmutableWhereCondition.builder()
-                .column("key")
-                .predicate(WhereCondition.Predicate.In)
-                .value(new ArrayList<>(docNames))
-                .build());
+    List<BuiltCondition> predicate =
+        ImmutableList.of(BuiltCondition.of("key", Predicate.IN, new ArrayList<>(docNames)));
 
     db = dbFactory.getDocDataStoreForToken(authToken);
     List<Row> rows = db.executeSelect(keyspace, collection, predicate).rows();
@@ -951,16 +935,11 @@ public class DocumentService {
       String documentKey)
       throws ExecutionException, InterruptedException {
     StringBuilder pathStr = new StringBuilder();
-    List<Where<Object>> predicates = new ArrayList<>();
+    List<BuiltCondition> predicates = new ArrayList<>();
 
     if (!filters.isEmpty() && fields.isEmpty()) {
       FilterCondition first = filters.get(0);
-      predicates.add(
-          ImmutableWhereCondition.builder()
-              .column("leaf")
-              .predicate(WhereCondition.Predicate.Eq)
-              .value(first.getField())
-              .build());
+      predicates.add(BuiltCondition.of("leaf", Predicate.EQ, first.getField()));
     }
 
     boolean manyPathsFound = false;
@@ -972,20 +951,10 @@ public class DocumentService {
         String pathSegment = pathSegmentSplit[0];
         if (pathSegment.equals(DocumentDB.GLOB_VALUE)) {
           manyPathsFound = true;
-          predicates.add(
-              ImmutableWhereCondition.builder()
-                  .column("p" + i)
-                  .predicate(WhereCondition.Predicate.Gt)
-                  .value("")
-                  .build());
+          predicates.add(BuiltCondition.of("p" + i, Predicate.GT, ""));
         } else {
           String convertedPath = convertArrayPath(pathSegment);
-          predicates.add(
-              ImmutableWhereCondition.builder()
-                  .column("p" + i)
-                  .predicate(WhereCondition.Predicate.Eq)
-                  .value(convertedPath)
-                  .build());
+          predicates.add(BuiltCondition.of("p" + i, Predicate.EQ, convertedPath));
           if (!manyPathsFound) {
             pathStr.append("/").append(pathSegment);
           }
@@ -997,12 +966,7 @@ public class DocumentService {
             segmentsList.stream().map(this::convertArrayPath).collect(Collectors.toList());
 
         manyPathsFound = true;
-        predicates.add(
-            ImmutableWhereCondition.builder()
-                .column("p" + i)
-                .predicate(WhereCondition.Predicate.In)
-                .value(segmentsList)
-                .build());
+        predicates.add(BuiltCondition.of("p" + i, Predicate.IN, segmentsList));
       }
     }
 
@@ -1023,29 +987,14 @@ public class DocumentService {
     if ((recurse == null || !recurse)
         && path.size() < db.MAX_DEPTH
         && !inCassandraFilters.isEmpty()) {
-      predicates.add(
-          ImmutableWhereCondition.builder()
-              .column("p" + i++)
-              .predicate(WhereCondition.Predicate.Eq)
-              .value(filters.get(0).getField())
-              .build());
+      predicates.add(BuiltCondition.of("p" + i++, Predicate.EQ, filters.get(0).getField()));
     } else if (!path.isEmpty()) {
-      predicates.add(
-          ImmutableWhereCondition.builder()
-              .column("p" + i++)
-              .predicate(WhereCondition.Predicate.Gt)
-              .value("")
-              .build());
+      predicates.add(BuiltCondition.of("p" + i++, Predicate.GT, ""));
     }
 
     // The rest of the paths must match empty-string
     while (i < db.MAX_DEPTH && !path.isEmpty()) {
-      predicates.add(
-          ImmutableWhereCondition.builder()
-              .column("p" + i++)
-              .predicate(WhereCondition.Predicate.Eq)
-              .value("")
-              .build());
+      predicates.add(BuiltCondition.of("p" + i++, Predicate.EQ, ""));
     }
 
     for (FilterCondition filter : inCassandraFilters) {
@@ -1055,12 +1004,7 @@ public class DocumentService {
       String queryValueField = singleFilter.getValueColumnName();
       Object queryValue = singleFilter.getValue();
       if (queryOp != FilterOp.EXISTS) {
-        predicates.add(
-            ImmutableWhereCondition.builder()
-                .column(queryValueField)
-                .predicate(queryOp.predicate)
-                .value(queryValue)
-                .build());
+        predicates.add(BuiltCondition.of(queryValueField, queryOp.predicate, queryValue));
       }
     }
 

@@ -430,14 +430,21 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   @Test
   public void updateRowV2NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
+    String updateTimestamp = Instant.now().toString();
     Map<String, String> rowUpdate = new HashMap<>();
     rowUpdate.put("userid", rowIdentifier);
+    rowUpdate.put("last_update_timestamp", updateTimestamp);
     rowUpdate.put("item_count", "27");
 
     RestUtils.put(
         authToken,
         String.format(
-            "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+            "%s:8082/v2/keyspaces/%s/%s/%s/%s",
+            host,
+            keyspaceName,
+            tableName,
+            rowIdentifier,
+            URLEncoder.encode(updateTimestamp, "UTF-8")),
         objectMapper.writeValueAsString(rowUpdate),
         HttpStatus.SC_UNAUTHORIZED);
   }

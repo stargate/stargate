@@ -16,113 +16,41 @@
 package io.stargate.graphql.schema.fetchers.dml;
 
 import static graphql.schema.GraphQLList.list;
+import static io.stargate.graphql.schema.fetchers.dml.DataTypeMapping.toDBValue;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.querybuilder.condition.Condition;
-import com.datastax.oss.driver.api.querybuilder.condition.ConditionBuilder;
-import com.datastax.oss.driver.api.querybuilder.relation.ArithmeticRelationBuilder;
-import com.datastax.oss.driver.api.querybuilder.relation.ColumnRelationBuilder;
-import com.datastax.oss.driver.api.querybuilder.relation.Relation;
-import com.datastax.oss.driver.api.querybuilder.term.Term;
 import graphql.schema.GraphQLInputObjectField;
 import graphql.schema.GraphQLInputType;
+import io.stargate.db.query.Predicate;
+import io.stargate.db.query.builder.BuiltCondition;
+import io.stargate.db.query.builder.BuiltCondition.LHS;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.graphql.schema.NameMapping;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 /** Represents the relational and equality operators for filtering in DML GraphQL queries. */
 public enum FilterOperator {
-  EQUAL("eq") {
+  EQUAL("eq", Predicate.EQ),
+  NOT_EQUAL("notEq", Predicate.NEQ),
+  GREATER_THAN("gt", Predicate.GT),
+  GREATER_THAN_EQUAL("gte", Predicate.GTE),
+  LESS_THAN("lt", Predicate.LT),
+  LESS_THAN_EQUAL("lte", Predicate.LTE),
+  IN("in", Predicate.IN) {
     @Override
-    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
-      return buildSimpleCondition(column, value, nameMapping, ArithmeticRelationBuilder::isEqualTo);
-    }
-
-    @Override
-    public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
-      return buildSimpleRelation(column, value, nameMapping, ArithmeticRelationBuilder::isEqualTo);
-    }
-  },
-  NOT_EQUAL("notEq") {
-    @Override
-    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
-      return buildSimpleCondition(
-          column, value, nameMapping, ArithmeticRelationBuilder::isNotEqualTo);
-    }
-
-    @Override
-    public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
-      return buildSimpleRelation(
-          column, value, nameMapping, ArithmeticRelationBuilder::isNotEqualTo);
-    }
-  },
-  GREATER_THAN("gt") {
-    @Override
-    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
-      return FilterOperator.buildSimpleCondition(
-          column, value, nameMapping, ArithmeticRelationBuilder::isGreaterThan);
-    }
-
-    @Override
-    public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
-      return buildSimpleRelation(
-          column, value, nameMapping, ArithmeticRelationBuilder::isGreaterThan);
-    }
-  },
-  GREATER_THAN_EQUAL("gte") {
-    @Override
-    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
-      return FilterOperator.buildSimpleCondition(
-          column, value, nameMapping, ArithmeticRelationBuilder::isGreaterThanOrEqualTo);
-    }
-
-    @Override
-    public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
-      return buildSimpleRelation(
-          column, value, nameMapping, ArithmeticRelationBuilder::isGreaterThanOrEqualTo);
-    }
-  },
-  LESS_THAN("lt") {
-    @Override
-    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
-      return FilterOperator.buildSimpleCondition(
-          column, value, nameMapping, ArithmeticRelationBuilder::isLessThan);
-    }
-
-    @Override
-    public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
-      return buildSimpleRelation(column, value, nameMapping, ArithmeticRelationBuilder::isLessThan);
-    }
-  },
-  LESS_THAN_EQUAL("lte") {
-    @Override
-    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
-      return FilterOperator.buildSimpleCondition(
-          column, value, nameMapping, ArithmeticRelationBuilder::isLessThanOrEqualTo);
-    }
-
-    @Override
-    public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
-      return buildSimpleRelation(
-          column, value, nameMapping, ArithmeticRelationBuilder::isLessThanOrEqualTo);
-    }
-  },
-  IN("in") {
-    @Override
-    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
-      return Condition.column(column.name()).in(buildListLiterals(column, value, nameMapping));
-    }
-
-    @Override
-    public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
-      return Relation.column(CqlIdentifier.fromInternal(column.name()))
-          .in(buildListLiterals(column, value, nameMapping));
+    protected Object conditionValue(
+        ColumnType type, Object graphCQLValue, NameMapping nameMapping) {
+      if (graphCQLValue instanceof Collection<?>) {
+        Collection<?> values = (Collection<?>) graphCQLValue;
+        return values.stream()
+            .map(item -> toDBValue(type, item, nameMapping))
+            .collect(Collectors.toList());
+      }
+      return Collections.singletonList(toDBValue(type, graphCQLValue, nameMapping));
     }
 
     @Override
@@ -133,53 +61,49 @@ public enum FilterOperator {
           .build();
     }
   },
-  CONTAINS("contains") {
+  CONTAINS("contains", Predicate.CONTAINS) {
     @Override
-    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
-      throw new IllegalStateException("CONTAINS can't be used on IF conditions");
-    }
-
-    @Override
-    public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
-      return Relation.column(CqlIdentifier.fromInternal(column.name()))
-          .contains(toCqlElementTerm(column, value, nameMapping));
+    protected Object conditionValue(
+        ColumnType type, Object graphCQLValue, NameMapping nameMapping) {
+      assert type.isCollection();
+      ColumnType elementType = type.parameters().get(type.isMap() ? 1 : 0);
+      return toDBValue(elementType, graphCQLValue, nameMapping);
     }
   },
-  CONTAINS_KEY("containsKey") {
+  CONTAINS_KEY("containsKey", Predicate.CONTAINS_KEY) {
     @Override
-    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
-      throw new IllegalStateException("CONTAINS KEY can't be used on IF conditions");
-    }
-
-    @Override
-    public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
-      return Relation.column(CqlIdentifier.fromInternal(column.name()))
-          .containsKey(toCqlKeyTerm(column, value, nameMapping));
+    protected Object conditionValue(
+        ColumnType type, Object graphCQLValue, NameMapping nameMapping) {
+      assert type.isMap();
+      ColumnType keyType = type.parameters().get(0);
+      return toDBValue(keyType, graphCQLValue, nameMapping);
     }
   },
-  CONTAINS_ENTRY("containsEntry") {
-    @Override
-    public Condition buildCondition(Column column, Object value, NameMapping nameMapping) {
-      throw new IllegalStateException("CONTAINS ENTRY can't be used on IF conditions");
+  CONTAINS_ENTRY("containsEntry", Predicate.EQ) {
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> entry(Object graphCQLValue) {
+      return (Map<String, Object>) graphCQLValue;
     }
 
     @Override
-    public Relation buildRelation(Column column, Object value, NameMapping nameMapping) {
-      Column.ColumnType mapType = column.type();
-      assert mapType != null && mapType.isMap();
-      Map<String, Object> entry = (Map<String, Object>) value;
-      Column.ColumnType keyType = mapType.parameters().get(0);
-      Term keyTerm = DataTypeMapping.toCqlTerm(keyType, entry.get("key"), nameMapping);
-      Column.ColumnType valueType = mapType.parameters().get(1);
-      Term valueTerm = DataTypeMapping.toCqlTerm(valueType, entry.get("value"), nameMapping);
-      return Relation.mapValue(CqlIdentifier.fromInternal(column.name()), keyTerm)
-          .isEqualTo(valueTerm);
+    protected LHS conditionLHS(Column column, Object graphCQLValue, NameMapping nameMapping) {
+      Object key =
+          toDBValue(
+              column.type().parameters().get(0), entry(graphCQLValue).get("key"), nameMapping);
+      return LHS.mapAccess(column.name(), key);
+    }
+
+    @Override
+    protected Object conditionValue(
+        ColumnType type, Object graphCQLValue, NameMapping nameMapping) {
+      return toDBValue(type.parameters().get(1), entry(graphCQLValue).get("value"), nameMapping);
     }
   },
   ;
 
   private static final Map<String, FilterOperator> mapByFieldName = buildMapByFieldName();
   private final String fieldName;
+  private final Predicate predicate;
 
   public static FilterOperator fromFieldName(String fieldName) {
     FilterOperator op = mapByFieldName.get(fieldName);
@@ -194,64 +118,37 @@ public enum FilterOperator {
         .collect(Collectors.toMap(FilterOperator::getFieldName, o -> o));
   }
 
-  public abstract Condition buildCondition(Column column, Object value, NameMapping nameMapping);
-
-  private static Condition buildSimpleCondition(
-      Column column,
-      Object value,
-      NameMapping nameMapping,
-      BiFunction<ConditionBuilder<Condition>, Term, Condition> operator) {
-    return operator.apply(
-        Condition.column(CqlIdentifier.fromInternal(column.name())),
-        DataTypeMapping.toCqlTerm(column.type(), value, nameMapping));
+  public BuiltCondition buildCondition(Column column, Object value, NameMapping nameMapping) {
+    ColumnType type = column.type();
+    assert type != null;
+    return BuiltCondition.of(
+        conditionLHS(column, value, nameMapping),
+        predicate,
+        conditionValue(type, value, nameMapping));
   }
 
-  public abstract Relation buildRelation(Column column, Object value, NameMapping nameMapping);
+  protected LHS conditionLHS(Column column, Object graphCQLValue, NameMapping nameMapping) {
+    return LHS.column(column.name());
+  }
 
-  private static Relation buildSimpleRelation(
-      Column column,
-      Object value,
-      NameMapping nameMapping,
-      BiFunction<ColumnRelationBuilder<Relation>, Term, Relation> operator) {
-    return operator.apply(
-        Relation.column(CqlIdentifier.fromInternal(column.name())),
-        DataTypeMapping.toCqlTerm(column.type(), value, nameMapping));
+  protected Object conditionValue(ColumnType type, Object graphCQLValue, NameMapping nameMapping) {
+    return toDBValue(type, graphCQLValue, nameMapping);
   }
 
   public GraphQLInputObjectField buildField(GraphQLInputType gqlInputType) {
     return GraphQLInputObjectField.newInputObjectField().name(fieldName).type(gqlInputType).build();
   }
 
-  private static List<Term> buildListLiterals(Column column, Object o, NameMapping nameMapping) {
-    if (o instanceof Collection<?>) {
-      Collection<?> values = (Collection<?>) o;
-      return values.stream()
-          .map(item -> DataTypeMapping.toCqlTerm(column.type(), item, nameMapping))
-          .collect(Collectors.toList());
-    }
-
-    return Collections.singletonList(DataTypeMapping.toCqlTerm(column.type(), o, nameMapping));
-  }
-
-  private static Term toCqlKeyTerm(Column column, Object value, NameMapping nameMapping) {
-    Column.ColumnType mapType = column.type();
-    assert mapType != null && mapType.isMap();
-    Column.ColumnType keyType = mapType.parameters().get(0);
-    return DataTypeMapping.toCqlTerm(keyType, value, nameMapping);
-  }
-
-  private static Term toCqlElementTerm(Column column, Object value, NameMapping nameMapping) {
-    Column.ColumnType collectionType = column.type();
-    assert collectionType != null && collectionType.isCollection();
-    Column.ColumnType elementType = collectionType.parameters().get(collectionType.isMap() ? 1 : 0);
-    return DataTypeMapping.toCqlTerm(elementType, value, nameMapping);
-  }
-
-  FilterOperator(String fieldName) {
+  FilterOperator(String fieldName, Predicate predicate) {
     this.fieldName = fieldName;
+    this.predicate = predicate;
   }
 
   public String getFieldName() {
     return fieldName;
+  }
+
+  public Predicate predicate() {
+    return predicate;
   }
 }
