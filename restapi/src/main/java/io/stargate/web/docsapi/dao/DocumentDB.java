@@ -225,7 +225,9 @@ public class DocumentDB {
   private void createDefaultIndexes(String keyspaceName, String tableName)
       throws InterruptedException, ExecutionException {
     for (String name : VALUE_COLUMN_NAMES) {
-      createDefaultIndex(keyspaceName, tableName, name);
+      if (!name.equals("bool_value")) {
+        createDefaultIndex(keyspaceName, tableName, name);
+      }
     }
   }
 
@@ -248,7 +250,7 @@ public class DocumentDB {
     for (String name : VALUE_COLUMN_NAMES) {
       if (name.equals("bool_value")) {
         // SAI doesn't support booleans, so add a non-SAI index here.
-        createDefaultIndex(keyspaceName, tableName, name);
+        // createDefaultIndex(keyspaceName, tableName, name);
       } else {
         dataStore
             .queryBuilder()
