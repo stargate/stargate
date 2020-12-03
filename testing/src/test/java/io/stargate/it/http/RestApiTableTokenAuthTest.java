@@ -120,13 +120,6 @@ public class RestApiTableTokenAuthTest extends BaseOsgiIntegrationTest {
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
 
-    try {
-      // Need to sleep to allow propagation of permissions
-      Thread.sleep(5000L);
-    } catch (InterruptedException e) {
-      logger.error("Error", e);
-    }
-
     authToken = generateToken(readOnlyUsername, readOnlyPassword);
     RestUtils.get(
         authToken,
