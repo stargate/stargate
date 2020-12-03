@@ -12,6 +12,7 @@ import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableKeyspace;
 import io.stargate.db.schema.ImmutableTable;
 import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.DmlTestBase;
 import java.math.BigDecimal;
@@ -44,7 +45,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 public class ScalarsDmlTest extends DmlTestBase {
   public static final Table table = buildTable();
   public static final Keyspace keyspace =
-      ImmutableKeyspace.builder().name("scalars").addTables(table).build();
+      ImmutableKeyspace.builder().name("scalars_ks").addTables(table).build();
   private static final String UUID_REGEX =
       "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
@@ -84,8 +85,8 @@ public class ScalarsDmlTest extends DmlTestBase {
   }
 
   @Override
-  public Keyspace getKeyspace() {
-    return keyspace;
+  public Schema getCQLSchema() {
+    return Schema.create(Collections.singleton(keyspace));
   }
 
   @ParameterizedTest
@@ -95,7 +96,7 @@ public class ScalarsDmlTest extends DmlTestBase {
     String name = getName(type);
     String expectedCQL =
         String.format(
-            "INSERT INTO scalars_ks.\"Scalars\" (id,%s) VALUES (1,%s)",
+            "INSERT INTO scalars_ks.\"Scalars\" (id, %s) VALUES (1, %s)",
             name, expectedLiteral != null ? expectedLiteral : value.toString());
 
     assertQuery(String.format(mutation, name, toGraphQLValue(value)), expectedCQL);
@@ -111,7 +112,7 @@ public class ScalarsDmlTest extends DmlTestBase {
     String name = getName(type);
     String expectedCQL =
         String.format(
-            "INSERT INTO scalars_ks.\"Scalars\" (id,%s) VALUES (1,%s)",
+            "INSERT INTO scalars_ks.\"Scalars\" (id, %s) VALUES (1, %s)",
             name, expectedLiteral != null ? expectedLiteral : value.toString());
 
     assertQuery(String.format(mutation, name, toGraphQLValue(value)), expectedCQL);
@@ -153,10 +154,10 @@ public class ScalarsDmlTest extends DmlTestBase {
             + "applied, value { timeuuidvalue } } }";
     ExecutionResult result = executeGraphQl(mutation);
     assertThat(result.getErrors()).isEmpty();
-    assertThat(queryCaptor.getValue())
+    assertThat(getCapturedQueryString())
         .matches(
             String.format(
-                "INSERT INTO scalars_ks.\"Scalars\" \\(id,timeuuidvalue\\) VALUES \\(1,%s\\)",
+                "INSERT INTO scalars_ks.\"Scalars\" \\(id, timeuuidvalue\\) VALUES \\(1, %s\\)",
                 UUID_REGEX));
 
     assertThat(result.<Map<String, Object>>getData())
@@ -177,10 +178,10 @@ public class ScalarsDmlTest extends DmlTestBase {
             + "applied, value { uuidvalue } } }";
     ExecutionResult result = executeGraphQl(mutation);
     assertThat(result.getErrors()).isEmpty();
-    assertThat(queryCaptor.getValue())
+    assertThat(getCapturedQueryString())
         .matches(
             String.format(
-                "INSERT INTO scalars_ks.\"Scalars\" \\(id,uuidvalue\\) VALUES \\(1,%s\\)",
+                "INSERT INTO scalars_ks.\"Scalars\" \\(id, uuidvalue\\) VALUES \\(1, %s\\)",
                 UUID_REGEX));
 
     assertThat(result.<Map<String, Object>>getData())

@@ -25,7 +25,6 @@ import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
-import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.SchemaFactory;
 import java.util.Comparator;
@@ -91,19 +90,22 @@ public class GraphqlCache implements EventListener {
   private static String findDefaultKeyspace(DataStore dataStore) {
     try {
       CompletableFuture<ResultSet> query =
-          dataStore.query(
-              "select writetime(durable_writes) as wt, keyspace_name from system_schema.keyspaces",
-              ConsistencyLevel.LOCAL_QUORUM);
+          dataStore
+              .queryBuilder()
+              .select()
+              .column("keyspace_name")
+              .writeTimeColumn("durable_writes", "wt")
+              .from("system_schema", "keyspaces")
+              .build()
+              .execute(ConsistencyLevel.LOCAL_QUORUM);
 
       ResultSet resultSet = query.get();
-
-      Column writetimeColumn = Column.create("wt", Column.Type.Counter);
 
       // Grab the oldest, non-system keyspace to use as default.
       Optional<Row> first =
           resultSet.rows().stream()
               .filter(r -> !r.isNull("wt"))
-              .filter(r -> r.getLong(writetimeColumn.name()) > 0)
+              .filter(r -> r.getLong("wt") > 0)
               .filter(
                   r -> {
                     String keyspaceName = r.getString("keyspace_name");
@@ -113,7 +115,7 @@ public class GraphqlCache implements EventListener {
                         && !keyspaceName.startsWith("system_")
                         && !keyspaceName.startsWith("dse_");
                   })
-              .min(Comparator.comparing(r -> r.getLong(writetimeColumn.name())));
+              .min(Comparator.comparing(r -> r.getLong("wt")));
 
       String defaultKeyspace = first.map(row -> row.getString("keyspace_name")).orElse(null);
       LOG.debug("Using default keyspace {}", defaultKeyspace);

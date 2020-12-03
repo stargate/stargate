@@ -167,7 +167,7 @@ public class SchemaBuilderImpl {
 
   @DSLAction
   public void column(String name, Column.ColumnType type, Column.Kind kind) {
-    column(name, type, kind, kind == Column.Kind.Clustering ? Column.Order.Asc : null);
+    column(name, type, kind, kind == Column.Kind.Clustering ? Column.Order.ASC : null);
   }
 
   @DSLAction
@@ -188,7 +188,7 @@ public class SchemaBuilderImpl {
 
   @DSLAction
   public void column(String name, Class type, Column.Kind kind) {
-    column(name, type, kind, kind == Column.Kind.Clustering ? Column.Order.Asc : null);
+    column(name, type, kind, kind == Column.Kind.Clustering ? Column.Order.ASC : null);
   }
 
   @DSLAction
@@ -214,7 +214,7 @@ public class SchemaBuilderImpl {
     Preconditions.checkState(
         materializedViewName != null,
         "This overload of 'column' can only be used with materialized views");
-    Column.Order order = kind == Column.Kind.Clustering ? Column.Order.Asc : null;
+    Column.Order order = kind == Column.Kind.Clustering ? Column.Order.ASC : null;
     materializedViewColumns.add(
         ImmutableColumn.builder()
             .keyspace(keyspaceName)
@@ -493,23 +493,19 @@ public class SchemaBuilderImpl {
 
       List<Column> columnReferences = new ArrayList<>();
       for (Column col : materializedViewColumns) {
-        if (col == Column.STAR) {
-          columnReferences.add(col);
-        } else {
-          Optional<Column> sourceColumn =
-              columns.stream().filter(c -> c.name().equals(col.name())).findFirst();
-          Preconditions.checkArgument(
-              sourceColumn.isPresent(),
-              "Materialized view references unknown column '%s'",
-              col.name());
-          columnReferences.add(
-              ImmutableColumn.builder()
-                  .name(sourceColumn.get().name())
-                  .type(sourceColumn.get().type())
-                  .kind(col.kind())
-                  .order(col.order())
-                  .build());
-        }
+        Optional<Column> sourceColumn =
+            columns.stream().filter(c -> c.name().equals(col.name())).findFirst();
+        Preconditions.checkArgument(
+            sourceColumn.isPresent(),
+            "Materialized view references unknown column '%s'",
+            col.name());
+        columnReferences.add(
+            ImmutableColumn.builder()
+                .name(sourceColumn.get().name())
+                .type(sourceColumn.get().type())
+                .kind(col.kind())
+                .order(col.order())
+                .build());
       }
 
       Set<String> columnNames =

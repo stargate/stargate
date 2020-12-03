@@ -16,18 +16,17 @@
 package io.stargate.db.datastore;
 
 import io.stargate.db.AuthenticatedUser;
-import io.stargate.db.BatchType;
-import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
-import io.stargate.db.datastore.query.QueryBuilder;
+import io.stargate.db.query.AsyncQueryExecutor;
+import io.stargate.db.query.BoundQuery;
+import io.stargate.db.query.Query;
+import io.stargate.db.query.TypedValue;
+import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Schema;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.UnaryOperator;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /**
  * Wraps a {@link Persistence} implementation to provide more convenient and high-level access.
@@ -36,35 +35,19 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
  * java object values (instead of raw byte buffers), automatic handling of paging in its result set,
  * etc.
  */
-public interface DataStore {
-
-  /**
-   * Placeholder value that can used to represent an UNSET value in methods of the DataStore.
-   *
-   * <p>Note that using this value is equivalent to using the underlying persistence unset value
-   * ({@link Persistence#unsetValue()}) <em>in the DataStore methods</em>, but is a tad more
-   * convenient in practice.
-   */
-  Object UNSET =
-      new Object() {
-        @Override
-        public String toString() {
-          return "<unset>";
-        }
-      };
+public interface DataStore extends AsyncQueryExecutor {
 
   /**
    * Creates a new DataStore using the provided connection for querying and with the provided
    * default parameters.
    *
    * @param connection the persistence connection to use for querying.
-   * @param queryParameters the default parameters to use for the queries made on the created store.
-   *     Note that all those parameters can be overridden on a per-query basis if needed.
+   * @param options the options for the create data store.
    * @return the created store.
    */
-  static DataStore create(Persistence.Connection connection, @Nonnull Parameters queryParameters) {
-    Objects.requireNonNull(queryParameters);
-    return new PersistenceBackedDataStore(connection, queryParameters);
+  static DataStore create(Persistence.Connection connection, @Nonnull DataStoreOptions options) {
+    Objects.requireNonNull(options);
+    return new PersistenceBackedDataStore(connection, options);
   }
 
   /**
@@ -74,136 +57,45 @@ public interface DataStore {
    *     {@link Persistence.Connection} underneath).
    * @param userName the user name to login for this store. For convenience, if it is {@code null}
    *     or the empty string, no login attempt is performed (so no authentication must be setup).
-   * @param queryParameters the default parameters to use for the queries made on the created store.
-   *     Note that all those parameters can be overridden on a per-query basis if needed.
+   * @param options the options for the create data store.
    * @return the created store.
    */
   static DataStore create(
-      Persistence persistence, @Nullable String userName, @Nonnull Parameters queryParameters) {
+      Persistence persistence, @Nullable String userName, @Nonnull DataStoreOptions options) {
     Persistence.Connection connection = persistence.newConnection();
     if (userName != null && !userName.isEmpty()) {
       connection.login(AuthenticatedUser.of(userName));
     }
-    return create(connection, queryParameters);
+    return create(connection, options);
   }
 
   /**
    * Creates a new DataStore on top of the provided persistence.
    *
-   * <p>Same as {@link #create(Persistence, String, Parameters)}, but using {@link
-   * Parameters#defaults()} for the default parameters.
-   */
-  static DataStore create(Persistence persistence, @Nullable String userName) {
-    return create(persistence, userName, Parameters.defaults());
-  }
-
-  /**
-   * Creates a new DataStore on top of the provided persistence.
-   *
-   * <p>A shortcut for {@link #create(Persistence, String)} with a {@code null} userName.
+   * <p>A shortcut for {@link #create(Persistence, DataStoreOptions)} with default options.
    */
   static DataStore create(Persistence persistence) {
-    return create(persistence, null);
+    return create(persistence, DataStoreOptions.defaults());
   }
+
+  /**
+   * Creates a new DataStore on top of the provided persistence.
+   *
+   * <p>A shortcut for {@link #create(Persistence, String, DataStoreOptions)} with a {@code null}
+   * userName.
+   */
+  static DataStore create(Persistence persistence, DataStoreOptions options) {
+    return create(persistence, null, options);
+  }
+
+  TypedValue.Codec valueCodec();
 
   /** Create a query using the DSL builder. */
-  default QueryBuilder query() {
-    return new QueryBuilder(this);
+  default QueryBuilder queryBuilder() {
+    return new QueryBuilder(schema(), valueCodec(), this);
   }
 
-  /**
-   * Executes the provided query against this data store.
-   *
-   * <p>This is a shortcut for {@link #query(String, UnaryOperator, Object...)} but where the
-   * execution {@link Parameters} are the default ones of the data store.
-   */
-  default CompletableFuture<ResultSet> query(String queryString, Object... values) {
-    return query(queryString, p -> p, values);
-  }
-
-  /**
-   * Executes the provided query against this data store.
-   *
-   * <p>This is a shortcut for {@link #query(String, UnaryOperator, Object...)} where the data store
-   * default parameters are only modified to use the provided consistency level.
-   */
-  default CompletableFuture<ResultSet> query(
-      String queryString, ConsistencyLevel consistencyLevel, Object... values) {
-    return query(queryString, p -> p.withConsistencyLevel(consistencyLevel), values);
-  }
-
-  /**
-   * Executes the provided query against this data store.
-   *
-   * @param queryString the query to execute.
-   * @param parametersModifier a function called on the default parameters of this data store (the
-   *     instance provided when building the data store) and whose result parameters are used for
-   *     the query execution.
-   * @param values the (positional) values for the bind variables in {@code queryString}, if any.
-   * @return a future with a {@link ResultSet} object to access the result of the query. The future
-   *     is complete as soon as some initial result for the query is available, which for paging
-   *     queries means only the first page of the result set. As for {@link
-   *     Persistence.Connection#execute}, this future can be completed on a sensitive thread and one
-   *     should not chain blocking operations on this future <b>including</b> iterating over the
-   *     whole result set (as this may be block when paging kicks in to query further pages). In
-   *     other words, <b>do not</b> do:
-   *     <pre>
-   *   query(...).thenAccept(rs -> { for (Row r : rs) {...} });
-   * </pre>
-   *     Use {@link CompletableFuture#thenAcceptAsync} instead in that case.
-   */
-  CompletableFuture<ResultSet> query(
-      String queryString, UnaryOperator<Parameters> parametersModifier, Object... values);
-
-  /** Prepares the provided query against this data store. */
-  CompletableFuture<PreparedStatement> prepare(String queryString);
-
-  /**
-   * Executes the provided bound statements as a batch against this data store.
-   *
-   * <p>This is a shortcut for {@link #batch(List, UnaryOperator)} where the data store default
-   * parameters are only modified to use the provided consistency level.
-   */
-  default CompletableFuture<ResultSet> batch(
-      List<PreparedStatement.Bound> statements, ConsistencyLevel consistencyLevel) {
-    return batch(statements, p -> p.withConsistencyLevel(consistencyLevel));
-  }
-
-  /**
-   * Executes the provided bound statements as a batch against this data store.
-   *
-   * <p>This is a shortcut for {@link #batch(List, BatchType, UnaryOperator)} where batch type
-   * defaults to "logged".
-   */
-  default CompletableFuture<ResultSet> batch(
-      List<PreparedStatement.Bound> statements, UnaryOperator<Parameters> parametersModifier) {
-    return batch(statements, BatchType.LOGGED, parametersModifier);
-  }
-
-  /**
-   * Executes the provided bound statements as a batch against this data store.
-   *
-   * @param statements the statements to execute as a batch.
-   * @param batchType the type of the batch.
-   * @param parametersModifier a function called on the default parameters of this data store (the
-   *     instance provided when building the data store) and whose result parameters are used for
-   *     the query execution.
-   * @return a future with a {@link ResultSet} object to access the result of the query. See {@link
-   *     #query(String, UnaryOperator, Object...)} javadoc for details on that result set; the same
-   *     description applies here.
-   */
-  CompletableFuture<ResultSet> batch(
-      List<PreparedStatement.Bound> statements,
-      BatchType batchType,
-      UnaryOperator<Parameters> parametersModifier);
-
-  /**
-   * Executes the provided queries as a logged batch against this data store.
-   *
-   * @param queries the queries to execute as a batch.
-   * @return a future with a {@link ResultSet} object to access the result of the query.
-   */
-  CompletableFuture<ResultSet> batch(List<String> queries);
+  <B extends BoundQuery> CompletableFuture<Query<B>> prepare(Query<B> query);
 
   /**
    * Returns the current schema.

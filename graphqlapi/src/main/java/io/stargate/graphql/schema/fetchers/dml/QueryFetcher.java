@@ -15,19 +15,20 @@
  */
 package io.stargate.graphql.schema.fetchers.dml;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.core.metadata.schema.ClusteringOrder;
-import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
-import com.datastax.oss.driver.api.querybuilder.select.Select;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.TypedKeyValue;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.query.BoundQuery;
+import io.stargate.db.query.BoundSelect;
+import io.stargate.db.query.builder.ColumnOrder;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
 import io.stargate.graphql.web.HttpAwareContext;
@@ -35,7 +36,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -54,17 +54,17 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
   @Override
   protected Map<String, Object> get(DataFetchingEnvironment environment, DataStore dataStore)
       throws Exception {
-    String statement = buildQuery(environment);
+    BoundQuery query = buildQuery(environment, dataStore);
     HttpAwareContext httpAwareContext = environment.getContext();
     String token = httpAwareContext.getAuthToken();
 
     ResultSet resultSet =
         authorizationService.authorizedDataRead(
-            () -> dataStore.query(statement).get(),
+            () -> dataStore.execute(query).get(),
             token,
-            keyspaceId.asInternal(),
+            table.keyspace(),
             table.name(),
-            buildTypedKeyValueList(table, environment));
+            TypedKeyValue.forSelect((BoundSelect) query));
 
     Map<String, Object> result = new HashMap<>();
     result.put(
@@ -81,53 +81,54 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
     return result;
   }
 
-  private String buildQuery(DataFetchingEnvironment environment) {
-    Select select =
-        QueryBuilder.selectFrom(keyspaceId, tableId)
-            .columnsIds(buildQueryColumns(environment))
-            .where(buildClause(this.table, environment))
-            .orderByIds(buildOrderBy(environment));
-
-    Map<String, Object> options = environment.getArgument("options");
-    if (options != null) {
-      Object limit = options.get("limit");
-      if (limit != null) {
-        select = select.limit((Integer) limit);
+  private BoundQuery buildQuery(DataFetchingEnvironment environment, DataStore dataStore) {
+    Long limit = null;
+    if (environment.containsArgument("options")) {
+      Map<String, Object> options = environment.getArgument("options");
+      Object limitObj = options == null ? null : options.get("limit");
+      if (limitObj != null) {
+        limit = (long) (int) limitObj;
       }
     }
-
-    return select.asCql();
+    return dataStore
+        .queryBuilder()
+        .select()
+        .column(buildQueryColumns(environment))
+        .from(table.keyspace(), table.name())
+        .where(buildClause(table, environment))
+        .limit(limit)
+        .orderBy(buildOrderBy(environment))
+        .build()
+        .bind();
   }
 
-  private Map<CqlIdentifier, ClusteringOrder> buildOrderBy(DataFetchingEnvironment environment) {
+  private List<ColumnOrder> buildOrderBy(DataFetchingEnvironment environment) {
     if (environment.containsArgument("orderBy")) {
-      Map<CqlIdentifier, ClusteringOrder> orderMap = new LinkedHashMap<>();
+      List<ColumnOrder> orderBy = new ArrayList<>();
       List<String> orderList = environment.getArgument("orderBy");
       for (String order : orderList) {
         int split = order.lastIndexOf("_");
         String column = order.substring(0, split);
         boolean desc = order.substring(split + 1).equals("DESC");
-        orderMap.put(
-            getDBColumnName(table, column), desc ? ClusteringOrder.DESC : ClusteringOrder.ASC);
+        orderBy.add(ColumnOrder.of(getDBColumnName(table, column), desc ? Order.DESC : Order.ASC));
       }
-      return orderMap;
+      return orderBy;
     }
-
-    return ImmutableMap.of();
+    return ImmutableList.of();
   }
 
-  private List<CqlIdentifier> buildQueryColumns(DataFetchingEnvironment environment) {
+  private List<Column> buildQueryColumns(DataFetchingEnvironment environment) {
     if (environment.getSelectionSet().contains("values")) {
       SelectedField field = environment.getSelectionSet().getField("values");
-      List<CqlIdentifier> fields = new ArrayList<>();
+      List<Column> fields = new ArrayList<>();
       for (SelectedField selectedField : field.getSelectionSet().getFields()) {
         if ("__typename".equals(selectedField.getName())) {
           continue;
         }
 
-        CqlIdentifier column = getDBColumnName(table, selectedField.getName());
+        String column = getDBColumnName(table, selectedField.getName());
         if (column != null) {
-          fields.add(column);
+          fields.add(Column.reference(column));
         }
       }
       return fields;

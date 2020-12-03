@@ -47,12 +47,13 @@ public class BundleService {
 
         Future<ResultSet> rs =
             dataStore
-                .query()
+                .queryBuilder()
                 .select()
                 .column("cluster_name")
                 .column("schema_version")
                 .from("system", "local")
-                .future();
+                .build()
+                .execute();
 
         Row row = rs.get().one();
         String clusterName = row.getString("cluster_name");

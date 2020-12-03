@@ -15,19 +15,18 @@
  */
 package io.stargate.web.resources;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.stargate.db.datastore.query.ImmutableWhereCondition;
-import io.stargate.db.datastore.query.Where;
-import io.stargate.db.datastore.query.WhereCondition;
+import io.stargate.db.query.Predicate;
+import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableTable;
 import io.stargate.web.service.WhereParser;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -37,13 +36,8 @@ public class WhereParserTest {
   @Test
   public void testParseSimple() throws IOException {
     String whereParam = "{ \"name\": {\"$eq\": \"Cliff\"} }";
-    List<Where<?>> whereExpected =
-        Collections.singletonList(
-            ImmutableWhereCondition.builder()
-                .value("Cliff")
-                .predicate(WhereCondition.Predicate.Eq)
-                .column(ImmutableColumn.create("name", Column.Type.Text))
-                .build());
+    List<BuiltCondition> whereExpected =
+        singletonList(BuiltCondition.of("name", Predicate.EQ, "Cliff"));
 
     ImmutableTable table =
         ImmutableTable.builder()
@@ -52,7 +46,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("name", Column.Type.Text))
             .build();
 
-    List<WhereCondition<?>> where = WhereParser.parseWhere(whereParam, table);
+    List<BuiltCondition> where = WhereParser.parseWhere(whereParam, table);
 
     assertThat(where).isEqualTo(whereExpected);
   }
@@ -60,13 +54,6 @@ public class WhereParserTest {
   @Test
   public void testParseNotObject() {
     String whereParam = "[ \"name\" ]";
-    List<Where<?>> whereExpected =
-        Collections.singletonList(
-            ImmutableWhereCondition.builder()
-                .value("Cliff")
-                .predicate(WhereCondition.Predicate.Eq)
-                .column("name")
-                .build());
 
     ImmutableTable table =
         ImmutableTable.builder()
@@ -75,10 +62,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("name", Column.Type.Text))
             .build();
 
-    assertThatThrownBy(
-            () -> {
-              WhereParser.parseWhere(whereParam, table);
-            })
+    assertThatThrownBy(() -> WhereParser.parseWhere(whereParam, table))
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining("Was expecting a JSON object as input for where parameter.");
   }
@@ -94,10 +78,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("name", Column.Type.Text))
             .build();
 
-    assertThatThrownBy(
-            () -> {
-              WhereParser.parseWhere(whereParam, table);
-            })
+    assertThatThrownBy(() -> WhereParser.parseWhere(whereParam, table))
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining("Entry for field name was expecting a JSON object as input.");
   }
@@ -113,10 +94,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("name", Column.Type.Text))
             .build();
 
-    assertThatThrownBy(
-            () -> {
-              WhereParser.parseWhere(whereParam, table);
-            })
+    assertThatThrownBy(() -> WhereParser.parseWhere(whereParam, table))
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining(
             "Value entry for field name, operation $gt was expecting a value, but found null.");
@@ -133,10 +111,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("name", Column.Type.Text))
             .build();
 
-    assertThatThrownBy(
-            () -> {
-              WhereParser.parseWhere(whereParam, table);
-            })
+    assertThatThrownBy(() -> WhereParser.parseWhere(whereParam, table))
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining("`exists` only supports the value `true`");
   }
@@ -152,10 +127,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("name", Column.Type.Text))
             .build();
 
-    assertThatThrownBy(
-            () -> {
-              WhereParser.parseWhere(whereParam, table);
-            })
+    assertThatThrownBy(() -> WhereParser.parseWhere(whereParam, table))
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining("Operation $foo is not supported");
   }
@@ -163,18 +135,10 @@ public class WhereParserTest {
   @Test
   public void testParse() throws IOException {
     String whereParam = "{\"price\": {\"$gt\": 600, \"$lt\": 600.05}}";
-    List<Where<?>> whereExpected =
-        Arrays.asList(
-            ImmutableWhereCondition.builder()
-                .value(600.0)
-                .predicate(WhereCondition.Predicate.Gt)
-                .column(ImmutableColumn.create("price", Column.Type.Double))
-                .build(),
-            ImmutableWhereCondition.builder()
-                .value(600.05)
-                .predicate(WhereCondition.Predicate.Lt)
-                .column(ImmutableColumn.create("price", Column.Type.Double))
-                .build());
+    List<BuiltCondition> whereExpected =
+        asList(
+            BuiltCondition.of("price", Predicate.GT, 600.0),
+            BuiltCondition.of("price", Predicate.LT, 600.05));
 
     ImmutableTable table =
         ImmutableTable.builder()
@@ -183,7 +147,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("price", Column.Type.Double))
             .build();
 
-    List<WhereCondition<?>> where = WhereParser.parseWhere(whereParam, table);
+    List<BuiltCondition> where = WhereParser.parseWhere(whereParam, table);
 
     assertThat(where).isEqualTo(whereExpected);
   }
@@ -192,23 +156,12 @@ public class WhereParserTest {
   public void testParseMultiColumn() throws IOException {
     String whereParam =
         "{\"price\": {\"$gt\": 600, \"$lt\": 600.05}, \"id\": {\"$eq\": \"c72e7d29-3c67-4b60-8cf8-db439b2bf66c\"}}";
-    List<Where<?>> whereExpected =
-        Arrays.asList(
-            ImmutableWhereCondition.builder()
-                .value(600.0)
-                .predicate(WhereCondition.Predicate.Gt)
-                .column(ImmutableColumn.create("price", Column.Type.Double))
-                .build(),
-            ImmutableWhereCondition.builder()
-                .value(600.05)
-                .predicate(WhereCondition.Predicate.Lt)
-                .column(ImmutableColumn.create("price", Column.Type.Double))
-                .build(),
-            ImmutableWhereCondition.builder()
-                .value(UUID.fromString("c72e7d29-3c67-4b60-8cf8-db439b2bf66c"))
-                .predicate(WhereCondition.Predicate.Eq)
-                .column(ImmutableColumn.create("id", Column.Type.Uuid))
-                .build());
+    List<BuiltCondition> whereExpected =
+        asList(
+            BuiltCondition.of("price", Predicate.GT, 600.0),
+            BuiltCondition.of("price", Predicate.LT, 600.05),
+            BuiltCondition.of(
+                "id", Predicate.EQ, UUID.fromString("c72e7d29-3c67-4b60-8cf8-db439b2bf66c")));
 
     ImmutableTable table =
         ImmutableTable.builder()
@@ -218,7 +171,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("id", Column.Type.Uuid))
             .build();
 
-    List<WhereCondition<?>> where = WhereParser.parseWhere(whereParam, table);
+    List<BuiltCondition> where = WhereParser.parseWhere(whereParam, table);
 
     assertThat(where).isEqualTo(whereExpected);
   }
@@ -234,10 +187,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("name", Column.Type.Text))
             .build();
 
-    assertThatThrownBy(
-            () -> {
-              WhereParser.parseWhere(whereParam, table);
-            })
+    assertThatThrownBy(() -> WhereParser.parseWhere(whereParam, table))
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining("Input provided is not valid json");
   }
@@ -245,13 +195,8 @@ public class WhereParserTest {
   @Test
   public void testInOperation() throws IOException {
     String whereParam = "{\"name\":{\"$in\":[\"foo\",\"bar\",\"baz\"]}}";
-    List<Where<?>> whereExpected =
-        Collections.singletonList(
-            ImmutableWhereCondition.builder()
-                .value(Arrays.asList("foo", "bar", "baz"))
-                .predicate(WhereCondition.Predicate.In)
-                .column(ImmutableColumn.create("name", Column.Type.Text))
-                .build());
+    List<BuiltCondition> whereExpected =
+        singletonList(BuiltCondition.of("name", Predicate.IN, asList("foo", "bar", "baz")));
 
     ImmutableTable table =
         ImmutableTable.builder()
@@ -260,7 +205,7 @@ public class WhereParserTest {
             .addColumns(ImmutableColumn.create("name", Column.Type.Text))
             .build();
 
-    List<WhereCondition<?>> where = WhereParser.parseWhere(whereParam, table);
+    List<BuiltCondition> where = WhereParser.parseWhere(whereParam, table);
 
     assertThat(where).isEqualTo(whereExpected);
   }

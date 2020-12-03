@@ -1,7 +1,6 @@
 package io.stargate.db.datastore;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
-import io.stargate.db.BoundStatement;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
@@ -56,8 +55,7 @@ class PersistenceBackedResultSet implements ResultSet {
     // We get our metadata in our initial page; let's skip it for following pages
     this.parameters = parameters.withoutMetadataInResult();
     this.statement = statement;
-    this.driverProtocolVersion =
-        PersistenceBackedDataStore.toDriverVersion(parameters.protocolVersion());
+    this.driverProtocolVersion = parameters.protocolVersion().toDriverVersion();
     this.fetchedRows = new ArrayDeque<>(parameters.pageSize().orElse(32));
     this.columns = processColumns(initialPage.resultMetadata.columns);
     this.authzFilter = authzFilter;
@@ -72,12 +70,11 @@ class PersistenceBackedResultSet implements ResultSet {
   static ResultSet create(
       Persistence.Connection connection,
       Result result,
-      @Nullable BoundStatement statement,
+      @Nullable Statement statement,
       Parameters executeParameters) {
     switch (result.kind) {
       case Prepared:
-        throw new AssertionError(
-            "Shouldn't get a 'Prepared' result when executing a prepared statement");
+        throw new AssertionError("Shouldn't get a 'Prepared' result when executing a statement");
       case SchemaChange:
         connection.persistence().waitForSchemaAgreement();
         return ResultSet.empty(true);

@@ -75,9 +75,9 @@ public class SchemaConverter
   protected Order columnClusteringOrder(ColumnMetadata column) {
     switch (column.clusteringOrder()) {
       case ASC:
-        return Column.Order.Asc;
+        return Column.Order.ASC;
       case DESC:
-        return Column.Order.Desc;
+        return Column.Order.DESC;
       case NONE:
         return null;
       default:

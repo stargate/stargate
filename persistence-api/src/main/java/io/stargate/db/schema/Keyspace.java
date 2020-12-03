@@ -15,7 +15,6 @@
  */
 package io.stargate.db.schema;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -139,16 +138,6 @@ public abstract class Keyspace implements SchemaEntity {
         .addAllUserDefinedTypes(userDefinedTypes)
         .putAllReplication(replication)
         .durableWrites(durableWrites)
-        .build();
-  }
-
-  public static Keyspace reference(String name) {
-    return ImmutableKeyspace.builder()
-        .name(name)
-        .addAllTables(Collections.emptySet())
-        .userDefinedTypes(Collections.emptyList())
-        .putAllReplication(Collections.emptyMap())
-        .durableWrites(Optional.empty())
         .build();
   }
 

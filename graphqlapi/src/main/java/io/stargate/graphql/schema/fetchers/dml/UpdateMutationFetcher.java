@@ -1,17 +1,18 @@
 package io.stargate.graphql.schema.fetchers.dml;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
-import com.datastax.oss.driver.api.querybuilder.relation.Relation;
-import com.datastax.oss.driver.api.querybuilder.update.Assignment;
-import com.datastax.oss.driver.api.querybuilder.update.Update;
-import com.datastax.oss.driver.api.querybuilder.update.UpdateStart;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
+import io.stargate.auth.TypedKeyValue;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.query.BoundDMLQuery;
+import io.stargate.db.query.BoundQuery;
+import io.stargate.db.query.Predicate;
+import io.stargate.db.query.builder.BuiltCondition;
+import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
@@ -32,64 +33,57 @@ public class UpdateMutationFetcher extends MutationFetcher {
   }
 
   @Override
-  protected String buildStatement(DataFetchingEnvironment environment, DataStore dataStore)
-      throws Exception {
-    UpdateStart updateStart = QueryBuilder.update(keyspaceId, tableId);
+  protected BoundQuery buildQuery(DataFetchingEnvironment environment, DataStore dataStore)
+      throws UnauthorizedException {
+    boolean ifExists =
+        environment.containsArgument("ifExists")
+            && environment.getArgument("ifExists") != null
+            && (Boolean) environment.getArgument("ifExists");
 
-    if (environment.containsArgument("options") && environment.getArgument("options") != null) {
-      Map<String, Object> options = environment.getArgument("options");
-      if (options.containsKey("ttl") && options.get("ttl") != null) {
-        updateStart = updateStart.usingTtl((Integer) options.get("ttl"));
-      }
-    }
+    BoundQuery query =
+        dataStore
+            .queryBuilder()
+            .update(table.keyspace(), table.name())
+            .ttl(getTTL(environment))
+            .value(buildAssignments(table, environment))
+            .where(buildPkCKWhere(table, environment))
+            .ifs(buildConditions(table, environment.getArgument("ifCondition")))
+            .ifExists(ifExists)
+            .build()
+            .bind();
 
     HttpAwareContext httpAwareContext = environment.getContext();
     String token = httpAwareContext.getAuthToken();
 
-    List<Relation> relations = buildPkCKWhere(table, environment);
-    authorizationService.authorizeDataWrite(token, buildTypedKeyValueList(relations), Scope.MODIFY);
+    authorizationService.authorizeDataWrite(
+        token, TypedKeyValue.forDML((BoundDMLQuery) query), Scope.MODIFY);
 
-    Update update =
-        updateStart
-            .set(buildAssignments(table, environment))
-            .where(buildPkCKWhere(table, environment))
-            .if_(buildIfConditions(table, environment.getArgument("ifCondition")));
-
-    if (environment.containsArgument("ifExists")
-        && environment.getArgument("ifExists") != null
-        && (Boolean) environment.getArgument("ifExists")) {
-      update = update.ifExists();
-    }
-
-    return update.asCql();
+    return query;
   }
 
-  private List<Relation> buildPkCKWhere(Table table, DataFetchingEnvironment environment) {
+  private List<BuiltCondition> buildPkCKWhere(Table table, DataFetchingEnvironment environment) {
     Map<String, Object> value = environment.getArgument("value");
-    List<Relation> relations = new ArrayList<>();
+    List<BuiltCondition> relations = new ArrayList<>();
 
     for (Map.Entry<String, Object> entry : value.entrySet()) {
       Column column = getColumn(table, entry.getKey());
       if (table.partitionKeyColumns().contains(column)
           || table.clusteringKeyColumns().contains(column)) {
         relations.add(
-            Relation.column(CqlIdentifier.fromInternal(column.name()))
-                .isEqualTo(toCqlTerm(column, entry.getValue())));
+            BuiltCondition.of(column.name(), Predicate.EQ, toDBValue(column, entry.getValue())));
       }
     }
     return relations;
   }
 
-  private List<Assignment> buildAssignments(Table table, DataFetchingEnvironment environment) {
+  private List<ValueModifier> buildAssignments(Table table, DataFetchingEnvironment environment) {
     Map<String, Object> value = environment.getArgument("value");
-    List<Assignment> assignments = new ArrayList<>();
+    List<ValueModifier> assignments = new ArrayList<>();
     for (Map.Entry<String, Object> entry : value.entrySet()) {
       Column column = getColumn(table, entry.getKey());
       if (!(table.partitionKeyColumns().contains(column)
           || table.clusteringKeyColumns().contains(column))) {
-        assignments.add(
-            Assignment.setColumn(
-                CqlIdentifier.fromInternal(column.name()), toCqlTerm(column, entry.getValue())));
+        assignments.add(ValueModifier.set(column.name(), toDBValue(column, entry.getValue())));
       }
     }
     return assignments;

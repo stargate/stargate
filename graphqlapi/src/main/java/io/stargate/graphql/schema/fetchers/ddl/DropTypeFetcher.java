@@ -15,15 +15,15 @@
  */
 package io.stargate.graphql.schema.fetchers.ddl;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
-import com.datastax.oss.driver.api.querybuilder.schema.Drop;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
+import io.stargate.db.query.Query;
+import io.stargate.db.query.builder.QueryBuilder;
+import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.web.HttpAwareContext;
 
 public class DropTypeFetcher extends DdlQueryFetcher {
@@ -36,7 +36,10 @@ public class DropTypeFetcher extends DdlQueryFetcher {
   }
 
   @Override
-  String getQuery(DataFetchingEnvironment dataFetchingEnvironment) throws UnauthorizedException {
+  protected Query<?> buildQuery(
+      DataFetchingEnvironment dataFetchingEnvironment, QueryBuilder builder)
+      throws UnauthorizedException {
+
     String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
     String typeName = dataFetchingEnvironment.getArgument("typeName");
 
@@ -45,13 +48,11 @@ public class DropTypeFetcher extends DdlQueryFetcher {
     // Permissions on a type are the same as keyspace
     authorizationService.authorizeSchemaWrite(token, keyspaceName, null, Scope.DROP);
 
-    Drop dropType =
-        SchemaBuilder.dropType(
-            CqlIdentifier.fromInternal(keyspaceName), CqlIdentifier.fromInternal(typeName));
     Boolean ifExists = dataFetchingEnvironment.getArgument("ifExists");
-    if (ifExists != null && ifExists) {
-      dropType = dropType.ifExists();
-    }
-    return dropType.asCql();
+    return builder
+        .drop()
+        .type(keyspaceName, UserDefinedType.reference(typeName))
+        .ifExists(ifExists != null && ifExists)
+        .build();
   }
 }

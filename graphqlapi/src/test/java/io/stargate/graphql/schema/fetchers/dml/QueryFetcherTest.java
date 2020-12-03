@@ -8,12 +8,13 @@ import graphql.schema.GraphQLNamedSchemaElement;
 import graphql.schema.GraphQLSchema;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
-import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.Schema;
 import io.stargate.graphql.schema.DmlTestBase;
 import io.stargate.graphql.schema.SampleKeyspaces;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
 import java.nio.ByteBuffer;
 import java.util.Base64;
+import java.util.Collections;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,8 +25,8 @@ public class QueryFetcherTest extends DmlTestBase {
   private GraphQLSchema schema = createGraphQlSchema();
 
   @Override
-  public Keyspace getKeyspace() {
-    return SampleKeyspaces.LIBRARY;
+  public Schema getCQLSchema() {
+    return Schema.create(Collections.singleton(SampleKeyspaces.LIBRARY));
   }
 
   @ParameterizedTest
@@ -37,13 +38,13 @@ public class QueryFetcherTest extends DmlTestBase {
 
   public static Arguments[] successfulQueries() {
     return new Arguments[] {
-      arguments("books { values { title, author } }", "SELECT title,author FROM library.books"),
+      arguments("books { values { title, author } }", "SELECT title, author FROM library.books"),
       arguments(
           "books(options: { limit: 10 }) { values { title, author } }",
-          "SELECT title,author FROM library.books LIMIT 10"),
+          "SELECT title, author FROM library.books LIMIT 10"),
       arguments(
           "books(filter: { title: { eq: \"The Road\" } }) { values { title, author } }",
-          "SELECT title,author FROM library.books WHERE title='The Road'"),
+          "SELECT title, author FROM library.books WHERE title = 'The Road'"),
     };
   }
 
@@ -69,7 +70,7 @@ public class QueryFetcherTest extends DmlTestBase {
       String graphQlOperation, Parameters expectedParameters) {
     ExecutionResult result = executeGraphQl(graphQlOperation);
     assertThat(result.getErrors()).isEmpty();
-    assertThat(parametersCaptor.getValue()).isEqualTo(expectedParameters);
+    assertThat(dataStoreOptionsCaptor.getValue().defaultParameters()).isEqualTo(expectedParameters);
   }
 
   @ParameterizedTest
