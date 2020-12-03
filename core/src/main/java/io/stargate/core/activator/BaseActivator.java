@@ -15,11 +15,12 @@
  */
 package io.stargate.core.activator;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.util.*;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.annotation.Nullable;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
@@ -39,11 +40,9 @@ public abstract class BaseActivator implements BundleActivator {
 
   public boolean started;
 
-  @VisibleForTesting
-  @GuardedBy("this")
   public Tracker tracker;
 
-  @Nullable private ServiceRegistration<?> targetServiceRegistration;
+  private List<ServiceRegistration<?>> targetServiceRegistrations = new ArrayList<>();
 
   /** @param activatorName - The name used when logging the progress of registration. */
   public BaseActivator(String activatorName) {
@@ -68,7 +67,6 @@ public abstract class BaseActivator implements BundleActivator {
     tracker.open();
   }
 
-  @VisibleForTesting
   String constructDependenciesFilter() {
     StringBuilder builder = new StringBuilder("(|");
 
@@ -103,10 +101,12 @@ public abstract class BaseActivator implements BundleActivator {
   }
 
   private void deregisterService() {
-    if (targetServiceRegistration != null) {
-      ServiceReference<?> reference = targetServiceRegistration.getReference();
-      logger.info("Unget service {} from {}", reference.getBundle(), activatorName);
-      context.ungetService(reference);
+    for (ServiceRegistration<?> serviceRegistration : targetServiceRegistrations) {
+      if (serviceRegistration != null) {
+        ServiceReference<?> reference = serviceRegistration.getReference();
+        logger.info("Unget service {} from {}", reference.getBundle(), activatorName);
+        context.ungetService(reference);
+      }
     }
   }
 
@@ -120,9 +120,9 @@ public abstract class BaseActivator implements BundleActivator {
     for (ServiceAndProperties service : services) {
       if (service != null) {
         logger.info("Registering {} as {}", activatorName, service.targetServiceClass.getName());
-        this.targetServiceRegistration =
+        targetServiceRegistrations.add(
             context.registerService(
-                service.targetServiceClass.getName(), service.service, service.properties);
+                service.targetServiceClass.getName(), service.service, service.properties));
       }
     }
     logger.info("Started {}", activatorName);
@@ -148,7 +148,6 @@ public abstract class BaseActivator implements BundleActivator {
       return service;
     }
 
-    @VisibleForTesting
     public void startIfAllRegistered(ServiceReference<Object> ref, Object service) {
       if (service == null) {
         return;
@@ -249,7 +248,7 @@ public abstract class BaseActivator implements BundleActivator {
   public static class ServicePointer<T> extends Service<T> {
     private T service;
 
-    private ServicePointer(Class<T> expectedClass, @Nullable String identifier) {
+    private ServicePointer(Class<T> expectedClass, String identifier) {
       this.expectedClass = expectedClass;
       this.identifier = Optional.ofNullable(identifier);
     }
@@ -276,7 +275,7 @@ public abstract class BaseActivator implements BundleActivator {
   public static class LazyServicePointer<T> extends Service<T> {
     private AtomicReference<T> service = new AtomicReference<>();
 
-    private LazyServicePointer(Class<T> expectedClass, @Nullable String identifier) {
+    private LazyServicePointer(Class<T> expectedClass, String identifier) {
       this.expectedClass = expectedClass;
       this.identifier = Optional.ofNullable(identifier);
     }

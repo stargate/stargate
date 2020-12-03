@@ -53,6 +53,18 @@
     <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-core</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>io.dropwizard.metrics</groupId>
+          <artifactId>metrics-healthchecks</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-healthchecks</artifactId>
+      <version>4.1.11</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>javax.servlet</groupId>
@@ -174,6 +186,7 @@
                             org.apache.cassandra.stargate.*,
                             io.stargate.core,
                             com.codahale.metrics,
+                            com.codahale.metrics.*,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>

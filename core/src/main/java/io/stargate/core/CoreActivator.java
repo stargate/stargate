@@ -1,5 +1,6 @@
 package io.stargate.core;
 
+import com.codahale.metrics.health.HealthCheckRegistry;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.impl.MetricsImpl;
 import org.osgi.framework.BundleActivator;
@@ -14,10 +15,11 @@ public class CoreActivator implements BundleActivator, ServiceListener {
 
   @Override
   public void start(BundleContext context) {
-    logger.info("Registering metrics service...");
+    logger.info("Registering core services...");
 
     Metrics metrics = new MetricsImpl();
     context.registerService(Metrics.class, metrics, null);
+    context.registerService(HealthCheckRegistry.class, new HealthCheckRegistry(), null);
   }
 
   @Override
