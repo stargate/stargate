@@ -15,15 +15,14 @@
  */
 package io.stargate.graphql.schema.fetchers.ddl;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
-import com.datastax.oss.driver.api.querybuilder.schema.Drop;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
+import io.stargate.db.query.Query;
+import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.graphql.web.HttpAwareContext;
 
 public class DropKeyspaceFetcher extends DdlQueryFetcher {
@@ -36,7 +35,8 @@ public class DropKeyspaceFetcher extends DdlQueryFetcher {
   }
 
   @Override
-  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment)
+  protected Query<?> buildQuery(
+      DataFetchingEnvironment dataFetchingEnvironment, QueryBuilder builder)
       throws UnauthorizedException {
     String keyspaceName = dataFetchingEnvironment.getArgument("name");
 
@@ -44,11 +44,8 @@ public class DropKeyspaceFetcher extends DdlQueryFetcher {
     String token = httpAwareContext.getAuthToken();
     authorizationService.authorizeSchemaWrite(token, keyspaceName, null, Scope.DROP);
 
-    Drop query = SchemaBuilder.dropKeyspace(CqlIdentifier.fromInternal(keyspaceName));
     boolean ifExists = dataFetchingEnvironment.getArgumentOrDefault("ifExists", Boolean.FALSE);
-    if (ifExists) {
-      query = query.ifExists();
-    }
-    return query.asCql();
+
+    return builder.drop().keyspace(keyspaceName).ifExists(ifExists).build();
   }
 }
