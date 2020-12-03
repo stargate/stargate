@@ -46,10 +46,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,15 +64,6 @@ public class Connection {
   private final Channel channel;
   private final SqlParser parser;
   private final AuthenticationService authenticationService;
-  // TODO: use async API with DataStore
-  private final ScheduledExecutorService executor =
-      new ScheduledThreadPoolExecutor(
-          4,
-          runnable -> {
-            Thread thread = new Thread(runnable, "psql-" + threadCount.getAndIncrement());
-            thread.setContextClassLoader(Connection.class.getClassLoader());
-            return thread;
-          });
 
   private final ConcurrentMap<String, Statement> statements = new ConcurrentHashMap<>();
   private final ConcurrentMap<String, Portal> portals = new ConcurrentHashMap<>();
@@ -91,9 +79,20 @@ public class Connection {
     this.authenticationService = authenticationService;
 
     publisher = PublishSubject.create();
-    Scheduler channelScheduler = Schedulers.from(channel.eventLoop());
+
+    // TODO: use async API with DataStore
+    Scheduler executor =
+        Schedulers.from(
+            new ScheduledThreadPoolExecutor(
+                4,
+                runnable -> {
+                  Thread thread = new Thread(runnable, "pg-exec-" + threadCount.getAndIncrement());
+                  thread.setContextClassLoader(Connection.class.getClassLoader());
+                  return thread;
+                }));
+
     publisher
-        .observeOn(channelScheduler)
+        .observeOn(executor) // Note: calls to Calcite methods may block
         .toFlowable(BackpressureStrategy.BUFFER)
         .concatMap(m -> m.dispatch(this))
         .doOnNext(
@@ -160,42 +159,21 @@ public class Connection {
     return Flowable.just(ErrorResponse.error(th));
   }
 
-  private <T> Single<T> exec(T value) {
-    return Single.create(
-        emitter -> {
-          ScheduledFuture<?> future =
-              executor.schedule(
-                  () -> {
-                    //          LOG.info("exec2: " + value.getClass().getSimpleName());
-                    emitter.onSuccess(value);
-                  },
-                  20,
-                  TimeUnit.MILLISECONDS);
-
-          emitter.setCancellable(() -> future.cancel(true));
-        });
-  }
-
   public Flowable<PGServerMessage> handshake(StartupMessage message) {
-    return exec(message)
-        .toFlowable()
-        .concatMap(
-            msg -> {
-              if (msg.isGssRequest() || msg.isSslRequest()) {
-                return Flowable.just(new EncryptionResponse(false));
-              }
+    if (message.isGssRequest() || message.isSslRequest()) {
+      return Flowable.just(new EncryptionResponse(false));
+    }
 
-              if (!msg.startupRequest()) {
-                throw new IllegalStateException("Unexpected startup message");
-              }
+    if (!message.startupRequest()) {
+      throw new IllegalStateException("Unexpected startup message");
+    }
 
-              return Flowable.just(
-                  new AuthenticationOk(),
-                  ParameterStatus.serverVersion("13.0"),
-                  ParameterStatus.timeZone(),
-                  NoticeResponse.warning("PostgreSQL protocol support is experimental in Stargate"),
-                  ReadyForQuery.instance());
-            });
+    return Flowable.just(
+        new AuthenticationOk(),
+        ParameterStatus.serverVersion("13.0"),
+        ParameterStatus.timeZone(),
+        NoticeResponse.warning("PostgreSQL protocol support is experimental in Stargate"),
+        ReadyForQuery.instance());
   }
 
   public void setProperty(String key, String value) {
@@ -203,20 +181,18 @@ public class Connection {
     properties.put(key, value);
   }
 
-  public Single<PGServerMessage> prepare(Parse message) {
-    return exec(message)
-        .map(msg -> statements.compute(msg.getName(), (k, v) -> prepareInternal(msg.getSql())))
-        .map(__ -> ParseComplete.instance());
+  public Flowable<PGServerMessage> prepare(Parse message) {
+    statements.compute(message.getName(), (k, v) -> prepareInternal(message.getSql()));
+    return Flowable.just(ParseComplete.instance());
   }
 
   private Statement prepareInternal(String sql) {
     return parser.parse(sql);
   }
 
-  public Single<PGServerMessage> bind(Bind message) {
-    return exec(message)
-        .map(msg -> portals.compute(message.getPortalName(), (k, v) -> bindInternal(msg)))
-        .map(__ -> BindComplete.instance());
+  public Flowable<PGServerMessage> bind(Bind message) {
+    portals.compute(message.getPortalName(), (k, v) -> bindInternal(message));
+    return Flowable.just(BindComplete.instance());
   }
 
   private Portal bindInternal(Bind message) {
@@ -233,9 +209,7 @@ public class Connection {
   }
 
   private Flowable<PGServerMessage> execute(Query message) {
-    return exec(message)
-        .flatMapPublisher(msg -> Flowable.fromIterable(sqlCommands(message)))
-        .concatMap(this::executeSimple);
+    return Flowable.fromIterable(sqlCommands(message)).concatMap(this::executeSimple);
   }
 
   private List<String> sqlCommands(Query message) {
@@ -252,19 +226,15 @@ public class Connection {
   }
 
   public Flowable<PGServerMessage> execute(Execute message) {
-    return exec(message)
-        .flatMapPublisher(
-            msg -> {
-              String portalName = msg.getPortalName();
-              Portal portal =
-                  portals.computeIfAbsent(
-                      portalName,
-                      n -> {
-                        throw new IllegalStateException("Unknown portal: " + portalName);
-                      });
-
-              return portal.execute(this);
+    String portalName = message.getPortalName();
+    Portal portal =
+        portals.computeIfAbsent(
+            portalName,
+            n -> {
+              throw new IllegalStateException("Unknown portal: " + portalName);
             });
+
+    return portal.execute(this);
   }
 
   public Single<PGServerMessage> sync() {

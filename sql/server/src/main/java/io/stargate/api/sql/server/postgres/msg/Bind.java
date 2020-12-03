@@ -89,7 +89,7 @@ public class Bind extends ExtendedQueryMessage {
 
   @Override
   public Flowable<PGServerMessage> process(Connection connection) {
-    return connection.bind(this).toFlowable();
+    return connection.bind(this);
   }
 
   public String getPortalName() {
