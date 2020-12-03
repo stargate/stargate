@@ -105,7 +105,6 @@ public class DsePersistence
 
   // C* listener that ensures that our Stargate schema remains up-to-date with the internal C* one.
   private SchemaChangeListener schemaChangeListener;
-  private AtomicReference<AuthorizationService> authorizationService;
 
   public DsePersistence() {
     super("DataStax Enterprise");
@@ -195,7 +194,6 @@ public class DsePersistence
 
     interceptor.initialize();
     stargateHandler().register(interceptor);
-    stargateHandler().setAuthorizationService(this.authorizationService);
 
     authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
   }
@@ -313,7 +311,7 @@ public class DsePersistence
   }
 
   public void setAuthorizationService(AtomicReference<AuthorizationService> authorizationService) {
-    this.authorizationService = authorizationService;
+    stargateHandler().setAuthorizationService(authorizationService);
   }
 
   private class DseConnection extends AbstractConnection {
