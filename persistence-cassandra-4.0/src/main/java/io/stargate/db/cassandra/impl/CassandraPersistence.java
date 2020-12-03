@@ -104,6 +104,7 @@ public class CassandraPersistence
 
   // C* listener that ensures that our Stargate schema remains up-to-date with the internal C* one.
   private SchemaChangeListener schemaChangeListener;
+  private AtomicReference<AuthorizationService> authorizationService;
 
   public CassandraPersistence() {
     super("Apache Cassandra");
@@ -179,6 +180,7 @@ public class CassandraPersistence
 
     interceptor.initialize();
     stargateHandler().register(interceptor);
+    stargateHandler().setAuthorizationService(this.authorizationService);
   }
 
   @Override
@@ -305,7 +307,7 @@ public class CassandraPersistence
   }
 
   public void setAuthorizationService(AtomicReference<AuthorizationService> authorizationService) {
-    stargateHandler().setAuthorizationService(authorizationService);
+    this.authorizationService = authorizationService;
   }
 
   private class CassandraConnection extends AbstractConnection {
