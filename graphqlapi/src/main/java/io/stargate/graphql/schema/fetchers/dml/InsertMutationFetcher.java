@@ -68,7 +68,11 @@ public class InsertMutationFetcher extends MutationFetcher {
     String token = httpAwareContext.getAuthToken();
 
     authorizationService.authorizeDataWrite(
-        token, TypedKeyValue.forDML((BoundDMLQuery) query), Scope.MODIFY);
+        token,
+        table.keyspace(),
+        table.name(),
+        TypedKeyValue.forDML((BoundDMLQuery) query),
+        Scope.MODIFY);
 
     return query;
   }

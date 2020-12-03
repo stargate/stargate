@@ -50,7 +50,11 @@ public class DeleteMutationFetcher extends MutationFetcher {
 
     assert bound instanceof BoundDelete;
     authorizationService.authorizeDataWrite(
-        token, TypedKeyValue.forDML((BoundDelete) bound), Scope.DELETE);
+        token,
+        table.keyspace(),
+        table.name(),
+        TypedKeyValue.forDML((BoundDelete) bound),
+        Scope.DELETE);
     return bound;
   }
 }

@@ -313,7 +313,12 @@ public class RowsResource {
                   .bind();
 
           db.getAuthorizationService()
-              .authorizeDataWrite(token, TypedKeyValue.forDML((BoundDMLQuery) query), Scope.MODIFY);
+              .authorizeDataWrite(
+                  token,
+                  keyspaceName,
+                  tableName,
+                  TypedKeyValue.forDML((BoundDMLQuery) query),
+                  Scope.MODIFY);
 
           localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
@@ -425,7 +430,12 @@ public class RowsResource {
                   .bind();
 
           db.getAuthorizationService()
-              .authorizeDataWrite(token, TypedKeyValue.forDML((BoundDMLQuery) query), Scope.DELETE);
+              .authorizeDataWrite(
+                  token,
+                  keyspaceName,
+                  tableName,
+                  TypedKeyValue.forDML((BoundDMLQuery) query),
+                  Scope.DELETE);
 
           localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
           return Response.status(Response.Status.NO_CONTENT).build();
@@ -511,7 +521,12 @@ public class RowsResource {
             .bind();
 
     db.getAuthorizationService()
-        .authorizeDataWrite(token, TypedKeyValue.forDML((BoundDMLQuery) query), Scope.MODIFY);
+        .authorizeDataWrite(
+            token,
+            keyspaceName,
+            tableName,
+            TypedKeyValue.forDML((BoundDMLQuery) query),
+            Scope.MODIFY);
 
     localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
     Object response = raw ? requestBody : new ResponseWrapper(requestBody);

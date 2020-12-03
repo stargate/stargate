@@ -18,7 +18,7 @@
 package io.stargate.auth;
 
 public enum Scope {
-  READ,
+  SELECT,
   MODIFY, // includes INSERT and UPDATE of data
   DELETE,
 
@@ -26,5 +26,10 @@ public enum Scope {
   CREATE,
   ALTER,
   DROP,
-  TRUNCATE
+  TRUNCATE,
+  DESCRIBE,
+
+  // permissions related
+  GRANT,
+  AUTHORIZE
 }

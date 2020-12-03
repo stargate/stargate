@@ -406,7 +406,12 @@ public class RowResource {
                   .bind();
 
           db.getAuthorizationService()
-              .authorizeDataWrite(token, TypedKeyValue.forDML((BoundDMLQuery) query), Scope.MODIFY);
+              .authorizeDataWrite(
+                  token,
+                  keyspaceName,
+                  tableName,
+                  TypedKeyValue.forDML((BoundDMLQuery) query),
+                  Scope.MODIFY);
 
           localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
@@ -461,7 +466,12 @@ public class RowResource {
                   .bind();
 
           db.getAuthorizationService()
-              .authorizeDataWrite(token, TypedKeyValue.forDML((BoundDMLQuery) query), Scope.DELETE);
+              .authorizeDataWrite(
+                  token,
+                  keyspaceName,
+                  tableName,
+                  TypedKeyValue.forDML((BoundDMLQuery) query),
+                  Scope.DELETE);
 
           localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
@@ -526,7 +536,12 @@ public class RowResource {
                   .bind();
 
           db.getAuthorizationService()
-              .authorizeDataWrite(token, TypedKeyValue.forDML((BoundDMLQuery) query), Scope.MODIFY);
+              .authorizeDataWrite(
+                  token,
+                  keyspaceName,
+                  tableName,
+                  TypedKeyValue.forDML((BoundDMLQuery) query),
+                  Scope.MODIFY);
 
           localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
