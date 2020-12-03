@@ -15,13 +15,18 @@
  */
 package io.stargate.web.resources;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.api.core.data.UdtValue;
+import com.datastax.oss.protocol.internal.util.Bytes;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
@@ -45,7 +50,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
@@ -54,11 +58,13 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class Converters {
 
@@ -76,17 +82,65 @@ public class Converters {
     final Map<String, Object> map = new HashMap<>(defs.size());
     for (final Column column : defs) {
 
-      map.put(column.name(), transformObjectToJavaObject(row.getObject(column.name())));
+      map.put(column.name(), toJsonValue(row.getObject(column.name())));
     }
     return map;
   }
 
-  private static Object transformObjectToJavaObject(final Object o) {
-    if (o instanceof Object[]) {
-      return new ArrayList<>(Arrays.asList((Object[]) o));
-    } else {
-      return o;
+  @VisibleForTesting
+  static Object toJsonValue(final Object cqlValue) {
+    if (cqlValue instanceof UUID
+        || cqlValue instanceof CqlDuration
+        // Large numbers can cause JSON interoperability issues, for example Javascript only handles
+        // integers in the range [-(2**53)+1, (2**53)-1].
+        || cqlValue instanceof Long
+        || cqlValue instanceof BigInteger
+        || cqlValue instanceof BigDecimal) {
+      return cqlValue.toString();
     }
+    if (cqlValue instanceof ByteBuffer) {
+      return Base64.getEncoder().encodeToString(Bytes.getArray(((ByteBuffer) cqlValue)));
+    }
+    if (cqlValue instanceof InetAddress) {
+      return ((InetAddress) cqlValue).getHostAddress();
+    }
+    if (cqlValue instanceof List || cqlValue instanceof Set) {
+      @SuppressWarnings("unchecked")
+      Collection<Object> cqlCollection = (Collection<Object>) cqlValue;
+      return cqlCollection.stream().map(Converters::toJsonValue).collect(Collectors.toList());
+    }
+    if (cqlValue instanceof Map) {
+      @SuppressWarnings("unchecked")
+      Map<Object, Object> cqlMap = (Map<Object, Object>) cqlValue;
+      return cqlMap.entrySet().stream()
+          .map(
+              entry ->
+                  ImmutableMap.of(
+                      "key", toJsonValue(entry.getKey()), "value", toJsonValue(entry.getValue())))
+          .collect(Collectors.toList());
+    }
+    if (cqlValue instanceof UdtValue) {
+      UdtValue udtValue = (UdtValue) cqlValue;
+      com.datastax.oss.driver.api.core.type.UserDefinedType udtType = udtValue.getType();
+      Map<String, Object> jsonObject = Maps.newLinkedHashMapWithExpectedSize(udtValue.size());
+      for (int i = 0; i < udtValue.size(); i++) {
+        CqlIdentifier fieldName = udtType.getFieldNames().get(i);
+        jsonObject.put(fieldName.asInternal(), toJsonValue(udtValue.getObject(fieldName)));
+      }
+      return jsonObject;
+    }
+    if (cqlValue instanceof TupleValue) {
+      TupleValue tupleValue = (TupleValue) cqlValue;
+      List<Object> jsonArray = Lists.newArrayListWithCapacity(tupleValue.size());
+      for (int i = 0; i < tupleValue.size(); i++) {
+        jsonArray.add(toJsonValue(tupleValue.getObject(i)));
+      }
+      return jsonArray;
+    }
+
+    // This covers null, booleans, strings, the remaining number types, and time types (which are
+    // handled by registering JavaTimeModule with the object mapper -- see Server.java).
+    return cqlValue;
   }
 
   public static BuiltCondition idToWhere(String val, String column, Table tableData) {
@@ -94,7 +148,7 @@ public class Converters {
     Object value = val;
 
     if (type != null) {
-      value = parse(type, val);
+      value = toCqlValue(type, val);
     }
 
     return BuiltCondition.of(column.toLowerCase(), Predicate.EQ, value);
@@ -105,7 +159,7 @@ public class Converters {
     Object valueObj = value;
 
     if (type != null) {
-      valueObj = coerce(type, value);
+      valueObj = toCqlValue(type, value);
     }
 
     return ValueModifier.set(name, valueObj);
@@ -113,10 +167,10 @@ public class Converters {
 
   /** Converts an incoming JSON value into a Java type suitable for the given column type. */
   @SuppressWarnings("unchecked")
-  public static Object coerce(Column.ColumnType type, Object value) {
+  public static Object toCqlValue(Column.ColumnType type, Object jsonValue) {
 
-    if (value instanceof String) {
-      return parse(type, (String) value);
+    if (jsonValue instanceof String) {
+      return toCqlValue(type, (String) jsonValue);
     }
 
     switch (type.rawType()) {
@@ -131,127 +185,127 @@ public class Converters {
         throw new IllegalArgumentException(
             String.format("Invalid %s value: expected a string", type.rawType()));
       case Boolean:
-        if (value instanceof Boolean) {
-          return value;
+        if (jsonValue instanceof Boolean) {
+          return jsonValue;
         } else {
           throw new IllegalArgumentException(
               "Invalid Boolean value: expected a boolean or a string");
         }
       case Tinyint:
-        return coerceInt(
+        return toCqlInt(
             type,
-            value,
+            jsonValue,
             BigInteger::shortValueExact,
             Number::byteValue,
             Byte.MIN_VALUE,
             Byte.MAX_VALUE);
       case Smallint:
-        return coerceInt(
+        return toCqlInt(
             type,
-            value,
+            jsonValue,
             BigInteger::shortValueExact,
             Number::shortValue,
             Short.MIN_VALUE,
             Short.MAX_VALUE);
       case Int:
-        return coerceInt(
+        return toCqlInt(
             type,
-            value,
+            jsonValue,
             BigInteger::intValueExact,
             Number::intValue,
             Integer.MIN_VALUE,
             Integer.MAX_VALUE);
       case Bigint:
       case Counter:
-        return coerceInt(
+        return toCqlInt(
             type,
-            value,
+            jsonValue,
             BigInteger::longValueExact,
             Number::longValue,
             Long.MIN_VALUE,
             Long.MAX_VALUE);
       case Varint:
-        if (value instanceof BigInteger) {
-          return value;
-        } else if (value instanceof Integer || value instanceof Long) {
-          return BigInteger.valueOf(((Number) value).longValue());
+        if (jsonValue instanceof BigInteger) {
+          return jsonValue;
+        } else if (jsonValue instanceof Integer || jsonValue instanceof Long) {
+          return BigInteger.valueOf(((Number) jsonValue).longValue());
         } else {
           throw new IllegalArgumentException(
               "Invalid Varint value: expected an integer or a string");
         }
       case Float:
-        if (value instanceof Number) {
-          return ((Number) value).floatValue();
+        if (jsonValue instanceof Number) {
+          return ((Number) jsonValue).floatValue();
         } else {
           throw new IllegalArgumentException("Invalid Float value: expected a number or a string");
         }
       case Double:
-        if (value instanceof Number) {
-          return ((Number) value).doubleValue();
+        if (jsonValue instanceof Number) {
+          return ((Number) jsonValue).doubleValue();
         } else {
           throw new IllegalArgumentException("Invalid Double value: expected a number or a string");
         }
       case Decimal:
-        if (value instanceof BigDecimal) {
-          return value;
-        } else if (value instanceof Number) {
-          return BigDecimal.valueOf(((Number) value).doubleValue());
+        if (jsonValue instanceof BigDecimal) {
+          return jsonValue;
+        } else if (jsonValue instanceof Number) {
+          return BigDecimal.valueOf(((Number) jsonValue).doubleValue());
         } else {
           throw new IllegalArgumentException(
               "Invalid Decimal value: expected a number or a string");
         }
       case Date:
-        if (value instanceof Integer || value instanceof Long) {
-          return EPOCH.plusDays(cqlDateToDaysSinceEpoch(((Number) value).longValue()));
+        if (jsonValue instanceof Integer || jsonValue instanceof Long) {
+          return EPOCH.plusDays(cqlDateToDaysSinceEpoch(((Number) jsonValue).longValue()));
         } else {
           throw new IllegalArgumentException("Invalid Date value: expected an integer or a string");
         }
       case Time:
-        if (value instanceof Integer || value instanceof Long) {
-          return LocalTime.ofNanoOfDay(((Number) value).longValue());
+        if (jsonValue instanceof Integer || jsonValue instanceof Long) {
+          return LocalTime.ofNanoOfDay(((Number) jsonValue).longValue());
         } else {
           throw new IllegalArgumentException("Invalid Time value: expected an integer or a string");
         }
       case Timestamp:
-        if (value instanceof Integer || value instanceof Long) {
-          return Instant.ofEpochMilli(((Number) value).longValue());
+        if (jsonValue instanceof Integer || jsonValue instanceof Long) {
+          return Instant.ofEpochMilli(((Number) jsonValue).longValue());
         } else {
           throw new IllegalArgumentException(
               "Invalid Timestamp value: expected an integer or a string");
         }
       case List:
-        if (value instanceof List) {
-          return coerceCollection(
-              type, (List<Object>) value, ArrayList::new, Collections.emptyList());
+        if (jsonValue instanceof List) {
+          return toCqlCollection(
+              type, (List<Object>) jsonValue, ArrayList::new, Collections.emptyList());
         } else {
           throw new IllegalArgumentException(
               "Invalid List value: expected a JSON array or a string");
         }
       case Set:
-        if (value instanceof List) {
-          return coerceCollection(
-              type, (List<Object>) value, LinkedHashSet::new, Collections.emptySet());
+        if (jsonValue instanceof List) {
+          return toCqlCollection(
+              type, (List<Object>) jsonValue, LinkedHashSet::new, Collections.emptySet());
         } else {
           throw new IllegalArgumentException(
               "Invalid Set value: expected a JSON array or a string");
         }
       case Map:
-        if (value instanceof List) {
-          return coerceMap(type, (List<Object>) value);
+        if (jsonValue instanceof List) {
+          return toCqlMap(type, (List<Object>) jsonValue);
         } else {
           throw new IllegalArgumentException(
               "Invalid Map value: expected a JSON array of key/value objects, or a string");
         }
       case Tuple:
-        if (value instanceof List) {
-          return coerceTuple((TupleType) type, (List<Object>) value);
+        if (jsonValue instanceof List) {
+          return toCqlTuple((TupleType) type, (List<Object>) jsonValue);
         } else {
           throw new IllegalArgumentException(
               "Invalid Tuple value: expected a JSON array or a string");
         }
       case UDT:
-        if (value instanceof Map) {
-          return coerceUdt((UserDefinedType) type, (Map<String, Object>) value);
+        if (jsonValue instanceof Map) {
+          return toCqlUdt((UserDefinedType) type, (Map<String, Object>) jsonValue);
         } else {
           throw new IllegalArgumentException(
               "Invalid UDT value: expected a JSON object or a string");
@@ -261,45 +315,45 @@ public class Converters {
     }
   }
 
-  private static <I> I coerceInt(
+  private static <I> I toCqlInt(
       Column.ColumnType type,
-      Object value,
+      Object jsonValue,
       Function<BigInteger, I> fromBigIntegerExact,
       Function<Number, I> fromNumber,
       long min,
       long max) {
-    if (value instanceof BigInteger) {
+    if (jsonValue instanceof BigInteger) {
       try {
-        return fromBigIntegerExact.apply((BigInteger) value);
+        return fromBigIntegerExact.apply((BigInteger) jsonValue);
       } catch (ArithmeticException e) {
         throw new IllegalArgumentException(
-            String.format("Invalid %s value %s: out of range", type.rawType(), value));
+            String.format("Invalid %s value %s: out of range", type.rawType(), jsonValue));
       }
     }
-    if (value instanceof Integer || value instanceof Long) {
-      Number number = (Number) value;
+    if (jsonValue instanceof Integer || jsonValue instanceof Long) {
+      Number number = (Number) jsonValue;
       long longValue = number.longValue();
       if (longValue < min || longValue > max) {
         throw new IllegalArgumentException(
-            String.format("Invalid %s value %s: out of range", type.rawType(), value));
+            String.format("Invalid %s value %s: out of range", type.rawType(), jsonValue));
       }
       return fromNumber.apply(number);
     }
     throw new IllegalArgumentException("Invalid %s value: expected an integer or a string");
   }
 
-  private static <C extends Collection<Object>> C coerceCollection(
-      Column.ColumnType type, List<Object> values, Supplier<C> newInstance, C empty) {
+  private static <C extends Collection<Object>> C toCqlCollection(
+      Column.ColumnType type, List<Object> jsonValues, Supplier<C> newInstance, C empty) {
 
-    if (values.isEmpty()) {
+    if (jsonValues.isEmpty()) {
       return empty;
     }
     Column.ColumnType elementType = type.parameters().get(0);
     C result = newInstance.get();
     int index = 0;
-    for (Object value : values) {
+    for (Object jsonValue : jsonValues) {
       try {
-        result.add(coerce(elementType, value));
+        result.add(toCqlValue(elementType, jsonValue));
       } catch (Exception e) {
         throw new IllegalArgumentException(
             String.format(
@@ -311,48 +365,48 @@ public class Converters {
   }
 
   @SuppressWarnings("rawtypes")
-  private static Map<Object, Object> coerceMap(Column.ColumnType type, List<Object> entries) {
-    if (entries.isEmpty()) {
+  private static Map<Object, Object> toCqlMap(Column.ColumnType type, List<Object> jsonEntries) {
+    if (jsonEntries.isEmpty()) {
       return Collections.emptyMap();
     }
     Column.ColumnType keyType = type.parameters().get(0);
     Column.ColumnType valueType = type.parameters().get(1);
     LinkedHashMap<Object, Object> result = new LinkedHashMap<>();
     int index = 0;
-    for (Object entry : entries) {
-      if (!(entry instanceof Map)
-          || !((Map) entry).containsKey("key")
-          || !((Map) entry).containsKey("value")) {
+    for (Object jsonValue : jsonEntries) {
+      if (!(jsonValue instanceof Map)
+          || !((Map) jsonValue).containsKey("key")
+          || !((Map) jsonValue).containsKey("value")) {
         throw new IllegalArgumentException(
             "Invalid Map value: inner elements must be objects with two fields 'key' and 'value'");
       }
       @SuppressWarnings("unchecked")
-      Map<String, Object> entryMap = (Map<String, Object>) entry;
+      Map<String, Object> jsonEntry = (Map<String, Object>) jsonValue;
       Object key, value;
       try {
-        key = coerce(keyType, entryMap.get("key"));
+        key = toCqlValue(keyType, jsonEntry.get("key"));
       } catch (Exception e) {
         throw new IllegalArgumentException(
             String.format("Invalid Map key at index %d (%s)", index, e.getMessage()));
       }
       try {
-        value = entryMap.get("value");
+        value = jsonEntry.get("value");
       } catch (Exception e) {
         throw new IllegalArgumentException(
             String.format("Invalid Map value at index %d (%s)", index, e.getMessage()));
       }
-      result.put(key, coerce(valueType, value));
+      result.put(key, toCqlValue(valueType, value));
       index += 1;
     }
     return result;
   }
 
-  private static TupleValue coerceTuple(TupleType type, List<Object> values) {
-    List<Object> fields = Lists.newArrayListWithCapacity(values.size());
+  private static TupleValue toCqlTuple(TupleType type, List<Object> jsonValues) {
+    List<Object> fields = Lists.newArrayListWithCapacity(jsonValues.size());
     int index = 0;
-    for (Object value : values) {
+    for (Object jsonValue : jsonValues) {
       try {
-        fields.add(coerce(type.parameters().get(index), value));
+        fields.add(toCqlValue(type.parameters().get(index), jsonValue));
       } catch (Exception e) {
         throw new IllegalArgumentException(
             String.format("Invalid Tuple field at index %d (%s)", index, e.getMessage()));
@@ -363,18 +417,18 @@ public class Converters {
   }
 
   @SuppressWarnings("unchecked")
-  private static UdtValue coerceUdt(UserDefinedType type, Map<String, Object> values) {
+  private static UdtValue toCqlUdt(UserDefinedType type, Map<String, Object> jsonObject) {
     UdtValue udtValue = type.create();
-    for (Map.Entry<String, Object> entry : values.entrySet()) {
-      String fieldId = entry.getKey();
-      Object fieldValue = entry.getValue();
+    for (Map.Entry<String, Object> jsonEntry : jsonObject.entrySet()) {
+      String fieldId = jsonEntry.getKey();
+      Object jsonFieldValue = jsonEntry.getValue();
       if (!type.columnMap().containsKey(fieldId)) {
         throw new IllegalArgumentException(
             String.format("Invalid UDT value: unknown field name \"%s\"", fieldId));
       }
       Column.ColumnType fieldType = type.fieldType(fieldId);
       try {
-        udtValue = udtValue.set(fieldId, coerce(fieldType, fieldValue), fieldType.codec());
+        udtValue = udtValue.set(fieldId, toCqlValue(fieldType, jsonFieldValue), fieldType.codec());
       } catch (Exception e) {
         throw new IllegalArgumentException(
             String.format("Invalid UDT field %s (%s)", fieldId, e.getMessage()), e);
@@ -399,10 +453,10 @@ public class Converters {
   /**
    * Converts an incoming JSON string value into a Java type suitable for the given column type.
    *
-   * <p>This method exists separately from {@link #coerce(Column.ColumnType, Object)} for the v1
+   * <p>This method exists separately from {@link #toCqlValue(Column.ColumnType, Object)} for the v1
    * REST API, which only allows strings.
    */
-  public static Object parse(Column.ColumnType type, String value) {
+  public static Object toCqlValue(Column.ColumnType type, String value) {
     value = value.trim();
     if (value.startsWith("'") && value.endsWith("'")) {
       value = value.substring(1, value.length() - 1).replaceAll("''", "'");
@@ -411,15 +465,15 @@ public class Converters {
     Column.Type rawType = type.rawType();
     // Handle complex types separately because they already handle parsing errors:
     if (rawType == Column.Type.List) {
-      return parseCollection(type, value, ArrayList::new, Collections.emptyList(), '[', ']');
+      return toCqlCollection(type, value, ArrayList::new, Collections.emptyList(), '[', ']');
     } else if (rawType == Column.Type.Set) {
-      return parseCollection(type, value, LinkedHashSet::new, Collections.emptySet(), '{', '}');
+      return toCqlCollection(type, value, LinkedHashSet::new, Collections.emptySet(), '{', '}');
     } else if (rawType == Column.Type.Map) {
-      return parseMap(type, value);
+      return toCqlMap(type, value);
     } else if (rawType == Column.Type.Tuple) {
-      return parseTuple((TupleType) type, value);
+      return toCqlTuple((TupleType) type, value);
     } else if (rawType == Column.Type.UDT) {
-      return parseUdt((UserDefinedType) type, value);
+      return toCqlUdt((UserDefinedType) type, value);
     } else {
       try {
         switch (rawType) {
@@ -471,7 +525,7 @@ public class Converters {
     }
   }
 
-  private static <C extends Collection<Object>> C parseCollection(
+  private static <C extends Collection<Object>> C toCqlCollection(
       Column.ColumnType type,
       String value,
       Supplier<C> newInstance,
@@ -502,7 +556,7 @@ public class Converters {
             e);
       }
 
-      collection.add(parse(elementType, value.substring(idx, n)));
+      collection.add(toCqlValue(elementType, value.substring(idx, n)));
       idx = n;
 
       idx = ParseUtils.skipSpaces(value, idx);
@@ -522,7 +576,7 @@ public class Converters {
         String.format("Invalid %s value: missing closing '%s'", type.rawType(), closingBrace));
   }
 
-  private static Map<Object, Object> parseMap(Column.ColumnType type, String value) {
+  private static Map<Object, Object> toCqlMap(Column.ColumnType type, String value) {
     int idx = ParseUtils.skipSpaces(value, 0);
     if (value.charAt(idx++) != '{') {
       throw new IllegalArgumentException(
@@ -550,7 +604,7 @@ public class Converters {
             String.format("Invalid map value: invalid CQL value at character %d", idx), e);
       }
 
-      Object k = parse(keyType, value.substring(idx, n));
+      Object k = toCqlValue(keyType, value.substring(idx, n));
       idx = n;
 
       idx = ParseUtils.skipSpaces(value, idx);
@@ -569,7 +623,7 @@ public class Converters {
             String.format("Invalid map value: invalid CQL value at character %d", idx), e);
       }
 
-      Object v = parse(valueType, value.substring(idx, n));
+      Object v = toCqlValue(valueType, value.substring(idx, n));
       idx = n;
 
       map.put(k, v);
@@ -590,7 +644,7 @@ public class Converters {
     throw new IllegalArgumentException("Invalid map value: missing closing '}'");
   }
 
-  private static TupleValue parseTuple(TupleType type, String value) {
+  private static TupleValue toCqlTuple(TupleType type, String value) {
     List<Object> fields = new ArrayList<>();
     int length = value.length();
 
@@ -630,7 +684,7 @@ public class Converters {
 
       String fieldValue = value.substring(position, n);
       try {
-        fields.add(parse(type.parameters().get(fieldIndex), fieldValue));
+        fields.add(toCqlValue(type.parameters().get(fieldIndex), fieldValue));
       } catch (Exception e) {
         throw new IllegalArgumentException(
             String.format(
@@ -669,7 +723,7 @@ public class Converters {
   }
 
   @SuppressWarnings("unchecked")
-  private static UdtValue parseUdt(UserDefinedType type, String value) {
+  private static UdtValue toCqlUdt(UserDefinedType type, String value) {
     UdtValue udtValue = type.create();
     int length = value.length();
 
@@ -750,7 +804,7 @@ public class Converters {
       // This works because ids occur at most once in UDTs
       Column.ColumnType fieldType = type.fieldType(id);
       try {
-        udtValue = udtValue.set(id, parse(fieldType, fieldValue), fieldType.codec());
+        udtValue = udtValue.set(id, toCqlValue(fieldType, fieldValue), fieldType.codec());
       } catch (Exception e) {
         throw new IllegalArgumentException(
             String.format(

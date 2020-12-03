@@ -5,6 +5,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.protocol.internal.util.Bytes;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -32,12 +33,64 @@ import org.junit.jupiter.params.provider.MethodSource;
 public class ConvertersTest {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final TupleType INT_TEXT_TUPLE = (TupleType) Type.Tuple.of(Type.Int, Type.Text);
+  private static final UserDefinedType ADDRESS_UDT =
+      ImmutableUserDefinedType.builder()
+          .keyspace("directory")
+          .name("address")
+          .addColumns(
+              ImmutableColumn.builder()
+                  .name("street")
+                  .type(Type.Text)
+                  .kind(Column.Kind.Regular)
+                  .build(),
+              ImmutableColumn.builder()
+                  .name("zip")
+                  .type(Type.Int)
+                  .kind(Column.Kind.Regular)
+                  .build())
+          .build();
 
   @ParameterizedTest
-  @MethodSource("samples")
-  @DisplayName("Should coerce JSON value")
-  public void coerceTest(ColumnType type, String json, Object expected) throws Exception {
-    Object actual = Converters.coerce(type, OBJECT_MAPPER.readValue(json, Object.class));
+  @MethodSource("toJsonSamples")
+  @DisplayName("Should coerce CQL value to JSON")
+  public void toJsonValueTest(Object cqlValue, String expectedJson) throws JsonProcessingException {
+    String actualJson = OBJECT_MAPPER.writeValueAsString(Converters.toJsonValue(cqlValue));
+    assertThat(actualJson).isEqualTo(expectedJson);
+  }
+
+  private static Arguments[] toJsonSamples() throws Exception {
+    return new Arguments[] {
+      arguments(
+          UUID.fromString("59e86020-3502-11eb-bc1b-53a4f383ccdf"),
+          "\"59e86020-3502-11eb-bc1b-53a4f383ccdf\""),
+      arguments("abc", "\"abc\""),
+      arguments(CqlDuration.newInstance(0, 1, 0), "\"1d\""),
+      arguments(1L, "\"1\""),
+      arguments(BigInteger.ONE, "\"1\""),
+      arguments(BigDecimal.ONE, "\"1\""),
+      arguments(Bytes.fromHexString("0xff"), "\"/w==\""),
+      arguments(InetAddress.getByName("127.0.0.1"), "\"127.0.0.1\""),
+      arguments(Collections.emptyList(), "[]"),
+      arguments(ImmutableList.of(1, 2, 3), "[1,2,3]"),
+      arguments(Collections.emptySet(), "[]"),
+      arguments(ImmutableSet.of(1, 2, 3), "[1,2,3]"),
+      arguments(Collections.emptyMap(), "[]"),
+      arguments(
+          ImmutableMap.of(1, "a", 2, "b"),
+          "[{\"key\":1,\"value\":\"a\"},{\"key\":2,\"value\":\"b\"}]"),
+      arguments(INT_TEXT_TUPLE.create(1, "a"), "[1,\"a\"]"),
+      arguments(
+          ADDRESS_UDT.create("1600 Pennsylvania Avenue NW", 20500),
+          "{\"street\":\"1600 Pennsylvania Avenue NW\",\"zip\":20500}"),
+    };
+  }
+
+  @ParameterizedTest
+  @MethodSource("toCqlSamples")
+  @DisplayName("Should coerce JSON value to CQL")
+  public void toCqlValueTest(ColumnType type, String json, Object expected) throws Exception {
+    Object actual = Converters.toCqlValue(type, OBJECT_MAPPER.readValue(json, Object.class));
     if (actual instanceof BigDecimal) {
       assertThat(((BigDecimal) actual)).isEqualByComparingTo((BigDecimal) expected);
     } else {
@@ -45,25 +98,7 @@ public class ConvertersTest {
     }
   }
 
-  private static Arguments[] samples() throws Exception {
-    TupleType intTextTupleType = (TupleType) Type.Tuple.of(Type.Int, Type.Text);
-    UserDefinedType addressUdt =
-        ImmutableUserDefinedType.builder()
-            .keyspace("directory")
-            .name("address")
-            .addColumns(
-                ImmutableColumn.builder()
-                    .name("street")
-                    .type(Type.Text)
-                    .kind(Column.Kind.Regular)
-                    .build(),
-                ImmutableColumn.builder()
-                    .name("zip")
-                    .type(Type.Int)
-                    .kind(Column.Kind.Regular)
-                    .build())
-            .build();
-
+  private static Arguments[] toCqlSamples() throws Exception {
     return new Arguments[] {
       // Primitives:
       arguments(Type.Text, "\"abc\"", "abc"),
@@ -145,22 +180,22 @@ public class ConvertersTest {
           Type.Map.of(Type.Int, Type.Text), "\"{1:'a',2:'b'}\"", ImmutableMap.of(1, "a", 2, "b")),
 
       // Tuple:
-      arguments(intTextTupleType, "[]", intTextTupleType.create()),
-      arguments(intTextTupleType, "[1,\"a\"]", intTextTupleType.create(1, "a")),
-      arguments(intTextTupleType, "\"()\"", intTextTupleType.create()),
-      arguments(intTextTupleType, "\"(1,a)\"", intTextTupleType.create(1, "a")),
+      arguments(INT_TEXT_TUPLE, "[]", INT_TEXT_TUPLE.create()),
+      arguments(INT_TEXT_TUPLE, "[1,\"a\"]", INT_TEXT_TUPLE.create(1, "a")),
+      arguments(INT_TEXT_TUPLE, "\"()\"", INT_TEXT_TUPLE.create()),
+      arguments(INT_TEXT_TUPLE, "\"(1,a)\"", INT_TEXT_TUPLE.create(1, "a")),
 
       // UDT:
-      arguments(addressUdt, "{}", addressUdt.create()),
+      arguments(ADDRESS_UDT, "{}", ADDRESS_UDT.create()),
       arguments(
-          addressUdt,
+          ADDRESS_UDT,
           "{\"street\": \"1600 Pennsylvania Avenue NW\", \"zip\": 20500}",
-          addressUdt.create("1600 Pennsylvania Avenue NW", 20500)),
-      arguments(addressUdt, "\"{}\"", addressUdt.create()),
+          ADDRESS_UDT.create("1600 Pennsylvania Avenue NW", 20500)),
+      arguments(ADDRESS_UDT, "\"{}\"", ADDRESS_UDT.create()),
       arguments(
-          addressUdt,
+          ADDRESS_UDT,
           "\"{street: '1600 Pennsylvania Avenue NW', zip: 20500}\"",
-          addressUdt.create("1600 Pennsylvania Avenue NW", 20500)),
+          ADDRESS_UDT.create("1600 Pennsylvania Avenue NW", 20500)),
     };
   }
 }

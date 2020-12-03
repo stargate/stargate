@@ -590,7 +590,7 @@ public class RowResource {
     Object value = val;
 
     if (type != null) {
-      value = Converters.parse(type, (String) val);
+      value = Converters.toCqlValue(type, (String) val);
     }
 
     return value;
