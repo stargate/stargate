@@ -94,5 +94,6 @@ public class Server extends Application<ApplicationConfiguration> {
     topLevelRegistry.register("jvm.gc", new GarbageCollectorMetricSet());
     topLevelRegistry.register("jvm.memory", new MemoryUsageGaugeSet());
     topLevelRegistry.register("jvm.threads", new ThreadStatesGaugeSet());
+    topLevelRegistry.register("cpu", new CPUGaugeMetricSet());
   }
 }
