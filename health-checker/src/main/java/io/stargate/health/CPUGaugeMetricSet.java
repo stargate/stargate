@@ -1,5 +1,11 @@
 package io.stargate.health;
 
+import static oshi.hardware.CentralProcessor.TickType.IDLE;
+import static oshi.hardware.CentralProcessor.TickType.IOWAIT;
+import static oshi.hardware.CentralProcessor.TickType.NICE;
+import static oshi.hardware.CentralProcessor.TickType.SYSTEM;
+import static oshi.hardware.CentralProcessor.TickType.USER;
+
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricSet;
@@ -16,6 +22,7 @@ public class CPUGaugeMetricSet implements MetricSet {
   private long tickTime;
   private final long[] prevTicks;
   private final long[] curTicks;
+  private final int TIME_BETWEEN_TICKS = 950;
 
   public CPUGaugeMetricSet() {
     processor = new SystemInfo().getHardware().getProcessor();
@@ -28,18 +35,18 @@ public class CPUGaugeMetricSet implements MetricSet {
     final Map<String, Metric> gauges = new HashMap<>();
 
     gauges.put("load", (Gauge<Double>) this::getSystemCpuLoad);
-    gauges.put("user", (Gauge<Double>) () -> getTick("user"));
-    gauges.put("nice", (Gauge<Double>) () -> getTick("nice"));
-    gauges.put("sys", (Gauge<Double>) () -> getTick("sys"));
-    gauges.put("idle", (Gauge<Double>) () -> getTick("idle"));
-    gauges.put("iowait", (Gauge<Double>) () -> getTick("iowait"));
+    gauges.put("user", (Gauge<Double>) () -> getTick(USER));
+    gauges.put("nice", (Gauge<Double>) () -> getTick(NICE));
+    gauges.put("sys", (Gauge<Double>) () -> getTick(SYSTEM));
+    gauges.put("idle", (Gauge<Double>) () -> getTick(IDLE));
+    gauges.put("iowait", (Gauge<Double>) () -> getTick(IOWAIT));
 
     return Collections.unmodifiableMap(gauges);
   }
 
   private Double getSystemCpuLoad() {
     long now = System.currentTimeMillis();
-    if (now - this.tickTime > 950) {
+    if (now - this.tickTime > TIME_BETWEEN_TICKS) {
       // Enough time has elapsed.
       updateSystemTicks();
     }
@@ -47,30 +54,33 @@ public class CPUGaugeMetricSet implements MetricSet {
     return processor.getSystemCpuLoadBetweenTicks(prevTicks);
   }
 
-  private Double getTick(String tickType) {
+  private Double getTick(TickType tickType) {
     long now = System.currentTimeMillis();
-    if (now - this.tickTime > 950) {
+    if (now - this.tickTime > TIME_BETWEEN_TICKS) {
       // Enough time has elapsed.
       updateSystemTicks();
     }
 
-    long user = curTicks[TickType.USER.getIndex()] - prevTicks[TickType.USER.getIndex()];
-    long nice = curTicks[TickType.NICE.getIndex()] - prevTicks[TickType.NICE.getIndex()];
-    long sys = curTicks[TickType.SYSTEM.getIndex()] - prevTicks[TickType.SYSTEM.getIndex()];
-    long idle = curTicks[TickType.IDLE.getIndex()] - prevTicks[TickType.IDLE.getIndex()];
-    long iowait = curTicks[TickType.IOWAIT.getIndex()] - prevTicks[TickType.IOWAIT.getIndex()];
-    long totalCPU = user + nice + sys + idle + iowait;
+    long user = curTicks[USER.getIndex()] - prevTicks[USER.getIndex()];
+    long nice = curTicks[NICE.getIndex()] - prevTicks[NICE.getIndex()];
+    long sys = curTicks[SYSTEM.getIndex()] - prevTicks[SYSTEM.getIndex()];
+    long idle = curTicks[IDLE.getIndex()] - prevTicks[IDLE.getIndex()];
+    long iowait = curTicks[IOWAIT.getIndex()] - prevTicks[IOWAIT.getIndex()];
+    long irq = curTicks[TickType.IRQ.getIndex()] - prevTicks[TickType.IRQ.getIndex()];
+    long softirq = curTicks[TickType.SOFTIRQ.getIndex()] - prevTicks[TickType.SOFTIRQ.getIndex()];
+    long steal = curTicks[TickType.STEAL.getIndex()] - prevTicks[TickType.STEAL.getIndex()];
+    long totalCPU = user + nice + sys + idle + iowait + irq + softirq + steal;
 
     switch (tickType) {
-      case "user":
+      case USER:
         return (double) user / (double) totalCPU;
-      case "nice":
+      case NICE:
         return (double) nice / (double) totalCPU;
-      case "sys":
+      case SYSTEM:
         return (double) sys / (double) totalCPU;
-      case "idle":
+      case IDLE:
         return (double) idle / (double) totalCPU;
-      case "iowait":
+      case IOWAIT:
         return (double) iowait / (double) totalCPU;
       default:
         return 0.0;
