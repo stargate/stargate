@@ -120,7 +120,7 @@ public class DocumentServiceTest {
     addRowsToMap.setAccessible(true);
     updateExistenceForMap =
         DocumentService.class.getDeclaredMethod(
-            "updateExistenceForMap", Map.class, Map.class, List.class, List.class);
+            "updateExistenceForMap", Map.class, Map.class, List.class, List.class, boolean.class);
     updateExistenceForMap.setAccessible(true);
     getParentPathFromRow =
         DocumentService.class.getDeclaredMethod("getParentPathFromRow", Row.class);
@@ -131,7 +131,7 @@ public class DocumentServiceTest {
     filterToSelectionSet.setAccessible(true);
     applyInMemoryFilters =
         DocumentService.class.getDeclaredMethod(
-            "applyInMemoryFilters", List.class, List.class, int.class);
+            "applyInMemoryFilters", List.class, List.class, int.class, boolean.class);
     applyInMemoryFilters.setAccessible(true);
     pathsMatch = DocumentService.class.getDeclaredMethod("pathsMatch", String.class, String.class);
     pathsMatch.setAccessible(true);
@@ -1036,7 +1036,7 @@ public class DocumentServiceTest {
 
     List<PathSegment> path = smallPath();
 
-    when(serviceMock.convertToJsonDoc(anyList(), anyBoolean()))
+    when(serviceMock.convertToJsonDoc(anyList(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.createObjectNode(), new HashMap<>()));
 
     JsonNode result = serviceMock.getJsonAtPath(dbMock, "ks", "collection", "id", path);
@@ -1064,7 +1064,7 @@ public class DocumentServiceTest {
     ObjectNode jsonObj = mapper.createObjectNode();
     jsonObj.set("abc", mapper.readTree("[1]"));
 
-    when(serviceMock.convertToJsonDoc(anyList(), anyBoolean()))
+    when(serviceMock.convertToJsonDoc(anyList(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(jsonObj, new HashMap<>()));
 
     JsonNode result = serviceMock.getJsonAtPath(dbMock, "ks", "collection", "id", path);
@@ -1094,7 +1094,7 @@ public class DocumentServiceTest {
 
     Map<String, List<JsonNode>> deadLeaves = new HashMap<>();
     deadLeaves.put("a", new ArrayList<>());
-    when(serviceMock.convertToJsonDoc(anyList(), anyBoolean()))
+    when(serviceMock.convertToJsonDoc(anyList(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(jsonObj, deadLeaves));
 
     JsonNode result = serviceMock.getJsonAtPath(dbMock, "ks", "collection", "id", path);
@@ -1264,7 +1264,7 @@ public class DocumentServiceTest {
             anyBoolean(),
             anyString())
         .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
-    PowerMockito.when(serviceMock.convertToJsonDoc(anyObject(), anyBoolean()))
+    PowerMockito.when(serviceMock.convertToJsonDoc(anyObject(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
 
     List<FilterCondition> filters =
@@ -1297,7 +1297,7 @@ public class DocumentServiceTest {
             anyBoolean(),
             anyString())
         .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
-    PowerMockito.when(serviceMock.convertToJsonDoc(anyObject(), anyBoolean()))
+    PowerMockito.when(serviceMock.convertToJsonDoc(anyObject(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
 
     List<FilterCondition> filters =
@@ -1323,7 +1323,8 @@ public class DocumentServiceTest {
     Map<String, Boolean> existenceByDoc = new HashMap<>();
     Map<String, Integer> countsByDoc = new HashMap<>();
     List<Row> rows = makeInitialRowData();
-    updateExistenceForMap.invoke(service, existenceByDoc, countsByDoc, rows, new ArrayList<>());
+    updateExistenceForMap.invoke(
+        service, existenceByDoc, countsByDoc, rows, new ArrayList<>(), false);
     assertThat(existenceByDoc.get("1")).isTrue();
     assertThat(countsByDoc.get("1")).isEqualTo(3);
   }
@@ -1360,7 +1361,7 @@ public class DocumentServiceTest {
                 anyInt()))
         .thenCallRealMethod();
     PowerMockito.when(serviceMock, "addRowsToMap", anyMap(), anyList()).thenCallRealMethod();
-    PowerMockito.when(serviceMock.convertToJsonDoc(anyObject(), anyBoolean()))
+    PowerMockito.when(serviceMock.convertToJsonDoc(anyObject(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
 
     ImmutablePair<JsonNode, ByteBuffer> result =
@@ -1412,7 +1413,7 @@ public class DocumentServiceTest {
                 anyInt()))
         .thenCallRealMethod();
     PowerMockito.when(serviceMock, "addRowsToMap", anyMap(), anyList()).thenCallRealMethod();
-    PowerMockito.when(serviceMock.convertToJsonDoc(anyObject(), anyBoolean()))
+    PowerMockito.when(serviceMock.convertToJsonDoc(anyObject(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
 
     ImmutablePair<JsonNode, ByteBuffer> result =
@@ -1553,63 +1554,64 @@ public class DocumentServiceTest {
     List<Row> rows = makeInitialRowData();
     List<FilterCondition> filters =
         ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$eq", true));
-    List<Row> result = (List<Row>) applyInMemoryFilters.invoke(service, rows, new ArrayList<>(), 1);
+    List<Row> result =
+        (List<Row>) applyInMemoryFilters.invoke(service, rows, new ArrayList<>(), 1, false);
     assertThat(result).isEqualTo(rows);
 
-    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1);
+    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
     assertThat(result.size()).isEqualTo(1);
     assertThat(result.get(0)).isEqualTo(rows.get(0));
 
     filters =
         ImmutableList.of(
             new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$exists", true));
-    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1);
+    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
     assertThat(result.size()).isEqualTo(1);
     assertThat(result.get(0)).isEqualTo(rows.get(0));
 
     filters =
         ImmutableList.of(
             new SingleFilterCondition(ImmutableList.of("a", "b", "x"), "$exists", true));
-    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1);
+    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
     assertThat(result.size()).isEqualTo(0);
 
     filters =
         ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$gt", true));
-    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1);
+    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
     assertThat(result.size()).isEqualTo(0);
 
     filters =
         ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$gte", 2.0));
-    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1);
+    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
     assertThat(result.size()).isEqualTo(0);
 
     filters =
         ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$lt", true));
-    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1);
+    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
     assertThat(result.size()).isEqualTo(0);
 
     filters =
         ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$lte", false));
-    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1);
+    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
     assertThat(result.size()).isEqualTo(0);
 
     filters =
         ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$ne", true));
-    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1);
+    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
     assertThat(result.size()).isEqualTo(0);
 
     filters =
         ImmutableList.of(
             new ListFilterCondition(
                 ImmutableList.of("a", "b", "c"), "$in", ImmutableList.of(false)));
-    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1);
+    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
     assertThat(result.size()).isEqualTo(0);
 
     filters =
         ImmutableList.of(
             new ListFilterCondition(
                 ImmutableList.of("a", "b", "c"), "$nin", ImmutableList.of(true)));
-    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1);
+    result = (List<Row>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
     assertThat(result.size()).isEqualTo(0);
   }
 
@@ -1781,7 +1783,7 @@ public class DocumentServiceTest {
               + row1.getString("p3").compareTo(row2.getString("p3")) * 100);
         });
     ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result =
-        service.convertToJsonDoc(initial, false);
+        service.convertToJsonDoc(initial, false, false);
 
     assertThat(result.left.toString())
         .isEqualTo(
@@ -1800,7 +1802,7 @@ public class DocumentServiceTest {
               + row1.getString("p2").compareTo(row2.getString("p2")) * 1000
               + row1.getString("p3").compareTo(row2.getString("p3")) * 100);
         });
-    result = service.convertToJsonDoc(initial, false);
+    result = service.convertToJsonDoc(initial, false, false);
 
     assertThat(result.left.toString())
         .isEqualTo(
@@ -1826,7 +1828,7 @@ public class DocumentServiceTest {
               + row1.getString("p2").compareTo(row2.getString("p2")) * 1000
               + row1.getString("p3").compareTo(row2.getString("p3")) * 100);
         });
-    result = service.convertToJsonDoc(initial, false);
+    result = service.convertToJsonDoc(initial, false, false);
 
     assertThat(result.left.toString()).isEqualTo(mapper.readTree("[\"replaced\"]").toString());
 
