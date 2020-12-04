@@ -1,7 +1,12 @@
 package io.stargate.web.docsapi.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.anyObject;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -172,7 +177,9 @@ public class DocumentResourceV2Test {
   }
 
   @Test
-  public void getDoc() throws ExecutionException, InterruptedException, JsonProcessingException {
+  public void getDoc()
+      throws ExecutionException, InterruptedException, JsonProcessingException,
+          UnauthorizedException {
     HttpHeaders headers = mock(HttpHeaders.class);
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
@@ -212,7 +219,8 @@ public class DocumentResourceV2Test {
 
   @Test
   public void getDocPath_rawTrue()
-      throws ExecutionException, InterruptedException, JsonProcessingException {
+      throws ExecutionException, InterruptedException, JsonProcessingException,
+          UnauthorizedException {
     HttpHeaders headers = mock(HttpHeaders.class);
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
@@ -254,7 +262,8 @@ public class DocumentResourceV2Test {
 
   @Test
   public void getDocPath_whereAndFields()
-      throws ExecutionException, InterruptedException, JsonProcessingException {
+      throws ExecutionException, InterruptedException, JsonProcessingException,
+          UnauthorizedException {
     HttpHeaders headers = mock(HttpHeaders.class);
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
@@ -301,7 +310,8 @@ public class DocumentResourceV2Test {
 
   @Test
   public void getDocPath_rawFalse()
-      throws ExecutionException, InterruptedException, JsonProcessingException {
+      throws ExecutionException, InterruptedException, JsonProcessingException,
+          UnauthorizedException {
     HttpHeaders headers = mock(HttpHeaders.class);
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
@@ -345,7 +355,8 @@ public class DocumentResourceV2Test {
   }
 
   @Test
-  public void getDocPath_emptyResult() throws ExecutionException, InterruptedException {
+  public void getDocPath_emptyResult()
+      throws ExecutionException, InterruptedException, UnauthorizedException {
     HttpHeaders headers = mock(HttpHeaders.class);
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";

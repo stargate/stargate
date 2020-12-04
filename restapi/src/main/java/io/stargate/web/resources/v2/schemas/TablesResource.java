@@ -213,6 +213,9 @@ public class TablesResource {
                 .build();
           }
 
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.CREATE);
+
           PrimaryKey primaryKey = tableAdd.getPrimaryKey();
           if (primaryKey == null) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -252,8 +255,6 @@ public class TablesResource {
             columns.add(Column.create(columnName, kind, type, order));
           }
 
-          db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.CREATE);
           localDB
               .queryBuilder()
               .create()
