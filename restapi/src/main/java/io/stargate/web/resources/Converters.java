@@ -19,7 +19,6 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.api.core.data.UdtValue;
-import com.datastax.oss.protocol.internal.util.Bytes;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -124,9 +123,6 @@ public class Converters {
         || cqlValue instanceof BigDecimal) {
       return cqlValue.toString();
     }
-    if (cqlValue instanceof ByteBuffer) {
-      return Base64.getEncoder().encodeToString(Bytes.getArray(((ByteBuffer) cqlValue)));
-    }
     if (cqlValue instanceof InetAddress) {
       return ((InetAddress) cqlValue).getHostAddress();
     }
@@ -164,8 +160,9 @@ public class Converters {
       return jsonArray;
     }
 
-    // This covers null, booleans, strings, the remaining number types, and time types (which are
-    // handled by registering JavaTimeModule with the object mapper -- see Server.java).
+    // This covers null, booleans, strings, the remaining number types, blobs (which Jackson already
+    // converts to base64 natively), and time types (which are handled by registering JavaTimeModule
+    // with the object mapper -- see Server.java).
     return cqlValue;
   }
 
