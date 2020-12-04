@@ -16,7 +16,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import io.stargate.auth.Scope;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
@@ -448,8 +447,6 @@ public class DocumentService {
       }
     }
 
-    // Run generic authorizeDataRead for now
-    db.getAuthorizationService().authorizeDataRead(db.getAuthToken(), keyspace, collection);
     ResultSet r = db.executeSelect(keyspace, collection, predicates);
     List<Row> rows = r.rows();
 
@@ -608,9 +605,6 @@ public class DocumentService {
       convertedPath.add(convertArrayPath(pathStr));
     }
     Long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
-
-    db.getAuthorizationService()
-        .authorizeDataWrite(db.getAuthToken(), keyspace, collection, Scope.DELETE);
 
     db.delete(keyspace, collection, id, convertedPath, now);
   }
@@ -918,8 +912,7 @@ public class DocumentService {
         ImmutableList.of(BuiltCondition.of("key", Predicate.IN, new ArrayList<>(docNames)));
 
     db = dbFactory.getDocDataStoreForToken(authToken);
-    // Run generic authorizeDataRead for now
-    dbFactory.getAuthorizationService().authorizeDataRead(authToken, keyspace, collection);
+
     List<Row> rows = db.executeSelect(keyspace, collection, predicate).rows();
     Map<String, List<Row>> rowsByDoc = new HashMap<>();
     for (Row row : rows) {
@@ -1046,12 +1039,8 @@ public class DocumentService {
     ResultSet r;
 
     if (predicates.size() > 0) {
-      // Run generic authorizeDataRead for now
-      db.getAuthorizationService().authorizeDataRead(db.getAuthToken(), keyspace, collection);
       r = db.executeSelect(keyspace, collection, predicates, true);
     } else {
-      // Run generic authorizeDataRead for now
-      db.getAuthorizationService().authorizeDataRead(db.getAuthToken(), keyspace, collection);
       r = db.executeSelectAll(keyspace, collection);
     }
 

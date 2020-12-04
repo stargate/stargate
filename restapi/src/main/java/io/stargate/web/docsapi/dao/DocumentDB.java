@@ -307,7 +307,10 @@ public class DocumentDB {
 
   public ResultSet executeSelect(
       String keyspace, String collection, List<BuiltCondition> predicates, boolean allowFiltering)
-      throws ExecutionException, InterruptedException {
+      throws UnauthorizedException {
+    // Run generic authorizeDataRead for now
+    getAuthorizationService().authorizeDataRead(getAuthToken(), keyspace, collection);
+
     return this.builder()
         .select()
         .column(DocumentDB.allColumns())
@@ -321,7 +324,10 @@ public class DocumentDB {
   }
 
   public ResultSet executeSelectAll(String keyspace, String collection)
-      throws ExecutionException, InterruptedException {
+      throws UnauthorizedException {
+    // Run generic authorizeDataRead for now
+    getAuthorizationService().authorizeDataRead(getAuthToken(), keyspace, collection);
+
     return this.builder()
         .select()
         .column(DocumentDB.allColumns())
@@ -552,8 +558,11 @@ public class DocumentDB {
   }
 
   public void delete(
-      String keyspace, String table, String key, List<String> pathToDelete, long microsSinceEpoch) {
+      String keyspace, String table, String key, List<String> pathToDelete, long microsSinceEpoch)
+      throws UnauthorizedException {
 
+    getAuthorizationService()
+        .authorizeDataWrite(getAuthToken(), keyspace, table, Scope.DELETE);
     dataStore
         .execute(
             getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch, pathToDelete),
@@ -562,7 +571,8 @@ public class DocumentDB {
   }
 
   public void deleteDeadLeaves(
-      String keyspaceName, String tableName, String key, Map<String, List<JsonNode>> deadLeaves) {
+      String keyspaceName, String tableName, String key, Map<String, List<JsonNode>> deadLeaves)
+      throws UnauthorizedException {
     long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
     deleteDeadLeaves(keyspaceName, tableName, key, now, deadLeaves);
   }
@@ -573,7 +583,10 @@ public class DocumentDB {
       String tableName,
       String key,
       long microsTimestamp,
-      Map<String, List<JsonNode>> deadLeaves) {
+      Map<String, List<JsonNode>> deadLeaves) throws UnauthorizedException {
+
+    getAuthorizationService()
+        .authorizeDataWrite(getAuthToken(), keyspaceName, tableName, Scope.DELETE);
 
     List<BoundQuery> queries = new ArrayList<>();
     for (Map.Entry<String, List<JsonNode>> entry : deadLeaves.entrySet()) {
