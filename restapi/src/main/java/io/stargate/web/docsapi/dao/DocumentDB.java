@@ -561,8 +561,7 @@ public class DocumentDB {
       String keyspace, String table, String key, List<String> pathToDelete, long microsSinceEpoch)
       throws UnauthorizedException {
 
-    getAuthorizationService()
-        .authorizeDataWrite(getAuthToken(), keyspace, table, Scope.DELETE);
+    getAuthorizationService().authorizeDataWrite(getAuthToken(), keyspace, table, Scope.DELETE);
     dataStore
         .execute(
             getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch, pathToDelete),
@@ -583,7 +582,8 @@ public class DocumentDB {
       String tableName,
       String key,
       long microsTimestamp,
-      Map<String, List<JsonNode>> deadLeaves) throws UnauthorizedException {
+      Map<String, List<JsonNode>> deadLeaves)
+      throws UnauthorizedException {
 
     getAuthorizationService()
         .authorizeDataWrite(getAuthToken(), keyspaceName, tableName, Scope.DELETE);
