@@ -42,7 +42,6 @@ public class DocumentDB {
   private static final List<String> allPathColumnNames;
   private static final List<Column.ColumnType> allPathColumnTypes;
   public static final Integer MAX_DEPTH = Integer.getInteger("stargate.document_max_depth", 64);
-  public static final Boolean USE_CNDB = Boolean.getBoolean("stargate.use_cndb");
 
   // All array elements will be represented as 6 digits, so they get left-padded, such as [000010]
   // instead of [10]
@@ -104,6 +103,10 @@ public class DocumentDB {
 
   public String getAuthToken() {
     return authToken;
+  }
+
+  public boolean treatBooleansAsNumeric() {
+    return !dataStore.supportsSecondaryIndex();
   }
 
   public static List<String> getForbiddenCharactersMessage() {
@@ -169,10 +172,10 @@ public class DocumentDB {
       columns.add(Column.create("leaf", Type.Text));
       columns.add(Column.create("text_value", Type.Text));
       columns.add(Column.create("dbl_value", Type.Double));
-      if (USE_CNDB) {
-        columns.add(Column.create("bool_value", Type.Tinyint));
-      } else {
+      if (dataStore.supportsSecondaryIndex()) {
         columns.add(Column.create("bool_value", Type.Boolean));
+      } else {
+        columns.add(Column.create("bool_value", Type.Tinyint));
       }
       dataStore
           .queryBuilder()
@@ -272,11 +275,12 @@ public class DocumentDB {
   private void createSAIIndexes(String keyspaceName, String tableName)
       throws InterruptedException, ExecutionException {
     for (String name : VALUE_COLUMN_NAMES) {
-      if (name.equals("bool_value") && !USE_CNDB) {
+      if (name.equals("bool_value") && dataStore.supportsSecondaryIndex()) {
         // SAI doesn't support booleans, so add a non-SAI index here.
-        // But CNDB uses tinyint for its boolean value column, so it can use SAI, below.
         createDefaultIndex(keyspaceName, tableName, name);
       } else {
+        // If the data store explicitly does not support secondary indexes,
+        // it will use a tinyint to represent booleans and use SAI.
         dataStore
             .queryBuilder()
             .create()

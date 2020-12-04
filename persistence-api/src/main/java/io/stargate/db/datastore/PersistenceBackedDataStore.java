@@ -205,6 +205,11 @@ class PersistenceBackedDataStore implements DataStore {
   }
 
   @Override
+  public boolean supportsSecondaryIndex() {
+    return persistence().supportsSecondaryIndex();
+  }
+
+  @Override
   public void waitForSchemaAgreement() {
     persistence().waitForSchemaAgreement();
   }

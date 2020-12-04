@@ -151,6 +151,11 @@ public interface DataStore extends AsyncQueryExecutor {
    */
   Schema schema();
 
+  /** Returns true if the persistence backend supports secondary indexes */
+  default boolean supportsSecondaryIndex() {
+    return true;
+  }
+
   /** Returns true if in schema agreement */
   boolean isInSchemaAgreement();
 

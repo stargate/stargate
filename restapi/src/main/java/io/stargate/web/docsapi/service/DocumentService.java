@@ -240,7 +240,10 @@ public class DocumentService {
                     bindMap.put("text_value", null);
                   } else if (value.isBoolean()) {
                     bindMap.put("dbl_value", null);
-                    bindMap.put("bool_value", convertToBackendBooleanValue(value.getAsBoolean()));
+                    bindMap.put(
+                        "bool_value",
+                        convertToBackendBooleanValue(
+                            value.getAsBoolean(), db.treatBooleansAsNumeric()));
                     bindMap.put("text_value", null);
                   } else {
                     bindMap.put("dbl_value", null);
@@ -270,8 +273,8 @@ public class DocumentService {
     return ImmutablePair.of(bindVariableList, firstLevelKeys);
   }
 
-  private Object convertToBackendBooleanValue(boolean value) {
-    if (DocumentDB.USE_CNDB) {
+  private Object convertToBackendBooleanValue(boolean value, boolean numericBooleans) {
+    if (numericBooleans) {
       return value ? 1 : 0;
     }
     return value;
@@ -353,7 +356,9 @@ public class DocumentService {
         bindMap.put("text_value", null);
       } else if (value.equals("true") || value.equals("false")) {
         bindMap.put("dbl_value", null);
-        bindMap.put("bool_value", convertToBackendBooleanValue(Boolean.parseBoolean(value)));
+        bindMap.put(
+            "bool_value",
+            convertToBackendBooleanValue(Boolean.parseBoolean(value), db.treatBooleansAsNumeric()));
         bindMap.put("text_value", null);
       } else {
         boolean isNumber;
@@ -460,7 +465,8 @@ public class DocumentService {
     if (rows.size() == 0) {
       return null;
     }
-    ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result = convertToJsonDoc(rows, false);
+    ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result =
+      convertToJsonDoc(rows, false, db.treatBooleansAsNumeric());
     if (!result.right.isEmpty()) {
       logger.info(String.format("Deleting %d dead leaves", result.right.size()));
       db.deleteDeadLeaves(keyspace, collection, id, result.right);
@@ -649,7 +655,7 @@ public class DocumentService {
 
     for (Map.Entry<String, List<Row>> entry : rowsByDoc.entrySet()) {
       ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result =
-          convertToJsonDoc(entry.getValue(), true);
+          convertToJsonDoc(entry.getValue(), true, db.treatBooleansAsNumeric());
       if (!result.right.isEmpty()) {
         logger.info(String.format("Deleting %d dead leaves", result.right.size()));
         db.deleteDeadLeaves(keyspace, collection, entry.getKey(), result.right);
@@ -707,7 +713,7 @@ public class DocumentService {
         for (Row row : docRows) {
           List<Row> wrapped = new ArrayList<>(1);
           wrapped.add(row);
-          JsonNode jsonDoc = convertToJsonDoc(wrapped, true).left;
+          JsonNode jsonDoc = convertToJsonDoc(wrapped, true, db.treatBooleansAsNumeric()).left;
           ref.add(jsonDoc);
         }
       }
@@ -722,7 +728,7 @@ public class DocumentService {
         }
 
         List<Row> nonNull = chunk.stream().filter(x -> x != null).collect(Collectors.toList());
-        JsonNode jsonDoc = convertToJsonDoc(nonNull, true).left;
+        JsonNode jsonDoc = convertToJsonDoc(nonNull, true, db.treatBooleansAsNumeric()).left;
 
         if (documentId == null) {
           ((ArrayNode) docsResult.get(key)).add(jsonDoc);
@@ -752,8 +758,9 @@ public class DocumentService {
       Map<String, Boolean> existsByDoc,
       Map<String, Integer> countsByDoc,
       List<Row> rows,
-      List<FilterCondition> filters) {
-    List<Row> filteredRows = applyInMemoryFilters(rows, filters, 1);
+      List<FilterCondition> filters,
+      boolean booleansStoredAsTinyint) {
+    List<Row> filteredRows = applyInMemoryFilters(rows, filters, 1, booleansStoredAsTinyint);
     for (Row row : filteredRows) {
       String key = row.getString("key");
       if (!existsByDoc.getOrDefault(key, false)) {
@@ -815,7 +822,7 @@ public class DocumentService {
         for (Row row : e.getValue()) {
           if (fields.isEmpty() || fields.contains(row.getString("p0"))) rows.add(row);
         }
-        docsResult.set(e.getKey(), convertToJsonDoc(rows, false).left);
+        docsResult.set(e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
       }
       db = dbFactory.getDocDataStoreForToken(authToken, totalSize, initialPagingState);
       ByteBuffer finalPagingState =
@@ -838,7 +845,7 @@ public class DocumentService {
         for (Row row : e.getValue()) {
           if (fields.isEmpty() || fields.contains(row.getString("p0"))) rows.add(row);
         }
-        docsResult.set(e.getKey(), convertToJsonDoc(rows, false).left);
+        docsResult.set(e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
       }
       return ImmutablePair.of(docsResult, null);
     }
@@ -878,7 +885,8 @@ public class DocumentService {
               new ArrayList<>(),
               false,
               null);
-      updateExistenceForMap(existsByDoc, countsByDoc, page.left, filters);
+      updateExistenceForMap(
+          existsByDoc, countsByDoc, page.left, filters, db.treatBooleansAsNumeric());
       db = dbFactory.getDocDataStoreForToken(authToken, pageSize, page.right);
     } while (existsByDoc.keySet().size() <= limit && page.right != null);
 
@@ -932,7 +940,9 @@ public class DocumentService {
     }
 
     for (Map.Entry<String, List<Row>> entry : rowsByDoc.entrySet()) {
-      docsResult.set(entry.getKey(), convertToJsonDoc(entry.getValue(), false).left);
+      docsResult.set(
+          entry.getKey(),
+          convertToJsonDoc(entry.getValue(), false, db.treatBooleansAsNumeric()).left);
     }
 
     return ImmutablePair.of(docsResult, finalPagingState);
@@ -1066,7 +1076,9 @@ public class DocumentService {
           "The results as requested must fit in one page, try increasing the `page-size` parameter.");
     }
     rows = filterToSelectionSet(rows, fields, path);
-    rows = applyInMemoryFilters(rows, inMemoryFilters, Math.max(fields.size(), 1));
+    rows =
+        applyInMemoryFilters(
+            rows, inMemoryFilters, Math.max(fields.size(), 1), db.treatBooleansAsNumeric());
 
     return ImmutablePair.of(rows, newState);
   }
@@ -1155,7 +1167,10 @@ public class DocumentService {
    * @return rows for each doc that match all filters
    */
   private List<Row> applyInMemoryFilters(
-      List<Row> rows, List<FilterCondition> inMemoryFilters, int fieldsPerDoc) {
+      List<Row> rows,
+      List<FilterCondition> inMemoryFilters,
+      int fieldsPerDoc,
+      boolean numericBooleans) {
     if (inMemoryFilters.size() == 0) {
       return rows;
     }
@@ -1179,23 +1194,25 @@ public class DocumentService {
                             return pathsMatch(rowPath + r.getString("leaf"), filterFieldPath);
                           })
                       .findFirst();
-              return fieldRow.isPresent() && allFiltersMatch(fieldRow.get(), inMemoryFilters);
+              return fieldRow.isPresent()
+                  && allFiltersMatch(fieldRow.get(), inMemoryFilters, numericBooleans);
             })
         .flatMap(x -> x.stream())
         .collect(Collectors.toList());
   }
 
-  private Boolean getBooleanFromRow(Row row, String colName) {
-    if (DocumentDB.USE_CNDB) {
+  private Boolean getBooleanFromRow(Row row, String colName, boolean numericBooleans) {
+    if (row.isNull("bool_value")) return null;
+    if (numericBooleans) {
       byte value = row.getByte(colName);
       return value != 0;
     }
     return row.getBoolean(colName);
   }
 
-  private boolean allFiltersMatch(Row row, List<FilterCondition> filters) {
+  private boolean allFiltersMatch(Row row, List<FilterCondition> filters, boolean numericBooleans) {
     String textValue = row.isNull("text_value") ? null : row.getString("text_value");
-    Boolean boolValue = row.isNull("bool_value") ? null : getBooleanFromRow(row, "bool_value");
+    Boolean boolValue = getBooleanFromRow(row, "bool_value", numericBooleans);
     Double dblValue = row.isNull("dbl_value") ? null : row.getDouble("dbl_value");
     for (FilterCondition fc : filters) {
       if (fc.getFilterOp() == FilterOp.EXISTS) {
@@ -1340,7 +1357,7 @@ public class DocumentService {
   }
 
   public ImmutablePair<JsonNode, Map<String, List<JsonNode>>> convertToJsonDoc(
-      List<Row> rows, boolean writeAllPathsAsObjects) {
+      List<Row> rows, boolean writeAllPathsAsObjects, boolean numericBooleans) {
     JsonNode doc = mapper.createObjectNode();
     Map<String, Long> pathWriteTimes = new HashMap<>();
     Map<String, List<JsonNode>> deadLeaves = new HashMap<>();
@@ -1465,7 +1482,7 @@ public class DocumentService {
         continue;
       }
 
-      writeLeafIfNewer(ref, row, leaf, parentPath, pathWriteTimes, rowWriteTime);
+      writeLeafIfNewer(ref, row, leaf, parentPath, pathWriteTimes, rowWriteTime, numericBooleans);
     }
 
     return ImmutablePair.of(doc, deadLeaves);
@@ -1543,7 +1560,8 @@ public class DocumentService {
       String leaf,
       String parentPath,
       Map<String, Long> pathWriteTimes,
-      Long rowWriteTime) {
+      Long rowWriteTime,
+      boolean numericBooleans) {
     JsonNode n = NullNode.getInstance();
 
     if (!row.isNull("text_value")) {
@@ -1556,7 +1574,7 @@ public class DocumentService {
         n = new TextNode(value);
       }
     } else if (!row.isNull("bool_value")) {
-      n = BooleanNode.valueOf(getBooleanFromRow(row, "bool_value"));
+      n = BooleanNode.valueOf(getBooleanFromRow(row, "bool_value", numericBooleans));
     } else if (!row.isNull("dbl_value")) {
       // If not a fraction represent as a long to the user
       // This lets us handle queries of doubles and longs without
