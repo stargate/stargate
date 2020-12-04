@@ -54,7 +54,7 @@ public class DocumentDB {
   public static final String EMPTY_ARRAY_MARKER = "EMPTYARRAY-9df4802a-c135-42d6-8be3-d23d9520a4e7";
 
   private static final String[] VALUE_COLUMN_NAMES =
-      new String[]{"leaf", "text_value", "dbl_value", "bool_value"};
+      new String[] {"leaf", "text_value", "dbl_value", "bool_value"};
 
   final DataStore dataStore;
   private final AuthorizationService authorizationService;
