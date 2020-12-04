@@ -172,10 +172,10 @@ public class DocumentDB {
       columns.add(Column.create("leaf", Type.Text));
       columns.add(Column.create("text_value", Type.Text));
       columns.add(Column.create("dbl_value", Type.Double));
-      if (dataStore.supportsSecondaryIndex()) {
-        columns.add(Column.create("bool_value", Type.Boolean));
-      } else {
+      if (treatBooleansAsNumeric()) {
         columns.add(Column.create("bool_value", Type.Tinyint));
+      } else {
+        columns.add(Column.create("bool_value", Type.Boolean));
       }
       dataStore
           .queryBuilder()
