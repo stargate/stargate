@@ -17,6 +17,7 @@ import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.ParameterizedType.TupleType;
 import io.stargate.db.schema.UserDefinedType;
+import io.stargate.web.impl.Server;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -32,7 +33,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public class ConvertersTest {
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = testObjectMapper();
   private static final TupleType INT_TEXT_TUPLE = (TupleType) Type.Tuple.of(Type.Int, Type.Text);
   private static final UserDefinedType ADDRESS_UDT =
       ImmutableUserDefinedType.builder()
@@ -83,6 +84,15 @@ public class ConvertersTest {
       arguments(
           ADDRESS_UDT.create("1600 Pennsylvania Avenue NW", 20500),
           "{\"street\":\"1600 Pennsylvania Avenue NW\",\"zip\":20500}"),
+      arguments("abc", "\"abc\""),
+      arguments(true, "true"),
+      arguments((byte) 1, "1"),
+      arguments((short) 1, "1"),
+      arguments(1, "1"),
+      arguments(1, "1"),
+      arguments(LocalDate.of(2001, 1, 1), "\"2001-01-01\""),
+      arguments(LocalTime.of(0, 1, 0), "\"00:01:00\""),
+      arguments(Instant.ofEpochMilli(0), "\"1970-01-01T00:00:00Z\""),
     };
   }
 
@@ -197,5 +207,11 @@ public class ConvertersTest {
           "\"{street: '1600 Pennsylvania Avenue NW', zip: 20500}\"",
           ADDRESS_UDT.create("1600 Pennsylvania Avenue NW", 20500)),
     };
+  }
+
+  private static ObjectMapper testObjectMapper() {
+    ObjectMapper mapper = new ObjectMapper();
+    Server.configureObjectMapper(mapper);
+    return mapper;
   }
 }

@@ -15,8 +15,10 @@
  */
 package io.stargate.web.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.common.annotations.VisibleForTesting;
 import io.dropwizard.Application;
 import io.dropwizard.cli.Cli;
 import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
@@ -102,8 +104,7 @@ public class Server extends Application<ApplicationConfiguration> {
       throws IOException {
     final Db db = new Db(persistence, authenticationService, authorizationService);
 
-    environment.getObjectMapper().configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-    environment.getObjectMapper().registerModule(new JavaTimeModule());
+    configureObjectMapper(environment.getObjectMapper());
 
     environment
         .jersey()
@@ -144,6 +145,12 @@ public class Server extends Application<ApplicationConfiguration> {
 
     environment.jersey().register(SwaggerUIResource.class);
     enableCors(environment);
+  }
+
+  @VisibleForTesting
+  public static void configureObjectMapper(ObjectMapper objectMapper) {
+    objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+    objectMapper.registerModule(new JavaTimeModule());
   }
 
   @Override
