@@ -25,9 +25,15 @@ public class CPUGaugeMetricSet implements MetricSet {
   private final int TIME_BETWEEN_TICKS = 950;
 
   public CPUGaugeMetricSet() {
-    processor = new SystemInfo().getHardware().getProcessor();
+    this.processor = new SystemInfo().getHardware().getProcessor();
     this.prevTicks = new long[TickType.values().length];
     this.curTicks = new long[TickType.values().length];
+  }
+
+  protected CPUGaugeMetricSet(CentralProcessor processor, long[] curTicks, long[] prevTicks) {
+    this.processor = processor;
+    this.prevTicks = prevTicks;
+    this.curTicks = curTicks;
   }
 
   @Override
@@ -87,7 +93,7 @@ public class CPUGaugeMetricSet implements MetricSet {
     }
   }
 
-  protected void updateSystemTicks() {
+  private void updateSystemTicks() {
     long[] ticks = processor.getSystemCpuLoadTicks();
     // Skip update if ticks is all zero.
     // Iterate to find a nonzero tick value and return; this should quickly
