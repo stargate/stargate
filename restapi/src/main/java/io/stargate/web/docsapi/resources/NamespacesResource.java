@@ -223,9 +223,6 @@ public class NamespacesResource {
             replication = Replication.simpleStrategy((int) requestBody.getOrDefault("replicas", 1));
           }
 
-          db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, null, Scope.CREATE);
-
           localDB
               .queryBuilder()
               .create()
