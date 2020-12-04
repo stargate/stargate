@@ -2,10 +2,20 @@ package io.stargate.web.docsapi.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.*;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.DoubleNode;
+import com.fasterxml.jackson.databind.node.LongNode;
+import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.gson.*;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
@@ -23,7 +33,16 @@ import io.stargate.web.resources.Db;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -410,7 +429,7 @@ public class DocumentService {
 
   public JsonNode getJsonAtPath(
       DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path)
-      throws ExecutionException, InterruptedException {
+      throws ExecutionException, InterruptedException, UnauthorizedException {
     List<BuiltCondition> predicates = new ArrayList<>();
     predicates.add(BuiltCondition.of("key", Predicate.EQ, id));
 
@@ -431,7 +450,9 @@ public class DocumentService {
     ResultSet r = db.executeSelect(keyspace, collection, predicates);
     List<Row> rows = r.rows();
 
-    if (rows.size() == 0) return null;
+    if (rows.size() == 0) {
+      return null;
+    }
     ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result = convertToJsonDoc(rows, false);
     if (!result.right.isEmpty()) {
       logger.info(String.format("Deleting %d dead leaves", result.right.size()));
@@ -576,13 +597,15 @@ public class DocumentService {
   }
 
   public void deleteAtPath(
-      DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path) {
+      DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path)
+      throws UnauthorizedException {
     List<String> convertedPath = new ArrayList<>(path.size());
     for (PathSegment pathSegment : path) {
       String pathStr = pathSegment.getPath();
       convertedPath.add(convertArrayPath(pathStr));
     }
     Long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
+
     db.delete(keyspace, collection, id, convertedPath, now);
   }
 
@@ -594,7 +617,7 @@ public class DocumentService {
       List<FilterCondition> filters,
       List<PathSegment> path,
       Boolean recurse)
-      throws ExecutionException, InterruptedException {
+      throws ExecutionException, InterruptedException, UnauthorizedException {
     StringBuilder pathStr = new StringBuilder();
 
     List<String> pathSegmentValues =
@@ -642,7 +665,7 @@ public class DocumentService {
       List<FilterCondition> filters,
       List<String> fields,
       String documentId)
-      throws ExecutionException, InterruptedException {
+      throws ExecutionException, InterruptedException, UnauthorizedException {
     FilterCondition first = filters.get(0);
     List<String> path = first.getPath();
 
@@ -650,7 +673,9 @@ public class DocumentService {
         searchRows(keyspace, collection, db, filters, fields, path, false, documentId);
     List<Row> rows = searchResult.left;
     ByteBuffer pageState = searchResult.right;
-    if (rows.size() == 0) return null;
+    if (rows.size() == 0) {
+      return null;
+    }
 
     JsonNode docsResult = mapper.createObjectNode();
 
@@ -887,12 +912,15 @@ public class DocumentService {
         ImmutableList.of(BuiltCondition.of("key", Predicate.IN, new ArrayList<>(docNames)));
 
     db = dbFactory.getDocDataStoreForToken(authToken);
+
     List<Row> rows = db.executeSelect(keyspace, collection, predicate).rows();
     Map<String, List<Row>> rowsByDoc = new HashMap<>();
     for (Row row : rows) {
       String key = row.getString("key");
       List<Row> rowsAtKey = rowsByDoc.getOrDefault(key, new ArrayList<>());
-      if (fields.isEmpty() || fields.contains(row.getString("p0"))) rowsAtKey.add(row);
+      if (fields.isEmpty() || fields.contains(row.getString("p0"))) {
+        rowsAtKey.add(row);
+      }
       rowsByDoc.put(key, rowsAtKey);
     }
 
@@ -933,7 +961,7 @@ public class DocumentService {
       List<String> path,
       Boolean recurse,
       String documentKey)
-      throws ExecutionException, InterruptedException {
+      throws ExecutionException, InterruptedException, UnauthorizedException {
     StringBuilder pathStr = new StringBuilder();
     List<BuiltCondition> predicates = new ArrayList<>();
 

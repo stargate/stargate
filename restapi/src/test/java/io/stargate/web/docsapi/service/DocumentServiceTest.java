@@ -2,7 +2,19 @@ package io.stargate.web.docsapi.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.anyBoolean;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.anyMap;
+import static org.mockito.Mockito.anyObject;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -17,6 +29,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ArrayListBackedRow;
 import io.stargate.db.datastore.ResultSet;
@@ -32,7 +45,10 @@ import io.stargate.web.resources.Db;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.PathSegment;
@@ -988,11 +1004,15 @@ public class DocumentServiceTest {
   }
 
   @Test
-  public void getJsonAtPath() throws ExecutionException, InterruptedException {
+  public void getJsonAtPath()
+      throws ExecutionException, InterruptedException, UnauthorizedException {
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
     when(dbMock.executeSelect(anyString(), anyString(), anyList())).thenReturn(rsMock);
     when(rsMock.rows()).thenReturn(new ArrayList<>());
+    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
+    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
 
     List<PathSegment> path = smallPath();
     JsonNode result = service.getJsonAtPath(dbMock, "ks", "collection", "id", path);
@@ -1001,11 +1021,15 @@ public class DocumentServiceTest {
   }
 
   @Test
-  public void getJsonAtPath_withRowsEmptyJson() throws ExecutionException, InterruptedException {
+  public void getJsonAtPath_withRowsEmptyJson()
+      throws ExecutionException, InterruptedException, UnauthorizedException {
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
     DocumentService serviceMock = mock(DocumentService.class, CALLS_REAL_METHODS);
     when(dbMock.executeSelect(anyString(), anyString(), anyList())).thenReturn(rsMock);
+    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
+    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
 
     List<Row> rows = makeInitialRowData();
     when(rsMock.rows()).thenReturn(rows);
@@ -1022,11 +1046,15 @@ public class DocumentServiceTest {
 
   @Test
   public void getJsonAtPath_withRows()
-      throws ExecutionException, InterruptedException, JsonProcessingException {
+      throws ExecutionException, InterruptedException, JsonProcessingException,
+          UnauthorizedException {
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
     DocumentService serviceMock = mock(DocumentService.class, CALLS_REAL_METHODS);
     when(dbMock.executeSelect(anyString(), anyString(), anyList())).thenReturn(rsMock);
+    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
+    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
 
     List<Row> rows = makeInitialRowData();
     when(rsMock.rows()).thenReturn(rows);
@@ -1046,11 +1074,15 @@ public class DocumentServiceTest {
 
   @Test
   public void getJsonAtPath_withDeadLeaves()
-      throws ExecutionException, InterruptedException, JsonProcessingException {
+      throws ExecutionException, InterruptedException, JsonProcessingException,
+          UnauthorizedException {
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
     DocumentService serviceMock = mock(DocumentService.class, CALLS_REAL_METHODS);
     when(dbMock.executeSelect(anyString(), anyString(), anyList())).thenReturn(rsMock);
+    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
+    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
 
     List<Row> rows = makeInitialRowData();
     when(rsMock.rows()).thenReturn(rows);
@@ -1170,8 +1202,12 @@ public class DocumentServiceTest {
   }
 
   @Test
-  public void deleteAtPath() {
+  public void deleteAtPath() throws UnauthorizedException {
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
+    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
+    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
+
     service.deleteAtPath(dbMock, "keyspace", "collection", "id", smallPath());
     verify(dbMock, times(1)).delete(anyString(), anyString(), anyString(), anyList(), anyLong());
   }
@@ -1397,14 +1433,18 @@ public class DocumentServiceTest {
   @Test
   public void searchRows()
       throws InvocationTargetException, IllegalAccessException, ExecutionException,
-          InterruptedException {
+          InterruptedException, UnauthorizedException {
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
+
     ResultSet rsMock = mock(ResultSet.class);
     List<Row> rows = makeInitialRowData();
     when(dbMock.executeSelectAll(anyString(), anyString())).thenReturn(rsMock);
     when(dbMock.executeSelect(anyString(), anyString(), anyObject(), anyBoolean()))
         .thenReturn(rsMock);
     when(rsMock.currentPageRows()).thenReturn(rows);
+    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
+    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
 
     List<FilterCondition> filters =
         ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$eq", true));
@@ -1443,13 +1483,17 @@ public class DocumentServiceTest {
   }
 
   @Test
-  public void searchRows_invalid() throws ExecutionException, InterruptedException {
+  public void searchRows_invalid()
+      throws ExecutionException, InterruptedException, UnauthorizedException {
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
     List<Row> rows = makeInitialRowData();
     when(dbMock.executeSelectAll(anyString(), anyString())).thenReturn(rsMock);
     when(dbMock.executeSelect(anyString(), anyString(), anyObject(), anyBoolean()))
         .thenReturn(rsMock);
+    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
+    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
     when(rsMock.rows()).thenReturn(rows);
     when(rsMock.getPagingState()).thenReturn(ByteBuffer.wrap(new byte[0]));
 

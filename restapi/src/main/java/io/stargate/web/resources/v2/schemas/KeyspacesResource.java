@@ -204,6 +204,9 @@ public class KeyspacesResource {
           Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
 
           String keyspaceName = (String) requestBody.get("name");
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, keyspaceName, null, Scope.CREATE);
+
           Replication replication;
           if (requestBody.containsKey("datacenters")) {
             ArrayList<?> datacenters = (ArrayList<?>) requestBody.get("datacenters");
@@ -220,9 +223,6 @@ public class KeyspacesResource {
           } else {
             replication = Replication.simpleStrategy((int) requestBody.getOrDefault("replicas", 1));
           }
-
-          db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, null, Scope.CREATE);
 
           localDB
               .queryBuilder()

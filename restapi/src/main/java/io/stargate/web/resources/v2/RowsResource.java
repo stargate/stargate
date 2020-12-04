@@ -66,8 +66,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Api(
     produces = MediaType.APPLICATION_JSON,
@@ -76,8 +74,6 @@ import org.slf4j.LoggerFactory;
 @Path("/v2/keyspaces/{keyspaceName}/{tableName}")
 @Produces(MediaType.APPLICATION_JSON)
 public class RowsResource {
-
-  private static final Logger logger = LoggerFactory.getLogger(RowsResource.class);
 
   @Inject private Db db;
   private static final ObjectMapper mapper = new ObjectMapper();

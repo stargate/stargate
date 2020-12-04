@@ -4,6 +4,9 @@ import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
@@ -19,7 +22,12 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -49,6 +57,8 @@ public class DocumentDB {
       new String[] {"leaf", "text_value", "dbl_value", "bool_value"};
 
   final DataStore dataStore;
+  private final AuthorizationService authorizationService;
+  private final String authToken;
 
   static {
     allColumnNames = new ArrayList<>();
@@ -80,8 +90,19 @@ public class DocumentDB {
     }
   }
 
-  public DocumentDB(DataStore dataStore) {
+  public DocumentDB(
+      DataStore dataStore, String authToken, AuthorizationService authorizationService) {
     this.dataStore = dataStore;
+    this.authToken = authToken;
+    this.authorizationService = authorizationService;
+  }
+
+  public AuthorizationService getAuthorizationService() {
+    return authorizationService;
+  }
+
+  public String getAuthToken() {
+    return authToken;
   }
 
   public static List<String> getForbiddenCharactersMessage() {
@@ -286,7 +307,10 @@ public class DocumentDB {
 
   public ResultSet executeSelect(
       String keyspace, String collection, List<BuiltCondition> predicates, boolean allowFiltering)
-      throws ExecutionException, InterruptedException {
+      throws UnauthorizedException {
+    // Run generic authorizeDataRead for now
+    getAuthorizationService().authorizeDataRead(getAuthToken(), keyspace, collection);
+
     return this.builder()
         .select()
         .column(DocumentDB.allColumns())
@@ -300,7 +324,10 @@ public class DocumentDB {
   }
 
   public ResultSet executeSelectAll(String keyspace, String collection)
-      throws ExecutionException, InterruptedException {
+      throws UnauthorizedException {
+    // Run generic authorizeDataRead for now
+    getAuthorizationService().authorizeDataRead(getAuthToken(), keyspace, collection);
+
     return this.builder()
         .select()
         .column(DocumentDB.allColumns())
@@ -464,7 +491,8 @@ public class DocumentDB {
       String key,
       List<Object[]> vars,
       List<String> pathToDelete,
-      long microsSinceEpoch) {
+      long microsSinceEpoch)
+      throws UnauthorizedException {
 
     List<BoundQuery> queries = new ArrayList<>(1 + vars.size());
     queries.add(getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch - 1, pathToDelete));
@@ -473,6 +501,9 @@ public class DocumentDB {
       queries.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
     }
 
+    getAuthorizationService().authorizeDataWrite(authToken, keyspace, table, Scope.DELETE);
+
+    getAuthorizationService().authorizeDataWrite(authToken, keyspace, table, Scope.MODIFY);
     dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
   }
 
@@ -487,7 +518,8 @@ public class DocumentDB {
       List<Object[]> vars,
       List<String> pathToDelete,
       List<String> patchedKeys,
-      long microsSinceEpoch) {
+      long microsSinceEpoch)
+      throws UnauthorizedException {
     boolean hasPath = !pathToDelete.isEmpty();
 
     long insertTs = microsSinceEpoch;
@@ -518,12 +550,18 @@ public class DocumentDB {
       deleteVarsWithPathKeys[i + 2 + pathToDelete.size()] = patchedKeys.get(i);
     }
 
+    getAuthorizationService().authorizeDataWrite(authToken, keyspace, table, Scope.DELETE);
+
+    getAuthorizationService().authorizeDataWrite(authToken, keyspace, table, Scope.MODIFY);
+
     dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
   }
 
   public void delete(
-      String keyspace, String table, String key, List<String> pathToDelete, long microsSinceEpoch) {
+      String keyspace, String table, String key, List<String> pathToDelete, long microsSinceEpoch)
+      throws UnauthorizedException {
 
+    getAuthorizationService().authorizeDataWrite(getAuthToken(), keyspace, table, Scope.DELETE);
     dataStore
         .execute(
             getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch, pathToDelete),
@@ -532,7 +570,8 @@ public class DocumentDB {
   }
 
   public void deleteDeadLeaves(
-      String keyspaceName, String tableName, String key, Map<String, List<JsonNode>> deadLeaves) {
+      String keyspaceName, String tableName, String key, Map<String, List<JsonNode>> deadLeaves)
+      throws UnauthorizedException {
     long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
     deleteDeadLeaves(keyspaceName, tableName, key, now, deadLeaves);
   }
@@ -543,7 +582,11 @@ public class DocumentDB {
       String tableName,
       String key,
       long microsTimestamp,
-      Map<String, List<JsonNode>> deadLeaves) {
+      Map<String, List<JsonNode>> deadLeaves)
+      throws UnauthorizedException {
+
+    getAuthorizationService()
+        .authorizeDataWrite(getAuthToken(), keyspaceName, tableName, Scope.DELETE);
 
     List<BoundQuery> queries = new ArrayList<>();
     for (Map.Entry<String, List<JsonNode>> entry : deadLeaves.entrySet()) {

@@ -129,7 +129,7 @@ public class Db {
   }
 
   public DocumentDB getDocDataStoreForToken(String token) throws UnauthorizedException {
-    return new DocumentDB(getDataStoreForToken(token));
+    return new DocumentDB(getDataStoreForToken(token), token, getAuthorizationService());
   }
 
   public DocumentDB getDocDataStoreForToken(String token, int pageSize, ByteBuffer pageState)
@@ -146,7 +146,8 @@ public class Db {
       }
       throw e;
     }
-    return new DocumentDB(getDataStoreInternal(role, pageSize, pageState));
+    return new DocumentDB(
+        getDataStoreInternal(role, pageSize, pageState), token, getAuthorizationService());
   }
 
   public boolean isDse() {

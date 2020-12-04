@@ -4,6 +4,9 @@ import static io.stargate.db.query.TypedValue.javaValues;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,6 +14,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.BatchType;
 import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
@@ -19,7 +24,12 @@ import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.TypedValue.Codec;
 import io.stargate.db.schema.Schema;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
 import org.junit.Before;
@@ -31,9 +41,11 @@ public class DocumentDBTest {
   private static final ObjectMapper mapper = new ObjectMapper();
 
   @Before
-  public void setup() {
+  public void setup() throws UnauthorizedException {
     ds = new TestDataStore();
-    documentDB = new DocumentDB(ds);
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
+    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
+    documentDB = new DocumentDB(ds, "foo", authorizationService);
   }
 
   @Test
@@ -143,9 +155,11 @@ public class DocumentDBTest {
   }
 
   @Test
-  public void deleteThenInsertBatch() {
+  public void deleteThenInsertBatch() throws UnauthorizedException {
     ds = new TestDataStore();
-    documentDB = new DocumentDB(ds);
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
+    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
+    documentDB = new DocumentDB(ds, "foo", authorizationService);
     List<String> path = ImmutableList.of("a", "b", "c");
     Map<String, Object> map = documentDB.newBindMap(path);
     map.put("bool_value", true);
@@ -169,9 +183,11 @@ public class DocumentDBTest {
   }
 
   @Test
-  public void deletePatchedPathsThenInsertBatch() {
+  public void deletePatchedPathsThenInsertBatch() throws UnauthorizedException {
     ds = new TestDataStore();
-    documentDB = new DocumentDB(ds);
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
+    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
+    documentDB = new DocumentDB(ds, "foo", authorizationService);
     List<String> path = ImmutableList.of("a", "b", "c");
     List<String> patchedKeys = ImmutableList.of("eric");
     Map<String, Object> map = documentDB.newBindMap(path);
@@ -212,9 +228,11 @@ public class DocumentDBTest {
   }
 
   @Test
-  public void delete() {
+  public void delete() throws UnauthorizedException {
     ds = new TestDataStore();
-    documentDB = new DocumentDB(ds);
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
+    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
+    documentDB = new DocumentDB(ds, "foo", authorizationService);
     List<String> path = ImmutableList.of("a", "b", "c");
     List<Object[]> vars = new ArrayList<>();
     vars.add(new Object[path.size() + 2]);
@@ -236,9 +254,11 @@ public class DocumentDBTest {
   }
 
   @Test
-  public void deleteDeadLeaves() {
+  public void deleteDeadLeaves() throws UnauthorizedException {
     ds = new TestDataStore();
-    documentDB = new DocumentDB(ds);
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
+    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
+    documentDB = new DocumentDB(ds, "foo", authorizationService);
 
     Map<String, List<JsonNode>> deadLeaves = new HashMap<>();
     deadLeaves.put("$.a", new ArrayList<>());
