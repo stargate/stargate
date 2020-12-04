@@ -25,7 +25,9 @@ class ParseUtils {
    * @return the index of the first character in toParse from idx that is not a "space.
    */
   static int skipSpaces(String toParse, int idx) {
-    while (idx < toParse.length() && isBlank(toParse.charAt(idx))) ++idx;
+    while (idx < toParse.length() && isBlank(toParse.charAt(idx))) {
+      ++idx;
+    }
     return idx;
   }
 
@@ -35,13 +37,17 @@ class ParseUtils {
    *
    * @param toParse the string to skip a value form.
    * @param idx the index to start parsing a value from.
-   * @return the index ending the CQL value starting at {@code idx}.
-   * @throws IllegalArgumentException if idx doesn't point to the start of a valid CQL value.
+   * @return the index ending the CQL value starting at {@code idx}, or a negative value if if idx
+   *     doesn't point to the start of a valid CQL value.
    */
-  static int skipCQLValue(String toParse, int idx) {
-    if (idx >= toParse.length()) throw new IllegalArgumentException();
+  static int skipCqlValue(String toParse, int idx) {
+    if (idx >= toParse.length()) {
+      return -1;
+    }
 
-    if (isBlank(toParse.charAt(idx))) throw new IllegalArgumentException();
+    if (isBlank(toParse.charAt(idx))) {
+      return -1;
+    }
 
     int cbrackets = 0;
     int sbrackets = 0;
@@ -56,7 +62,9 @@ class ParseUtils {
             ++idx; // this is an escaped quote, skip it
           } else {
             inString = false;
-            if (cbrackets == 0 && sbrackets == 0 && parens == 0) return idx + 1;
+            if (cbrackets == 0 && sbrackets == 0 && parens == 0) {
+              return idx + 1;
+            }
           }
         }
         // Skip any other character
@@ -69,27 +77,42 @@ class ParseUtils {
       } else if (c == '(') {
         ++parens;
       } else if (c == '}') {
-        if (cbrackets == 0) return idx;
+        if (cbrackets == 0) {
+          return idx;
+        }
 
         --cbrackets;
-        if (cbrackets == 0 && sbrackets == 0 && parens == 0) return idx + 1;
+        if (cbrackets == 0 && sbrackets == 0 && parens == 0) {
+          return idx + 1;
+        }
       } else if (c == ']') {
-        if (sbrackets == 0) return idx;
+        if (sbrackets == 0) {
+          return idx;
+        }
 
         --sbrackets;
-        if (cbrackets == 0 && sbrackets == 0 && parens == 0) return idx + 1;
+        if (cbrackets == 0 && sbrackets == 0 && parens == 0) {
+          return idx + 1;
+        }
       } else if (c == ')') {
-        if (parens == 0) return idx;
+        if (parens == 0) {
+          return idx;
+        }
 
         --parens;
-        if (cbrackets == 0 && sbrackets == 0 && parens == 0) return idx + 1;
+        if (cbrackets == 0 && sbrackets == 0 && parens == 0) {
+          return idx + 1;
+        }
       } else if (isBlank(c) || !isCqlIdentifierChar(c)) {
-        if (cbrackets == 0 && sbrackets == 0 && parens == 0) return idx;
+        if (cbrackets == 0 && sbrackets == 0 && parens == 0) {
+          return idx;
+        }
       }
     } while (++idx < toParse.length());
 
-    if (inString || cbrackets != 0 || sbrackets != 0 || parens != 0)
-      throw new IllegalArgumentException();
+    if (inString || cbrackets != 0 || sbrackets != 0 || parens != 0) {
+      return -1;
+    }
     return idx;
   }
 
@@ -99,29 +122,39 @@ class ParseUtils {
    *
    * @param toParse the string to skip an identifier from.
    * @param idx the index to start parsing an identifier from.
-   * @return the index ending the CQL identifier starting at {@code idx}.
-   * @throws IllegalArgumentException if idx doesn't point to the start of a valid CQL identifier.
+   * @return the index ending the CQL identifier starting at {@code idx}, or a negative value if idx
+   *     doesn't point to the start of a valid CQL identifier.
    */
-  static int skipCQLId(String toParse, int idx) {
-    if (idx >= toParse.length()) throw new IllegalArgumentException();
+  static int skipCqlId(String toParse, int idx) {
+    if (idx >= toParse.length()) {
+      return -1;
+    }
 
     char c = toParse.charAt(idx);
     if (isCqlIdentifierChar(c)) {
-      while (idx < toParse.length() && isCqlIdentifierChar(toParse.charAt(idx))) idx++;
+      while (idx < toParse.length() && isCqlIdentifierChar(toParse.charAt(idx))) {
+        idx++;
+      }
       return idx;
     }
 
-    if (c != '"') throw new IllegalArgumentException();
+    if (c != '"') {
+      return -1;
+    }
 
     while (++idx < toParse.length()) {
       c = toParse.charAt(idx);
-      if (c != '"') continue;
+      if (c != '"') {
+        continue;
+      }
 
-      if (idx + 1 < toParse.length() && toParse.charAt(idx + 1) == '\"')
+      if (idx + 1 < toParse.length() && toParse.charAt(idx + 1) == '\"') {
         ++idx; // this is an escaped double quote, skip it
-      else return idx + 1;
+      } else {
+        return idx + 1;
+      }
     }
-    throw new IllegalArgumentException();
+    return -1;
   }
 
   static boolean isBlank(int c) {

@@ -572,14 +572,11 @@ public class Converters {
     C collection = newInstance.get();
     Column.ColumnType elementType = type.parameters().get(0);
     while (idx < value.length()) {
-      int n;
-      try {
-        n = ParseUtils.skipCQLValue(value, idx);
-      } catch (IllegalArgumentException e) {
+      int n = ParseUtils.skipCqlValue(value, idx);
+      if (n < 0) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid %s value: invalid CQL value at character %d", type.rawType(), idx),
-            e);
+                "Invalid %s value: invalid CQL value at character %d", type.rawType(), idx));
       }
 
       collection.add(toCqlValue(elementType, value.substring(idx, n)));
@@ -622,12 +619,10 @@ public class Converters {
 
     Map<Object, Object> map = new LinkedHashMap<>();
     while (idx < value.length()) {
-      int n;
-      try {
-        n = ParseUtils.skipCQLValue(value, idx);
-      } catch (IllegalArgumentException e) {
+      int n = ParseUtils.skipCqlValue(value, idx);
+      if (n < 0) {
         throw new IllegalArgumentException(
-            String.format("Invalid map value: invalid CQL value at character %d", idx), e);
+            String.format("Invalid map value: invalid CQL value at character %d", idx));
       }
 
       Object k = toCqlValue(keyType, value.substring(idx, n));
@@ -642,11 +637,10 @@ public class Converters {
       }
       idx = ParseUtils.skipSpaces(value, idx);
 
-      try {
-        n = ParseUtils.skipCQLValue(value, idx);
-      } catch (IllegalArgumentException e) {
+      n = ParseUtils.skipCqlValue(value, idx);
+      if (n < 0) {
         throw new IllegalArgumentException(
-            String.format("Invalid map value: invalid CQL value at character %d", idx), e);
+            String.format("Invalid map value: invalid CQL value at character %d", idx));
       }
 
       Object v = toCqlValue(valueType, value.substring(idx, n));
@@ -697,15 +691,12 @@ public class Converters {
                 "Invalid tuple value: at character %d expecting EOF or blank, but got \"%s\"",
                 position, value.substring(position)));
       }
-      int n;
-      try {
-        n = ParseUtils.skipCQLValue(value, position);
-      } catch (IllegalArgumentException e) {
+      int n = ParseUtils.skipCqlValue(value, position);
+      if (n < 0) {
         throw new IllegalArgumentException(
             String.format(
                 "Invalid tuple value: invalid CQL value at field %d (character %d)",
-                fieldIndex, position),
-            e);
+                fieldIndex, position));
       }
 
       String fieldValue = value.substring(position, n);
@@ -783,14 +774,11 @@ public class Converters {
                 "Invalid UDT value: at character %d expecting EOF or blank, but got \"%s\"",
                 position, value.substring(position)));
       }
-      int n;
-      try {
-        n = ParseUtils.skipCQLId(value, position);
-      } catch (IllegalArgumentException e) {
+      int n = ParseUtils.skipCqlId(value, position);
+      if (n < 0) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid UDT value: cannot parse a CQL identifier at character %d", position),
-            e);
+                "Invalid UDT value: cannot parse a CQL identifier at character %d", position));
       }
       id = value.substring(position, n);
       position = n;
@@ -817,13 +805,11 @@ public class Converters {
       position++;
       position = ParseUtils.skipSpaces(value, position);
 
-      try {
-        n = ParseUtils.skipCQLValue(value, position);
-      } catch (IllegalArgumentException e) {
+      n = ParseUtils.skipCqlValue(value, position);
+      if (n < 0) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid UDT value: invalid CQL value at field %s (character %d)", id, position),
-            e);
+                "Invalid UDT value: invalid CQL value at field %s (character %d)", id, position));
       }
 
       String fieldValue = value.substring(position, n);
