@@ -331,6 +331,11 @@ public class DocumentDBTest {
     @Override
     public void waitForSchemaAgreement() {}
 
+    @Override
+    public boolean supportsSecondaryIndex() {
+      return true;
+    }
+
     public List<BoundQuery> getRecentStatements() {
       List<BoundQuery> recent = new ArrayList<>(this.recentQueries);
       this.recentQueries.clear();
