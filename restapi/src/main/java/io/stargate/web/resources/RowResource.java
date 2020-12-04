@@ -149,7 +149,7 @@ public class RowResource {
                       TypedKeyValue.forSelect((BoundSelect) query));
 
           final List<Map<String, Object>> rows =
-              r.rows().stream().map(Converters::row2Map).collect(Collectors.toList());
+              r.rows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
 
           return Response.status(Response.Status.OK)
               .entity(new RowResponse(rows.size(), rows))
@@ -217,7 +217,7 @@ public class RowResource {
                       Collections.emptyList());
 
           final List<Map<String, Object>> rows =
-              r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
+              r.currentPageRows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
 
           String newPagingState =
               r.getPagingState() != null
@@ -340,7 +340,7 @@ public class RowResource {
                       TypedKeyValue.forSelect((BoundSelect) query));
 
           final List<Map<String, Object>> rows =
-              r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
+              r.currentPageRows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
 
           String newPagingState =
               r.getPagingState() != null

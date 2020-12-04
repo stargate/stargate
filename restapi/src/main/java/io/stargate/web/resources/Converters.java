@@ -50,6 +50,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
@@ -78,11 +79,36 @@ public class Converters {
   }
 
   public static Map<String, Object> row2Map(final Row row) {
-    final List<Column> defs = row.columns();
-    final Map<String, Object> map = new HashMap<>(defs.size());
-    for (final Column column : defs) {
-
+    final Map<String, Object> map = new HashMap<>(row.columns().size());
+    for (final Column column : row.columns()) {
       map.put(column.name(), toJsonValue(row.getObject(column.name())));
+    }
+    return map;
+  }
+
+  /**
+   * Legacy implementation of {@link #row2Map} for the v1 API.
+   *
+   * <p>Note that passing column values directly to the object mapper presents a number of issues:
+   *
+   * <ul>
+   *   <li>Longs and BigIntegers are converted to JSON numbers, which can lose range.
+   *   <li>BigDecimals are converted to JSON numbers, which can lose precision.
+   *   <li>Map keys are always serialized into strings.
+   *   <li>UDT and tuple values leak all the internal fields of {@link UdtValue} and {@link
+   *       TupleValue}.
+   * </ul>
+   *
+   * But it was decided to keep v1 as-is for backward compatibility purposes.
+   */
+  public static Map<String, Object> row2MapV1(final Row row) {
+    final Map<String, Object> map = new HashMap<>(row.columns().size());
+    for (final Column column : row.columns()) {
+      Object value = row.getObject(column.name());
+      if (value instanceof Object[]) {
+        value = Arrays.asList((Object[]) value);
+      }
+      map.put(column.name(), value);
     }
     return map;
   }
