@@ -26,6 +26,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.stargate.core.activator.BaseActivator.LazyServicePointer;
 import io.stargate.core.activator.BaseActivator.ServicePointer;
 import java.util.Arrays;
 import java.util.Collections;
@@ -92,6 +93,50 @@ class BaseActivatorTest {
                 "(|(objectClass=%s)(Identifier2=Service_2))", DependentService1.class.getName())));
   }
 
+  @ParameterizedTest
+  @MethodSource("dependentServicesWithLazy")
+  public void shouldConstructDependenciesFilterForNormalAndLazy(
+      List<ServicePointer<?>> serviceDependencies,
+      List<LazyServicePointer<?>> lazyServiceDependencies,
+      String expected) {
+    // given
+    BaseActivator baseActivator = createBaseActivator(serviceDependencies, lazyServiceDependencies);
+
+    // when
+    String dependenciesFilter = baseActivator.constructDependenciesFilter();
+
+    // then
+    assertThat(dependenciesFilter).isEqualTo(expected);
+  }
+
+  public static Stream<Arguments> dependentServicesWithLazy() {
+    return Stream.of(
+        arguments(
+            Collections.singletonList(create(DependentService1.class)),
+            Collections.singletonList(LazyServicePointer.create(DependentService2.class)),
+            String.format(
+                "(|(objectClass=%s)(objectClass=%s))",
+                DependentService1.class.getName(), DependentService2.class.getName())),
+        arguments(
+            Collections.singletonList(create(DependentService1.class)),
+            Collections.singletonList(
+                LazyServicePointer.create(DependentService2.class, "Identifier2", "Service_2")),
+            String.format(
+                "(|(objectClass=%s)(Identifier2=Service_2))", DependentService1.class.getName())),
+        arguments(
+            Collections.emptyList(),
+            Collections.singletonList(LazyServicePointer.create(DependentService2.class)),
+            String.format("(|(objectClass=%s))", DependentService2.class.getName())),
+        arguments(
+            Collections.emptyList(),
+            Arrays.asList(
+                LazyServicePointer.create(DependentService1.class),
+                LazyServicePointer.create(DependentService2.class)),
+            String.format(
+                "(|(objectClass=%s)(objectClass=%s))",
+                DependentService1.class.getName(), DependentService2.class.getName())));
+  }
+
   @Test
   public void shouldNotStartService() throws InvalidSyntaxException {
     // given
@@ -133,6 +178,57 @@ class BaseActivatorTest {
         .registerService(
             eq(TestService.class.getName()), any(TestService.class), eq(EXPECTED_PROPERTIES));
     assertThat(activator.started).isFalse();
+  }
+
+  @Test
+  public void shouldStartIfOnlyFirstServiceIsRegisteredInTrackerButSecondOneIsLazy()
+      throws InvalidSyntaxException {
+    // given
+    BundleContext bundleContext = mock(BundleContext.class);
+    TestServiceActivatorLazy activator = new TestServiceActivatorLazy();
+    mockFilterForBothServices(bundleContext);
+    activator.start(bundleContext);
+
+    // when
+    ServiceReference<Object> serviceReference = mock(ServiceReference.class);
+    activator.tracker.startIfAllRegistered(serviceReference, mock(DependentService1.class));
+
+    // then should register service
+    verify(bundleContext, times(1))
+        .registerService(
+            eq(TestServiceLazy.class.getName()),
+            any(TestServiceLazy.class),
+            eq(EXPECTED_PROPERTIES));
+    assertThat(activator.started).isTrue();
+  }
+
+  @Test
+  public void shouldStartTrackLazyServiceAfterTargetServiceIsStartedAndRegistered()
+      throws InvalidSyntaxException {
+    // given
+    BundleContext bundleContext = mock(BundleContext.class);
+    TestServiceActivatorLazy activator = new TestServiceActivatorLazy();
+    mockFilterForBothServices(bundleContext);
+    activator.start(bundleContext);
+
+    // when
+    ServiceReference<Object> serviceReference = mock(ServiceReference.class);
+    activator.tracker.startIfAllRegistered(serviceReference, mock(DependentService1.class));
+
+    // then should register service
+    verify(bundleContext, times(1))
+        .registerService(
+            eq(TestServiceLazy.class.getName()),
+            any(TestServiceLazy.class),
+            eq(EXPECTED_PROPERTIES));
+    assertThat(activator.started).isTrue();
+    assertThat(activator.service2.get().get()).isNull();
+
+    // when lazy service is registered
+    activator.tracker.startIfAllRegistered(serviceReference, mock(DependentService2.class));
+
+    // then it should be non-null
+    assertThat(activator.service2.get().get()).isNotNull();
   }
 
   @Test
@@ -404,7 +500,12 @@ class BaseActivatorTest {
   }
 
   private BaseActivator createBaseActivator(List<ServicePointer<?>> serviceDependencies) {
+    return createBaseActivator(serviceDependencies, Collections.emptyList());
+  }
 
+  private BaseActivator createBaseActivator(
+      List<ServicePointer<?>> serviceDependencies,
+      List<LazyServicePointer<?>> lazyServiceDependencies) {
     return new BaseActivator("ignored") {
       @Override
       protected ServiceAndProperties createService() {
@@ -419,6 +520,11 @@ class BaseActivatorTest {
       @Override
       protected List<ServicePointer<?>> dependencies() {
         return serviceDependencies;
+      }
+
+      @Override
+      protected List<LazyServicePointer<?>> lazyDependencies() {
+        return lazyServiceDependencies;
       }
     };
   }

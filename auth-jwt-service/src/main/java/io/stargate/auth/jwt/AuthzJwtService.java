@@ -24,6 +24,7 @@ import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
 import java.util.Base64;
 import java.util.List;
@@ -117,7 +118,8 @@ public class AuthzJwtService implements AuthorizationService {
 
   /** {@inheritdoc} */
   @Override
-  public void authorizeDataWrite(String token, List<TypedKeyValue> typedKeyValues, Scope scope)
+  public void authorizeDataWrite(
+      String token, String keyspace, String table, List<TypedKeyValue> typedKeyValues, Scope scope)
       throws UnauthorizedException {
     JSONObject stargateClaims = extractClaimsFromJWT(token);
 
@@ -170,9 +172,8 @@ public class AuthzJwtService implements AuthorizationService {
       // If one of the columns exist as a field in the JWT claims and the values do not match then
       // the request is not allowed.
       if (stargateClaims.has(STARGATE_PREFIX + typedKeyValue.getName())) {
-        String targetCellType = typedKeyValue.getType().toLowerCase();
-        if (!(targetCellType.equals(Type.Varchar.cqlDefinition())
-            || targetCellType.equals(Type.Text.cqlDefinition()))) {
+        ColumnType targetCellType = typedKeyValue.getType();
+        if (!(targetCellType.equals(Type.Varchar) || targetCellType.equals(Type.Text))) {
           throw new IllegalArgumentException(
               "Column must be of type text to be used for authorization");
         }

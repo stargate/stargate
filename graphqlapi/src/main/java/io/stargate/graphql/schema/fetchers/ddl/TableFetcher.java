@@ -6,6 +6,8 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
+import io.stargate.db.query.Query;
+import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.graphql.web.HttpAwareContext;
 
 public abstract class TableFetcher extends DdlQueryFetcher {
@@ -18,7 +20,9 @@ public abstract class TableFetcher extends DdlQueryFetcher {
   }
 
   @Override
-  String getQuery(DataFetchingEnvironment dataFetchingEnvironment) throws UnauthorizedException {
+  protected Query<?> buildQuery(
+      DataFetchingEnvironment dataFetchingEnvironment, QueryBuilder builder)
+      throws UnauthorizedException {
     String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
     String tableName = dataFetchingEnvironment.getArgument("tableName");
 
@@ -37,9 +41,12 @@ public abstract class TableFetcher extends DdlQueryFetcher {
 
     authorizationService.authorizeSchemaWrite(token, keyspaceName, tableName, scope);
 
-    return getQuery(dataFetchingEnvironment, keyspaceName, tableName);
+    return buildQuery(dataFetchingEnvironment, builder, keyspaceName, tableName);
   }
 
-  abstract String getQuery(
-      DataFetchingEnvironment dataFetchingEnvironment, String keyspaceName, String tableName);
+  protected abstract Query<?> buildQuery(
+      DataFetchingEnvironment dataFetchingEnvironment,
+      QueryBuilder builder,
+      String keyspaceName,
+      String tableName);
 }

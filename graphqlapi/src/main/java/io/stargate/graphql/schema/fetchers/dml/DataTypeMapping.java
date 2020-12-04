@@ -18,136 +18,104 @@ package io.stargate.graphql.schema.fetchers.dml;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.api.core.data.UdtValue;
-import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
-import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
-import com.datastax.oss.driver.api.querybuilder.term.Term;
+import com.google.common.collect.Sets;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
+import io.stargate.db.schema.ParameterizedType.TupleType;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.schema.NameMapping;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 
 /** Provides the logic for adapting values from graphql to DB and vice versa. */
 class DataTypeMapping {
 
-  /**
-   * Converts a value coming from the GraphQL runtime into a term that can be used with {@link
-   * QueryBuilder}.
-   */
-  static Term toCqlTerm(Column.ColumnType type, Object value, NameMapping nameMapping) {
-    StringBuilder raw = new StringBuilder();
-    format(type, value, nameMapping, raw);
-    return QueryBuilder.raw(raw.toString());
-  }
-
-  private static void format(
-      Column.ColumnType type, Object value, NameMapping nameMapping, StringBuilder out) {
+  /** Converts a value coming from the GraphQL runtime into a DB value. */
+  static Object toDBValue(ColumnType type, Object graphQLValue, NameMapping nameMapping) {
     if (type.isCollection()) {
       if (type.rawType() == Column.Type.List) {
-        formatElements(type.parameters().get(0), (Collection<?>) value, '[', ']', nameMapping, out);
+        return convertCollection(type, graphQLValue, nameMapping, ArrayList::new);
       } else if (type.rawType() == Column.Type.Set) {
-        formatElements(type.parameters().get(0), (Collection<?>) value, '{', '}', nameMapping, out);
+        return convertCollection(
+            type, graphQLValue, nameMapping, Sets::newLinkedHashSetWithExpectedSize);
       } else if (type.rawType() == Column.Type.Map) {
-        formatMap(type, value, nameMapping, out);
+        return convertMap(type, graphQLValue, nameMapping);
       } else {
         throw new AssertionError("Invalid collection type " + type);
       }
     } else if (type.isUserDefined()) {
-      formatUdt((UserDefinedType) type, value, nameMapping, out);
+      return convertUdt((UserDefinedType) type, graphQLValue, nameMapping);
     } else if (type.isTuple()) {
-      formatTuple(type, value, nameMapping, out);
+      return convertTuple((TupleType) type, graphQLValue, nameMapping);
     } else { // primitive
-      @SuppressWarnings("unchecked")
-      TypeCodec<Object> codec = type.codec();
-      out.append(codec.format(value));
+      return graphQLValue;
     }
   }
 
-  private static void formatElements(
-      Column.ColumnType elementType,
-      Collection<?> elements,
-      char startChar,
-      char endChar,
+  private static Collection<Object> convertCollection(
+      ColumnType type,
+      Object graphQLvalue,
       NameMapping nameMapping,
-      StringBuilder out) {
-    out.append(startChar);
-    boolean first = true;
-    for (Object element : elements) {
-      if (first) {
-        first = false;
-      } else {
-        out.append(',');
-      }
-      format(elementType, element, nameMapping, out);
+      IntFunction<Collection<Object>> ctor) {
+    ColumnType elementType = type.parameters().get(0);
+    Collection<?> graphQLCollection = (Collection<?>) graphQLvalue;
+    Collection<Object> collection = ctor.apply(graphQLCollection.size());
+    for (Object element : graphQLCollection) {
+      collection.add(toDBValue(elementType, element, nameMapping));
     }
-    out.append(endChar);
+    return collection;
   }
 
-  private static void formatMap(
-      Column.ColumnType type, Object value, NameMapping nameMapping, StringBuilder out) {
-    out.append('{');
+  private static Map<Object, Object> convertMap(
+      ColumnType type, Object graphQLValue, NameMapping nameMapping) {
+    Map<Object, Object> map = new LinkedHashMap<>(); // Preserving input order is nice-to-have
     @SuppressWarnings("unchecked")
-    Collection<Map<String, Object>> entries = (Collection<Map<String, Object>>) value;
-    Column.ColumnType keyType = type.parameters().get(0);
-    Column.ColumnType valueType = type.parameters().get(1);
-    boolean first = true;
-    for (Map<String, Object> entry : entries) {
-      if (first) {
-        first = false;
-      } else {
-        out.append(',');
-      }
-      format(keyType, entry.get("key"), nameMapping, out);
-      out.append(':');
-      format(valueType, entry.get("value"), nameMapping, out);
+    Collection<Map<String, Object>> graphQLMap = (Collection<Map<String, Object>>) graphQLValue;
+    ColumnType keyType = type.parameters().get(0);
+    ColumnType valueType = type.parameters().get(1);
+    for (Map<String, Object> entry : graphQLMap) {
+      Object key = toDBValue(keyType, entry.get("key"), nameMapping);
+      Object value = toDBValue(valueType, entry.get("value"), nameMapping);
+      map.put(key, value);
     }
-    out.append('}');
+    return map;
   }
 
-  private static void formatUdt(
-      UserDefinedType type, Object value, NameMapping nameMapping, StringBuilder out) {
-    type = type.frozen(false);
-    out.append('{');
-    @SuppressWarnings("unchecked")
-    Map<String, Object> object = (Map<String, Object>) value;
-    boolean first = true;
+  @SuppressWarnings("unchecked")
+  private static UdtValue convertUdt(
+      UserDefinedType type, Object graphQLValue, NameMapping nameMapping) {
+    Map<String, Object> object = (Map<String, Object>) graphQLValue;
+    UdtValue udt = type.create();
     for (Map.Entry<String, Object> entry : object.entrySet()) {
-      if (first) {
-        first = false;
-      } else {
-        out.append(',');
-      }
       String fieldName = nameMapping.getCqlName(type, entry.getKey());
-      Column.ColumnType fieldType = type.fieldType(fieldName);
-      out.append('"').append(fieldName).append("\":");
-      format(fieldType, entry.getValue(), nameMapping, out);
+      ColumnType fieldType = type.fieldType(fieldName);
+      Object value = toDBValue(fieldType, entry.getValue(), nameMapping);
+      udt.set(fieldName, value, fieldType.codec());
     }
-    out.append('}');
+    return udt;
   }
 
-  private static void formatTuple(
-      Column.ColumnType type, Object value, NameMapping nameMapping, StringBuilder out) {
-    out.append('(');
-    @SuppressWarnings("unchecked")
-    Map<String, Object> mapValue = (Map<String, Object>) value;
-    List<Column.ColumnType> subTypes = type.parameters();
-
+  @SuppressWarnings("unchecked")
+  private static TupleValue convertTuple(
+      TupleType type, Object graphQLValue, NameMapping nameMapping) {
+    Map<String, Object> object = (Map<String, Object>) graphQLValue;
+    List<ColumnType> subTypes = type.parameters();
+    TupleValue tuple = type.create();
     for (int i = 0; i < subTypes.size(); i++) {
-      Object item = mapValue.get("item" + i);
-
-      if (i > 0) {
-        out.append(',');
-      }
-
-      format(subTypes.get(i), item, nameMapping, out);
+      ColumnType subType = subTypes.get(i);
+      Object item = object.get("item" + i);
+      Object value = toDBValue(subType, item, nameMapping);
+      tuple.set(i, value, subType.codec());
     }
-
-    out.append(')');
+    return tuple;
   }
 
   /** Converts result Row into a map suitable to serve it via GraphQL. */
@@ -168,8 +136,7 @@ class DataTypeMapping {
     return toGraphQLValue(nameMapping, column.type(), dbValue);
   }
 
-  private static Object toGraphQLValue(
-      NameMapping nameMapping, Column.ColumnType type, Object dbValue) {
+  private static Object toGraphQLValue(NameMapping nameMapping, ColumnType type, Object dbValue) {
     if (dbValue == null) {
       return null;
     } else if (type.isCollection()) {
@@ -180,8 +147,8 @@ class DataTypeMapping {
             .collect(Collectors.toList());
       } else if (type.rawType() == Column.Type.Map) {
         Map<?, ?> dbMap = (Map<?, ?>) dbValue;
-        Column.ColumnType keyType = type.parameters().get(0);
-        Column.ColumnType valueType = type.parameters().get(1);
+        ColumnType keyType = type.parameters().get(0);
+        ColumnType valueType = type.parameters().get(1);
         return dbMap.entrySet().stream()
             .map(
                 e -> {

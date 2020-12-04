@@ -25,6 +25,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.query.BoundQuery;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
 import io.stargate.graphql.web.HttpAwareContext;
@@ -32,7 +33,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<String, Object>>> {
-
   protected MutationFetcher(
       Table table,
       NameMapping nameMapping,
@@ -45,7 +45,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
   @Override
   protected CompletableFuture<Map<String, Object>> get(
       DataFetchingEnvironment environment, DataStore dataStore) {
-    String statement = null;
+    BoundQuery query = null;
     Exception buildException = null;
 
     // Avoid mixing sync and async exceptions
@@ -53,7 +53,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       // buildStatement() could throw an unchecked exception.
       // As the statement might be part of a batch, we need to make sure the
       // batched operation completes.
-      statement = buildStatement(environment, dataStore);
+      query = buildQuery(environment, dataStore);
     } catch (Exception e) {
       buildException = e;
     }
@@ -63,7 +63,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
     if (operation.getDirectives().stream().anyMatch(d -> d.getName().equals(ATOMIC_DIRECTIVE))
         && operation.getSelectionSet().getSelections().size() > 1) {
       // There are more than one mutation in @atomic operation
-      return executeAsBatch(environment, dataStore, statement, buildException);
+      return executeAsBatch(environment, dataStore, query, buildException);
     }
 
     if (buildException != null) {
@@ -74,14 +74,14 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
 
     // Execute as a single statement
     return dataStore
-        .query(statement)
+        .execute(query)
         .thenApply(rs -> ImmutableMap.of("value", environment.getArgument("value")));
   }
 
   private CompletableFuture<Map<String, Object>> executeAsBatch(
       DataFetchingEnvironment environment,
       DataStore dataStore,
-      String statement,
+      BoundQuery query,
       Exception buildException) {
     int selections = environment.getOperationDefinition().getSelectionSet().getSelections().size();
     HttpAwareContext context = environment.getContext();
@@ -102,11 +102,11 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
 
     if (buildException != null) {
       batchContext.setExecutionResult(buildException);
-    } else if (batchContext.add(statement) == selections) {
+    } else if (batchContext.add(query) == selections) {
       // All the statements were added successfully
       // Use the dataStore containing the options
       DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
-      batchContext.setExecutionResult(batchDataStore.batch(batchContext.getStatements()));
+      batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
     }
 
     return batchContext
@@ -114,6 +114,17 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
         .thenApply(v -> ImmutableMap.of("value", environment.getArgument("value")));
   }
 
-  protected abstract String buildStatement(DataFetchingEnvironment environment, DataStore dataStore)
+  protected abstract BoundQuery buildQuery(DataFetchingEnvironment environment, DataStore dataStore)
       throws Exception;
+
+  protected Integer getTTL(DataFetchingEnvironment environment) {
+    Integer ttl = null;
+    if (environment.containsArgument("options") && environment.getArgument("options") != null) {
+      Map<String, Object> options = environment.getArgument("options");
+      if (options.containsKey("ttl") && options.get("ttl") != null) {
+        ttl = (Integer) options.get("ttl");
+      }
+    }
+    return ttl;
+  }
 }

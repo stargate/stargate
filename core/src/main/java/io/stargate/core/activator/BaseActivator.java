@@ -20,6 +20,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
@@ -69,7 +70,11 @@ public abstract class BaseActivator implements BundleActivator {
   String constructDependenciesFilter() {
     StringBuilder builder = new StringBuilder("(|");
 
-    for (ServicePointer<?> servicePointer : dependencies()) {
+    List<Service<?>> allDependencies = new ArrayList<>();
+    allDependencies.addAll(dependencies());
+    allDependencies.addAll(lazyDependencies());
+
+    for (Service<?> servicePointer : allDependencies) {
       if (servicePointer.identifier.isPresent()) {
         builder.append(String.format("(%s)", servicePointer.identifier.get()));
       } else {
@@ -153,6 +158,14 @@ public abstract class BaseActivator implements BundleActivator {
           servicePointer.set(service);
         }
       }
+
+      for (LazyServicePointer<?> lazyServicePointer : lazyDependencies()) {
+        if (lazyServicePointer.expectedClass.isAssignableFrom(service.getClass())) {
+          logger.debug("{} using service with lazy init: {}", activatorName, ref.getBundle());
+          lazyServicePointer.set(service);
+        }
+      }
+
       if (dependencies().stream().map(v -> v.service).allMatch(Objects::nonNull)) {
         startServiceInternal();
       }
@@ -195,6 +208,15 @@ public abstract class BaseActivator implements BundleActivator {
    */
   protected abstract List<ServicePointer<?>> dependencies();
 
+  /**
+   * @return List of dependent services that this component relies on. It does not wait for them to
+   *     be available before calling {@link this#createServices()}. The init of those services is
+   *     lazy, meaning that they can be set after the {@link this#createServices()} is called.
+   */
+  protected List<LazyServicePointer<?>> lazyDependencies() {
+    return Collections.emptyList();
+  }
+
   public static class ServiceAndProperties {
     private final Object service;
     private final Class<?> targetServiceClass;
@@ -213,11 +235,17 @@ public abstract class BaseActivator implements BundleActivator {
     }
   }
 
-  public static class ServicePointer<T> {
-    private Class<T> expectedClass;
+  private abstract static class Service<T> {
+    protected Class<T> expectedClass;
 
-    private Optional<String> identifier;
+    protected Optional<String> identifier;
 
+    protected static String createIdentifier(String identifierKey, String identifierValue) {
+      return String.format("%s=%s", identifierKey, identifierValue);
+    }
+  }
+
+  public static class ServicePointer<T> extends Service<T> {
     private T service;
 
     private ServicePointer(Class<T> expectedClass, String identifier) {
@@ -227,8 +255,7 @@ public abstract class BaseActivator implements BundleActivator {
 
     public static <T> ServicePointer<T> create(
         Class<T> className, String identifierKey, String identifierValue) {
-      return new ServicePointer<>(
-          className, String.format("%s=%s", identifierKey, identifierValue));
+      return new ServicePointer<>(className, createIdentifier(identifierKey, identifierValue));
     }
 
     public static <T> ServicePointer<T> create(Class<T> className) {
@@ -242,6 +269,33 @@ public abstract class BaseActivator implements BundleActivator {
     @SuppressWarnings("unchecked")
     private void set(Object service) {
       this.service = (T) service;
+    }
+  }
+
+  public static class LazyServicePointer<T> extends Service<T> {
+    private AtomicReference<T> service = new AtomicReference<>();
+
+    private LazyServicePointer(Class<T> expectedClass, String identifier) {
+      this.expectedClass = expectedClass;
+      this.identifier = Optional.ofNullable(identifier);
+    }
+
+    public static <T> LazyServicePointer<T> create(
+        Class<T> className, String identifierKey, String identifierValue) {
+      return new LazyServicePointer<>(className, createIdentifier(identifierKey, identifierValue));
+    }
+
+    public static <T> LazyServicePointer<T> create(Class<T> className) {
+      return new LazyServicePointer<>(className, null);
+    }
+
+    public AtomicReference<T> get() {
+      return service;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void set(Object service) {
+      this.service.set((T) service);
     }
   }
 }

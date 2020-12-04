@@ -21,6 +21,7 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.ImmutableColumn;
+import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.models.ColumnUpdate;
@@ -154,6 +155,15 @@ public class ColumnResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+          Keyspace keyspace = localDB.schema().keyspace(keyspaceName);
+          if (keyspace == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        String.format("keyspace '%s' not found", keyspaceName),
+                        Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
 
           String name = columnDefinition.getName();
           Kind kind = Kind.Regular;
@@ -165,19 +175,23 @@ public class ColumnResource {
               ImmutableColumn.builder()
                   .name(name)
                   .kind(kind)
-                  .type(Column.Type.fromCqlDefinitionOf(columnDefinition.getTypeDefinition()))
+                  .type(
+                      Column.Type.fromCqlDefinitionOf(
+                          keyspace, columnDefinition.getTypeDefinition()))
                   .build();
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
 
           localDB
-              .query()
+              .queryBuilder()
               .alter()
               .table(keyspaceName, tableName)
               .addColumn(column)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+              .build()
+              .execute(ConsistencyLevel.LOCAL_QUORUM)
+              .get();
+
           return Response.status(Response.Status.CREATED).entity(new SuccessResponse()).build();
         });
   }
@@ -274,12 +288,14 @@ public class ColumnResource {
               .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
 
           localDB
-              .query()
+              .queryBuilder()
               .alter()
               .table(keyspaceName, tableName)
               .dropColumn(columnName)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+              .build()
+              .execute(ConsistencyLevel.LOCAL_QUORUM)
+              .get();
+
           return Response.status(Response.Status.NO_CONTENT).entity(new SuccessResponse()).build();
         });
   }
@@ -319,23 +335,16 @@ public class ColumnResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          String alterInstructions =
-              "RENAME "
-                  + Converters.maybeQuote(columnName)
-                  + " TO "
-                  + Converters.maybeQuote(columnUpdate.getNewName());
-
           db.getAuthorizationService()
               .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
 
           localDB
-              .query(
-                  String.format(
-                      "ALTER TABLE %s.%s %s",
-                      Converters.maybeQuote(keyspaceName),
-                      Converters.maybeQuote(tableName),
-                      alterInstructions),
-                  ConsistencyLevel.LOCAL_QUORUM)
+              .queryBuilder()
+              .alter()
+              .table(keyspaceName, tableName)
+              .renameColumn(columnName, columnUpdate.getNewName())
+              .build()
+              .execute()
               .get();
           return Response.status(Response.Status.OK).entity(new SuccessResponse()).build();
         });

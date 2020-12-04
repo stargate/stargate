@@ -5,12 +5,12 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.27-SNAPSHOT</version>
+    <version>0.0.28-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db.dse</groupId>
   <artifactId>persistence-dse-6.8</artifactId>
   <properties>
-    <dse.version>6.8.5</dse.version>
+    <dse.version>6.8.7</dse.version>
   </properties>
   <repositories>
     <repository>
@@ -199,7 +199,7 @@
           <forkCount>1</forkCount>
           <systemPropertyVariables>
             <ccm.dse>true</ccm.dse>
-            <ccm.version>6.8.5</ccm.version>
+            <ccm.version>6.8.7</ccm.version>
           </systemPropertyVariables>
         </configuration>
       </plugin>

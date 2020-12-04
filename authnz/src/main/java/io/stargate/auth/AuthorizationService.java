@@ -79,7 +79,8 @@ public interface AuthorizationService {
    * @param scope The {@link Scope} of the action to be performed.
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
-  void authorizeDataWrite(String token, List<TypedKeyValue> typedKeyValues, Scope scope)
+  void authorizeDataWrite(
+      String token, String keyspace, String table, List<TypedKeyValue> typedKeyValues, Scope scope)
       throws UnauthorizedException;
 
   /**

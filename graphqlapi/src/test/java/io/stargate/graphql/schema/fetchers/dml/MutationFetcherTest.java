@@ -4,9 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
-import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.Schema;
 import io.stargate.graphql.schema.DmlTestBase;
 import io.stargate.graphql.schema.SampleKeyspaces;
+import java.util.Collections;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,8 +16,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 public class MutationFetcherTest extends DmlTestBase {
   @Override
-  public Keyspace getKeyspace() {
-    return SampleKeyspaces.LIBRARY;
+  public Schema getCQLSchema() {
+    return Schema.create(Collections.singleton(SampleKeyspaces.LIBRARY));
   }
 
   @Test
@@ -39,12 +40,12 @@ public class MutationFetcherTest extends DmlTestBase {
                 + "}");
     assertThat(result.getErrors()).isEmpty();
     String[] queries = {
-      "UPDATE library.books SET author='G.O.' WHERE title='1984'",
-      "INSERT INTO library.authors (author,title) VALUES ('G.O.','1984')",
-      "DELETE FROM library.books WHERE title='Animal Farm'"
+      "UPDATE library.books SET author = 'G.O.' WHERE title = '1984'",
+      "INSERT INTO library.authors (author, title) VALUES ('G.O.', '1984')",
+      "DELETE FROM library.books WHERE title = 'Animal Farm'"
     };
 
-    assertThat(batchCaptor.getValue()).containsExactly(queries);
+    assertThat(getCapturedBatchQueriesString()).containsExactly(queries);
   }
 
   @ParameterizedTest
@@ -63,11 +64,11 @@ public class MutationFetcherTest extends DmlTestBase {
                 cl));
     assertThat(result.getErrors()).isEmpty();
     String[] queries = {
-      "INSERT INTO library.books (title,author) VALUES ('1984','G.O.')",
-      "INSERT INTO library.authors (author,title) VALUES ('G.O.','1984')"
+      "INSERT INTO library.books (title, author) VALUES ('1984', 'G.O.')",
+      "INSERT INTO library.authors (author, title) VALUES ('G.O.', '1984')"
     };
 
-    assertThat(batchCaptor.getValue()).containsExactly(queries);
+    assertThat(getCapturedBatchQueriesString()).containsExactly(queries);
     assertThat(batchParameters)
         .extracting(p -> p.consistencyLevel())
         .isEqualTo(ConsistencyLevel.valueOf(cl));
@@ -86,7 +87,7 @@ public class MutationFetcherTest extends DmlTestBase {
                     + "}",
                 cl));
     assertThat(result.getErrors()).isEmpty();
-    assertThat(batchCaptor.getValue()).containsExactly(queries);
+    assertThat(getCapturedBatchQueriesString()).containsExactly(queries);
     assertThat(batchParameters)
         .extracting(p -> p.consistencyLevel(), p -> p.serialConsistencyLevel().get())
         .containsExactly(ConsistencyLevel.valueOf(cl), ConsistencyLevel.LOCAL_SERIAL);

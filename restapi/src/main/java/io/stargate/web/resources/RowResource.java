@@ -20,17 +20,18 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.query.ColumnOrder;
-import io.stargate.db.datastore.query.ImmutableColumnOrder;
-import io.stargate.db.datastore.query.ImmutableWhereCondition;
-import io.stargate.db.datastore.query.Value;
-import io.stargate.db.datastore.query.WhereCondition;
-import io.stargate.db.datastore.query.WhereCondition.Predicate;
+import io.stargate.db.query.BoundDMLQuery;
+import io.stargate.db.query.BoundQuery;
+import io.stargate.db.query.BoundSelect;
+import io.stargate.db.query.Predicate;
+import io.stargate.db.query.builder.BuiltCondition;
+import io.stargate.db.query.builder.ColumnOrder;
+import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.Filter;
-import io.stargate.web.models.Filter.Operator;
 import io.stargate.web.models.Query;
 import io.stargate.web.models.RowAdd;
 import io.stargate.web.models.RowResponse;
@@ -128,23 +129,24 @@ public class RowResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          List<WhereCondition<?>> wheres =
-              buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI());
+          BoundQuery query =
+              localDB
+                  .queryBuilder()
+                  .select()
+                  .from(keyspaceName, tableName)
+                  .where(
+                      buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI()))
+                  .build()
+                  .bind();
+
           final ResultSet r =
               db.getAuthorizationService()
                   .authorizedDataRead(
-                      () ->
-                          localDB
-                              .query()
-                              .select()
-                              .from(keyspaceName, tableName)
-                              .where(wheres)
-                              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                              .execute(),
+                      () -> localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
                       token,
                       keyspaceName,
                       tableName,
-                      wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
+                      TypedKeyValue.forSelect((BoundSelect) query));
 
           final List<Map<String, Object>> rows =
               r.rows().stream().map(Converters::row2Map).collect(Collectors.toList());
@@ -202,16 +204,13 @@ public class RowResource {
 
           DataStore localDB = db.getDataStoreForToken(token, pageSize, pageState);
 
+          BoundQuery query =
+              localDB.queryBuilder().select().from(keyspaceName, tableName).build().bind();
+
           final ResultSet r =
               db.getAuthorizationService()
                   .authorizedDataRead(
-                      () ->
-                          localDB
-                              .query()
-                              .select()
-                              .from(keyspaceName, tableName)
-                              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                              .execute(),
+                      () -> localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
                       token,
                       keyspaceName,
                       tableName,
@@ -277,14 +276,12 @@ public class RowResource {
 
           final Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
 
-          List<Column> columns;
+          List<Column> selectedColumns = Collections.emptyList();
           if (queryModel.getColumnNames() != null && queryModel.getColumnNames().size() != 0) {
-            columns =
+            selectedColumns =
                 queryModel.getColumnNames().stream()
                     .map(Column::reference)
                     .collect(Collectors.toList());
-          } else {
-            columns = tableMetadata.columns();
           }
 
           if (queryModel.getFilters() == null || queryModel.getFilters().size() == 0) {
@@ -293,38 +290,17 @@ public class RowResource {
                 .build();
           }
 
-          List<WhereCondition<?>> wheres = new ArrayList<>();
           for (Filter filter : queryModel.getFilters()) {
             if (!validateFilter(filter)) {
               return Response.status(Response.Status.BAD_REQUEST)
                   .entity(new Error("filter requires column name, operator, and value"))
                   .build();
             }
-
-            for (Object obj : filter.getValue()) {
-              Predicate op = getOp(filter.getOperator());
-              if (op == Predicate.In) {
-                wheres.add(
-                    ImmutableWhereCondition.builder()
-                        .value(
-                            filter.getValue().stream()
-                                .map(v -> filterToValue(obj, filter.getColumnName(), tableMetadata))
-                                .collect(Collectors.toList()))
-                        .predicate(op)
-                        .column(tableMetadata.column(filter.getColumnName()))
-                        .build());
-              } else {
-                wheres.add(
-                    ImmutableWhereCondition.builder()
-                        .value(filterToValue(obj, filter.getColumnName(), tableMetadata))
-                        .predicate(op)
-                        .column(tableMetadata.column(filter.getColumnName()))
-                        .build());
-              }
-            }
           }
+          List<BuiltCondition> where =
+              buildWhereFromOperators(tableMetadata, queryModel.getFilters());
 
-          List<ColumnOrder> order = new ArrayList<>();
+          List<ColumnOrder> orderBy = new ArrayList<>();
           if (queryModel.getOrderBy() != null) {
             String name = queryModel.getOrderBy().getColumn();
             String direction = queryModel.getOrderBy().getOrder();
@@ -340,28 +316,28 @@ public class RowResource {
                   .entity(new Error("order must be either 'asc' or 'desc'"))
                   .build();
             }
-
-            Column.Order colOrder = "ASC".equals(direction) ? Column.Order.Asc : Column.Order.Desc;
-            order.add(ImmutableColumnOrder.of(name, colOrder));
+            orderBy.add(ColumnOrder.of(name, Order.valueOf(direction)));
           }
+
+          BoundQuery query =
+              localDB
+                  .queryBuilder()
+                  .select()
+                  .column(selectedColumns)
+                  .from(keyspaceName, tableName)
+                  .where(where)
+                  .orderBy(orderBy)
+                  .build()
+                  .bind();
 
           ResultSet r =
               db.getAuthorizationService()
                   .authorizedDataRead(
-                      () ->
-                          localDB
-                              .query()
-                              .select()
-                              .column(columns)
-                              .from(tableMetadata.keyspace(), tableMetadata.name())
-                              .where(wheres)
-                              .orderBy(order)
-                              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-                              .execute(),
+                      () -> localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
                       token,
                       keyspaceName,
                       tableName,
-                      wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()));
+                      TypedKeyValue.forSelect((BoundSelect) query));
 
           final List<Map<String, Object>> rows =
               r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
@@ -411,7 +387,7 @@ public class RowResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          List<Value<?>> values =
+          List<ValueModifier> values =
               rowAdd.getColumns().stream()
                   .map(
                       (c) ->
@@ -421,18 +397,24 @@ public class RowResource {
                               db.getTable(localDB, keyspaceName, tableName)))
                   .collect(Collectors.toList());
 
+          BoundQuery query =
+              localDB
+                  .queryBuilder()
+                  .insertInto(keyspaceName, tableName)
+                  .value(values)
+                  .build()
+                  .bind();
+
           db.getAuthorizationService()
               .authorizeDataWrite(
                   token,
-                  values.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
+                  keyspaceName,
+                  tableName,
+                  TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.MODIFY);
 
-          localDB
-              .query()
-              .insertInto(keyspaceName, tableName)
-              .value(values)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+          localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
+
           return Response.status(Response.Status.CREATED).entity(new RowsResponse(true, 1)).build();
         });
   }
@@ -473,21 +455,26 @@ public class RowResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          List<WhereCondition<?>> wheres =
-              buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI());
+          BoundQuery query =
+              localDB
+                  .queryBuilder()
+                  .delete()
+                  .from(keyspaceName, tableName)
+                  .where(
+                      buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI()))
+                  .build()
+                  .bind();
+
           db.getAuthorizationService()
               .authorizeDataWrite(
                   token,
-                  wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
+                  keyspaceName,
+                  tableName,
+                  TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.DELETE);
 
-          localDB
-              .query()
-              .delete()
-              .from(keyspaceName, tableName)
-              .where(wheres)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+          localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
+
           return Response.status(Response.Status.NO_CONTENT).entity(new SuccessResponse()).build();
         });
   }
@@ -534,26 +521,30 @@ public class RowResource {
 
           final Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
 
-          List<Value<?>> changes =
+          List<ValueModifier> changes =
               changeSet.getChangeset().stream()
                   .map((c) -> Converters.colToValue(c.getColumn(), c.getValue(), tableMetadata))
                   .collect(Collectors.toList());
 
-          List<WhereCondition<?>> wheres =
-              buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI());
+          BoundQuery query =
+              localDB
+                  .queryBuilder()
+                  .update(keyspaceName, tableName)
+                  .value(changes)
+                  .where(buildWhereClause(request.getRequestURI(), tableMetadata))
+                  .build()
+                  .bind();
+
           db.getAuthorizationService()
               .authorizeDataWrite(
                   token,
-                  wheres.stream().map(TypedKeyValue::new).collect(Collectors.toList()),
+                  keyspaceName,
+                  tableName,
+                  TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.MODIFY);
 
-          localDB
-              .query()
-              .update(keyspaceName, tableName)
-              .value(changes)
-              .where(wheres)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+          localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
+
           return Response.status(Response.Status.OK).entity(new SuccessResponse()).build();
         });
   }
@@ -570,24 +561,42 @@ public class RowResource {
     return true;
   }
 
-  private Predicate getOp(Operator operator) {
+  private List<BuiltCondition> buildWhereFromOperators(Table tableMetadata, List<Filter> filters) {
+    List<BuiltCondition> where = new ArrayList<>();
+    for (Filter filter : filters) {
+      String columnName = filter.getColumnName();
+      Predicate op = getOp(filter.getOperator());
+      List<Object> filterValue = filter.getValue();
+      Object value;
+      if (op == Predicate.IN) {
+        value =
+            filterValue.stream()
+                .map(v -> filterToValue(v, columnName, tableMetadata))
+                .collect(Collectors.toList());
+      } else {
+        value = filterToValue(filterValue.get(0), columnName, tableMetadata);
+      }
+      where.add(BuiltCondition.of(columnName, op, value));
+    }
+    return where;
+  }
+
+  private Predicate getOp(Filter.Operator operator) {
     switch (operator) {
-      case eq:
-        return Predicate.Eq;
       case notEq:
-        return Predicate.Neq;
+        return Predicate.NEQ;
       case gt:
-        return Predicate.Gt;
+        return Predicate.GT;
       case gte:
-        return Predicate.Gte;
+        return Predicate.GTE;
       case lt:
-        return Predicate.Lt;
+        return Predicate.LT;
       case lte:
-        return Predicate.Lte;
+        return Predicate.LTE;
       case in:
-        return Predicate.In;
+        return Predicate.IN;
       default:
-        return Predicate.EntryEq;
+        return Predicate.EQ;
     }
   }
 
@@ -602,12 +611,12 @@ public class RowResource {
     return value;
   }
 
-  private List<WhereCondition<?>> buildWhereClause(
+  private List<BuiltCondition> buildWhereClause(
       DataStore localDB, String keyspaceName, String tableName, String path) {
     return buildWhereClause(path, db.getTable(localDB, keyspaceName, tableName));
   }
 
-  private List<WhereCondition<?>> buildWhereClause(String path, Table tableMetadata) {
+  private List<BuiltCondition> buildWhereClause(String path, Table tableMetadata) {
     List<String> values = idFromPath(path);
 
     final List<Column> keys = tableMetadata.primaryKeyColumns();

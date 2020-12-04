@@ -13,39 +13,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.datastore.query;
+package io.stargate.db.query.builder;
 
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.Order;
 import org.immutables.value.Value;
+import org.immutables.value.Value.Style.ImplementationVisibility;
 
 @Value.Immutable(prehash = true)
+@Value.Style(visibility = ImplementationVisibility.PACKAGE)
 public abstract class ColumnOrder {
 
-  public abstract Column column();
+  public abstract String column();
 
   public abstract Column.Order order();
 
   public static ColumnOrder of(Column column, Column.Order order) {
-    return ImmutableColumnOrder.builder().column(column).order(order).build();
+    return of(column.name(), order);
   }
 
   public static ColumnOrder of(Column column) {
-    return ImmutableColumnOrder.builder().column(column).order(Column.Order.Asc).build();
+    return of(column.name());
   }
 
   public static ColumnOrder of(String column, Column.Order order) {
-    return ImmutableColumnOrder.builder().column(Column.reference(column)).order(order).build();
+    return ImmutableColumnOrder.builder().column(column).order(order).build();
   }
 
   public static ColumnOrder of(String column) {
-    return ImmutableColumnOrder.builder()
-        .column(Column.reference(column))
-        .order(Column.Order.Asc)
-        .build();
+    return of(column, Order.ASC);
   }
 
   @Override
   public String toString() {
-    return column().name() + " " + order();
+    return column() + " " + order();
   }
 }

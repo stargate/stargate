@@ -65,7 +65,7 @@ public class RequestHandler {
                   Response.Status.UNAUTHORIZED.getStatusCode()))
           .build();
     } catch (ExecutionException ee) {
-      if (ee.getCause() instanceof UnauthorizedException) {
+      if (ee.getCause() instanceof org.apache.cassandra.stargate.exceptions.UnauthorizedException) {
         logger.info("Role unauthorized for operation", ee);
         return Response.status(Response.Status.UNAUTHORIZED)
             .entity(

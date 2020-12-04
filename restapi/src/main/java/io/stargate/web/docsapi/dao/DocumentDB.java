@@ -5,11 +5,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.PreparedStatement;
 import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.query.QueryBuilder;
-import io.stargate.db.datastore.query.Where;
+import io.stargate.db.query.BoundQuery;
+import io.stargate.db.query.Predicate;
+import io.stargate.db.query.TypedValue;
+import io.stargate.db.query.builder.BuiltCondition;
+import io.stargate.db.query.builder.QueryBuilder;
+import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
@@ -40,6 +44,9 @@ public class DocumentDB {
   public static final String ROOT_DOC_MARKER = "DOCROOT-a9fb1f04-0394-4c74-b77b-49b4e0ef7900";
   public static final String EMPTY_OBJECT_MARKER = "EMPTYOBJ-bccbeee1-6173-4120-8492-7d7bafaefb1f";
   public static final String EMPTY_ARRAY_MARKER = "EMPTYARRAY-9df4802a-c135-42d6-8be3-d23d9520a4e7";
+
+  private static final String[] VALUE_COLUMN_NAMES =
+      new String[] {"leaf", "text_value", "dbl_value", "bool_value"};
 
   final DataStore dataStore;
 
@@ -104,7 +111,7 @@ public class DocumentDB {
   }
 
   public QueryBuilder builder() {
-    return dataStore.query();
+    return dataStore.queryBuilder();
   }
 
   /**
@@ -132,14 +139,22 @@ public class DocumentDB {
     if (ks.table(tableName) != null) return false;
 
     try {
+      List<Column> columns = new ArrayList<>();
+      columns.add(Column.create("key", Kind.PartitionKey, Type.Text));
+      for (String columnName : allPathColumnNames) {
+        columns.add(Column.create(columnName, Kind.Clustering, Type.Text));
+      }
+      columns.add(Column.create("leaf", Type.Text));
+      columns.add(Column.create("text_value", Type.Text));
+      columns.add(Column.create("dbl_value", Type.Double));
+      columns.add(Column.create("bool_value", Type.Boolean));
       dataStore
-          .query(
-              String.format(
-                  "CREATE TABLE \"%s\".\"%s\" (key text, %s text, leaf text, text_value text, dbl_value double, bool_value boolean, PRIMARY KEY(key, %s))",
-                  keyspaceName,
-                  tableName,
-                  String.join(" text, ", allPathColumnNames),
-                  String.join(", ", allPathColumnNames)))
+          .queryBuilder()
+          .create()
+          .table(keyspaceName, tableName)
+          .column(columns)
+          .build()
+          .execute()
           .get();
       return true;
     } catch (AlreadyExistsException e) {
@@ -192,31 +207,16 @@ public class DocumentDB {
    */
   public void dropTableIndexes(String keyspaceName, String tableName) {
     try {
-      dataStore
-          .query(
-              String.format(
-                  "DROP INDEX IF EXISTS \"%s\".\"%s\"", keyspaceName, tableName + "_leaf_idx"))
-          .get();
-
-      dataStore
-          .query(
-              String.format(
-                  "DROP INDEX IF EXISTS \"%s\".\"%s\"",
-                  keyspaceName, tableName + "_text_value_idx"))
-          .get();
-
-      dataStore
-          .query(
-              String.format(
-                  "DROP INDEX IF EXISTS \"%s\".\"%s\"", keyspaceName, tableName + "_dbl_value_idx"))
-          .get();
-
-      dataStore
-          .query(
-              String.format(
-                  "DROP INDEX IF EXISTS \"%s\".\"%s\"",
-                  keyspaceName, tableName + "_bool_value_idx"))
-          .get();
+      for (String name : VALUE_COLUMN_NAMES) {
+        dataStore
+            .queryBuilder()
+            .drop()
+            .index(keyspaceName, tableName + "_" + name + "_idx")
+            .ifExists()
+            .build()
+            .execute()
+            .get();
+      }
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException("Unable to drop indexes in preparation for upgrade", e);
     }
@@ -224,79 +224,79 @@ public class DocumentDB {
 
   private void createDefaultIndexes(String keyspaceName, String tableName)
       throws InterruptedException, ExecutionException {
-    dataStore
-        .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(leaf)", keyspaceName, tableName))
-        .get();
+    for (String name : VALUE_COLUMN_NAMES) {
+      createDefaultIndex(keyspaceName, tableName, name);
+    }
+  }
 
+  private void createDefaultIndex(String keyspaceName, String tableName, String columnName)
+      throws InterruptedException, ExecutionException {
     dataStore
-        .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(text_value)", keyspaceName, tableName))
-        .get();
-
-    dataStore
-        .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(dbl_value)", keyspaceName, tableName))
-        .get();
-
-    dataStore
-        .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(bool_value)", keyspaceName, tableName))
+        .queryBuilder()
+        .create()
+        .index()
+        .ifNotExists()
+        .on(keyspaceName, tableName)
+        .column(columnName)
+        .build()
+        .execute()
         .get();
   }
 
   private void createSAIIndexes(String keyspaceName, String tableName)
       throws InterruptedException, ExecutionException {
-    dataStore
-        .query(
-            String.format(
-                "CREATE CUSTOM INDEX ON \"%s\".\"%s\"(leaf) USING 'StorageAttachedIndex'",
-                keyspaceName, tableName))
-        .get();
-
-    dataStore
-        .query(
-            String.format(
-                "CREATE CUSTOM INDEX ON \"%s\".\"%s\"(text_value) USING 'StorageAttachedIndex'",
-                keyspaceName, tableName))
-        .get();
-
-    dataStore
-        .query(
-            String.format(
-                "CREATE CUSTOM INDEX ON \"%s\".\"%s\"(dbl_value) USING 'StorageAttachedIndex'",
-                keyspaceName, tableName))
-        .get();
-
-    // SAI doesn't support booleans, so add a non-SAI index here.
-    dataStore
-        .query(String.format("CREATE INDEX ON \"%s\".\"%s\"(bool_value)", keyspaceName, tableName))
-        .get();
+    for (String name : VALUE_COLUMN_NAMES) {
+      if (name.equals("bool_value")) {
+        // SAI doesn't support booleans, so add a non-SAI index here.
+        createDefaultIndex(keyspaceName, tableName, name);
+      } else {
+        dataStore
+            .queryBuilder()
+            .create()
+            .custom("StorageAttachedIndex")
+            .index()
+            .ifNotExists()
+            .on(keyspaceName, tableName)
+            .column(name)
+            .build()
+            .execute()
+            .get();
+      }
+    }
   }
 
   public void deleteTable(String keyspaceName, String tableName)
       throws InterruptedException, ExecutionException {
-    dataStore.query(String.format("DROP TABLE \"%s\".\"%s\"", keyspaceName, tableName)).get();
-  }
-
-  public ResultSet executeSelect(String keyspace, String collection, List<Where<Object>> predicates)
-      throws ExecutionException, InterruptedException {
-    return this.builder()
-        .select()
-        .column(DocumentDB.allColumns())
-        .from(keyspace, collection)
-        .where(predicates)
-        .withWriteTimeColumn("leaf")
-        .execute();
+    dataStore.queryBuilder().drop().table(keyspaceName, tableName).build().execute().get();
   }
 
   public ResultSet executeSelect(
-      String keyspace, String collection, List<Where<Object>> predicates, boolean allowFiltering)
+      String keyspace, String collection, List<BuiltCondition> predicates)
       throws ExecutionException, InterruptedException {
     return this.builder()
         .select()
         .column(DocumentDB.allColumns())
+        .writeTimeColumn("leaf")
+        .from(keyspace, collection)
+        .where(predicates)
+        .build()
+        .execute()
+        .join();
+  }
+
+  public ResultSet executeSelect(
+      String keyspace, String collection, List<BuiltCondition> predicates, boolean allowFiltering)
+      throws ExecutionException, InterruptedException {
+    return this.builder()
+        .select()
+        .column(DocumentDB.allColumns())
+        .writeTimeColumn("leaf")
         .from(keyspace, collection)
         .where(predicates)
         .allowFiltering(allowFiltering)
-        .withWriteTimeColumn("leaf")
-        .execute();
+        .build()
+        .execute()
+        .join();
   }
 
   public ResultSet executeSelectAll(String keyspace, String collection)
@@ -304,52 +304,56 @@ public class DocumentDB {
     return this.builder()
         .select()
         .column(DocumentDB.allColumns())
+        .writeTimeColumn("leaf")
         .from(keyspace, collection)
-        .withWriteTimeColumn("leaf")
-        .execute();
+        .build()
+        .execute()
+        .join();
   }
 
-  private PreparedStatement prepare(String statement) {
-    return dataStore.prepare(statement).join();
-  }
-
-  public PreparedStatement.Bound getInsertStatement(
+  public BoundQuery getInsertStatement(
       String keyspaceName, String tableName, long microsTimestamp, Object[] columnValues) {
-    String statement =
-        String.format(
-            "INSERT INTO \"%s\".\"%s\" (%s) VALUES (:%s) USING TIMESTAMP ?",
-            keyspaceName,
-            tableName,
-            String.join(", ", allColumnNames),
-            String.join(", :", allColumnNames));
 
-    logger.debug(statement);
-    Object[] values = Arrays.copyOf(columnValues, columnValues.length + 1);
-    values[values.length - 1] = microsTimestamp;
-    return prepare(statement).bind(values);
+    List<ValueModifier> modifiers = new ArrayList<>(columnValues.length);
+    for (int i = 0; i < columnValues.length; i++) {
+      modifiers.add(ValueModifier.set(allColumnNames.get(i), columnValues[i]));
+    }
+    BoundQuery query =
+        dataStore
+            .queryBuilder()
+            .insertInto(keyspaceName, tableName)
+            .value(modifiers)
+            .timestamp(microsTimestamp)
+            .build()
+            .bind();
+    logger.debug(query.toString());
+    return query;
   }
 
   /** Deletes from @param tableName all rows that are prefixed by @param pathPrefixToDelete */
-  public PreparedStatement.Bound getPrefixDeleteStatement(
+  public BoundQuery getPrefixDeleteStatement(
       String keyspaceName,
       String tableName,
       String key,
       long microsTimestamp,
       List<String> pathPrefixToDelete) {
-    Object[] values = new Object[2 + pathPrefixToDelete.size()];
-    values[0] = microsTimestamp;
-    values[1] = key;
-    StringBuilder pathClause = new StringBuilder();
+
+    List<BuiltCondition> where = new ArrayList<>(1 + pathPrefixToDelete.size());
+    where.add(BuiltCondition.of("key", Predicate.EQ, key));
     for (int i = 0; i < pathPrefixToDelete.size(); i++) {
-      pathClause.append(" AND p").append(i).append(" = :p").append(i);
-      values[2 + i] = pathPrefixToDelete.get(i);
+      where.add(BuiltCondition.of("p" + i, Predicate.EQ, pathPrefixToDelete.get(i)));
     }
-    String statement =
-        String.format(
-            "DELETE FROM \"%s\".\"%s\" USING TIMESTAMP ? WHERE key = :key%s",
-            keyspaceName, tableName, pathClause.toString());
-    logger.debug(statement);
-    return prepare(statement).bind(values);
+    BoundQuery query =
+        dataStore
+            .queryBuilder()
+            .delete()
+            .from(keyspaceName, tableName)
+            .timestamp(microsTimestamp)
+            .where(where)
+            .build()
+            .bind();
+    logger.debug(query.toString());
+    return query;
   }
 
   /**
@@ -357,115 +361,97 @@ public class DocumentDB {
    * pathToDelete, and also deletes all rows that match the @param patchedKeys at path @param
    * pathToDelete.
    */
-  public PreparedStatement.Bound getSubpathArrayDeleteStatement(
+  public BoundQuery getSubpathArrayDeleteStatement(
       String keyspaceName,
       String tableName,
       String key,
       long microsTimestamp,
       List<String> pathToDelete) {
-    Object[] values = new Object[2 + pathToDelete.size()];
-    values[0] = microsTimestamp;
-    values[1] = key;
 
-    StringBuilder pathClause = new StringBuilder();
-    for (int i = 0; i < pathToDelete.size(); i++) {
-      pathClause.append(" AND p").append(i).append(" = :p").append(i);
-      values[2 + i] = pathToDelete.get(i);
+    int pathSize = pathToDelete.size();
+    List<BuiltCondition> where = new ArrayList<>(3 + pathSize);
+    where.add(BuiltCondition.of("key", Predicate.EQ, key));
+    for (int i = 0; i < pathSize; i++) {
+      where.add(BuiltCondition.of("p" + i, Predicate.EQ, pathToDelete.get(i)));
     }
-
     // Delete array paths with a range tombstone
-    pathClause
-        .append(" AND p")
-        .append(pathToDelete.size())
-        .append(" >= '[000000]' AND p")
-        .append(pathToDelete.size())
-        .append(" <= '[999999]'");
-
-    String statement =
-        String.format(
-            "DELETE FROM \"%s\".\"%s\" USING TIMESTAMP ? WHERE key = :key%s ",
-            keyspaceName, tableName, pathClause.toString());
-
-    logger.debug(statement);
-    return prepare(statement).bind(values);
+    where.add(BuiltCondition.of("p" + pathSize, Predicate.GTE, "[000000]"));
+    where.add(BuiltCondition.of("p" + pathSize, Predicate.LTE, "[999999]"));
+    BoundQuery query =
+        dataStore
+            .queryBuilder()
+            .delete()
+            .from(keyspaceName, tableName)
+            .timestamp(microsTimestamp)
+            .where(where)
+            .build()
+            .bind();
+    logger.debug(query.toString());
+    return query;
   }
 
   /**
    * Prepares a delete from @param tableName with all rows that match the @param keysToDelete at
    * path @param pathToDelete.
    */
-  public PreparedStatement.Bound getPathKeysDeleteStatement(
+  public BoundQuery getPathKeysDeleteStatement(
       String keyspaceName,
       String tableName,
       String key,
       long microsTimestamp,
       List<String> pathToDelete,
       List<String> keysToDelete) {
-    Object[] values = new Object[2 + pathToDelete.size() + keysToDelete.size()];
-    int idx = 0;
-    values[idx++] = microsTimestamp;
-    values[idx++] = key;
 
-    StringBuilder pathClause = new StringBuilder();
-    for (int i = 0; i < pathToDelete.size(); i++) {
-      pathClause.append(" AND p").append(i).append(" = :p").append(i);
-      values[idx++] = pathToDelete.get(i);
+    int pathSize = pathToDelete.size();
+    List<BuiltCondition> where = new ArrayList<>(3 + pathSize);
+    where.add(BuiltCondition.of("key", Predicate.EQ, key));
+    for (int i = 0; i < pathSize; i++) {
+      where.add(BuiltCondition.of("p" + i, Predicate.EQ, pathToDelete.get(i)));
     }
-
-    if (pathToDelete.size() < MAX_DEPTH && !keysToDelete.isEmpty()) {
-      pathClause.append(" AND p").append(pathToDelete.size()).append(" IN (");
-      for (int j = 0; j < keysToDelete.size(); j++) {
-        pathClause.append(":p" + (pathToDelete.size() + j));
-        values[idx++] = keysToDelete.get(j);
-        if (j != keysToDelete.size() - 1) {
-          pathClause.append(",");
-        }
-      }
+    if (pathSize < MAX_DEPTH && !keysToDelete.isEmpty()) {
+      where.add(BuiltCondition.of("p" + pathSize, Predicate.IN, keysToDelete));
     }
-
-    pathClause.append(")");
-
-    String statement =
-        String.format(
-            "DELETE FROM \"%s\".\"%s\" USING TIMESTAMP ? WHERE key = :key%s ",
-            keyspaceName, tableName, pathClause.toString());
-
-    // We might not have filled the whole values array pathToDelete >= MAX_DEPTH.
-    if (idx < values.length) {
-      values = Arrays.copyOf(values, idx);
-    }
-    logger.debug(statement);
-    return prepare(statement).bind(values);
+    BoundQuery query =
+        dataStore
+            .queryBuilder()
+            .delete()
+            .from(keyspaceName, tableName)
+            .timestamp(microsTimestamp)
+            .where(where)
+            .build()
+            .bind();
+    logger.debug(query.toString());
+    return query;
   }
 
   /** Deletes from @param tableName all rows that match @param pathToDelete exactly. */
-  public PreparedStatement.Bound getExactPathDeleteStatement(
+  public BoundQuery getExactPathDeleteStatement(
       String keyspaceName,
       String tableName,
       String key,
       long microsTimestamp,
       List<String> pathToDelete) {
-    Object[] values = new Object[2 + pathToDelete.size()];
-    values[0] = microsTimestamp;
-    values[1] = key;
-    StringBuilder pathClause = new StringBuilder();
-    int i = 0;
-    for (; i < pathToDelete.size(); i++) {
-      pathClause.append(" AND p").append(i).append(" = :p").append(i);
-      values[2 + i] = pathToDelete.get(i);
+
+    int pathSize = pathToDelete.size();
+    List<BuiltCondition> where = new ArrayList<>(1 + MAX_DEPTH);
+    where.add(BuiltCondition.of("key", Predicate.EQ, key));
+    for (int i = 0; i < pathSize; i++) {
+      where.add(BuiltCondition.of("p" + i, Predicate.EQ, pathToDelete.get(i)));
     }
-
-    for (; i < MAX_DEPTH; i++) {
-      pathClause.append(" AND p").append(i).append(" = ''");
+    for (int i = pathSize; i < MAX_DEPTH; i++) {
+      where.add(BuiltCondition.of("p" + i, Predicate.EQ, ""));
     }
-
-    String statement =
-        String.format(
-            "DELETE FROM \"%s\".\"%s\" USING TIMESTAMP ?  WHERE key = :key%s",
-            keyspaceName, tableName, pathClause.toString());
-
-    logger.debug(statement);
-    return prepare(statement).bind(values);
+    BoundQuery query =
+        dataStore
+            .queryBuilder()
+            .delete()
+            .from(keyspaceName, tableName)
+            .timestamp(microsTimestamp)
+            .where(where)
+            .build()
+            .bind();
+    logger.debug(query.toString());
+    return query;
   }
 
   /**
@@ -480,15 +466,14 @@ public class DocumentDB {
       List<String> pathToDelete,
       long microsSinceEpoch) {
 
-    List<PreparedStatement.Bound> statements = new ArrayList<>(1 + vars.size());
-    statements.add(
-        getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch - 1, pathToDelete));
+    List<BoundQuery> queries = new ArrayList<>(1 + vars.size());
+    queries.add(getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch - 1, pathToDelete));
 
     for (Object[] values : vars) {
-      statements.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
+      queries.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
     }
 
-    dataStore.batch(statements, ConsistencyLevel.LOCAL_QUORUM).join();
+    dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
   }
 
   /**
@@ -508,19 +493,19 @@ public class DocumentDB {
     long insertTs = microsSinceEpoch;
     long deleteTs = microsSinceEpoch - 1;
 
-    List<PreparedStatement.Bound> statements = new ArrayList<>(vars.size() + 3);
+    List<BoundQuery> queries = new ArrayList<>(vars.size() + 3);
     for (Object[] values : vars) {
-      statements.add(getInsertStatement(keyspace, table, insertTs, values));
+      queries.add(getInsertStatement(keyspace, table, insertTs, values));
     }
 
     if (hasPath) {
       // Only deleting the root path when there is a defined `pathToDelete` ensures that the DOCROOT
       // entry is never deleted out.
-      statements.add(getExactPathDeleteStatement(keyspace, table, key, deleteTs, pathToDelete));
+      queries.add(getExactPathDeleteStatement(keyspace, table, key, deleteTs, pathToDelete));
     }
 
-    statements.add(getSubpathArrayDeleteStatement(keyspace, table, key, deleteTs, pathToDelete));
-    statements.add(
+    queries.add(getSubpathArrayDeleteStatement(keyspace, table, key, deleteTs, pathToDelete));
+    queries.add(
         getPathKeysDeleteStatement(keyspace, table, key, deleteTs, pathToDelete, patchedKeys));
 
     Object[] deleteVarsWithPathKeys = new Object[pathToDelete.size() + patchedKeys.size() + 2];
@@ -533,14 +518,16 @@ public class DocumentDB {
       deleteVarsWithPathKeys[i + 2 + pathToDelete.size()] = patchedKeys.get(i);
     }
 
-    dataStore.batch(statements, ConsistencyLevel.LOCAL_QUORUM).join();
+    dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
   }
 
   public void delete(
       String keyspace, String table, String key, List<String> pathToDelete, long microsSinceEpoch) {
 
-    getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch, pathToDelete)
-        .execute(ConsistencyLevel.LOCAL_QUORUM)
+    dataStore
+        .execute(
+            getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch, pathToDelete),
+            ConsistencyLevel.LOCAL_QUORUM)
         .join();
   }
 
@@ -558,7 +545,7 @@ public class DocumentDB {
       long microsTimestamp,
       Map<String, List<JsonNode>> deadLeaves) {
 
-    List<PreparedStatement.Bound> statements = new ArrayList<>();
+    List<BoundQuery> queries = new ArrayList<>();
     for (Map.Entry<String, List<JsonNode>> entry : deadLeaves.entrySet()) {
       String path = entry.getKey();
       List<JsonNode> deadNodes = entry.getValue();
@@ -579,7 +566,7 @@ public class DocumentDB {
       }
 
       if (!keysToDelete.isEmpty()) {
-        statements.add(
+        queries.add(
             getPathKeysDeleteStatement(
                 keyspaceName,
                 tableName,
@@ -590,20 +577,20 @@ public class DocumentDB {
       }
 
       if (deleteArray) {
-        statements.add(
+        queries.add(
             getSubpathArrayDeleteStatement(
                 keyspaceName, tableName, key, microsTimestamp, Arrays.asList(pathToDelete)));
       }
     }
 
     // Fire this off in a future
-    dataStore.batch(statements, ConsistencyLevel.LOCAL_QUORUM);
+    dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM);
   }
 
   public Map<String, Object> newBindMap(List<String> path) {
     Map<String, Object> bindMap = new LinkedHashMap<>(MAX_DEPTH + 7);
 
-    bindMap.put("key", DataStore.UNSET);
+    bindMap.put("key", TypedValue.UNSET);
 
     for (int i = 0; i < MAX_DEPTH; i++) {
       String value = "";
@@ -613,10 +600,10 @@ public class DocumentDB {
       bindMap.put("p" + i, value);
     }
 
-    bindMap.put("leaf", DataStore.UNSET);
-    bindMap.put("text_value", DataStore.UNSET);
-    bindMap.put("dbl_value", DataStore.UNSET);
-    bindMap.put("bool_value", DataStore.UNSET);
+    bindMap.put("leaf", TypedValue.UNSET);
+    bindMap.put("text_value", TypedValue.UNSET);
+    bindMap.put("dbl_value", TypedValue.UNSET);
+    bindMap.put("bool_value", TypedValue.UNSET);
 
     return bindMap;
   }

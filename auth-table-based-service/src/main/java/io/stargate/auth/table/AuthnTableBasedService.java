@@ -24,7 +24,10 @@ import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
-import io.stargate.db.datastore.query.WhereCondition;
+import io.stargate.db.query.Predicate;
+import io.stargate.db.query.builder.Replication;
+import io.stargate.db.schema.Column.Kind;
+import io.stargate.db.schema.Column.Type;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -66,18 +69,25 @@ public class AuthnTableBasedService implements AuthenticationService {
           "Initializing keyspace {} and table {} for table based auth", AUTH_KEYSPACE, AUTH_TABLE);
 
       dataStore
-          .query(
-              String.format(
-                  "CREATE KEYSPACE IF NOT EXISTS %s WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor':1}",
-                  AUTH_KEYSPACE),
-              ConsistencyLevel.LOCAL_QUORUM)
+          .queryBuilder()
+          .create()
+          .keyspace(AUTH_KEYSPACE)
+          .ifNotExists()
+          .withReplication(Replication.simpleStrategy(1))
+          .build()
+          .execute(ConsistencyLevel.LOCAL_QUORUM)
           .get();
+
       dataStore
-          .query(
-              String.format(
-                  "CREATE TABLE IF NOT EXISTS %s.\"%s\" (auth_token UUID, username text, created_timestamp int, PRIMARY KEY (auth_token))",
-                  AUTH_KEYSPACE, AUTH_TABLE),
-              ConsistencyLevel.LOCAL_QUORUM)
+          .queryBuilder()
+          .create()
+          .table(AUTH_KEYSPACE, AUTH_TABLE)
+          .ifNotExists()
+          .column("auth_token", Type.Uuid, Kind.PartitionKey)
+          .column("username", Type.Text)
+          .column("created_timestamp", Type.Int)
+          .build()
+          .execute(ConsistencyLevel.LOCAL_QUORUM)
           .get();
     } catch (Exception e) {
       logger.error("Failed to initialize auth table", e);
@@ -131,14 +141,16 @@ public class AuthnTableBasedService implements AuthenticationService {
       Instant instant = Instant.now();
 
       dataStore
-          .query()
+          .queryBuilder()
           .insertInto(AUTH_KEYSPACE, AUTH_TABLE)
           .value("username", key)
           .value("auth_token", token)
           .value("created_timestamp", Math.toIntExact(instant.getEpochSecond()))
           .ttl(tokenTTL)
-          .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-          .execute();
+          .build()
+          .execute(ConsistencyLevel.LOCAL_QUORUM)
+          .get();
+
     } catch (Exception e) {
       logger.error("Failed to add new token", e);
       throw new RuntimeException(e);
@@ -148,12 +160,14 @@ public class AuthnTableBasedService implements AuthenticationService {
   private String queryUsername(String key) throws ExecutionException, InterruptedException {
     ResultSet resultSet =
         dataStore
-            .query()
+            .queryBuilder()
             .select()
             .column("role")
             .from("system_auth", "roles")
-            .where("role", WhereCondition.Predicate.Eq, key)
-            .execute();
+            .where("role", Predicate.EQ, key)
+            .build()
+            .execute()
+            .get();
 
     if (resultSet.hasNoMoreFetchedRows()) {
       throw new RuntimeException(String.format("Provided username %s is incorrect", key));
@@ -170,12 +184,14 @@ public class AuthnTableBasedService implements AuthenticationService {
   private String queryHashedPassword(String key) throws ExecutionException, InterruptedException {
     ResultSet resultSet =
         dataStore
-            .query()
+            .queryBuilder()
             .select()
             .column("salted_hash")
             .from("system_auth", "roles")
-            .where("role", WhereCondition.Predicate.Eq, key)
-            .execute();
+            .where("role", Predicate.EQ, key)
+            .build()
+            .execute()
+            .get();
 
     if (resultSet.hasNoMoreFetchedRows()) {
       throw new RuntimeException(
@@ -219,12 +235,14 @@ public class AuthnTableBasedService implements AuthenticationService {
     try {
       ResultSet resultSet =
           dataStore
-              .query()
+              .queryBuilder()
               .select()
               .star()
               .from(AUTH_KEYSPACE, AUTH_TABLE)
-              .where("auth_token", WhereCondition.Predicate.Eq, uuid)
-              .execute();
+              .where("auth_token", Predicate.EQ, uuid)
+              .build()
+              .execute()
+              .get();
 
       if (resultSet.hasNoMoreFetchedRows()) {
         throw new UnauthorizedException("authorization failed");
@@ -242,14 +260,15 @@ public class AuthnTableBasedService implements AuthenticationService {
 
       final ResultSet r =
           dataStore
-              .query()
+              .queryBuilder()
               .update(AUTH_KEYSPACE, AUTH_TABLE)
               .ttl(tokenTTL)
               .value("username", username)
               .value("created_timestamp", timestamp)
-              .where("auth_token", WhereCondition.Predicate.Eq, UUID.fromString(token))
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+              .where("auth_token", Predicate.EQ, UUID.fromString(token))
+              .build()
+              .execute(ConsistencyLevel.LOCAL_QUORUM)
+              .get();
     } catch (UnauthorizedException uae) {
       throw uae;
     } catch (InterruptedException | ExecutionException e) {

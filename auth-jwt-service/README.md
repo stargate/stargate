@@ -71,6 +71,8 @@ CREATE TABLE IF NOT EXISTS store.shopping_cart (userid text PRIMARY KEY, item_co
 
 INSERT INTO store.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('9876', 2, toTimeStamp(toDate(now())));
 INSERT INTO store.shopping_cart (userid, item_count, last_update_timestamp) VALUES ('1234', 5, toTimeStamp(toDate(now())));
+GRANT MODIFY ON TABLE store.shopping_cart TO web_user ;
+GRANT SELECT ON TABLE store.shopping_cart TO web_user;
 ```
 
 Finally, issue a few curl commands to make sure everything is working as expected.

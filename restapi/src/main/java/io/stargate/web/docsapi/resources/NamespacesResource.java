@@ -18,6 +18,7 @@ package io.stargate.web.docsapi.resources;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.query.builder.Replication;
 import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.Keyspace;
@@ -32,7 +33,7 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -193,37 +194,32 @@ public class NamespacesResource {
           Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
 
           String keyspaceName = (String) requestBody.get("name");
-          String replication = "";
+          Replication replication;
           if (requestBody.containsKey("datacenters")) {
-            replication = "{ 'class' : 'NetworkTopologyStrategy',%s }";
-
-            ArrayList datacenters = (ArrayList) requestBody.get("datacenters");
-            StringBuilder dcs = new StringBuilder();
+            ArrayList<?> datacenters = (ArrayList<?>) requestBody.get("datacenters");
+            Map<String, Integer> dcReplications = new HashMap<>();
             for (Object dc : datacenters) {
-              String dcName = (String) ((LinkedHashMap) dc).get("name");
+              String dcName = (String) ((Map<?, ?>) dc).get("name");
               Integer replicas =
-                  ((LinkedHashMap) dc).containsKey("replicas")
-                      ? (Integer) ((LinkedHashMap) dc).get("replicas")
+                  ((Map<?, ?>) dc).containsKey("replicas")
+                      ? (Integer) ((Map<?, ?>) dc).get("replicas")
                       : 3;
-
-              dcs.append(" ").append("'").append(dcName).append("': ").append(replicas).append(",");
+              dcReplications.put(dcName, replicas);
             }
-            dcs.deleteCharAt(dcs.length() - 1);
-            replication = String.format(replication, dcs.toString());
+            replication = Replication.networkTopologyStrategy(dcReplications);
           } else {
-            replication =
-                String.format(
-                    "{ 'class' : 'SimpleStrategy', 'replication_factor' : %s }",
-                    requestBody.getOrDefault("replicas", 1));
+            replication = Replication.simpleStrategy((int) requestBody.getOrDefault("replicas", 1));
           }
 
           localDB
-              .query()
+              .queryBuilder()
               .create()
               .keyspace(keyspaceName)
               .ifNotExists()
               .withReplication(replication)
-              .execute();
+              .build()
+              .execute()
+              .join();
 
           return Response.status(Response.Status.CREATED)
               .entity(Converters.writeResponse(Collections.singletonMap("name", keyspaceName)))
@@ -256,11 +252,12 @@ public class NamespacesResource {
           DataStore localDB = db.getDataStoreForToken(token);
 
           localDB
-              .query()
+              .queryBuilder()
               .drop()
               .keyspace(namespaceName)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+              .build()
+              .execute(ConsistencyLevel.LOCAL_QUORUM)
+              .join();
 
           return Response.status(Response.Status.NO_CONTENT).build();
         });

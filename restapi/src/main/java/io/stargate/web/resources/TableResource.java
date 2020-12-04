@@ -21,6 +21,9 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Kind;
+import io.stargate.db.schema.Column.Order;
+import io.stargate.db.schema.Column.Type;
+import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.ClusteringExpression;
 import io.stargate.web.models.ColumnDefinition;
@@ -35,6 +38,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -139,75 +143,71 @@ public class TableResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+          Keyspace keyspace = localDB.schema().keyspace(keyspaceName);
+          if (keyspace == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        "keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
 
-          if (tableAdd.getName() == null || tableAdd.getName().equals("")) {
+          String tableName = tableAdd.getName();
+          if (tableName == null || tableName.equals("")) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(new Error("table name must be provided"))
                 .build();
           }
 
-          if (tableAdd.getPrimaryKey() == null) {
+          PrimaryKey primaryKey = tableAdd.getPrimaryKey();
+          if (primaryKey == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(new Error("primary key must be provided"))
                 .build();
           }
 
-          String createStmt = "CREATE TABLE";
-          if (tableAdd.getIfNotExists()) {
-            createStmt += " IF NOT EXISTS";
-          }
-
-          StringBuilder columnDefinitions = new StringBuilder("(");
+          List<Column> columns = new ArrayList<>();
+          TableOptions options = tableAdd.getTableOptions();
           for (ColumnDefinition colDef : tableAdd.getColumnDefinitions()) {
-            if (colDef.getName() == null || colDef.getName().equals("")) {
+            String columnName = colDef.getName();
+            if (columnName == null || columnName.equals("")) {
               return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(new Error("column name must be provided"))
+                  .entity(
+                      new Error(
+                          "column name must be provided",
+                          Response.Status.BAD_REQUEST.getStatusCode()))
                   .build();
             }
-            columnDefinitions
-                .append(Converters.maybeQuote(colDef.getName()))
-                .append(" ")
-                .append(colDef.getTypeDefinition());
-            if (colDef.getIsStatic()) {
-              columnDefinitions.append(" STATIC");
+
+            Kind kind = Converters.getColumnKind(colDef, primaryKey);
+            ColumnType type = Type.fromCqlDefinitionOf(keyspace, colDef.getTypeDefinition());
+            Order order;
+            try {
+              order = kind == Kind.Clustering ? Converters.getColumnOrder(colDef, options) : null;
+            } catch (Exception e) {
+              return Response.status(Response.Status.BAD_REQUEST)
+                  .entity(
+                      new Error(
+                          "Unable to create table options " + e.getMessage(),
+                          Response.Status.BAD_REQUEST.getStatusCode()))
+                  .build();
             }
-
-            columnDefinitions.append(", ");
+            columns.add(Column.create(columnName, kind, type, order));
           }
 
-          String primaryKey =
-              "(" + String.join(", ", tableAdd.getPrimaryKey().getPartitionKey()) + ")";
-          if (tableAdd.getPrimaryKey().getClusteringKey().size() > 0) {
-            String clusteringKey = String.join(", ", tableAdd.getPrimaryKey().getClusteringKey());
-            primaryKey = "(" + primaryKey + ", " + clusteringKey + ")";
-          }
-
-          columnDefinitions.append("PRIMARY KEY ").append(primaryKey).append(")");
-
-          String tableOptions;
-          try {
-            tableOptions = Converters.getTableOptions(tableAdd);
-          } catch (Exception e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                .entity(
-                    new Error(
-                        "Unable to create table options " + e.getMessage(),
-                        Response.Status.BAD_REQUEST.getStatusCode()))
-                .build();
-          }
-
-          String query =
-              String.format(
-                  "%s %s.%s %s %s",
-                  createStmt,
-                  Converters.maybeQuote(keyspaceName),
-                  Converters.maybeQuote(tableAdd.getName()),
-                  columnDefinitions.toString(),
-                  tableOptions);
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableAdd.getName(), Scope.CREATE);
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.CREATE);
 
-          localDB.query(query.trim(), ConsistencyLevel.LOCAL_QUORUM).get();
+          localDB
+              .queryBuilder()
+              .create()
+              .table(keyspaceName, tableName)
+              .ifNotExists(tableAdd.getIfNotExists())
+              .column(columns)
+              .withDefaultTTL(options.getDefaultTimeToLive())
+              .build()
+              .execute(ConsistencyLevel.LOCAL_QUORUM)
+              .get();
           return Response.status(Response.Status.CREATED).entity(new SuccessResponse()).build();
         });
   }
@@ -331,11 +331,13 @@ public class TableResource {
               .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.DROP);
 
           localDB
-              .query()
+              .queryBuilder()
               .drop()
               .table(keyspaceName, tableName)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+              .build()
+              .execute(ConsistencyLevel.LOCAL_QUORUM)
+              .get();
+
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }

@@ -74,7 +74,8 @@ public class AuthzTableBasedService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizeDataWrite(String token, List<TypedKeyValue> typedKeyValues, Scope scope)
+  public void authorizeDataWrite(
+      String token, String keyspace, String table, List<TypedKeyValue> typedKeyValues, Scope scope)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
