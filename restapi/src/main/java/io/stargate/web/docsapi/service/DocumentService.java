@@ -466,7 +466,7 @@ public class DocumentService {
       return null;
     }
     ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result =
-      convertToJsonDoc(rows, false, db.treatBooleansAsNumeric());
+        convertToJsonDoc(rows, false, db.treatBooleansAsNumeric());
     if (!result.right.isEmpty()) {
       logger.info(String.format("Deleting %d dead leaves", result.right.size()));
       db.deleteDeadLeaves(keyspace, collection, id, result.right);
