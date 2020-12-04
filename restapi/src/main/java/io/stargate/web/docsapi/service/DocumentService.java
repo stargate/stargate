@@ -240,7 +240,7 @@ public class DocumentService {
                     bindMap.put("text_value", null);
                   } else if (value.isBoolean()) {
                     bindMap.put("dbl_value", null);
-                    bindMap.put("bool_value", value.getAsBoolean());
+                    bindMap.put("bool_value", convertToBackendBooleanValue(value.getAsBoolean()));
                     bindMap.put("text_value", null);
                   } else {
                     bindMap.put("dbl_value", null);
@@ -268,6 +268,13 @@ public class DocumentService {
         .withErrorStrategy(new DocumentAPIErrorHandlingStrategy())
         .buildAndSurf(jsonPayload);
     return ImmutablePair.of(bindVariableList, firstLevelKeys);
+  }
+
+  private Object convertToBackendBooleanValue(boolean value) {
+    if (DocumentDB.USE_CNDB) {
+      return value ? 1 : 0;
+    }
+    return value;
   }
 
   private ImmutablePair<List<Object[]>, List<String>> shredForm(
@@ -346,7 +353,7 @@ public class DocumentService {
         bindMap.put("text_value", null);
       } else if (value.equals("true") || value.equals("false")) {
         bindMap.put("dbl_value", null);
-        bindMap.put("bool_value", Boolean.parseBoolean(value));
+        bindMap.put("bool_value", convertToBackendBooleanValue(Boolean.parseBoolean(value)));
         bindMap.put("text_value", null);
       } else {
         boolean isNumber;
@@ -1178,9 +1185,17 @@ public class DocumentService {
         .collect(Collectors.toList());
   }
 
+  private Boolean getBooleanFromRow(Row row, String colName) {
+    if (DocumentDB.USE_CNDB) {
+      byte value = row.getByte(colName);
+      return value != 0;
+    }
+    return row.getBoolean(colName);
+  }
+
   private boolean allFiltersMatch(Row row, List<FilterCondition> filters) {
     String textValue = row.isNull("text_value") ? null : row.getString("text_value");
-    Boolean boolValue = row.isNull("bool_value") ? null : row.getBoolean("bool_value");
+    Boolean boolValue = row.isNull("bool_value") ? null : getBooleanFromRow(row, "bool_value");
     Double dblValue = row.isNull("dbl_value") ? null : row.getDouble("dbl_value");
     for (FilterCondition fc : filters) {
       if (fc.getFilterOp() == FilterOp.EXISTS) {
@@ -1541,7 +1556,7 @@ public class DocumentService {
         n = new TextNode(value);
       }
     } else if (!row.isNull("bool_value")) {
-      n = BooleanNode.valueOf(row.getBoolean("bool_value"));
+      n = BooleanNode.valueOf(getBooleanFromRow(row, "bool_value"));
     } else if (!row.isNull("dbl_value")) {
       // If not a fraction represent as a long to the user
       // This lets us handle queries of doubles and longs without

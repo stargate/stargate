@@ -42,6 +42,7 @@ public class DocumentDB {
   private static final List<String> allPathColumnNames;
   private static final List<Column.ColumnType> allPathColumnTypes;
   public static final Integer MAX_DEPTH = Integer.getInteger("stargate.document_max_depth", 64);
+  public static final Boolean USE_CNDB = Boolean.getBoolean("stargate.use_cndb");
 
   // All array elements will be represented as 6 digits, so they get left-padded, such as [000010]
   // instead of [10]
@@ -168,7 +169,11 @@ public class DocumentDB {
       columns.add(Column.create("leaf", Type.Text));
       columns.add(Column.create("text_value", Type.Text));
       columns.add(Column.create("dbl_value", Type.Double));
-      columns.add(Column.create("bool_value", Type.Boolean));
+      if (USE_CNDB) {
+        columns.add(Column.create("bool_value", Type.Tinyint));
+      } else {
+        columns.add(Column.create("bool_value", Type.Boolean));
+      }
       dataStore
           .queryBuilder()
           .create()
@@ -267,8 +272,9 @@ public class DocumentDB {
   private void createSAIIndexes(String keyspaceName, String tableName)
       throws InterruptedException, ExecutionException {
     for (String name : VALUE_COLUMN_NAMES) {
-      if (name.equals("bool_value")) {
+      if (name.equals("bool_value") && !USE_CNDB) {
         // SAI doesn't support booleans, so add a non-SAI index here.
+        // But CNDB uses tinyint for its boolean value column, so it can use SAI, below.
         createDefaultIndex(keyspaceName, tableName, name);
       } else {
         dataStore
