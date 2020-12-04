@@ -789,7 +789,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     Map<String, String> row = new HashMap<>();
     row.put("name", "alice");
-    row.put("email", "[foo@example.com,bar@example.com]");
+    row.put("email", "['foo@example.com','bar@example.com']");
 
     RestUtils.post(
         authToken,

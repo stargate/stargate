@@ -105,8 +105,8 @@ public class WhereParser {
           }
           Column.ColumnType keyType = mapType.parameters().get(0);
           Column.ColumnType valueType = mapType.parameters().get(1);
-          Object mapKey = Converters.typeForValue(keyType, entryKey.asText());
-          Object mapValue = Converters.typeForValue(valueType, entryValue.asText());
+          Object mapKey = Converters.toCqlValue(keyType, entryKey.asText());
+          Object mapValue = Converters.toCqlValue(valueType, entryValue.asText());
           conditions.add(
               BuiltCondition.of(
                   LHS.mapAccess(fieldName.toLowerCase(), mapKey), op.predicate, mapValue));
@@ -153,7 +153,7 @@ public class WhereParser {
               } else {
                 valueType = columnType;
               }
-              val = Converters.typeForValue(valueType, value.asText());
+              val = Converters.toCqlValue(valueType, value.asText());
             }
             conditions.add(conditionToWhere(fieldName, op, val));
           }

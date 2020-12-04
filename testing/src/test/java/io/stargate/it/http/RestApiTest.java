@@ -689,7 +689,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     ColumnModel emailColumn = new ColumnModel();
     emailColumn.setName("email");
-    emailColumn.setValue("[foo@example.com,bar@example.com]");
+    emailColumn.setValue("['foo@example.com','bar@example.com']");
     columns.add(emailColumn);
 
     rowAdd.setColumns(columns);

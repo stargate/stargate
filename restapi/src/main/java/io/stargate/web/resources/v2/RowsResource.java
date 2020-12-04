@@ -295,13 +295,14 @@ public class RowsResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          Map<String, String> requestBody = mapper.readValue(payload, Map.class);
+          @SuppressWarnings("unchecked")
+          Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
 
           Table table = db.getTable(localDB, keyspaceName, tableName);
 
           List<ValueModifier> values =
               requestBody.entrySet().stream()
-                  .map((e) -> Converters.colToValue(e, table))
+                  .map(e -> Converters.colToValue(e.getKey(), e.getValue(), table))
                   .collect(Collectors.toList());
 
           BoundQuery query =
@@ -505,10 +506,11 @@ public class RowsResource {
           .build();
     }
 
-    Map<String, String> requestBody = mapper.readValue(payload, Map.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
     List<ValueModifier> changes =
         requestBody.entrySet().stream()
-            .map((e) -> Converters.colToValue(e, tableMetadata))
+            .map(e -> Converters.colToValue(e.getKey(), e.getValue(), tableMetadata))
             .collect(Collectors.toList());
 
     BoundQuery query =
