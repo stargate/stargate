@@ -105,6 +105,10 @@ public class DocumentDB {
     return authToken;
   }
 
+  public boolean treatBooleansAsNumeric() {
+    return !dataStore.supportsSecondaryIndex();
+  }
+
   public static List<String> getForbiddenCharactersMessage() {
     return forbiddenCharacters.stream()
         .map(ch -> (new StringBuilder().append("`").append(ch).append("`").toString()))
@@ -168,7 +172,11 @@ public class DocumentDB {
       columns.add(Column.create("leaf", Type.Text));
       columns.add(Column.create("text_value", Type.Text));
       columns.add(Column.create("dbl_value", Type.Double));
-      columns.add(Column.create("bool_value", Type.Boolean));
+      if (treatBooleansAsNumeric()) {
+        columns.add(Column.create("bool_value", Type.Tinyint));
+      } else {
+        columns.add(Column.create("bool_value", Type.Boolean));
+      }
       dataStore
           .queryBuilder()
           .create()
@@ -267,10 +275,12 @@ public class DocumentDB {
   private void createSAIIndexes(String keyspaceName, String tableName)
       throws InterruptedException, ExecutionException {
     for (String name : VALUE_COLUMN_NAMES) {
-      if (name.equals("bool_value")) {
+      if (name.equals("bool_value") && dataStore.supportsSecondaryIndex()) {
         // SAI doesn't support booleans, so add a non-SAI index here.
         createDefaultIndex(keyspaceName, tableName, name);
       } else {
+        // If the data store explicitly does not support secondary indexes,
+        // it will use a tinyint to represent booleans and use SAI.
         dataStore
             .queryBuilder()
             .create()
