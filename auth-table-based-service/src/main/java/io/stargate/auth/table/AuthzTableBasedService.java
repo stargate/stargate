@@ -105,4 +105,64 @@ public class AuthzTableBasedService implements AuthorizationService {
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
+
+  /**
+   * Authorization for role management is not provided by table based tokens so all authorization
+   * will be deferred to the underlying permissions assigned to the role the token maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeRoleManagement(String token, String role, Scope scope)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a table based token so just return
+  }
+
+  /**
+   * Authorization for role management is not provided by table based tokens so all authorization
+   * will be deferred to the underlying permissions assigned to the role the token maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeRoleManagement(String token, String role, String grantee, Scope scope)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a table based token so just return
+  }
+
+  /**
+   * Authorization for role management is not provided by table based tokens so all authorization
+   * will be deferred to the underlying permissions assigned to the role the token maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeRoleRead(String token, String role) throws UnauthorizedException {
+    // Cannot perform authorization with a table based token so just return
+  }
+
+  /**
+   * Authorization for permission management is not provided by table based tokens so all
+   * authorization will be deferred to the underlying permissions assigned to the role the token
+   * maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizePermissionManagement(
+      String token, String resource, String grantee, Scope scope) throws UnauthorizedException {
+    // Cannot perform authorization with a table based token so just return
+  }
+
+  /**
+   * Authorization for permission management is not provided by table based tokens so all
+   * authorization will be deferred to the underlying permissions assigned to the role the token
+   * maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizePermissionRead(String token, String role) throws UnauthorizedException {
+    // Cannot perform authorization with a table based token so just return
+  }
 }

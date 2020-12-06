@@ -152,6 +152,64 @@ public class AuthzJwtService implements AuthorizationService {
     // Cannot perform authorization with a JWT token so just return
   }
 
+  /**
+   * Authorization for role management is not provided by JWTs so all authorization will be deferred
+   * to the underlying permissions assigned to the role the JWT maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeRoleManagement(String token, String role, Scope scope)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a JWT token so just return
+  }
+
+  /**
+   * Authorization for role management is not provided by JWTs so all authorization will be deferred
+   * to the underlying permissions assigned to the role the JWT maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeRoleManagement(String token, String role, String grantee, Scope scope)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a JWT token so just return
+  }
+
+  /**
+   * Authorization for role management is not provided by JWTs so all authorization will be deferred
+   * to the underlying permissions assigned to the role the JWT maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeRoleRead(String token, String role) throws UnauthorizedException {
+    // Cannot perform authorization with a JWT token so just return
+  }
+
+  /**
+   * Authorization for permission management is not provided by JWTs so all authorization will be
+   * deferred to the underlying permissions assigned to the role the JWT maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizePermissionManagement(
+      String token, String resource, String grantee, Scope scope) throws UnauthorizedException {
+    // Cannot perform authorization with a JWT token so just return
+  }
+
+  /**
+   * Authorization for permission management is not provided by JWTs so all authorization will be
+   * deferred to the underlying permissions assigned to the role the JWT maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizePermissionRead(String token, String role) throws UnauthorizedException {
+    // Cannot perform authorization with a JWT token so just return
+  }
+
   private JSONObject extractClaimsFromJWT(String token) throws JSONException {
     // Grab the custom claims from the JWT. It's safe to work with the JWT as a plain Base64 encoded
     // json object here since by this point we've already authenticated the request.
