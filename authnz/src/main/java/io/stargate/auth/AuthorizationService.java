@@ -113,20 +113,19 @@ public interface AuthorizationService {
    * Using the provided token will perform pre-authorization of role management.
    *
    * @param token The authenticated token to use for authorization.
-   * @param role  The role which is being modified.
+   * @param role The role which is being modified.
    * @param scope The {@link Scope} of the action to be performed.
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
-  void authorizeRoleManagement(String token, String role, Scope scope)
-      throws UnauthorizedException;
+  void authorizeRoleManagement(String token, String role, Scope scope) throws UnauthorizedException;
 
   /**
    * Using the provided token will perform pre-authorization of role management.
    *
-   * @param token   The authenticated token to use for authorization.
-   * @param role    The role containing all of the permissions to be given to the grantee.
+   * @param token The authenticated token to use for authorization.
+   * @param role The role containing all of the permissions to be given to the grantee.
    * @param grantee The role that is being granted or revoked the role.
-   * @param scope   The {@link Scope} of the action to be performed.
+   * @param scope The {@link Scope} of the action to be performed.
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeRoleManagement(String token, String role, String grantee, Scope scope)
@@ -136,7 +135,7 @@ public interface AuthorizationService {
    * Using the provided token will perform pre-authorization of role access.
    *
    * @param token The authenticated token to use for authorization.
-   * @param role  The role that is being accessed.
+   * @param role The role that is being accessed.
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeRoleRead(String token, String role) throws UnauthorizedException;
@@ -144,10 +143,10 @@ public interface AuthorizationService {
   /**
    * Using the provided token will perform pre-authorization of permission management.
    *
-   * @param token    The authenticated token to use for authorization.
+   * @param token The authenticated token to use for authorization.
    * @param resource The resource that the grantee is being given permissions to.
-   * @param grantee  The role that is being granted access to the resource.
-   * @param scope    The {@link Scope} of the action to be performed.
+   * @param grantee The role that is being granted access to the resource.
+   * @param scope The {@link Scope} of the action to be performed.
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizePermissionManagement(String token, String resource, String grantee, Scope scope)
@@ -157,7 +156,7 @@ public interface AuthorizationService {
    * Using the provided token will perform pre-authorization of permission access.
    *
    * @param token The authenticated token to use for authorization.
-   * @param role  The role for which the permissions are being accessed.
+   * @param role The role for which the permissions are being accessed.
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizePermissionRead(String token, String role) throws UnauthorizedException;
