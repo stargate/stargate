@@ -2,17 +2,15 @@ package io.stargate.db;
 
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.core.activator.BaseActivator;
-import io.stargate.core.metrics.api.Metrics;
-import io.stargate.db.cdc.CDCProducer;
 import io.stargate.db.cdc.CDCService;
-import io.stargate.db.cdc.CDCServiceImpl;
-import java.util.Arrays;
+import io.stargate.db.datastore.DataStoreFactory;
+import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nullable;
 
 public class DbActivator extends BaseActivator {
-  private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
-  private ServicePointer<CDCProducer> cdcProducer = ServicePointer.create(CDCProducer.class);
+  //  private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  //  private ServicePointer<CDCProducer> cdcProducer = ServicePointer.create(CDCProducer.class);
   private ServicePointer<ConfigStore> configStore = ServicePointer.create(ConfigStore.class);
   private CDCService cdcService;
 
@@ -23,14 +21,18 @@ public class DbActivator extends BaseActivator {
   @Nullable
   @Override
   protected ServiceAndProperties createService() {
-    cdcService = new CDCServiceImpl(cdcProducer.get(), metrics.get(), configStore.get());
-    return null;
+    // todo when the KafkaCDCProducer will be plugged in.
+    //    cdcService = new CDCServiceImpl(cdcProducer.get(), metrics.get(), configStore.get());
+    return new ServiceAndProperties(
+        new DataStoreFactory(configStore.get()), DataStoreFactory.class);
   }
 
   @Override
   protected void stopService() {
     try {
-      cdcService.close();
+      if (cdcService != null) {
+        cdcService.close();
+      }
     } catch (Exception e) {
       throw new CDCCloseException("Problem when closing CDC service", e);
     }
@@ -38,7 +40,7 @@ public class DbActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(cdcProducer, metrics, configStore);
+    return Collections.singletonList(configStore);
   }
 
   public static class CDCCloseException extends RuntimeException {

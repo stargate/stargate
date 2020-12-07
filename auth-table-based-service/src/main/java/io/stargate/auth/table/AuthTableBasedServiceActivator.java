@@ -19,6 +19,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.db.Persistence;
+import io.stargate.db.datastore.DataStoreFactory;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Hashtable;
@@ -34,6 +35,9 @@ public class AuthTableBasedServiceActivator extends BaseActivator {
           "Identifier",
           System.getProperty("stargate.persistence_id", "CassandraPersistence"));
   public static final String AUTH_TABLE_IDENTIFIER = "AuthTableBasedService";
+
+  private final ServicePointer<DataStoreFactory> dataStoreFactory =
+      ServicePointer.create(DataStoreFactory.class);
 
   static {
     props.put("AuthIdentifier", AUTH_TABLE_IDENTIFIER);
@@ -53,7 +57,7 @@ public class AuthTableBasedServiceActivator extends BaseActivator {
   protected List<ServiceAndProperties> createServices() {
     if (AUTH_TABLE_IDENTIFIER.equals(
         System.getProperty("stargate.auth_id", AUTH_TABLE_IDENTIFIER))) {
-      authnTableBasedService.setPersistence(persistence.get());
+      authnTableBasedService.setPersistence(persistence.get(), dataStoreFactory.get());
 
       return Arrays.asList(
           new ServiceAndProperties(authnTableBasedService, AuthenticationService.class, props),

@@ -24,6 +24,7 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
@@ -46,6 +47,7 @@ public class Db {
           .maximumSize(10_000)
           .expireAfterWrite(1, TimeUnit.MINUTES)
           .build(token -> getRoleNameForToken(token));
+  private final DataStoreFactory dataStoreFactory;
 
   public Collection<Table> getTables(DataStore dataStore, String keyspaceName) {
     Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
@@ -72,12 +74,14 @@ public class Db {
   public Db(
       final Persistence persistence,
       AuthenticationService authenticationService,
-      AuthorizationService authorizationService) {
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.persistence = persistence;
+    this.dataStoreFactory = dataStoreFactory;
     this.dataStore =
-        DataStore.create(persistence, DataStoreOptions.defaultsWithAutoPreparedQueries());
+        dataStoreFactory.create(persistence, DataStoreOptions.defaultsWithAutoPreparedQueries());
   }
 
   public DataStore getDataStore() {
@@ -98,7 +102,7 @@ public class Db {
 
   public DataStore getDataStoreForToken(String token) throws UnauthorizedException {
     StoredCredentials storedCredentials = authenticationService.validateToken(token);
-    return DataStore.create(
+    return dataStoreFactory.create(
         persistence,
         storedCredentials.getRoleName(),
         DataStoreOptions.defaultsWithAutoPreparedQueries());
@@ -120,7 +124,7 @@ public class Db {
 
     DataStoreOptions options =
         DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
-    return DataStore.create(this.persistence, role, options);
+    return dataStoreFactory.create(this.persistence, role, options);
   }
 
   public String getRoleNameForToken(String token) throws UnauthorizedException {
