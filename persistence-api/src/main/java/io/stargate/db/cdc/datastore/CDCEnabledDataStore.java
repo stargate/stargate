@@ -41,7 +41,7 @@ public class CDCEnabledDataStore implements DataStore {
   private final CDCQueryBuilder cdcQueryBuilder;
 
   public CDCEnabledDataStore(DataStore dataStore, ConfigStore configStore) {
-    this(dataStore, configStore, new CDCQueryBuilder());
+    this(dataStore, configStore, new CDCQueryBuilder(configStore));
   }
 
   @VisibleForTesting
@@ -114,5 +114,9 @@ public class CDCEnabledDataStore implements DataStore {
   private boolean isMutationTrackedByCDC(BoundQuery query) {
     return query instanceof BoundDMLQuery
         && cdcConfig.isTrackedByCDC(((BoundDMLQuery) query).table());
+  }
+
+  public void initCDCKeyspaceTable() {
+    cdcQueryBuilder.initCDCKeyspaceTable(this);
   }
 }

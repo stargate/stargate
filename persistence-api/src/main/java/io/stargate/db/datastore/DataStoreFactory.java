@@ -45,7 +45,10 @@ public class DataStoreFactory {
     Objects.requireNonNull(options);
     PersistenceBackedDataStore persistenceBackedDataStore =
         new PersistenceBackedDataStore(connection, options);
-    return new CDCEnabledDataStore(persistenceBackedDataStore, configStore);
+    CDCEnabledDataStore cdcEnabledDataStore =
+        new CDCEnabledDataStore(persistenceBackedDataStore, configStore);
+    cdcEnabledDataStore.initCDCKeyspaceTable();
+    return cdcEnabledDataStore;
   }
 
   /**
