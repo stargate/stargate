@@ -78,7 +78,8 @@ public class GraphqlActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(persistence, metrics, healthCheckRegistry, authentication, authorization);
+    return Arrays.asList(
+        persistence, metrics, healthCheckRegistry, authentication, authorization, dataStoreFactory);
   }
 
   private synchronized void maybeStartService() {
