@@ -30,6 +30,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.health.HealthCheckRegistry;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
@@ -56,7 +57,8 @@ public class KafkaCDCProducerMetricsIT extends IntegrationTestBase {
     metricsSettings.put(METRICS_NAME_SETTING_NAME, kafkaMetricsPrefix);
 
     ConfigStore configStore = mockConfigStoreWithProducerSettings(metricsSettings);
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(metricRegistry, configStore);
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(metricRegistry, configStore, new HealthCheckRegistry());
     kafkaCDCProducer.init().get();
 
     // when
@@ -122,7 +124,8 @@ public class KafkaCDCProducerMetricsIT extends IntegrationTestBase {
     metricsSettings.put(METRICS_ENABLED_SETTING_NAME, false);
 
     ConfigStore configStore = mockConfigStoreWithProducerSettings(metricsSettings);
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(metricRegistry, configStore);
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(metricRegistry, configStore, new HealthCheckRegistry());
     kafkaCDCProducer.init().get();
 
     // when

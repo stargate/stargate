@@ -28,6 +28,7 @@ import io.stargate.config.store.api.ConfigStore;
 import io.stargate.config.store.api.ConfigWithOverrides;
 import io.stargate.db.schema.Table;
 import io.stargate.producer.kafka.configuration.ConfigLoader;
+import io.stargate.producer.kafka.health.KafkaHealthCheck;
 import io.stargate.producer.kafka.schema.EmbeddedSchemaRegistryServer;
 import java.net.ServerSocket;
 import java.time.Duration;
@@ -64,6 +65,8 @@ public class IntegrationTestBase {
   @BeforeAll
   public static void setup() throws Exception {
     embeddedKafkaBroker = new EmbeddedKafkaBroker(1);
+    embeddedKafkaBroker.brokerProperties(
+        Collections.singletonMap(KafkaHealthCheck.REPLICATION_PROPERTY, "1"));
     embeddedKafkaBroker.afterPropertiesSet(); // it starts the kafka broker
 
     try (ServerSocket serverSocket = new ServerSocket(0)) {

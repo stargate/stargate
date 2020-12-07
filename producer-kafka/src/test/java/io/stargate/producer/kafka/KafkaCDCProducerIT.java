@@ -27,9 +27,12 @@ import static io.stargate.producer.kafka.schema.SchemasTestConstants.CLUSTERING_
 import static io.stargate.producer.kafka.schema.SchemasTestConstants.COLUMN_NAME;
 import static io.stargate.producer.kafka.schema.SchemasTestConstants.COLUMN_NAME_2;
 import static io.stargate.producer.kafka.schema.SchemasTestConstants.PARTITION_KEY_NAME;
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.health.HealthCheck;
+import com.codahale.metrics.health.HealthCheckRegistry;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
@@ -47,6 +50,8 @@ import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.ParameterizedType;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
+import io.stargate.producer.kafka.health.KafkaHealthCheck;
+import io.stargate.producer.kafka.health.SchemaRegistryHealthCheck;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -81,7 +86,8 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     String topicName = createTopicName(tableMetadata);
 
     ConfigStore configStore = mockConfigStoreWithProducerSettings();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(new MetricRegistry(), configStore, new HealthCheckRegistry());
     kafkaCDCProducer.init().get();
 
     // when
@@ -122,7 +128,8 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     String topicName = createTopicName(tableMetadata);
 
     ConfigStore configStore = mockConfigStoreWithProducerSettings();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(new MetricRegistry(), configStore, new HealthCheckRegistry());
     kafkaCDCProducer.init().get();
 
     // when
@@ -163,7 +170,8 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     String topicName = createTopicName(tableMetadata);
 
     ConfigStore configStore = mockConfigStoreWithProducerSettings();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(new MetricRegistry(), configStore, new HealthCheckRegistry());
     kafkaCDCProducer.init().get();
 
     // when
@@ -230,7 +238,8 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     String topicName = createTopicName(tableMetadata);
 
     ConfigStore configStore = mockConfigStoreWithProducerSettings();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(new MetricRegistry(), configStore, new HealthCheckRegistry());
     kafkaCDCProducer.init().get();
 
     // when
@@ -380,7 +389,8 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     String topicName = createTopicName(tableMetadata);
 
     ConfigStore configStore = mockConfigStoreWithProducerSettings();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(new MetricRegistry(), configStore, new HealthCheckRegistry());
     kafkaCDCProducer.init().get();
 
     // when
@@ -420,7 +430,8 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     String topicName = createTopicName(tableMetadata);
 
     ConfigStore configStore = mockConfigStoreWithProducerSettings();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(new MetricRegistry(), configStore, new HealthCheckRegistry());
     kafkaCDCProducer.init().get();
 
     // normal map
@@ -494,7 +505,8 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     String topicNameSecond = createTopicName(tableMetadataFirst);
 
     ConfigStore configStore = mockConfigStoreWithProducerSettings();
-    KafkaCDCProducer kafkaCDCProducer = new KafkaCDCProducer(new MetricRegistry(), configStore);
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(new MetricRegistry(), configStore, new HealthCheckRegistry());
     kafkaCDCProducer.init().get();
 
     // when
@@ -550,6 +562,31 @@ class KafkaCDCProducerIT extends IntegrationTestBase {
     try {
       verifyReceivedByKafka(expectedKeyFirstTopic, expectedValueFirstTopic, topicNameFirst);
       verifyReceivedByKafka(expectedKeySecondTopic, expectedValueSecondTopic, topicNameSecond);
+    } finally {
+      kafkaCDCProducer.close().get();
+    }
+  }
+
+  @Test
+  public void shouldRegisterHealthChecks() throws Exception {
+    // given
+    HealthCheckRegistry healthCheckRegistry = new HealthCheckRegistry();
+    ConfigStore configStore = mockConfigStoreWithProducerSettings();
+    KafkaCDCProducer kafkaCDCProducer =
+        new KafkaCDCProducer(new MetricRegistry(), configStore, healthCheckRegistry);
+    kafkaCDCProducer.init().get();
+
+    // when
+    HealthCheck kafkaHealthCheck =
+        healthCheckRegistry.getHealthCheck(KafkaHealthCheck.KAFKA_HEALTH_CHECK_PREFIX);
+    HealthCheck schemaRegistryHealthCheck =
+        healthCheckRegistry.getHealthCheck(
+            SchemaRegistryHealthCheck.SCHEMA_REGISTRY_HEALTH_CHECK_PREFIX);
+
+    // then
+    try {
+      assertThat(kafkaHealthCheck.execute().isHealthy()).isTrue();
+      assertThat(schemaRegistryHealthCheck.execute().isHealthy()).isTrue();
     } finally {
       kafkaCDCProducer.close().get();
     }

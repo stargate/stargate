@@ -17,12 +17,15 @@ package io.stargate.producer.kafka;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
+import com.codahale.metrics.health.HealthCheckRegistry;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.db.cdc.SchemaAwareCDCProducer;
 import io.stargate.db.schema.Table;
 import io.stargate.producer.kafka.configuration.CDCKafkaConfig;
 import io.stargate.producer.kafka.configuration.DefaultConfigLoader;
+import io.stargate.producer.kafka.health.KafkaHealthCheck;
+import io.stargate.producer.kafka.health.SchemaRegistryHealthCheck;
 import io.stargate.producer.kafka.mapping.DefaultMappingService;
 import io.stargate.producer.kafka.mapping.MappingService;
 import io.stargate.producer.kafka.producer.CompletableKafkaProducer;
@@ -46,6 +49,7 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
   private final DefaultConfigLoader configLoader;
 
   private final ConfigStore configStore;
+  private final HealthCheckRegistry healthCheckRegistry;
 
   private MappingService mappingService;
 
@@ -55,10 +59,12 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
 
   private CompletableFuture<CompletableKafkaProducer<GenericRecord, GenericRecord>> kafkaProducer;
 
-  public KafkaCDCProducer(MetricRegistry registry, ConfigStore configStore) {
+  public KafkaCDCProducer(
+      MetricRegistry registry, ConfigStore configStore, HealthCheckRegistry healthCheckRegistry) {
     registerMetrics(registry);
     this.configStore = configStore;
     this.configLoader = new DefaultConfigLoader();
+    this.healthCheckRegistry = healthCheckRegistry;
   }
 
   /**
@@ -80,7 +86,7 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
     this.schemaProvider =
         new SchemaRegistryProvider(cdcKafkaConfig.getSchemaRegistryUrl(), mappingService);
     this.keyValueConstructor = new KeyValueConstructor(schemaProvider);
-
+    registerHealthChecks(cdcKafkaConfig);
     kafkaProducer =
         CompletableFuture.supplyAsync(
             () -> {
@@ -100,6 +106,15 @@ public class KafkaCDCProducer extends SchemaAwareCDCProducer {
             },
             KAFKA_INIT_EXECUTOR);
     return kafkaProducer.thenAccept(toVoid());
+  }
+
+  private void registerHealthChecks(CDCKafkaConfig cdcKafkaConfig) {
+    healthCheckRegistry.register(
+        KafkaHealthCheck.KAFKA_HEALTH_CHECK_PREFIX,
+        new KafkaHealthCheck(cdcKafkaConfig.getKafkaProducerSettings()));
+    healthCheckRegistry.register(
+        SchemaRegistryHealthCheck.SCHEMA_REGISTRY_HEALTH_CHECK_PREFIX,
+        new SchemaRegistryHealthCheck(cdcKafkaConfig.getSchemaRegistryUrl()));
   }
 
   private Consumer<Object> toVoid() {

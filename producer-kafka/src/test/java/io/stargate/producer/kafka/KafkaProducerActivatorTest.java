@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.health.HealthCheckRegistry;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.config.store.api.ConfigWithOverrides;
 import io.stargate.config.store.yaml.ConfigStoreYaml;
@@ -48,7 +49,7 @@ import org.osgi.framework.ServiceReference;
 class KafkaProducerActivatorTest {
 
   @Test
-  public void shouldStartIfBothServicesAreRegisteredAndEnabledInConfigStore()
+  public void shouldStartIfAllServicesAreRegisteredAndEnabledInConfigStore()
       throws InvalidSyntaxException {
     // given
     BundleContext bundleContext = mock(BundleContext.class);
@@ -60,6 +61,7 @@ class KafkaProducerActivatorTest {
     // when
     activator.tracker.startIfAllRegistered(mock(ServiceReference.class), mockMetrics());
     activator.tracker.startIfAllRegistered(mock(ServiceReference.class), configStore);
+    activator.tracker.startIfAllRegistered(mock(ServiceReference.class), new HealthCheckRegistry());
 
     // then should not register service
     verify(bundleContext, times(1))
@@ -69,7 +71,7 @@ class KafkaProducerActivatorTest {
   }
 
   @Test
-  public void shouldNotRegisterIfBothServicesAreRegisteredButDisabledInConfigStore()
+  public void shouldNotRegisterIfAllServicesAreRegisteredButDisabledInConfigStore()
       throws InvalidSyntaxException {
     // given
     BundleContext bundleContext = mock(BundleContext.class);
@@ -81,6 +83,7 @@ class KafkaProducerActivatorTest {
     // when
     activator.tracker.startIfAllRegistered(mock(ServiceReference.class), mockMetrics());
     activator.tracker.startIfAllRegistered(mock(ServiceReference.class), configStore);
+    activator.tracker.startIfAllRegistered(mock(ServiceReference.class), new HealthCheckRegistry());
 
     // then should not register service
     verify(bundleContext, times(0))
@@ -116,6 +119,25 @@ class KafkaProducerActivatorTest {
 
     // when
     activator.tracker.startIfAllRegistered(mock(ServiceReference.class), mockMetrics());
+
+    // then should not register service
+    verify(bundleContext, times(0))
+        .registerService(
+            eq(CDCProducer.class.getName()), any(KafkaCDCProducer.class), eq(new Hashtable<>()));
+    Assertions.assertThat(activator.started).isFalse();
+  }
+
+  @Test
+  public void shouldNotStartIfOnlyHealthCheckRegistryServiceIsRegistered()
+      throws InvalidSyntaxException {
+    // given
+    BundleContext bundleContext = mock(BundleContext.class);
+    KafkaProducerActivator activator = new KafkaProducerActivator();
+    mockFilterForBothServices(bundleContext);
+    activator.start(bundleContext);
+
+    // when
+    activator.tracker.startIfAllRegistered(mock(ServiceReference.class), new HealthCheckRegistry());
 
     // then should not register service
     verify(bundleContext, times(0))
@@ -216,8 +238,10 @@ class KafkaProducerActivatorTest {
       throws InvalidSyntaxException {
     when(bundleContext.createFilter(
             String.format(
-                "(|(objectClass=%s)(objectClass=%s))",
-                Metrics.class.getName(), ConfigStore.class.getName())))
+                "(|(objectClass=%s)(objectClass=%s)(objectClass=%s))",
+                Metrics.class.getName(),
+                ConfigStore.class.getName(),
+                HealthCheckRegistry.class.getName())))
         .thenReturn(mock(Filter.class));
   }
 }

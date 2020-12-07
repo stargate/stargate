@@ -436,3 +436,30 @@ Otherwise, you may end up with a topic that does not have enough replicas which 
 
 You may consider disabling the `allow.auto.create.topics`, but in that case, you will need to create every topic manually according to <<Prefix Name>>.
 It also means that you need to create the topic manually before any CDC event is sent to this producer.
+
+== Health Checks
+
+This producer provides two health-check that reports the status of downstream systems: Apache Kafka and Schema Registry.
+
+=== Apache Kafka Health Check
+
+It uses the link:https://kafka.apache.org/27/javadoc/org/apache/kafka/clients/admin/AdminClient.html[AdminClient]
+for checking the connectivity to an Apache Kafka cluster. It uses the `producer.bootstrap.servers` setting to connect to the Kafka.
+
+- Firstly, it retrieves the controller node for the Kafka cluster
+- Then, it checks if the number of nodes in the cluster is greater than or equal to link: https://kafka.apache.org/documentation/#transaction.state.log.replication.factor[replication factor].
+
+If both conditions are met, the Kafka Cluster is reported as healthy with the "Kafka cluster UP" message.
+If there are not enough replicas, the cluster is unhealthy with a "Kafka cluster is under replicated" message.
+
+When it reports status as unhealthy, and you see the "Kafka cluster DOWN" message, it means that there were problems with connectivity to the controller in your cluster.
+
+=== Schema Registry Health Check
+
+It uses the link:https://github.com/confluentinc/schema-registry/blob/master/client/src/main/java/io/confluent/kafka/schemaregistry/client/SchemaRegistryClient.java[Schema Registry Client]
+to connect to the schema registry instance(s). It uses the `producer.schema.registry.url` setting to connect to the schema-registry.
+
+It tries to get all available subjects to test the connectivity.
+
+- When the schema registry is up, it reports a healthy status with a "Schema Registry is UP" message.
+- When the schema registry is down, it reports an unhealthy status with the "Schema Registry is DOWN" message.
