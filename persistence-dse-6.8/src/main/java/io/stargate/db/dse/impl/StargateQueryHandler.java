@@ -241,8 +241,8 @@ public class StargateQueryHandler implements QueryHandler {
     } else {
       logger.warn("Tried to authorize unsupported statement");
       throw new UnsupportedOperationException(
-          "Unable to authorize statement " + (statement != null ? statement.getClass().getName()
-              : "null"));
+          "Unable to authorize statement "
+              + (statement != null ? statement.getClass().getName() : "null"));
     }
   }
 
