@@ -30,33 +30,23 @@ import org.slf4j.LoggerFactory;
 public class CDCQueryBuilder {
   private static final Logger logger = LoggerFactory.getLogger(CDCEnabledDataStore.class);
   public static final String DEFAULT_CDC_KEYSPACE = "cdc_core";
-  public static final String DEFAULT_CDC_TABLE = "cdc_events";
+  public static final String DEFAULT_CDC_EVENTS_TABLE = "cdc_events";
   private final ConfigStore configStore;
+  private final DataStore dataStore;
 
-  public CDCQueryBuilder(ConfigStore configStore) {
+  public CDCQueryBuilder(ConfigStore configStore, DataStore dataStore) {
     this.configStore = configStore;
+    this.dataStore = dataStore;
   }
 
   public BoundQuery toInsert(BoundQuery query) {
     return query; // todo https://github.com/stargate/stargate/issues/460
   }
 
-  public void initCDCKeyspaceAndTable(DataStore dataStore) {
-    String keyspaceName =
-        Optional.ofNullable(
-                configStore
-                    .getConfigForModule(CDC_CORE_CONFIG_MODULE_NAME)
-                    .getWithOverrides("keyspace"))
-            .orElse(DEFAULT_CDC_KEYSPACE);
+  public void initCDCKeyspace() {
+    String keyspaceName = getKeyspaceName();
 
-    String tableName =
-        Optional.ofNullable(
-                configStore
-                    .getConfigForModule(CDC_CORE_CONFIG_MODULE_NAME)
-                    .getWithOverrides("table"))
-            .orElse(DEFAULT_CDC_TABLE);
-
-    logger.info("Initializing keyspace {} and table {} for the CDC.", keyspaceName, tableName);
+    logger.info("Initializing keyspace {} for the CDC.", keyspaceName);
 
     try {
       dataStore
@@ -71,7 +61,27 @@ public class CDCQueryBuilder {
     } catch (Exception ex) {
       throw new RuntimeException("Failed to initialize CDC keyspace", ex);
     }
+  }
 
+  private String getKeyspaceName() {
+    return Optional.ofNullable(
+            configStore
+                .getConfigForModule(CDC_CORE_CONFIG_MODULE_NAME)
+                .getWithOverrides("keyspace"))
+        .orElse(DEFAULT_CDC_KEYSPACE);
+  }
+
+  public void initCDCEventsTable() {
+    String keyspaceName = getKeyspaceName();
+
+    String tableName =
+        Optional.ofNullable(
+                configStore
+                    .getConfigForModule(CDC_CORE_CONFIG_MODULE_NAME)
+                    .getWithOverrides("table"))
+            .orElse(DEFAULT_CDC_EVENTS_TABLE);
+
+    logger.info("Initializing table {}.{} for the CDC.", keyspaceName, tableName);
     try {
       dataStore
           .queryBuilder()

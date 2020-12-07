@@ -41,7 +41,7 @@ public class CDCEnabledDataStore implements DataStore {
   private final CDCQueryBuilder cdcQueryBuilder;
 
   public CDCEnabledDataStore(DataStore dataStore, ConfigStore configStore) {
-    this(dataStore, configStore, new CDCQueryBuilder(configStore));
+    this(dataStore, configStore, new CDCQueryBuilder(configStore, dataStore));
   }
 
   @VisibleForTesting
