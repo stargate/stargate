@@ -243,7 +243,7 @@ public class StargateQueryHandler implements QueryHandler {
           castStatement.name());
 
       try {
-        authorization.authorizeSchemaWrite(
+        authorization.authorizeDataWrite(
             authToken, castStatement.keyspace(), castStatement.name(), Scope.TRUNCATE);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
@@ -263,6 +263,11 @@ public class StargateQueryHandler implements QueryHandler {
       authorizeAuthorizationStatement(statement, authToken, authorization);
     } else if (statement instanceof AuthenticationStatement) {
       authorizeAuthenticationStatement(statement, authToken, authorization);
+    } else {
+      logger.warn("Tried to authorize unsupported statement");
+      throw new UnsupportedOperationException(
+          "Unable to authorize statement " + (statement != null ? statement.getClass().getName()
+              : "null"));
     }
   }
 
