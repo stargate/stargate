@@ -145,6 +145,10 @@ public class StargateQueryHandler implements QueryHandler {
       BatchQueryOptions options,
       Map<String, ByteBuffer> customPayload,
       long queryStartNanoTime) {
+    if (customPayload != null && customPayload.containsKey("token")) {
+      authorizeByToken(customPayload.get("token"), batchStatement);
+    }
+
     return QueryProcessor.instance.processBatch(
         batchStatement, queryState, options, customPayload, queryStartNanoTime);
   }
@@ -181,35 +185,7 @@ public class StargateQueryHandler implements QueryHandler {
           castStatement.keyspace(),
           castStatement.table());
     } else if (statement instanceof ModificationStatement) {
-      ModificationStatement castStatement = (ModificationStatement) statement;
-      Scope scope;
-      if (statement instanceof DeleteStatement) {
-        scope = Scope.DELETE;
-      } else {
-        scope = Scope.MODIFY;
-      }
-
-      logger.debug(
-          "preparing to authorize statement of type {} on {}.{}",
-          castStatement.getClass().toString(),
-          castStatement.keyspace(),
-          castStatement.table());
-
-      try {
-        authorization.authorizeDataWrite(
-            authToken, castStatement.keyspace(), castStatement.table(), scope);
-      } catch (io.stargate.auth.UnauthorizedException e) {
-        throw new UnauthorizedException(
-            String.format(
-                "Missing correct permission on <table %s.%s>",
-                castStatement.keyspace(), castStatement.table()));
-      }
-
-      logger.debug(
-          "authorized statement of type {} on {}.{}",
-          castStatement.getClass().toString(),
-          castStatement.keyspace(),
-          castStatement.table());
+      authorizeModificationStatement(statement, authToken, authorization);
     } else if (statement instanceof TruncateStatement) {
       TruncateStatement castStatement = (TruncateStatement) statement;
       logger.debug(
@@ -257,12 +233,51 @@ public class StargateQueryHandler implements QueryHandler {
           "authorized statement of type {} on {}",
           castStatement.getClass().toString(),
           castStatement.keyspace());
+    } else if (statement instanceof BatchStatement) {
+      BatchStatement castStatement = (BatchStatement) statement;
+      List<ModificationStatement> statements = castStatement.getStatements();
+      for (ModificationStatement stmt : statements) {
+        authorizeModificationStatement(stmt, authToken, authorization);
+      }
     } else {
       logger.warn("Tried to authorize unsupported statement");
       throw new UnsupportedOperationException(
           "Unable to authorize statement "
               + (statement != null ? statement.getClass().getName() : "null"));
     }
+  }
+
+  private void authorizeModificationStatement(
+      CQLStatement statement, String authToken, AuthorizationService authorization) {
+    ModificationStatement castStatement = (ModificationStatement) statement;
+    Scope scope;
+    if (statement instanceof DeleteStatement) {
+      scope = Scope.DELETE;
+    } else {
+      scope = Scope.MODIFY;
+    }
+
+    logger.debug(
+        "preparing to authorize statement of type {} on {}.{}",
+        castStatement.getClass().toString(),
+        castStatement.keyspace(),
+        castStatement.table());
+
+    try {
+      authorization.authorizeDataWrite(
+          authToken, castStatement.keyspace(), castStatement.table(), scope);
+    } catch (io.stargate.auth.UnauthorizedException e) {
+      throw new UnauthorizedException(
+          String.format(
+              "Missing correct permission on <table %s.%s>",
+              castStatement.keyspace(), castStatement.table()));
+    }
+
+    logger.debug(
+        "authorized statement of type {} on {}.{}",
+        castStatement.getClass().toString(),
+        castStatement.keyspace(),
+        castStatement.table());
   }
 
   private void authorizeAuthenticationStatement(
