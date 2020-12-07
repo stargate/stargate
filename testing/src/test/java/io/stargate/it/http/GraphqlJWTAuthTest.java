@@ -17,6 +17,7 @@ import io.stargate.it.storage.StargateSpec;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
     initQueries = {
       "CREATE ROLE IF NOT EXISTS 'web_user' WITH PASSWORD = 'web_user' AND LOGIN = TRUE",
       "CREATE TABLE \"Books\"(title text PRIMARY KEY, author text)",
+      "CREATE TABLE \"Secret\"(k int PRIMARY KEY)",
       "GRANT MODIFY ON TABLE \"Books\" TO web_user",
     })
 public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
@@ -74,7 +76,7 @@ public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
   @DisplayName("Should execute GraphQL mutation when authorized")
   public void mutationTest(@TestKeyspace CqlIdentifier keyspaceId) {
     Map<String, Object> response =
-        executeGraphql(
+        getGraphqlData(
             keyspaceId,
             "mutation {\n"
                 + "  insertBooks(value: {title:\"Moby Dick\", author:\"Herman Melville\"}) {\n"
@@ -94,7 +96,7 @@ public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
   @DisplayName("Should execute batch of GraphQL mutations when authorized")
   public void batchTest(@TestKeyspace CqlIdentifier keyspaceId) {
     Map<String, Object> response =
-        executeGraphql(
+        getGraphqlData(
             keyspaceId,
             "mutation {\n"
                 + "  moby: insertBooks(value: {title:\"Moby Dick\", author:\"Herman Melville\"}) {\n"
@@ -119,7 +121,33 @@ public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
         .isEqualTo("Catch-22");
   }
 
-  private Map<String, Object> executeGraphql(CqlIdentifier keyspaceId, String query) {
+  @Test
+  @DisplayName("Should fail to execute GraphQL when not authorized")
+  public void unauthorizedTest(@TestKeyspace CqlIdentifier keyspaceId) {
+    String error =
+        getGraphqlError(keyspaceId, "mutation { insertSecret(value: {k:1}) { value { k } } }");
+    assertThat(error).contains("User web_user has no MODIFY permission");
+  }
+
+  private Map<String, Object> getGraphqlData(CqlIdentifier keyspaceId, String query) {
+    Map<String, Object> response = getGraphqlResponse(keyspaceId, query);
+    assertThat(response).isNotNull();
+    assertThat(response.get("errors")).isNull();
+    @SuppressWarnings("unchecked")
+    Map<String, Object> data = (Map<String, Object>) response.get("data");
+    return data;
+  }
+
+  private String getGraphqlError(CqlIdentifier keyspaceId, String query) {
+    Map<String, Object> response = getGraphqlResponse(keyspaceId, query);
+    assertThat(response).isNotNull();
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> errors = (List<Map<String, Object>>) response.get("errors");
+    assertThat(errors).hasSize(1);
+    return (String) errors.get(0).get("message");
+  }
+
+  private Map<String, Object> getGraphqlResponse(CqlIdentifier keyspaceId, String query) {
     try {
       OkHttpClient okHttpClient = getHttpClient();
       String url = String.format("%s:8080/graphql/%s", host, keyspaceId.asInternal());
@@ -136,16 +164,13 @@ public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
                       .build())
               .execute();
       assertThat(response.body()).isNotNull();
-      String responseString = response.body().string();
+      String bodyString = response.body().string();
       assertThat(response.code())
-          .as("Unexpected error %d: %s", response.code(), responseString)
+          .as("Unexpected error %d: %s", response.code(), bodyString)
           .isEqualTo(HttpStatus.SC_OK);
       @SuppressWarnings("unchecked")
-      Map<String, Object> graphqlResponse = OBJECT_MAPPER.readValue(responseString, Map.class);
-      assertThat(graphqlResponse.get("errors")).isNull();
-      @SuppressWarnings("unchecked")
-      Map<String, Object> data = (Map<String, Object>) graphqlResponse.get("data");
-      return data;
+      Map<String, Object> graphqlResponse = OBJECT_MAPPER.readValue(bodyString, Map.class);
+      return graphqlResponse;
     } catch (IOException e) {
       fail("Unexpected error while sending POST request", e);
       return null; // never reached
