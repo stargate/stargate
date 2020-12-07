@@ -74,6 +74,7 @@ public class RestApiActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(authenticationService, metrics, persistence, authorizationService);
+    return Arrays.asList(
+        authenticationService, metrics, persistence, authorizationService, dataStoreFactory);
   }
 }
