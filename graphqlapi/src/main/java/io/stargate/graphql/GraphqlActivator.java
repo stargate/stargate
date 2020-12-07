@@ -22,6 +22,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.web.DropwizardServer;
 import java.util.Arrays;
 import java.util.List;
@@ -50,6 +51,9 @@ public class GraphqlActivator extends BaseActivator {
   private final ServicePointer<HealthCheckRegistry> healthCheckRegistry =
       ServicePointer.create(HealthCheckRegistry.class);
 
+  private final ServicePointer<DataStoreFactory> dataStoreFactory =
+      ServicePointer.create(DataStoreFactory.class);
+
   private final GraphqlHealthCheck graphqlHealthCheck = new GraphqlHealthCheck();
 
   @GuardedBy("this")
@@ -63,7 +67,7 @@ public class GraphqlActivator extends BaseActivator {
   @Nullable
   protected ServiceAndProperties createService() {
     healthCheckRegistry.get().register("graphql", graphqlHealthCheck);
-    maybeStartService(persistence.get(), metrics.get(), authentication.get(), authorization.get());
+    maybeStartService();
     return null;
   }
 
@@ -77,14 +81,16 @@ public class GraphqlActivator extends BaseActivator {
     return Arrays.asList(persistence, metrics, healthCheckRegistry, authentication, authorization);
   }
 
-  private synchronized void maybeStartService(
-      Persistence persistence,
-      Metrics metrics,
-      AuthenticationService authentication,
-      AuthorizationService authorizationService) {
+  private synchronized void maybeStartService() {
     if (server == null) {
       try {
-        server = new DropwizardServer(persistence, authentication, authorizationService, metrics);
+        server =
+            new DropwizardServer(
+                persistence.get(),
+                authentication.get(),
+                authorization.get(),
+                metrics.get(),
+                dataStoreFactory.get());
         LOG.info("Starting GraphQL");
         server.run("server", "config.yaml");
         graphqlHealthCheck.healthy = true;

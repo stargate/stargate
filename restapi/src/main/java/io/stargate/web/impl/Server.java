@@ -29,6 +29,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.web.RestApiActivator;
 import io.stargate.web.config.ApplicationConfiguration;
 import io.stargate.web.docsapi.resources.CollectionsResource;
@@ -65,16 +66,19 @@ public class Server extends Application<ApplicationConfiguration> {
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
   private final Metrics metrics;
+  private final DataStoreFactory dataStoreFactory;
 
   public Server(
       Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
-      Metrics metrics) {
+      Metrics metrics,
+      DataStoreFactory dataStoreFactory) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.metrics = metrics;
+    this.dataStoreFactory = dataStoreFactory;
 
     BeanConfig beanConfig = new BeanConfig();
     beanConfig.setSchemes(new String[] {"http"});
@@ -102,7 +106,8 @@ public class Server extends Application<ApplicationConfiguration> {
   public void run(
       final ApplicationConfiguration applicationConfiguration, final Environment environment)
       throws IOException {
-    final Db db = new Db(persistence, authenticationService, authorizationService);
+    final Db db =
+        new Db(persistence, authenticationService, authorizationService, dataStoreFactory);
 
     configureObjectMapper(environment.getObjectMapper());
 

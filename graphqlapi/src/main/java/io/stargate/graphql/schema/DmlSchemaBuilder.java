@@ -38,6 +38,7 @@ import graphql.schema.GraphQLTypeReference;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
@@ -70,6 +71,7 @@ class DmlSchemaBuilder {
   private final FieldOutputTypeCache fieldOutputTypes;
   private final FieldFilterInputTypeCache fieldFilterInputTypes;
   private final NameMapping nameMapping;
+  private final DataStoreFactory dataStoreFactory;
   private final Keyspace keyspace;
 
   /** Describes the different kind of types generated from a table */
@@ -85,13 +87,15 @@ class DmlSchemaBuilder {
       Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
-      Keyspace keyspace) {
+      Keyspace keyspace,
+      DataStoreFactory dataStoreFactory) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.keyspace = keyspace;
 
     this.nameMapping = new NameMapping(keyspace.tables(), keyspace.userDefinedTypes(), warnings);
+    this.dataStoreFactory = dataStoreFactory;
     this.fieldInputTypes = new FieldInputTypeCache(this.nameMapping, warnings);
     this.fieldOutputTypes = new FieldOutputTypeCache(this.nameMapping, warnings);
     this.fieldFilterInputTypes =
@@ -212,7 +216,12 @@ class DmlSchemaBuilder {
             .type(buildEntityResultOutput(table))
             .dataFetcher(
                 new QueryFetcher(
-                    table, nameMapping, persistence, authenticationService, authorizationService))
+                    table,
+                    nameMapping,
+                    persistence,
+                    authenticationService,
+                    authorizationService,
+                    dataStoreFactory))
             .build();
 
     GraphQLFieldDefinition filterQuery =
@@ -234,7 +243,12 @@ class DmlSchemaBuilder {
             .type(buildEntityResultOutput(table))
             .dataFetcher(
                 new QueryFetcher(
-                    table, nameMapping, persistence, authenticationService, authorizationService))
+                    table,
+                    nameMapping,
+                    persistence,
+                    authenticationService,
+                    authorizationService,
+                    dataStoreFactory))
             .build();
 
     return ImmutableList.of(query, filterQuery);
@@ -290,7 +304,12 @@ class DmlSchemaBuilder {
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
         .dataFetcher(
             new UpdateMutationFetcher(
-                table, nameMapping, persistence, authenticationService, authorizationService))
+                table,
+                nameMapping,
+                persistence,
+                authenticationService,
+                authorizationService,
+                dataStoreFactory))
         .build();
   }
 
@@ -312,7 +331,12 @@ class DmlSchemaBuilder {
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
         .dataFetcher(
             new InsertMutationFetcher(
-                table, nameMapping, persistence, authenticationService, authorizationService))
+                table,
+                nameMapping,
+                persistence,
+                authenticationService,
+                authorizationService,
+                dataStoreFactory))
         .build();
   }
 
@@ -338,7 +362,12 @@ class DmlSchemaBuilder {
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
         .dataFetcher(
             new DeleteMutationFetcher(
-                table, nameMapping, persistence, authenticationService, authorizationService))
+                table,
+                nameMapping,
+                persistence,
+                authenticationService,
+                authorizationService,
+                dataStoreFactory))
         .build();
   }
 

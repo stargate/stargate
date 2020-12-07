@@ -51,6 +51,7 @@ import static io.stargate.db.schema.Column.Type.Varint;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.fail;
 
+import com.codahale.metrics.MetricRegistry;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.api.core.data.TupleValue;
@@ -58,11 +59,13 @@ import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
+import io.stargate.config.store.yaml.ConfigStoreYaml;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Result;
 import io.stargate.db.SimpleStatement;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.TypedValue;
@@ -84,6 +87,8 @@ import java.math.BigInteger;
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -140,7 +145,13 @@ public abstract class PersistenceTest {
   public void setup(TestInfo testInfo, ClusterConnectionInfo backend) {
     this.backend = backend;
 
-    dataStore = DataStore.create(persistence());
+    Path path =
+        Paths.get(
+            Objects.requireNonNull(getClass().getClassLoader().getResource("stargate-config.yaml"))
+                .getPath());
+
+    dataStore =
+        new DataStoreFactory(new ConfigStoreYaml(path, new MetricRegistry())).create(persistence());
     logger.info("{}", dataStore);
 
     Optional<String> name = testInfo.getTestMethod().map(Method::getName);
