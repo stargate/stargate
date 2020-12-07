@@ -41,7 +41,7 @@ public class CDCQueryBuilder {
     return query; // todo https://github.com/stargate/stargate/issues/460
   }
 
-  public void initCDCKeyspaceTable(DataStore dataStore) {
+  public void initCDCKeyspaceAndTable(DataStore dataStore) {
     String keyspaceName =
         Optional.ofNullable(
                 configStore

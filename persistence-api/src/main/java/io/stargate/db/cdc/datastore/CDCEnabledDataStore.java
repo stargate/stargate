@@ -115,8 +115,4 @@ public class CDCEnabledDataStore implements DataStore {
     return query instanceof BoundDMLQuery
         && cdcConfig.isTrackedByCDC(((BoundDMLQuery) query).table());
   }
-
-  public void initCDCKeyspaceTable() {
-    cdcQueryBuilder.initCDCKeyspaceTable(this);
-  }
 }

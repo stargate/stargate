@@ -28,6 +28,9 @@ import javax.annotation.Nullable;
 
 public class DataStoreFactory {
   private final ConfigStore configStore;
+  // feature flag that allows us to disable it on production, until the whole CDC is ready.
+  private final Boolean CDC_ENABLED =
+      Boolean.parseBoolean(System.getProperty("stargate.cdc_enabled", "true"));
 
   public DataStoreFactory(ConfigStore configStore) {
     this.configStore = configStore;
@@ -45,10 +48,11 @@ public class DataStoreFactory {
     Objects.requireNonNull(options);
     PersistenceBackedDataStore persistenceBackedDataStore =
         new PersistenceBackedDataStore(connection, options);
-    CDCEnabledDataStore cdcEnabledDataStore =
-        new CDCEnabledDataStore(persistenceBackedDataStore, configStore);
-    cdcEnabledDataStore.initCDCKeyspaceTable();
-    return cdcEnabledDataStore;
+    if (CDC_ENABLED) {
+      return new CDCEnabledDataStore(persistenceBackedDataStore, configStore);
+    } else {
+      return persistenceBackedDataStore;
+    }
   }
 
   /**
