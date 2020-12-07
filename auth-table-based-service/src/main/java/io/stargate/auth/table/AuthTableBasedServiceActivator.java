@@ -72,6 +72,6 @@ public class AuthTableBasedServiceActivator extends BaseActivator {
   }
 
   protected List<ServicePointer<?>> dependencies() {
-    return Collections.singletonList(persistence);
+    return Arrays.asList(persistence, dataStoreFactory);
   }
 }
