@@ -60,6 +60,7 @@ import org.apache.cassandra.cql3.statements.RoleManagementStatement;
 import org.apache.cassandra.cql3.statements.SchemaAlteringStatement;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.cql3.statements.TruncateStatement;
+import org.apache.cassandra.cql3.statements.UseStatement;
 import org.apache.cassandra.exceptions.InvalidRequestException;
 import org.apache.cassandra.exceptions.RequestExecutionException;
 import org.apache.cassandra.exceptions.RequestValidationException;
@@ -280,6 +281,23 @@ public class StargateQueryHandler implements QueryHandler {
       authorizeAuthorizationStatement(statement, authToken, authorization);
     } else if (statement instanceof AuthenticationStatement) {
       authorizeAuthenticationStatement(statement, authToken, authorization);
+    } else if (statement instanceof UseStatement) {
+      UseStatement castStatement = (UseStatement) statement;
+      String keyspace = getKeyspace(castStatement);
+      logger.debug(
+          "preparing to authorize statement of type {} on {}",
+          castStatement.getClass().toString(),
+          keyspace);
+
+      try {
+        authorization.authorizeDataRead(authToken, keyspace, null);
+      } catch (io.stargate.auth.UnauthorizedException e) {
+        throw new UnauthorizedException(
+            String.format("No SELECT permission on <keyspace %s>", keyspace));
+      }
+
+      logger.debug(
+          "authorized statement of type {} on {}", castStatement.getClass().toString(), keyspace);
     } else {
       logger.warn("Tried to authorize unsupported statement");
       throw new UnsupportedOperationException(
@@ -489,6 +507,17 @@ public class StargateQueryHandler implements QueryHandler {
       return resource != null ? resource.getName() : null;
     } catch (Exception e) {
       logger.error("Unable to get role", e);
+      throw new RuntimeException("Unable to get private field", e);
+    }
+  }
+
+  private String getKeyspace(Object stmt) {
+    try {
+      Field f = stmt.getClass().getSuperclass().getDeclaredField("keyspace");
+      f.setAccessible(true);
+      return (String) f.get(stmt);
+    } catch (Exception e) {
+      logger.error("Unable to get private field", e);
       throw new RuntimeException("Unable to get private field", e);
     }
   }

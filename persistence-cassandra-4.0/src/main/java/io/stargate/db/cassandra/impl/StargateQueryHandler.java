@@ -52,6 +52,7 @@ import org.apache.cassandra.cql3.statements.RevokePermissionsStatement;
 import org.apache.cassandra.cql3.statements.RoleManagementStatement;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.cql3.statements.TruncateStatement;
+import org.apache.cassandra.cql3.statements.UseStatement;
 import org.apache.cassandra.cql3.statements.schema.AlterKeyspaceStatement;
 import org.apache.cassandra.cql3.statements.schema.AlterTableStatement;
 import org.apache.cassandra.cql3.statements.schema.CreateKeyspaceStatement;
@@ -263,6 +264,23 @@ public class StargateQueryHandler implements QueryHandler {
       authorizeAuthorizationStatement(statement, authToken, authorization);
     } else if (statement instanceof AuthenticationStatement) {
       authorizeAuthenticationStatement(statement, authToken, authorization);
+    } else if (statement instanceof UseStatement) {
+      UseStatement castStatement = (UseStatement) statement;
+      String keyspace = getKeyspace(castStatement);
+      logger.debug(
+          "preparing to authorize statement of type {} on {}",
+          castStatement.getClass().toString(),
+          keyspace);
+
+      try {
+        authorization.authorizeDataRead(authToken, keyspace, null);
+      } catch (io.stargate.auth.UnauthorizedException e) {
+        throw new UnauthorizedException(
+            String.format("No SELECT permission on <keyspace %s>", keyspace));
+      }
+
+      logger.debug(
+          "authorized statement of type {} on {}", castStatement.getClass().toString(), keyspace);
     } else {
       logger.warn("Tried to authorize unsupported statement");
       throw new UnsupportedOperationException(
@@ -432,35 +450,35 @@ public class StargateQueryHandler implements QueryHandler {
       scope = Scope.CREATE;
 
       CreateTableStatement stmt = (CreateTableStatement) statement;
-      keyspaceName = getKeyspaceName(stmt);
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
       tableName = getTableName(stmt);
     } else if (statement instanceof DropTableStatement) {
       scope = Scope.DELETE;
 
       DropTableStatement stmt = (DropTableStatement) statement;
-      keyspaceName = getKeyspaceName(stmt);
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
       tableName = getTableName(stmt);
     } else if (statement instanceof AlterTableStatement) {
       scope = Scope.ALTER;
 
       AlterTableStatement stmt = (AlterTableStatement) statement;
-      keyspaceName = getKeyspaceName(stmt);
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
       tableName = getTableName(stmt);
     } else if (statement instanceof CreateKeyspaceStatement) {
       scope = Scope.CREATE;
 
       CreateKeyspaceStatement stmt = (CreateKeyspaceStatement) statement;
-      keyspaceName = getKeyspaceName(stmt);
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof DropKeyspaceStatement) {
       scope = Scope.DELETE;
 
       DropKeyspaceStatement stmt = (DropKeyspaceStatement) statement;
-      keyspaceName = getKeyspaceName(stmt);
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof AlterKeyspaceStatement) {
       scope = Scope.ALTER;
 
       AlterKeyspaceStatement stmt = (AlterKeyspaceStatement) statement;
-      keyspaceName = getKeyspaceName(stmt);
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
     }
 
     logger.debug(
@@ -496,7 +514,18 @@ public class StargateQueryHandler implements QueryHandler {
     }
   }
 
-  private String getKeyspaceName(Object stmt) {
+  private String getKeyspace(Object stmt) {
+    try {
+      Field f = stmt.getClass().getSuperclass().getDeclaredField("keyspace");
+      f.setAccessible(true);
+      return (String) f.get(stmt);
+    } catch (Exception e) {
+      logger.error("Unable to get private field", e);
+      throw new RuntimeException("Unable to get private field", e);
+    }
+  }
+
+  private String getKeyspaceNameFromSuper(Object stmt) {
     try {
       Field f = stmt.getClass().getSuperclass().getDeclaredField("keyspaceName");
       f.setAccessible(true);

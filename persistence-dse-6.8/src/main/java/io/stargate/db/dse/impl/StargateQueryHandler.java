@@ -55,6 +55,7 @@ import org.apache.cassandra.cql3.statements.RevokePermissionsStatement;
 import org.apache.cassandra.cql3.statements.RevokeRoleStatement;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.cql3.statements.TruncateStatement;
+import org.apache.cassandra.cql3.statements.UseStatement;
 import org.apache.cassandra.cql3.statements.schema.AlterKeyspaceStatement;
 import org.apache.cassandra.cql3.statements.schema.AlterSchemaStatement;
 import org.apache.cassandra.cql3.statements.schema.AlterTableStatement;
@@ -238,6 +239,24 @@ public class StargateQueryHandler implements QueryHandler {
       authorizeAuthorizationStatement(statement, authToken, authorization);
     } else if (statement instanceof AuthenticationStatement) {
       authorizeAuthenticationStatement(statement, authToken, authorization);
+    } else if (statement instanceof UseStatement) {
+      UseStatement castStatement = (UseStatement) statement;
+      logger.debug(
+          "preparing to authorize statement of type {} on {}",
+          castStatement.getClass().toString(),
+          castStatement.keyspace());
+
+      try {
+        authorization.authorizeDataRead(authToken, castStatement.keyspace(), null);
+      } catch (io.stargate.auth.UnauthorizedException e) {
+        throw new UnauthorizedException(
+            String.format("No SELECT permission on <keyspace %s>", castStatement.keyspace()));
+      }
+
+      logger.debug(
+          "authorized statement of type {} on {}",
+          castStatement.getClass().toString(),
+          castStatement.keyspace());
     } else {
       logger.warn("Tried to authorize unsupported statement");
       throw new UnsupportedOperationException(
