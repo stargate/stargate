@@ -27,16 +27,9 @@ import java.io.UncheckedIOException;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
@@ -365,6 +358,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
       cmd.addArgument("-Dstargate.auth_api_enable_username_token=true");
       cmd.addArgument("-Dstargate.libdir=" + LIB_DIR.getAbsolutePath());
       cmd.addArgument("-Dstargate.bundle.cache.dir=" + cacheDir.getAbsolutePath());
+      cmd.addArgument("-Dstargate.config_store.yaml.location=" + getConfigStoreYamlPath());
 
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
@@ -460,6 +454,15 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
       } finally {
         exit.countDown();
       }
+    }
+
+    private String getConfigStoreYamlPath() {
+      return Paths.get(
+              Objects.requireNonNull(
+                      this.getClass().getClassLoader().getResource("stargate-config.yaml"))
+                  .getPath())
+          .toFile()
+          .getAbsolutePath();
     }
 
     private void cleanup() {
