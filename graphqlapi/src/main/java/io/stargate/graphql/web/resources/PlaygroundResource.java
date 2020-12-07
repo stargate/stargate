@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.web.resources;
 
+import io.dropwizard.util.Strings;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -53,6 +54,11 @@ public class PlaygroundResource {
   @GET
   public Response get(@Context HttpServletRequest request) {
     String token = request.getHeader("x-cassandra-token");
+
+    if (Strings.isNullOrEmpty(token)) {
+      token = request.getHeader("Authorization");
+      token = Strings.isNullOrEmpty(token) ? token : token.replaceFirst("^Bearer\\s", "");
+    }
 
     // Replace the templated text with the token if it exist. Using java.lang.String.replaceFirst
     // since it's safer than java.lang.String.format(java.lang.String, java.lang.Object...) due to

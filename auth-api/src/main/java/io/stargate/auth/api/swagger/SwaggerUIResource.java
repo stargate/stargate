@@ -1,5 +1,6 @@
 package io.stargate.auth.api.swagger;
 
+import io.dropwizard.util.Strings;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
@@ -71,11 +72,22 @@ public class SwaggerUIResource {
 
   @GET
   @Path("/")
-  public Response get(@Context UriInfo uriInfo, @HeaderParam("X-Cassandra-Token") String token) {
+  public Response get(
+      @Context UriInfo uriInfo,
+      @HeaderParam("X-Cassandra-Token") String authToken,
+      @HeaderParam("Authorization") String bearerToken) {
     // Redirect ".../swagger-ui" to ".../swagger-ui/" so that relative resources e.g. "./XXXX.css"
     // in "index.html" work correctly.
     if (!uriInfo.getAbsolutePath().getPath().endsWith("/")) {
       return Response.temporaryRedirect(uriInfo.getAbsolutePathBuilder().path("/").build()).build();
+    }
+
+    String token = authToken;
+    if (Strings.isNullOrEmpty(token)) {
+      token =
+          Strings.isNullOrEmpty(bearerToken)
+              ? bearerToken
+              : bearerToken.replaceFirst("^Bearer\\s", "");
     }
 
     // Using an HTML file with templated text that's been read in as a String. Yes,  we could use
