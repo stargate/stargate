@@ -87,7 +87,8 @@ public interface Persistence {
   boolean isInSchemaAgreement();
 
   default boolean supportsSecondaryIndex() {
-    return Boolean.parseBoolean(System.getProperty("persistence.support_2i", "true"));
+    return Boolean.parseBoolean(
+        System.getProperty("stargate.persistence.2i.support.default", "true"));
   }
 
   /** Wait for schema to agree across the cluster */
