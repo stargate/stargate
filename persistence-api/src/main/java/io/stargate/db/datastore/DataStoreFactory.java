@@ -21,6 +21,7 @@ import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.Persistence;
 import io.stargate.db.cdc.datastore.CDCEnabledDataStore;
+import io.stargate.db.cdc.shardmanager.ShardManager;
 import java.net.InetSocketAddress;
 import java.util.Objects;
 import javax.annotation.Nonnull;
@@ -28,12 +29,14 @@ import javax.annotation.Nullable;
 
 public class DataStoreFactory {
   private final ConfigStore configStore;
+  private final ShardManager shardManager;
   // feature flag that allows us to disable it on production, until the whole CDC is ready.
   private final Boolean CDC_ENABLED =
       Boolean.parseBoolean(System.getProperty("stargate.cdc_enabled", "true"));
 
-  public DataStoreFactory(ConfigStore configStore) {
+  public DataStoreFactory(ConfigStore configStore, ShardManager shardManager) {
     this.configStore = configStore;
+    this.shardManager = shardManager;
   }
 
   /**
@@ -49,7 +52,7 @@ public class DataStoreFactory {
     PersistenceBackedDataStore persistenceBackedDataStore =
         new PersistenceBackedDataStore(connection, options);
     if (CDC_ENABLED) {
-      return new CDCEnabledDataStore(persistenceBackedDataStore, configStore);
+      return new CDCEnabledDataStore(persistenceBackedDataStore, configStore, shardManager);
     } else {
       return persistenceBackedDataStore;
     }

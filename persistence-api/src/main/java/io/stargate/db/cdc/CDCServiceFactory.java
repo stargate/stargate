@@ -17,13 +17,15 @@ package io.stargate.db.cdc;
 
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.db.cdc.datastore.CDCQueryBuilder;
+import io.stargate.db.cdc.shardmanager.ShardManager;
 import io.stargate.db.datastore.DataStore;
 
 public class CDCServiceFactory {
   private final CDCQueryBuilder cdcQueryBuilder;
 
-  public CDCServiceFactory(ConfigStore configStore, DataStore dataStore) {
-    this.cdcQueryBuilder = new CDCQueryBuilder(configStore, dataStore);
+  public CDCServiceFactory(
+      ConfigStore configStore, DataStore dataStore, ShardManager shardManager) {
+    this.cdcQueryBuilder = new CDCQueryBuilder(configStore, dataStore, shardManager);
   }
 
   public void create() {

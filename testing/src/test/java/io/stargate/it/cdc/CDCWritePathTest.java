@@ -21,48 +21,74 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
-import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.type.DataTypes;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.http.RestUtils;
+import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
-import java.net.InetSocketAddress;
-import java.time.Duration;
+import io.stargate.web.models.ColumnModel;
+import io.stargate.web.models.RowAdd;
+import io.stargate.web.models.RowsResponse;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.apache.http.HttpStatus;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith(CqlSessionExtension.class)
+@CqlSessionSpec(createKeyspace = false, dropKeyspace = false)
 public class CDCWritePathTest extends BaseOsgiIntegrationTest {
+  private static final ObjectMapper objectMapper = new ObjectMapper();
+  private static String host;
+  private static final CqlIdentifier KEYSPACE = CqlIdentifier.fromCql("cdc_tables");
+  private static final CqlIdentifier TABLE = CqlIdentifier.fromCql("cdc_enabled_table");
+  private static String authToken;
 
-  private CqlSession session;
+  @BeforeAll
+  public static void setup(CqlSession session, StargateConnectionInfo cluster) throws IOException {
+    host = "http://" + cluster.seedAddress();
+    session.execute(
+        String.format(
+            "CREATE KEYSPACE IF NOT EXISTS %s "
+                + "WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
+            KEYSPACE.asCql(false)));
 
-  @BeforeEach
-  public void setup(StargateConnectionInfo cluster) {
-    session =
-        CqlSession.builder()
-            .withConfigLoader(
-                DriverConfigLoader.programmaticBuilder()
-                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5))
-                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(180))
-                    .withDuration(
-                        DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT,
-                        Duration.ofSeconds(180))
-                    .withDuration(
-                        DefaultDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(180))
-                    .withDuration(
-                        DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
-                    .build())
-            .withAuthCredentials("cassandra", "cassandra")
-            .addContactPoint(new InetSocketAddress(cluster.seedAddress(), 9043))
-            .withLocalDatacenter(cluster.datacenter())
-            .build();
+    session.execute(
+        String.format(
+            "CREATE TABLE IF NOT EXISTS %s.%s (pk int PRIMARY KEY, value text)",
+            KEYSPACE.asCql(false), TABLE.asCql(false)));
+    initAuth();
+  }
+
+  private static void initAuth() throws IOException {
+    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    String body =
+        RestUtils.post(
+            "",
+            String.format("%s:8081/v1/auth/token/generate", host),
+            objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
+            HttpStatus.SC_CREATED);
+
+    AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
+    authToken = authTokenResponse.getAuthToken();
+    Assertions.assertThat(authToken).isNotNull();
   }
 
   @Test
-  public void shouldHaveCreatedCDCKeyspace() {
+  public void shouldHaveCreatedCDCKeyspace(CqlSession session) {
     // when
     Row row =
         session
@@ -80,7 +106,7 @@ public class CDCWritePathTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void shouldHaveCreatedCDCEventsTable() {
+  public void shouldHaveCreatedCDCEventsTable(CqlSession session) {
     // when
     TableMetadata tableMetadata =
         session
@@ -98,5 +124,50 @@ public class CDCWritePathTest extends BaseOsgiIntegrationTest {
         .isEqualTo(DataTypes.setOf(DataTypes.UUID));
     assertThat(columns.get(CqlIdentifier.fromCql("payload")).getType()).isEqualTo(DataTypes.BLOB);
     assertThat(columns.get(CqlIdentifier.fromCql("version")).getType()).isEqualTo(DataTypes.INT);
+  }
+
+  @Test
+  public void shouldSaveRecordToCDCEventsWhenInsertToACDCEnabledTableUsingRestApi(
+      CqlSession session) throws IOException {
+    // given
+    List<ColumnModel> columns = new ArrayList<>();
+
+    ColumnModel idColumn = new ColumnModel();
+    idColumn.setName("pk");
+    idColumn.setValue("1");
+    columns.add(idColumn);
+
+    ColumnModel firstNameColumn = new ColumnModel();
+    firstNameColumn.setName("value");
+    firstNameColumn.setValue("Update Value");
+    columns.add(firstNameColumn);
+
+    // when
+    addRow(columns);
+
+    // then
+    List<Row> all =
+        session
+            .execute(
+                String.format(
+                    "SELECT * FROM %s.%s", DEFAULT_CDC_KEYSPACE, DEFAULT_CDC_EVENTS_TABLE))
+            .all();
+    assertThat(all.size()).isEqualTo(1);
+  }
+
+  private void addRow(List<ColumnModel> columns) throws IOException {
+    RowAdd rowAdd = new RowAdd();
+    rowAdd.setColumns(columns);
+
+    String body =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, KEYSPACE, TABLE),
+            objectMapper.writeValueAsString(rowAdd),
+            HttpStatus.SC_CREATED);
+
+    RowsResponse rowsResponse = objectMapper.readValue(body, new TypeReference<RowsResponse>() {});
+    Assertions.assertThat(rowsResponse.getRowsModified()).isEqualTo(1);
+    Assertions.assertThat(rowsResponse.getSuccess()).isTrue();
   }
 }

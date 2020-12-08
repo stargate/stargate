@@ -64,6 +64,7 @@ import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Result;
 import io.stargate.db.SimpleStatement;
+import io.stargate.db.cdc.shardmanager.ShardManager;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
@@ -151,7 +152,8 @@ public abstract class PersistenceTest {
                 .getPath());
 
     dataStore =
-        new DataStoreFactory(new ConfigStoreYaml(path, new MetricRegistry())).create(persistence());
+        new DataStoreFactory(new ConfigStoreYaml(path, new MetricRegistry()), new ShardManager())
+            .create(persistence());
     logger.info("{}", dataStore);
 
     Optional<String> name = testInfo.getTestMethod().map(Method::getName);

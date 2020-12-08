@@ -1,2 +1,3 @@
 cdc.core:
-    enabledTables: []
+    enabledTables:
+      - cdc_tables.cdc_enabled_table

@@ -21,6 +21,7 @@ import io.stargate.db.BatchType;
 import io.stargate.db.Parameters;
 import io.stargate.db.cdc.config.CDCConfig;
 import io.stargate.db.cdc.config.CDCConfigLoader;
+import io.stargate.db.cdc.shardmanager.ShardManager;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundDMLQuery;
@@ -29,19 +30,19 @@ import io.stargate.db.query.Query;
 import io.stargate.db.query.TypedValue;
 import io.stargate.db.schema.Schema;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
 
 public class CDCEnabledDataStore implements DataStore {
-
   private final DataStore dataStore;
   private final CDCConfig cdcConfig;
   private final CDCQueryBuilder cdcQueryBuilder;
 
-  public CDCEnabledDataStore(DataStore dataStore, ConfigStore configStore) {
-    this(dataStore, configStore, new CDCQueryBuilder(configStore, dataStore));
+  public CDCEnabledDataStore(
+      DataStore dataStore, ConfigStore configStore, ShardManager shardManager) {
+    this(dataStore, configStore, new CDCQueryBuilder(configStore, dataStore, shardManager));
   }
 
   @VisibleForTesting
@@ -81,10 +82,10 @@ public class CDCEnabledDataStore implements DataStore {
   public CompletableFuture<ResultSet> execute(
       BoundQuery query, UnaryOperator<Parameters> parametersModifier) {
     if (isMutationTrackedByCDC(query)) {
-      return dataStore.batch(
-          Arrays.asList(query, cdcQueryBuilder.toInsert(query)),
-          BatchType.LOGGED,
-          parametersModifier);
+      List<BoundQuery> queries = new ArrayList<>();
+      queries.add(query);
+      queries.add(cdcQueryBuilder.toInsert((BoundDMLQuery) query));
+      return dataStore.batch(queries, BatchType.LOGGED, parametersModifier);
     } else {
       return dataStore.execute(query, parametersModifier);
     }
@@ -98,7 +99,7 @@ public class CDCEnabledDataStore implements DataStore {
     Collection<BoundQuery> cdcInsertQueries = new ArrayList<>();
     for (BoundQuery query : queries) {
       if (isMutationTrackedByCDC(query)) {
-        cdcInsertQueries.add(cdcQueryBuilder.toInsert(query));
+        cdcInsertQueries.add(cdcQueryBuilder.toInsert((BoundDMLQuery) query));
       }
     }
     if (cdcInsertQueries.isEmpty()) {
