@@ -1,8 +1,10 @@
 package io.stargate.it.http;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.InstanceOfAssertFactories.MAP;
-import static org.junit.jupiter.api.Assertions.fail;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,11 +16,6 @@ import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
-import java.io.IOException;
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -29,6 +26,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.MAP;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @StargateSpec(parametersCustomizer = "buildParameters")
 @ExtendWith(CqlSessionExtension.class)
@@ -126,7 +127,8 @@ public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
   public void unauthorizedTest(@TestKeyspace CqlIdentifier keyspaceId) {
     String error =
         getGraphqlError(keyspaceId, "mutation { insertSecret(value: {k:1}) { value { k } } }");
-    assertThat(error).contains("User web_user has no MODIFY permission");
+    // Don't rely on the full message because it's not standardized across Cassandra/DSE versions
+    assertThat(error).contains("UnauthorizedException");
   }
 
   private Map<String, Object> getGraphqlData(CqlIdentifier keyspaceId, String query) {
