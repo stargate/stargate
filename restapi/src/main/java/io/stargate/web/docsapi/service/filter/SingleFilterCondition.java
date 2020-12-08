@@ -98,6 +98,18 @@ public class SingleFilterCondition implements FilterCondition {
     return null;
   }
 
+  public Object getValue(boolean treatBooleansAsNumeric) {
+    if (doubleValue != null) {
+      return doubleValue;
+    } else if (booleanValue != null) {
+      if (treatBooleansAsNumeric) return booleanValue ? 1 : 0;
+      return booleanValue;
+    } else if (textValue != null) {
+      return textValue;
+    }
+    return null;
+  }
+
   public Boolean getBooleanValue() {
     return booleanValue;
   }

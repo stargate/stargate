@@ -978,7 +978,7 @@ public class DocumentService {
       List<String> path,
       Boolean recurse,
       String documentKey)
-      throws ExecutionException, InterruptedException, UnauthorizedException {
+      throws UnauthorizedException {
     StringBuilder pathStr = new StringBuilder();
     List<BuiltCondition> predicates = new ArrayList<>();
 
@@ -1047,7 +1047,7 @@ public class DocumentService {
       SingleFilterCondition singleFilter = (SingleFilterCondition) filter;
       FilterOp queryOp = singleFilter.getFilterOp();
       String queryValueField = singleFilter.getValueColumnName();
-      Object queryValue = singleFilter.getValue();
+      Object queryValue = singleFilter.getValue(db.treatBooleansAsNumeric());
       if (queryOp != FilterOp.EXISTS) {
         predicates.add(BuiltCondition.of(queryValueField, queryOp.predicate, queryValue));
       }

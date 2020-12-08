@@ -35,7 +35,7 @@ public @interface StargateSpec {
 
   /**
    * Defines the name of a method (static or instance depending on the target of this annotation)
-   * that will be called one parameter of type {@link StargateParameters.Builder} before starting
+   * that will be called on parameter of type {@link StargateParameters.Builder} before starting
    * Stargate nodes.
    *
    * @return method name
