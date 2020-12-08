@@ -350,9 +350,15 @@ public class DsePersistence
     @Override
     protected void loginInternally(io.stargate.db.AuthenticatedUser user) {
       try {
-        // For now, we're blocking as the login() API is synchronous. If this is a problem, we may
-        // have to make said API asynchronous, but it makes things a tad more complex.
-        clientState.login(new AuthenticatedUser(user.name())).blockingGet();
+        if (user.isFromExternalAuth()
+            || Boolean.parseBoolean(
+                System.getProperty("stargate.cql_use_transitional_auth", "false"))) {
+          clientState.login(AuthenticatedUser.ANONYMOUS_USER);
+        } else {
+          // For now, we're blocking as the login() API is synchronous. If this is a problem, we may
+          // have to make said API asynchronous, but it makes things a tad more complex.
+          clientState.login(new AuthenticatedUser(user.name())).blockingGet();
+        }
       } catch (AuthenticationException e) {
         throw new org.apache.cassandra.stargate.exceptions.AuthenticationException(e);
       }
@@ -371,6 +377,8 @@ public class DsePersistence
             new QueryState(
                 ClientState.forExternalCalls(AuthenticatedUser.ANONYMOUS_USER),
                 UserRolesAndPermissions.SYSTEM));
+      } else if (clientState.getUser().isAnonymous()) {
+        return Single.just(new QueryState(clientState, UserRolesAndPermissions.SYSTEM));
       } else {
         return DatabaseDescriptor.getAuthManager()
             .getUserRolesAndPermissions(
