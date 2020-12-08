@@ -26,17 +26,17 @@ public interface AuthenticatedUser {
   @Nullable
   String token();
 
-  boolean usesTransitionalAuth();
+  boolean isFromExternalAuth();
 
   static AuthenticatedUser of(String userName) {
-    return ImmutableAuthenticatedUser.builder().name(userName).usesTransitionalAuth(false).build();
+    return ImmutableAuthenticatedUser.builder().name(userName).isFromExternalAuth(false).build();
   }
 
   static AuthenticatedUser of(String userName, String token) {
     return ImmutableAuthenticatedUser.builder()
         .name(userName)
         .token(token)
-        .usesTransitionalAuth(false)
+        .isFromExternalAuth(false)
         .build();
   }
 
@@ -44,7 +44,7 @@ public interface AuthenticatedUser {
     return ImmutableAuthenticatedUser.builder()
         .name(userName)
         .token(token)
-        .usesTransitionalAuth(useTransitionalAuth)
+        .isFromExternalAuth(useTransitionalAuth)
         .build();
   }
 }
