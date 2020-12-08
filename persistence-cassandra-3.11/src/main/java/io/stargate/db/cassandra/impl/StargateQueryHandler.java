@@ -23,6 +23,7 @@ import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -266,7 +267,7 @@ public class StargateQueryHandler implements QueryHandler {
           keyspace);
 
       try {
-        authorization.authorizeDataRead(authToken, keyspace, null);
+        authorization.authorizeSchemaRead(authToken, Collections.singletonList(keyspace), null);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("No SELECT permission on <keyspace %s>", keyspace));
@@ -528,7 +529,7 @@ public class StargateQueryHandler implements QueryHandler {
 
   private String getKeyspace(Object stmt) {
     try {
-      Field f = stmt.getClass().getSuperclass().getDeclaredField("keyspace");
+      Field f = stmt.getClass().getDeclaredField("keyspace");
       f.setAccessible(true);
       return (String) f.get(stmt);
     } catch (Exception e) {

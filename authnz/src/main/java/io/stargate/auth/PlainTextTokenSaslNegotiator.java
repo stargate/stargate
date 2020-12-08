@@ -66,7 +66,8 @@ public abstract class PlainTextTokenSaslNegotiator implements SaslNegotiator {
   @Override
   public AuthenticatedUser getAuthenticatedUser() throws AuthenticationException {
     if (storedCredentials != null) {
-      return AuthenticatedUser.of(storedCredentials.getRoleName(), storedCredentials.getPassword());
+      return AuthenticatedUser.of(
+          storedCredentials.getRoleName(), storedCredentials.getPassword(), true);
     } else {
       return wrapped.getAuthenticatedUser();
     }

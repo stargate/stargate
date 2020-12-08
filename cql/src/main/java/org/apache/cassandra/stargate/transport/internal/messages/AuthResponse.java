@@ -72,7 +72,11 @@ public class AuthResponse extends Message.Request {
       byte[] challenge = negotiator.evaluateResponse(token);
       if (negotiator.isComplete()) {
         AuthenticatedUser authenticatedUser = negotiator.getAuthenticatedUser();
-        persistenceConnection().login(authenticatedUser);
+        if (!authenticatedUser.usesTransitionalAuth()
+            && Boolean.parseBoolean(
+                System.getProperty("stargate.cql_use_transitional_auth", "false"))) {
+          persistenceConnection().login(authenticatedUser);
+        }
 
         if (authenticatedUser.token() != null) {
           ((ServerConnection) connection).clientInfo().setAuthToken(authenticatedUser.token());
