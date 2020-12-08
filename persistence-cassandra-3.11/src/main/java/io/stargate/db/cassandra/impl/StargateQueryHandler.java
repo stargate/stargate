@@ -23,7 +23,6 @@ import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -259,22 +258,8 @@ public class StargateQueryHandler implements QueryHandler {
     } else if (statement instanceof AuthenticationStatement) {
       authorizeAuthenticationStatement(statement, authToken, authorization);
     } else if (statement instanceof UseStatement) {
-      UseStatement castStatement = (UseStatement) statement;
-      String keyspace = getKeyspace(castStatement);
-      logger.debug(
-          "preparing to authorize statement of type {} on {}",
-          castStatement.getClass().toString(),
-          keyspace);
-
-      try {
-        authorization.authorizeSchemaRead(authToken, Collections.singletonList(keyspace), null);
-      } catch (io.stargate.auth.UnauthorizedException e) {
-        throw new UnauthorizedException(
-            String.format("No SELECT permission on <keyspace %s>", keyspace));
-      }
-
-      logger.debug(
-          "authorized statement of type {} on {}", castStatement.getClass().toString(), keyspace);
+      // NOOP on UseStatement since it doesn't require authorization
+      logger.debug("Skipping auth on UseStatement since it's not required");
     } else if (statement instanceof BatchStatement) {
       BatchStatement castStatement = (BatchStatement) statement;
       List<ModificationStatement> statements = castStatement.getStatements();
