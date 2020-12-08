@@ -38,16 +38,30 @@ import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.statements.AlterKeyspaceStatement;
 import org.apache.cassandra.cql3.statements.AlterRoleStatement;
 import org.apache.cassandra.cql3.statements.AlterTableStatement;
+import org.apache.cassandra.cql3.statements.AlterTypeStatement;
+import org.apache.cassandra.cql3.statements.AlterViewStatement;
 import org.apache.cassandra.cql3.statements.AuthenticationStatement;
 import org.apache.cassandra.cql3.statements.AuthorizationStatement;
 import org.apache.cassandra.cql3.statements.BatchStatement;
+import org.apache.cassandra.cql3.statements.CreateAggregateStatement;
+import org.apache.cassandra.cql3.statements.CreateFunctionStatement;
+import org.apache.cassandra.cql3.statements.CreateIndexStatement;
 import org.apache.cassandra.cql3.statements.CreateKeyspaceStatement;
 import org.apache.cassandra.cql3.statements.CreateRoleStatement;
 import org.apache.cassandra.cql3.statements.CreateTableStatement;
+import org.apache.cassandra.cql3.statements.CreateTriggerStatement;
+import org.apache.cassandra.cql3.statements.CreateTypeStatement;
+import org.apache.cassandra.cql3.statements.CreateViewStatement;
 import org.apache.cassandra.cql3.statements.DeleteStatement;
+import org.apache.cassandra.cql3.statements.DropAggregateStatement;
+import org.apache.cassandra.cql3.statements.DropFunctionStatement;
+import org.apache.cassandra.cql3.statements.DropIndexStatement;
 import org.apache.cassandra.cql3.statements.DropKeyspaceStatement;
 import org.apache.cassandra.cql3.statements.DropRoleStatement;
 import org.apache.cassandra.cql3.statements.DropTableStatement;
+import org.apache.cassandra.cql3.statements.DropTriggerStatement;
+import org.apache.cassandra.cql3.statements.DropTypeStatement;
+import org.apache.cassandra.cql3.statements.DropViewStatement;
 import org.apache.cassandra.cql3.statements.GrantPermissionsStatement;
 import org.apache.cassandra.cql3.statements.ListPermissionsStatement;
 import org.apache.cassandra.cql3.statements.ListRolesStatement;
@@ -338,6 +352,55 @@ public class StargateQueryHandler implements QueryHandler {
       scope = Scope.ALTER;
       keyspaceName = castStatement.keyspace();
       tableName = null;
+    } else if (statement instanceof AlterTypeStatement) {
+      scope = Scope.ALTER;
+      keyspaceName = castStatement.keyspace();
+    } else if (statement instanceof AlterViewStatement) {
+      scope = Scope.ALTER;
+      keyspaceName = castStatement.keyspace();
+      tableName = castStatement.columnFamily();
+    } else if (statement instanceof CreateAggregateStatement) {
+      scope = Scope.CREATE;
+      keyspaceName = castStatement.keyspace();
+    } else if (statement instanceof CreateFunctionStatement) {
+      scope = Scope.CREATE;
+      keyspaceName = castStatement.keyspace();
+    } else if (statement instanceof CreateIndexStatement) {
+      scope = Scope.CREATE;
+      keyspaceName = castStatement.keyspace();
+      tableName = castStatement.columnFamily();
+    } else if (statement instanceof CreateTriggerStatement) {
+      scope = Scope.CREATE;
+      keyspaceName = castStatement.keyspace();
+      tableName = castStatement.columnFamily();
+    } else if (statement instanceof CreateTypeStatement) {
+      scope = Scope.CREATE;
+      keyspaceName = castStatement.keyspace();
+    } else if (statement instanceof CreateViewStatement) {
+      scope = Scope.CREATE;
+      keyspaceName = castStatement.keyspace();
+      tableName = castStatement.columnFamily();
+    } else if (statement instanceof DropAggregateStatement) {
+      scope = Scope.DELETE;
+      keyspaceName = castStatement.keyspace();
+    } else if (statement instanceof DropFunctionStatement) {
+      scope = Scope.DELETE;
+      keyspaceName = castStatement.keyspace();
+    } else if (statement instanceof DropIndexStatement) {
+      scope = Scope.DELETE;
+      keyspaceName = castStatement.keyspace();
+      tableName = castStatement.columnFamily();
+    } else if (statement instanceof DropTriggerStatement) {
+      scope = Scope.DELETE;
+      keyspaceName = castStatement.keyspace();
+      tableName = castStatement.columnFamily();
+    } else if (statement instanceof DropTypeStatement) {
+      scope = Scope.DELETE;
+      keyspaceName = castStatement.keyspace();
+    } else if (statement instanceof DropViewStatement) {
+      scope = Scope.DELETE;
+      keyspaceName = castStatement.keyspace();
+      tableName = castStatement.columnFamily();
     }
 
     logger.debug(

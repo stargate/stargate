@@ -55,10 +55,24 @@ import org.apache.cassandra.cql3.statements.TruncateStatement;
 import org.apache.cassandra.cql3.statements.UseStatement;
 import org.apache.cassandra.cql3.statements.schema.AlterKeyspaceStatement;
 import org.apache.cassandra.cql3.statements.schema.AlterTableStatement;
+import org.apache.cassandra.cql3.statements.schema.AlterTypeStatement;
+import org.apache.cassandra.cql3.statements.schema.AlterViewStatement;
+import org.apache.cassandra.cql3.statements.schema.CreateAggregateStatement;
+import org.apache.cassandra.cql3.statements.schema.CreateFunctionStatement;
+import org.apache.cassandra.cql3.statements.schema.CreateIndexStatement;
 import org.apache.cassandra.cql3.statements.schema.CreateKeyspaceStatement;
 import org.apache.cassandra.cql3.statements.schema.CreateTableStatement;
+import org.apache.cassandra.cql3.statements.schema.CreateTriggerStatement;
+import org.apache.cassandra.cql3.statements.schema.CreateTypeStatement;
+import org.apache.cassandra.cql3.statements.schema.CreateViewStatement;
+import org.apache.cassandra.cql3.statements.schema.DropAggregateStatement;
+import org.apache.cassandra.cql3.statements.schema.DropFunctionStatement;
+import org.apache.cassandra.cql3.statements.schema.DropIndexStatement;
 import org.apache.cassandra.cql3.statements.schema.DropKeyspaceStatement;
 import org.apache.cassandra.cql3.statements.schema.DropTableStatement;
+import org.apache.cassandra.cql3.statements.schema.DropTriggerStatement;
+import org.apache.cassandra.cql3.statements.schema.DropTypeStatement;
+import org.apache.cassandra.cql3.statements.schema.DropViewStatement;
 import org.apache.cassandra.exceptions.RequestExecutionException;
 import org.apache.cassandra.exceptions.RequestValidationException;
 import org.apache.cassandra.exceptions.UnauthorizedException;
@@ -480,6 +494,69 @@ public class StargateQueryHandler implements QueryHandler {
 
       AlterKeyspaceStatement stmt = (AlterKeyspaceStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
+    } else if (statement instanceof AlterTypeStatement) {
+      scope = Scope.ALTER;
+      AlterTypeStatement stmt = (AlterTypeStatement) statement;
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
+    } else if (statement instanceof AlterViewStatement) {
+      scope = Scope.ALTER;
+      AlterViewStatement stmt = (AlterViewStatement) statement;
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
+      tableName = getTableName(stmt);
+    } else if (statement instanceof CreateAggregateStatement) {
+      scope = Scope.CREATE;
+      CreateAggregateStatement stmt = (CreateAggregateStatement) statement;
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
+    } else if (statement instanceof CreateFunctionStatement) {
+      scope = Scope.CREATE;
+      CreateFunctionStatement stmt = (CreateFunctionStatement) statement;
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
+    } else if (statement instanceof CreateIndexStatement) {
+      scope = Scope.CREATE;
+      CreateIndexStatement stmt = (CreateIndexStatement) statement;
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
+      tableName = getTableName(stmt);
+    } else if (statement instanceof CreateTriggerStatement) {
+      scope = Scope.CREATE;
+      CreateTriggerStatement stmt = (CreateTriggerStatement) statement;
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
+      tableName = getTableName(stmt);
+    } else if (statement instanceof CreateTypeStatement) {
+      scope = Scope.CREATE;
+      CreateTypeStatement stmt = (CreateTypeStatement) statement;
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
+    } else if (statement instanceof CreateViewStatement) {
+      scope = Scope.CREATE;
+      CreateViewStatement stmt = (CreateViewStatement) statement;
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
+      tableName = getTableName(stmt);
+    } else if (statement instanceof DropAggregateStatement) {
+      scope = Scope.DELETE;
+      DropAggregateStatement stmt = (DropAggregateStatement) statement;
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
+    } else if (statement instanceof DropFunctionStatement) {
+      scope = Scope.DELETE;
+      DropFunctionStatement stmt = (DropFunctionStatement) statement;
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
+    } else if (statement instanceof DropIndexStatement) {
+      scope = Scope.DELETE;
+      DropIndexStatement stmt = (DropIndexStatement) statement;
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
+      tableName = getTableName(stmt);
+    } else if (statement instanceof DropTriggerStatement) {
+      scope = Scope.DELETE;
+      DropTriggerStatement stmt = (DropTriggerStatement) statement;
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
+      tableName = getTableName(stmt);
+    } else if (statement instanceof DropTypeStatement) {
+      scope = Scope.DELETE;
+      DropTypeStatement stmt = (DropTypeStatement) statement;
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
+    } else if (statement instanceof DropViewStatement) {
+      scope = Scope.DELETE;
+      DropViewStatement stmt = (DropViewStatement) statement;
+      keyspaceName = getKeyspaceNameFromSuper(stmt);
+      tableName = getTableName(stmt);
     }
 
     logger.debug(
@@ -507,17 +584,6 @@ public class StargateQueryHandler implements QueryHandler {
   private String getTableName(Object stmt) {
     try {
       Field f = stmt.getClass().getDeclaredField("tableName");
-      f.setAccessible(true);
-      return (String) f.get(stmt);
-    } catch (Exception e) {
-      logger.error("Unable to get private field", e);
-      throw new RuntimeException("Unable to get private field", e);
-    }
-  }
-
-  private String getKeyspace(Object stmt) {
-    try {
-      Field f = stmt.getClass().getDeclaredField("keyspace");
       f.setAccessible(true);
       return (String) f.get(stmt);
     } catch (Exception e) {
