@@ -1,6 +1,7 @@
 package io.stargate.web.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.datastax.oss.driver.api.core.data.CqlDuration;
@@ -206,6 +207,165 @@ public class ConvertersTest {
           ADDRESS_UDT,
           "\"{street: '1600 Pennsylvania Avenue NW', zip: 20500}\"",
           ADDRESS_UDT.create("1600 Pennsylvania Avenue NW", 20500)),
+    };
+  }
+
+  @ParameterizedTest
+  @MethodSource("toCqlErrorSamples")
+  @DisplayName("Should fail to coerce invalid JSON value to CQL")
+  public void toCqlValueTest(ColumnType type, String json, String expectedError) throws Exception {
+    assertThatThrownBy(
+            () -> Converters.toCqlValue(type, OBJECT_MAPPER.readValue(json, Object.class)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(expectedError);
+  }
+
+  private static Arguments[] toCqlErrorSamples() {
+    return new Arguments[] {
+      arguments(Type.Text, "1", "Invalid Text value '1': expected a string"),
+      arguments(Type.Varchar, "[]", "Invalid Varchar value '[]': expected a string"),
+      arguments(Type.Ascii, "true", "Invalid Ascii value 'true': expected a string"),
+      arguments(Type.Boolean, "1", "Invalid Boolean value '1': expected a boolean or a string"),
+      arguments(Type.Boolean, "\"a\"", "Invalid Boolean value 'a': cannot parse"),
+      arguments(
+          Type.Tinyint, "true", "Invalid Tinyint value 'true': expected an integer or a string"),
+      arguments(Type.Tinyint, "128", "Invalid Tinyint value '128': out of range"),
+      arguments(Type.Tinyint, "\"a\"", "Invalid Tinyint value 'a': cannot parse"),
+      arguments(
+          Type.Smallint, "[]", "Invalid Smallint value '[]': expected an integer or a string"),
+      arguments(Type.Smallint, "32768", "Invalid Smallint value '32768': out of range"),
+      arguments(Type.Smallint, "\"a\"", "Invalid Smallint value 'a': cannot parse"),
+      arguments(Type.Int, "{}", "Invalid Int value '{}': expected an integer or a string"),
+      arguments(Type.Int, "2147483648", "Invalid Int value '2147483648': out of range"),
+      arguments(Type.Int, "\"a\"", "Invalid Int value 'a': cannot parse"),
+      arguments(Type.Bigint, "{}", "Invalid Bigint value '{}': expected an integer or a string"),
+      arguments(
+          Type.Bigint,
+          "9223372036854775808",
+          "Invalid Bigint value '9223372036854775808': out of range"),
+      arguments(Type.Bigint, "\"a\"", "Invalid Bigint value 'a': cannot parse"),
+      arguments(Type.Counter, "{}", "Invalid Counter value '{}': expected an integer or a string"),
+      arguments(
+          Type.Counter,
+          "9223372036854775808",
+          "Invalid Counter value '9223372036854775808': out of range"),
+      arguments(Type.Counter, "\"a\"", "Invalid Counter value 'a': cannot parse"),
+      arguments(
+          Type.Varint, "true", "Invalid Varint value 'true': expected an integer or a string"),
+      arguments(Type.Varint, "\"a\"", "Invalid Varint value 'a': cannot parse"),
+      arguments(Type.Float, "true", "Invalid Float value 'true': expected a number or a string"),
+      arguments(Type.Float, "\"a\"", "Invalid Float value 'a': cannot parse"),
+      arguments(Type.Double, "true", "Invalid Double value 'true': expected a number or a string"),
+      arguments(Type.Double, "\"a\"", "Invalid Double value 'a': cannot parse"),
+      arguments(
+          Type.Decimal, "true", "Invalid Decimal value 'true': expected a number or a string"),
+      arguments(Type.Decimal, "\"a\"", "Invalid Decimal value 'a': cannot parse"),
+      arguments(Type.Uuid, "1", "Invalid Uuid value '1': expected a string"),
+      arguments(Type.Uuid, "\"a\"", "Invalid Uuid value 'a': cannot parse"),
+      arguments(Type.Timeuuid, "1", "Invalid Timeuuid value '1': expected a string"),
+      arguments(Type.Timeuuid, "\"a\"", "Invalid Timeuuid value 'a': cannot parse"),
+      arguments(Type.Blob, "1", "Invalid Blob value '1': expected a string"),
+      arguments(Type.Blob, "\"a\"", "Invalid Blob value 'a': cannot parse"),
+      arguments(Type.Inet, "1", "Invalid Inet value '1': expected a string"),
+      arguments(
+          Type.Inet, "\"a\"", "Invalid Inet value a: nodename nor servname provided, or not known"),
+      arguments(Type.Date, "true", "Invalid Date value 'true': expected an integer or a string"),
+      arguments(Type.Date, "\"a\"", "Invalid Date value: Text 'a' could not be parsed at index 0"),
+      arguments(Type.Time, "true", "Invalid Time value 'true': expected an integer or a string"),
+      arguments(
+          Type.Time,
+          "\"11:20Z\"",
+          "Invalid Time value: Text '11:20Z' could not be parsed, unparsed text found at index 5"),
+      arguments(
+          Type.Timestamp, "1.0", "Invalid Timestamp value '1.0': expected an integer or a string"),
+      arguments(
+          Type.Timestamp,
+          "\"a\"",
+          "Invalid Timestamp value: Text 'a' could not be parsed at index 0"),
+      arguments(
+          Type.List.of(Type.Int), "1", "Invalid List value '1': expected a JSON array or a string"),
+      arguments(
+          Type.List.of(Type.Int),
+          "[\"a\"]",
+          "Invalid Int value 'a': cannot parse (at index 0 of List '[a]')"),
+      arguments(
+          Type.List.of(Type.Int),
+          "\"[1,2,3\"",
+          "Invalid List value '[1,2,3': at character 6 expecting ',' or ']' but got EOF"),
+      arguments(
+          Type.List.of(Type.Int),
+          "\"\"",
+          "Invalid List value '': at character 0 expecting '[' but got EOF"),
+      arguments(
+          Type.Set.of(Type.Int), "1", "Invalid Set value '1': expected a JSON array or a string"),
+      arguments(
+          Type.Set.of(Type.Int),
+          "[1, \"a\"]",
+          "Invalid Int value 'a': cannot parse (at index 1 of Set '[1, a]')"),
+      arguments(
+          Type.Set.of(Type.Int),
+          "\"[1]\"",
+          "Invalid Set value '[1]': at character 1 expecting '{' but got '1'"),
+      arguments(
+          Type.Map.of(Type.Int, Type.Text),
+          "1",
+          "Invalid Map value '1': expected a JSON array of key/value objects, or a string"),
+      arguments(
+          Type.Map.of(Type.Int, Type.Text),
+          "[1]",
+          "Invalid Map value '[1]': inner elements must be objects with two fields 'key' and 'value'"),
+      arguments(
+          Type.Map.of(Type.Int, Type.Text),
+          "[{\"key\": 1, \"value\": 1}]",
+          "Invalid Text value '1': expected a string (value at index 0 of Map '[{key=1, value=1}]')"),
+      arguments(
+          Type.Map.of(Type.Int, Type.Text),
+          "[{\"key\": \"a\", \"value\": \"a\"}]",
+          "Invalid Int value 'a': cannot parse (key at index 0 of Map '[{key=a, value=a}]')"),
+      arguments(
+          Type.Map.of(Type.Int, Type.Text),
+          "\"{1:a, 2}\"",
+          "Invalid map value '{1:a, 2}': at character 7 expecting ':' but got '}'"),
+      arguments(
+          Type.Map.of(Type.Int, Type.Text),
+          "\"\"",
+          "Invalid Map value '': at character 0 expecting '{' but got EOF"),
+      arguments(INT_TEXT_TUPLE, "1", "Invalid Tuple value '1': expected a JSON array or a string"),
+      arguments(
+          INT_TEXT_TUPLE,
+          "[\"a\"]",
+          "Invalid Int value 'a': cannot parse (field at index 0 of Tuple '[a]')"),
+      arguments(
+          INT_TEXT_TUPLE,
+          "\"(1,a\"",
+          "Invalid tuple value '(1,a': at field 1 (character 4) expecting ',' or ')', but got EOF"),
+      arguments(
+          INT_TEXT_TUPLE,
+          "\"\"",
+          "Invalid Tuple value '': at character 0 expecting '(' but got EOF"),
+      arguments(ADDRESS_UDT, "[]", "Invalid UDT value '[]': expected a JSON object or a string"),
+      arguments(
+          ADDRESS_UDT,
+          "{\"street\": 1, \"zip\": 1}",
+          "Invalid Text value '1': expected a string (field 'street' of UDT '{street=1, zip=1}')"),
+      arguments(
+          ADDRESS_UDT,
+          "{\"name\": \"wrong\"}",
+          "Invalid UDT value '{name=wrong}': unknown field name \"name\""),
+      arguments(
+          ADDRESS_UDT,
+          "\"{street}\"",
+          "Invalid UDT value '{street}': at field street (character 7) expecting ':', but got '}'"),
+      arguments(
+          ADDRESS_UDT,
+          "\"{name: 'wrong'}\"",
+          "Invalid UDT value '{name: 'wrong'}': unknown field name at character 5: \"name\""),
+      arguments(
+          ADDRESS_UDT,
+          "\"{\"",
+          "Invalid UDT value '{': at character 1 expecting CQL identifier or '}', got EOF"),
+      arguments(
+          ADDRESS_UDT, "\"\"", "Invalid UDT value '': at character 0 expecting '{' but got EOF"),
     };
   }
 
