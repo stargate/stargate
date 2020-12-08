@@ -73,6 +73,7 @@ import org.apache.cassandra.transport.messages.StartupMessage;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.apache.cassandra.utils.MD5Digest;
+import org.apache.tinkerpop.gremlin.structure.T;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -339,7 +340,13 @@ public class CassandraPersistence
     @Override
     protected void loginInternally(io.stargate.db.AuthenticatedUser user) {
       try {
-        clientState.login(new AuthenticatedUser(user.name()));
+        if (user.isFromExternalAuth()
+            || Boolean.parseBoolean(
+                System.getProperty("stargate.cql_use_transitional_auth", "false"))) {
+          clientState.login(AuthenticatedUser.ANONYMOUS_USER);
+        } else {
+          clientState.login(new AuthenticatedUser(user.name()));
+        }
       } catch (AuthenticationException e) {
         throw new org.apache.cassandra.stargate.exceptions.AuthenticationException(e);
       }
