@@ -22,17 +22,12 @@ import java.nio.ByteBuffer;
 
 public class QuerySerializer {
   public static ByteBuffer serializeQuery(BoundDMLQuery boundDMLQuery) {
-    MutationEvent mutationEvent = toMutationEvent(boundDMLQuery);
+    toMutationEvent(boundDMLQuery);
 
     return ByteBuffer.allocate(1);
   }
 
   private static MutationEvent toMutationEvent(BoundDMLQuery boundDMLQuery) {
-    if (boundDMLQuery.rowsUpdated().isRanges()) {
-      throw new UnsupportedOperationException("ranges are not yet supported in CDC");
-      // https://github.com/stargate/stargate/issues/492
-    }
-
     return new MutationEventBuilder().fromBoundDMLQuery(boundDMLQuery).build();
   }
 }

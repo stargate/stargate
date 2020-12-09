@@ -26,7 +26,7 @@ public class DefaultMutationEvent implements MutationEvent {
   private final OptionalInt ttl;
   private final OptionalLong timestamp;
   private final List<CellValue> partitionKeys;
-  private final List<Cell> clusteringKeys;
+  private final List<CellValue> clusteringKeys;
   private final MutationEventType mutationEventType;
   private final List<Cell> cells;
 
@@ -35,7 +35,7 @@ public class DefaultMutationEvent implements MutationEvent {
       OptionalInt ttl,
       OptionalLong timestamp,
       List<CellValue> partitionKeys,
-      List<Cell> clusteringKeys,
+      List<CellValue> clusteringKeys,
       List<Cell> cells,
       MutationEventType mutationEventType) {
     this.table = table;
@@ -68,7 +68,7 @@ public class DefaultMutationEvent implements MutationEvent {
   }
 
   @Override
-  public List<Cell> getClusteringKeys() {
+  public List<CellValue> getClusteringKeys() {
     return clusteringKeys;
   }
 

@@ -33,7 +33,7 @@ public interface MutationEvent {
   List<CellValue> getPartitionKeys();
 
   /** Gets the clustering keys of this event */
-  List<Cell> getClusteringKeys();
+  List<CellValue> getClusteringKeys();
 
   /** It will be non empty for {@link MutationEventType#UPDATE} */
   List<Cell> getCells();

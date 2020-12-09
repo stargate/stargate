@@ -30,7 +30,7 @@ public class MutationEventBuilder {
   private OptionalLong timestamp;
   private Table table;
   private List<CellValue> partitionKeys;
-  private List<Cell> clusteringKeys;
+  private List<CellValue> clusteringKeys;
   private MutationEventType mutationEventType;
   private List<Cell> cells;
 
@@ -54,8 +54,11 @@ public class MutationEventBuilder {
     return this;
   }
 
-  public MutationEventBuilder withClusteringKeys(Collection<Modification> clusteringKeys) {
-    this.clusteringKeys = toCell(clusteringKeys);
+  public MutationEventBuilder withClusteringKeys(Collection<PrimaryKey> clusteringKeys) {
+    this.clusteringKeys =
+        toCellValue(clusteringKeys).stream()
+            .filter(v -> v.getColumn().isClusteringKey())
+            .collect(Collectors.toList());
     return this;
   }
 
@@ -85,7 +88,7 @@ public class MutationEventBuilder {
         .collect(Collectors.toList());
   }
 
-  private List<CellValue> toCellValue(Set<PartitionKey> partitionKeys) {
+  private List<CellValue> toCellValue(Collection<? extends SchemaKey> partitionKeys) {
     Stream<TypedValue> values =
         partitionKeys.stream().map(SchemaKey::allValues).flatMap(Collection::stream);
     Stream<Column> columns =
@@ -119,10 +122,10 @@ public class MutationEventBuilder {
   };
 
   public MutationEventBuilder fromBoundDMLQuery(BoundDMLQuery boundDMLQuery) {
-    List<Modification> clusteringKeys =
-        boundDMLQuery.modifications().stream()
-            .filter(c -> c.entity().getColumn().isClusteringKey())
-            .collect(Collectors.toList());
+    if (boundDMLQuery.rowsUpdated().isRanges()) {
+      throw new UnsupportedOperationException("ranges are not yet supported in CDC");
+      // https://github.com/stargate/stargate/issues/492
+    }
 
     List<Modification> nonPkCkColumns =
         boundDMLQuery.modifications().stream()
@@ -132,8 +135,8 @@ public class MutationEventBuilder {
     withTTL(boundDMLQuery.ttl())
         .withTimestamp(boundDMLQuery.timestamp())
         .withTable(boundDMLQuery.table())
-        .withPartitionKeys(boundDMLQuery.rowsUpdated().partitionKeys())
-        .withClusteringKeys(clusteringKeys)
+        .withPartitionKeys(boundDMLQuery.rowsUpdated().asKeys().partitionKeys())
+        .withClusteringKeys(boundDMLQuery.rowsUpdated().asKeys().primaryKeys())
         .withMutationEventType(toType(boundDMLQuery))
         .withCells(nonPkCkColumns)
         .build();
