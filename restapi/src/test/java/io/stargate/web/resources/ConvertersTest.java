@@ -267,8 +267,7 @@ public class ConvertersTest {
       arguments(Type.Blob, "1", "Invalid Blob value '1': expected a string"),
       arguments(Type.Blob, "\"a\"", "Invalid Blob value 'a': cannot parse"),
       arguments(Type.Inet, "1", "Invalid Inet value '1': expected a string"),
-      arguments(
-          Type.Inet, "\"a\"", "Invalid Inet value a: nodename nor servname provided, or not known"),
+      arguments(Type.Inet, "\"a\"", "Invalid Inet value a"),
       arguments(Type.Date, "true", "Invalid Date value 'true': expected an integer or a string"),
       arguments(Type.Date, "\"a\"", "Invalid Date value: Text 'a' could not be parsed at index 0"),
       arguments(Type.Time, "true", "Invalid Time value 'true': expected an integer or a string"),
