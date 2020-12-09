@@ -167,10 +167,12 @@ public class ChecksummingTransformer implements FrameBodyTransformer {
     this.compressor = compressor;
   }
 
+  @Override
   public EnumSet<Frame.Header.Flag> getOutboundHeaderFlags() {
     return null == compressor ? CHECKSUMS_ONLY : CHECKSUMS_AND_COMPRESSION;
   }
 
+  @Override
   public ByteBuf transformOutbound(ByteBuf inputBuf) {
     // be pessimistic about life and assume the compressed output will be the same size as the input
     // bytes
@@ -254,6 +256,7 @@ public class ChecksummingTransformer implements FrameBodyTransformer {
     return ret;
   }
 
+  @Override
   public ByteBuf transformInbound(ByteBuf inputBuf, EnumSet<Frame.Header.Flag> flags) {
     int numChunks = CBUtil.readUnsignedShort(inputBuf);
 
@@ -358,6 +361,6 @@ public class ChecksummingTransformer implements FrameBodyTransformer {
     dest[offset] = (byte) (val >>> 24);
     dest[offset + 1] = (byte) (val >>> 16);
     dest[offset + 2] = (byte) (val >>> 8);
-    dest[offset + 3] = (byte) (val);
+    dest[offset + 3] = (byte) val;
   }
 }

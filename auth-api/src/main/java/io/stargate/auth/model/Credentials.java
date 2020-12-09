@@ -59,7 +59,7 @@ public class Credentials {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof Credentials)) {
       return false;
     }
     Credentials that = (Credentials) o;

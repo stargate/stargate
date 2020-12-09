@@ -22,6 +22,7 @@ import java.util.Objects;
 
 /** A description of an error state */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@SuppressWarnings("JavaLangClash")
 public class Error {
   private String description = null;
   private String internalCode = null;
@@ -90,7 +91,7 @@ public class Error {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof Error)) {
       return false;
     }
     Error error = (Error) o;

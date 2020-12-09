@@ -39,7 +39,6 @@ import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.Version;
-import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 import io.netty.util.internal.logging.Slf4JLoggerFactory;
@@ -83,15 +82,6 @@ public class Server implements CassandraDaemon.Server {
 
   private final ConnectionTracker connectionTracker = new ConnectionTracker();
 
-  private final Connection.Factory connectionFactory =
-      new Connection.Factory() {
-        public Connection newConnection(
-            Channel channel, ProxyInfo proxyInfo, ProtocolVersion version) {
-          return new ServerConnection(
-              channel, proxyInfo, version, connectionTracker, persistence, authentication);
-        }
-      };
-
   public final InetSocketAddress socket;
   public final Persistence persistence;
   public final AuthenticationService authentication;
@@ -117,14 +107,17 @@ public class Server implements CassandraDaemon.Server {
     CBUtil.setUnsetValue(persistence.unsetValue());
   }
 
+  @Override
   public void stop() {
     if (isRunning.compareAndSet(true, false)) close();
   }
 
+  @Override
   public boolean isRunning() {
     return isRunning.get();
   }
 
+  @Override
   public synchronized void start() {
     if (isRunning()) return;
 
@@ -173,6 +166,11 @@ public class Server implements CassandraDaemon.Server {
     isRunning.set(true);
   }
 
+  private Connection newConnection(Channel channel, ProxyInfo proxyInfo, ProtocolVersion version) {
+    return new ServerConnection(
+        channel, proxyInfo, version, connectionTracker, persistence, authentication);
+  }
+
   public int countConnectedClients() {
     return connectionTracker.countConnectedClients();
   }
@@ -212,7 +210,6 @@ public class Server implements CassandraDaemon.Server {
     private final Persistence persistence;
     private final AuthenticationService authentication;
     private EventLoopGroup workerGroup;
-    private EventExecutor eventExecutorGroup;
     private boolean useSSL = false;
     private InetAddress hostAddr;
     private int port = -1;
@@ -272,6 +269,7 @@ public class Server implements CassandraDaemon.Server {
         groups.put(type, new DefaultChannelGroup(type.toString(), GlobalEventExecutor.INSTANCE));
     }
 
+    @Override
     public void addConnection(Channel ch, Connection connection) {
       allChannels.add(ch);
 
@@ -284,6 +282,7 @@ public class Server implements CassandraDaemon.Server {
       groups.get(type).add(ch);
     }
 
+    @SuppressWarnings("FutureReturnValueIgnored")
     public void send(Event event) {
       groups.get(event.type).writeAndFlush(new EventMessage(event));
     }
@@ -414,6 +413,7 @@ public class Server implements CassandraDaemon.Server {
       this.server = server;
     }
 
+    @Override
     protected void initChannel(Channel channel) throws Exception {
       ChannelPipeline pipeline = channel.pipeline();
 
@@ -430,6 +430,7 @@ public class Server implements CassandraDaemon.Server {
             "idleStateHandler",
             new IdleStateHandler(false, 0, 0, idleTimeout, TimeUnit.MILLISECONDS) {
               @Override
+              @SuppressWarnings("FutureReturnValueIgnored")
               protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) {
                 logger.info(
                     "Closing client connection {} after timeout of {}ms",
@@ -446,7 +447,7 @@ public class Server implements CassandraDaemon.Server {
 
       // pipeline.addLast("debug", new LoggingHandler());
 
-      pipeline.addLast("frameDecoder", new Frame.Decoder(server.connectionFactory));
+      pipeline.addLast("frameDecoder", new Frame.Decoder(server::newConnection));
       pipeline.addLast("frameEncoder", frameEncoder);
 
       pipeline.addLast("inboundFrameTransformer", inboundFrameTransformer);
@@ -498,6 +499,7 @@ public class Server implements CassandraDaemon.Server {
       super(server, encryptionOptions);
     }
 
+    @Override
     protected void initChannel(final Channel channel) throws Exception {
       super.initChannel(channel);
       channel
@@ -537,6 +539,7 @@ public class Server implements CassandraDaemon.Server {
       super(server, encryptionOptions);
     }
 
+    @Override
     protected void initChannel(Channel channel) throws Exception {
       SslHandler sslHandler = createSslHandler(channel.alloc());
       super.initChannel(channel);
@@ -590,10 +593,18 @@ public class Server implements CassandraDaemon.Server {
       // then don't send the notification. This covers the case of rpc_address set to "localhost",
       // which is not useful to any driver and in fact may cauase serious problems to some drivers,
       // see CASSANDRA-10052
-      if (!endpoint.equals(FBUtilities.getBroadcastAddressAndPort())
+      if (!areEqual(endpoint, FBUtilities.getBroadcastAddressAndPort())
           && event.nodeAddress().equals(FBUtilities.getJustBroadcastNativeAddress())) return;
 
       send(event);
+    }
+
+    private boolean areEqual(
+        InetAddressAndPort endpoint1, org.apache.cassandra.locator.InetAddressAndPort endpoint2) {
+      return endpoint1 != null
+          && endpoint2 != null
+          && endpoint1.port == endpoint2.port
+          && endpoint1.address.equals(endpoint2.address);
     }
 
     private void send(Event event) {

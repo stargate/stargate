@@ -49,7 +49,6 @@ public final class ClientMetrics {
   private Meter authFailure;
 
   private AtomicInteger pausedConnections;
-  private Gauge<Integer> pausedConnectionsGauge;
   private Meter requestDiscarded;
 
   private ClientMetrics() {}
@@ -97,7 +96,7 @@ public final class ClientMetrics {
     authFailure = registerMeter("AuthFailure");
 
     pausedConnections = new AtomicInteger();
-    pausedConnectionsGauge = registerGauge("PausedConnections", pausedConnections::get);
+    registerGauge("PausedConnections", pausedConnections::get);
     requestDiscarded = registerMeter("RequestDiscarded");
 
     initialized = true;

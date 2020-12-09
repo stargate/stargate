@@ -343,7 +343,8 @@
             <source>1.8</source>
             <target>1.8</target>
             <compilerArgs combine.children="override">
-              <compilerArg>-XepAllErrorsAsWarnings</compilerArg>
+              <compilerArg>-Xep:MixedMutabilityReturnType:OFF</compilerArg>
+              <compilerArg>-Xep:ImmutableEnumChecker:OFF</compilerArg>
               <compilerArg>-XepExcludedPaths:.*/target/(?:generated-sources|generated-test-sources)/.*</compilerArg>
             </compilerArgs>
             <showWarnings>true</showWarnings>

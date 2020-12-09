@@ -38,7 +38,7 @@ public class TransportDescriptor {
     }
 
     public long toBytes(int val) {
-      return val * multiplier;
+      return (long) val * multiplier;
     }
   }
 

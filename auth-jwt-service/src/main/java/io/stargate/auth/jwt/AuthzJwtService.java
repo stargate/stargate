@@ -26,6 +26,7 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -219,7 +220,11 @@ public class AuthzJwtService implements AuthorizationService {
           "Valid JWT should contain 3 parts but provided only contains " + parts.length);
     }
 
-    String decodedPayload = new String(Base64.getUrlDecoder().decode(parts[1]));
+    String decodedPayload =
+        new String(
+            Base64.getUrlDecoder().decode(parts[1]),
+            // Per RFC-7519, JWTs are encoded from the UTF-8 representation of the JSON payload:
+            StandardCharsets.UTF_8);
     JSONObject payload = new JSONObject(decodedPayload);
     return payload.getJSONObject(CLAIMS_FIELD);
   }

@@ -169,7 +169,7 @@ public class AuthzJwtServiceTest {
     values.put("userid", "456");
     values.put("item_count", 2);
     values.put("last_update_timestamp", Instant.now());
-    Row row = createRow(SHOPPING_CART.columns(), values);
+    createRow(SHOPPING_CART.columns(), values);
     when(resultSet.withRowInspector(any())).thenReturn(resultSet);
     when(resultSet.rows()).thenReturn(Collections.emptyList());
 

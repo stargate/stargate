@@ -58,7 +58,7 @@ public class Secret {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof Secret)) {
       return false;
     }
     Secret secret = (Secret) o;

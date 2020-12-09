@@ -47,7 +47,7 @@ public class AuthTokenResponse {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof AuthTokenResponse)) {
       return false;
     }
     AuthTokenResponse authTokenResponse = (AuthTokenResponse) o;

@@ -53,7 +53,7 @@ public class StoredCredentials {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof StoredCredentials)) {
       return false;
     }
     StoredCredentials storedCredentials = (StoredCredentials) o;
