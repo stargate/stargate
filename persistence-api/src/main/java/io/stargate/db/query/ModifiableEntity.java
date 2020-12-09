@@ -2,6 +2,7 @@ package io.stargate.db.query;
 
 import static java.lang.String.format;
 
+import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.UserDefinedType;
 import java.util.Objects;
@@ -23,6 +24,10 @@ public abstract class ModifiableEntity {
 
   public Kind kind() {
     return kind;
+  }
+
+  public io.stargate.db.schema.Column getColumn() {
+    return column;
   }
 
   public abstract ColumnType type();

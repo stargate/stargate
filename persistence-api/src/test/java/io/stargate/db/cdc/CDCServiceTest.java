@@ -22,11 +22,11 @@ import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.times;
 
 import com.codahale.metrics.MetricRegistry;
+import io.stargate.db.cdc.api.MutationEvent;
 import io.stargate.db.cdc.config.CDCConfig;
 import io.stargate.db.schema.Table;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import org.apache.cassandra.stargate.db.MutationEvent;
 import org.apache.cassandra.stargate.exceptions.CDCWriteException;
 import org.junit.jupiter.api.Test;
 
@@ -125,7 +125,7 @@ public class CDCServiceTest {
   private MutationEvent mockMutationEvent() {
     MutationEvent mutationEvent = mock(MutationEvent.class);
     Table table = mock(Table.class);
-    when(mutationEvent.getTable()).thenReturn(table);
+    when(mutationEvent.table()).thenReturn(table);
     return mutationEvent;
   }
 }

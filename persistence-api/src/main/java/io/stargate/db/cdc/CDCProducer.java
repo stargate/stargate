@@ -15,8 +15,8 @@
  */
 package io.stargate.db.cdc;
 
+import io.stargate.db.cdc.api.MutationEvent;
 import java.util.concurrent.CompletableFuture;
-import org.apache.cassandra.stargate.db.MutationEvent;
 
 /** Represents a publisher of mutations events for Change Data Capture (CDC). */
 public interface CDCProducer {

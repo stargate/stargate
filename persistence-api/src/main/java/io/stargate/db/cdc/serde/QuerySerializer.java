@@ -15,11 +15,24 @@
  */
 package io.stargate.db.cdc.serde;
 
+import io.stargate.db.cdc.api.MutationEvent;
+import io.stargate.db.cdc.api.MutationEventBuilder;
 import io.stargate.db.query.BoundDMLQuery;
 import java.nio.ByteBuffer;
 
 public class QuerySerializer {
   public static ByteBuffer serializeQuery(BoundDMLQuery boundDMLQuery) {
+    MutationEvent mutationEvent = toMutationEvent(boundDMLQuery);
+
     return ByteBuffer.allocate(1);
+  }
+
+  private static MutationEvent toMutationEvent(BoundDMLQuery boundDMLQuery) {
+    if (boundDMLQuery.rowsUpdated().isRanges()) {
+      throw new UnsupportedOperationException("ranges are not yet supported in CDC");
+      // https://github.com/stargate/stargate/issues/492
+    }
+
+    return new MutationEventBuilder().fromBoundDMLQuery(boundDMLQuery).build();
   }
 }

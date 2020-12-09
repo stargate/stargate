@@ -13,11 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.cdc;
+package io.stargate.db.cdc.api;
 
-import io.stargate.db.cdc.api.MutationEvent;
-import java.util.concurrent.CompletableFuture;
-
-public interface CDCService extends AutoCloseable {
-  CompletableFuture<Void> publish(MutationEvent mutation);
+public enum MutationEventType {
+  DELETE,
+  UPDATE
 }

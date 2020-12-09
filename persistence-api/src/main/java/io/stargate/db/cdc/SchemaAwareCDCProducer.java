@@ -16,11 +16,11 @@
 package io.stargate.db.cdc;
 
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import io.stargate.db.cdc.api.MutationEvent;
 import io.stargate.db.schema.Table;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
-import org.apache.cassandra.stargate.db.MutationEvent;
 
 /**
  * Represents a schema-aware CDC async producer.
@@ -60,10 +60,10 @@ public abstract class SchemaAwareCDCProducer implements CDCProducer {
   public CompletableFuture<Void> publish(MutationEvent mutation) {
     TableSchemaManager schemaManager =
         tableSchemaManager.computeIfAbsent(
-            mutation.getTable(), k -> new TableSchemaManager(this::createTableSchemaAsync));
+            mutation.table(), k -> new TableSchemaManager(this::createTableSchemaAsync));
 
     return schemaManager
-        .ensureCreated(mutation.getTable())
+        .ensureCreated(mutation.table())
         // Invoke send() with the version that later affected this table,
         // not the most recent version number.
         .thenCompose(originalSchemaVersion -> send(mutation));

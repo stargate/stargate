@@ -13,11 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.cdc;
+package io.stargate.db.cdc.api;
 
-import io.stargate.db.cdc.api.MutationEvent;
-import java.util.concurrent.CompletableFuture;
+import io.stargate.db.schema.Column;
+import java.nio.ByteBuffer;
 
-public interface CDCService extends AutoCloseable {
-  CompletableFuture<Void> publish(MutationEvent mutation);
+/** Represents a value. */
+public interface CellValue {
+  /** Gets the raw value of a cell. */
+  ByteBuffer getValue();
+
+  /** Uses a codec to provide the Java representation of the stored value. */
+  Object getValueObject();
+
+  /** Gets the column information associated with this cell value. */
+  Column getColumn();
 }

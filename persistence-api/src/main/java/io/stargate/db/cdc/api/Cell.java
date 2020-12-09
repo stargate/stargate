@@ -13,11 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.cdc;
+package io.stargate.db.cdc.api;
 
-import io.stargate.db.cdc.api.MutationEvent;
-import java.util.concurrent.CompletableFuture;
+import io.stargate.db.query.Modification;
 
-public interface CDCService extends AutoCloseable {
-  CompletableFuture<Void> publish(MutationEvent mutation);
+/** Represents a row cell containing a value, for regular columns. */
+public interface Cell extends CellValue {
+  /**
+   * The cell ttl.
+   *
+   * @return the cell ttl, or {@code 0} if the cell isn't an expiring one.
+   */
+  int getTTL();
+
+  /** Determines whether it's a tombstone */
+  boolean isNull();
+
+  /** operation type for a specific cell */
+  Modification.Operation operation();
 }
