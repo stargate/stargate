@@ -41,18 +41,15 @@ class QuerySerializerTest {
   @SuppressWarnings("unchecked")
   public void shouldSerializeBoundDMLQueryTable() throws IOException {
     // given
+    Column pk =
+        Column.create("pk_1", Column.Kind.PartitionKey, Column.Type.Ascii, Column.Order.ASC);
+    Column col1 = Column.create("col_1", Column.Kind.Regular, Column.Type.Int);
+    Column col2 = Column.create("col_2", Column.Kind.Regular);
+    Column col3 = Column.create("col_3", Column.Type.Counter);
     BoundDMLQuery boundDMLQuery =
         createBoundDMLQuery(
             Table.create(
-                "ks_1",
-                "table_1",
-                Arrays.asList(
-                    Column.create(
-                        "pk_1", Column.Kind.PartitionKey, Column.Type.Ascii, Column.Order.ASC),
-                    Column.create("col_1", Column.Kind.Regular, Column.Type.Int),
-                    Column.create("col_2", Column.Kind.Regular),
-                    Column.create("col_3", Column.Type.Counter)),
-                Collections.emptyList()));
+                "ks_1", "table_1", Arrays.asList(pk, col1, col2, col3), Collections.emptyList()));
 
     // when
     ByteBuffer byteBuffer = QuerySerializer.serializeQuery(boundDMLQuery);
@@ -69,11 +66,10 @@ class QuerySerializerTest {
     GenericData.Array<GenericData.Record> columns =
         (GenericData.Array) table.get(SchemaConstants.TABLE_COLUMNS);
     assertThat(columns.size()).isEqualTo(4);
-    validateColumn(
-        columns.get(0), Column.Type.Ascii.cqlDefinition(), "ASC", "PartitionKey", "pk_1");
-    validateColumn(columns.get(1), Column.Type.Int.cqlDefinition(), null, "Regular", "col_1");
-    validateColumn(columns.get(2), null, null, "Regular", "col_2");
-    validateColumn(columns.get(3), Column.Type.Counter.cqlDefinition(), null, "Regular", "col_3");
+    validateColumn(columns.get(0), pk);
+    validateColumn(columns.get(1), col1);
+    validateColumn(columns.get(2), col2);
+    validateColumn(columns.get(3), col3);
   }
 
   @Test
@@ -174,18 +170,8 @@ class QuerySerializerTest {
     GenericData.Record pkRecord1 = partitionKeys.get(0);
     GenericData.Record pkRecord2 = partitionKeys.get(1);
     // validate PKs columns
-    validateColumn(
-        (GenericData.Record) pkRecord1.get(SchemaConstants.CELL_VALUE_COLUMN),
-        pk1.type().cqlDefinition(),
-        null,
-        pk1.kind().name(),
-        pk1.name());
-    validateColumn(
-        (GenericData.Record) pkRecord2.get(SchemaConstants.CELL_VALUE_COLUMN),
-        pk2.type().cqlDefinition(),
-        null,
-        pk2.kind().name(),
-        pk2.name());
+    validateColumn((GenericData.Record) pkRecord1.get(SchemaConstants.CELL_VALUE_COLUMN), pk1);
+    validateColumn((GenericData.Record) pkRecord2.get(SchemaConstants.CELL_VALUE_COLUMN), pk2);
     // validate if byte buffers carry correct data
     validateColumnValue(
         (ByteBuffer) pkRecord1.get(SchemaConstants.CELL_VALUE_VALUE),
@@ -239,12 +225,7 @@ class QuerySerializerTest {
     assertThat(partitionKeys.size()).isEqualTo(1);
     GenericData.Record pkRecord1 = partitionKeys.get(0);
     // validate PKs columns
-    validateColumn(
-        (GenericData.Record) pkRecord1.get(SchemaConstants.CELL_VALUE_COLUMN),
-        ck1.type().cqlDefinition(),
-        ck1.order().name(),
-        ck1.kind().name(),
-        ck1.name());
+    validateColumn((GenericData.Record) pkRecord1.get(SchemaConstants.CELL_VALUE_COLUMN), ck1);
     // validate if byte buffers carry correct data
     validateColumnValue(
         (ByteBuffer) pkRecord1.get(SchemaConstants.CELL_VALUE_VALUE),
@@ -294,19 +275,10 @@ class QuerySerializerTest {
     GenericData.Record colRecord = columns.get(0);
     GenericData.Record staticRecord = columns.get(1);
     // validate PKs columns
-    validateColumn(
-        (GenericData.Record) colRecord.get(SchemaConstants.CELL_VALUE_COLUMN),
-        col.type().cqlDefinition(),
-        null,
-        col.kind().name(),
-        col.name());
+    validateColumn((GenericData.Record) colRecord.get(SchemaConstants.CELL_VALUE_COLUMN), col);
 
     validateColumn(
-        (GenericData.Record) staticRecord.get(SchemaConstants.CELL_VALUE_COLUMN),
-        staticCol.type().cqlDefinition(),
-        null,
-        staticCol.kind().name(),
-        staticCol.name());
+        (GenericData.Record) staticRecord.get(SchemaConstants.CELL_VALUE_COLUMN), staticCol);
     // validate if byte buffers carry correct data
     validateColumnValue(
         (ByteBuffer) colRecord.get(SchemaConstants.CELL_VALUE_VALUE),
@@ -384,6 +356,18 @@ class QuerySerializerTest {
                 .orElse(null))
         .isEqualTo(kind);
     assertThat(column.get(SchemaConstants.COLUMN_NAME).toString()).isEqualTo(name);
+  }
+
+  private void validateColumn(GenericData.Record column, Column expected) {
+    validateColumn(
+        column,
+        Optional.ofNullable(expected.type())
+            .map(Column.ColumnType::cqlDefinition)
+            .map(Object::toString)
+            .orElse(null),
+        Optional.ofNullable(expected.order()).map(Object::toString).orElse(null),
+        Optional.ofNullable(expected.kind()).map(Object::toString).orElse(null),
+        Optional.ofNullable(expected.name()).map(Object::toString).orElse(null));
   }
 
   private GenericRecord toGenericRecord(ByteBuffer byteBuffer) throws IOException {
