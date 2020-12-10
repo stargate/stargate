@@ -522,7 +522,8 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       }
 
       int paramsIdx = dataTypeName.indexOf('<');
-      String baseTypeName = paramsIdx < 0 ? dataTypeName : dataTypeName.substring(0, paramsIdx);
+      String baseTypeName =
+          paramsIdx < 0 ? dataTypeName : dataTypeName.substring(0, paramsIdx).trim();
       if (!ColumnUtils.isValidUnquotedIdentifier(baseTypeName)) {
         throw new IllegalArgumentException("Malformed type name: " + dataTypeName);
       }
