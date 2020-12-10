@@ -169,7 +169,7 @@ public class CDCWritePathTest extends BaseOsgiIntegrationTest {
     assertThat(row.getInt(CDCQueryBuilder.CDCEventsColumns.VERSION.getName())).isEqualTo(0);
     ByteBuffer payload = row.getByteBuffer(CDCQueryBuilder.CDCEventsColumns.PAYLOAD.getName());
     assertThat(payload.array()).isNotEmpty();
-    assertThat(toGenericRecord(payload)).isNotNull()  ;
+    assertThat(toGenericRecord(payload)).isNotNull();
   }
 
   private void addRow(List<ColumnModel> columns) throws IOException {
