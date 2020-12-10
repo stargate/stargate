@@ -29,6 +29,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
+import io.stargate.db.cdc.datastore.CDCQueryBuilder;
+import io.stargate.db.cdc.serde.avro.SchemaConstants;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
@@ -38,10 +40,14 @@ import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.models.ColumnModel;
 import io.stargate.web.models.RowAdd;
 import io.stargate.web.models.RowsResponse;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.nio.ByteBuffer;
+import java.util.*;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.BinaryDecoder;
+import org.apache.avro.io.DecoderFactory;
 import org.apache.http.HttpStatus;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.*;
@@ -153,6 +159,17 @@ public class CDCWritePathTest extends BaseOsgiIntegrationTest {
                     "SELECT * FROM %s.%s", DEFAULT_CDC_KEYSPACE, DEFAULT_CDC_EVENTS_TABLE))
             .all();
     assertThat(all.size()).isEqualTo(1);
+    Row row = all.get(0);
+    assertThat(row.getInt(CDCQueryBuilder.CDCEventsColumns.SHARD.getName())).isNotNull();
+    assertThat(row.getUuid(CDCQueryBuilder.CDCEventsColumns.EVENT_ID.getName())).isNotNull();
+    assertThat(
+            row.getSet(CDCQueryBuilder.CDCEventsColumns.DELIVERED_ON_STREAMS.getName(), UUID.class)
+                .size())
+        .isEqualTo(0);
+    assertThat(row.getInt(CDCQueryBuilder.CDCEventsColumns.VERSION.getName())).isEqualTo(0);
+    ByteBuffer payload = row.getByteBuffer(CDCQueryBuilder.CDCEventsColumns.PAYLOAD.getName());
+    assertThat(payload.array()).isNotEmpty();
+    assertThat(toGenericRecord(payload)).isNotNull()  ;
   }
 
   private void addRow(List<ColumnModel> columns) throws IOException {
@@ -169,5 +186,14 @@ public class CDCWritePathTest extends BaseOsgiIntegrationTest {
     RowsResponse rowsResponse = objectMapper.readValue(body, new TypeReference<RowsResponse>() {});
     Assertions.assertThat(rowsResponse.getRowsModified()).isEqualTo(1);
     Assertions.assertThat(rowsResponse.getSuccess()).isTrue();
+  }
+
+  private GenericRecord toGenericRecord(ByteBuffer byteBuffer) throws IOException {
+    ByteArrayInputStream in = new ByteArrayInputStream(byteBuffer.array());
+    DecoderFactory decoderFactory = DecoderFactory.get();
+    BinaryDecoder decoder = decoderFactory.directBinaryDecoder(in, null);
+
+    return new GenericDatumReader<GenericRecord>(SchemaConstants.MUTATION_EVENT)
+        .read(null, decoder);
   }
 }

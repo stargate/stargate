@@ -127,7 +127,7 @@ public class CDCQueryBuilder {
         .orElse(DEFAULT_CDC_KEYSPACE);
   }
 
-  private enum CDCEventsColumns {
+  public enum CDCEventsColumns {
     SHARD("shard"),
     EVENT_ID("event_id"),
     PAYLOAD("payload"),
