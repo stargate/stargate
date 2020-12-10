@@ -1,0 +1,3 @@
+cdc.core:
+    enabledTables:
+      - cdc_tables.cdc_enabled_table

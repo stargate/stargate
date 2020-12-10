@@ -22,11 +22,11 @@ import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.ThreadFactoryBuilder;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.core.metrics.api.Metrics;
+import io.stargate.db.cdc.api.MutationEvent;
 import io.stargate.db.cdc.config.CDCConfig;
 import io.stargate.db.cdc.config.CDCConfigLoader;
 import io.stargate.db.metrics.CDCMetrics;
 import java.util.concurrent.*;
-import org.apache.cassandra.stargate.db.MutationEvent;
 import org.apache.cassandra.stargate.exceptions.CDCWriteException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,7 +80,7 @@ public final class CDCServiceImpl implements CDCService {
 
   @Override
   public CompletableFuture<Void> publish(MutationEvent mutation) {
-    if (!config.isTrackedByCDC(mutation.getTable())) {
+    if (!config.isTrackedByCDC(mutation.table())) {
       return completedFuture;
     }
 

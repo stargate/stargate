@@ -24,6 +24,7 @@ import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.builder.ValueModifier;
@@ -42,8 +43,15 @@ public class InsertMutationFetcher extends MutationFetcher {
       NameMapping nameMapping,
       Persistence persistence,
       AuthenticationService authenticationService,
-      AuthorizationService authorizationService) {
-    super(table, nameMapping, persistence, authenticationService, authorizationService);
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
+    super(
+        table,
+        nameMapping,
+        persistence,
+        authenticationService,
+        authorizationService,
+        dataStoreFactory);
   }
 
   @Override

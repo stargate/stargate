@@ -19,6 +19,7 @@ import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 
 /** Single entry point to obtain GraphQL schemas. */
@@ -33,8 +34,10 @@ public class SchemaFactory {
       Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
-      Keyspace keyspace) {
-    return new DmlSchemaBuilder(persistence, authenticationService, authorizationService, keyspace)
+      Keyspace keyspace,
+      DataStoreFactory dataStoreFactory) {
+    return new DmlSchemaBuilder(
+            persistence, authenticationService, authorizationService, keyspace, dataStoreFactory)
         .build();
   }
 
@@ -47,7 +50,10 @@ public class SchemaFactory {
   public static GraphQLSchema newDdlSchema(
       Persistence persistence,
       AuthenticationService authenticationService,
-      AuthorizationService authorizationService) {
-    return new DdlSchemaBuilder(persistence, authenticationService, authorizationService).build();
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
+    return new DdlSchemaBuilder(
+            persistence, authenticationService, authorizationService, dataStoreFactory)
+        .build();
   }
 }

@@ -9,6 +9,7 @@ import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.graphql.web.HttpAwareContext;
 import java.nio.ByteBuffer;
@@ -22,6 +23,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
   protected final Persistence persistence;
   protected final AuthenticationService authenticationService;
   protected final AuthorizationService authorizationService;
+  private final DataStoreFactory dataStoreFactory;
 
   public static final ConsistencyLevel DEFAULT_CONSISTENCY = ConsistencyLevel.LOCAL_QUORUM;
   public static final ConsistencyLevel DEFAULT_SERIAL_CONSISTENCY = ConsistencyLevel.SERIAL;
@@ -37,10 +39,12 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
   public CassandraFetcher(
       Persistence persistence,
       AuthenticationService authenticationService,
-      AuthorizationService authorizationService) {
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
+    this.dataStoreFactory = dataStoreFactory;
   }
 
   @Override
@@ -82,8 +86,9 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
 
     DataStoreOptions dataStoreOptions =
         DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
+    // todo here
     DataStore dataStore =
-        DataStore.create(persistence, storedCredentials.getRoleName(), dataStoreOptions);
+        dataStoreFactory.create(persistence, storedCredentials.getRoleName(), dataStoreOptions);
     return get(environment, dataStore);
   }
 

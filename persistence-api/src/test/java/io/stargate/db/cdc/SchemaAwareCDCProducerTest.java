@@ -19,14 +19,17 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import io.stargate.db.cdc.api.DefaultMutationEvent;
+import io.stargate.db.cdc.api.MutationEvent;
+import io.stargate.db.cdc.api.MutationEventType;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableTable;
 import io.stargate.db.schema.Table;
-import java.util.List;
+import java.util.Collections;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
-import org.apache.cassandra.stargate.db.CellValue;
-import org.apache.cassandra.stargate.db.MutationEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -154,26 +157,13 @@ class SchemaAwareCDCProducerTest {
 
   @NonNull
   public static MutationEvent createMutationEvent(Table tableMetadata) {
-    return new MutationEvent() {
-      @Override
-      public Table getTable() {
-        return tableMetadata;
-      }
-
-      @Override
-      public long getTimestamp() {
-        return 0;
-      }
-
-      @Override
-      public List<CellValue> getPartitionKeys() {
-        return null;
-      }
-
-      @Override
-      public List<CellValue> getClusteringKeys() {
-        return null;
-      }
-    };
+    return new DefaultMutationEvent(
+        tableMetadata,
+        OptionalInt.empty(),
+        OptionalLong.of(0),
+        Collections.emptyList(),
+        Collections.emptyList(),
+        Collections.emptyList(),
+        MutationEventType.UPDATE);
   }
 }

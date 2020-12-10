@@ -22,6 +22,7 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Authenticator.SaslNegotiator;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
@@ -54,9 +55,9 @@ public class AuthnTableBasedService implements AuthenticationService {
     return persistence;
   }
 
-  public void setPersistence(Persistence persistence) {
+  public void setPersistence(Persistence persistence, DataStoreFactory dataStoreFactory) {
     this.persistence = persistence;
-    this.dataStore = DataStore.create(persistence);
+    this.dataStore = dataStoreFactory.create(persistence);
 
     if (shouldInitializeAuthKeyspace) {
       initAuthTable(this.dataStore);

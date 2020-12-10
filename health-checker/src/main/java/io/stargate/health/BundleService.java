@@ -2,6 +2,7 @@ package io.stargate.health;
 
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import java.util.UUID;
@@ -38,12 +39,17 @@ public class BundleService {
   public boolean checkIsReady() {
     ServiceReference persistenceReference =
         context.getServiceReference(Persistence.class.getName());
+    ServiceReference dataStoreFactoryReference =
+        context.getServiceReference(DataStoreFactory.class.getName());
     if (persistenceReference != null
-        && persistenceReference.getProperty("Identifier").equals(PERSISTENCE_IDENTIFIER)) {
+        && persistenceReference.getProperty("Identifier").equals(PERSISTENCE_IDENTIFIER)
+        && dataStoreFactoryReference != null) {
 
       try {
         Persistence persistence = (Persistence) context.getService(persistenceReference);
-        DataStore dataStore = DataStore.create(persistence);
+        DataStoreFactory dataStoreFactory =
+            (DataStoreFactory) context.getService(dataStoreFactoryReference);
+        DataStore dataStore = dataStoreFactory.create(persistence);
 
         Future<ResultSet> rs =
             dataStore

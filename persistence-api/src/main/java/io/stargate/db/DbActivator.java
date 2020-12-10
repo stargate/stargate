@@ -2,19 +2,23 @@ package io.stargate.db;
 
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.core.activator.BaseActivator;
-import io.stargate.core.metrics.api.Metrics;
-import io.stargate.db.cdc.CDCProducer;
 import io.stargate.db.cdc.CDCService;
-import io.stargate.db.cdc.CDCServiceImpl;
+import io.stargate.db.cdc.CDCServiceFactory;
+import io.stargate.db.cdc.shardmanager.ShardManager;
+import io.stargate.db.datastore.DataStoreFactory;
 import java.util.Arrays;
 import java.util.List;
 import javax.annotation.Nullable;
 
 public class DbActivator extends BaseActivator {
-  private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
-  private ServicePointer<CDCProducer> cdcProducer = ServicePointer.create(CDCProducer.class);
+  //  private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  //  private ServicePointer<CDCProducer> cdcProducer = ServicePointer.create(CDCProducer.class);
   private ServicePointer<ConfigStore> configStore = ServicePointer.create(ConfigStore.class);
+  private ServicePointer<Persistence> persistence = ServicePointer.create(Persistence.class);
   private CDCService cdcService;
+  // feature flag that allows us to disable it on production, until the whole CDC is ready.
+  private final Boolean CDC_ENABLED =
+      Boolean.parseBoolean(System.getProperty("stargate.cdc_enabled", "true"));
 
   public DbActivator() {
     super("CDC service");
@@ -23,14 +27,26 @@ public class DbActivator extends BaseActivator {
   @Nullable
   @Override
   protected ServiceAndProperties createService() {
-    cdcService = new CDCServiceImpl(cdcProducer.get(), metrics.get(), configStore.get());
-    return null;
+    ShardManager shardManager = new ShardManager();
+    DataStoreFactory dataStoreFactory = new DataStoreFactory(configStore.get(), shardManager);
+    if (CDC_ENABLED) {
+      CDCServiceFactory cdcServiceFactory =
+          new CDCServiceFactory(
+              configStore.get(), dataStoreFactory.create(persistence.get()), shardManager);
+      cdcServiceFactory.create();
+      // when the KafkaCDCProducer will be plugged in.
+      // cdcService = new CDCServiceImpl(cdcProducer.get(), metrics.get(), configStore.get());
+    }
+
+    return new ServiceAndProperties(dataStoreFactory, DataStoreFactory.class);
   }
 
   @Override
   protected void stopService() {
     try {
-      cdcService.close();
+      if (cdcService != null) {
+        cdcService.close();
+      }
     } catch (Exception e) {
       throw new CDCCloseException("Problem when closing CDC service", e);
     }
@@ -38,7 +54,7 @@ public class DbActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(cdcProducer, metrics, configStore);
+    return Arrays.asList(configStore, persistence);
   }
 
   public static class CDCCloseException extends RuntimeException {

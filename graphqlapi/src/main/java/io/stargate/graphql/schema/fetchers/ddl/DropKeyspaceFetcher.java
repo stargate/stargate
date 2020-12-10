@@ -21,6 +21,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.graphql.web.HttpAwareContext;
@@ -30,8 +31,9 @@ public class DropKeyspaceFetcher extends DdlQueryFetcher {
   public DropKeyspaceFetcher(
       Persistence persistence,
       AuthenticationService authenticationService,
-      AuthorizationService authorizationService) {
-    super(persistence, authenticationService, authorizationService);
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
+    super(persistence, authenticationService, authorizationService, dataStoreFactory);
   }
 
   @Override

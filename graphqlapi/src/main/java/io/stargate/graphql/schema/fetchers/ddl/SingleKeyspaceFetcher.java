@@ -20,6 +20,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
 import io.stargate.graphql.web.HttpAwareContext;
@@ -30,8 +31,9 @@ public class SingleKeyspaceFetcher extends CassandraFetcher<Map<String, Object>>
   public SingleKeyspaceFetcher(
       Persistence persistence,
       AuthenticationService authenticationService,
-      AuthorizationService authorizationService) {
-    super(persistence, authenticationService, authorizationService);
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
+    super(persistence, authenticationService, authorizationService, dataStoreFactory);
   }
 
   @Override

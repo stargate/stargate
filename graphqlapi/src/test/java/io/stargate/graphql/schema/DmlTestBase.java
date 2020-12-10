@@ -18,7 +18,8 @@ public abstract class DmlTestBase extends GraphQlTestBase {
         persistence,
         authenticationService,
         authorizationService,
-        getCQLSchema().keyspaces().iterator().next());
+        getCQLSchema().keyspaces().iterator().next(),
+        dataStoreFactory);
   }
 
   /** Creates a basic row suitable for faking result sets. */

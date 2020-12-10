@@ -26,6 +26,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.GraphqlActivator;
 import io.stargate.graphql.web.resources.GraphqlDdlResource;
 import io.stargate.graphql.web.resources.GraphqlDmlResource;
@@ -44,6 +45,7 @@ public class DropwizardServer extends Application<Configuration> {
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
+  private final DataStoreFactory dataStoreFactory;
   private final Metrics metrics;
   private volatile Server jettyServer;
 
@@ -51,11 +53,13 @@ public class DropwizardServer extends Application<Configuration> {
       Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
-      Metrics metrics) {
+      Metrics metrics,
+      DataStoreFactory dataStoreFactory) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.metrics = metrics;
+    this.dataStoreFactory = dataStoreFactory;
   }
 
   /**
@@ -78,7 +82,8 @@ public class DropwizardServer extends Application<Configuration> {
   public void run(final Configuration config, final Environment environment) {
 
     GraphqlCache graphqlCache =
-        new GraphqlCache(persistence, authenticationService, authorizationService);
+        new GraphqlCache(
+            persistence, authenticationService, authorizationService, dataStoreFactory);
     environment
         .jersey()
         .register(

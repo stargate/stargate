@@ -20,6 +20,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
 import io.stargate.graphql.web.HttpAwareContext;
 import java.util.List;
@@ -30,8 +31,9 @@ public class AllKeyspacesFetcher extends CassandraFetcher<List<Map<String, Objec
   public AllKeyspacesFetcher(
       Persistence persistence,
       AuthenticationService authenticationService,
-      AuthorizationService authorizationService) {
-    super(persistence, authenticationService, authorizationService);
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
+    super(persistence, authenticationService, authorizationService, dataStoreFactory);
   }
 
   @Override

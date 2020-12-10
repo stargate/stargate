@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 import static org.mockito.quality.Strictness.LENIENT;
 
@@ -23,6 +22,7 @@ import io.stargate.auth.StoredCredentials;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
@@ -39,13 +39,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 
@@ -61,13 +59,12 @@ public abstract class GraphQlTestBase {
   @Mock protected AuthorizationService authorizationService;
   @Mock protected ResultSet resultSet;
   @Mock private StoredCredentials storedCredentials;
+  @Mock protected DataStoreFactory dataStoreFactory;
 
   @Captor private ArgumentCaptor<BoundQuery> queryCaptor;
   @Captor protected ArgumentCaptor<Callable<ResultSet>> actionCaptor;
   @Captor private ArgumentCaptor<List<BoundQuery>> batchCaptor;
   @Captor protected ArgumentCaptor<DataStoreOptions> dataStoreOptionsCaptor;
-
-  private MockedStatic<DataStore> dataStoreCreateMock;
 
   // Stores the parameters of the last batch execution
   protected Parameters batchParameters;
@@ -85,11 +82,7 @@ public abstract class GraphQlTestBase {
               i -> {
                 return actionCaptor.getValue().call();
               });
-      dataStoreCreateMock = mockStatic(DataStore.class);
-      dataStoreCreateMock
-          .when(
-              () ->
-                  DataStore.create(eq(persistence), eq(roleName), dataStoreOptionsCaptor.capture()))
+      when(dataStoreFactory.create(eq(persistence), eq(roleName), dataStoreOptionsCaptor.capture()))
           .then(
               i -> {
                 DataStore dataStore = mock(DataStore.class);
@@ -121,13 +114,6 @@ public abstract class GraphQlTestBase {
             // Use parallel execution strategy for mutations (serial is default)
             .mutationExecutionStrategy(new AsyncExecutionStrategy())
             .build();
-  }
-
-  @AfterEach
-  public void resetMocks() {
-    if (dataStoreCreateMock != null) {
-      dataStoreCreateMock.close();
-    }
   }
 
   protected abstract GraphQLSchema createGraphQlSchema();

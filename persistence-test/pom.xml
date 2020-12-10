@@ -52,5 +52,17 @@
       <version>2.6</version>
       <scope>compile</scope>
     </dependency>
+    <dependency>
+      <groupId>io.stargate.config.store.yaml</groupId>
+      <artifactId>config-store-yaml</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.config-store</groupId>
+      <artifactId>config-store-api</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 </project>
