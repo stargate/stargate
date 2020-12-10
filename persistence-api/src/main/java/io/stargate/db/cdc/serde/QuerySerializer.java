@@ -15,6 +15,7 @@
  */
 package io.stargate.db.cdc.serde;
 
+import io.stargate.db.cdc.api.Cell;
 import io.stargate.db.cdc.api.CellValue;
 import io.stargate.db.cdc.api.MutationEvent;
 import io.stargate.db.cdc.api.MutationEventBuilder;
@@ -46,6 +47,7 @@ public class QuerySerializer {
     Record table = constructTable(columns, mutationEvent);
     List<Record> partitionKeys = constructCellValues(mutationEvent.getPartitionKeys());
     List<Record> clusteringKeys = constructCellValues(mutationEvent.getClusteringKeys());
+    List<Record> cells = constructCells(mutationEvent.getCells());
 
     Record mutationEventRecord = new Record(SchemaConstants.MUTATION_EVENT);
     mutationEventRecord.put(SchemaConstants.MUTATION_EVENT_TABLE, table);
@@ -59,21 +61,36 @@ public class QuerySerializer {
         SchemaConstants.MUTATION_EVENT_TYPE, mutationEvent.mutationEventType().name());
     mutationEventRecord.put(SchemaConstants.MUTATION_EVENT_PARTITION_KEYS, partitionKeys);
     mutationEventRecord.put(SchemaConstants.MUTATION_EVENT_CLUSTERING_KEYS, clusteringKeys);
+    mutationEventRecord.put(SchemaConstants.MUTATION_EVENT_CELLS, cells);
 
     return mutationEventRecord;
   }
 
+  private static List<Record> constructCells(List<Cell> cells) {
+    List<Record> cellValueRecords = new ArrayList<>();
+
+    for (Cell cell : cells) {
+      Record cellValueRecord = new Record(SchemaConstants.CELL);
+      cellValueRecord.put(SchemaConstants.CELL_VALUE_COLUMN, constructColumn(cell.getColumn()));
+      cellValueRecord.put(SchemaConstants.CELL_VALUE_VALUE, cell.getValue());
+      cellValueRecord.put(SchemaConstants.CELL_TTL, cell.getTTL());
+      cellValueRecord.put(SchemaConstants.CELL_OPERATION, cell.operation().name());
+      cellValueRecords.add(cellValueRecord);
+    }
+    return cellValueRecords;
+  }
+
   private static List<Record> constructCellValues(List<CellValue> cellValues) {
-    List<Record> partitionKeys = new ArrayList<>();
+    List<Record> cellValueRecords = new ArrayList<>();
 
     for (CellValue cellValue : cellValues) {
       Record cellValueRecord = new Record(SchemaConstants.CELL_VALUE);
       cellValueRecord.put(
           SchemaConstants.CELL_VALUE_COLUMN, constructColumn(cellValue.getColumn()));
       cellValueRecord.put(SchemaConstants.CELL_VALUE_VALUE, cellValue.getValue());
-      partitionKeys.add(cellValueRecord);
+      cellValueRecords.add(cellValueRecord);
     }
-    return partitionKeys;
+    return cellValueRecords;
   }
 
   private static ByteBuffer serializeRecord(Record mutationEventRecord) {
@@ -108,6 +125,8 @@ public class QuerySerializer {
   }
 
   private static Record constructColumn(Column column) {
+    // todo if column is UDT, serialize more information to be able to de-serialize UDT
+    // https://github.com/stargate/stargate/issues/524
     Record columnRecord = new Record(SchemaConstants.COLUMN);
     columnRecord.put(SchemaConstants.COLUMN_NAME, column.name());
     columnRecord.put(

@@ -26,9 +26,6 @@ public interface Cell extends CellValue {
    */
   int getTTL();
 
-  /** Determines whether it's a tombstone */
-  boolean isNull();
-
   /** operation type for a specific cell */
   Modification.Operation operation();
 }

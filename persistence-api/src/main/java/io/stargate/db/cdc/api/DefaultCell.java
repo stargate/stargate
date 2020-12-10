@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 public class DefaultCell extends DefaultCellValue implements Cell {
 
   private final int ttl;
-  private final boolean isNull;
   private final Modification.Operation operation;
 
   public DefaultCell(
@@ -30,22 +29,15 @@ public class DefaultCell extends DefaultCellValue implements Cell {
       Object valueObject,
       Column column,
       int ttl,
-      boolean isNull,
       Modification.Operation operation) {
     super(value, valueObject, column);
     this.ttl = ttl;
-    this.isNull = isNull;
     this.operation = operation;
   }
 
   @Override
   public int getTTL() {
     return ttl;
-  }
-
-  @Override
-  public boolean isNull() {
-    return isNull;
   }
 
   @Override

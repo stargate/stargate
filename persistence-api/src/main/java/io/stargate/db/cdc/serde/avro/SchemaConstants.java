@@ -65,9 +65,26 @@ public class SchemaConstants {
           .noDefault()
           .endRecord();
 
+  public static final String CELL_TTL = "ttl";
+  public static final String CELL_OPERATION = "operation";
+
+  public static final Schema CELL =
+      SchemaBuilder.record("Cell")
+          .fields()
+          .optionalBytes(CELL_VALUE_VALUE)
+          .name(CELL_VALUE_COLUMN)
+          .type(COLUMN)
+          .noDefault()
+          .optionalInt(CELL_TTL)
+          .requiredString(CELL_OPERATION)
+          .endRecord();
+
   public static final Schema LIST_OF_CELL_VALUE = SchemaBuilder.array().items(CELL_VALUE);
 
+  public static final Schema LIST_OF_CELL = SchemaBuilder.array().items(CELL);
+
   public static final String MUTATION_EVENT_CLUSTERING_KEYS = "clusteringKeys";
+  public static final String MUTATION_EVENT_CELLS = "cells";
   public static final Schema MUTATION_EVENT =
       SchemaBuilder.record("MutationEvent")
           .fields()
@@ -82,6 +99,9 @@ public class SchemaConstants {
           .noDefault()
           .name(MUTATION_EVENT_CLUSTERING_KEYS)
           .type(LIST_OF_CELL_VALUE)
+          .noDefault()
+          .name(MUTATION_EVENT_CELLS)
+          .type(LIST_OF_CELL)
           .noDefault()
           .endRecord();
 }

@@ -20,9 +20,7 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import io.stargate.db.cdc.api.MutationEventType;
 import io.stargate.db.cdc.serde.avro.SchemaConstants;
 import io.stargate.db.query.*;
-import io.stargate.db.schema.Column;
-import io.stargate.db.schema.Keyspace;
-import io.stargate.db.schema.Table;
+import io.stargate.db.schema.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -152,7 +150,7 @@ class QuerySerializerTest {
                 Column.create("static", Column.Kind.Static, Column.Type.Int)),
             Collections.emptyList());
     BoundDMLQuery boundDMLQuery =
-        createBoundDMLQuery(
+        createBoundDMLQueryPks(
             table,
             Arrays.asList(
                 new PrimaryKey(
@@ -218,7 +216,7 @@ class QuerySerializerTest {
                 Column.create("static", Column.Kind.Static, Column.Type.Int)),
             Collections.emptyList());
     BoundDMLQuery boundDMLQuery =
-        createBoundDMLQuery(
+        createBoundDMLQueryPks(
             table,
             Arrays.asList(
                 new PrimaryKey(
@@ -253,6 +251,103 @@ class QuerySerializerTest {
         ck1.type().cqlDefinition(),
         "v",
         table);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldSerializeNonPkColumns() throws IOException {
+    // given
+    Column col =
+        Column.create(
+            "col_1",
+            Column.Kind.Regular,
+            ImmutableListType.builder().addParameters(Column.Type.Ascii).build());
+    Column staticCol = Column.create("static", Column.Kind.Static, Column.Type.Int);
+
+    Table table =
+        Table.create(
+            "ks_1",
+            "table_1",
+            Arrays.asList(
+                Column.create("pk_1", Column.Kind.PartitionKey, Column.Type.Int),
+                Column.create("pk_2", Column.Kind.PartitionKey, Column.Type.Boolean),
+                Column.create("ck_1", Column.Kind.Clustering, Column.Type.Ascii),
+                col,
+                staticCol),
+            Collections.emptyList());
+
+    BoundDMLQuery boundDMLQuery =
+        createBoundDMLQuery(
+            table,
+            Arrays.asList(
+                constructModification(col, Arrays.asList("a", "b"), Modification.Operation.APPEND),
+                constructModification(staticCol, 100, Modification.Operation.REMOVE)));
+
+    // when
+    ByteBuffer byteBuffer = QuerySerializer.serializeQuery(boundDMLQuery);
+
+    // then
+    GenericRecord result = toGenericRecord(byteBuffer);
+    GenericData.Array<GenericData.Record> columns =
+        (GenericData.Array) result.get(SchemaConstants.MUTATION_EVENT_CELLS);
+    assertThat(columns.size()).isEqualTo(2);
+    GenericData.Record colRecord = columns.get(0);
+    GenericData.Record staticRecord = columns.get(1);
+    // validate PKs columns
+    validateColumn(
+        (GenericData.Record) colRecord.get(SchemaConstants.CELL_VALUE_COLUMN),
+        col.type().cqlDefinition(),
+        null,
+        col.kind().name(),
+        col.name());
+
+    validateColumn(
+        (GenericData.Record) staticRecord.get(SchemaConstants.CELL_VALUE_COLUMN),
+        staticCol.type().cqlDefinition(),
+        null,
+        staticCol.kind().name(),
+        staticCol.name());
+    // validate if byte buffers carry correct data
+    validateColumnValue(
+        (ByteBuffer) colRecord.get(SchemaConstants.CELL_VALUE_VALUE),
+        col.type().cqlDefinition(),
+        Arrays.asList("a", "b"),
+        table);
+    validateColumnValue(
+        (ByteBuffer) staticRecord.get(SchemaConstants.CELL_VALUE_VALUE),
+        staticCol.type().cqlDefinition(),
+        100,
+        table);
+    // validate cell specific data
+    assertThat(colRecord.get(SchemaConstants.CELL_TTL)).isNotNull();
+    assertThat(colRecord.get(SchemaConstants.CELL_OPERATION).toString())
+        .isEqualTo(Modification.Operation.APPEND.name());
+
+    assertThat(staticRecord.get(SchemaConstants.CELL_TTL)).isNotNull();
+    assertThat(staticRecord.get(SchemaConstants.CELL_OPERATION).toString())
+        .isEqualTo(Modification.Operation.REMOVE.name());
+  }
+
+  private Modification constructModification(
+      Column col, Object value, Modification.Operation operation) {
+    TypedValue typedValue =
+        TypedValue.forJavaValue(TypedValue.Codec.testCodec(), col.name(), col.type(), value);
+    return new Modification() {
+      @Override
+      public ModifiableEntity entity() {
+        return ModifiableEntity.of(col);
+      }
+
+      @Override
+      public Operation operation() {
+        return operation;
+      }
+
+      @Override
+      public TypedValue value() {
+        return typedValue;
+      }
+    };
   }
 
   private void validateColumnValue(
@@ -300,9 +395,30 @@ class QuerySerializerTest {
         .read(null, decoder);
   }
 
-  private BoundDMLQuery createBoundDMLQuery(Table table, List<PrimaryKey> primaryKeys) {
+  private BoundDMLQuery createBoundDMLQueryPks(Table table, List<PrimaryKey> primaryKeys) {
     return createBoundDMLQuery(
-        table, OptionalInt.empty(), OptionalLong.empty(), QueryType.UPDATE, primaryKeys);
+        table,
+        OptionalInt.empty(),
+        OptionalLong.empty(),
+        QueryType.UPDATE,
+        primaryKeys,
+        Collections.emptyList());
+  }
+
+  private BoundDMLQuery createBoundDMLQuery(Table table, List<Modification> columns) {
+    return createBoundDMLQuery(
+        table,
+        OptionalInt.empty(),
+        OptionalLong.empty(),
+        QueryType.UPDATE,
+        Collections.emptyList(),
+        columns);
+  }
+
+  private BoundDMLQuery createBoundDMLQuery(
+      Table table, List<PrimaryKey> primaryKeys, List<Modification> columns) {
+    return createBoundDMLQuery(
+        table, OptionalInt.empty(), OptionalLong.empty(), QueryType.UPDATE, primaryKeys, columns);
   }
 
   private BoundDMLQuery createBoundDMLQuery(QueryType queryType) {
@@ -318,12 +434,14 @@ class QuerySerializerTest {
   }
 
   private BoundDMLQuery createBoundDMLQuery(Table table, OptionalInt ttl, OptionalLong timestamp) {
-    return createBoundDMLQuery(table, ttl, timestamp, QueryType.UPDATE, Collections.emptyList());
+    return createBoundDMLQuery(
+        table, ttl, timestamp, QueryType.UPDATE, Collections.emptyList(), Collections.emptyList());
   }
 
   private BoundDMLQuery createBoundDMLQuery(
       Table table, OptionalInt ttl, OptionalLong timestamp, QueryType queryType) {
-    return createBoundDMLQuery(table, ttl, timestamp, queryType, Collections.emptyList());
+    return createBoundDMLQuery(
+        table, ttl, timestamp, queryType, Collections.emptyList(), Collections.emptyList());
   }
 
   private BoundDMLQuery createBoundDMLQuery(
@@ -331,7 +449,8 @@ class QuerySerializerTest {
       OptionalInt ttl,
       OptionalLong timestamp,
       QueryType queryType,
-      List<PrimaryKey> primaryKeys) {
+      List<PrimaryKey> primaryKeys,
+      List<Modification> modifications) {
     return new BoundDMLQuery() {
       @Override
       public QueryType type() {
@@ -360,7 +479,7 @@ class QuerySerializerTest {
 
       @Override
       public List<Modification> modifications() {
-        return Collections.emptyList();
+        return modifications;
       }
 
       @Override

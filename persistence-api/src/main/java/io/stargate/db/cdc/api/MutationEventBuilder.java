@@ -82,7 +82,6 @@ public class MutationEventBuilder {
                   value.map(TypedValue::javaValue).orElse(null),
                   c.entity().getColumn(),
                   0, // not handled yet
-                  !value.isPresent(),
                   c.operation());
             })
         .collect(Collectors.toList());
