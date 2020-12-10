@@ -157,9 +157,9 @@ class QuerySerializerTest {
                     table,
                     Arrays.asList(
                         TypedValue.forJavaValue(
-                            TypedValue.Codec.testCodec(), "pk_1", Column.Type.Int, 1),
+                            TypedValue.Codec.testCodec(), pk1.name(), pk1.type(), 1),
                         TypedValue.forJavaValue(
-                            TypedValue.Codec.testCodec(), "pk_2", Column.Type.Boolean, true),
+                            TypedValue.Codec.testCodec(), pk2.name(), pk2.type(), true),
                         TypedValue.forJavaValue(
                             TypedValue.Codec.testCodec(), "ck_1", Column.Type.Ascii, "v")))));
 
@@ -191,6 +191,57 @@ class QuerySerializerTest {
         (ByteBuffer) pkRecord1.get(SchemaConstants.CELL_VALUE_VALUE), pk1.type().id(), 1);
     validateColumnValue(
         (ByteBuffer) pkRecord2.get(SchemaConstants.CELL_VALUE_VALUE), pk2.type().id(), true);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldSerializeClusteringKeys() throws IOException {
+    // given
+    Column ck1 = Column.create("ck_1", Column.Kind.Clustering, Column.Type.Ascii);
+    Table table =
+        Table.create(
+            "ks_1",
+            "table_1",
+            Arrays.asList(
+                Column.create("pk_1", Column.Kind.PartitionKey, Column.Type.Int),
+                Column.create("pk_2", Column.Kind.PartitionKey, Column.Type.Boolean),
+                ck1,
+                Column.create("col_1", Column.Kind.Regular, Column.Type.Int),
+                Column.create("static", Column.Kind.Static, Column.Type.Int)),
+            Collections.emptyList());
+    BoundDMLQuery boundDMLQuery =
+        createBoundDMLQuery(
+            table,
+            Arrays.asList(
+                new PrimaryKey(
+                    table,
+                    Arrays.asList(
+                        TypedValue.forJavaValue(
+                            TypedValue.Codec.testCodec(), "pk_1", Column.Type.Int, 1),
+                        TypedValue.forJavaValue(
+                            TypedValue.Codec.testCodec(), "pk_2", Column.Type.Boolean, true),
+                        TypedValue.forJavaValue(
+                            TypedValue.Codec.testCodec(), ck1.name(), ck1.type(), "v")))));
+
+    // when
+    ByteBuffer byteBuffer = QuerySerializer.serializeQuery(boundDMLQuery);
+
+    // then
+    GenericRecord result = toGenericRecord(byteBuffer);
+    GenericData.Array<GenericData.Record> partitionKeys =
+        (GenericData.Array) result.get(SchemaConstants.MUTATION_EVENT_CLUSTERING_KEYS);
+    assertThat(partitionKeys.size()).isEqualTo(1);
+    GenericData.Record pkRecord1 = partitionKeys.get(0);
+    // validate PKs columns
+    validateColumn(
+        (GenericData.Record) pkRecord1.get(SchemaConstants.CELL_VALUE_COLUMN),
+        ck1.type().id(),
+        ck1.order().name(),
+        ck1.kind().name(),
+        ck1.name());
+    // validate if byte buffers carry correct data
+    validateColumnValue(
+        (ByteBuffer) pkRecord1.get(SchemaConstants.CELL_VALUE_VALUE), ck1.type().id(), "v");
   }
 
   private void validateColumnValue(ByteBuffer byteBuffer, int typeId, Object expected) {

@@ -67,6 +67,7 @@ public class SchemaConstants {
 
   public static final Schema LIST_OF_CELL_VALUE = SchemaBuilder.array().items(CELL_VALUE);
 
+  public static final String MUTATION_EVENT_CLUSTERING_KEYS = "clusteringKeys";
   public static final Schema MUTATION_EVENT =
       SchemaBuilder.record("MutationEvent")
           .fields()
@@ -77,6 +78,9 @@ public class SchemaConstants {
           .optionalLong(MUTATION_EVENT_TIMESTAMP)
           .requiredString(MUTATION_EVENT_TYPE)
           .name(MUTATION_EVENT_PARTITION_KEYS)
+          .type(LIST_OF_CELL_VALUE)
+          .noDefault()
+          .name(MUTATION_EVENT_CLUSTERING_KEYS)
           .type(LIST_OF_CELL_VALUE)
           .noDefault()
           .endRecord();

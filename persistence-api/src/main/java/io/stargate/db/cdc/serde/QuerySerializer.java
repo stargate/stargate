@@ -44,7 +44,8 @@ public class QuerySerializer {
   private static Record constructMutationEventGenericRecord(MutationEvent mutationEvent) {
     List<Record> columns = constructColumns(mutationEvent);
     Record table = constructTable(columns, mutationEvent);
-    List<Record> partitionKeys = constructPartitionKeys(mutationEvent);
+    List<Record> partitionKeys = constructCellValues(mutationEvent.getPartitionKeys());
+    List<Record> clusteringKeys = constructCellValues(mutationEvent.getClusteringKeys());
 
     Record mutationEventRecord = new Record(SchemaConstants.MUTATION_EVENT);
     mutationEventRecord.put(SchemaConstants.MUTATION_EVENT_TABLE, table);
@@ -57,14 +58,15 @@ public class QuerySerializer {
     mutationEventRecord.put(
         SchemaConstants.MUTATION_EVENT_TYPE, mutationEvent.mutationEventType().name());
     mutationEventRecord.put(SchemaConstants.MUTATION_EVENT_PARTITION_KEYS, partitionKeys);
+    mutationEventRecord.put(SchemaConstants.MUTATION_EVENT_CLUSTERING_KEYS, clusteringKeys);
 
     return mutationEventRecord;
   }
 
-  private static List<Record> constructPartitionKeys(MutationEvent mutationEvent) {
+  private static List<Record> constructCellValues(List<CellValue> cellValues) {
     List<Record> partitionKeys = new ArrayList<>();
 
-    for (CellValue cellValue : mutationEvent.getPartitionKeys()) {
+    for (CellValue cellValue : cellValues) {
       Record cellValueRecord = new Record(SchemaConstants.CELL_VALUE);
       cellValueRecord.put(
           SchemaConstants.CELL_VALUE_COLUMN, constructColumn(cellValue.getColumn()));
