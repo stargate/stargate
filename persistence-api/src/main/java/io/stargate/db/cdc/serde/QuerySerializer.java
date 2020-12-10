@@ -15,6 +15,7 @@
  */
 package io.stargate.db.cdc.serde;
 
+import io.stargate.db.cdc.api.CellValue;
 import io.stargate.db.cdc.api.MutationEvent;
 import io.stargate.db.cdc.api.MutationEventBuilder;
 import io.stargate.db.cdc.serde.avro.SchemaConstants;
@@ -43,6 +44,8 @@ public class QuerySerializer {
   private static Record constructMutationEventGenericRecord(MutationEvent mutationEvent) {
     List<Record> columns = constructColumns(mutationEvent);
     Record table = constructTable(columns, mutationEvent);
+    List<Record> partitionKeys = constructPartitionKeys(mutationEvent);
+
     Record mutationEventRecord = new Record(SchemaConstants.MUTATION_EVENT);
     mutationEventRecord.put(SchemaConstants.MUTATION_EVENT_TABLE, table);
     mutationEventRecord.put(
@@ -53,7 +56,22 @@ public class QuerySerializer {
         mutationEvent.timestamp().isPresent() ? mutationEvent.timestamp().getAsLong() : null);
     mutationEventRecord.put(
         SchemaConstants.MUTATION_EVENT_TYPE, mutationEvent.mutationEventType().name());
+    mutationEventRecord.put(SchemaConstants.MUTATION_EVENT_PARTITION_KEYS, partitionKeys);
+
     return mutationEventRecord;
+  }
+
+  private static List<Record> constructPartitionKeys(MutationEvent mutationEvent) {
+    List<Record> partitionKeys = new ArrayList<>();
+
+    for (CellValue cellValue : mutationEvent.getPartitionKeys()) {
+      Record cellValueRecord = new Record(SchemaConstants.CELL_VALUE);
+      cellValueRecord.put(
+          SchemaConstants.CELL_VALUE_COLUMN, constructColumn(cellValue.getColumn()));
+      cellValueRecord.put(SchemaConstants.CELL_VALUE_VALUE, cellValue.getValue());
+      partitionKeys.add(cellValueRecord);
+    }
+    return partitionKeys;
   }
 
   private static ByteBuffer serializeRecord(Record mutationEventRecord) {
@@ -81,20 +99,25 @@ public class QuerySerializer {
   private static List<Record> constructColumns(MutationEvent mutationEvent) {
     List<Record> columns = new ArrayList<>();
     for (Column column : mutationEvent.table().columns()) {
-      Record columnRecord = new Record(SchemaConstants.COLUMN);
-      columnRecord.put(SchemaConstants.COLUMN_NAME, column.name());
-      columnRecord.put(
-          SchemaConstants.COLUMN_ORDER,
-          Optional.ofNullable(column.order()).map(Enum::name).orElse(null));
-      columnRecord.put(
-          SchemaConstants.COLUMN_KIND,
-          Optional.ofNullable(column.kind()).map(Enum::name).orElse(null));
-      columnRecord.put(
-          SchemaConstants.COLUMN_TYPE_ID,
-          Optional.ofNullable(column.type()).map(Column.ColumnType::id).orElse(null));
+      Record columnRecord = constructColumn(column);
       columns.add(columnRecord);
     }
     return columns;
+  }
+
+  private static Record constructColumn(Column column) {
+    Record columnRecord = new Record(SchemaConstants.COLUMN);
+    columnRecord.put(SchemaConstants.COLUMN_NAME, column.name());
+    columnRecord.put(
+        SchemaConstants.COLUMN_ORDER,
+        Optional.ofNullable(column.order()).map(Enum::name).orElse(null));
+    columnRecord.put(
+        SchemaConstants.COLUMN_KIND,
+        Optional.ofNullable(column.kind()).map(Enum::name).orElse(null));
+    columnRecord.put(
+        SchemaConstants.COLUMN_TYPE_ID,
+        Optional.ofNullable(column.type()).map(Column.ColumnType::id).orElse(null));
+    return columnRecord;
   }
 
   private static MutationEvent toMutationEvent(BoundDMLQuery boundDMLQuery) {

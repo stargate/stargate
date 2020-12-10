@@ -35,6 +35,9 @@ import org.junit.jupiter.api.Test;
 
 class QuerySerializerTest {
 
+  public static final Table EMPTY_TABLE =
+      Table.create("ks", "table", Collections.emptyList(), Collections.emptyList());
+
   @Test
   @SuppressWarnings("unchecked")
   public void shouldSerializeBoundDMLQueryTable() throws IOException {
@@ -129,6 +132,76 @@ class QuerySerializerTest {
         .isEqualTo(MutationEventType.DELETE.name());
   }
 
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldSerializePartitionKeys() throws IOException {
+    // given
+    Column pk1 = Column.create("pk_1", Column.Kind.PartitionKey, Column.Type.Int);
+    Column pk2 = Column.create("pk_2", Column.Kind.PartitionKey, Column.Type.Boolean);
+    Table table =
+        Table.create(
+            "ks_1",
+            "table_1",
+            Arrays.asList(
+                pk1,
+                pk2,
+                Column.create("ck_1", Column.Kind.Clustering, Column.Type.Ascii),
+                Column.create("col_1", Column.Kind.Regular, Column.Type.Int),
+                Column.create("static", Column.Kind.Static, Column.Type.Int)),
+            Collections.emptyList());
+    BoundDMLQuery boundDMLQuery =
+        createBoundDMLQuery(
+            table,
+            Arrays.asList(
+                new PrimaryKey(
+                    table,
+                    Arrays.asList(
+                        TypedValue.forJavaValue(
+                            TypedValue.Codec.testCodec(), "pk_1", Column.Type.Int, 1),
+                        TypedValue.forJavaValue(
+                            TypedValue.Codec.testCodec(), "pk_2", Column.Type.Boolean, true),
+                        TypedValue.forJavaValue(
+                            TypedValue.Codec.testCodec(), "ck_1", Column.Type.Ascii, "v")))));
+
+    // when
+    ByteBuffer byteBuffer = QuerySerializer.serializeQuery(boundDMLQuery);
+
+    // then
+    GenericRecord result = toGenericRecord(byteBuffer);
+    GenericData.Array<GenericData.Record> partitionKeys =
+        (GenericData.Array) result.get(SchemaConstants.MUTATION_EVENT_PARTITION_KEYS);
+    assertThat(partitionKeys.size()).isEqualTo(2);
+    // validate PKs columns
+    validateColumn(
+        (GenericData.Record) partitionKeys.get(0).get(SchemaConstants.CELL_VALUE_COLUMN),
+        pk1.type().id(),
+        null,
+        pk1.kind().name(),
+        pk1.name());
+    validateColumn(
+        (GenericData.Record) partitionKeys.get(1).get(SchemaConstants.CELL_VALUE_COLUMN),
+        pk2.type().id(),
+        null,
+        pk2.kind().name(),
+        pk2.name());
+    // validate if byte buffers carry correct data
+    validateColumnValue(
+        (ByteBuffer) partitionKeys.get(0).get(SchemaConstants.CELL_VALUE_VALUE),
+        pk1.type().id(),
+        1);
+    validateColumnValue(
+        (ByteBuffer) partitionKeys.get(1).get(SchemaConstants.CELL_VALUE_VALUE),
+        pk2.type().id(),
+        true);
+  }
+
+  private void validateColumnValue(ByteBuffer byteBuffer, int typeId, Object expected) {
+    Column.Type type = Column.Type.fromId(typeId);
+    TypedValue typedValue =
+        TypedValue.forBytesValue(TypedValue.Codec.testCodec(), type, byteBuffer);
+    assertThat(typedValue.javaValue()).isEqualTo(expected);
+  }
+
   private void validateColumn(
       GenericData.Record column, Integer typeId, String order, String kind, String name) {
     assertThat(Optional.ofNullable(column.get(SchemaConstants.COLUMN_TYPE_ID)).orElse(null))
@@ -155,19 +228,17 @@ class QuerySerializerTest {
         .read(null, decoder);
   }
 
-  private BoundDMLQuery createBoundDMLQuery(QueryType queryType) {
+  private BoundDMLQuery createBoundDMLQuery(Table table, List<PrimaryKey> primaryKeys) {
     return createBoundDMLQuery(
-        Table.create("ks", "table", Collections.emptyList(), Collections.emptyList()),
-        OptionalInt.empty(),
-        OptionalLong.empty(),
-        queryType);
+        table, OptionalInt.empty(), OptionalLong.empty(), QueryType.UPDATE, primaryKeys);
+  }
+
+  private BoundDMLQuery createBoundDMLQuery(QueryType queryType) {
+    return createBoundDMLQuery(EMPTY_TABLE, OptionalInt.empty(), OptionalLong.empty(), queryType);
   }
 
   private BoundDMLQuery createBoundDMLQuery(OptionalInt ttl, OptionalLong timestamp) {
-    return createBoundDMLQuery(
-        Table.create("ks", "table", Collections.emptyList(), Collections.emptyList()),
-        ttl,
-        timestamp);
+    return createBoundDMLQuery(EMPTY_TABLE, ttl, timestamp);
   }
 
   private BoundDMLQuery createBoundDMLQuery(Table table) {
@@ -175,11 +246,20 @@ class QuerySerializerTest {
   }
 
   private BoundDMLQuery createBoundDMLQuery(Table table, OptionalInt ttl, OptionalLong timestamp) {
-    return createBoundDMLQuery(table, ttl, timestamp, QueryType.UPDATE);
+    return createBoundDMLQuery(table, ttl, timestamp, QueryType.UPDATE, Collections.emptyList());
   }
 
   private BoundDMLQuery createBoundDMLQuery(
       Table table, OptionalInt ttl, OptionalLong timestamp, QueryType queryType) {
+    return createBoundDMLQuery(table, ttl, timestamp, queryType, Collections.emptyList());
+  }
+
+  private BoundDMLQuery createBoundDMLQuery(
+      Table table,
+      OptionalInt ttl,
+      OptionalLong timestamp,
+      QueryType queryType,
+      List<PrimaryKey> primaryKeys) {
     return new BoundDMLQuery() {
       @Override
       public QueryType type() {
@@ -203,7 +283,7 @@ class QuerySerializerTest {
 
       @Override
       public RowsImpacted rowsUpdated() {
-        return new RowsImpacted.Keys(Collections.emptyList());
+        return new RowsImpacted.Keys(primaryKeys);
       }
 
       @Override

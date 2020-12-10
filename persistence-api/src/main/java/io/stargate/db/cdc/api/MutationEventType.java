@@ -18,4 +18,5 @@ package io.stargate.db.cdc.api;
 public enum MutationEventType {
   DELETE,
   UPDATE
+  // support range delete and range update https://github.com/stargate/stargate/issues/492
 }

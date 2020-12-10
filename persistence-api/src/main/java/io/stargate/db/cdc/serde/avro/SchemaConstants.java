@@ -53,6 +53,20 @@ public class SchemaConstants {
   public static final String MUTATION_EVENT_TTL = "ttl";
   public static final String MUTATION_EVENT_TIMESTAMP = "timestamp";
   public static final String MUTATION_EVENT_TYPE = "eventType";
+  public static final String MUTATION_EVENT_PARTITION_KEYS = "partitionKeys";
+  public static final String CELL_VALUE_VALUE = "value";
+  public static final String CELL_VALUE_COLUMN = "column";
+  public static final Schema CELL_VALUE =
+      SchemaBuilder.record("CellValue")
+          .fields()
+          .optionalBytes(CELL_VALUE_VALUE)
+          .name(CELL_VALUE_COLUMN)
+          .type(COLUMN)
+          .noDefault()
+          .endRecord();
+
+  public static final Schema LIST_OF_CELL_VALUE = SchemaBuilder.array().items(CELL_VALUE);
+
   public static final Schema MUTATION_EVENT =
       SchemaBuilder.record("MutationEvent")
           .fields()
@@ -62,5 +76,8 @@ public class SchemaConstants {
           .optionalInt(MUTATION_EVENT_TTL)
           .optionalLong(MUTATION_EVENT_TIMESTAMP)
           .requiredString(MUTATION_EVENT_TYPE)
+          .name(MUTATION_EVENT_PARTITION_KEYS)
+          .type(LIST_OF_CELL_VALUE)
+          .noDefault()
           .endRecord();
 }
