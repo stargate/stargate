@@ -23,7 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(DropwizardExtensionsSupport.class)
 class ColumnResourceTest {
 
-  private static Db db = mock(Db.class);
+  private static final Db db = mock(Db.class);
 
   private static final ResourceExtension resource =
       ResourceExtension.builder().addResource(new ColumnResource(db)).build();
@@ -42,9 +42,10 @@ class ColumnResourceTest {
     Column column2 = ImmutableColumn.create("c2", Column.Kind.Regular, Column.Type.Int);
     List<Column> columns = ImmutableList.of(column1, column2);
 
-    when(db.getDataStoreForToken("token")).thenReturn(dataStore);
+    AuthenticatedDB authenticatedDB = new AuthenticatedDB(dataStore, null);
+    when(db.getDataStoreForToken("token")).thenReturn(authenticatedDB);
     when(db.getAuthorizationService()).thenReturn(authorizationService);
-    when(db.getTable(dataStore, "keySpaceName", "tableName")).thenReturn(table);
+    when(authenticatedDB.getTable("keySpaceName", "tableName")).thenReturn(table);
     when(table.columns()).thenReturn(columns);
 
     List<ColumnDefinition> columnDefinitions =

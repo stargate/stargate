@@ -18,12 +18,16 @@
 package io.stargate.db.dse.impl;
 
 import io.reactivex.Single;
+import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
+import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -168,7 +172,20 @@ public class StargateQueryHandler implements QueryHandler {
   }
 
   private void authorizeByToken(ByteBuffer token, CQLStatement statement) {
-    String authToken = StandardCharsets.UTF_8.decode(token).toString();
+    AuthenticationPrincipal authenticationPrincipal;
+    try {
+      byte[] bytes = new byte[token.limit()];
+      token.get(bytes);
+      ObjectInputStream objectInputStream = new ObjectInputStream(new ByteArrayInputStream(bytes));
+      AuthenticatedUser authenticatedUser = (AuthenticatedUser) objectInputStream.readObject();
+      authenticationPrincipal =
+          new AuthenticationPrincipal(
+              authenticatedUser.token(),
+              authenticatedUser.name(),
+              authenticatedUser.isFromExternalAuth());
+    } catch (IOException | ClassNotFoundException e) {
+      throw new RuntimeException("Failed to deserialize authenticationPrincipal");
+    }
 
     if (!getAuthorizationService().isPresent()) {
       throw new RuntimeException(
@@ -185,7 +202,8 @@ public class StargateQueryHandler implements QueryHandler {
           castStatement.table());
 
       try {
-        authorization.authorizeDataRead(authToken, castStatement.keyspace(), castStatement.table());
+        authorization.authorizeDataRead(
+            authenticationPrincipal, castStatement.keyspace(), castStatement.table());
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format(
@@ -199,7 +217,7 @@ public class StargateQueryHandler implements QueryHandler {
           castStatement.keyspace(),
           castStatement.table());
     } else if (statement instanceof ModificationStatement) {
-      authorizeModificationStatement(statement, authToken, authorization);
+      authorizeModificationStatement(statement, authenticationPrincipal, authorization);
     } else if (statement instanceof TruncateStatement) {
       TruncateStatement castStatement = (TruncateStatement) statement;
       logger.debug(
@@ -210,7 +228,10 @@ public class StargateQueryHandler implements QueryHandler {
 
       try {
         authorization.authorizeDataWrite(
-            authToken, castStatement.keyspace(), castStatement.table(), Scope.TRUNCATE);
+            authenticationPrincipal,
+            castStatement.keyspace(),
+            castStatement.table(),
+            Scope.TRUNCATE);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format(
@@ -224,11 +245,11 @@ public class StargateQueryHandler implements QueryHandler {
           castStatement.keyspace(),
           castStatement.table());
     } else if (statement instanceof AlterSchemaStatement) {
-      authorizeAlterSchemaStatement(statement, authToken, authorization);
+      authorizeAlterSchemaStatement(statement, authenticationPrincipal, authorization);
     } else if (statement instanceof AuthorizationStatement) {
-      authorizeAuthorizationStatement(statement, authToken, authorization);
+      authorizeAuthorizationStatement(statement, authenticationPrincipal, authorization);
     } else if (statement instanceof AuthenticationStatement) {
-      authorizeAuthenticationStatement(statement, authToken, authorization);
+      authorizeAuthenticationStatement(statement, authenticationPrincipal, authorization);
     } else if (statement instanceof UseStatement) {
       // NOOP on UseStatement since it doesn't require authorization
       logger.debug("Skipping auth on UseStatement since it's not required");
@@ -236,7 +257,7 @@ public class StargateQueryHandler implements QueryHandler {
       BatchStatement castStatement = (BatchStatement) statement;
       List<ModificationStatement> statements = castStatement.getStatements();
       for (ModificationStatement stmt : statements) {
-        authorizeModificationStatement(stmt, authToken, authorization);
+        authorizeModificationStatement(stmt, authenticationPrincipal, authorization);
       }
     } else {
       logger.warn("Tried to authorize unsupported statement");
@@ -247,7 +268,9 @@ public class StargateQueryHandler implements QueryHandler {
   }
 
   private void authorizeModificationStatement(
-      CQLStatement statement, String authToken, AuthorizationService authorization) {
+      CQLStatement statement,
+      AuthenticationPrincipal authenticationPrincipal,
+      AuthorizationService authorization) {
     ModificationStatement castStatement = (ModificationStatement) statement;
     Scope scope;
     if (statement instanceof DeleteStatement) {
@@ -264,7 +287,7 @@ public class StargateQueryHandler implements QueryHandler {
 
     try {
       authorization.authorizeDataWrite(
-          authToken, castStatement.keyspace(), castStatement.table(), scope);
+          authenticationPrincipal, castStatement.keyspace(), castStatement.table(), scope);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format(
@@ -280,7 +303,9 @@ public class StargateQueryHandler implements QueryHandler {
   }
 
   private void authorizeAuthenticationStatement(
-      CQLStatement statement, String authToken, AuthorizationService authorization) {
+      CQLStatement statement,
+      AuthenticationPrincipal authenticationPrincipal,
+      AuthorizationService authorization) {
     AuthenticationStatement castStatement = (AuthenticationStatement) statement;
     Scope scope = null;
     String role = null;
@@ -295,7 +320,7 @@ public class StargateQueryHandler implements QueryHandler {
           role);
 
       try {
-        authorization.authorizeRoleManagement(authToken, role, grantee, scope);
+        authorization.authorizeRoleManagement(authenticationPrincipal, role, grantee, scope);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("Missing correct permission on role %s", role));
@@ -324,7 +349,7 @@ public class StargateQueryHandler implements QueryHandler {
         role);
 
     try {
-      authorization.authorizeRoleManagement(authToken, role, scope);
+      authorization.authorizeRoleManagement(authenticationPrincipal, role, scope);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(String.format("Missing correct permission on role %s", role));
     }
@@ -334,7 +359,9 @@ public class StargateQueryHandler implements QueryHandler {
   }
 
   private void authorizeAuthorizationStatement(
-      CQLStatement statement, String authToken, AuthorizationService authorization) {
+      CQLStatement statement,
+      AuthenticationPrincipal authenticationPrincipal,
+      AuthorizationService authorization) {
     AuthorizationStatement castStatement = (AuthorizationStatement) statement;
 
     if (statement instanceof PermissionsRelatedStatement) {
@@ -350,7 +377,8 @@ public class StargateQueryHandler implements QueryHandler {
             resource);
 
         try {
-          authorization.authorizePermissionManagement(authToken, resource, grantee, scope);
+          authorization.authorizePermissionManagement(
+              authenticationPrincipal, resource, grantee, scope);
         } catch (io.stargate.auth.UnauthorizedException e) {
           throw new UnauthorizedException(
               String.format("Missing correct permission on role %s", resource));
@@ -367,7 +395,7 @@ public class StargateQueryHandler implements QueryHandler {
             role);
 
         try {
-          authorization.authorizePermissionRead(authToken, role);
+          authorization.authorizePermissionRead(authenticationPrincipal, role);
         } catch (io.stargate.auth.UnauthorizedException e) {
           throw new UnauthorizedException(
               String.format("Missing correct permission on role %s", role));
@@ -385,7 +413,7 @@ public class StargateQueryHandler implements QueryHandler {
           role);
 
       try {
-        authorization.authorizeRoleRead(authToken, role);
+        authorization.authorizeRoleRead(authenticationPrincipal, role);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("Missing correct permission on role %s", role));
@@ -397,7 +425,9 @@ public class StargateQueryHandler implements QueryHandler {
   }
 
   private void authorizeAlterSchemaStatement(
-      CQLStatement statement, String authToken, AuthorizationService authorization) {
+      CQLStatement statement,
+      AuthenticationPrincipal authenticationPrincipal,
+      AuthorizationService authorization) {
     AlterSchemaStatement castStatement = (AlterSchemaStatement) statement;
     Scope scope = null;
     String keyspaceName = null;
@@ -485,7 +515,7 @@ public class StargateQueryHandler implements QueryHandler {
         tableName);
 
     try {
-      authorization.authorizeSchemaWrite(authToken, keyspaceName, tableName, scope);
+      authorization.authorizeSchemaWrite(authenticationPrincipal, keyspaceName, tableName, scope);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format(

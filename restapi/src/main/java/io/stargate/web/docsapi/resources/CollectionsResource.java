@@ -2,7 +2,6 @@ package io.stargate.web.docsapi.resources;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.SchemaEntity;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
@@ -10,6 +9,7 @@ import io.stargate.web.docsapi.models.DocCollection;
 import io.stargate.web.docsapi.service.CollectionService;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.ResponseWrapper;
+import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
@@ -71,12 +71,12 @@ public class CollectionsResource {
           final boolean raw) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
-          Set<Table> tables = localDB.schema().keyspace(namespace).tables();
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Set<Table> tables = (Set<Table>) authenticatedDB.getTables(namespace);
 
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  token,
+                  authenticatedDB.getAuthenticationPrincipal(),
                   Collections.singletonList(namespace),
                   tables.stream().map(SchemaEntity::name).collect(Collectors.toList()));
 
@@ -127,7 +127,8 @@ public class CollectionsResource {
             throw new IllegalArgumentException("`name` is required to create a collection");
           }
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, namespace, info.getName(), Scope.CREATE);
+              .authorizeSchemaWrite(
+                  docDB.getAuthenticationPrincipal(), namespace, info.getName(), Scope.CREATE);
 
           boolean res =
               collectionService.createCollection(namespace, info.getName(), docDB, db.isDse());
@@ -168,19 +169,26 @@ public class CollectionsResource {
           String collection) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, namespace, collection, Scope.DROP);
+              .authorizeSchemaWrite(
+                  authenticatedDB.getAuthenticationPrincipal(), namespace, collection, Scope.DROP);
 
-          Table toDelete = localDB.schema().keyspace(namespace).table(collection);
+          Table toDelete =
+              authenticatedDB.getDataStore().schema().keyspace(namespace).table(collection);
           if (toDelete == null) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(String.format("Collection %s not found", collection))
                 .build();
           }
           collectionService.deleteCollection(
-              namespace, collection, new DocumentDB(localDB, token, db.getAuthorizationService()));
+              namespace,
+              collection,
+              new DocumentDB(
+                  authenticatedDB.getDataStore(),
+                  authenticatedDB.getAuthenticationPrincipal(),
+                  db.getAuthorizationService()));
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }
@@ -222,12 +230,13 @@ public class CollectionsResource {
           String payload) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, namespace, collection, Scope.ALTER);
+              .authorizeSchemaWrite(
+                  authenticatedDB.getAuthenticationPrincipal(), namespace, collection, Scope.ALTER);
 
-          Table table = localDB.schema().keyspace(namespace).table(collection);
+          Table table = authenticatedDB.getTable(namespace, collection);
           if (table == null) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity("Collection not found")
@@ -247,12 +256,15 @@ public class CollectionsResource {
               collectionService.upgradeCollection(
                   namespace,
                   collection,
-                  new DocumentDB(localDB, token, db.getAuthorizationService()),
+                  new DocumentDB(
+                      authenticatedDB.getDataStore(),
+                      authenticatedDB.getAuthenticationPrincipal(),
+                      db.getAuthorizationService()),
                   request.getUpgradeType(),
                   db.isDse());
 
           if (success) {
-            table = localDB.schema().keyspace(namespace).table(collection);
+            table = authenticatedDB.getTable(namespace, collection);
             info = collectionService.getCollectionInfo(table, db);
 
             Object response = raw ? info : new ResponseWrapper(info);

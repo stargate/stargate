@@ -31,13 +31,17 @@ import io.netty.channel.EventLoop;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.MessageToMessageEncoder;
+import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -339,20 +343,20 @@ public abstract class Message {
 
           if (connection != null
               && ((ServerConnection) connection).clientInfo() != null
-              && ((ServerConnection) connection).clientInfo().getAuthToken() != null) {
+              && ((ServerConnection) connection).clientInfo().getAuthenticatedUser() != null) {
             if (customPayload != null) {
               message
                   .getCustomPayload()
                   .put(
                       "token",
-                      StandardCharsets.UTF_8.encode(
-                          ((ServerConnection) connection).clientInfo().getAuthToken()));
+                      authenticatedUserToByteBuffer(
+                          ((ServerConnection) connection).clientInfo().getAuthenticatedUser()));
             } else {
               customPayload =
                   Collections.singletonMap(
                       "token",
-                      StandardCharsets.UTF_8.encode(
-                          ((ServerConnection) connection).clientInfo().getAuthToken()));
+                      authenticatedUserToByteBuffer(
+                          ((ServerConnection) connection).clientInfo().getAuthenticatedUser()));
               message.setCustomPayload(customPayload);
             }
           }
@@ -375,8 +379,37 @@ public abstract class Message {
     }
   }
 
+  private static ByteBuffer authenticatedUserToByteBuffer(AuthenticatedUser authenticatedUser)
+      throws IOException {
+    byte[] bytes = null;
+    ByteArrayOutputStream bos = null;
+    ObjectOutputStream oos = null;
+    try {
+      bos = new ByteArrayOutputStream();
+      oos = new ObjectOutputStream(bos);
+      oos.writeObject(authenticatedUser);
+      oos.flush();
+      bytes = bos.toByteArray();
+    } finally {
+      if (oos != null) {
+        oos.close();
+      }
+      if (bos != null) {
+        bos.close();
+      }
+    }
+
+    InputStream initialStream = new ByteArrayInputStream(bytes);
+    ByteBuffer byteBuffer = ByteBuffer.allocate(3);
+    while (initialStream.available() > 0) {
+      byteBuffer.put((byte) initialStream.read());
+    }
+    return byteBuffer;
+  }
+
   @ChannelHandler.Sharable
   public static class ProtocolEncoder extends MessageToMessageEncoder<Message> {
+
     public void encode(ChannelHandlerContext ctx, Message message, List results) {
       Connection connection = ctx.channel().attr(Connection.attributeKey).get();
       // The only case the connection can be null is when we send the initial STARTUP message

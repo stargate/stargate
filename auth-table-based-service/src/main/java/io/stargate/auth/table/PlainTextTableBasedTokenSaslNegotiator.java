@@ -58,13 +58,14 @@ public class PlainTextTableBasedTokenSaslNegotiator extends PlainTextTokenSaslNe
       String password = String.valueOf(tmpPassword);
       credentials.clearPassword();
 
-      storedCredentials = authentication.validateToken(password);
-      if (storedCredentials == null) {
+      authenticationPrincipal = authentication.validateToken(password);
+      if (authenticationPrincipal == null) {
         logger.error("Null credentials returned from authentication service");
         return false;
       }
-      // Not setting token in the password field here since a table based token doesn't give us the
+      // Not setting token in the token field here since a table based token doesn't give us the
       // information we need for further authorization
+      authenticationPrincipal.setToken("");
     } catch (Exception e) {
       logger.error("Unable to validate token", e);
       return false;

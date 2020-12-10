@@ -15,7 +15,6 @@
  */
 package io.stargate.db.datastore;
 
-import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.Persistence;
@@ -63,6 +62,8 @@ public interface DataStore extends AsyncQueryExecutor {
    *     {@link Persistence.Connection} underneath).
    * @param userName the user name to login for this store. For convenience, if it is {@code null}
    *     or the empty string, no login attempt is performed (so no authentication must be setup).
+   * @param isFromExternalAuth Whether the request was authenticated using internal Cassandra/DSE
+   *     auth mechanisms or used an external source.
    * @param options the options for the create data store.
    * @param clientInfo the ClientInfo to be used for creating a connection.
    * @return the created store.
@@ -70,6 +71,7 @@ public interface DataStore extends AsyncQueryExecutor {
   static DataStore create(
       Persistence persistence,
       @Nullable String userName,
+      boolean isFromExternalAuth,
       @Nonnull DataStoreOptions options,
       @Nullable ClientInfo clientInfo) {
     Persistence.Connection connection = persistence.newConnection();
@@ -77,15 +79,15 @@ public interface DataStore extends AsyncQueryExecutor {
       connection = persistence.newConnection(clientInfo);
     }
 
-    if (userName != null && !userName.isEmpty()) {
+    if (!isFromExternalAuth) {
       connection.login(AuthenticatedUser.of(userName));
     }
     return create(connection, options);
   }
 
   /**
-   * Creates a new DataStore on top of the provided persistence. If a username is provided then a
-   * {@link ClientInfo} will be passed to {@link
+   * Creates a new DataStore on top of the provided persistence. If a username is provided and
+   * isFromExternalAuth is true then a {@link ClientInfo} will be passed to {@link
    * Persistence#newConnection(io.stargate.db.ClientInfo)} causing the new connection to have an
    * external ClientState thus causing authorization to be performed if enabled.
    *
@@ -93,28 +95,30 @@ public interface DataStore extends AsyncQueryExecutor {
    *     {@link Persistence.Connection} underneath).
    * @param userName the user name to login for this store. For convenience, if it is {@code null}
    *     or the empty string, no login attempt is performed (so no authentication must be setup).
+   * @param isFromExternalAuth Whether the request was authenticated using internal Cassandra/DSE
+   *     auth mechanisms or used an external source.
    * @param options the options for the create data store.
    * @return the created store.
    */
   static DataStore create(
-      Persistence persistence, @Nullable String userName, @Nonnull DataStoreOptions options) {
+      Persistence persistence,
+      @Nullable String userName,
+      boolean isFromExternalAuth,
+      @Nonnull DataStoreOptions options) {
     ClientInfo clientInfo = null;
-    if (!Strings.isNullOrEmpty(userName)) {
+    if (!isFromExternalAuth) {
       // Must have a clientInfo so that an external ClientState is used in order for authorization
       // to be performed
       clientInfo = new ClientInfo(new InetSocketAddress("127.0.0.1", 0), null);
     }
-    return create(persistence, userName, options, clientInfo);
+    return create(persistence, userName, isFromExternalAuth, options, clientInfo);
   }
 
   /**
-   * Creates a new DataStore on top of the provided persistence. If a username is provided then a
-   * {@link ClientInfo} will be passed to {@link
+   * Creates a new DataStore on top of the provided persistence. If a username is provided and
+   * isFromExternalAuth is true then a {@link ClientInfo} will be passed to {@link
    * Persistence#newConnection(io.stargate.db.ClientInfo)} causing the new connection to have an
-   * external ClientState thus causing authorization to be performed if enabled. ClientInfo
-   * clientInfo = null; if (!Strings.isNullOrEmpty(userName)) { // Must have a clientInfo so that an
-   * external ClientState is used in order for authorization // to be performed clientInfo = new
-   * ClientInfo(new InetSocketAddress("127.0.0.1", 0), null); }
+   * external ClientState thus causing authorization to be performed if enabled.
    *
    * <p>return create(persistence, userName, Parameters.defaults(), clientInfo); Creates a new
    * DataStore on top of the provided persistence.
@@ -128,11 +132,11 @@ public interface DataStore extends AsyncQueryExecutor {
   /**
    * Creates a new DataStore on top of the provided persistence.
    *
-   * <p>A shortcut for {@link #create(Persistence, String, DataStoreOptions)} with a {@code null}
-   * userName.
+   * <p>A shortcut for {@link #create(Persistence, String, boolean, DataStoreOptions)} with a {@code
+   * null} userName.
    */
   static DataStore create(Persistence persistence, DataStoreOptions options) {
-    return create(persistence, null, options);
+    return create(persistence, null, false, options);
   }
 
   TypedValue.Codec valueCodec();

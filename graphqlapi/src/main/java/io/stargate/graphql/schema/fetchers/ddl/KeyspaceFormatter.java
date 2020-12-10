@@ -18,6 +18,7 @@ package io.stargate.graphql.schema.fetchers.ddl;
 import com.google.common.collect.ImmutableMap;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
+import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.schema.Column;
@@ -44,10 +45,10 @@ class KeyspaceFormatter {
       Set<Keyspace> keyspaces,
       DataFetchingEnvironment environment,
       AuthorizationService authorizationService,
-      String token) {
+      AuthenticationPrincipal authenticationPrincipal) {
     List<Map<String, Object>> list = new ArrayList<>();
     for (Keyspace keyspace : keyspaces) {
-      list.add(formatResult(keyspace, environment, authorizationService, token));
+      list.add(formatResult(keyspace, environment, authorizationService, authenticationPrincipal));
     }
     return list;
   }
@@ -56,11 +57,11 @@ class KeyspaceFormatter {
       Keyspace keyspace,
       DataFetchingEnvironment environment,
       AuthorizationService authorizationService,
-      String token) {
+      AuthenticationPrincipal authenticationPrincipal) {
     ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
     try {
       authorizationService.authorizeSchemaRead(
-          token, Collections.singletonList(keyspace.name()), null);
+          authenticationPrincipal, Collections.singletonList(keyspace.name()), null);
     } catch (UnauthorizedException e) {
       LOG.debug("Not returning keyspace {} due to not being authorized", keyspace.name());
       return builder.build();
@@ -75,7 +76,7 @@ class KeyspaceFormatter {
         environment,
         keyspace.name(),
         authorizationService,
-        token);
+        authenticationPrincipal);
     formatChildren(
         builder,
         "type",
@@ -85,7 +86,7 @@ class KeyspaceFormatter {
         environment,
         keyspace.name(),
         authorizationService,
-        token);
+        authenticationPrincipal);
 
     builder.put("dcs", buildDcs(keyspace));
     return builder.build();
@@ -100,7 +101,7 @@ class KeyspaceFormatter {
       DataFetchingEnvironment environment,
       String keyspaceName,
       AuthorizationService authorizationService,
-      String token) {
+      AuthenticationPrincipal authenticationPrincipal) {
 
     // All children query, for example `keyspace(name: "ks") { tables }`
     String allChildrenName = childFieldName + "s";
@@ -110,7 +111,7 @@ class KeyspaceFormatter {
         if (childFieldName.equals("table")) {
           try {
             authorizationService.authorizeSchemaRead(
-                token,
+                authenticationPrincipal,
                 Collections.singletonList(keyspaceName),
                 Collections.singletonList(((ImmutableTable) child).name()));
           } catch (UnauthorizedException e) {
@@ -133,7 +134,9 @@ class KeyspaceFormatter {
       if (childFieldName.equals("table")) {
         try {
           authorizationService.authorizeSchemaRead(
-              token, Collections.singletonList(keyspaceName), Collections.singletonList(name));
+              authenticationPrincipal,
+              Collections.singletonList(keyspaceName),
+              Collections.singletonList(name));
         } catch (UnauthorizedException e) {
           LOG.debug("Not returning table {}.{} due to not being authorized", keyspaceName, name);
           return; // Not authorized so return and don't add this table to the list

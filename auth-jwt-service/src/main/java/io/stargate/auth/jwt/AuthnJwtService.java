@@ -21,8 +21,8 @@ import com.nimbusds.jose.proc.BadJOSEException;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
+import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
-import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Authenticator.SaslNegotiator;
 import java.text.ParseException;
@@ -61,13 +61,13 @@ public class AuthnJwtService implements AuthenticationService {
    * signed by the provider, and 3) contains the proper role for the given DB.
    *
    * @param token A JWT created by an auth provider.
-   * @return A {@link StoredCredentials} containing the role name the request is authenticated to
-   *     use.
+   * @return A {@link AuthenticationPrincipal} containing the role name the request is authenticated
+   *     to use.
    * @throws UnauthorizedException An UnauthorizedException if the JWT is expired, malformed, or not
    *     properly signed.
    */
   @Override
-  public StoredCredentials validateToken(String token) throws UnauthorizedException {
+  public AuthenticationPrincipal validateToken(String token) throws UnauthorizedException {
     if (Strings.isNullOrEmpty(token)) {
       throw new UnauthorizedException("authorization failed - missing token");
     }
@@ -85,9 +85,7 @@ public class AuthnJwtService implements AuthenticationService {
       throw new UnauthorizedException("JWT must have a value for " + ROLE_FIELD);
     }
 
-    StoredCredentials storedCredentials = new StoredCredentials();
-    storedCredentials.setRoleName(roleName);
-    return storedCredentials;
+    return new AuthenticationPrincipal(token, roleName);
   }
 
   @Override

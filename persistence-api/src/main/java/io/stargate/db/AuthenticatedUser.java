@@ -15,11 +15,12 @@
  */
 package io.stargate.db;
 
+import java.io.Serializable;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface AuthenticatedUser {
+public interface AuthenticatedUser extends Serializable {
 
   String name();
 

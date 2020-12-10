@@ -74,7 +74,7 @@ public class AuthResponse extends Message.Request {
         AuthenticatedUser authenticatedUser = negotiator.getAuthenticatedUser();
         persistenceConnection().login(authenticatedUser);
         if (authenticatedUser.token() != null) {
-          ((ServerConnection) connection).clientInfo().setAuthToken(authenticatedUser.token());
+          ((ServerConnection) connection).clientInfo().setAuthenticatedUser(authenticatedUser);
         }
 
         ClientMetrics.instance.markAuthSuccess();

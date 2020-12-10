@@ -17,23 +17,19 @@ package io.stargate.web.resources;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreOptions;
-import io.stargate.db.schema.Keyspace;
-import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import java.nio.ByteBuffer;
-import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
-import javax.ws.rs.NotFoundException;
 
 public class Db {
 
@@ -41,33 +37,11 @@ public class Db {
   private final DataStore dataStore;
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
-  private final LoadingCache<String, String> docsTokensToRoles =
+  private final LoadingCache<String, AuthenticationPrincipal> docsTokensToRoles =
       Caffeine.newBuilder()
           .maximumSize(10_000)
           .expireAfterWrite(1, TimeUnit.MINUTES)
-          .build(token -> getRoleNameForToken(token));
-
-  public Collection<Table> getTables(DataStore dataStore, String keyspaceName) {
-    Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
-    if (keyspace == null) {
-      throw new NotFoundException(String.format("keyspace '%s' not found", keyspaceName));
-    }
-
-    return keyspace.tables();
-  }
-
-  public Table getTable(DataStore dataStore, String keyspaceName, String table) {
-    Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
-    if (keyspace == null) {
-      throw new NotFoundException(String.format("keyspace '%s' not found", keyspaceName));
-    }
-
-    Table tableMetadata = keyspace.table(table);
-    if (tableMetadata == null) {
-      throw new NotFoundException(String.format("table '%s' not found", table));
-    }
-    return tableMetadata;
-  }
+          .build(this::getAuthenticationPrincipalForToken);
 
   public Db(
       final Persistence persistence,
@@ -96,22 +70,28 @@ public class Db {
     return authorizationService;
   }
 
-  public DataStore getDataStoreForToken(String token) throws UnauthorizedException {
-    StoredCredentials storedCredentials = authenticationService.validateToken(token);
-    return DataStore.create(
-        persistence,
-        storedCredentials.getRoleName(),
-        DataStoreOptions.defaultsWithAutoPreparedQueries());
+  public AuthenticatedDB getDataStoreForToken(String token) throws UnauthorizedException {
+    AuthenticationPrincipal authenticationPrincipal = authenticationService.validateToken(token);
+    DataStore dataStore =
+        DataStore.create(
+            persistence,
+            authenticationPrincipal.getRoleName(),
+            authenticationPrincipal.isFromExternalAuth(),
+            DataStoreOptions.defaultsWithAutoPreparedQueries());
+
+    return new AuthenticatedDB(dataStore, authenticationPrincipal);
   }
 
-  public DataStore getDataStoreForToken(String token, int pageSize, ByteBuffer pagingState)
+  public AuthenticatedDB getDataStoreForToken(String token, int pageSize, ByteBuffer pagingState)
       throws UnauthorizedException {
-    StoredCredentials storedCredentials = authenticationService.validateToken(token);
-    return getDataStoreInternal(storedCredentials.getRoleName(), pageSize, pagingState);
+    AuthenticationPrincipal authenticationPrincipal = authenticationService.validateToken(token);
+    return new AuthenticatedDB(
+        getDataStoreInternal(authenticationPrincipal, pageSize, pagingState),
+        authenticationPrincipal);
   }
 
-  private DataStore getDataStoreInternal(String role, int pageSize, ByteBuffer pagingState)
-      throws UnauthorizedException {
+  private DataStore getDataStoreInternal(
+      AuthenticationPrincipal authenticationPrincipal, int pageSize, ByteBuffer pagingState) {
     Parameters parameters =
         Parameters.builder()
             .pageSize(pageSize)
@@ -120,16 +100,24 @@ public class Db {
 
     DataStoreOptions options =
         DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
-    return DataStore.create(this.persistence, role, options);
+    return DataStore.create(
+        this.persistence,
+        authenticationPrincipal.getRoleName(),
+        authenticationPrincipal.isFromExternalAuth(),
+        options);
   }
 
-  public String getRoleNameForToken(String token) throws UnauthorizedException {
-    StoredCredentials storedCredentials = authenticationService.validateToken(token);
-    return storedCredentials.getRoleName();
+  public AuthenticationPrincipal getAuthenticationPrincipalForToken(String token)
+      throws UnauthorizedException {
+    return authenticationService.validateToken(token);
   }
 
   public DocumentDB getDocDataStoreForToken(String token) throws UnauthorizedException {
-    return new DocumentDB(getDataStoreForToken(token), token, getAuthorizationService());
+    AuthenticatedDB authenticatedDB = getDataStoreForToken(token);
+    return new DocumentDB(
+        authenticatedDB.getDataStore(),
+        authenticatedDB.getAuthenticationPrincipal(),
+        getAuthorizationService());
   }
 
   public DocumentDB getDocDataStoreForToken(String token, int pageSize, ByteBuffer pageState)
@@ -137,17 +125,25 @@ public class Db {
     if (token == null) {
       throw new UnauthorizedException("Missing token");
     }
-    String role;
+
+    AuthenticationPrincipal authenticationPrincipal;
     try {
-      role = docsTokensToRoles.get(token);
+      authenticationPrincipal = docsTokensToRoles.get(token);
     } catch (CompletionException e) {
       if (e.getCause() instanceof UnauthorizedException) {
         throw (UnauthorizedException) e.getCause();
       }
       throw e;
     }
+
+    if (authenticationPrincipal == null) {
+      throw new UnauthorizedException("Missing authenticationPrincipal");
+    }
+
     return new DocumentDB(
-        getDataStoreInternal(role, pageSize, pageState), token, getAuthorizationService());
+        getDataStoreInternal(authenticationPrincipal, pageSize, pageState),
+        authenticationPrincipal,
+        getAuthorizationService());
   }
 
   public boolean isDse() {

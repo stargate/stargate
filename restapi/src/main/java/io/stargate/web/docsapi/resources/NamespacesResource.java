@@ -18,12 +18,12 @@ package io.stargate.web.docsapi.resources;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.builder.Replication;
 import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.Keyspace;
 import io.stargate.web.models.ResponseWrapper;
+import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
@@ -85,15 +85,15 @@ public class NamespacesResource {
           final boolean raw) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
           List<Keyspace> namespaces =
-              localDB.schema().keyspaces().stream()
+              authenticatedDB.getKeyspaces().stream()
                   .map(k -> new Keyspace(k.name(), buildDatacenters(k)))
                   .collect(Collectors.toList());
 
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  token,
+                  authenticatedDB.getAuthenticationPrincipal(),
                   namespaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
                   null);
 
@@ -133,11 +133,14 @@ public class NamespacesResource {
           final boolean raw) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
           db.getAuthorizationService()
-              .authorizeSchemaRead(token, Collections.singletonList(namespaceName), null);
+              .authorizeSchemaRead(
+                  authenticatedDB.getAuthenticationPrincipal(),
+                  Collections.singletonList(namespaceName),
+                  null);
 
-          io.stargate.db.schema.Keyspace keyspace = localDB.schema().keyspace(namespaceName);
+          io.stargate.db.schema.Keyspace keyspace = authenticatedDB.getKeyspace(namespaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(
@@ -198,13 +201,14 @@ public class NamespacesResource {
           String payload) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
           Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
 
           String keyspaceName = (String) requestBody.get("name");
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, null, Scope.CREATE);
+              .authorizeSchemaWrite(
+                  authenticatedDB.getAuthenticationPrincipal(), keyspaceName, null, Scope.CREATE);
 
           Replication replication;
           if (requestBody.containsKey("datacenters")) {
@@ -223,7 +227,8 @@ public class NamespacesResource {
             replication = Replication.simpleStrategy((int) requestBody.getOrDefault("replicas", 1));
           }
 
-          localDB
+          authenticatedDB
+              .getDataStore()
               .queryBuilder()
               .create()
               .keyspace(keyspaceName)
@@ -261,11 +266,14 @@ public class NamespacesResource {
           final String namespaceName) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
-          db.getAuthorizationService().authorizeSchemaWrite(token, namespaceName, null, Scope.DROP);
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(
+                  authenticatedDB.getAuthenticationPrincipal(), namespaceName, null, Scope.DROP);
 
-          localDB
+          authenticatedDB
+              .getDataStore()
               .queryBuilder()
               .drop()
               .keyspace(namespaceName)

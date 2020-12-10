@@ -17,7 +17,6 @@ package io.stargate.web.resources;
 
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Kind;
@@ -98,15 +97,18 @@ public class TableResource {
           final String keyspaceName) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
           List<String> tableNames =
-              db.getTables(localDB, keyspaceName).stream()
+              authenticatedDB.getTables(keyspaceName).stream()
                   .map(Table::name)
                   .collect(Collectors.toList());
 
           db.getAuthorizationService()
-              .authorizeSchemaRead(token, Collections.singletonList(keyspaceName), tableNames);
+              .authorizeSchemaRead(
+                  authenticatedDB.getAuthenticationPrincipal(),
+                  Collections.singletonList(keyspaceName),
+                  tableNames);
 
           return Response.status(Response.Status.OK).entity(tableNames).build();
         });
@@ -142,8 +144,8 @@ public class TableResource {
           final TableAdd tableAdd) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
-          Keyspace keyspace = localDB.schema().keyspace(keyspaceName);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -196,9 +198,14 @@ public class TableResource {
           }
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.CREATE);
+              .authorizeSchemaWrite(
+                  authenticatedDB.getAuthenticationPrincipal(),
+                  keyspaceName,
+                  tableName,
+                  Scope.CREATE);
 
-          localDB
+          authenticatedDB
+              .getDataStore()
               .queryBuilder()
               .create()
               .table(keyspaceName, tableName)
@@ -243,14 +250,14 @@ public class TableResource {
           final String tableName) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  token,
+                  authenticatedDB.getAuthenticationPrincipal(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName));
 
-          Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
+          Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
           final List<ColumnDefinition> columnDefinitions =
               tableMetadata.columns().stream()
@@ -325,12 +332,17 @@ public class TableResource {
           final String tableName) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.DROP);
+              .authorizeSchemaWrite(
+                  authenticatedDB.getAuthenticationPrincipal(),
+                  keyspaceName,
+                  tableName,
+                  Scope.DROP);
 
-          localDB
+          authenticatedDB
+              .getDataStore()
               .queryBuilder()
               .drop()
               .table(keyspaceName, tableName)

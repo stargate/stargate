@@ -58,12 +58,11 @@ public class PlainTextJwtTokenSaslNegotiator extends PlainTextTokenSaslNegotiato
       String password = String.valueOf(tmpPassword);
       credentials.clearPassword();
 
-      storedCredentials = authentication.validateToken(password);
-      if (storedCredentials == null) {
+      authenticationPrincipal = authentication.validateToken(password);
+      if (authenticationPrincipal == null) {
         logger.error("Null credentials returned from authentication service");
         return false;
       }
-      storedCredentials.setPassword(password);
     } catch (Exception e) {
       logger.error("Unable to validate token", e);
       return false;

@@ -35,7 +35,7 @@ public abstract class PlainTextTokenSaslNegotiator implements SaslNegotiator {
 
   protected final AuthenticationService authentication;
   private final Authenticator.SaslNegotiator wrapped;
-  protected StoredCredentials storedCredentials;
+  protected AuthenticationPrincipal authenticationPrincipal;
   protected final String tokenUsername;
   protected final int tokenMaxLength;
   private static final boolean USE_TRANSITIONAL_AUTH =
@@ -62,14 +62,16 @@ public abstract class PlainTextTokenSaslNegotiator implements SaslNegotiator {
 
   @Override
   public boolean isComplete() {
-    return storedCredentials != null || wrapped.isComplete();
+    return authenticationPrincipal != null || wrapped.isComplete();
   }
 
   @Override
   public AuthenticatedUser getAuthenticatedUser() throws AuthenticationException {
-    if (storedCredentials != null) {
+    if (authenticationPrincipal != null) {
       return AuthenticatedUser.of(
-          storedCredentials.getRoleName(), storedCredentials.getPassword(), USE_TRANSITIONAL_AUTH);
+          authenticationPrincipal.getRoleName(),
+          authenticationPrincipal.getToken(),
+          USE_TRANSITIONAL_AUTH);
     } else {
       return wrapped.getAuthenticatedUser();
     }

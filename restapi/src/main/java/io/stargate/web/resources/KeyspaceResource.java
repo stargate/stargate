@@ -16,7 +16,6 @@
 package io.stargate.web.resources;
 
 import com.codahale.metrics.annotation.Timed;
-import io.stargate.db.datastore.DataStore;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -68,10 +67,12 @@ public class KeyspaceResource {
           String token) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
-          List<String> keyspaceNames = localDB.schema().keyspaceNames();
-          db.getAuthorizationService().authorizeSchemaRead(token, keyspaceNames, null);
+          List<String> keyspaceNames = authenticatedDB.getDataStore().schema().keyspaceNames();
+          db.getAuthorizationService()
+              .authorizeSchemaRead(
+                  authenticatedDB.getAuthenticationPrincipal(), keyspaceNames, null);
           return Response.status(Response.Status.OK).entity(keyspaceNames).build();
         });
   }

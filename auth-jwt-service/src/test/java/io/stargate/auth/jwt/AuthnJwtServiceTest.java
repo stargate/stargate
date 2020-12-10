@@ -32,7 +32,7 @@ import com.nimbusds.jwt.JWTClaimsSet.Builder;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
 import com.nimbusds.jwt.proc.DefaultJWTProcessor;
-import io.stargate.auth.StoredCredentials;
+import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.UnauthorizedException;
 import java.security.SecureRandom;
 import java.text.ParseException;
@@ -95,10 +95,10 @@ public class AuthnJwtServiceTest {
     JWTClaimsSet jwtClaimsSet = new Builder().claim("stargate_claims", stargate_claims).build();
     when(jwtProcessorMocked.process("token", null)).thenReturn(jwtClaimsSet);
 
-    StoredCredentials storedCredentials = mockAuthnJwtService.validateToken("token");
+    AuthenticationPrincipal authenticationPrincipal = mockAuthnJwtService.validateToken("token");
 
-    assertThat(storedCredentials).isNotNull();
-    assertThat(storedCredentials.getRoleName()).isEqualTo("user");
+    assertThat(authenticationPrincipal).isNotNull();
+    assertThat(authenticationPrincipal.getRoleName()).isEqualTo("user");
   }
 
   @Test

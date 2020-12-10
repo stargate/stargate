@@ -16,6 +16,7 @@
 package io.stargate.graphql.schema.fetchers.ddl;
 
 import graphql.schema.DataFetchingEnvironment;
+import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -23,7 +24,6 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
-import io.stargate.graphql.web.HttpAwareContext;
 
 public class DropKeyspaceFetcher extends DdlQueryFetcher {
 
@@ -36,13 +36,14 @@ public class DropKeyspaceFetcher extends DdlQueryFetcher {
 
   @Override
   protected Query<?> buildQuery(
-      DataFetchingEnvironment dataFetchingEnvironment, QueryBuilder builder)
+      DataFetchingEnvironment dataFetchingEnvironment,
+      QueryBuilder builder,
+      AuthenticationPrincipal authenticationPrincipal)
       throws UnauthorizedException {
     String keyspaceName = dataFetchingEnvironment.getArgument("name");
 
-    HttpAwareContext httpAwareContext = dataFetchingEnvironment.getContext();
-    String token = httpAwareContext.getAuthToken();
-    authorizationService.authorizeSchemaWrite(token, keyspaceName, null, Scope.DROP);
+    authorizationService.authorizeSchemaWrite(
+        authenticationPrincipal, keyspaceName, null, Scope.DROP);
 
     boolean ifExists = dataFetchingEnvironment.getArgumentOrDefault("ifExists", Boolean.FALSE);
 

@@ -17,6 +17,7 @@ package io.stargate.graphql.schema.fetchers.dml;
 
 import com.google.common.base.Preconditions;
 import graphql.schema.DataFetchingEnvironment;
+import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -30,7 +31,6 @@ import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
-import io.stargate.graphql.web.HttpAwareContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +47,10 @@ public class InsertMutationFetcher extends MutationFetcher {
   }
 
   @Override
-  protected BoundQuery buildQuery(DataFetchingEnvironment environment, DataStore dataStore)
+  protected BoundQuery buildQuery(
+      DataFetchingEnvironment environment,
+      DataStore dataStore,
+      AuthenticationPrincipal authenticationPrincipal)
       throws UnauthorizedException {
     boolean ifNotExists =
         environment.containsArgument("ifNotExists")
@@ -64,11 +67,8 @@ public class InsertMutationFetcher extends MutationFetcher {
             .build()
             .bind();
 
-    HttpAwareContext httpAwareContext = environment.getContext();
-    String token = httpAwareContext.getAuthToken();
-
     authorizationService.authorizeDataWrite(
-        token,
+        authenticationPrincipal,
         table.keyspace(),
         table.name(),
         TypedKeyValue.forDML((BoundDMLQuery) query),

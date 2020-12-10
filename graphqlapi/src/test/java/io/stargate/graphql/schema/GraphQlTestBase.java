@@ -17,9 +17,9 @@ import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
+import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.StoredCredentials;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
@@ -60,7 +60,7 @@ public abstract class GraphQlTestBase {
   @Mock protected AuthenticationService authenticationService;
   @Mock protected AuthorizationService authorizationService;
   @Mock protected ResultSet resultSet;
-  @Mock private StoredCredentials storedCredentials;
+  @Mock private AuthenticationPrincipal authenticationPrincipal;
 
   @Captor private ArgumentCaptor<BoundQuery> queryCaptor;
   @Captor protected ArgumentCaptor<Callable<ResultSet>> actionCaptor;
@@ -77,10 +77,10 @@ public abstract class GraphQlTestBase {
     try {
       Schema schema = getCQLSchema();
       String roleName = "mock role name";
-      when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
-      when(storedCredentials.getRoleName()).thenReturn(roleName);
+      when(authenticationService.validateToken(token)).thenReturn(authenticationPrincipal);
+      when(authenticationPrincipal.getRoleName()).thenReturn(roleName);
       when(authorizationService.authorizedDataRead(
-              actionCaptor.capture(), eq(token), anyString(), anyString(), any()))
+              actionCaptor.capture(), eq(authenticationPrincipal), anyString(), anyString(), any()))
           .then(
               i -> {
                 return actionCaptor.getValue().call();
@@ -89,7 +89,8 @@ public abstract class GraphQlTestBase {
       dataStoreCreateMock
           .when(
               () ->
-                  DataStore.create(eq(persistence), eq(roleName), dataStoreOptionsCaptor.capture()))
+                  DataStore.create(
+                      eq(persistence), eq(roleName), eq(false), dataStoreOptionsCaptor.capture()))
           .then(
               i -> {
                 DataStore dataStore = mock(DataStore.class);

@@ -15,6 +15,7 @@
  */
 package io.stargate.auth.table;
 
+import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.TypedKeyValue;
@@ -34,7 +35,7 @@ public class AuthzTableBasedService implements AuthorizationService {
   @Override
   public ResultSet authorizedDataRead(
       Callable<ResultSet> action,
-      String token,
+      AuthenticationPrincipal authenticationPrincipal,
       String keyspace,
       String table,
       List<TypedKeyValue> typedKeyValues)
@@ -50,19 +51,8 @@ public class AuthzTableBasedService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizeDataRead(String token, String keyspaceNames, String tableNames)
-      throws UnauthorizedException {
-    // Cannot perform authorization with a table based token so just return
-  }
-
-  /**
-   * Authorization for data access is not provided by table based tokens so all authorization will
-   * be deferred to the underlying permissions assigned to the role the token maps to.
-   *
-   * <p>{@inheritdoc}
-   */
-  @Override
-  public void authorizeDataWrite(String token, String keyspaceNames, String tableNames, Scope scope)
+  public void authorizeDataRead(
+      AuthenticationPrincipal authenticationPrincipal, String keyspaceNames, String tableNames)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -75,7 +65,27 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public void authorizeDataWrite(
-      String token, String keyspace, String table, List<TypedKeyValue> typedKeyValues, Scope scope)
+      AuthenticationPrincipal authenticationPrincipal,
+      String keyspaceNames,
+      String tableNames,
+      Scope scope)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a table based token so just return
+  }
+
+  /**
+   * Authorization for data access is not provided by table based tokens so all authorization will
+   * be deferred to the underlying permissions assigned to the role the token maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeDataWrite(
+      AuthenticationPrincipal authenticationPrincipal,
+      String keyspace,
+      String table,
+      List<TypedKeyValue> typedKeyValues,
+      Scope scope)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -88,7 +98,10 @@ public class AuthzTableBasedService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizeSchemaRead(String token, List<String> keyspaceNames, List<String> tableNames)
+  public void authorizeSchemaRead(
+      AuthenticationPrincipal authenticationPrincipal,
+      List<String> keyspaceNames,
+      List<String> tableNames)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -101,7 +114,8 @@ public class AuthzTableBasedService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizeSchemaWrite(String token, String keyspace, String table, Scope scope)
+  public void authorizeSchemaWrite(
+      AuthenticationPrincipal authenticationPrincipal, String keyspace, String table, Scope scope)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -113,7 +127,8 @@ public class AuthzTableBasedService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizeRoleManagement(String token, String role, Scope scope)
+  public void authorizeRoleManagement(
+      AuthenticationPrincipal authenticationPrincipal, String role, Scope scope)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -125,7 +140,8 @@ public class AuthzTableBasedService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizeRoleManagement(String token, String role, String grantee, Scope scope)
+  public void authorizeRoleManagement(
+      AuthenticationPrincipal authenticationPrincipal, String role, String grantee, Scope scope)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -137,7 +153,8 @@ public class AuthzTableBasedService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizeRoleRead(String token, String role) throws UnauthorizedException {
+  public void authorizeRoleRead(AuthenticationPrincipal authenticationPrincipal, String role)
+      throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
 
@@ -150,7 +167,8 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public void authorizePermissionManagement(
-      String token, String resource, String grantee, Scope scope) throws UnauthorizedException {
+      AuthenticationPrincipal authenticationPrincipal, String resource, String grantee, Scope scope)
+      throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
 
@@ -162,7 +180,8 @@ public class AuthzTableBasedService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizePermissionRead(String token, String role) throws UnauthorizedException {
+  public void authorizePermissionRead(AuthenticationPrincipal authenticationPrincipal, String role)
+      throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
 }

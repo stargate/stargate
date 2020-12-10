@@ -13,7 +13,7 @@ public class ClientInfo {
 
   private volatile DriverInfo driverInfo;
 
-  private String authToken;
+  private AuthenticatedUser authenticatedUser;
 
   public ClientInfo(InetSocketAddress remoteAddress, @Nullable InetSocketAddress publicAddress) {
     this.remoteAddress = remoteAddress;
@@ -40,12 +40,12 @@ public class ClientInfo {
     return Optional.ofNullable(driverInfo);
   }
 
-  public String getAuthToken() {
-    return authToken;
+  public AuthenticatedUser getAuthenticatedUser() {
+    return authenticatedUser;
   }
 
-  public void setAuthToken(String authToken) {
-    this.authToken = authToken;
+  public void setAuthenticatedUser(AuthenticatedUser authenticatedUser) {
+    this.authenticatedUser = authenticatedUser;
   }
 
   @Override
