@@ -246,16 +246,7 @@ class QuerySerializerTest {
     Column staticCol = Column.create("static", Column.Kind.Static, Column.Type.Int);
 
     Table table =
-        Table.create(
-            "ks_1",
-            "table_1",
-            Arrays.asList(
-                Column.create("pk_1", Column.Kind.PartitionKey, Column.Type.Int),
-                Column.create("pk_2", Column.Kind.PartitionKey, Column.Type.Boolean),
-                Column.create("ck_1", Column.Kind.Clustering, Column.Type.Ascii),
-                col,
-                staticCol),
-            Collections.emptyList());
+        Table.create("ks_1", "table_1", Arrays.asList(col, staticCol), Collections.emptyList());
 
     BoundDMLQuery boundDMLQuery =
         createBoundDMLQuery(
@@ -397,12 +388,6 @@ class QuerySerializerTest {
         QueryType.UPDATE,
         Collections.emptyList(),
         columns);
-  }
-
-  private BoundDMLQuery createBoundDMLQuery(
-      Table table, List<PrimaryKey> primaryKeys, List<Modification> columns) {
-    return createBoundDMLQuery(
-        table, OptionalInt.empty(), OptionalLong.empty(), QueryType.UPDATE, primaryKeys, columns);
   }
 
   private BoundDMLQuery createBoundDMLQuery(QueryType queryType) {
