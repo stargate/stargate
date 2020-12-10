@@ -45,6 +45,14 @@ public class QuerySerializer {
     Record table = constructTable(columns, mutationEvent);
     Record mutationEventRecord = new Record(SchemaConstants.MUTATION_EVENT);
     mutationEventRecord.put(SchemaConstants.MUTATION_EVENT_TABLE, table);
+    mutationEventRecord.put(
+        SchemaConstants.MUTATION_EVENT_TTL,
+        mutationEvent.ttl().isPresent() ? mutationEvent.ttl().getAsInt() : null);
+    mutationEventRecord.put(
+        SchemaConstants.MUTATION_EVENT_TIMESTAMP,
+        mutationEvent.timestamp().isPresent() ? mutationEvent.timestamp().getAsLong() : null);
+    mutationEventRecord.put(
+        SchemaConstants.MUTATION_EVENT_TYPE, mutationEvent.mutationEventType().name());
     return mutationEventRecord;
   }
 

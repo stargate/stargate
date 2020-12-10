@@ -108,7 +108,7 @@ public class MutationEventBuilder {
   }
 
   private MutationEventType toType(BoundDMLQuery boundDMLQuery) {
-    if (boundDMLQuery instanceof BoundDelete) {
+    if (boundDMLQuery.type().equals(QueryType.DELETE)) {
       return MutationEventType.DELETE;
     } else {
       return MutationEventType.UPDATE;

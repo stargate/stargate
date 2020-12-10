@@ -50,11 +50,17 @@ public class SchemaConstants {
           .withDefault(Collections.emptyList())
           .endRecord();
 
+  public static final String MUTATION_EVENT_TTL = "ttl";
+  public static final String MUTATION_EVENT_TIMESTAMP = "timestamp";
+  public static final String MUTATION_EVENT_TYPE = "eventType";
   public static final Schema MUTATION_EVENT =
       SchemaBuilder.record("MutationEvent")
           .fields()
           .name(MUTATION_EVENT_TABLE)
           .type(TABLE)
           .noDefault()
+          .optionalInt(MUTATION_EVENT_TTL)
+          .optionalLong(MUTATION_EVENT_TIMESTAMP)
+          .requiredString(MUTATION_EVENT_TYPE)
           .endRecord();
 }

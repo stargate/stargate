@@ -17,6 +17,7 @@ package io.stargate.db.cdc.serde;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
+import io.stargate.db.cdc.api.MutationEventType;
 import io.stargate.db.cdc.serde.avro.SchemaConstants;
 import io.stargate.db.query.*;
 import io.stargate.db.schema.Column;
@@ -72,6 +73,62 @@ class QuerySerializerTest {
     validateColumn(columns.get(3), 5, null, "Regular", "col_3");
   }
 
+  @Test
+  public void shouldSerializeBoundDMLQueryTimestampAndTTL() throws IOException {
+    // given
+    BoundDMLQuery boundDMLQuery = createBoundDMLQuery(OptionalInt.of(100), OptionalLong.of(10000L));
+
+    // when
+    ByteBuffer byteBuffer = QuerySerializer.serializeQuery(boundDMLQuery);
+
+    // then
+    GenericRecord result = toGenericRecord(byteBuffer);
+    assertThat(result.get(SchemaConstants.MUTATION_EVENT_TTL)).isEqualTo(100);
+    assertThat(result.get(SchemaConstants.MUTATION_EVENT_TIMESTAMP)).isEqualTo(10000L);
+  }
+
+  @Test
+  public void shouldSerializeBoundDMLQueryTimestampAndTTLNull() throws IOException {
+    // given
+    BoundDMLQuery boundDMLQuery = createBoundDMLQuery(OptionalInt.empty(), OptionalLong.empty());
+
+    // when
+    ByteBuffer byteBuffer = QuerySerializer.serializeQuery(boundDMLQuery);
+
+    // then
+    GenericRecord result = toGenericRecord(byteBuffer);
+    assertThat(result.get(SchemaConstants.MUTATION_EVENT_TTL)).isNull();
+    assertThat(result.get(SchemaConstants.MUTATION_EVENT_TIMESTAMP)).isNull();
+  }
+
+  @Test
+  public void shouldSerializeBoundDMLQueryUpdateType() throws IOException {
+    // given
+    BoundDMLQuery boundDMLQuery = createBoundDMLQuery(QueryType.UPDATE);
+
+    // when
+    ByteBuffer byteBuffer = QuerySerializer.serializeQuery(boundDMLQuery);
+
+    // then
+    GenericRecord result = toGenericRecord(byteBuffer);
+    assertThat(result.get(SchemaConstants.MUTATION_EVENT_TYPE).toString())
+        .isEqualTo(MutationEventType.UPDATE.name());
+  }
+
+  @Test
+  public void shouldSerializeBoundDMLQueryDeleteType() throws IOException {
+    // given
+    BoundDMLQuery boundDMLQuery = createBoundDMLQuery(QueryType.DELETE);
+
+    // when
+    ByteBuffer byteBuffer = QuerySerializer.serializeQuery(boundDMLQuery);
+
+    // then
+    GenericRecord result = toGenericRecord(byteBuffer);
+    assertThat(result.get(SchemaConstants.MUTATION_EVENT_TYPE).toString())
+        .isEqualTo(MutationEventType.DELETE.name());
+  }
+
   private void validateColumn(
       GenericData.Record column, Integer typeId, String order, String kind, String name) {
     assertThat(Optional.ofNullable(column.get(SchemaConstants.COLUMN_TYPE_ID)).orElse(null))
@@ -98,11 +155,35 @@ class QuerySerializerTest {
         .read(null, decoder);
   }
 
+  private BoundDMLQuery createBoundDMLQuery(QueryType queryType) {
+    return createBoundDMLQuery(
+        Table.create("ks", "table", Collections.emptyList(), Collections.emptyList()),
+        OptionalInt.empty(),
+        OptionalLong.empty(),
+        queryType);
+  }
+
+  private BoundDMLQuery createBoundDMLQuery(OptionalInt ttl, OptionalLong timestamp) {
+    return createBoundDMLQuery(
+        Table.create("ks", "table", Collections.emptyList(), Collections.emptyList()),
+        ttl,
+        timestamp);
+  }
+
   private BoundDMLQuery createBoundDMLQuery(Table table) {
+    return createBoundDMLQuery(table, OptionalInt.empty(), OptionalLong.empty());
+  }
+
+  private BoundDMLQuery createBoundDMLQuery(Table table, OptionalInt ttl, OptionalLong timestamp) {
+    return createBoundDMLQuery(table, ttl, timestamp, QueryType.UPDATE);
+  }
+
+  private BoundDMLQuery createBoundDMLQuery(
+      Table table, OptionalInt ttl, OptionalLong timestamp, QueryType queryType) {
     return new BoundDMLQuery() {
       @Override
       public QueryType type() {
-        return QueryType.UPDATE;
+        return queryType;
       }
 
       @Override
@@ -132,12 +213,12 @@ class QuerySerializerTest {
 
       @Override
       public OptionalInt ttl() {
-        return OptionalInt.empty();
+        return ttl;
       }
 
       @Override
       public OptionalLong timestamp() {
-        return OptionalLong.empty();
+        return timestamp;
       }
     };
   }
