@@ -17,14 +17,76 @@ package io.stargate.db.cdc.serde;
 
 import io.stargate.db.cdc.api.MutationEvent;
 import io.stargate.db.cdc.api.MutationEventBuilder;
+import io.stargate.db.cdc.serde.avro.SchemaConstants;
 import io.stargate.db.query.BoundDMLQuery;
+import io.stargate.db.schema.Column;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import org.apache.avro.generic.GenericData.Record;
+import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.BinaryEncoder;
+import org.apache.avro.io.EncoderFactory;
 
 public class QuerySerializer {
   public static ByteBuffer serializeQuery(BoundDMLQuery boundDMLQuery) {
-    toMutationEvent(boundDMLQuery);
+    MutationEvent mutationEvent = toMutationEvent(boundDMLQuery);
+    Record mutationEventRecord = constructMutationEventGenericRecord(mutationEvent);
+    return serializeRecord(mutationEventRecord);
+  }
 
-    return ByteBuffer.allocate(1);
+  private static Record constructMutationEventGenericRecord(MutationEvent mutationEvent) {
+    List<Record> columns = constructColumns(mutationEvent);
+    Record table = constructTable(columns, mutationEvent);
+    Record mutationEventRecord = new Record(SchemaConstants.MUTATION_EVENT);
+    mutationEventRecord.put(SchemaConstants.MUTATION_EVENT_TABLE, table);
+    return mutationEventRecord;
+  }
+
+  private static ByteBuffer serializeRecord(Record mutationEventRecord) {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    EncoderFactory encoderFactory = EncoderFactory.get();
+    BinaryEncoder encoder = encoderFactory.directBinaryEncoder(out, null);
+    try {
+      new GenericDatumWriter<GenericRecord>(SchemaConstants.MUTATION_EVENT)
+          .write(mutationEventRecord, encoder);
+      return ByteBuffer.wrap(out.toByteArray());
+    } catch (IOException e) {
+      throw new UncheckedIOException(
+          "Problem when serializing mutation event: " + mutationEventRecord, e);
+    }
+  }
+
+  private static Record constructTable(List<Record> columns, MutationEvent mutationEvent) {
+    Record tableRecord = new Record(SchemaConstants.TABLE);
+    tableRecord.put(SchemaConstants.TABLE_KEYSPACE, mutationEvent.table().keyspace());
+    tableRecord.put(SchemaConstants.TABLE_NAME, mutationEvent.table().name());
+    tableRecord.put(SchemaConstants.TABLE_COLUMNS, columns);
+    return tableRecord;
+  }
+
+  private static List<Record> constructColumns(MutationEvent mutationEvent) {
+    List<Record> columns = new ArrayList<>();
+    for (Column column : mutationEvent.table().columns()) {
+      Record columnRecord = new Record(SchemaConstants.COLUMN);
+      columnRecord.put(SchemaConstants.COLUMN_NAME, column.name());
+      columnRecord.put(
+          SchemaConstants.COLUMN_ORDER,
+          Optional.ofNullable(column.order()).map(Enum::name).orElse(null));
+      columnRecord.put(
+          SchemaConstants.COLUMN_KIND,
+          Optional.ofNullable(column.kind()).map(Enum::name).orElse(null));
+      columnRecord.put(
+          SchemaConstants.COLUMN_TYPE_ID,
+          Optional.ofNullable(column.type()).map(Column.ColumnType::id).orElse(null));
+      columns.add(columnRecord);
+    }
+    return columns;
   }
 
   private static MutationEvent toMutationEvent(BoundDMLQuery boundDMLQuery) {
