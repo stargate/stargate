@@ -127,7 +127,7 @@ public class CDCWritePathTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void shouldSaveRecordToCDCEventsWhenInsertToACDCEnabledTableUsingRestApi(
+  public void shouldSaveRecordToCDCEventsWhenInsertToCDCEnabledTableUsingRestApi(
       CqlSession session) throws IOException {
     // given
     List<ColumnModel> columns = new ArrayList<>();
