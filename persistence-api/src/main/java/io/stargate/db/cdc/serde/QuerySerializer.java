@@ -117,8 +117,8 @@ public class QuerySerializer {
         SchemaConstants.COLUMN_KIND,
         Optional.ofNullable(column.kind()).map(Enum::name).orElse(null));
     columnRecord.put(
-        SchemaConstants.COLUMN_TYPE_ID,
-        Optional.ofNullable(column.type()).map(Column.ColumnType::id).orElse(null));
+        SchemaConstants.COLUMN_CQL_DEFINITION,
+        Optional.ofNullable(column.type()).map(Column.ColumnType::cqlDefinition).orElse(null));
     return columnRecord;
   }
 

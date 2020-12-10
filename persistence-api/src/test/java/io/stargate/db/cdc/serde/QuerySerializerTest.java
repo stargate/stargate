@@ -21,6 +21,7 @@ import io.stargate.db.cdc.api.MutationEventType;
 import io.stargate.db.cdc.serde.avro.SchemaConstants;
 import io.stargate.db.query.*;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -70,10 +71,11 @@ class QuerySerializerTest {
     GenericData.Array<GenericData.Record> columns =
         (GenericData.Array) table.get(SchemaConstants.TABLE_COLUMNS);
     assertThat(columns.size()).isEqualTo(4);
-    validateColumn(columns.get(0), 1, "ASC", "PartitionKey", "pk_1");
-    validateColumn(columns.get(1), 9, null, "Regular", "col_1");
+    validateColumn(
+        columns.get(0), Column.Type.Ascii.cqlDefinition(), "ASC", "PartitionKey", "pk_1");
+    validateColumn(columns.get(1), Column.Type.Int.cqlDefinition(), null, "Regular", "col_1");
     validateColumn(columns.get(2), null, null, "Regular", "col_2");
-    validateColumn(columns.get(3), 5, null, "Regular", "col_3");
+    validateColumn(columns.get(3), Column.Type.Counter.cqlDefinition(), null, "Regular", "col_3");
   }
 
   @Test
@@ -176,21 +178,27 @@ class QuerySerializerTest {
     // validate PKs columns
     validateColumn(
         (GenericData.Record) pkRecord1.get(SchemaConstants.CELL_VALUE_COLUMN),
-        pk1.type().id(),
+        pk1.type().cqlDefinition(),
         null,
         pk1.kind().name(),
         pk1.name());
     validateColumn(
         (GenericData.Record) pkRecord2.get(SchemaConstants.CELL_VALUE_COLUMN),
-        pk2.type().id(),
+        pk2.type().cqlDefinition(),
         null,
         pk2.kind().name(),
         pk2.name());
     // validate if byte buffers carry correct data
     validateColumnValue(
-        (ByteBuffer) pkRecord1.get(SchemaConstants.CELL_VALUE_VALUE), pk1.type().id(), 1);
+        (ByteBuffer) pkRecord1.get(SchemaConstants.CELL_VALUE_VALUE),
+        pk1.type().cqlDefinition(),
+        1,
+        table);
     validateColumnValue(
-        (ByteBuffer) pkRecord2.get(SchemaConstants.CELL_VALUE_VALUE), pk2.type().id(), true);
+        (ByteBuffer) pkRecord2.get(SchemaConstants.CELL_VALUE_VALUE),
+        pk2.type().cqlDefinition(),
+        true,
+        table);
   }
 
   @Test
@@ -235,26 +243,41 @@ class QuerySerializerTest {
     // validate PKs columns
     validateColumn(
         (GenericData.Record) pkRecord1.get(SchemaConstants.CELL_VALUE_COLUMN),
-        ck1.type().id(),
+        ck1.type().cqlDefinition(),
         ck1.order().name(),
         ck1.kind().name(),
         ck1.name());
     // validate if byte buffers carry correct data
     validateColumnValue(
-        (ByteBuffer) pkRecord1.get(SchemaConstants.CELL_VALUE_VALUE), ck1.type().id(), "v");
+        (ByteBuffer) pkRecord1.get(SchemaConstants.CELL_VALUE_VALUE),
+        ck1.type().cqlDefinition(),
+        "v",
+        table);
   }
 
-  private void validateColumnValue(ByteBuffer byteBuffer, int typeId, Object expected) {
-    Column.Type type = Column.Type.fromId(typeId);
+  private void validateColumnValue(
+      ByteBuffer byteBuffer, String cqlDefinition, Object expected, Table table) {
+    Column.ColumnType columnType =
+        Column.Type.fromCqlDefinitionOf(
+            Keyspace.create(
+                table.keyspace(),
+                Arrays.asList(table),
+                Collections.emptyList(),
+                Collections.emptyMap(),
+                Optional.empty()),
+            cqlDefinition);
     TypedValue typedValue =
-        TypedValue.forBytesValue(TypedValue.Codec.testCodec(), type, byteBuffer);
+        TypedValue.forBytesValue(TypedValue.Codec.testCodec(), columnType, byteBuffer);
     assertThat(typedValue.javaValue()).isEqualTo(expected);
   }
 
   private void validateColumn(
-      GenericData.Record column, Integer typeId, String order, String kind, String name) {
-    assertThat(Optional.ofNullable(column.get(SchemaConstants.COLUMN_TYPE_ID)).orElse(null))
-        .isEqualTo(typeId);
+      GenericData.Record column, String cqlDefintion, String order, String kind, String name) {
+    assertThat(
+            Optional.ofNullable(column.get(SchemaConstants.COLUMN_CQL_DEFINITION))
+                .map(Object::toString)
+                .orElse(null))
+        .isEqualTo(cqlDefintion);
     assertThat(
             Optional.ofNullable(column.get(SchemaConstants.COLUMN_ORDER))
                 .map(Object::toString)

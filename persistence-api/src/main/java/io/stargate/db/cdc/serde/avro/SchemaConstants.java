@@ -20,7 +20,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 
 public class SchemaConstants {
-  public static final String COLUMN_TYPE_ID = "typeId";
+  public static final String COLUMN_CQL_DEFINITION = "cqlDefinition";
   public static final String COLUMN_ORDER = "order";
   public static final String COLUMN_KIND = "kind";
   public static final String COLUMN_NAME = "name";
@@ -32,7 +32,7 @@ public class SchemaConstants {
   public static final Schema COLUMN =
       SchemaBuilder.record("Column")
           .fields()
-          .optionalInt(COLUMN_TYPE_ID)
+          .optionalString(COLUMN_CQL_DEFINITION)
           .optionalString(COLUMN_ORDER)
           .optionalString(COLUMN_KIND)
           .requiredString(COLUMN_NAME)
