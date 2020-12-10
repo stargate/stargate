@@ -171,28 +171,26 @@ class QuerySerializerTest {
     GenericData.Array<GenericData.Record> partitionKeys =
         (GenericData.Array) result.get(SchemaConstants.MUTATION_EVENT_PARTITION_KEYS);
     assertThat(partitionKeys.size()).isEqualTo(2);
+    GenericData.Record pkRecord1 = partitionKeys.get(0);
+    GenericData.Record pkRecord2 = partitionKeys.get(1);
     // validate PKs columns
     validateColumn(
-        (GenericData.Record) partitionKeys.get(0).get(SchemaConstants.CELL_VALUE_COLUMN),
+        (GenericData.Record) pkRecord1.get(SchemaConstants.CELL_VALUE_COLUMN),
         pk1.type().id(),
         null,
         pk1.kind().name(),
         pk1.name());
     validateColumn(
-        (GenericData.Record) partitionKeys.get(1).get(SchemaConstants.CELL_VALUE_COLUMN),
+        (GenericData.Record) pkRecord2.get(SchemaConstants.CELL_VALUE_COLUMN),
         pk2.type().id(),
         null,
         pk2.kind().name(),
         pk2.name());
     // validate if byte buffers carry correct data
     validateColumnValue(
-        (ByteBuffer) partitionKeys.get(0).get(SchemaConstants.CELL_VALUE_VALUE),
-        pk1.type().id(),
-        1);
+        (ByteBuffer) pkRecord1.get(SchemaConstants.CELL_VALUE_VALUE), pk1.type().id(), 1);
     validateColumnValue(
-        (ByteBuffer) partitionKeys.get(1).get(SchemaConstants.CELL_VALUE_VALUE),
-        pk2.type().id(),
-        true);
+        (ByteBuffer) pkRecord2.get(SchemaConstants.CELL_VALUE_VALUE), pk2.type().id(), true);
   }
 
   private void validateColumnValue(ByteBuffer byteBuffer, int typeId, Object expected) {

@@ -119,7 +119,7 @@ public class MutationEventBuilder {
   public MutationEvent build() {
     return new DefaultMutationEvent(
         table, ttl, timestamp, partitionKeys, clusteringKeys, cells, mutationEventType);
-  };
+  }
 
   public MutationEventBuilder fromBoundDMLQuery(BoundDMLQuery boundDMLQuery) {
     if (boundDMLQuery.rowsUpdated().isRanges()) {
