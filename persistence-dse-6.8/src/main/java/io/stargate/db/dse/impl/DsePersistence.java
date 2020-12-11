@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
+import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Authenticator;
@@ -38,6 +39,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.cassandra.auth.AuthenticatedUser;
 import org.apache.cassandra.auth.user.UserRolesAndPermissions;
+import org.apache.cassandra.concurrent.TPCTaskType;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.PageSize;
@@ -75,6 +77,7 @@ import org.apache.cassandra.transport.messages.QueryMessage;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.transport.messages.StartupMessage;
 import org.apache.cassandra.utils.ByteBufferUtil;
+import org.apache.cassandra.utils.flow.RxThreads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -277,6 +280,11 @@ public class DsePersistence
             Collections.singletonList(String.valueOf(DatabaseDescriptor.isEmulateDbaasDefaults())))
         .put(StartupMessage.CQL_VERSION, ImmutableList.of(QueryProcessor.CQL_VERSION.toString()))
         .build();
+  }
+
+  @Override
+  public void executeAuthResponse(Runnable handler) {
+    RxThreads.subscribeOnIo(Completable.fromRunnable(handler), TPCTaskType.AUTHENTICATION);
   }
 
   /**

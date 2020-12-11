@@ -281,6 +281,11 @@ public class CassandraPersistence
         .build();
   }
 
+  @Override
+  public void executeAuthResponse(Runnable handler) {
+    executor.execute(handler);
+  }
+
   /**
    * When "cassandra.join_ring" is "false" {@link StorageService#initServer()} will not wait for
    * schema to propagate to the coordinator only node. This method fixes that limitation by waiting
