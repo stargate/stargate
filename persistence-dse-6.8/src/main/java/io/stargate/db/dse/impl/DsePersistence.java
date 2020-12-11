@@ -284,7 +284,8 @@ public class DsePersistence
 
   @Override
   public void executeAuthResponse(Runnable handler) {
-    RxThreads.subscribeOnIo(Completable.fromRunnable(handler), TPCTaskType.AUTHENTICATION);
+    RxThreads.subscribeOnIo(Completable.fromRunnable(handler), TPCTaskType.AUTHENTICATION)
+        .subscribe();
   }
 
   /**
