@@ -23,7 +23,7 @@ import java.util.Objects;
 /** A description of an error state */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @SuppressWarnings("JavaLangClash")
-public class Error {
+public final class Error {
   private String description = null;
   private String internalCode = null;
   private String internalTxId = null;

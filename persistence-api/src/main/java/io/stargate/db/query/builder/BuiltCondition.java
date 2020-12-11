@@ -185,7 +185,7 @@ public abstract class BuiltCondition {
       return false;
     }
 
-    static class ColumnName extends LHS {
+    static final class ColumnName extends LHS {
       private final String columnName;
 
       private ColumnName(String columnName) {
@@ -233,7 +233,7 @@ public abstract class BuiltCondition {
       }
     }
 
-    static class MapElement extends LHS {
+    static final class MapElement extends LHS {
       private final String columnName;
       private final Value<?> keyValue;
 

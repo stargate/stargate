@@ -18,7 +18,7 @@ package io.stargate.auth;
 import java.util.Objects;
 
 /** StoredCredentials are a roleName and password mapping to one or more key-secret pairs. */
-public class StoredCredentials {
+public final class StoredCredentials {
   private String roleName = null;
   private String password = null;
 

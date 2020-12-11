@@ -23,7 +23,7 @@ import java.util.Objects;
 
 /** Secret contains the key and secret for authentication */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Secret {
+public final class Secret {
   private String key = null;
   private String secret = null;
 

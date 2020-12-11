@@ -8,7 +8,7 @@ import java.util.Objects;
  * A range of primary keys within a given partition (so a range of clustering columns for a given
  * partition key).
  */
-public class RowsRange {
+public final class RowsRange {
   private final PartitionKey partitionKey;
   private final Bound clusteringStart;
   private final Bound clusteringEnd;
@@ -50,7 +50,7 @@ public class RowsRange {
     return Objects.hash(partitionKey, clusteringStart, clusteringEnd);
   }
 
-  public static class Bound {
+  public static final class Bound {
     public static Bound EMPTY = new Bound(Collections.emptyList(), true);
 
     private final List<TypedValue> values;

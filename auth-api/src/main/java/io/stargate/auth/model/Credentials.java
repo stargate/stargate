@@ -23,7 +23,7 @@ import java.util.Objects;
 
 /** Credentials object used to remain compliant with existiing API contract */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Credentials {
+public final class Credentials {
   String username;
   String password;
 

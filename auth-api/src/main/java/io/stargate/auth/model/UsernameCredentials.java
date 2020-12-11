@@ -22,7 +22,7 @@ import io.swagger.annotations.ApiModelProperty;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class UsernameCredentials {
+public final class UsernameCredentials {
   String username;
 
   @ApiModelProperty(

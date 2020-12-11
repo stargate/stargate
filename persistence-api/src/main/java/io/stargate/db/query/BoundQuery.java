@@ -28,7 +28,7 @@ public interface BoundQuery {
    */
   List<TypedValue> values();
 
-  class Source<Q extends Query<?>> {
+  final class Source<Q extends Query<?>> {
     private final Q sourceQuery;
     private final List<TypedValue> sourceValues;
 
