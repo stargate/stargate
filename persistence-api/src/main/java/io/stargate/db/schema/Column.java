@@ -195,6 +195,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       return codec().parse(value);
     }
 
+    @SuppressWarnings("TypeParameterUnusedInFormals")
     default <T> T create(Object... parameters) {
       throw new UnsupportedOperationException(
           "ColumnType.create(...) not supported by " + rawType());
@@ -645,6 +646,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       return null;
     }
 
+    @Override
     public TypeCodec codec() {
       return getCodecs().codec();
     }

@@ -74,18 +74,14 @@ public enum ConsistencyLevel {
   }
 
   public void validateForRead(String keyspaceName) throws InvalidRequestException {
-    switch (this) {
-      case ANY:
-        throw new InvalidRequestException("ANY ConsistencyLevel is only supported for writes");
+    if (this == ConsistencyLevel.ANY) {
+      throw new InvalidRequestException("ANY ConsistencyLevel is only supported for writes");
     }
   }
 
   public void validateForWrite(String keyspaceName) throws InvalidRequestException {
-    switch (this) {
-      case SERIAL:
-      case LOCAL_SERIAL:
-        throw new InvalidRequestException(
-            "You must use conditional updates for serializable writes");
+    if (this == ConsistencyLevel.SERIAL || this == ConsistencyLevel.LOCAL_SERIAL) {
+      throw new InvalidRequestException("You must use conditional updates for serializable writes");
     }
   }
 

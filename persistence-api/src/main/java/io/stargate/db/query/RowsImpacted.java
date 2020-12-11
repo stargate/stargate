@@ -79,7 +79,7 @@ public abstract class RowsImpacted {
       if (this == o) {
         return true;
       }
-      if (o == null || getClass() != o.getClass()) {
+      if (!(o instanceof Keys)) {
         return false;
       }
       Keys keys = (Keys) o;
@@ -125,7 +125,7 @@ public abstract class RowsImpacted {
       if (this == o) {
         return true;
       }
-      if (o == null || getClass() != o.getClass()) {
+      if (!(o instanceof Ranges)) {
         return false;
       }
       Ranges ranges = (Ranges) o;

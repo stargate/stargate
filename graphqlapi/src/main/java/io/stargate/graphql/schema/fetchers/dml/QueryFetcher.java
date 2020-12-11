@@ -21,6 +21,7 @@ import graphql.schema.SelectedField;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.TypedKeyValue;
+import io.stargate.core.util.ByteBufferUtils;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
@@ -34,7 +35,6 @@ import io.stargate.graphql.schema.NameMapping;
 import io.stargate.graphql.web.HttpAwareContext;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +75,7 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
 
     ByteBuffer pageState = resultSet.getPagingState();
     if (pageState != null) {
-      result.put("pageState", Base64.getEncoder().encodeToString(pageState.array()));
+      result.put("pageState", ByteBufferUtils.toBase64(pageState));
     }
 
     return result;

@@ -36,7 +36,7 @@ public class RowsRange {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof RowsRange)) {
       return false;
     }
     RowsRange rowsRange = (RowsRange) o;
@@ -78,7 +78,7 @@ public class RowsRange {
       if (this == o) {
         return true;
       }
-      if (o == null || getClass() != o.getClass()) {
+      if (!(o instanceof Bound)) {
         return false;
       }
       Bound bound = (Bound) o;

@@ -26,6 +26,7 @@
     <junit.version>5.7.0</junit.version>
     <mockito.version>3.5.13</mockito.version>
     <jacoco.version>0.8.6</jacoco.version>
+    <errorprone.version>2.3.4</errorprone.version>
   </properties>
   <dependencies>
     <dependency>
@@ -359,7 +360,7 @@
             <dependency>
               <groupId>com.google.errorprone</groupId>
               <artifactId>error_prone_core</artifactId>
-              <version>2.3.4</version>
+              <version>${errorprone.version}</version>
             </dependency>
           </dependencies>
         </plugin>
@@ -505,6 +506,11 @@
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-core</artifactId>
         <version>${logback.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.errorprone</groupId>
+        <artifactId>error_prone_annotations</artifactId>
+        <version>${errorprone.version}</version>
       </dependency>
       <dependency>
         <groupId>org.junit.jupiter</groupId>

@@ -5,6 +5,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.when;
 
 import com.datastax.oss.driver.api.core.data.CqlDuration;
+import com.google.common.collect.ImmutableMap;
 import graphql.ExecutionResult;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
@@ -192,6 +193,7 @@ public class ScalarsDmlTest extends DmlTestBase {
         .isEqualTo(4);
   }
 
+  @SuppressWarnings("unused")
   private static Stream<Arguments> getValues() {
     String timestampLiteral =
         instantFormatter().format(Date.from(Instant.parse("2020-01-03T10:15:31.123Z")));
@@ -259,6 +261,7 @@ public class ScalarsDmlTest extends DmlTestBase {
         arguments(Column.Type.Varint, "92233720368547758070000", null));
   }
 
+  @SuppressWarnings("unused")
   private static Stream<Arguments> getAdditionalLiterals() {
     return Stream.of(
         arguments(Column.Type.Bigint, -1, null),
@@ -267,16 +270,14 @@ public class ScalarsDmlTest extends DmlTestBase {
         arguments(Column.Type.Bigint, 2147483648023L, null));
   }
 
+  @SuppressWarnings("unused")
   private static Stream<Arguments> getIncorrectValues() {
     return Stream.of(arguments(Column.Type.Bigint, "1.2"), arguments(Column.Type.Bigint, "ABC"));
   }
 
   private static Object toDbBigInt(Object literal) {
-    if (literal instanceof Integer) {
-      return new Long((Integer) literal);
-    }
     if (literal instanceof String) {
-      return new Long((String) literal);
+      return Long.valueOf((String) literal);
     }
     return literal;
   }
@@ -310,14 +311,13 @@ public class ScalarsDmlTest extends DmlTestBase {
 
   private static Map<Column.Type, Function<Object, Object>> buildRowToCellMap() {
     // Converters to mock row data
-    return new HashMap<Column.Type, Function<Object, Object>>() {
-      {
-        put(Column.Type.Bigint, ScalarsDmlTest::toDbBigInt);
-        put(Column.Type.Blob, o -> ByteBuffer.wrap(Base64.getDecoder().decode(o.toString())));
-        put(Column.Type.Date, o -> LocalDate.parse(o.toString()));
-        put(Column.Type.Decimal, o -> new BigDecimal(o.toString()));
-        put(Column.Type.Duration, o -> CqlDuration.from(o.toString()));
-        put(
+    return ImmutableMap.<Column.Type, Function<Object, Object>>builder()
+        .put(Column.Type.Bigint, ScalarsDmlTest::toDbBigInt)
+        .put(Column.Type.Blob, o -> ByteBuffer.wrap(Base64.getDecoder().decode(o.toString())))
+        .put(Column.Type.Date, o -> LocalDate.parse(o.toString()))
+        .put(Column.Type.Decimal, o -> new BigDecimal(o.toString()))
+        .put(Column.Type.Duration, o -> CqlDuration.from(o.toString()))
+        .put(
             Column.Type.Inet,
             o -> {
               try {
@@ -325,10 +325,10 @@ public class ScalarsDmlTest extends DmlTestBase {
               } catch (UnknownHostException e) {
                 throw new RuntimeException(e);
               }
-            });
-        put(Column.Type.Smallint, o -> Short.valueOf(o.toString()));
-        put(Column.Type.Time, o -> LocalTime.parse(o.toString()));
-        put(
+            })
+        .put(Column.Type.Smallint, o -> Short.valueOf(o.toString()))
+        .put(Column.Type.Time, o -> LocalTime.parse(o.toString()))
+        .put(
             Column.Type.Timestamp,
             o -> {
               try {
@@ -336,13 +336,12 @@ public class ScalarsDmlTest extends DmlTestBase {
               } catch (ParseException e) {
                 throw new RuntimeException(e);
               }
-            });
-        put(Column.Type.Tinyint, o -> Byte.valueOf(o.toString()));
-        put(Column.Type.Timeuuid, o -> UUID.fromString(o.toString()));
-        put(Column.Type.Uuid, o -> UUID.fromString(o.toString()));
-        put(Column.Type.Varint, o -> new BigInteger(o.toString()));
-      }
-    };
+            })
+        .put(Column.Type.Tinyint, o -> Byte.valueOf(o.toString()))
+        .put(Column.Type.Timeuuid, o -> UUID.fromString(o.toString()))
+        .put(Column.Type.Uuid, o -> UUID.fromString(o.toString()))
+        .put(Column.Type.Varint, o -> new BigInteger(o.toString()))
+        .build();
   }
 
   private static SimpleDateFormat instantFormatter() {

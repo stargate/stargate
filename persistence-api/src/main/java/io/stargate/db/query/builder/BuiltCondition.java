@@ -215,7 +215,7 @@ public abstract class BuiltCondition {
         if (this == o) {
           return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof ColumnName)) {
           return false;
         }
         ColumnName that = (ColumnName) o;
@@ -285,7 +285,7 @@ public abstract class BuiltCondition {
         if (this == o) {
           return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof MapElement)) {
           return false;
         }
         MapElement that = (MapElement) o;

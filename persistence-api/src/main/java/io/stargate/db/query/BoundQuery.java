@@ -50,7 +50,7 @@ public interface BoundQuery {
       if (this == o) {
         return true;
       }
-      if (o == null || getClass() != o.getClass()) {
+      if (!(o instanceof Source)) {
         return false;
       }
       Source<?> source = (Source<?>) o;

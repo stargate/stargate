@@ -67,7 +67,7 @@ public abstract class SchemaKey {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof SchemaKey)) {
       return false;
     }
     SchemaKey that = (SchemaKey) o;

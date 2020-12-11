@@ -65,7 +65,7 @@ public final class InetAddressAndPort implements Comparable<InetAddressAndPort>,
   }
 
   private static void validatePortRange(int port) {
-    if (port < 0 | port > 65535) {
+    if (port < 0 || port > 65535) {
       throw new IllegalArgumentException(
           "Port " + port + " is not a valid port number in the range 0-65535");
     }
