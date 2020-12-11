@@ -263,6 +263,11 @@ public class DsePersistence
   }
 
   @Override
+  public boolean supportsSAI() {
+    return true;
+  }
+
+  @Override
   public Map<String, List<String>> cqlSupportedOptions() {
     List<String> pageUnits =
         Arrays.stream(PageSize.PageUnit.values()).map(Enum::toString).collect(Collectors.toList());

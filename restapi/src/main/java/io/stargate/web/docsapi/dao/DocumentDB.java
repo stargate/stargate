@@ -95,6 +95,10 @@ public class DocumentDB {
     this.dataStore = dataStore;
     this.authToken = authToken;
     this.authorizationService = authorizationService;
+
+    if (!dataStore.supportsSAI() && !dataStore.supportsSecondaryIndex()) {
+      throw new IllegalStateException("Backend does not support any known index types.");
+    }
   }
 
   public AuthorizationService getAuthorizationService() {
@@ -194,9 +198,9 @@ public class DocumentDB {
     }
   }
 
-  public boolean maybeCreateTableIndexes(String keyspaceName, String tableName, boolean isDse) {
+  public boolean maybeCreateTableIndexes(String keyspaceName, String tableName) {
     try {
-      if (isDse) {
+      if (dataStore.supportsSAI()) {
         createSAIIndexes(keyspaceName, tableName);
       } else {
         createDefaultIndexes(keyspaceName, tableName);
@@ -217,14 +221,14 @@ public class DocumentDB {
    * <p>This could cause performance degradation and/or disrupt in-flight requests, since indexes
    * are being dropped and re-created.
    */
-  public boolean upgradeTableIndexes(String keyspaceName, String tableName, boolean isDse) {
-    if (!isDse) {
-      logger.info("Upgrade was attempted on a non-DSE setup.");
+  public boolean upgradeTableIndexes(String keyspaceName, String tableName) {
+    if (!dataStore.supportsSAI()) {
+      logger.info("Upgrade was attempted on a DataStore that does not support SAI.");
       return false;
     }
 
     dropTableIndexes(keyspaceName, tableName);
-    return maybeCreateTableIndexes(keyspaceName, tableName, true);
+    return maybeCreateTableIndexes(keyspaceName, tableName);
   }
 
   /**

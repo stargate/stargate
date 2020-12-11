@@ -405,7 +405,7 @@ public class DocumentService {
     // but we can force the permissions refetch by logging in again.
     if (created) {
       db = dbFactory.getDocDataStoreForToken(authToken);
-      db.maybeCreateTableIndexes(keyspace, collection, dbFactory.isDse());
+      db.maybeCreateTableIndexes(keyspace, collection);
     }
 
     // Left-pad the path segments that represent arrays
