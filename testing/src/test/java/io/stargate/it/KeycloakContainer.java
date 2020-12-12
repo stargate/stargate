@@ -12,7 +12,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import okhttp3.Headers.Builder;
+import okhttp3.Headers;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,7 +87,7 @@ public class KeycloakContainer {
             "testuser1", true, true, attributes, Collections.singletonList(keycloakCredential));
 
     RestUtils.postWithHeader(
-        new Builder().add("Authorization", "bearer " + adminAuthToken).build(),
+        new Headers.Builder().add("Authorization", "bearer " + adminAuthToken).build(),
         keycloakHost + "/auth/admin/realms/stargate/users",
         objectMapper.writeValueAsString(keycloakUser),
         HttpStatus.SC_CREATED);

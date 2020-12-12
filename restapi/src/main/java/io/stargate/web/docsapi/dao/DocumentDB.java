@@ -3,6 +3,7 @@ package io.stargate.web.docsapi.dao;
 import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -23,7 +24,6 @@ import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -55,6 +55,7 @@ public class DocumentDB {
 
   private static final String[] VALUE_COLUMN_NAMES =
       new String[] {"leaf", "text_value", "dbl_value", "bool_value"};
+  private static final Splitter PATH_SPLITTER = Splitter.on(".");
 
   final DataStore dataStore;
   private final AuthorizationService authorizationService;
@@ -110,9 +111,7 @@ public class DocumentDB {
   }
 
   public static List<String> getForbiddenCharactersMessage() {
-    return forbiddenCharacters.stream()
-        .map(ch -> (new StringBuilder().append("`").append(ch).append("`").toString()))
-        .collect(Collectors.toList());
+    return forbiddenCharacters.stream().map(ch -> "`" + ch + "`").collect(Collectors.toList());
   }
 
   public static boolean containsIllegalChars(String x) {
@@ -122,7 +121,7 @@ public class DocumentDB {
   public static String replaceIllegalChars(String x) {
     String newStr = x;
     for (Character y : forbiddenCharacters) {
-      newStr.replace(y, '_');
+      newStr = newStr.replace(y, '_');
     }
     return newStr;
   }
@@ -587,6 +586,7 @@ public class DocumentDB {
   }
 
   @VisibleForTesting
+  @SuppressWarnings("FutureReturnValueIgnored")
   void deleteDeadLeaves(
       String keyspaceName,
       String tableName,
@@ -602,8 +602,8 @@ public class DocumentDB {
     for (Map.Entry<String, List<JsonNode>> entry : deadLeaves.entrySet()) {
       String path = entry.getKey();
       List<JsonNode> deadNodes = entry.getValue();
-      String[] pathParts = path.split("\\.");
-      String[] pathToDelete = Arrays.copyOfRange(pathParts, 1, pathParts.length);
+      List<String> pathParts = PATH_SPLITTER.splitToList(path);
+      List<String> pathToDelete = pathParts.subList(1, pathParts.size());
 
       boolean deleteArray = false;
       List<String> keysToDelete = new ArrayList<>();
@@ -621,18 +621,13 @@ public class DocumentDB {
       if (!keysToDelete.isEmpty()) {
         queries.add(
             getPathKeysDeleteStatement(
-                keyspaceName,
-                tableName,
-                key,
-                microsTimestamp,
-                Arrays.asList(pathToDelete),
-                keysToDelete));
+                keyspaceName, tableName, key, microsTimestamp, pathToDelete, keysToDelete));
       }
 
       if (deleteArray) {
         queries.add(
             getSubpathArrayDeleteStatement(
-                keyspaceName, tableName, key, microsTimestamp, Arrays.asList(pathToDelete)));
+                keyspaceName, tableName, key, microsTimestamp, pathToDelete));
       }
     }
 

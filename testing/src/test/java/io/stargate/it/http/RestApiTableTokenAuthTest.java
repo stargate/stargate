@@ -27,8 +27,6 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @StargateSpec(parametersCustomizer = "buildParameters")
 @ExtendWith(CqlSessionExtension.class)
@@ -41,8 +39,6 @@ import org.slf4j.LoggerFactory;
       "GRANT SELECT ON KEYSPACE table_token_test TO read_only_user",
     })
 public class RestApiTableTokenAuthTest extends BaseOsgiIntegrationTest {
-
-  private static final Logger logger = LoggerFactory.getLogger(RestApiTableTokenAuthTest.class);
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private final String keyspaceName = "table_token_test";

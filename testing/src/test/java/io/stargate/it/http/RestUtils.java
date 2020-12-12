@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import okhttp3.Headers;
-import okhttp3.Headers.Builder;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -86,7 +85,9 @@ public class RestUtils {
       String authToken, String path, String requestBody, int expectedStatusCode)
       throws IOException {
     return postWithHeader(
-        authToken == null ? null : new Builder().add("X-Cassandra-Token", authToken).build(),
+        authToken == null
+            ? null
+            : new Headers.Builder().add("X-Cassandra-Token", authToken).build(),
         path,
         requestBody,
         expectedStatusCode);

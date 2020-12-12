@@ -147,7 +147,7 @@ public class DataTypeTest extends BaseOsgiIntegrationTest {
       // Generate additional samples from each primitive
       allTypes.add(type);
       allTypes.add(listOf(type));
-      if (type.javaType != GenericType.CQL_DURATION) {
+      if (!type.javaType.equals(GenericType.CQL_DURATION)) {
         allTypes.add(setOf(type));
         allTypes.add(mapToIntFrom(type));
       }

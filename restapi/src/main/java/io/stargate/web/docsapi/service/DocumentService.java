@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.node.LongNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
@@ -41,6 +42,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -61,6 +63,9 @@ public class DocumentService {
   private static final Logger logger = LoggerFactory.getLogger(DocumentService.class);
   private static final ObjectMapper mapper = new ObjectMapper();
   private static final Pattern PERIOD_PATTERN = Pattern.compile("\\.");
+  private static final Splitter FORM_SPLITTER = Splitter.on('&');
+  private static final Splitter PAIR_SPLITTER = Splitter.on('=');
+  private static final Splitter PATH_SPLITTER = Splitter.on('/');
 
   /*
    * Converts a JSON path string (e.g. "$.a.b.c[0]") into a JSON path string
@@ -169,7 +174,7 @@ public class DocumentService {
             "$..*",
             (v, parsingContext) -> {
               String fieldName = parsingContext.getCurrentFieldName();
-              if (fieldName != null && (DocumentDB.containsIllegalChars(fieldName))) {
+              if (fieldName != null && DocumentDB.containsIllegalChars(fieldName)) {
                 throw new DocumentAPIRequestException(
                     String.format(
                         "The characters %s are not permitted in JSON field names, invalid field %s",
@@ -284,17 +289,17 @@ public class DocumentService {
       DocumentDB db, List<String> path, String key, String formPayload, boolean patching) {
     List<Object[]> bindVariableList = new ArrayList<>();
     List<String> firstLevelKeys = new ArrayList<>();
-    String[] pairs = formPayload.split("&");
+    Iterable<String> pairs = FORM_SPLITTER.split(formPayload);
     for (String pair : pairs) {
-      String[] data = pair.split("=");
+      List<String> data = PAIR_SPLITTER.splitToList(pair);
       String fullyQualifiedField;
       String value;
-      if (data.length == 2) {
-        fullyQualifiedField = data[0];
-        value = data[1];
-      } else if (data.length == 1) {
+      if (data.size() == 2) {
+        fullyQualifiedField = data.get(0);
+        value = data.get(1);
+      } else if (data.size() == 1) {
         fullyQualifiedField = "data";
-        value = data[0];
+        value = data.get(0);
       } else {
         continue;
       }
@@ -1186,10 +1191,11 @@ public class DocumentService {
                             if (r == null || r.getString("leaf") == null) {
                               return false;
                             }
-                            String[] parentPath = getParentPathFromRow(r).split("/");
+                            List<String> parentPath =
+                                PATH_SPLITTER.splitToList(getParentPathFromRow(r));
                             String rowPath = "";
-                            if (parentPath.length == 2) {
-                              rowPath = parentPath[1];
+                            if (parentPath.size() == 2) {
+                              rowPath = parentPath.get(1);
                             }
                             return pathsMatch(rowPath + r.getString("leaf"), filterFieldPath);
                           })
@@ -1269,9 +1275,9 @@ public class DocumentService {
 
   private Boolean checkEqualsOp(
       SingleFilterCondition filterCondition, String textValue, Boolean boolValue, Double dblValue) {
-    boolean boolValueEqual = filterCondition.getBooleanValue() == boolValue;
+    boolean boolValueEqual = Objects.equals(filterCondition.getBooleanValue(), boolValue);
     boolean dblValueEqual =
-        filterCondition.getDoubleValue() == dblValue
+        Objects.equals(filterCondition.getDoubleValue(), dblValue)
             || (filterCondition.getDoubleValue() != null
                 && dblValue != null
                 && Math.abs(filterCondition.getDoubleValue() - dblValue) < .000001);

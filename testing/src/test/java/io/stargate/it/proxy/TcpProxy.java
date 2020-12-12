@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
  * @see <a
  *     href="https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt">https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt</a>
  */
+@SuppressWarnings("FutureReturnValueIgnored")
 public class TcpProxy implements AutoCloseable {
   private static final Logger LOG = LoggerFactory.getLogger(TcpProxy.class);
 
@@ -156,25 +157,28 @@ public class TcpProxy implements AutoCloseable {
       ChannelFuture f = b.connect(remoteAddress);
       outboundChannel = f.channel();
       f.addListener(
-          new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) {
-              if (future.isSuccess()) {
-                // Connection complete start to read first data
-                inboundChannel.read();
-                LOG.info("Successfully connected to backend address {}", remoteAddress);
-              } else {
-                // Close the connection if the connection attempt has failed.
-                inboundChannel.close();
-                if (future.cause() != null) {
-                  LOG.error(
-                      "Unable to connect to backend address {}: {}", remoteAddress, future.cause());
+          (ChannelFutureListener)
+              future -> {
+                if (future.isSuccess()) {
+                  // Connection complete start to read first data
+                  inboundChannel.read();
+                  LOG.info("Successfully connected to backend address {}", remoteAddress);
                 } else {
-                  LOG.error("Connection canceled to backend address {}: {}", remoteAddress);
+                  // Close the connection if the connection attempt has failed.
+                  inboundChannel.close();
+                  if (future.cause() != null) {
+                    LOG.error(
+                        "Unable to connect to backend address {}: {}",
+                        remoteAddress,
+                        future.cause());
+                  } else {
+                    LOG.error(
+                        "Connection canceled to backend address {}: {}",
+                        remoteAddress,
+                        future.cause());
+                  }
                 }
-              }
-            }
-          });
+              });
     }
 
     @Override
@@ -183,17 +187,15 @@ public class TcpProxy implements AutoCloseable {
         outboundChannel
             .writeAndFlush(msg)
             .addListener(
-                new ChannelFutureListener() {
-                  @Override
-                  public void operationComplete(ChannelFuture future) {
-                    if (future.isSuccess()) {
-                      // Was able to flush out data, start to read the next chunk
-                      ctx.channel().read();
-                    } else {
-                      future.channel().close();
-                    }
-                  }
-                });
+                (ChannelFutureListener)
+                    future -> {
+                      if (future.isSuccess()) {
+                        // Was able to flush out data, start to read the next chunk
+                        ctx.channel().read();
+                      } else {
+                        future.channel().close();
+                      }
+                    });
       }
     }
 
@@ -258,16 +260,14 @@ public class TcpProxy implements AutoCloseable {
       inboundChannel
           .writeAndFlush(msg)
           .addListener(
-              new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) {
-                  if (future.isSuccess()) {
-                    ctx.channel().read();
-                  } else {
-                    future.channel().close();
-                  }
-                }
-              });
+              (ChannelFutureListener)
+                  future -> {
+                    if (future.isSuccess()) {
+                      ctx.channel().read();
+                    } else {
+                      future.channel().close();
+                    }
+                  });
     }
 
     @Override
