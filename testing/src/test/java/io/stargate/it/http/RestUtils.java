@@ -18,6 +18,7 @@ package io.stargate.it.http;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import okhttp3.Headers;
 import okhttp3.Headers.Builder;
 import okhttp3.MediaType;
@@ -26,15 +27,25 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RestUtils {
   private static final Logger logger = LoggerFactory.getLogger(RestUtils.class);
 
+  @NotNull
+  private static OkHttpClient client() {
+    return new OkHttpClient()
+        .newBuilder()
+        .readTimeout(3, TimeUnit.MINUTES)
+        .writeTimeout(3, TimeUnit.MINUTES)
+        .build();
+  }
+
   public static String get(String authToken, String path, int expectedStatusCode)
       throws IOException {
-    OkHttpClient client = new OkHttpClient().newBuilder().build();
+    OkHttpClient client = client();
 
     Request request;
     if (authToken != null) {
@@ -55,7 +66,7 @@ public class RestUtils {
 
   public static String postWithHeader(
       Headers headers, String path, String requestBody, int expectedStatusCode) throws IOException {
-    OkHttpClient client = new OkHttpClient().newBuilder().build();
+    OkHttpClient client = client();
 
     Request request;
     if (headers != null) {
@@ -95,7 +106,7 @@ public class RestUtils {
   public static String generateJwt(
       String path, String username, String password, String clientId, int expectedStatusCode)
       throws IOException {
-    OkHttpClient client = new OkHttpClient().newBuilder().build();
+    OkHttpClient client = client();
 
     RequestBody requestBody =
         RequestBody.create(
@@ -118,7 +129,7 @@ public class RestUtils {
   public static Response postRaw(
       String authToken, String path, String requestBody, int expectedStatusCode)
       throws IOException {
-    OkHttpClient client = new OkHttpClient().newBuilder().build();
+    OkHttpClient client = client();
 
     Request request;
     if (authToken != null) {
@@ -145,7 +156,7 @@ public class RestUtils {
   public static String put(
       String authToken, String path, String requestBody, int expectedStatusCode)
       throws IOException {
-    OkHttpClient client = new OkHttpClient().newBuilder().build();
+    OkHttpClient client = client();
 
     Request request;
     if (authToken != null) {
@@ -175,7 +186,7 @@ public class RestUtils {
   public static String putForm(
       String authToken, String path, String requestBody, int expectedStatusCode)
       throws IOException {
-    OkHttpClient client = new OkHttpClient().newBuilder().build();
+    OkHttpClient client = client();
 
     Request request;
     if (authToken != null) {
@@ -209,7 +220,7 @@ public class RestUtils {
   public static String patch(
       String authToken, String path, String requestBody, int expectedStatusCode)
       throws IOException {
-    OkHttpClient client = new OkHttpClient().newBuilder().build();
+    OkHttpClient client = client();
 
     Request request;
     if (authToken != null) {
@@ -238,7 +249,7 @@ public class RestUtils {
 
   public static String delete(String authToken, String path, int expectedStatusCode)
       throws IOException {
-    OkHttpClient client = new OkHttpClient().newBuilder().build();
+    OkHttpClient client = client();
 
     Request request;
     if (authToken != null) {
