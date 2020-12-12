@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
 import io.reactivex.Single;
+import io.reactivex.disposables.Disposable;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Authenticator;
 import io.stargate.db.Batch;
@@ -357,7 +358,9 @@ public class DsePersistence
         } else {
           // For now, we're blocking as the login() API is synchronous. If this is a problem, we may
           // have to make said API asynchronous, but it makes things a tad more complex.
-          clientState.login(new AuthenticatedUser(user.name())).blockingGet();
+          @SuppressWarnings("unused")
+          ClientState unused =
+              this.clientState.login(new AuthenticatedUser(user.name())).blockingGet();
         }
       } catch (AuthenticationException e) {
         throw new org.apache.cassandra.stargate.exceptions.AuthenticationException(e);
@@ -403,38 +406,40 @@ public class DsePersistence
         request.attach(fakeServerConnection);
 
         CompletableFuture<T> future = new CompletableFuture<>();
-        request
-            .execute(queryState, queryStartNanoTime)
-            .map(
-                response -> {
-                  try {
-                    // There is only 2 types of response that can come out: either a
-                    // ResultMessage (which itself can of different kind), or an ErrorMessage.
-                    if (response instanceof ErrorMessage) {
-                      throw convertExceptionWithWarnings(
-                          (Throwable) ((ErrorMessage) response).error);
-                    }
+        @SuppressWarnings("unused")
+        Disposable unused =
+            request
+                .execute(queryState, queryStartNanoTime)
+                .map(
+                    response -> {
+                      try {
+                        // There is only 2 types of response that can come out: either a
+                        // ResultMessage (which itself can of different kind), or an ErrorMessage.
+                        if (response instanceof ErrorMessage) {
+                          throw convertExceptionWithWarnings(
+                              (Throwable) ((ErrorMessage) response).error);
+                        }
 
-                    @SuppressWarnings("unchecked")
-                    T result =
-                        (T)
-                            Conversion.toResult(
-                                (ResultMessage) response,
-                                Conversion.toInternal(parameters.protocolVersion()),
-                                ClientWarn.instance.getWarnings());
-                    return result;
-                  } finally {
-                    ClientWarn.instance.resetWarnings();
-                  }
-                })
-            .subscribe(
-                future::complete,
-                ex -> {
-                  if (!(ex instanceof PersistenceException)) {
-                    ex = convertExceptionWithWarnings(ex);
-                  }
-                  future.completeExceptionally(ex);
-                });
+                        @SuppressWarnings("unchecked")
+                        T result =
+                            (T)
+                                Conversion.toResult(
+                                    (ResultMessage) response,
+                                    Conversion.toInternal(parameters.protocolVersion()),
+                                    ClientWarn.instance.getWarnings());
+                        return result;
+                      } finally {
+                        ClientWarn.instance.resetWarnings();
+                      }
+                    })
+                .subscribe(
+                    future::complete,
+                    ex -> {
+                      if (!(ex instanceof PersistenceException)) {
+                        ex = convertExceptionWithWarnings(ex);
+                      }
+                      future.completeExceptionally(ex);
+                    });
         return future;
       } catch (Exception e) {
         CompletableFuture<T> exceptionalFuture = new CompletableFuture<>();

@@ -49,6 +49,7 @@ public class StargateConfigSnitch extends GossipingPropertyFileSnitch {
     return this.rack;
   }
 
+  @Override
   public String toString() {
     return "StargateConfigSnitch{myDC='" + this.dc + '\'' + ", myRack='" + this.rack + "'}";
   }

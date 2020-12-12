@@ -575,17 +575,6 @@ public class StargateQueryHandler implements QueryHandler {
     }
   }
 
-  private String getKeyspace(Object stmt) {
-    try {
-      Field f = stmt.getClass().getDeclaredField("keyspace");
-      f.setAccessible(true);
-      return (String) f.get(stmt);
-    } catch (Exception e) {
-      logger.error("Unable to get private field", e);
-      throw new RuntimeException("Unable to get private field", e);
-    }
-  }
-
   public void setAuthorizationService(AtomicReference<AuthorizationService> authorizationService) {
     this.authorizationService = authorizationService;
   }

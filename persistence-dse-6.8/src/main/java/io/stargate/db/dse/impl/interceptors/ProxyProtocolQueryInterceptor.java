@@ -187,6 +187,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
     wrapped.ifPresent(w -> w.register(listener));
   }
 
+  @SuppressWarnings("FutureReturnValueIgnored")
   private void resolvePeers() {
     if (!Strings.isNullOrEmpty(proxyDnsName)) {
       try {

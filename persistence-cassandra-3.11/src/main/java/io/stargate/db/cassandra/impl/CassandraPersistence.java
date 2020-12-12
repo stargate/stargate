@@ -234,6 +234,7 @@ public class CassandraPersistence
     return new CassandraConnection();
   }
 
+  @SuppressWarnings("FutureReturnValueIgnored")
   private <T extends Result> CompletableFuture<T> runOnExecutor(
       Supplier<T> supplier, boolean captureWarnings) {
     assert executor != null : "This persistence has not been initialized";

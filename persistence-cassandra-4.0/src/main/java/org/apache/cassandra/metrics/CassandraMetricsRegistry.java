@@ -1,17 +1,18 @@
 package org.apache.cassandra.metrics;
 
-import com.codahale.metrics.Counter;
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
@@ -24,9 +25,11 @@ import javax.management.ObjectName;
  *
  * <p>This class must mimic the exact public API of the original one.
  */
+@SuppressWarnings("InconsistentCapitalization") // `Metrics` field vs `metrics` parameters
 public class CassandraMetricsRegistry extends MetricRegistry {
 
   public static volatile MetricRegistry actualRegistry = new MetricRegistry();
+
   public static final CassandraMetricsRegistry Metrics = new CassandraMetricsRegistry();
 
   private final Map<String, ThreadPoolMetrics> threadPoolMetrics = new ConcurrentHashMap<>();
@@ -39,7 +42,7 @@ public class CassandraMetricsRegistry extends MetricRegistry {
     return actualRegistry.counter(name.getMetricName());
   }
 
-  public Counter counter(MetricName name, MetricName alias) {
+  public Counter counter(MetricName name, MetricName alians) {
     return actualRegistry.counter(name.getMetricName());
   }
 
@@ -196,7 +199,7 @@ public class CassandraMetricsRegistry extends MetricRegistry {
   }
 
   /** A value class encapsulating a metric's owning class and name. */
-  public static class MetricName implements Comparable<MetricName> {
+  public static final class MetricName implements Comparable<MetricName> {
     private final String group;
     private final String type;
     private final String name;
