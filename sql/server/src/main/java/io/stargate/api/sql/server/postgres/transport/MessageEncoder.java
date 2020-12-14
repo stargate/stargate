@@ -27,7 +27,7 @@ public class MessageEncoder extends MessageToByteEncoder<PGServerMessage> {
 
   @Override
   protected void encode(ChannelHandlerContext ctx, PGServerMessage msg, ByteBuf out) {
-    LOG.info("encode: {}", msg.getClass().getSimpleName());
+    LOG.trace("encode: {}", msg.getClass().getSimpleName());
     msg.write(out);
   }
 }

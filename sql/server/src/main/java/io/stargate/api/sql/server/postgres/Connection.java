@@ -97,13 +97,13 @@ public class Connection {
         .concatMap(m -> m.dispatch(this))
         .doOnNext(
             msg -> {
-              LOG.info("write: " + msg.getClass().getSimpleName());
+              LOG.trace("write: {}", msg.getClass().getSimpleName());
               channel.write(msg);
               messagesWritten++;
 
               boolean shouldFlush = messagesWritten % MAX_MESSAGES_BEFORE_FLUSH == 0;
               if (shouldFlush || msg.flush()) {
-                LOG.info("flush: " + msg.getClass().getSimpleName());
+                LOG.trace("flush: {}", msg.getClass().getSimpleName());
                 channel.flush();
               }
             })
@@ -122,7 +122,7 @@ public class Connection {
   }
 
   public Flowable<PGServerMessage> simpleQuery(Query message) {
-    LOG.info("simple: " + message.getClass().getSimpleName());
+    LOG.trace("simple: {}", message.getClass().getSimpleName());
     return Flowable.just(message)
         .concatMap(this::execute)
         // Note: we do not "remember" errors in the simple query sub-protocol
@@ -131,12 +131,12 @@ public class Connection {
   }
 
   public Flowable<PGServerMessage> extendedQuery(ExtendedQueryMessage message) {
-    LOG.info("dispatching extended: " + message.getClass().getSimpleName());
+    LOG.trace("dispatching extended: {}", message.getClass().getSimpleName());
     return Flowable.just(message)
         .concatMap(
             msg -> {
               if (error != null) {
-                LOG.info("skipped: " + msg.getClass().getSimpleName());
+                LOG.trace("skipped: {}", msg.getClass().getSimpleName());
                 return Flowable.empty();
               }
 
@@ -150,7 +150,7 @@ public class Connection {
   }
 
   public void enqueue(PGClientMessage msg) {
-    LOG.info("enqueue: " + msg.getClass().getSimpleName());
+    LOG.trace("enqueue: {}", msg.getClass().getSimpleName());
     publisher.onNext(msg);
   }
 
@@ -177,7 +177,7 @@ public class Connection {
   }
 
   public void setProperty(String key, String value) {
-    LOG.info("set ({}): {} = {}", channel.remoteAddress(), key, value);
+    LOG.trace("set ({}): {} = {}", channel.remoteAddress(), key, value);
     properties.put(key, value);
   }
 
