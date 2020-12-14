@@ -275,6 +275,11 @@ public class CassandraPersistence
   }
 
   @Override
+  public boolean supportsSAI() {
+    return false;
+  }
+
+  @Override
   public Map<String, List<String>> cqlSupportedOptions() {
     return ImmutableMap.<String, List<String>>builder()
         .put(StartupMessage.CQL_VERSION, ImmutableList.of(QueryProcessor.CQL_VERSION.toString()))

@@ -145,8 +145,4 @@ public class Db {
         authenticationPrincipal,
         getAuthorizationService());
   }
-
-  public boolean isDse() {
-    return persistence.name().equals("DataStax Enterprise");
-  }
 }

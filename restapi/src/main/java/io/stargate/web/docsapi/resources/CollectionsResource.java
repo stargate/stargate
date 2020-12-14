@@ -130,8 +130,7 @@ public class CollectionsResource {
               .authorizeSchemaWrite(
                   docDB.getAuthenticationPrincipal(), namespace, info.getName(), Scope.CREATE);
 
-          boolean res =
-              collectionService.createCollection(namespace, info.getName(), docDB, db.isDse());
+          boolean res = collectionService.createCollection(namespace, info.getName(), docDB);
           if (res) {
             return Response.status(Response.Status.CREATED).build();
           } else {
@@ -260,8 +259,7 @@ public class CollectionsResource {
                       authenticatedDB.getDataStore(),
                       authenticatedDB.getAuthenticationPrincipal(),
                       db.getAuthorizationService()),
-                  request.getUpgradeType(),
-                  db.isDse());
+                  request.getUpgradeType());
 
           if (success) {
             table = authenticatedDB.getTable(namespace, collection);
