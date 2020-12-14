@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.20-SNAPSHOT</version>
+    <version>0.0.26-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.web</groupId>
   <artifactId>restapi</artifactId>
@@ -113,6 +113,11 @@
       <groupId>com.github.jsurfer</groupId>
       <artifactId>jsurfer-gson</artifactId>
       <version>1.6.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+      <version>2.8.6</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -236,6 +241,7 @@
                             io.stargate.db,
                             io.stargate.db.datastore,
                             io.stargate.db.datastore.query,
+                            org.javatuples,
                             io.stargate.core,
                             com.codahale.metrics,
                             org.osgi.framework

@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.fetchers.ddl;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import com.datastax.oss.driver.api.querybuilder.schema.AlterTableAddColumnEnd;
 import com.datastax.oss.driver.api.querybuilder.schema.AlterTableStart;
@@ -34,8 +35,8 @@ public class AlterTableAddFetcher extends DdlQueryFetcher {
   public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {
     AlterTableStart start =
         SchemaBuilder.alterTable(
-            dataFetchingEnvironment.getArgument("keyspaceName"),
-            (String) dataFetchingEnvironment.getArgument("tableName"));
+            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("keyspaceName")),
+            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("tableName")));
 
     List<Map<String, Object>> toAdd = dataFetchingEnvironment.getArgument("toAdd");
     if (toAdd.isEmpty()) {
@@ -45,9 +46,15 @@ public class AlterTableAddFetcher extends DdlQueryFetcher {
     AlterTableAddColumnEnd table = null;
     for (Map<String, Object> column : toAdd) {
       if (table != null) {
-        table = table.addColumn((String) column.get("name"), decodeType(column.get("type")));
+        table =
+            table.addColumn(
+                CqlIdentifier.fromInternal((String) column.get("name")),
+                decodeType(column.get("type")));
       } else {
-        table = start.addColumn((String) column.get("name"), decodeType(column.get("type")));
+        table =
+            start.addColumn(
+                CqlIdentifier.fromInternal((String) column.get("name")),
+                decodeType(column.get("type")));
       }
     }
     return table.build().getQuery();

@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<parent>
 		<artifactId>stargate</artifactId>
 		<groupId>io.stargate</groupId>
-		<version>0.0.18-SNAPSHOT</version>
+		<version>0.0.26-SNAPSHOT</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
     <groupId>io.stargate.config.store.yaml</groupId>
@@ -14,6 +12,12 @@
       <dependency>
         <groupId>io.stargate.config-store</groupId>
         <artifactId>config-store-api</artifactId>
+        <version>${project.version}</version>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.stargate.core</groupId>
+        <artifactId>core</artifactId>
         <version>${project.version}</version>
         <scope>provided</scope>
       </dependency>
@@ -28,6 +32,16 @@
             <artifactId>guava</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>io.dropwizard.metrics</groupId>
+        <artifactId>metrics-ganglia</artifactId>
+        <version>3.2.6</version>
+      </dependency>
+      <dependency>
+        <groupId>io.dropwizard.metrics</groupId>
+        <artifactId>metrics-graphite</artifactId>
+        <version>4.1.2</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -50,7 +64,7 @@
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
-        <artifactId>mockito-core</artifactId>
+        <artifactId>mockito-inline</artifactId>
         <version>3.5.10</version>
         <scope>test</scope>
       </dependency>
@@ -71,10 +85,12 @@
 						<Bundle-Name>Config-Store-Yaml</Bundle-Name>
 						<Bundle-Description>Config store YAML implementation</Bundle-Description>
 						<Bundle-SymbolicName>io.stargate.config.store.yaml</Bundle-SymbolicName>
-						<Bundle-Activator>io.stargate.config.store.api.yaml.ConfigStoreActivator</Bundle-Activator>
+						<Bundle-Activator>io.stargate.config.store.yaml.ConfigStoreActivator</Bundle-Activator>
 						<Import-Package><![CDATA[
                                         org.osgi.framework,
-                                        io.stargate.config.store.api
+                                        io.stargate.config.store.api,
+                                        com.codahale.metrics,
+                                        !com.codahale.metrics.graphite.*,
                                         ]]>
 						</Import-Package>
 						<DynamicImport-Package>*</DynamicImport-Package>

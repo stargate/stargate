@@ -1,3 +1,18 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.graphql.schema;
 
 import graphql.Scalars;
@@ -5,8 +20,10 @@ import graphql.schema.GraphQLScalarType;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.ImmutableListType;
+import io.stargate.graphql.schema.types.scalars.CustomScalars;
 import java.util.HashMap;
 import java.util.Map;
+import net.jcip.annotations.NotThreadSafe;
 
 /**
  * Caches a category of GraphQL field types, corresponding to table columns or UDT fields.
@@ -16,6 +33,7 @@ import java.util.Map;
  *
  * @param <GraphqlT> the returned GraphQL type.
  */
+@NotThreadSafe
 abstract class FieldTypeCache<GraphqlT> {
 
   protected final NameMapping nameMapping;
@@ -27,7 +45,19 @@ abstract class FieldTypeCache<GraphqlT> {
 
   GraphqlT get(ColumnType type) {
     type = normalize(type);
-    return types.computeIfAbsent(type, this::compute);
+    return computeIfAbsent(type);
+  }
+
+  // Reimplement HashMap#computeIfAbsent because it has a bug in JDK 8 (if the compute method adds
+  // other entries, they won't be visible).
+  // See https://bugs.openjdk.java.net/browse/JDK-8071667
+  private GraphqlT computeIfAbsent(ColumnType type) {
+    GraphqlT result = types.get(type);
+    if (result == null) {
+      result = compute(type);
+      types.put(type, result);
+    }
+    return result;
   }
 
   /**
@@ -62,48 +92,48 @@ abstract class FieldTypeCache<GraphqlT> {
   protected GraphQLScalarType getScalar(Type type) {
     switch (type) {
       case Ascii:
-        return CustomScalar.ASCII.getGraphQLScalar();
+        return CustomScalars.ASCII;
       case Bigint:
-        return CustomScalar.BIGINT.getGraphQLScalar();
+        return CustomScalars.BIGINT;
       case Blob:
-        return CustomScalar.BLOB.getGraphQLScalar();
+        return CustomScalars.BLOB;
       case Boolean:
         return Scalars.GraphQLBoolean;
       case Counter:
-        return CustomScalar.COUNTER.getGraphQLScalar();
+        return CustomScalars.COUNTER;
       case Decimal:
-        return CustomScalar.DECIMAL.getGraphQLScalar();
+        return CustomScalars.DECIMAL;
       case Double:
         // GraphQL's Float is a signed double‐precision fractional value
         return Scalars.GraphQLFloat;
       case Duration:
-        return CustomScalar.DURATION.getGraphQLScalar();
+        return CustomScalars.DURATION;
       case Float:
         // Use a custom scalar named "Float32"
-        return CustomScalar.FLOAT.getGraphQLScalar();
+        return CustomScalars.FLOAT;
       case Int:
         return Scalars.GraphQLInt;
       case Smallint:
-        return CustomScalar.SMALLINT.getGraphQLScalar();
+        return CustomScalars.SMALLINT;
       case Tinyint:
-        return CustomScalar.TINYINT.getGraphQLScalar();
+        return CustomScalars.TINYINT;
       case Text:
       case Varchar:
         return Scalars.GraphQLString;
       case Timestamp:
-        return CustomScalar.TIMESTAMP.getGraphQLScalar();
+        return CustomScalars.TIMESTAMP;
       case Uuid:
-        return CustomScalar.UUID.getGraphQLScalar();
+        return CustomScalars.UUID;
       case Varint:
-        return CustomScalar.VARINT.getGraphQLScalar();
+        return CustomScalars.VARINT;
       case Timeuuid:
-        return CustomScalar.TIMEUUID.getGraphQLScalar();
+        return CustomScalars.TIMEUUID;
       case Inet:
-        return CustomScalar.INET.getGraphQLScalar();
+        return CustomScalars.INET;
       case Date:
-        return CustomScalar.DATE.getGraphQLScalar();
+        return CustomScalars.DATE;
       case Time:
-        return CustomScalar.TIME.getGraphQLScalar();
+        return CustomScalars.TIME;
       default:
         throw new IllegalArgumentException("Unsupported primitive type " + type);
     }

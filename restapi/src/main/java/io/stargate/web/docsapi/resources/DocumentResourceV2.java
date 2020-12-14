@@ -45,6 +45,7 @@ import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.glassfish.jersey.server.ManagedAsync;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +63,7 @@ public class DocumentResourceV2 {
   private final int DEFAULT_PAGE_SIZE = 100;
 
   @POST
+  @ManagedAsync
   @ApiOperation(
       value = "Create a new document",
       notes = "Auto-generates an ID for the newly created document",
@@ -79,7 +81,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}")
-  @Consumes("application/json")
+  @Consumes("application/json, application/x-www-form-urlencoded")
   @Produces("application/json")
   public Response postDoc(
       @Context HttpHeaders headers,
@@ -102,6 +104,11 @@ public class DocumentResourceV2 {
     String newId = UUID.randomUUID().toString();
     return handle(
         () -> {
+          boolean isJson =
+              headers
+                  .getHeaderString(HttpHeaders.CONTENT_TYPE)
+                  .toLowerCase()
+                  .contains("application/json");
           documentService.putAtPath(
               authToken,
               namespace,
@@ -110,7 +117,8 @@ public class DocumentResourceV2 {
               payload,
               new ArrayList<>(),
               false,
-              dbFactory);
+              dbFactory,
+              isJson);
 
           return Response.created(
                   URI.create(
@@ -122,6 +130,7 @@ public class DocumentResourceV2 {
   }
 
   @PUT
+  @ManagedAsync
   @ApiOperation(value = "Create or update a document with the provided document-id")
   @ApiResponses(
       value = {
@@ -132,7 +141,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}/{document-id}")
-  @Consumes("application/json")
+  @Consumes("application/json, application/x-www-form-urlencoded")
   @Produces("application/json")
   public Response putDoc(
       @Context HttpHeaders headers,
@@ -154,8 +163,21 @@ public class DocumentResourceV2 {
     logger.debug("Put: Collection = {}, id = {}", collection, id);
     return handle(
         () -> {
+          boolean isJson =
+              headers
+                  .getHeaderString(HttpHeaders.CONTENT_TYPE)
+                  .toLowerCase()
+                  .contains("application/json");
           documentService.putAtPath(
-              authToken, namespace, collection, id, payload, new ArrayList<>(), false, dbFactory);
+              authToken,
+              namespace,
+              collection,
+              id,
+              payload,
+              new ArrayList<>(),
+              false,
+              dbFactory,
+              isJson);
           return Response.ok()
               .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
               .build();
@@ -163,6 +185,7 @@ public class DocumentResourceV2 {
   }
 
   @PUT
+  @ManagedAsync
   @ApiOperation(
       value = "Replace data at a path in a document",
       notes = "Removes whatever was previously present at the path")
@@ -175,7 +198,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}/{document-id}/{document-path: .*}")
-  @Consumes("application/json")
+  @Consumes("application/json, application/x-www-form-urlencoded")
   @Produces("application/json")
   public Response putDocPath(
       @Context HttpHeaders headers,
@@ -200,8 +223,13 @@ public class DocumentResourceV2 {
     logger.debug("Put: Collection = {}, id = {}, path = {}", collection, id, path);
     return handle(
         () -> {
+          boolean isJson =
+              headers
+                  .getHeaderString(HttpHeaders.CONTENT_TYPE)
+                  .toLowerCase()
+                  .contains("application/json");
           documentService.putAtPath(
-              authToken, namespace, collection, id, payload, path, false, dbFactory);
+              authToken, namespace, collection, id, payload, path, false, dbFactory, isJson);
           return Response.ok()
               .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
               .build();
@@ -209,6 +237,7 @@ public class DocumentResourceV2 {
   }
 
   @PATCH
+  @ManagedAsync
   @ApiOperation(
       value = "Update data at the root of a document",
       notes = "Merges data at the root with requested data.")
@@ -221,7 +250,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}/{document-id}")
-  @Consumes("application/json")
+  @Consumes("application/json, application/x-www-form-urlencoded")
   @Produces("application/json")
   public Response patchDoc(
       @Context HttpHeaders headers,
@@ -243,8 +272,21 @@ public class DocumentResourceV2 {
     logger.debug("Patch: Collection = {}, id = {}", collection, id);
     return handle(
         () -> {
+          boolean isJson =
+              headers
+                  .getHeaderString(HttpHeaders.CONTENT_TYPE)
+                  .toLowerCase()
+                  .contains("application/json");
           documentService.putAtPath(
-              authToken, namespace, collection, id, payload, new ArrayList<>(), true, dbFactory);
+              authToken,
+              namespace,
+              collection,
+              id,
+              payload,
+              new ArrayList<>(),
+              true,
+              dbFactory,
+              isJson);
           return Response.ok()
               .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
               .build();
@@ -252,6 +294,7 @@ public class DocumentResourceV2 {
   }
 
   @PATCH
+  @ManagedAsync
   @ApiOperation(
       value = "Update data at a path in a document",
       notes =
@@ -265,7 +308,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}/{document-id}/{document-path: .*}")
-  @Consumes("application/json")
+  @Consumes("application/json, application/x-www-form-urlencoded")
   @Produces("application/json")
   public Response patchDocPath(
       @Context HttpHeaders headers,
@@ -290,8 +333,13 @@ public class DocumentResourceV2 {
     logger.debug("Patch: Collection = {}, id = {}, path = {}", collection, id, path);
     return handle(
         () -> {
+          boolean isJson =
+              headers
+                  .getHeaderString(HttpHeaders.CONTENT_TYPE)
+                  .toLowerCase()
+                  .contains("application/json");
           documentService.putAtPath(
-              authToken, namespace, collection, id, payload, path, true, dbFactory);
+              authToken, namespace, collection, id, payload, path, true, dbFactory, isJson);
           return Response.ok()
               .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
               .build();
@@ -299,6 +347,7 @@ public class DocumentResourceV2 {
   }
 
   @DELETE
+  @ManagedAsync
   @ApiOperation(value = "Delete a document", notes = "Delete a document")
   @ApiResponses(
       value = {
@@ -336,6 +385,7 @@ public class DocumentResourceV2 {
   }
 
   @DELETE
+  @ManagedAsync
   @ApiOperation(value = "Delete a path in a document", notes = "Delete a path in a document")
   @ApiResponses(
       value = {
@@ -376,6 +426,7 @@ public class DocumentResourceV2 {
   }
 
   @GET
+  @ManagedAsync
   @ApiOperation(
       value = "Get a document",
       notes = "Retrieve the JSON representation of the document")
@@ -445,6 +496,7 @@ public class DocumentResourceV2 {
   }
 
   @GET
+  @ManagedAsync
   @ApiOperation(
       value = "Get a path in a document",
       notes =
@@ -590,6 +642,7 @@ public class DocumentResourceV2 {
   }
 
   @GET
+  @ManagedAsync
   @ApiOperation(
       value = "Search documents in a collection",
       notes =

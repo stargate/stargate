@@ -16,56 +16,63 @@
 package io.stargate.graphql;
 
 import io.stargate.auth.AuthenticationService;
+import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
+import io.stargate.graphql.web.DropwizardServer;
+import java.util.Arrays;
+import java.util.List;
+import javax.annotation.Nullable;
 import net.jcip.annotations.GuardedBy;
-import org.osgi.framework.BundleActivator;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.Filter;
-import org.osgi.framework.InvalidSyntaxException;
-import org.osgi.framework.ServiceReference;
-import org.osgi.util.tracker.ServiceTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Activator for the web bundle */
-public class GraphqlActivator implements BundleActivator {
+public class GraphqlActivator extends BaseActivator {
   private static final Logger LOG = LoggerFactory.getLogger(GraphqlActivator.class);
 
   private static final String AUTH_IDENTIFIER =
       System.getProperty("stargate.auth_id", "AuthTableBasedService");
   private static final String PERSISTENCE_IDENTIFIER =
       System.getProperty("stargate.persistence_id", "CassandraPersistence");
-  private static final String DEPENDENCIES_FILTER =
-      String.format(
-          "(|(AuthIdentifier=%s)(Identifier=%s)(objectClass=%s))",
-          AUTH_IDENTIFIER, PERSISTENCE_IDENTIFIER, Metrics.class.getName());
+
+  private ServicePointer<AuthenticationService> authentication =
+      ServicePointer.create(AuthenticationService.class, "AuthIdentifier", AUTH_IDENTIFIER);
+  private ServicePointer<Persistence> persistence =
+      ServicePointer.create(Persistence.class, "Identifier", PERSISTENCE_IDENTIFIER);
+  private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
 
   @GuardedBy("this")
-  private Tracker tracker;
+  private DropwizardServer server;
 
-  @GuardedBy("this")
-  private WebImpl web;
-
-  @Override
-  public synchronized void start(BundleContext context) throws InvalidSyntaxException {
-    tracker = new Tracker(context, context.createFilter(DEPENDENCIES_FILTER));
-    tracker.open();
+  public GraphqlActivator() {
+    super("GraphQL");
   }
 
   @Override
-  public synchronized void stop(BundleContext context) {
+  @Nullable
+  protected ServiceAndProperties createService() {
+    maybeStartService(persistence.get(), metrics.get(), authentication.get());
+    return null;
+  }
+
+  @Override
+  protected void stopService() {
     maybeStopService();
-    tracker.close();
+  }
+
+  @Override
+  protected List<ServicePointer<?>> dependencies() {
+    return Arrays.asList(persistence, metrics, authentication);
   }
 
   private synchronized void maybeStartService(
       Persistence persistence, Metrics metrics, AuthenticationService authentication) {
-    if (web == null) {
+    if (server == null) {
       try {
-        web = new WebImpl(persistence, metrics, authentication);
+        server = new DropwizardServer(persistence, authentication, metrics);
         LOG.info("Starting GraphQL");
-        web.start();
+        server.run("server", "config.yaml");
       } catch (Exception e) {
         LOG.error("Unexpected error while stopping GraphQL", e);
       }
@@ -73,46 +80,13 @@ public class GraphqlActivator implements BundleActivator {
   }
 
   private synchronized void maybeStopService() {
-    if (web != null) {
+    if (server != null) {
       try {
         LOG.info("Stopping GraphQL");
-        web.stop();
+        server.stop();
       } catch (Exception e) {
         LOG.error("Unexpected error while stopping GraphQL", e);
       }
-    }
-  }
-
-  private class Tracker extends ServiceTracker<Object, Object> {
-
-    private Persistence persistence;
-    private Metrics metrics;
-    private AuthenticationService authentication;
-
-    public Tracker(BundleContext context, Filter filter) {
-      super(context, filter, null);
-    }
-
-    @Override
-    @SuppressWarnings("rawtypes")
-    public Object addingService(ServiceReference<Object> ref) {
-      Object service = super.addingService(ref);
-      if (persistence == null && service instanceof Persistence) {
-        LOG.debug("Using backend persistence: {}", ref.getBundle());
-        persistence = (Persistence) service;
-      } else if (metrics == null && service instanceof Metrics) {
-        LOG.debug("Using metrics: {}", ref.getBundle());
-        metrics = (Metrics) service;
-      } else if (authentication == null && service instanceof AuthenticationService) {
-        LOG.debug("Using authentication service: {}", ref.getBundle());
-        authentication = (AuthenticationService) service;
-      }
-
-      if (persistence != null && metrics != null && authentication != null) {
-        maybeStartService(persistence, metrics, authentication);
-      }
-
-      return service;
     }
   }
 }

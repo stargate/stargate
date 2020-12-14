@@ -2,6 +2,7 @@ package io.stargate.it.cql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.OptionsMap;
 import com.datastax.oss.driver.api.core.config.TypedDriverOption;
 import com.datastax.oss.driver.api.core.cql.BatchStatement;
@@ -10,12 +11,15 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
+import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.CqlSessionSpec;
 import java.util.function.Function;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * This test covers protocol-v5-specific features. However driver 4.9.0 is currently incompatible
@@ -25,47 +29,47 @@ import org.junit.jupiter.api.condition.EnabledIf;
  * <p>TODO reenable when CASSANDRA-15299 is merged
  */
 @Disabled("Requires CASSANDRA-15299 on the backend")
-public class NowInSecondsTest extends JavaDriverTestBase {
+@ExtendWith(CqlSessionExtension.class)
+@CqlSessionSpec(
+    customOptions = "enableProtocolV5",
+    initQueries = "CREATE TABLE test(k int PRIMARY KEY, v int)")
+public class NowInSecondsTest extends BaseOsgiIntegrationTest {
 
-  @Override
-  protected void customizeConfig(OptionsMap config) {
+  public static void enableProtocolV5(OptionsMap config) {
     config.put(TypedDriverOption.PROTOCOL_VERSION, "V5");
-  }
-
-  @BeforeEach
-  public void setupSchema() {
-    session.execute("CREATE TABLE test(k int PRIMARY KEY, v int)");
   }
 
   @Test
   @DisplayName("Should use setNowInSeconds() with simple statement")
   @EnabledIf("isCassandra4")
-  public void simpleStatementTest() {
-    should_use_now_in_seconds(SimpleStatement::newInstance);
+  public void simpleStatementTest(CqlSession session) {
+    should_use_now_in_seconds(SimpleStatement::newInstance, session);
   }
 
   @Test
   @EnabledIf("isCassandra4")
   @DisplayName("Should use setNowInSeconds() with bound statement")
-  public void boundStatementTest() {
+  public void boundStatementTest(CqlSession session) {
     should_use_now_in_seconds(
         queryString -> {
           PreparedStatement preparedStatement = session.prepare(queryString);
           return preparedStatement.bind();
-        });
+        },
+        session);
   }
 
   @Test
   @DisplayName("Should use setNowInSeconds() with batch statement")
   @EnabledIf("isCassandra4")
-  public void batchStatementTest() {
+  public void batchStatementTest(CqlSession session) {
     should_use_now_in_seconds(
         queryString ->
-            BatchStatement.newInstance(BatchType.LOGGED, SimpleStatement.newInstance(queryString)));
+            BatchStatement.newInstance(BatchType.LOGGED, SimpleStatement.newInstance(queryString)),
+        session);
   }
 
   private <StatementT extends Statement<StatementT>> void should_use_now_in_seconds(
-      Function<String, StatementT> buildWriteStatement) {
+      Function<String, StatementT> buildWriteStatement, CqlSession session) {
     // Given
     StatementT writeStatement =
         buildWriteStatement.apply("INSERT INTO test (k,v) VALUES (1,1) USING TTL 20");

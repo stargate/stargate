@@ -4,10 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.when;
 
-import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import graphql.ExecutionResult;
-import io.stargate.db.datastore.ArrayListBackedRow;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
@@ -21,24 +19,24 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -47,6 +45,8 @@ public class ScalarsDmlTest extends DmlTestBase {
   public static final Table table = buildTable();
   public static final Keyspace keyspace =
       ImmutableKeyspace.builder().name("scalars").addTables(table).build();
+  private static final String UUID_REGEX =
+      "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
   public static final Map<Column.Type, Function<Object, Object>> toRowCellFn = buildRowToCellMap();
 
@@ -54,11 +54,11 @@ public class ScalarsDmlTest extends DmlTestBase {
     ImmutableTable.Builder tableBuilder =
         ImmutableTable.builder()
             .keyspace("scalars_ks")
-            .name("scalars")
+            .name("Scalars")
             .addColumns(
                 ImmutableColumn.builder()
-                    .keyspace("scalars")
-                    .table("scalars_table")
+                    .keyspace("scalars_ks")
+                    .table("Scalars")
                     .name("id")
                     .type(Column.Type.Int)
                     .kind(Column.Kind.PartitionKey)
@@ -76,7 +76,7 @@ public class ScalarsDmlTest extends DmlTestBase {
   private static ImmutableColumn getColumn(Column.Type type) {
     return ImmutableColumn.builder()
         .keyspace("scalars_ks")
-        .table("scalars")
+        .table("Scalars")
         .name(getName(type))
         .type(type)
         .kind(Column.Kind.Regular)
@@ -95,10 +95,10 @@ public class ScalarsDmlTest extends DmlTestBase {
     String name = getName(type);
     String expectedCQL =
         String.format(
-            "INSERT INTO scalars_ks.scalars (id,%s) VALUES (1,%s)",
+            "INSERT INTO scalars_ks.\"Scalars\" (id,%s) VALUES (1,%s)",
             name, expectedLiteral != null ? expectedLiteral : value.toString());
 
-    assertSuccess(String.format(mutation, name, toGraphQLValue(value)), expectedCQL);
+    assertQuery(String.format(mutation, name, toGraphQLValue(value)), expectedCQL);
   }
 
   @ParameterizedTest
@@ -111,10 +111,10 @@ public class ScalarsDmlTest extends DmlTestBase {
     String name = getName(type);
     String expectedCQL =
         String.format(
-            "INSERT INTO scalars_ks.scalars (id,%s) VALUES (1,%s)",
+            "INSERT INTO scalars_ks.\"Scalars\" (id,%s) VALUES (1,%s)",
             name, expectedLiteral != null ? expectedLiteral : value.toString());
 
-    assertSuccess(String.format(mutation, name, toGraphQLValue(value)), expectedCQL);
+    assertQuery(String.format(mutation, name, toGraphQLValue(value)), expectedCQL);
   }
 
   @ParameterizedTest
@@ -124,10 +124,10 @@ public class ScalarsDmlTest extends DmlTestBase {
     Row row = createRowForSingleValue(name, toRowCellValue(type, value));
     when(resultSet.currentPageRows()).thenReturn(Collections.singletonList(row));
     ExecutionResult result =
-        executeGraphQl(String.format("query { scalars { values { %s } } }", name));
+        executeGraphQl(String.format("query { Scalars { values { %s } } }", name));
     assertThat(result.getErrors()).isEmpty();
     assertThat(result.<Map<String, Object>>getData())
-        .extractingByKey("scalars", InstanceOfAssertFactories.MAP)
+        .extractingByKey("Scalars", InstanceOfAssertFactories.MAP)
         .extractingByKey("values", InstanceOfAssertFactories.LIST)
         .singleElement()
         .asInstanceOf(InstanceOfAssertFactories.MAP)
@@ -142,9 +142,58 @@ public class ScalarsDmlTest extends DmlTestBase {
     assertError(String.format(mutation, getName(type), toGraphQLValue(value)), "Validation error");
   }
 
+  @Test
+  public void timeUuidTypeShouldSupportNowFunction() {
+    long startTime = System.currentTimeMillis();
+    long unixToGregorian = 12219292800000L;
+    long ticksInMs = 10000L;
+
+    String mutation =
+        "mutation { insertScalars(value: { timeuuidvalue:\"now()\", id:1 }) { "
+            + "applied, value { timeuuidvalue } } }";
+    ExecutionResult result = executeGraphQl(mutation);
+    assertThat(result.getErrors()).isEmpty();
+    assertThat(queryCaptor.getValue())
+        .matches(
+            String.format(
+                "INSERT INTO scalars_ks.\"Scalars\" \\(id,timeuuidvalue\\) VALUES \\(1,%s\\)",
+                UUID_REGEX));
+
+    assertThat(result.<Map<String, Object>>getData())
+        .extractingByKey("insertScalars", InstanceOfAssertFactories.MAP)
+        .extractingByKey("value", InstanceOfAssertFactories.MAP)
+        .extractingByKey("timeuuidvalue")
+        .extracting(
+            x -> UUID.fromString(x.toString()).timestamp() / ticksInMs - unixToGregorian,
+            InstanceOfAssertFactories.LONG)
+        .isGreaterThanOrEqualTo(startTime)
+        .isLessThanOrEqualTo(System.currentTimeMillis());
+  }
+
+  @Test
+  public void uuidTypeShouldSupportUuidFunction() {
+    String mutation =
+        "mutation { insertScalars(value: { uuidvalue:\"uuid()\", id:1 }) { "
+            + "applied, value { uuidvalue } } }";
+    ExecutionResult result = executeGraphQl(mutation);
+    assertThat(result.getErrors()).isEmpty();
+    assertThat(queryCaptor.getValue())
+        .matches(
+            String.format(
+                "INSERT INTO scalars_ks.\"Scalars\" \\(id,uuidvalue\\) VALUES \\(1,%s\\)",
+                UUID_REGEX));
+
+    assertThat(result.<Map<String, Object>>getData())
+        .extractingByKey("insertScalars", InstanceOfAssertFactories.MAP)
+        .extractingByKey("value", InstanceOfAssertFactories.MAP)
+        .extractingByKey("uuidvalue")
+        .extracting(x -> UUID.fromString(x.toString()).version())
+        .isEqualTo(4);
+  }
+
   private static Stream<Arguments> getValues() {
-    SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
-    dateFormatter.setTimeZone(TimeZone.getTimeZone(ZoneId.systemDefault()));
+    String timestampLiteral =
+        instantFormatter().format(Date.from(Instant.parse("2020-01-03T10:15:31.123Z")));
 
     return Stream.of(
         arguments(Column.Type.Ascii, "abc", "'abc'"),
@@ -185,28 +234,20 @@ public class ScalarsDmlTest extends DmlTestBase {
         arguments(Column.Type.Int, 0, null),
         arguments(Column.Type.Int, Integer.MAX_VALUE, null),
         arguments(Column.Type.Int, Integer.MIN_VALUE, null),
-        arguments(Column.Type.Smallint, (short) 0, null),
-        arguments(Column.Type.Smallint, (short) -1, null),
-        arguments(Column.Type.Smallint, (short) 1, null),
-        arguments(Column.Type.Smallint, Short.MAX_VALUE, null),
-        arguments(Column.Type.Smallint, Short.MIN_VALUE, null),
+        arguments(Column.Type.Smallint, 0L, null),
+        arguments(Column.Type.Smallint, -1L, null),
+        arguments(Column.Type.Smallint, 1L, null),
+        arguments(Column.Type.Smallint, (long) Short.MAX_VALUE, null),
+        arguments(Column.Type.Smallint, (long) Short.MIN_VALUE, null),
         arguments(Column.Type.Text, "abc123", "'abc123'"),
         arguments(Column.Type.Text, "", "''"),
         arguments(Column.Type.Time, "10:15:30.123456789", "'10:15:30.123456789'"),
-        arguments(Column.Type.Time, "13:45", "'13:45:00.000000000'"),
-        arguments(
-            Column.Type.Timestamp,
-            "2007-12-03T10:15:30Z",
-            "'" + dateFormatter.format(Date.from(Instant.parse("2007-12-03T10:15:30Z"))) + "'"),
-        arguments(
-            Column.Type.Timestamp,
-            "2020-01-03T10:15:31.123Z",
-            "'" + dateFormatter.format(Date.from(Instant.parse("2020-01-03T10:15:31.123Z"))) + "'"),
-        arguments(Column.Type.Tinyint, (byte) 0, null),
-        arguments(Column.Type.Tinyint, (byte) 1, null),
-        arguments(Column.Type.Tinyint, (byte) -1, null),
-        arguments(Column.Type.Tinyint, Byte.MIN_VALUE, null),
-        arguments(Column.Type.Tinyint, Byte.MAX_VALUE, null),
+        arguments(Column.Type.Timestamp, timestampLiteral, "'" + timestampLiteral + "'"),
+        arguments(Column.Type.Tinyint, 0L, null),
+        arguments(Column.Type.Tinyint, 1L, null),
+        arguments(Column.Type.Tinyint, -1L, null),
+        arguments(Column.Type.Tinyint, (long) Byte.MIN_VALUE, null),
+        arguments(Column.Type.Tinyint, (long) Byte.MAX_VALUE, null),
         arguments(Column.Type.Timeuuid, "30821634-13ad-11eb-adc1-0242ac120002", null),
         arguments(Column.Type.Uuid, "f3abdfbf-479f-407b-9fde-128145bd7bef", null),
         arguments(Column.Type.Varchar, "abc123", "'abc123'"),
@@ -260,16 +301,7 @@ public class ScalarsDmlTest extends DmlTestBase {
     return type.name().toLowerCase() + "value";
   }
 
-  private static Row createRow(List<Column> columns, Map<String, Object> data) {
-    List<ByteBuffer> values = new ArrayList<>(columns.size());
-    for (Column column : columns) {
-      Object v = data.get(column.name());
-      values.add(v == null ? null : column.type().codec().encode(v, ProtocolVersion.DEFAULT));
-    }
-    return new ArrayListBackedRow(columns, values, ProtocolVersion.DEFAULT);
-  }
-
-  private static Row createRowForSingleValue(String columnName, Object value) {
+  private Row createRowForSingleValue(String columnName, Object value) {
     Map<String, Object> values = new HashMap<>();
     values.put(columnName, value);
     return createRow(Collections.singletonList(table.column(columnName)), values);
@@ -295,12 +327,26 @@ public class ScalarsDmlTest extends DmlTestBase {
             });
         put(Column.Type.Smallint, o -> Short.valueOf(o.toString()));
         put(Column.Type.Time, o -> LocalTime.parse(o.toString()));
-        put(Column.Type.Timestamp, o -> Instant.parse(o.toString()));
+        put(
+            Column.Type.Timestamp,
+            o -> {
+              try {
+                return instantFormatter().parse(o.toString()).toInstant();
+              } catch (ParseException e) {
+                throw new RuntimeException(e);
+              }
+            });
         put(Column.Type.Tinyint, o -> Byte.valueOf(o.toString()));
         put(Column.Type.Timeuuid, o -> UUID.fromString(o.toString()));
         put(Column.Type.Uuid, o -> UUID.fromString(o.toString()));
         put(Column.Type.Varint, o -> new BigInteger(o.toString()));
       }
     };
+  }
+
+  private static SimpleDateFormat instantFormatter() {
+    SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+    dateFormatter.setTimeZone(TimeZone.getTimeZone(ZoneId.systemDefault()));
+    return dateFormatter;
   }
 }

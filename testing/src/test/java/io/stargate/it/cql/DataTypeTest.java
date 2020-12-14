@@ -9,6 +9,7 @@ import static io.stargate.it.cql.DataTypeTest.TypeSample.typeSample;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.BatchStatement;
 import com.datastax.oss.driver.api.core.cql.BatchType;
 import com.datastax.oss.driver.api.core.cql.Row;
@@ -27,6 +28,9 @@ import com.datastax.oss.protocol.internal.util.Bytes;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.TestKeyspace;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -42,46 +46,25 @@ import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.opentest4j.AssertionFailedError;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
-public class DataTypeTest extends JavaDriverTestBase {
+@ExtendWith(CqlSessionExtension.class)
+public class DataTypeTest extends BaseOsgiIntegrationTest {
 
-  @Test
-  @DisplayName("Should write and read all data types")
-  public void readWriteTest() {
+  private static List<TypeSample<?>> allTypes;
 
-    List<TypeSample<?>> types = generateAllTypes(keyspaceId);
+  @BeforeAll
+  public static void createSchema(CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
 
-    createSchema(types);
+    allTypes = generateAllTypes(keyspaceId);
 
-    // This should be a Junit parameterized test, but because of the way BaseOsgiIntegrationTest is
-    // implemented, it would start a new Stargate container for each execution.
-    // TODO refactor BaseOsgiIntegrationTest into a Junit extension
-    for (TypeSample<?> sample : types) {
-      try {
-        should_write_and_read(sample);
-      } catch (Throwable t) {
-        throw new AssertionFailedError(
-            String.format(
-                "Error on %s (cqlType=%s, value=%s)",
-                sample.columnName,
-                sample.cqlType.asCql(true, true),
-                session
-                    .getContext()
-                    .getCodecRegistry()
-                    .codecFor(sample.cqlType)
-                    .format(sample.value)),
-            t);
-      }
-    }
-  }
-
-  private void createSchema(List<TypeSample<?>> types) {
     // Creating a new table for each type is too slow, use a single table with all possible types:
     CreateTable createTableQuery = createTable("test").withPartitionKey("k", DataTypes.INT);
-    for (TypeSample<?> sample : types) {
+    for (TypeSample<?> sample : allTypes) {
       createTableQuery = createTableQuery.withColumn(sample.columnName, sample.cqlType);
       if (sample.cqlType instanceof UserDefinedType) {
         session.execute(((UserDefinedType) sample.cqlType).describe(false));
@@ -90,23 +73,30 @@ public class DataTypeTest extends JavaDriverTestBase {
     session.execute(createTableQuery.asCql());
   }
 
-  private <JavaTypeT> void should_write_and_read(TypeSample<JavaTypeT> sample) {
+  public static List<TypeSample<?>> getAllTypes() {
+    return allTypes;
+  }
+
+  @DisplayName("Should write and read data type")
+  @ParameterizedTest
+  @MethodSource("getAllTypes")
+  public <JavaTypeT> void should_write_and_read(TypeSample<JavaTypeT> sample, CqlSession session) {
 
     String insertQuery =
         insertInto("test").value("k", literal(1)).value(sample.columnName, bindMarker()).asCql();
 
     SimpleStatement simpleStatement = SimpleStatement.newInstance(insertQuery, sample.value);
     session.execute(simpleStatement);
-    checkValue(sample);
+    checkValue(sample, session);
 
     session.execute(BatchStatement.newInstance(BatchType.LOGGED).add(simpleStatement));
-    checkValue(sample);
+    checkValue(sample, session);
 
     session.execute(session.prepare(insertQuery).bind(sample.value));
-    checkValue(sample);
+    checkValue(sample, session);
   }
 
-  private <JavaTypeT> void checkValue(TypeSample<JavaTypeT> sample) {
+  private <JavaTypeT> void checkValue(TypeSample<JavaTypeT> sample, CqlSession session) {
     String selectQuery =
         selectFrom("test").column(sample.columnName).whereColumn("k").isEqualTo(literal(1)).asCql();
     Row row = session.execute(selectQuery).one();

@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.fetchers.dml;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.metadata.schema.ClusteringOrder;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.select.Select;
@@ -72,13 +73,13 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
 
   private String buildQuery(DataFetchingEnvironment environment) {
     Select select =
-        QueryBuilder.selectFrom(table.keyspace(), table.name())
-            .columns(buildQueryColumns(environment))
-            .where(buildClause(table, environment))
-            .orderBy(buildOrderBy(environment));
+        QueryBuilder.selectFrom(keyspaceId, tableId)
+            .columnsIds(buildQueryColumns(environment))
+            .where(buildClause(this.table, environment))
+            .orderByIds(buildOrderBy(environment));
 
-    if (environment.containsArgument("options")) {
-      Map<String, Object> options = environment.getArgument("options");
+    Map<String, Object> options = environment.getArgument("options");
+    if (options != null) {
       Object limit = options.get("limit");
       if (limit != null) {
         select = select.limit((Integer) limit);
@@ -88,9 +89,9 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
     return select.asCql();
   }
 
-  private Map<String, ClusteringOrder> buildOrderBy(DataFetchingEnvironment environment) {
+  private Map<CqlIdentifier, ClusteringOrder> buildOrderBy(DataFetchingEnvironment environment) {
     if (environment.containsArgument("orderBy")) {
-      Map<String, ClusteringOrder> orderMap = new LinkedHashMap<>();
+      Map<CqlIdentifier, ClusteringOrder> orderMap = new LinkedHashMap<>();
       List<String> orderList = environment.getArgument("orderBy");
       for (String order : orderList) {
         int split = order.lastIndexOf("_");
@@ -105,16 +106,16 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
     return ImmutableMap.of();
   }
 
-  private List<String> buildQueryColumns(DataFetchingEnvironment environment) {
+  private List<CqlIdentifier> buildQueryColumns(DataFetchingEnvironment environment) {
     if (environment.getSelectionSet().contains("values")) {
       SelectedField field = environment.getSelectionSet().getField("values");
-      List<String> fields = new ArrayList<>();
+      List<CqlIdentifier> fields = new ArrayList<>();
       for (SelectedField selectedField : field.getSelectionSet().getFields()) {
         if ("__typename".equals(selectedField.getName())) {
           continue;
         }
 
-        String column = getDBColumnName(table, selectedField.getName());
+        CqlIdentifier column = getDBColumnName(table, selectedField.getName());
         if (column != null) {
           fields.add(column);
         }

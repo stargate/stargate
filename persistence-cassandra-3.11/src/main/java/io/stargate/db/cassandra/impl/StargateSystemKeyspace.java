@@ -20,7 +20,10 @@ import static org.apache.cassandra.cql3.QueryProcessor.executeOnceInternal;
 
 import com.google.common.util.concurrent.Futures;
 import java.net.InetAddress;
-import java.util.Collections;
+import java.nio.ByteBuffer;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -32,6 +35,8 @@ import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.SystemKeyspace;
+import org.apache.cassandra.dht.IPartitioner;
+import org.apache.cassandra.dht.Token.TokenFactory;
 import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.schema.Functions;
 import org.apache.cassandra.schema.KeyspaceMetadata;
@@ -42,6 +47,7 @@ import org.apache.cassandra.schema.Views;
 import org.apache.cassandra.thrift.cassandraConstants;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.utils.FBUtilities;
+import org.apache.cassandra.utils.MurmurHash;
 
 public class StargateSystemKeyspace {
   public static final String SYSTEM_KEYSPACE_NAME = "stargate_system";
@@ -147,7 +153,8 @@ public class StargateSystemKeyspace {
         FBUtilities.getLocalAddress(),
         SystemKeyspace.BootstrapState.COMPLETED.name(),
         SystemKeyspace.getLocalHostId(),
-        Collections.singleton(DatabaseDescriptor.getPartitioner().getMinimumToken().toString()),
+        generateRandomTokens(
+            FBUtilities.getBroadcastRpcAddress(), DatabaseDescriptor.getNumTokens()),
         SCHEMA_VERSION);
   }
 
@@ -195,5 +202,21 @@ public class StargateSystemKeyspace {
       FBUtilities.waitOnFuture(
           Keyspace.open(SYSTEM_KEYSPACE_NAME).getColumnFamilyStore(cfname).forceFlush());
     }
+  }
+
+  public static Set<String> generateRandomTokens(InetAddress inetAddress, int numTokens) {
+    Random random = new Random(getSeed(inetAddress));
+    IPartitioner partitioner = DatabaseDescriptor.getPartitioner();
+    TokenFactory tokenFactory = partitioner.getTokenFactory();
+    Set<String> tokens = new HashSet<>(numTokens);
+    while (tokens.size() < numTokens) {
+      tokens.add(tokenFactory.toString(partitioner.getRandomToken(random)));
+    }
+    return tokens;
+  }
+
+  private static long getSeed(InetAddress inetAddress) {
+    ByteBuffer bytes = ByteBuffer.wrap(inetAddress.getAddress());
+    return MurmurHash.hash2_64(bytes, bytes.position(), bytes.remaining(), 0);
   }
 }

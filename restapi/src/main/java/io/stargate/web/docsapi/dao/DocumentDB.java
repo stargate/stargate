@@ -87,6 +87,14 @@ public class DocumentDB {
     return forbiddenCharacters.stream().anyMatch(ch -> x.indexOf(ch) >= 0);
   }
 
+  public static String replaceIllegalChars(String x) {
+    String newStr = x;
+    for (Character y : forbiddenCharacters) {
+      newStr.replace(y, '_');
+    }
+    return newStr;
+  }
+
   public static List<Column> allColumns() {
     List<Column> allColumns = new ArrayList<>(allColumnNames.size());
     for (int i = 0; i < allColumnNames.size(); i++) {
@@ -531,7 +539,9 @@ public class DocumentDB {
   public void delete(
       String keyspace, String table, String key, List<String> pathToDelete, long microsSinceEpoch) {
 
-    getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch, pathToDelete).execute().join();
+    getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch, pathToDelete)
+        .execute(ConsistencyLevel.LOCAL_QUORUM)
+        .join();
   }
 
   public void deleteDeadLeaves(

@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.fetchers.ddl;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import com.datastax.oss.driver.api.querybuilder.schema.CreateKeyspaceStart;
 import graphql.schema.DataFetchingEnvironment;
@@ -33,8 +34,9 @@ public class CreateKeyspaceFetcher extends DdlQueryFetcher {
 
   @Override
   public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {
-    String keyspaceName = dataFetchingEnvironment.getArgument("name");
-    CreateKeyspaceStart start = SchemaBuilder.createKeyspace(keyspaceName);
+    CreateKeyspaceStart start =
+        SchemaBuilder.createKeyspace(
+            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("name")));
     boolean ifNotExists =
         dataFetchingEnvironment.getArgumentOrDefault("ifNotExists", Boolean.FALSE);
     if (ifNotExists) {
