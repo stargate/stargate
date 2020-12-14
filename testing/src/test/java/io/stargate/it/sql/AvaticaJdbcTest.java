@@ -17,7 +17,12 @@ package io.stargate.it.sql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.stargate.it.cql.JavaDriverTestBase;
+import com.datastax.oss.driver.api.core.CqlIdentifier;
+import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.storage.StargateConnectionInfo;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -26,8 +31,14 @@ import java.sql.SQLException;
 import org.apache.calcite.avatica.remote.Driver;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-public class AvaticaJdbcTest extends JavaDriverTestBase {
+@ExtendWith(CqlSessionExtension.class)
+@CqlSessionSpec(
+    initQueries = {
+      "CREATE TABLE sql_test (x int, primary key (x))",
+    })
+public class AvaticaJdbcTest extends BaseOsgiIntegrationTest {
 
   @BeforeAll
   public static void loadJdbcDriver() throws ClassNotFoundException {
@@ -35,9 +46,8 @@ public class AvaticaJdbcTest extends JavaDriverTestBase {
   }
 
   @Test
-  public void testBasicJdbcQuery() throws SQLException {
-    session.execute("CREATE TABLE sql_test (x int, primary key (x))");
-
+  public void testBasicJdbcQuery(
+      StargateConnectionInfo stargate, @TestKeyspace CqlIdentifier keyspaceId) throws SQLException {
     Connection c =
         DriverManager.getConnection(
             String.format(
