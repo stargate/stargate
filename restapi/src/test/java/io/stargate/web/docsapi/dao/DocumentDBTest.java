@@ -336,6 +336,11 @@ public class DocumentDBTest {
       return true;
     }
 
+    @Override
+    public boolean supportsSAI() {
+      return true;
+    }
+
     public List<BoundQuery> getRecentStatements() {
       List<BoundQuery> recent = new ArrayList<>(this.recentQueries);
       this.recentQueries.clear();

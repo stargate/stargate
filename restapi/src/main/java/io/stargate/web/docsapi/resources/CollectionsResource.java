@@ -129,8 +129,7 @@ public class CollectionsResource {
           db.getAuthorizationService()
               .authorizeSchemaWrite(token, namespace, info.getName(), Scope.CREATE);
 
-          boolean res =
-              collectionService.createCollection(namespace, info.getName(), docDB, db.isDse());
+          boolean res = collectionService.createCollection(namespace, info.getName(), docDB);
           if (res) {
             return Response.status(Response.Status.CREATED).build();
           } else {
@@ -248,8 +247,7 @@ public class CollectionsResource {
                   namespace,
                   collection,
                   new DocumentDB(localDB, token, db.getAuthorizationService()),
-                  request.getUpgradeType(),
-                  db.isDse());
+                  request.getUpgradeType());
 
           if (success) {
             table = localDB.schema().keyspace(namespace).table(collection);
