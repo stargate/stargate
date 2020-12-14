@@ -21,4 +21,8 @@ public class CDCWriteException extends RequestExecutionException {
   public CDCWriteException(String msg) {
     super(ExceptionCode.CDC_WRITE_FAILURE, msg);
   }
+
+  public CDCWriteException(String msg, Throwable cause) {
+    super(ExceptionCode.CDC_WRITE_FAILURE, msg, cause);
+  }
 }
