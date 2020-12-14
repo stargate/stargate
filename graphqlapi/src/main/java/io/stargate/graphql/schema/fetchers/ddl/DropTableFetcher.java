@@ -15,30 +15,33 @@
  */
 package io.stargate.graphql.schema.fetchers.ddl;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
-import com.datastax.oss.driver.api.querybuilder.schema.Drop;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
+import io.stargate.db.query.Query;
+import io.stargate.db.query.builder.QueryBuilder;
 
-public class DropTableFetcher extends DdlQueryFetcher {
+public class DropTableFetcher extends TableFetcher {
 
-  public DropTableFetcher(Persistence persistence, AuthenticationService authenticationService) {
-    super(persistence, authenticationService);
+  public DropTableFetcher(
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(persistence, authenticationService, authorizationService);
   }
 
   @Override
-  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {
-    Drop drop =
-        SchemaBuilder.dropTable(
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("keyspaceName")),
-            CqlIdentifier.fromInternal((String) dataFetchingEnvironment.getArgument("tableName")));
-
+  protected Query<?> buildQuery(
+      DataFetchingEnvironment dataFetchingEnvironment,
+      QueryBuilder builder,
+      String keyspaceName,
+      String tableName) {
     Boolean ifExists = dataFetchingEnvironment.getArgument("ifExists");
-    if (ifExists != null && ifExists) {
-      return drop.ifExists().build().getQuery();
-    }
-    return drop.build().getQuery();
+    return builder
+        .drop()
+        .table(keyspaceName, tableName)
+        .ifExists(ifExists != null && ifExists)
+        .build();
   }
 }

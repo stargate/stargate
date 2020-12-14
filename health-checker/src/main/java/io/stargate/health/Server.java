@@ -1,6 +1,7 @@
 package io.stargate.health;
 
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.health.HealthCheckRegistry;
 import com.codahale.metrics.jvm.BufferPoolMetricSet;
 import com.codahale.metrics.jvm.ClassLoadingGaugeSet;
 import com.codahale.metrics.jvm.FileDescriptorRatioGauge;
@@ -25,10 +26,13 @@ import org.glassfish.hk2.utilities.binding.AbstractBinder;
 public class Server extends Application<ApplicationConfiguration> {
   private BundleService bundleService;
   private final Metrics metrics;
+  private final HealthCheckRegistry healthCheckRegistry;
 
-  public Server(BundleService bundleService, Metrics metrics) {
+  public Server(
+      BundleService bundleService, Metrics metrics, HealthCheckRegistry healthCheckRegistry) {
     this.bundleService = bundleService;
     this.metrics = metrics;
+    this.healthCheckRegistry = healthCheckRegistry;
   }
 
   /**
@@ -75,6 +79,7 @@ public class Server extends Application<ApplicationConfiguration> {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
     bootstrap.setMetricRegistry(metrics.getRegistry("health-checker"));
+    bootstrap.setHealthCheckRegistry(healthCheckRegistry);
   }
 
   private void registerJvmMetrics() {
@@ -89,5 +94,6 @@ public class Server extends Application<ApplicationConfiguration> {
     topLevelRegistry.register("jvm.gc", new GarbageCollectorMetricSet());
     topLevelRegistry.register("jvm.memory", new MemoryUsageGaugeSet());
     topLevelRegistry.register("jvm.threads", new ThreadStatesGaugeSet());
+    topLevelRegistry.register("cpu", new CPUGaugeMetricSet());
   }
 }

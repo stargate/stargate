@@ -1,14 +1,14 @@
 package io.stargate.graphql.schema.fetchers.dml;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.querybuilder.condition.Condition;
-import com.datastax.oss.driver.api.querybuilder.relation.Relation;
-import com.datastax.oss.driver.api.querybuilder.term.Term;
 import com.google.common.collect.ImmutableList;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
+import io.stargate.db.query.Predicate;
+import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
@@ -20,80 +20,58 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
   protected final Table table;
   protected final NameMapping nameMapping;
-  protected final CqlIdentifier keyspaceId;
-  protected final CqlIdentifier tableId;
 
   protected DmlFetcher(
       Table table,
       NameMapping nameMapping,
       Persistence persistence,
-      AuthenticationService authenticationService) {
-    super(persistence, authenticationService);
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(persistence, authenticationService, authorizationService);
     this.table = table;
     this.nameMapping = nameMapping;
-    this.keyspaceId = CqlIdentifier.fromInternal(table.keyspace());
-    this.tableId = CqlIdentifier.fromInternal(this.table.name());
   }
 
-  protected List<Condition> buildIfConditions(
+  protected List<BuiltCondition> buildConditions(
       Table table, Map<String, Map<String, Object>> columnList) {
     if (columnList == null) {
       return ImmutableList.of();
     }
-    List<Condition> clause = new ArrayList<>();
-    for (Map.Entry<String, Map<String, Object>> clauseEntry : columnList.entrySet()) {
-      Column column = getColumn(table, clauseEntry.getKey());
-      CqlIdentifier columnId = CqlIdentifier.fromInternal(column.name());
-
-      for (Map.Entry<String, Object> conditionMap : clauseEntry.getValue().entrySet()) {
-        FilterOperator operator = FilterOperator.fromFieldName(conditionMap.getKey());
-        clause.add(operator.buildCondition(column, conditionMap.getValue(), nameMapping));
-      }
-    }
-    return clause;
-  }
-
-  protected List<Relation> buildFilterConditions(
-      Table table, Map<String, Map<String, Object>> columnList) {
-    if (columnList == null) {
-      return ImmutableList.of();
-    }
-    List<Relation> relations = new ArrayList<>();
+    List<BuiltCondition> where = new ArrayList<>();
     for (Map.Entry<String, Map<String, Object>> clauseEntry : columnList.entrySet()) {
       Column column = getColumn(table, clauseEntry.getKey());
       for (Map.Entry<String, Object> condition : clauseEntry.getValue().entrySet()) {
         FilterOperator operator = FilterOperator.fromFieldName(condition.getKey());
-        relations.add(operator.buildRelation(column, condition.getValue(), nameMapping));
+        where.add(operator.buildCondition(column, condition.getValue(), nameMapping));
       }
     }
-    return relations;
+    return where;
   }
 
-  protected List<Relation> buildClause(Table table, DataFetchingEnvironment environment) {
+  protected List<BuiltCondition> buildClause(Table table, DataFetchingEnvironment environment) {
     if (environment.containsArgument("filter")) {
       Map<String, Map<String, Object>> columnList = environment.getArgument("filter");
-      return buildFilterConditions(table, columnList);
+      return buildConditions(table, columnList);
     } else {
       Map<String, Object> value = environment.getArgument("value");
-      List<Relation> relations = new ArrayList<>();
+      List<BuiltCondition> relations = new ArrayList<>();
       if (value == null) return ImmutableList.of();
 
       for (Map.Entry<String, Object> entry : value.entrySet()) {
         Column column = getColumn(table, entry.getKey());
-        relations.add(
-            Relation.column(CqlIdentifier.fromInternal(column.name()))
-                .isEqualTo(toCqlTerm(column, entry.getValue())));
+        Object whereValue = toDBValue(column.type(), entry.getValue());
+        relations.add(BuiltCondition.of(column.name(), Predicate.EQ, whereValue));
       }
       return relations;
     }
   }
 
-  protected CqlIdentifier getDBColumnName(Table table, String fieldName) {
+  protected String getDBColumnName(Table table, String fieldName) {
     Column column = getColumn(table, fieldName);
     if (column == null) {
       return null;
     }
-    return CqlIdentifier.fromInternal(column.name());
+    return column.name();
   }
 
   protected Column getColumn(Table table, String fieldName) {
@@ -101,7 +79,11 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     return table.column(columnName);
   }
 
-  protected Term toCqlTerm(Column column, Object value) {
-    return DataTypeMapping.toCqlTerm(column.type(), value, nameMapping);
+  protected Object toDBValue(Column column, Object value) {
+    return toDBValue(column.type(), value);
+  }
+
+  private Object toDBValue(ColumnType type, Object value) {
+    return DataTypeMapping.toDBValue(type, value, nameMapping);
   }
 }

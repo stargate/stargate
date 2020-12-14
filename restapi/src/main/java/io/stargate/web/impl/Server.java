@@ -15,8 +15,10 @@
  */
 package io.stargate.web.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.common.annotations.VisibleForTesting;
 import io.dropwizard.Application;
 import io.dropwizard.cli.Cli;
 import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
@@ -24,6 +26,7 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.web.RestApiActivator;
@@ -60,12 +63,17 @@ public class Server extends Application<ApplicationConfiguration> {
 
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
+  private final AuthorizationService authorizationService;
   private final Metrics metrics;
 
   public Server(
-      Persistence persistence, AuthenticationService authenticationService, Metrics metrics) {
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService,
+      Metrics metrics) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
+    this.authorizationService = authorizationService;
     this.metrics = metrics;
 
     BeanConfig beanConfig = new BeanConfig();
@@ -94,10 +102,9 @@ public class Server extends Application<ApplicationConfiguration> {
   public void run(
       final ApplicationConfiguration applicationConfiguration, final Environment environment)
       throws IOException {
-    final Db db = new Db(persistence, authenticationService);
+    final Db db = new Db(persistence, authenticationService, authorizationService);
 
-    environment.getObjectMapper().configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-    environment.getObjectMapper().registerModule(new JavaTimeModule());
+    configureObjectMapper(environment.getObjectMapper());
 
     environment
         .jersey()
@@ -138,6 +145,12 @@ public class Server extends Application<ApplicationConfiguration> {
 
     environment.jersey().register(SwaggerUIResource.class);
     enableCors(environment);
+  }
+
+  @VisibleForTesting
+  public static void configureObjectMapper(ObjectMapper objectMapper) {
+    objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+    objectMapper.registerModule(new JavaTimeModule());
   }
 
   @Override

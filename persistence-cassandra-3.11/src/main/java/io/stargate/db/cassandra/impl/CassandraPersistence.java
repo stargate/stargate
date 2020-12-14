@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Authenticator;
 import io.stargate.db.Batch;
 import io.stargate.db.BoundStatement;
@@ -43,6 +44,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -116,6 +118,7 @@ public class CassandraPersistence
 
   // C* listener that ensures that our Stargate schema remains up-to-date with the internal C* one.
   private MigrationListener migrationListener;
+  private AtomicReference<AuthorizationService> authorizationService;
 
   public CassandraPersistence() {
     super("Apache Cassandra");
@@ -189,6 +192,7 @@ public class CassandraPersistence
     interceptor = new DefaultQueryInterceptor();
     interceptor.initialize();
     stargateHandler().register(interceptor);
+    stargateHandler().setAuthorizationService(this.authorizationService);
   }
 
   @Override
@@ -314,7 +318,12 @@ public class CassandraPersistence
     }
   }
 
+  public void setAuthorizationService(AtomicReference<AuthorizationService> authorizationService) {
+    this.authorizationService = authorizationService;
+  }
+
   private class CassandraConnection extends AbstractConnection {
+
     private final ClientState clientState;
 
     private CassandraConnection(@Nonnull ClientInfo clientInfo) {
@@ -342,7 +351,13 @@ public class CassandraPersistence
     @Override
     protected void loginInternally(io.stargate.db.AuthenticatedUser user) {
       try {
-        clientState.login(new AuthenticatedUser(user.name()));
+        if (user.isFromExternalAuth()
+            || Boolean.parseBoolean(
+                System.getProperty("stargate.cql_use_transitional_auth", "false"))) {
+          clientState.login(AuthenticatedUser.ANONYMOUS_USER);
+        } else {
+          clientState.login(new AuthenticatedUser(user.name()));
+        }
       } catch (AuthenticationException e) {
         throw new org.apache.cassandra.stargate.exceptions.AuthenticationException(e);
       }

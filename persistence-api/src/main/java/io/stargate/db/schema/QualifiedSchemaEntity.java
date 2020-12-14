@@ -24,4 +24,9 @@ public interface QualifiedSchemaEntity extends SchemaEntity {
   default String cqlKeyspace() {
     return ColumnUtils.maybeQuote(keyspace());
   }
+
+  @Value.Lazy
+  default String cqlQualifiedName() {
+    return cqlKeyspace() + '.' + cqlName();
+  }
 }

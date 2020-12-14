@@ -5,12 +5,12 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.26-SNAPSHOT</version>
+    <version>1.0.1-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db.dse</groupId>
   <artifactId>persistence-dse-6.8</artifactId>
   <properties>
-    <dse.version>6.8.5</dse.version>
+    <dse.version>6.8.7</dse.version>
   </properties>
   <repositories>
     <repository>
@@ -142,6 +142,12 @@
       <version>1.2</version>
     </dependency>
     <dependency>
+      <groupId>io.stargate.auth</groupId>
+      <artifactId>authnz</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <exclusions>
@@ -193,7 +199,7 @@
           <forkCount>1</forkCount>
           <systemPropertyVariables>
             <ccm.dse>true</ccm.dse>
-            <ccm.version>6.8.5</ccm.version>
+            <ccm.version>6.8.7</ccm.version>
           </systemPropertyVariables>
         </configuration>
       </plugin>

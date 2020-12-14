@@ -15,15 +15,23 @@
  */
 package io.stargate.graphql.schema.fetchers.ddl;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.core.type.DataType;
-import com.datastax.oss.driver.api.core.type.DataTypes;
-import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.query.Query;
+import io.stargate.db.query.builder.QueryBuilder;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
+import io.stargate.db.schema.Column.Kind;
+import io.stargate.db.schema.Column.Order;
+import io.stargate.db.schema.Column.Type;
+import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -32,19 +40,24 @@ import java.util.Map;
  */
 public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
 
-  protected DdlQueryFetcher(Persistence persistence, AuthenticationService authenticationService) {
-    super(persistence, authenticationService);
+  protected DdlQueryFetcher(
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(persistence, authenticationService, authorizationService);
   }
 
   @Override
   protected Boolean get(DataFetchingEnvironment environment, DataStore dataStore) throws Exception {
-    dataStore.query(getQuery(environment)).get();
+    dataStore.execute(buildQuery(environment, dataStore.queryBuilder()).bind()).get();
     return true;
   }
 
-  abstract String getQuery(DataFetchingEnvironment dataFetchingEnvironment);
+  protected abstract Query<?> buildQuery(
+      DataFetchingEnvironment dataFetchingEnvironment, QueryBuilder builder)
+      throws UnauthorizedException;
 
-  protected DataType decodeType(Object typeObject) {
+  protected ColumnType decodeType(Object typeObject) {
     @SuppressWarnings("unchecked")
     Map<String, Object> type = (Map<String, Object>) typeObject;
     String basic = (String) type.get("basic");
@@ -56,46 +69,46 @@ public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
 
     switch (basic) {
       case "INT":
-        return DataTypes.INT;
+        return Type.Int;
       case "INET":
-        return DataTypes.INET;
+        return Type.Inet;
       case "TIMEUUID":
-        return DataTypes.TIMEUUID;
+        return Type.Timeuuid;
       case "TIMESTAMP":
-        return DataTypes.TIMESTAMP;
+        return Type.Timestamp;
       case "BIGINT":
-        return DataTypes.BIGINT;
+        return Type.Bigint;
       case "TIME":
-        return DataTypes.TIME;
+        return Type.Time;
       case "DURATION":
-        return DataTypes.DURATION;
+        return Type.Duration;
       case "VARINT":
-        return DataTypes.VARINT;
+        return Type.Varint;
       case "UUID":
-        return DataTypes.UUID;
+        return Type.Uuid;
       case "BOOLEAN":
-        return DataTypes.BOOLEAN;
+        return Type.Boolean;
       case "TINYINT":
-        return DataTypes.TINYINT;
+        return Type.Tinyint;
       case "SMALLINT":
-        return DataTypes.SMALLINT;
+        return Type.Smallint;
       case "ASCII":
-        return DataTypes.ASCII;
+        return Type.Ascii;
       case "DECIMAL":
-        return DataTypes.DECIMAL;
+        return Type.Decimal;
       case "BLOB":
-        return DataTypes.BLOB;
+        return Type.Blob;
       case "VARCHAR":
       case "TEXT":
-        return DataTypes.TEXT;
+        return Type.Text;
       case "DOUBLE":
-        return DataTypes.DOUBLE;
+        return Type.Double;
       case "COUNTER":
-        return DataTypes.COUNTER;
+        return Type.Counter;
       case "DATE":
-        return DataTypes.DATE;
+        return Type.Date;
       case "FLOAT":
-        return DataTypes.FLOAT;
+        return Type.Float;
       case "LIST":
         if (info == null) {
           throw new IllegalArgumentException(
@@ -104,7 +117,7 @@ public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
         if (subTypes == null || subTypes.size() != 1) {
           throw new IllegalArgumentException("List sub types should contain 1 item");
         }
-        return DataTypes.listOf(decodeType(subTypes.get(0)), frozen);
+        return Type.List.of(decodeType(subTypes.get(0))).frozen(frozen);
       case "SET":
         if (info == null) {
           throw new IllegalArgumentException(
@@ -114,7 +127,7 @@ public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
           throw new IllegalArgumentException("Set sub types should contain 1 item");
         }
         subTypes = (List<?>) info.get("subTypes");
-        return DataTypes.setOf(decodeType(subTypes.get(0)), frozen);
+        return Type.Set.of(decodeType(subTypes.get(0))).frozen(frozen);
       case "MAP":
         if (info == null) {
           throw new IllegalArgumentException(
@@ -123,13 +136,13 @@ public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
         if (subTypes == null || subTypes.size() != 2) {
           throw new IllegalArgumentException("Map sub types should contain 2 items");
         }
-        return DataTypes.mapOf(decodeType(subTypes.get(0)), decodeType(subTypes.get(1)), frozen);
+        return Type.Map.of(decodeType(subTypes.get(0)), decodeType(subTypes.get(1))).frozen(frozen);
       case "UDT":
         if (name == null) {
           throw new IllegalArgumentException(
               "UDT type should contain an 'info' field specifying the UDT name");
         }
-        return SchemaBuilder.udt(CqlIdentifier.fromInternal(name), frozen);
+        return UserDefinedType.reference(name).frozen(frozen);
       case "TUPLE":
         if (info == null) {
           throw new IllegalArgumentException(
@@ -138,12 +151,39 @@ public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
         if (subTypes.isEmpty()) {
           throw new IllegalArgumentException("TUPLE type should have at least one sub type");
         }
-        DataType[] decodedSubTypes = new DataType[subTypes.size()];
+        ColumnType[] decodedSubTypes = new ColumnType[subTypes.size()];
         for (int i = 0; i < subTypes.size(); i++) {
           decodedSubTypes[i] = decodeType(subTypes.get(i));
         }
-        return DataTypes.tupleOf(decodedSubTypes);
+        return Type.Tuple.of(decodedSubTypes);
     }
     throw new RuntimeException(String.format("Data type %s is not supported", basic));
+  }
+
+  protected Column decodeColumn(Map<String, Object> key, Column.Kind kind) {
+    return Column.create(
+        (String) key.get("name"),
+        kind,
+        decodeType(key.get("type")),
+        kind == Kind.Clustering ? decodeClusteringOrder((String) key.get("order")) : null);
+  }
+
+  private Order decodeClusteringOrder(String order) {
+    if (order == null) {
+      // Use the same default as CQL
+      return Order.ASC;
+    }
+    return Order.valueOf(order.toUpperCase());
+  }
+
+  protected List<Column> decodeColumns(List<Map<String, Object>> columnList, Column.Kind kind) {
+    if (columnList == null) {
+      return Collections.emptyList();
+    }
+    List<Column> columns = new ArrayList<>(columnList.size());
+    for (Map<String, Object> entry : columnList) {
+      columns.add(decodeColumn(entry, kind));
+    }
+    return columns;
   }
 }

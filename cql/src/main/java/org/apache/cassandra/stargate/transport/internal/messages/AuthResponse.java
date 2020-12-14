@@ -18,6 +18,7 @@
 package org.apache.cassandra.stargate.transport.internal.messages;
 
 import io.netty.buffer.ByteBuf;
+import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.Authenticator;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
@@ -70,7 +71,12 @@ public class AuthResponse extends Message.Request {
       Authenticator.SaslNegotiator negotiator = ((ServerConnection) connection).getSaslNegotiator();
       byte[] challenge = negotiator.evaluateResponse(token);
       if (negotiator.isComplete()) {
-        persistenceConnection().login(negotiator.getAuthenticatedUser());
+        AuthenticatedUser authenticatedUser = negotiator.getAuthenticatedUser();
+        persistenceConnection().login(authenticatedUser);
+        if (authenticatedUser.token() != null) {
+          ((ServerConnection) connection).clientInfo().setAuthToken(authenticatedUser.token());
+        }
+
         ClientMetrics.instance.markAuthSuccess();
         // authentication is complete, send a ready message to the client
         return CompletableFuture.completedFuture(new AuthSuccess(challenge));

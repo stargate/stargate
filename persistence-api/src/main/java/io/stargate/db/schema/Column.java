@@ -20,6 +20,7 @@ import static io.stargate.db.schema.Column.Type.Ascii;
 import static io.stargate.db.schema.Column.Type.Counter;
 import static io.stargate.db.schema.Column.Type.Timeuuid;
 import static io.stargate.db.schema.Column.Type.Varchar;
+import static java.lang.String.format;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
@@ -38,11 +39,11 @@ import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -56,26 +57,45 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
   public static final CodecRegistry CODEC_REGISTRY;
 
   static {
-    DefaultCodecRegistry registry = new DefaultCodecRegistry("persistence-codec-registry");
-    CODEC_REGISTRY = registry;
+    CODEC_REGISTRY = new DefaultCodecRegistry("persistence-codec-registry");
   }
 
   public enum Order {
-    Asc,
-    Desc;
+    ASC,
+    DESC;
 
     Order reversed() {
-      if (this == Asc) {
-        return Desc;
+      if (this == ASC) {
+        return DESC;
       } else {
-        return Asc;
+        return ASC;
       }
     }
   }
 
-  public static final Column STAR = reference("*");
   public static final Column TTL = Column.create("[ttl]", Type.Int);
   public static final Column TIMESTAMP = Column.create("[timestamp]", Type.Bigint);
+
+  private static String toCQLString(ColumnType type, Object value) {
+    if (value == null) {
+      return "null";
+    }
+
+    TypeCodec codec = type.codec();
+    try {
+      return codec.format(type.validate(value, "unknown"));
+    } catch (Exception e) {
+      if (!codec.accepts(value)) {
+        throw new IllegalArgumentException(
+            format(
+                "Java value %s of type '%s' is not a valid value for CQL type %s",
+                value, value.getClass().getName(), type.cqlDefinition()),
+            e);
+      } else {
+        throw new IllegalStateException(e);
+      }
+    }
+  }
 
   public interface ColumnType extends java.io.Serializable {
     AttachmentPoint CUSTOM_ATTACHMENT_POINT =
@@ -163,21 +183,12 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
     @Value.Lazy
     TypeCodec codec();
 
+    default String toCQLString(Object value) {
+      return Column.toCQLString(this, value);
+    }
+
     default String toString(Object value) {
-      Preconditions.checkNotNull(value, "Parameter value cannot be null");
-      try {
-        return codec().format(validate(value, "unknown"));
-      } catch (Exception e) {
-        if (!codec().accepts(value)) {
-          throw new IllegalArgumentException(
-              String.format(
-                  "Codec '%s' cannot process value of type '%s'",
-                  codec().getClass().getSimpleName(), value.getClass().getName()),
-              e);
-        } else {
-          throw new IllegalStateException(e);
-        }
-      }
+      return toCQLString(value);
     }
 
     default Object fromString(String value) {
@@ -477,16 +488,162 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       return false;
     }
 
-    public static Type fromCqlDefinitionOf(String dataTypeName) {
-      if (dataTypeName.equalsIgnoreCase(Text.name())) {
-        return Varchar;
+    /**
+     * Return the type corresponding to the provided CQL type string.
+     *
+     * @param keyspace the keyspace within which the provided type should be parsed. This is
+     *     necessary to result UDT types.
+     * @return the parsed column type.
+     * @throws IllegalArgumentException if the provided string is not a valid CQL type
+     *     representation or not a known UDT type (in the provided keyspace) or a Custom type
+     *     (meaning, as CQL string) as those are not supported by this class yet.
+     */
+    public static ColumnType fromCqlDefinitionOf(Keyspace keyspace, String dataTypeName) {
+      // Parsing CQL types is a tad involved. We "brute-force" it here, but it's neither very
+      // efficient, nor very elegant.
+
+      dataTypeName = dataTypeName.trim();
+      if (dataTypeName.isEmpty()) {
+        throw new IllegalArgumentException("Invalid empty type name");
       }
+
+      if (dataTypeName.charAt(0) == '\'') {
+        throw new IllegalArgumentException("Custom types are not supported");
+      }
+
+      int lastCharIdx = dataTypeName.length() - 1;
+      if (dataTypeName.charAt(0) == '"') {
+        // The quote should be terminated and we should have at least 1 character + the quotes,
+        if (dataTypeName.charAt(lastCharIdx) != '"' || dataTypeName.length() < 3) {
+          throw new IllegalArgumentException("Malformed type name: " + dataTypeName);
+        }
+        String udtName = dataTypeName.substring(1, lastCharIdx).replaceAll("\"\"", "\"");
+        return findUDTType(keyspace, udtName);
+      }
+
+      int paramsIdx = dataTypeName.indexOf('<');
+      String baseTypeName =
+          paramsIdx < 0 ? dataTypeName : dataTypeName.substring(0, paramsIdx).trim();
+      if (!ColumnUtils.isValidUnquotedIdentifier(baseTypeName)) {
+        throw new IllegalArgumentException("Malformed type name: " + dataTypeName);
+      }
+      Type baseType = parseBaseType(baseTypeName);
+      boolean isFrozen = baseType == null && baseTypeName.equalsIgnoreCase("frozen");
+      boolean isParameterized = isFrozen || (baseType != null && baseType.isParameterized());
+      if (isParameterized) {
+        if (paramsIdx < 0) {
+          throw new IllegalArgumentException(
+              format("Malformed type name: type %s is missing its type parameters", baseTypeName));
+        }
+        if (dataTypeName.charAt(lastCharIdx) != '>') {
+          throw new IllegalArgumentException(
+              format(
+                  "Malformed type name: parameters for type %s are missing a closing '>'",
+                  baseTypeName));
+        }
+        String paramsString = dataTypeName.substring(paramsIdx + 1, lastCharIdx);
+        List<ColumnType> parameters = splitAndParseParameters(dataTypeName, keyspace, paramsString);
+        if (isFrozen) {
+          if (parameters.size() != 1) {
+            throw new IllegalArgumentException(
+                format(
+                    "Malformed type name: frozen takes only 1 parameter, but %d provided",
+                    parameters.size()));
+          }
+          return parameters.get(0).frozen();
+        } else {
+          return baseType.of(parameters.toArray(new ColumnType[0]));
+        }
+      } else {
+        if (paramsIdx >= 0) {
+          throw new IllegalArgumentException(
+              format("Malformed type name: type %s cannot have parameters", baseTypeName));
+        }
+        return baseType == null ? findUDTType(keyspace, baseTypeName) : baseType;
+      }
+    }
+
+    private static List<ColumnType> splitAndParseParameters(
+        String fullTypeName, Keyspace keyspace, String parameters) {
+      int openParam = 0;
+      int currentStart = 0;
+      int idx = currentStart;
+      List<ColumnType> parsedParameters = new ArrayList<>();
+      while (idx < parameters.length()) {
+        switch (parameters.charAt(idx)) {
+          case ',':
+            // Ignore if we're within a sub-parameter.
+            if (openParam == 0) {
+              parsedParameters.add(
+                  extractParameter(fullTypeName, keyspace, parameters, currentStart, idx));
+              currentStart = idx + 1;
+            }
+            break;
+          case '<':
+            ++openParam;
+            break;
+          case '>':
+            if (--openParam < 0) {
+              throw new IllegalArgumentException(
+                  "Malformed type name: " + fullTypeName + " (unmatched closing '>')");
+            }
+            break;
+          case '"':
+            idx = findClosingDoubleQuote(fullTypeName, parameters, idx + 1) - 1;
+        }
+        ++idx;
+      }
+      parsedParameters.add(extractParameter(fullTypeName, keyspace, parameters, currentStart, idx));
+      return parsedParameters;
+    }
+
+    private static ColumnType extractParameter(
+        String fullTypeName, Keyspace keyspace, String parameters, int start, int end) {
+      String parameterStr = parameters.substring(start, end);
+      if (parameterStr.isEmpty()) {
+        // Recursion actually handle this case, but the error thrown is a bit more cryptic in this
+        // context
+        throw new IllegalArgumentException("Malformed type name: " + fullTypeName);
+      }
+      return fromCqlDefinitionOf(keyspace, parameterStr);
+    }
+
+    // Returns the index "just after the double quote", so possibly str.length.
+    private static int findClosingDoubleQuote(String fullTypeName, String str, int startIdx) {
+      int idx = startIdx;
+      while (idx < str.length()) {
+        if (str.charAt(idx) == '"') {
+          // Note: 2 double-quote is a way to escape the double-quote, so move to next first and
+          // only exit if it's not a double-quote. Otherwise, continue.
+          ++idx;
+          if (idx >= str.length() || str.charAt(idx) != '"') {
+            return idx;
+          }
+        }
+        ++idx;
+      }
+      throw new IllegalArgumentException("Malformed type name: " + fullTypeName);
+    }
+
+    private static UserDefinedType findUDTType(Keyspace keyspace, String udtName) {
+      UserDefinedType udt = keyspace.userDefinedType(udtName);
+      if (udt == null) {
+        throw new IllegalArgumentException(
+            format(
+                "Cannot find user type %s int keyspace %s",
+                ColumnUtils.maybeQuote(udtName), keyspace.cqlName()));
+      }
+      return udt;
+    }
+
+    private static Type parseBaseType(String str) {
       for (Type t : values()) {
-        if (t.cqlDefinition().replaceAll("'", "").equalsIgnoreCase(dataTypeName)) {
+        // Technically, the string "udt" does not correspond to a proper base type in CQL.
+        if (t != UDT && t.name().equalsIgnoreCase(str)) {
           return t;
         }
       }
-      throw new IllegalArgumentException("Cannot retrieve CQL type for '" + dataTypeName + "'");
+      return null;
     }
 
     public TypeCodec codec() {
@@ -499,24 +656,20 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
 
     @Override
     public String toString(Object value) {
-      Preconditions.checkNotNull(value, "Parameter value cannot be null");
-      try {
-        String format = codec().format(value);
-        if (requiresQuotes) {
-          return format.substring(1, format.length() - 1);
-        }
-        return format;
-      } catch (Exception e) {
-        if (!codec().accepts(value)) {
-          throw new IllegalArgumentException(
-              String.format(
-                  "Codec '%s' cannot process value of type '%s'",
-                  codec().getClass().getSimpleName(), value.getClass().getName()),
-              e);
-        } else {
-          throw new IllegalStateException(e);
-        }
+      // Handling null first, because if the type use quotes, we shouldn't remove them.
+      if (value == null) return "null";
+
+      String format = Column.toCQLString(this, value);
+      if (requiresQuotes) {
+        // Note(Sylvain): I think if we want to remove quotes properly, we should also un-escape
+        // any escaped quote. That said, I wonder why we're bothering with removing quotes in the
+        // first place: if we want to use the result in a query, we need the quote, and if we need
+        // it for debugging, the quote aren't a big deal (and if anything, are more precise).
+        // I think this is a bit of a legacy behavior and we should consider to remove that and
+        // "merge" this method and the toCQLString(Object) method.
+        return format.substring(1, format.length() - 1);
       }
+      return format;
     }
 
     @Override
@@ -542,7 +695,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
     @Override
     public ColumnType fieldType(String name) {
       throw new UnsupportedOperationException(
-          String.format("'%s' is a raw type and does not have nested columns", this.name()));
+          format("'%s' is a raw type and does not have nested columns", this.name()));
     }
   }
 
@@ -700,11 +853,16 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
     return ImmutableColumn.builder().name(name).kind(kind).type(type).build();
   }
 
-  public boolean isPrimaryKeyComponent() {
-    if (kind() == null) {
-      return false;
+  public static Column create(String name, Kind kind, Column.ColumnType type, Order order) {
+    if (kind == Kind.Clustering && order == null) {
+      order = Order.ASC;
     }
-    return kind().isPrimaryKeyKind();
+    return ImmutableColumn.builder().name(name).kind(kind).type(type).order(order).build();
+  }
+
+  public boolean isPrimaryKeyComponent() {
+    Kind kind = kind();
+    return kind != null && kind.isPrimaryKeyKind();
   }
 
   public boolean isPartitionKey() {
@@ -719,14 +877,14 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
   @Value.Default
   public Order order() {
     if (kind() == Kind.Clustering) {
-      return Order.Asc;
+      return Order.ASC;
     }
     return null;
   }
 
   public interface Builder {
 
-    default ImmutableColumn.Builder type(@Nullable Class<?> type) {
+    default ImmutableColumn.Builder type(Class<?> type) {
       // This is only to support scripting where java types will take precedence over the CQL types
       // Otherwise users will get: No signature of method: ... is applicable for argument types:
       // (java.lang.String, java.lang.Class)
@@ -743,10 +901,12 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
 
   @Override
   public int compareTo(Column other) {
-    if (kind() == other.kind()) {
+    Kind thisKind = kind();
+    Kind thatKind = other.kind();
+    if (thisKind.equals(thatKind)) {
       return name().compareTo(other.name());
     }
-    return kind().compareTo(Objects.requireNonNull(other.kind()));
+    return thisKind == null ? -1 : thisKind.compareTo(thatKind);
   }
 
   private static ColumnType maybeFreezeComplexSubtype(ColumnType type) {

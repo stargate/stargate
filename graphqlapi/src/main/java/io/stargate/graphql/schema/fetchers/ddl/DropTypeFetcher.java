@@ -15,29 +15,44 @@
  */
 package io.stargate.graphql.schema.fetchers.ddl;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
-import com.datastax.oss.driver.api.querybuilder.schema.Drop;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
+import io.stargate.db.query.Query;
+import io.stargate.db.query.builder.QueryBuilder;
+import io.stargate.db.schema.UserDefinedType;
+import io.stargate.graphql.web.HttpAwareContext;
 
 public class DropTypeFetcher extends DdlQueryFetcher {
 
-  public DropTypeFetcher(Persistence persistence, AuthenticationService authenticationService) {
-    super(persistence, authenticationService);
+  public DropTypeFetcher(
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(persistence, authenticationService, authorizationService);
   }
 
   @Override
-  String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {
-    Drop dropType =
-        SchemaBuilder.dropType(
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("keyspaceName")),
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("typeName")));
+  protected Query<?> buildQuery(
+      DataFetchingEnvironment dataFetchingEnvironment, QueryBuilder builder)
+      throws UnauthorizedException {
+
+    String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
+    String typeName = dataFetchingEnvironment.getArgument("typeName");
+
+    HttpAwareContext httpAwareContext = dataFetchingEnvironment.getContext();
+    String token = httpAwareContext.getAuthToken();
+    // Permissions on a type are the same as keyspace
+    authorizationService.authorizeSchemaWrite(token, keyspaceName, null, Scope.DROP);
+
     Boolean ifExists = dataFetchingEnvironment.getArgument("ifExists");
-    if (ifExists != null && ifExists) {
-      dropType = dropType.ifExists();
-    }
-    return dropType.asCql();
+    return builder
+        .drop()
+        .type(keyspaceName, UserDefinedType.reference(typeName))
+        .ifExists(ifExists != null && ifExists)
+        .build();
   }
 }

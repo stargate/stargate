@@ -2,16 +2,25 @@ package io.stargate.web.docsapi.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.*;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.DoubleNode;
+import com.fasterxml.jackson.databind.node.LongNode;
+import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.gson.*;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
-import io.stargate.db.datastore.query.ImmutableWhereCondition;
-import io.stargate.db.datastore.query.Where;
-import io.stargate.db.datastore.query.WhereCondition;
+import io.stargate.db.query.Predicate;
+import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.DocumentAPIErrorHandlingStrategy;
@@ -24,7 +33,16 @@ import io.stargate.web.resources.Db;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -222,7 +240,10 @@ public class DocumentService {
                     bindMap.put("text_value", null);
                   } else if (value.isBoolean()) {
                     bindMap.put("dbl_value", null);
-                    bindMap.put("bool_value", value.getAsBoolean());
+                    bindMap.put(
+                        "bool_value",
+                        convertToBackendBooleanValue(
+                            value.getAsBoolean(), db.treatBooleansAsNumeric()));
                     bindMap.put("text_value", null);
                   } else {
                     bindMap.put("dbl_value", null);
@@ -250,6 +271,13 @@ public class DocumentService {
         .withErrorStrategy(new DocumentAPIErrorHandlingStrategy())
         .buildAndSurf(jsonPayload);
     return ImmutablePair.of(bindVariableList, firstLevelKeys);
+  }
+
+  private Object convertToBackendBooleanValue(boolean value, boolean numericBooleans) {
+    if (numericBooleans) {
+      return value ? 1 : 0;
+    }
+    return value;
   }
 
   private ImmutablePair<List<Object[]>, List<String>> shredForm(
@@ -328,7 +356,9 @@ public class DocumentService {
         bindMap.put("text_value", null);
       } else if (value.equals("true") || value.equals("false")) {
         bindMap.put("dbl_value", null);
-        bindMap.put("bool_value", Boolean.parseBoolean(value));
+        bindMap.put(
+            "bool_value",
+            convertToBackendBooleanValue(Boolean.parseBoolean(value), db.treatBooleansAsNumeric()));
         bindMap.put("text_value", null);
       } else {
         boolean isNumber;
@@ -411,26 +441,16 @@ public class DocumentService {
 
   public JsonNode getJsonAtPath(
       DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path)
-      throws ExecutionException, InterruptedException {
-    List<Where<Object>> predicates = new ArrayList<>();
-    predicates.add(
-        ImmutableWhereCondition.builder()
-            .column("key")
-            .predicate(WhereCondition.Predicate.Eq)
-            .value(id)
-            .build());
+      throws ExecutionException, InterruptedException, UnauthorizedException {
+    List<BuiltCondition> predicates = new ArrayList<>();
+    predicates.add(BuiltCondition.of("key", Predicate.EQ, id));
 
     StringBuilder pathStr = new StringBuilder();
 
     for (int i = 0; i < path.size(); i++) {
       String pathSegment = path.get(i).getPath();
       String convertedPath = convertArrayPath(pathSegment);
-      predicates.add(
-          ImmutableWhereCondition.builder()
-              .column("p" + i)
-              .predicate(WhereCondition.Predicate.Eq)
-              .value(convertedPath)
-              .build());
+      predicates.add(BuiltCondition.of("p" + i, Predicate.EQ, convertedPath));
 
       if (!pathSegment.equals(convertedPath)) {
         pathStr.append("/").append(pathSegment, 1, pathSegment.length() - 1);
@@ -442,8 +462,11 @@ public class DocumentService {
     ResultSet r = db.executeSelect(keyspace, collection, predicates);
     List<Row> rows = r.rows();
 
-    if (rows.size() == 0) return null;
-    ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result = convertToJsonDoc(rows, false);
+    if (rows.size() == 0) {
+      return null;
+    }
+    ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result =
+        convertToJsonDoc(rows, false, db.treatBooleansAsNumeric());
     if (!result.right.isEmpty()) {
       logger.info(String.format("Deleting %d dead leaves", result.right.size()));
       db.deleteDeadLeaves(keyspace, collection, id, result.right);
@@ -587,13 +610,15 @@ public class DocumentService {
   }
 
   public void deleteAtPath(
-      DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path) {
+      DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path)
+      throws UnauthorizedException {
     List<String> convertedPath = new ArrayList<>(path.size());
     for (PathSegment pathSegment : path) {
       String pathStr = pathSegment.getPath();
       convertedPath.add(convertArrayPath(pathStr));
     }
     Long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
+
     db.delete(keyspace, collection, id, convertedPath, now);
   }
 
@@ -605,7 +630,7 @@ public class DocumentService {
       List<FilterCondition> filters,
       List<PathSegment> path,
       Boolean recurse)
-      throws ExecutionException, InterruptedException {
+      throws ExecutionException, InterruptedException, UnauthorizedException {
     StringBuilder pathStr = new StringBuilder();
 
     List<String> pathSegmentValues =
@@ -630,7 +655,7 @@ public class DocumentService {
 
     for (Map.Entry<String, List<Row>> entry : rowsByDoc.entrySet()) {
       ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result =
-          convertToJsonDoc(entry.getValue(), true);
+          convertToJsonDoc(entry.getValue(), true, db.treatBooleansAsNumeric());
       if (!result.right.isEmpty()) {
         logger.info(String.format("Deleting %d dead leaves", result.right.size()));
         db.deleteDeadLeaves(keyspace, collection, entry.getKey(), result.right);
@@ -653,7 +678,7 @@ public class DocumentService {
       List<FilterCondition> filters,
       List<String> fields,
       String documentId)
-      throws ExecutionException, InterruptedException {
+      throws ExecutionException, InterruptedException, UnauthorizedException {
     FilterCondition first = filters.get(0);
     List<String> path = first.getPath();
 
@@ -661,7 +686,9 @@ public class DocumentService {
         searchRows(keyspace, collection, db, filters, fields, path, false, documentId);
     List<Row> rows = searchResult.left;
     ByteBuffer pageState = searchResult.right;
-    if (rows.size() == 0) return null;
+    if (rows.size() == 0) {
+      return null;
+    }
 
     JsonNode docsResult = mapper.createObjectNode();
 
@@ -686,7 +713,7 @@ public class DocumentService {
         for (Row row : docRows) {
           List<Row> wrapped = new ArrayList<>(1);
           wrapped.add(row);
-          JsonNode jsonDoc = convertToJsonDoc(wrapped, true).left;
+          JsonNode jsonDoc = convertToJsonDoc(wrapped, true, db.treatBooleansAsNumeric()).left;
           ref.add(jsonDoc);
         }
       }
@@ -701,7 +728,7 @@ public class DocumentService {
         }
 
         List<Row> nonNull = chunk.stream().filter(x -> x != null).collect(Collectors.toList());
-        JsonNode jsonDoc = convertToJsonDoc(nonNull, true).left;
+        JsonNode jsonDoc = convertToJsonDoc(nonNull, true, db.treatBooleansAsNumeric()).left;
 
         if (documentId == null) {
           ((ArrayNode) docsResult.get(key)).add(jsonDoc);
@@ -731,8 +758,9 @@ public class DocumentService {
       Map<String, Boolean> existsByDoc,
       Map<String, Integer> countsByDoc,
       List<Row> rows,
-      List<FilterCondition> filters) {
-    List<Row> filteredRows = applyInMemoryFilters(rows, filters, 1);
+      List<FilterCondition> filters,
+      boolean booleansStoredAsTinyint) {
+    List<Row> filteredRows = applyInMemoryFilters(rows, filters, 1, booleansStoredAsTinyint);
     for (Row row : filteredRows) {
       String key = row.getString("key");
       if (!existsByDoc.getOrDefault(key, false)) {
@@ -794,7 +822,7 @@ public class DocumentService {
         for (Row row : e.getValue()) {
           if (fields.isEmpty() || fields.contains(row.getString("p0"))) rows.add(row);
         }
-        docsResult.set(e.getKey(), convertToJsonDoc(rows, false).left);
+        docsResult.set(e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
       }
       db = dbFactory.getDocDataStoreForToken(authToken, totalSize, initialPagingState);
       ByteBuffer finalPagingState =
@@ -817,7 +845,7 @@ public class DocumentService {
         for (Row row : e.getValue()) {
           if (fields.isEmpty() || fields.contains(row.getString("p0"))) rows.add(row);
         }
-        docsResult.set(e.getKey(), convertToJsonDoc(rows, false).left);
+        docsResult.set(e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
       }
       return ImmutablePair.of(docsResult, null);
     }
@@ -857,7 +885,8 @@ public class DocumentService {
               new ArrayList<>(),
               false,
               null);
-      updateExistenceForMap(existsByDoc, countsByDoc, page.left, filters);
+      updateExistenceForMap(
+          existsByDoc, countsByDoc, page.left, filters, db.treatBooleansAsNumeric());
       db = dbFactory.getDocDataStoreForToken(authToken, pageSize, page.right);
     } while (existsByDoc.keySet().size() <= limit && page.right != null);
 
@@ -894,26 +923,26 @@ public class DocumentService {
       finalPagingState = null;
     }
 
-    List<Where<Object>> predicate =
-        ImmutableList.of(
-            ImmutableWhereCondition.builder()
-                .column("key")
-                .predicate(WhereCondition.Predicate.In)
-                .value(new ArrayList<>(docNames))
-                .build());
+    List<BuiltCondition> predicate =
+        ImmutableList.of(BuiltCondition.of("key", Predicate.IN, new ArrayList<>(docNames)));
 
     db = dbFactory.getDocDataStoreForToken(authToken);
+
     List<Row> rows = db.executeSelect(keyspace, collection, predicate).rows();
     Map<String, List<Row>> rowsByDoc = new HashMap<>();
     for (Row row : rows) {
       String key = row.getString("key");
       List<Row> rowsAtKey = rowsByDoc.getOrDefault(key, new ArrayList<>());
-      if (fields.isEmpty() || fields.contains(row.getString("p0"))) rowsAtKey.add(row);
+      if (fields.isEmpty() || fields.contains(row.getString("p0"))) {
+        rowsAtKey.add(row);
+      }
       rowsByDoc.put(key, rowsAtKey);
     }
 
     for (Map.Entry<String, List<Row>> entry : rowsByDoc.entrySet()) {
-      docsResult.set(entry.getKey(), convertToJsonDoc(entry.getValue(), false).left);
+      docsResult.set(
+          entry.getKey(),
+          convertToJsonDoc(entry.getValue(), false, db.treatBooleansAsNumeric()).left);
     }
 
     return ImmutablePair.of(docsResult, finalPagingState);
@@ -949,18 +978,13 @@ public class DocumentService {
       List<String> path,
       Boolean recurse,
       String documentKey)
-      throws ExecutionException, InterruptedException {
+      throws UnauthorizedException {
     StringBuilder pathStr = new StringBuilder();
-    List<Where<Object>> predicates = new ArrayList<>();
+    List<BuiltCondition> predicates = new ArrayList<>();
 
     if (!filters.isEmpty() && fields.isEmpty()) {
       FilterCondition first = filters.get(0);
-      predicates.add(
-          ImmutableWhereCondition.builder()
-              .column("leaf")
-              .predicate(WhereCondition.Predicate.Eq)
-              .value(first.getField())
-              .build());
+      predicates.add(BuiltCondition.of("leaf", Predicate.EQ, first.getField()));
     }
 
     boolean manyPathsFound = false;
@@ -972,20 +996,10 @@ public class DocumentService {
         String pathSegment = pathSegmentSplit[0];
         if (pathSegment.equals(DocumentDB.GLOB_VALUE)) {
           manyPathsFound = true;
-          predicates.add(
-              ImmutableWhereCondition.builder()
-                  .column("p" + i)
-                  .predicate(WhereCondition.Predicate.Gt)
-                  .value("")
-                  .build());
+          predicates.add(BuiltCondition.of("p" + i, Predicate.GT, ""));
         } else {
           String convertedPath = convertArrayPath(pathSegment);
-          predicates.add(
-              ImmutableWhereCondition.builder()
-                  .column("p" + i)
-                  .predicate(WhereCondition.Predicate.Eq)
-                  .value(convertedPath)
-                  .build());
+          predicates.add(BuiltCondition.of("p" + i, Predicate.EQ, convertedPath));
           if (!manyPathsFound) {
             pathStr.append("/").append(pathSegment);
           }
@@ -997,12 +1011,7 @@ public class DocumentService {
             segmentsList.stream().map(this::convertArrayPath).collect(Collectors.toList());
 
         manyPathsFound = true;
-        predicates.add(
-            ImmutableWhereCondition.builder()
-                .column("p" + i)
-                .predicate(WhereCondition.Predicate.In)
-                .value(segmentsList)
-                .build());
+        predicates.add(BuiltCondition.of("p" + i, Predicate.IN, segmentsList));
       }
     }
 
@@ -1023,29 +1032,14 @@ public class DocumentService {
     if ((recurse == null || !recurse)
         && path.size() < db.MAX_DEPTH
         && !inCassandraFilters.isEmpty()) {
-      predicates.add(
-          ImmutableWhereCondition.builder()
-              .column("p" + i++)
-              .predicate(WhereCondition.Predicate.Eq)
-              .value(filters.get(0).getField())
-              .build());
+      predicates.add(BuiltCondition.of("p" + i++, Predicate.EQ, filters.get(0).getField()));
     } else if (!path.isEmpty()) {
-      predicates.add(
-          ImmutableWhereCondition.builder()
-              .column("p" + i++)
-              .predicate(WhereCondition.Predicate.Gt)
-              .value("")
-              .build());
+      predicates.add(BuiltCondition.of("p" + i++, Predicate.GT, ""));
     }
 
     // The rest of the paths must match empty-string
     while (i < db.MAX_DEPTH && !path.isEmpty()) {
-      predicates.add(
-          ImmutableWhereCondition.builder()
-              .column("p" + i++)
-              .predicate(WhereCondition.Predicate.Eq)
-              .value("")
-              .build());
+      predicates.add(BuiltCondition.of("p" + i++, Predicate.EQ, ""));
     }
 
     for (FilterCondition filter : inCassandraFilters) {
@@ -1053,14 +1047,9 @@ public class DocumentService {
       SingleFilterCondition singleFilter = (SingleFilterCondition) filter;
       FilterOp queryOp = singleFilter.getFilterOp();
       String queryValueField = singleFilter.getValueColumnName();
-      Object queryValue = singleFilter.getValue();
+      Object queryValue = singleFilter.getValue(db.treatBooleansAsNumeric());
       if (queryOp != FilterOp.EXISTS) {
-        predicates.add(
-            ImmutableWhereCondition.builder()
-                .column(queryValueField)
-                .predicate(queryOp.predicate)
-                .value(queryValue)
-                .build());
+        predicates.add(BuiltCondition.of(queryValueField, queryOp.predicate, queryValue));
       }
     }
 
@@ -1087,7 +1076,9 @@ public class DocumentService {
           "The results as requested must fit in one page, try increasing the `page-size` parameter.");
     }
     rows = filterToSelectionSet(rows, fields, path);
-    rows = applyInMemoryFilters(rows, inMemoryFilters, Math.max(fields.size(), 1));
+    rows =
+        applyInMemoryFilters(
+            rows, inMemoryFilters, Math.max(fields.size(), 1), db.treatBooleansAsNumeric());
 
     return ImmutablePair.of(rows, newState);
   }
@@ -1176,7 +1167,10 @@ public class DocumentService {
    * @return rows for each doc that match all filters
    */
   private List<Row> applyInMemoryFilters(
-      List<Row> rows, List<FilterCondition> inMemoryFilters, int fieldsPerDoc) {
+      List<Row> rows,
+      List<FilterCondition> inMemoryFilters,
+      int fieldsPerDoc,
+      boolean numericBooleans) {
     if (inMemoryFilters.size() == 0) {
       return rows;
     }
@@ -1200,15 +1194,25 @@ public class DocumentService {
                             return pathsMatch(rowPath + r.getString("leaf"), filterFieldPath);
                           })
                       .findFirst();
-              return fieldRow.isPresent() && allFiltersMatch(fieldRow.get(), inMemoryFilters);
+              return fieldRow.isPresent()
+                  && allFiltersMatch(fieldRow.get(), inMemoryFilters, numericBooleans);
             })
         .flatMap(x -> x.stream())
         .collect(Collectors.toList());
   }
 
-  private boolean allFiltersMatch(Row row, List<FilterCondition> filters) {
+  private Boolean getBooleanFromRow(Row row, String colName, boolean numericBooleans) {
+    if (row.isNull("bool_value")) return null;
+    if (numericBooleans) {
+      byte value = row.getByte(colName);
+      return value != 0;
+    }
+    return row.getBoolean(colName);
+  }
+
+  private boolean allFiltersMatch(Row row, List<FilterCondition> filters, boolean numericBooleans) {
     String textValue = row.isNull("text_value") ? null : row.getString("text_value");
-    Boolean boolValue = row.isNull("bool_value") ? null : row.getBoolean("bool_value");
+    Boolean boolValue = getBooleanFromRow(row, "bool_value", numericBooleans);
     Double dblValue = row.isNull("dbl_value") ? null : row.getDouble("dbl_value");
     for (FilterCondition fc : filters) {
       if (fc.getFilterOp() == FilterOp.EXISTS) {
@@ -1353,7 +1357,7 @@ public class DocumentService {
   }
 
   public ImmutablePair<JsonNode, Map<String, List<JsonNode>>> convertToJsonDoc(
-      List<Row> rows, boolean writeAllPathsAsObjects) {
+      List<Row> rows, boolean writeAllPathsAsObjects, boolean numericBooleans) {
     JsonNode doc = mapper.createObjectNode();
     Map<String, Long> pathWriteTimes = new HashMap<>();
     Map<String, List<JsonNode>> deadLeaves = new HashMap<>();
@@ -1478,7 +1482,7 @@ public class DocumentService {
         continue;
       }
 
-      writeLeafIfNewer(ref, row, leaf, parentPath, pathWriteTimes, rowWriteTime);
+      writeLeafIfNewer(ref, row, leaf, parentPath, pathWriteTimes, rowWriteTime, numericBooleans);
     }
 
     return ImmutablePair.of(doc, deadLeaves);
@@ -1556,7 +1560,8 @@ public class DocumentService {
       String leaf,
       String parentPath,
       Map<String, Long> pathWriteTimes,
-      Long rowWriteTime) {
+      Long rowWriteTime,
+      boolean numericBooleans) {
     JsonNode n = NullNode.getInstance();
 
     if (!row.isNull("text_value")) {
@@ -1569,7 +1574,7 @@ public class DocumentService {
         n = new TextNode(value);
       }
     } else if (!row.isNull("bool_value")) {
-      n = BooleanNode.valueOf(row.getBoolean("bool_value"));
+      n = BooleanNode.valueOf(getBooleanFromRow(row, "bool_value", numericBooleans));
     } else if (!row.isNull("dbl_value")) {
       // If not a fraction represent as a long to the user
       // This lets us handle queries of doubles and longs without

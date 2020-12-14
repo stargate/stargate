@@ -2,6 +2,7 @@ package io.stargate.graphql.schema.fetchers.ddl;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import io.stargate.db.schema.Schema;
 import io.stargate.graphql.schema.DdlTestBase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -47,5 +48,10 @@ public class CreateTypeFetcherTest extends DdlTestBase {
           "createType(keyspaceName:\"test\", typeName:\"a\", fields: [])",
           "Must have at least one field"),
     };
+  }
+
+  @Override
+  public Schema getCQLSchema() {
+    return Schema.build().keyspace("test").build();
   }
 }

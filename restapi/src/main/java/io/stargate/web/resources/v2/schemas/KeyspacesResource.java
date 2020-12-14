@@ -17,7 +17,9 @@ package io.stargate.web.resources.v2.schemas;
 
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.stargate.auth.Scope;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.query.builder.Replication;
 import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.Keyspace;
@@ -32,7 +34,7 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -84,10 +86,17 @@ public class KeyspacesResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+
           List<Keyspace> keyspaces =
               localDB.schema().keyspaces().stream()
                   .map(k -> new Keyspace(k.name(), buildDatacenters(k)))
                   .collect(Collectors.toList());
+
+          db.getAuthorizationService()
+              .authorizeSchemaRead(
+                  token,
+                  keyspaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
+                  null);
 
           Object response = raw ? keyspaces : new ResponseWrapper(keyspaces);
           return Response.status(Response.Status.OK)
@@ -126,6 +135,8 @@ public class KeyspacesResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+          db.getAuthorizationService()
+              .authorizeSchemaRead(token, Collections.singletonList(keyspaceName), null);
 
           io.stargate.db.schema.Keyspace keyspace = localDB.schema().keyspace(keyspaceName);
           if (keyspace == null) {
@@ -193,37 +204,35 @@ public class KeyspacesResource {
           Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
 
           String keyspaceName = (String) requestBody.get("name");
-          String replication = "";
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, keyspaceName, null, Scope.CREATE);
+
+          Replication replication;
           if (requestBody.containsKey("datacenters")) {
-            replication = "{ 'class' : 'NetworkTopologyStrategy',%s }";
-
-            ArrayList datacenters = (ArrayList) requestBody.get("datacenters");
-            StringBuilder dcs = new StringBuilder();
+            ArrayList<?> datacenters = (ArrayList<?>) requestBody.get("datacenters");
+            Map<String, Integer> dcReplications = new HashMap<>();
             for (Object dc : datacenters) {
-              String dcName = (String) ((LinkedHashMap) dc).get("name");
+              String dcName = (String) ((Map<?, ?>) dc).get("name");
               Integer replicas =
-                  ((LinkedHashMap) dc).containsKey("replicas")
-                      ? (Integer) ((LinkedHashMap) dc).get("replicas")
+                  ((Map<?, ?>) dc).containsKey("replicas")
+                      ? (Integer) ((Map<?, ?>) dc).get("replicas")
                       : 3;
-
-              dcs.append(" ").append("'").append(dcName).append("': ").append(replicas).append(",");
+              dcReplications.put(dcName, replicas);
             }
-            dcs.deleteCharAt(dcs.length() - 1);
-            replication = String.format(replication, dcs.toString());
+            replication = Replication.networkTopologyStrategy(dcReplications);
           } else {
-            replication =
-                String.format(
-                    "{ 'class' : 'SimpleStrategy', 'replication_factor' : %s }",
-                    requestBody.getOrDefault("replicas", 1));
+            replication = Replication.simpleStrategy((int) requestBody.getOrDefault("replicas", 1));
           }
 
           localDB
-              .query()
+              .queryBuilder()
               .create()
               .keyspace(keyspaceName)
               .ifNotExists()
               .withReplication(replication)
-              .execute();
+              .build()
+              .execute()
+              .get();
 
           return Response.status(Response.Status.CREATED)
               .entity(Converters.writeResponse(Collections.singletonMap("name", keyspaceName)))
@@ -255,12 +264,15 @@ public class KeyspacesResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
+          db.getAuthorizationService().authorizeSchemaWrite(token, keyspaceName, null, Scope.DROP);
+
           localDB
-              .query()
+              .queryBuilder()
               .drop()
               .keyspace(keyspaceName)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+              .build()
+              .execute(ConsistencyLevel.LOCAL_QUORUM)
+              .get();
 
           return Response.status(Response.Status.NO_CONTENT).build();
         });

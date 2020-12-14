@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.26-SNAPSHOT</version>
+    <version>1.0.1-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.graphql</groupId>
   <artifactId>graphqlapi</artifactId>
@@ -21,7 +21,7 @@
     </dependency>
     <dependency>
       <groupId>io.stargate.auth</groupId>
-      <artifactId>authentication</artifactId>
+      <artifactId>authnz</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -53,6 +53,18 @@
     <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-core</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>io.dropwizard.metrics</groupId>
+          <artifactId>metrics-healthchecks</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-healthchecks</artifactId>
+      <version>4.1.11</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>javax.servlet</groupId>
@@ -104,21 +116,6 @@
       <groupId>io.jsonwebtoken</groupId>
       <artifactId>jjwt</artifactId>
       <version>0.9.1</version>
-    </dependency>
-    <dependency>
-      <groupId>com.datastax.oss</groupId>
-      <artifactId>java-driver-query-builder</artifactId>
-      <version>4.9.0</version>
-      <exclusions>
-        <!--
-          We want to use the one pulled transitively with persistence-api, otherwise we'll run
-          into type mismatch issues.
-        -->
-        <exclusion>
-          <groupId>com.datastax.oss</groupId>
-          <artifactId>java-driver-core</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -174,6 +171,7 @@
                             org.apache.cassandra.stargate.*,
                             io.stargate.core,
                             com.codahale.metrics,
+                            com.codahale.metrics.*,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <DynamicImport-Package>*</DynamicImport-Package>

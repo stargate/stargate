@@ -17,13 +17,13 @@ package io.stargate.it;
 
 import static com.datastax.oss.driver.api.core.uuid.Uuids.random;
 import static com.datastax.oss.driver.api.core.uuid.Uuids.timeBased;
-import static io.stargate.db.datastore.query.WhereCondition.Predicate.Eq;
-import static io.stargate.db.datastore.query.WhereCondition.Predicate.In;
+import static io.stargate.db.query.Predicate.EQ;
+import static io.stargate.db.query.Predicate.IN;
 import static io.stargate.db.schema.Column.Kind.Clustering;
 import static io.stargate.db.schema.Column.Kind.PartitionKey;
 import static io.stargate.db.schema.Column.Kind.Static;
-import static io.stargate.db.schema.Column.Order.Asc;
-import static io.stargate.db.schema.Column.Order.Desc;
+import static io.stargate.db.schema.Column.Order.ASC;
+import static io.stargate.db.schema.Column.Order.DESC;
 import static io.stargate.db.schema.Column.Type.Ascii;
 import static io.stargate.db.schema.Column.Type.Bigint;
 import static io.stargate.db.schema.Column.Type.Blob;
@@ -54,6 +54,7 @@ import static org.assertj.core.api.Fail.fail;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.api.core.data.TupleValue;
+import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
@@ -64,7 +65,8 @@ import io.stargate.db.SimpleStatement;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
-import io.stargate.db.datastore.query.Value;
+import io.stargate.db.query.TypedValue;
+import io.stargate.db.query.builder.Replication;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableTupleType;
 import io.stargate.db.schema.ImmutableUserDefinedType;
@@ -157,12 +159,13 @@ public abstract class PersistenceTest {
   public void querySystemTables() throws ExecutionException, InterruptedException {
     Future<ResultSet> rs =
         dataStore
-            .query()
+            .queryBuilder()
             .select()
             .column("cluster_name")
             .column("data_center")
             .from("system", "local")
-            .future();
+            .build()
+            .execute();
     Row row = rs.get().one();
 
     logger.info(String.valueOf(row));
@@ -172,7 +175,14 @@ public abstract class PersistenceTest {
     assertThat(row.getString("cluster_name")).isEqualTo(backend.clusterName());
     assertThat(row.getString("data_center")).isEqualTo(backend.datacenter());
 
-    rs = dataStore.query().select().column("data_center").from("system", "peers").future();
+    rs =
+        dataStore
+            .queryBuilder()
+            .select()
+            .column("data_center")
+            .from("system", "peers")
+            .build()
+            .execute();
     // As our modified local/peers table only include stargate nodes, we shouldn't have anyone
     // in peers.
     assertThat(rs.get().hasNoMoreFetchedRows()).isTrue();
@@ -188,11 +198,13 @@ public abstract class PersistenceTest {
     createKeyspace();
     ResultSet createTable =
         dataStore
-            .query()
+            .queryBuilder()
             .create()
             .table(keyspace, table)
             .column("created", Boolean, PartitionKey)
-            .execute();
+            .build()
+            .execute()
+            .join();
 
     // TODO: [doug] 2020-07-10, Fri, 16:50 More schemaAgreement to revisit
     // assertThat(createTable.waitedForSchemaAgreement()).isTrue();
@@ -208,7 +220,14 @@ public abstract class PersistenceTest {
                 .table(table));
 
     ResultSet alterTable =
-        dataStore.query().alter().table(keyspace, table).addColumn("added", Boolean).execute();
+        dataStore
+            .queryBuilder()
+            .alter()
+            .table(keyspace, table)
+            .addColumn("added", Boolean)
+            .build()
+            .execute()
+            .join();
     // TODO: [doug] 2020-07-10, Fri, 16:50 More schemaAgreement to revisit
     //        assertThat(alterTable.waitedForSchemaAgreement()).isTrue();
     assertThat(dataStore.schema().keyspace(keyspace).table(table))
@@ -222,7 +241,8 @@ public abstract class PersistenceTest {
                 .keyspace(keyspace)
                 .table(table));
 
-    ResultSet dropTable = dataStore.query().drop().table(keyspace, table).execute();
+    ResultSet dropTable =
+        dataStore.queryBuilder().drop().table(keyspace, table).build().execute().join();
     // TODO: [doug] 2020-07-10, Fri, 16:50 More schemaAgreement to revisit
     //        assertThat(dropTable.waitedForSchemaAgreement()).isTrue();
     assertThat(dataStore.schema().keyspace(keyspace).table(table)).isNull();
@@ -232,18 +252,20 @@ public abstract class PersistenceTest {
   public void testColumnKinds() throws ExecutionException, InterruptedException {
     createKeyspace();
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .table(keyspace, table)
         .column("PK1", Varchar, PartitionKey)
         .column("PK2", Varchar, PartitionKey)
-        .column("CC1", Varchar, Clustering, Asc)
-        .column("CC2", Varchar, Clustering, Desc)
+        .column("CC1", Varchar, Clustering, ASC)
+        .column("CC2", Varchar, Clustering, DESC)
         .column("R1", Varchar)
         .column("R2", Varchar)
         .column("S1", Varchar, Static)
         .column("S2", Varchar, Static)
-        .execute();
+        .build()
+        .execute()
+        .join();
     assertThat(dataStore.schema().keyspace(keyspace).table(table))
         .isEqualTo(
             Schema.build()
@@ -251,8 +273,8 @@ public abstract class PersistenceTest {
                 .table(table)
                 .column("PK1", Varchar, PartitionKey)
                 .column("PK2", Varchar, PartitionKey)
-                .column("CC1", Varchar, Clustering, Asc)
-                .column("CC2", Varchar, Clustering, Desc)
+                .column("CC1", Varchar, Clustering, ASC)
+                .column("CC2", Varchar, Clustering, DESC)
                 .column("S1", Varchar, Static)
                 .column("S2", Varchar, Static)
                 .column("R1", Varchar)
@@ -372,7 +394,7 @@ public abstract class PersistenceTest {
     // TODO: [doug] 2020-07-13, Mon, 9:27 Having trouble with UDTs, removing for now
     //        dataStore.query().create().type(keyspace, udtType).ifNotExists().execute();
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .table(keyspace, table)
         .column("PK", Text, PartitionKey)
@@ -381,7 +403,9 @@ public abstract class PersistenceTest {
                 .get()
                 .map(columnType -> Column.create(columnName(columnType), columnType))
                 .collect(Collectors.toList()))
-        .execute();
+        .build()
+        .execute()
+        .join();
 
     // check the columns and their types are correctly created
     distinctColumnTypesStream
@@ -411,20 +435,24 @@ public abstract class PersistenceTest {
     for (int i = 0; i < values.size(); i++) {
       Pair<Column.ColumnType, Object> pair = values.get(i);
       dataStore
-          .query()
+          .queryBuilder()
           .insertInto(keyspace, table)
           .value("PK", "PK" + i)
-          .value(Value.create(columnName(pair.getValue0()), pair.getValue1()))
-          .execute();
+          .value(columnName(pair.getValue0()), pair.getValue1())
+          .build()
+          .execute()
+          .join();
 
       Row row =
           dataStore
-              .query()
+              .queryBuilder()
               .select()
               .star()
               .from(keyspace, table)
-              .where("PK", Eq, "PK" + i)
+              .where("PK", EQ, "PK" + i)
+              .build()
               .execute()
+              .join()
               .one();
 
       assertThat(row.getObject(columnName(pair.getValue0()))).isEqualTo(pair.getValue1());
@@ -478,22 +506,31 @@ public abstract class PersistenceTest {
           try {
             String tbl = table + k.rawType().toString().toLowerCase().replace("'", "");
             Column c = Column.create(k.cqlDefinition(), PartitionKey, k);
-            dataStore.query().create().table(keyspace, tbl).column(c).execute();
-            dataStore.query().insertInto(keyspace, tbl).value(c, v).execute();
+            dataStore
+                .queryBuilder()
+                .create()
+                .table(keyspace, tbl)
+                .column(c)
+                .build()
+                .execute()
+                .join();
+            dataStore.queryBuilder().insertInto(keyspace, tbl).value(c, v).build().execute().join();
             // now perform a SELECT * FROM ks.tbl WHERE col = X
             Row row =
                 dataStore
-                    .query()
+                    .queryBuilder()
                     .select()
                     .star()
                     .from(keyspace, tbl)
-                    .where(c, Eq, v)
+                    .where(c, EQ, v)
+                    .build()
                     .execute()
+                    .join()
                     .one();
             assertThat(row).isNotNull();
             assertThat(row.getObject(c.name())).isEqualTo(v);
           } catch (Exception e) {
-            fail(e.getMessage());
+            fail(e.getMessage(), e);
           }
         });
   }
@@ -502,14 +539,25 @@ public abstract class PersistenceTest {
   public void testSecondaryIndexes() throws ExecutionException, InterruptedException {
     createKeyspace();
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .table(keyspace, table)
         .column("a", Int, PartitionKey)
         .column("b", Varchar)
         .column("c", Uuid)
-        .execute();
-    dataStore.query().create().index("byB").ifNotExists().on(keyspace, table).column("b").execute();
+        .build()
+        .execute()
+        .join();
+    dataStore
+        .queryBuilder()
+        .create()
+        .index("byB")
+        .ifNotExists()
+        .on(keyspace, table)
+        .column("b")
+        .build()
+        .execute()
+        .join();
 
     assertThat(dataStore.schema().keyspace(keyspace).table(this.table))
         .isEqualTo(
@@ -525,7 +573,16 @@ public abstract class PersistenceTest {
                 .keyspace(keyspace)
                 .table(table));
 
-    dataStore.query().create().index("byC").ifNotExists().on(keyspace, table).column("c").execute();
+    dataStore
+        .queryBuilder()
+        .create()
+        .index("byC")
+        .ifNotExists()
+        .on(keyspace, table)
+        .column("c")
+        .build()
+        .execute()
+        .join();
 
     assertThat(dataStore.schema().keyspace(keyspace).table(this.table).toString())
         .isEqualTo(
@@ -560,13 +617,15 @@ public abstract class PersistenceTest {
         ImmutableTupleType.builder().addAllParameters(typeToValue.keySet()).build();
 
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .table(ks.name(), table)
         .ifNotExists()
         .column("x", Int, PartitionKey)
         .column("my_tuple", tupleType)
-        .execute();
+        .build()
+        .execute()
+        .join();
 
     Object[] actualValues = new Object[columns.size()];
     for (int i = 0; i < columns.size(); i++) {
@@ -574,14 +633,25 @@ public abstract class PersistenceTest {
     }
 
     dataStore
-        .query()
+        .queryBuilder()
         .insertInto(ks.name(), table)
         .value("x", 1)
         .value("my_tuple", tupleType.create(actualValues))
-        .execute();
+        .build()
+        .execute()
+        .join();
 
     java.util.List<Row> rows =
-        dataStore.query().select().star().from(ks.name(), table).where("x", Eq, 1).execute().rows();
+        dataStore
+            .queryBuilder()
+            .select()
+            .star()
+            .from(ks.name(), table)
+            .where("x", EQ, 1)
+            .build()
+            .execute()
+            .join()
+            .rows();
     assertThat(rows).isNotEmpty();
     Row row = rows.get(0);
     TupleValue tupleValue = row.getTupleValue("my_tuple");
@@ -593,7 +663,6 @@ public abstract class PersistenceTest {
     }
   }
 
-  @Disabled("Disabling UDT related tests for now")
   @Test
   public void testUDTWithAllSimpleTypes()
       throws UnknownHostException, ExecutionException, InterruptedException {
@@ -611,17 +680,19 @@ public abstract class PersistenceTest {
             .keyspace(ks.name())
             .addAllColumns(columns)
             .build();
-    dataStore.query().create().type(keyspace, udtType).execute();
+    dataStore.queryBuilder().create().type(keyspace, udtType).build().execute().join();
     ks = dataStore.schema().keyspace(ks.name());
 
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .table(ks.name(), table)
         .ifNotExists()
         .column("x", Int, PartitionKey)
         .column("udt", ks.userDefinedType(typeName).frozen())
-        .execute();
+        .build()
+        .execute()
+        .join();
 
     Object[] actualValues = new Object[columns.size()];
     for (int i = 0; i < columns.size(); i++) {
@@ -629,23 +700,35 @@ public abstract class PersistenceTest {
     }
 
     dataStore
-        .query()
+        .queryBuilder()
         .insertInto(ks.name(), table)
         .value("x", 1)
         .value("udt", ks.userDefinedType(typeName).create(actualValues))
-        .execute();
+        .build()
+        .execute()
+        .join();
 
     java.util.List<Row> rows =
-        dataStore.query().select().star().from(ks.name(), table).where("x", Eq, 1).execute().rows();
+        dataStore
+            .queryBuilder()
+            .select()
+            .star()
+            .from(ks.name(), table)
+            .where("x", EQ, 1)
+            .build()
+            .execute()
+            .join()
+            .rows();
     assertThat(rows).isNotEmpty();
-    // TODO: [doug] 2020-07-10, Fri, 16:43 we currently have a mismatch where some things are using
-    // UdtValue and others want UDTValue
-    //        Row row = rows.get(0);
-    //        UDTValue udtValue = row.getUDT("udt");
-    //        assertThat(udtValue).isNotNull();
-    //        columns.forEach(c -> assertThat(udtValue.get(c.name().toLowerCase(),
-    // Objects.requireNonNull(c.type()).codec()))
-    //                .isEqualTo(typeToValue.get(c.type())));
+
+    Row row = rows.get(0);
+    UdtValue udtValue = row.getUdtValue("udt");
+    assertThat(udtValue).isNotNull();
+    columns.forEach(
+        c ->
+            assertThat(
+                    udtValue.get(c.name().toLowerCase(), Objects.requireNonNull(c.type()).codec()))
+                .isEqualTo(typeToValue.get(c.type())));
   }
 
   private ImmutableMap<Column.ColumnType, Object> getSimpleTypesWithValues()
@@ -696,19 +779,21 @@ public abstract class PersistenceTest {
                 Column.create("mymap", Map.of(Varchar, Int)),
                 Column.create("mytuple", Tuple.of(Varchar, Tuple.of(Int, Double))))
             .build();
-    dataStore.query().create().type(keyspace, udtType).execute();
+    dataStore.queryBuilder().create().type(keyspace, udtType).build().execute().join();
     ks = dataStore.schema().keyspace(ks.name());
     Column.ColumnType nestedTuple = Tuple.of(Int, Double);
     Column.ColumnType tupleType = Tuple.of(Varchar, nestedTuple);
 
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .table(ks.name(), table)
         .ifNotExists()
         .column("x", Int, PartitionKey)
         .column("udt", ks.userDefinedType(typeName).frozen())
-        .execute();
+        .build()
+        .execute()
+        .join();
 
     java.util.List<java.lang.Double> list = Arrays.asList(3.0, 4.5);
     Map<String, Integer> map = ImmutableMap.of("Alice", 3, "Bob", 4);
@@ -716,14 +801,25 @@ public abstract class PersistenceTest {
     Object tuple = tupleType.create("Test", nestedTuple.create(2, 3.0));
 
     dataStore
-        .query()
+        .queryBuilder()
         .insertInto(ks.name(), table)
         .value("x", 1)
         .value("udt", ks.userDefinedType(typeName).create(23, list, set, map, tuple))
-        .execute();
+        .build()
+        .execute()
+        .join();
 
     java.util.List<Row> rows =
-        dataStore.query().select().star().from(ks.name(), table).where("x", Eq, 1).execute().rows();
+        dataStore
+            .queryBuilder()
+            .select()
+            .star()
+            .from(ks.name(), table)
+            .where("x", EQ, 1)
+            .build()
+            .execute()
+            .join()
+            .rows();
     assertThat(rows).isNotEmpty();
 
     // TODO: [doug] 2020-07-10, Fri, 16:43 we currently have a mismatch where some things are using
@@ -748,13 +844,15 @@ public abstract class PersistenceTest {
     Column.ColumnType alternativeType = Tuple.of(Varchar, alternativeNested);
 
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .table(ks.name(), table)
         .ifNotExists()
         .column("x", Int, PartitionKey)
         .column("tuple", tupleType)
-        .execute();
+        .build()
+        .execute()
+        .join();
 
     dataStore.waitForSchemaAgreement();
 
@@ -763,7 +861,14 @@ public abstract class PersistenceTest {
     dataStore.waitForSchemaAgreement();
 
     try {
-      dataStore.query().insertInto(ks.name(), table).value("x", 1).value("tuple", tuple).execute();
+      dataStore
+          .queryBuilder()
+          .insertInto(ks.name(), table)
+          .value("x", 1)
+          .value("tuple", tuple)
+          .build()
+          .execute()
+          .join();
 
       fail("Should have thrown IllegalArgumentException");
     } catch (IllegalArgumentException ex) {
@@ -778,27 +883,30 @@ public abstract class PersistenceTest {
     Keyspace ks = createKeyspace();
 
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .table(ks.name(), table)
         .ifNotExists()
         .column("x", Int, PartitionKey)
         .column("name", Text)
-        .execute();
+        .build()
+        .execute()
+        .join();
 
     Assertions.assertThatThrownBy(
             () ->
                 dataStore
-                    .query()
+                    .queryBuilder()
                     .insertInto(ks.name(), table)
                     .value("x", 1)
                     .value("name", 42)
-                    .execute())
-        .isInstanceOf(ExecutionException.class)
-        .hasCauseExactlyInstanceOf(IllegalArgumentException.class)
+                    .build()
+                    .execute()
+                    .join())
+        .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(
-            "Wrong value provided for column 'name'. "
-                + "Provided type 'Integer' is not compatible with expected CQL type 'varchar'.");
+            "Invalid value provided for 'name': "
+                + "Java value 42 of type 'java.lang.Integer' is not a valid value for CQL type varchar");
   }
 
   @Disabled("Disabling for now since it fails with a strange MV schema generated")
@@ -806,24 +914,28 @@ public abstract class PersistenceTest {
   public void testMvIndexes() throws ExecutionException, InterruptedException {
     createKeyspace();
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .table(keyspace, table)
         .column("a", Int, PartitionKey)
         .column("b", Varchar)
         .column("c", Uuid)
-        .execute();
+        .build()
+        .execute()
+        .join();
 
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .materializedView(keyspace, "byB")
         .asSelect()
-        .star()
         .column("b", PartitionKey)
-        .column("a", Clustering, Desc)
+        .column("a", Clustering, DESC)
+        .column("c")
         .from(keyspace, table)
-        .execute();
+        .build()
+        .execute()
+        .join();
 
     assertThat(dataStore.schema().keyspace(keyspace).table(this.table))
         .isEqualTo(
@@ -835,22 +947,24 @@ public abstract class PersistenceTest {
                 .column("c", Uuid)
                 .materializedView("byB")
                 .column("b", PartitionKey)
-                .column("a", Clustering, Desc)
+                .column("a", Clustering, DESC)
                 .column("c")
                 .build()
                 .keyspace(keyspace)
                 .table(table));
 
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .materializedView(keyspace, "byC")
         .asSelect()
-        .star()
         .column("c", PartitionKey)
-        .column("a", Clustering, Asc)
+        .column("a", Clustering, ASC)
+        .column("b")
         .from(keyspace, table)
-        .execute();
+        .build()
+        .execute()
+        .join();
 
     assertThat(dataStore.schema().keyspace(keyspace).table(this.table))
         .isEqualTo(
@@ -862,11 +976,11 @@ public abstract class PersistenceTest {
                 .column("c", Uuid)
                 .materializedView("byB")
                 .column("b", PartitionKey)
-                .column("a", Clustering, Desc)
+                .column("a", Clustering, DESC)
                 .column("c")
                 .materializedView("byC")
                 .column("c", PartitionKey)
-                .column("a", Clustering, Asc)
+                .column("a", Clustering, ASC)
                 .column("b")
                 .build()
                 .keyspace(keyspace)
@@ -876,7 +990,14 @@ public abstract class PersistenceTest {
   @Test
   public void testPagination() throws ExecutionException, InterruptedException {
     createKeyspace();
-    dataStore.query().create().table(keyspace, table).column("a", Int, PartitionKey).execute();
+    dataStore
+        .queryBuilder()
+        .create()
+        .table(keyspace, table)
+        .column("a", Int, PartitionKey)
+        .build()
+        .execute()
+        .join();
     Set<Integer> knownValues = new HashSet<>();
 
     // TODO: [doug] 2020-07-10, Fri, 14:48 figure out what storeName should be
@@ -888,11 +1009,12 @@ public abstract class PersistenceTest {
     int totalResultSize = (pageSize * 2) + 3;
     for (int i = 1; i <= totalResultSize; i++) {
       knownValues.add(i);
-      dataStore.query().insertInto(keyspace, table).value("a", i).execute();
+      dataStore.queryBuilder().insertInto(keyspace, table).value("a", i).build().execute().join();
     }
 
     // results come back unordered
-    ResultSet resultSet = dataStore.query().select().star().from(keyspace, table).execute();
+    ResultSet resultSet =
+        dataStore.queryBuilder().select().star().from(keyspace, table).build().execute().join();
 
     Iterator<Row> it = resultSet.iterator();
     iterateOverResults(it, knownValues, pageSize); // page 1
@@ -914,21 +1036,30 @@ public abstract class PersistenceTest {
   @Test
   public void testINClause() throws ExecutionException, InterruptedException {
     createKeyspace();
-    dataStore.query().create().table(keyspace, table).column("a", Int, PartitionKey).execute();
+    dataStore
+        .queryBuilder()
+        .create()
+        .table(keyspace, table)
+        .column("a", Int, PartitionKey)
+        .build()
+        .execute()
+        .join();
 
     for (int i = 0; i < 10; i++) {
-      dataStore.query().insertInto(keyspace, table).value("a", i).execute();
+      dataStore.queryBuilder().insertInto(keyspace, table).value("a", i).build().execute().join();
     }
 
     Set<Integer> set = new HashSet<>(Arrays.asList(1, 3, 5, 7));
     ResultSet resultSet =
         dataStore
-            .query()
+            .queryBuilder()
             .select()
             .star()
             .from(keyspace, table)
-            .where("a", In, Arrays.asList(1, 3, 5, 7))
-            .execute();
+            .where("a", IN, Arrays.asList(1, 3, 5, 7))
+            .build()
+            .execute()
+            .join();
 
     resultSet.iterator().forEachRemaining(row -> assertThat(set.remove(row.getInt("a"))).isTrue());
     assertThat(set).isEmpty();
@@ -938,23 +1069,35 @@ public abstract class PersistenceTest {
   public void testWithUnsetParameter() throws ExecutionException, InterruptedException {
     createKeyspace();
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .table(keyspace, table)
         .column("a", Int, PartitionKey)
         .column("b", Int)
-        .execute();
+        .build()
+        .execute()
+        .join();
     Table tbl = dataStore.schema().keyspace(keyspace).table(table);
 
     dataStore
-        .query(
-            String.format("insert into %s.%s (a,b) values (?,?)", tbl.cqlKeyspace(), tbl.cqlName()),
-            23,
-            DataStore.UNSET)
+        .queryBuilder()
+        .insertInto(tbl)
+        .value("a")
+        .value("b")
+        .build()
+        .execute(23, TypedValue.UNSET)
         .get();
 
     ResultSet resultSet =
-        dataStore.query().select().star().from(keyspace, table).where("a", Eq, 23).execute();
+        dataStore
+            .queryBuilder()
+            .select()
+            .star()
+            .from(keyspace, table)
+            .where("a", EQ, 23)
+            .build()
+            .execute()
+            .join();
 
     assertThat(resultSet).isNotEmpty();
   }
@@ -963,30 +1106,54 @@ public abstract class PersistenceTest {
   public void testDeleteCell() throws ExecutionException, InterruptedException {
     createKeyspace();
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .table(keyspace, table)
         .column("graph", Boolean, PartitionKey)
         .column("name", Column.Type.Text)
-        .execute();
+        .build()
+        .execute()
+        .join();
     dataStore
-        .query()
+        .queryBuilder()
         .insertInto(keyspace, table)
         .value("graph", true)
         .value("name", "Bob")
-        .execute();
+        .build()
+        .execute()
+        .join();
 
-    Row row = dataStore.query().select().star().from(keyspace, table).execute().one();
+    Row row =
+        dataStore
+            .queryBuilder()
+            .select()
+            .star()
+            .from(keyspace, table)
+            .build()
+            .execute()
+            .join()
+            .one();
     assertThat(row.getBoolean("graph")).isTrue();
     assertThat(row.getString("name")).isEqualTo("Bob");
     dataStore
-        .query()
+        .queryBuilder()
         .update(keyspace, table)
         .value("name", null)
-        .where("graph", Eq, true)
-        .execute();
+        .where("graph", EQ, true)
+        .build()
+        .execute()
+        .join();
 
-    row = dataStore.query().select().star().from(keyspace, table).execute().one();
+    row =
+        dataStore
+            .queryBuilder()
+            .select()
+            .star()
+            .from(keyspace, table)
+            .build()
+            .execute()
+            .join()
+            .one();
     assertThat(row.getBoolean("graph")).isTrue();
     assertThat(row.isNull("name")).isEqualTo(true);
   }
@@ -995,54 +1162,62 @@ public abstract class PersistenceTest {
   public void testPrepStmtCacheInvalidation() throws ExecutionException, InterruptedException {
     createKeyspace();
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .table(keyspace, table)
         .column("graph", Boolean, PartitionKey)
         .column("name", Column.Type.Text)
-        .execute();
+        .build()
+        .execute()
+        .join();
 
     dataStore
-        .query()
+        .queryBuilder()
         .insertInto(keyspace, table)
         .value("graph", true)
         .value("name", "Bob")
-        .execute();
+        .build()
+        .execute()
+        .join();
     Keyspace ks = dataStore.schema().keyspace(keyspace);
     Table tbl = ks.table(table);
 
-    Row row = dataStore.query().select().star().from(ks, tbl).execute().one();
+    Row row = dataStore.queryBuilder().select().star().from(tbl).build().execute().join().one();
     assertThat(row.getBoolean("graph")).isTrue();
     assertThat(row.getString("name")).isEqualTo("Bob");
 
     // drop the whole graph, which should invalidate the prepared stmt cache.
     // afterwards we should be able to re-create the same schema and insert the same data without a
     // problem
-    dataStore.query().drop().keyspace(ks.name()).execute();
+    dataStore.queryBuilder().drop().keyspace(ks.name()).build().execute().join();
 
     createKeyspace();
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .table(keyspace, table)
         .column("graph", Boolean, PartitionKey)
         .column("name", Column.Type.Text)
-        .execute();
+        .build()
+        .execute()
+        .join();
 
     // if we wouldn't invalidate the prep stmt cache, then inserting would fail with
     // org.apache.cassandra.exceptions.UnknownTableException: Cannot find table, it may have been
     // dropped
     dataStore
-        .query()
+        .queryBuilder()
         .insertInto(keyspace, table)
         .value("graph", true)
         .value("name", "Bob")
-        .execute();
+        .build()
+        .execute()
+        .join();
 
     ks = dataStore.schema().keyspace(keyspace);
     tbl = ks.table(table);
 
-    row = dataStore.query().select().star().from(ks, tbl).execute().one();
+    row = dataStore.queryBuilder().select().star().from(tbl).build().execute().join().one();
     assertThat(row.getBoolean("graph")).isTrue();
     assertThat(row.getString("name")).isEqualTo("Bob");
   }
@@ -1063,32 +1238,45 @@ public abstract class PersistenceTest {
   public void testInsertWithTTL() throws ExecutionException, InterruptedException {
     createKeyspace();
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .table(keyspace, table)
         .column("graph", Boolean, PartitionKey)
         .column("name", Column.Type.Text)
-        .execute();
-    dataStore.query().insertInto(keyspace, table).value("graph", true).ttl(2).execute();
+        .build()
+        .execute()
+        .join();
+    dataStore
+        .queryBuilder()
+        .insertInto(keyspace, table)
+        .value("graph", true)
+        .ttl(2)
+        .build()
+        .execute()
+        .join();
   }
 
   @Test
   public void testUpdateWithTTL() throws ExecutionException, InterruptedException {
     createKeyspace();
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .table(keyspace, table)
         .column("graph", Boolean, PartitionKey)
         .column("name", Column.Type.Text)
-        .execute();
+        .build()
+        .execute()
+        .join();
     dataStore
-        .query()
+        .queryBuilder()
         .update(keyspace, table)
         .ttl(2)
         .value("name", "Bif")
-        .where("graph", Eq, true)
-        .execute();
+        .where("graph", EQ, true)
+        .build()
+        .execute()
+        .join();
   }
 
   @Test
@@ -1096,17 +1284,27 @@ public abstract class PersistenceTest {
     Keyspace ks = createKeyspace();
 
     dataStore
-        .query()
+        .queryBuilder()
         .create()
         .table(ks.name(), table)
         .ifNotExists()
         .column("x", Int, PartitionKey)
-        .execute();
+        .build()
+        .execute()
+        .join();
 
-    dataStore.query().insertInto(ks.name(), table).value("x", 1).execute();
+    dataStore.queryBuilder().insertInto(ks.name(), table).value("x", 1).build().execute().join();
 
     ResultSet resultSet =
-        dataStore.query().select().star().from(ks.name(), table).where("x", Eq, 1).execute();
+        dataStore
+            .queryBuilder()
+            .select()
+            .star()
+            .from(ks.name(), table)
+            .where("x", EQ, 1)
+            .build()
+            .execute()
+            .join();
     java.util.List<Row> rows = resultSet.rows();
     assertThat(rows).isNotEmpty();
     assertThat(rows.size()).isEqualTo(1);
@@ -1117,18 +1315,28 @@ public abstract class PersistenceTest {
     createKeyspace();
     ResultSet createTable =
         dataStore
-            .query()
+            .queryBuilder()
             .create()
             .table(keyspace, table)
             .column("graph", Boolean, PartitionKey)
-            .execute();
+            .build()
+            .execute()
+            .join();
 
     dataStore.waitForSchemaAgreement();
 
-    ResultSet insert = dataStore.query().insertInto(keyspace, table).value("graph", true).execute();
+    ResultSet insert =
+        dataStore
+            .queryBuilder()
+            .insertInto(keyspace, table)
+            .value("graph", true)
+            .build()
+            .execute()
+            .join();
     assertThat(insert.waitedForSchemaAgreement()).isFalse();
 
-    ResultSet select = dataStore.query().select().star().from(keyspace, table).execute();
+    ResultSet select =
+        dataStore.queryBuilder().select().star().from(keyspace, table).build().execute().join();
     assertThat(select.waitedForSchemaAgreement()).isFalse();
 
     assertThat(select.hasNoMoreFetchedRows()).isFalse();
@@ -1138,13 +1346,15 @@ public abstract class PersistenceTest {
   private Keyspace createKeyspace() throws ExecutionException, InterruptedException {
     ResultSet result =
         dataStore
-            .query()
+            .queryBuilder()
             .create()
             .keyspace(keyspace)
             .ifNotExists()
-            .withReplication("{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }")
+            .withReplication(Replication.simpleStrategy(1))
             .andDurableWrites(true)
-            .execute();
+            .build()
+            .execute()
+            .join();
 
     Keyspace keyspace = dataStore.schema().keyspace(this.keyspace);
     assertThat(keyspace).isNotNull();
@@ -1191,7 +1401,7 @@ public abstract class PersistenceTest {
     // TTLs have a hard cap to 20 years, so we can't pass a bigger one that that or it will hard
     // throw rather than warn (and cap the TTL).
     ByteBuffer ttl = Int.codec().encode(20 * 365 * 24 * 60 * 60, ProtocolVersion.DEFAULT);
-    Result result = execute(conn, "INSERT INTO t(k) VALUES (0) USING TTL ?", ttl);
+    Result result = execute(conn, "INSERT INTO t (k) VALUES (0) USING TTL ?", ttl);
 
     assertThat(result.getWarnings()).hasSize(1);
     assertThat(result.getWarnings().get(0)).contains("exceeds maximum supported expiration");

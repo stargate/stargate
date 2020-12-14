@@ -1,7 +1,9 @@
 package io.stargate.web.docsapi.resources;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.stargate.auth.Scope;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.schema.SchemaEntity;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.models.DocCollection;
@@ -11,12 +13,25 @@ import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
-import io.swagger.annotations.*;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -58,6 +73,13 @@ public class CollectionsResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
           Set<Table> tables = localDB.schema().keyspace(namespace).tables();
+
+          db.getAuthorizationService()
+              .authorizeSchemaRead(
+                  token,
+                  Collections.singletonList(namespace),
+                  tables.stream().map(SchemaEntity::name).collect(Collectors.toList()));
+
           List<DocCollection> result =
               tables.stream()
                   .map(table -> collectionService.getCollectionInfo(table, db))
@@ -104,6 +126,9 @@ public class CollectionsResource {
           if (info.getName() == null) {
             throw new IllegalArgumentException("`name` is required to create a collection");
           }
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, namespace, info.getName(), Scope.CREATE);
+
           boolean res =
               collectionService.createCollection(namespace, info.getName(), docDB, db.isDse());
           if (res) {
@@ -144,13 +169,18 @@ public class CollectionsResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, namespace, collection, Scope.DROP);
+
           Table toDelete = localDB.schema().keyspace(namespace).table(collection);
           if (toDelete == null) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(String.format("Collection %s not found", collection))
                 .build();
           }
-          collectionService.deleteCollection(namespace, collection, new DocumentDB(localDB));
+          collectionService.deleteCollection(
+              namespace, collection, new DocumentDB(localDB, token, db.getAuthorizationService()));
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }
@@ -193,6 +223,10 @@ public class CollectionsResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, namespace, collection, Scope.ALTER);
+
           Table table = localDB.schema().keyspace(namespace).table(collection);
           if (table == null) {
             return Response.status(Response.Status.NOT_FOUND)
@@ -213,7 +247,7 @@ public class CollectionsResource {
               collectionService.upgradeCollection(
                   namespace,
                   collection,
-                  new DocumentDB(localDB),
+                  new DocumentDB(localDB, token, db.getAuthorizationService()),
                   request.getUpgradeType(),
                   db.isDse());
 

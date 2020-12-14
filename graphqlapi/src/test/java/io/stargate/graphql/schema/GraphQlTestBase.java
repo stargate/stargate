@@ -2,6 +2,8 @@ package io.stargate.graphql.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -16,18 +18,26 @@ import graphql.GraphQLError;
 import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.query.BoundQuery;
+import io.stargate.db.query.TypedValue.Codec;
+import io.stargate.db.query.builder.AbstractBound;
+import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Schema;
 import io.stargate.graphql.web.HttpAwareContext;
 import io.stargate.graphql.web.HttpAwareContext.BatchContext;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,19 +52,20 @@ import org.mockito.junit.jupiter.MockitoSettings;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = LENIENT)
 public abstract class GraphQlTestBase {
-
   private final String token = "mock token";
   protected GraphQL graphQl;
   protected GraphQLSchema graphQlSchema;
 
   @Mock protected Persistence persistence;
   @Mock protected AuthenticationService authenticationService;
+  @Mock protected AuthorizationService authorizationService;
   @Mock protected ResultSet resultSet;
   @Mock private StoredCredentials storedCredentials;
 
-  @Captor protected ArgumentCaptor<String> queryCaptor;
-  @Captor protected ArgumentCaptor<List<String>> batchCaptor;
-  @Captor protected ArgumentCaptor<Parameters> parametersCaptor;
+  @Captor private ArgumentCaptor<BoundQuery> queryCaptor;
+  @Captor protected ArgumentCaptor<Callable<ResultSet>> actionCaptor;
+  @Captor private ArgumentCaptor<List<BoundQuery>> batchCaptor;
+  @Captor protected ArgumentCaptor<DataStoreOptions> dataStoreOptionsCaptor;
 
   private MockedStatic<DataStore> dataStoreCreateMock;
 
@@ -64,32 +75,40 @@ public abstract class GraphQlTestBase {
   @BeforeEach
   public void setupEnvironment() {
     try {
+      Schema schema = getCQLSchema();
       String roleName = "mock role name";
       when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
       when(storedCredentials.getRoleName()).thenReturn(roleName);
+      when(authorizationService.authorizedDataRead(
+              actionCaptor.capture(), eq(token), anyString(), anyString(), any()))
+          .then(
+              i -> {
+                return actionCaptor.getValue().call();
+              });
       dataStoreCreateMock = mockStatic(DataStore.class);
       dataStoreCreateMock
-          .when(() -> DataStore.create(eq(persistence), eq(roleName), parametersCaptor.capture()))
+          .when(
+              () ->
+                  DataStore.create(eq(persistence), eq(roleName), dataStoreOptionsCaptor.capture()))
           .then(
               i -> {
                 DataStore dataStore = mock(DataStore.class);
-                when(dataStore.query(queryCaptor.capture()))
+                when(dataStore.queryBuilder())
+                    .thenReturn(new QueryBuilder(schema, Codec.testCodec(), dataStore));
+                when(dataStore.execute(queryCaptor.capture()))
                     .thenReturn(CompletableFuture.completedFuture(resultSet));
 
                 // Batches use multiple data store instances, one per each mutation
                 // We need to capture the parameters provided at dataStore creation
-                Parameters dataStoreParameters = i.getArgument(2, Parameters.class);
+                DataStoreOptions dataStoreOptions = i.getArgument(2, DataStoreOptions.class);
                 when(dataStore.batch(batchCaptor.capture()))
                     .then(
                         batchInvoke -> {
-                          batchParameters = dataStoreParameters;
+                          batchParameters = dataStoreOptions.defaultParameters();
                           return CompletableFuture.completedFuture(mock(ResultSet.class));
                         });
 
-                Schema schema = createCqlSchema();
-                if (schema != null) {
-                  when(dataStore.schema()).thenReturn(schema);
-                }
+                when(dataStore.schema()).thenReturn(schema);
                 return dataStore;
               });
     } catch (Exception e) {
@@ -111,17 +130,9 @@ public abstract class GraphQlTestBase {
     }
   }
 
-  /**
-   * Allows subclasses to mock the schema metadata that will be returned by the persistence layer.
-   * This is useful for DDL fetcher tests that create a {@link DdlSchemaBuilder} in {@link
-   * #createGraphQlSchema()} (this method is invoked first, so any keyspace created here will be
-   * visible when {@link #createGraphQlSchema()} runs).
-   */
-  protected Schema createCqlSchema() {
-    return null;
-  }
-
   protected abstract GraphQLSchema createGraphQlSchema();
+
+  public abstract Schema getCQLSchema();
 
   /**
    * Convenience method to execute a GraphQL query.
@@ -140,13 +151,29 @@ public abstract class GraphQlTestBase {
     return graphQl.execute(ExecutionInput.newExecutionInput(query).context(context).build());
   }
 
+  private String queryString(BoundQuery boundQuery) {
+    // Technically, bound#queryString() has all its value as markers (the values are in
+    // bound#values). However, those tests were written with expectedCqlQuery being the query with
+    // all the value "inlined". To avoid changing all the tests, we "cheat" a bit by reaching into
+    // the underlying BuiltQuery.
+    return ((AbstractBound<?>) boundQuery).source().query().toString();
+  }
+
+  public String getCapturedQueryString() {
+    return queryString(queryCaptor.getValue());
+  }
+
+  public List<String> getCapturedBatchQueriesString() {
+    return batchCaptor.getValue().stream().map(this::queryString).collect(Collectors.toList());
+  }
+
   /**
    * Convenience method to execute a GraphQL query and assert that it generates the given CQL query.
    */
   protected void assertQuery(String graphqlQuery, String expectedCqlQuery) {
     ExecutionResult result = executeGraphQl(graphqlQuery);
     assertThat(result.getErrors()).isEmpty();
-    assertThat(queryCaptor.getValue()).isEqualTo(expectedCqlQuery);
+    assertThat(getCapturedQueryString()).isEqualTo(expectedCqlQuery);
   }
 
   /**

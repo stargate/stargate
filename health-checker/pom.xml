@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.26-SNAPSHOT</version>
+    <version>1.0.1-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.health</groupId>
   <artifactId>health-checker</artifactId>
@@ -35,6 +35,18 @@
     <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-core</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>io.dropwizard.metrics</groupId>
+          <artifactId>metrics-healthchecks</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-healthchecks</artifactId>
+      <version>4.1.11</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.googlecode.json-simple</groupId>
@@ -98,6 +110,11 @@
       <groupId>io.prometheus</groupId>
       <artifactId>simpleclient_servlet</artifactId>
       <version>0.9.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.oshi</groupId>
+      <artifactId>oshi-core-shaded</artifactId>
+      <version>5.3.6</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -166,6 +183,7 @@
               io.dropwizard.*,
               org.osgi.framework,
               com.codahale.metrics,
+              com.codahale.metrics.*,
               io.stargate.core.*
             ]]></Import-Package>
             <Export-Package>!*</Export-Package>

@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
 import io.reactivex.Single;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Authenticator;
 import io.stargate.db.Batch;
 import io.stargate.db.BoundStatement;
@@ -104,6 +105,7 @@ public class DsePersistence
 
   // C* listener that ensures that our Stargate schema remains up-to-date with the internal C* one.
   private SchemaChangeListener schemaChangeListener;
+  private AtomicReference<AuthorizationService> authorizationService;
 
   public DsePersistence() {
     super("DataStax Enterprise");
@@ -193,6 +195,7 @@ public class DsePersistence
 
     interceptor.initialize();
     stargateHandler().register(interceptor);
+    stargateHandler().setAuthorizationService(this.authorizationService);
 
     authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
   }
@@ -309,7 +312,12 @@ public class DsePersistence
     return ClientState.forExternalCalls(clientInfo.remoteAddress(), null);
   }
 
+  public void setAuthorizationService(AtomicReference<AuthorizationService> authorizationService) {
+    this.authorizationService = authorizationService;
+  }
+
   private class DseConnection extends AbstractConnection {
+
     private final ClientState clientState;
     private final ServerConnection fakeServerConnection;
 
@@ -342,9 +350,15 @@ public class DsePersistence
     @Override
     protected void loginInternally(io.stargate.db.AuthenticatedUser user) {
       try {
-        // For now, we're blocking as the login() API is synchronous. If this is a problem, we may
-        // have to make said API asynchronous, but it makes things a tad more complex.
-        clientState.login(new AuthenticatedUser(user.name())).blockingGet();
+        if (user.isFromExternalAuth()
+            || Boolean.parseBoolean(
+                System.getProperty("stargate.cql_use_transitional_auth", "false"))) {
+          clientState.login(AuthenticatedUser.ANONYMOUS_USER);
+        } else {
+          // For now, we're blocking as the login() API is synchronous. If this is a problem, we may
+          // have to make said API asynchronous, but it makes things a tad more complex.
+          clientState.login(new AuthenticatedUser(user.name())).blockingGet();
+        }
       } catch (AuthenticationException e) {
         throw new org.apache.cassandra.stargate.exceptions.AuthenticationException(e);
       }
@@ -363,6 +377,8 @@ public class DsePersistence
             new QueryState(
                 ClientState.forExternalCalls(AuthenticatedUser.ANONYMOUS_USER),
                 UserRolesAndPermissions.SYSTEM));
+      } else if (clientState.getUser().isAnonymous()) {
+        return Single.just(new QueryState(clientState, UserRolesAndPermissions.SYSTEM));
       } else {
         return DatabaseDescriptor.getAuthManager()
             .getUserRolesAndPermissions(

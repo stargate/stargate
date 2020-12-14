@@ -23,7 +23,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.immutables.value.Value;
 
-class ColumnUtils {
+public class ColumnUtils {
   private static final Pattern PATTERN_DOUBLE_QUOTE = Pattern.compile("\"", Pattern.LITERAL);
   private static final String ESCAPED_DOUBLE_QUOTE = Matcher.quoteReplacement("\"\"");
   private static final Pattern UNQUOTED_IDENTIFIER = Pattern.compile("[a-z][a-z0-9_]*");
@@ -70,6 +70,10 @@ class ColumnUtils {
 
   public static String wrapIfContainsSpace(String s) {
     return ColumnUtils.containsWhitespace(s) ? "\"" + s + "\"" : s;
+  }
+
+  public static boolean isValidUnquotedIdentifier(String text) {
+    return UNQUOTED_IDENTIFIER.matcher(text).matches();
   }
 
   /**

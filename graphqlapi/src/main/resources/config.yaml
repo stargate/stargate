@@ -1,7 +1,6 @@
 server:
-  applicationConnectors:
-    - type: http
-      port: 8080
-  adminConnectors:
-    - type: http
-      port: 8091
+  type: graphql-api
+  applicationContextPath: /
+  connector:
+    type: http
+    port: 8080

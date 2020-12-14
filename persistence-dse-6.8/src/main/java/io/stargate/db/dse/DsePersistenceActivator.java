@@ -1,6 +1,8 @@
 package io.stargate.db.dse;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.common.StargateConfigSnitch;
@@ -14,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.List;
 import org.apache.cassandra.auth.CassandraAuthorizer;
 import org.apache.cassandra.auth.PasswordAuthenticator;
 import org.apache.cassandra.config.Config;
@@ -23,21 +26,22 @@ import org.apache.cassandra.dht.Murmur3Partitioner;
 import org.apache.cassandra.locator.SimpleSnitch;
 import org.apache.cassandra.metrics.CassandraMetricsRegistry;
 import org.apache.commons.io.FileUtils;
-import org.osgi.framework.BundleActivator;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.InvalidSyntaxException;
-import org.osgi.framework.ServiceEvent;
-import org.osgi.framework.ServiceListener;
-import org.osgi.framework.ServiceReference;
-import org.osgi.framework.ServiceRegistration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class DsePersistenceActivator implements BundleActivator, ServiceListener {
-  private static final Logger logger = LoggerFactory.getLogger(DsePersistenceActivator.class);
+public class DsePersistenceActivator extends BaseActivator {
+
+  private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  private final LazyServicePointer<AuthorizationService> authorizationService =
+      LazyServicePointer.create(
+          AuthorizationService.class,
+          "AuthIdentifier",
+          System.getProperty("stargate.auth_id", "AuthTableBasedService"));
+
   private DsePersistence dseDB;
   private File baseDir;
-  private volatile BundleContext context;
+
+  public DsePersistenceActivator() {
+    super("DSE Stargate Backend");
+  }
 
   @VisibleForTesting
   public static Config makeConfig(File baseDir) throws IOException {
@@ -121,42 +125,26 @@ public class DsePersistenceActivator implements BundleActivator, ServiceListener
   }
 
   @Override
-  public void start(BundleContext context) {
-    logger.info("Starting DSE Stargate Backend");
+  protected ServiceAndProperties createService() {
     dseDB = new DsePersistence();
-    this.context = context;
-
-    ServiceReference<?> metricsReference = context.getServiceReference(Metrics.class.getName());
-    if (metricsReference != null) {
-      logger.debug("Setting metrics in start");
-      Metrics metrics = (Metrics) context.getService(metricsReference);
-      setMetrics(metrics);
-    }
-
-    try {
-      context.addServiceListener(this, String.format("(objectClass=%s)", Metrics.class.getName()));
-    } catch (InvalidSyntaxException ise) {
-      throw new RuntimeException(ise);
-    }
-
+    // TODO copy metrics if this gets invoked more than once?
+    CassandraMetricsRegistry.actualRegistry = metrics.get().getRegistry("persistence-dse-68");
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "DsePersistence");
-
     try {
       // Throw away data directory since stargate is ephemeral anyway
       baseDir = Files.createTempDirectory("stargate-dse").toFile();
 
+      dseDB.setAuthorizationService(authorizationService.get());
       dseDB.initialize(makeConfig(baseDir));
+      return new ServiceAndProperties(dseDB, Persistence.class, props);
     } catch (IOException e) {
       throw new IOError(e);
     }
-
-    ServiceRegistration<?> registration =
-        context.registerService(Persistence.class.getName(), dseDB, props);
   }
 
   @Override
-  public void stop(BundleContext context) {
+  protected void stopService() {
     try {
       if (dseDB != null) dseDB.destroy();
     } finally {
@@ -169,21 +157,12 @@ public class DsePersistenceActivator implements BundleActivator, ServiceListener
   }
 
   @Override
-  public void serviceChanged(ServiceEvent serviceEvent) {
-    int type = serviceEvent.getType();
-    String[] objectClass = (String[]) serviceEvent.getServiceReference().getProperty("objectClass");
-    if (type == ServiceEvent.REGISTERED) {
-      logger.info("Service of type " + objectClass[0] + " registered.");
-      Object service = context.getService(serviceEvent.getServiceReference());
-      if (service instanceof Metrics) {
-        logger.debug("Setting metrics in serviceChanged");
-        setMetrics((Metrics) service);
-      }
-    }
+  protected List<ServicePointer<?>> dependencies() {
+    return Collections.singletonList(metrics);
   }
 
-  private static void setMetrics(Metrics metrics) {
-    // TODO copy metrics if this gets invoked more than once?
-    CassandraMetricsRegistry.actualRegistry = metrics.getRegistry("persistence-dse-68");
+  @Override
+  protected List<LazyServicePointer<?>> lazyDependencies() {
+    return Collections.singletonList(authorizationService);
   }
 }

@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.26-SNAPSHOT</version>
+    <version>1.0.1-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.web</groupId>
   <artifactId>restapi</artifactId>
@@ -34,7 +34,7 @@
     </dependency>
     <dependency>
       <groupId>io.stargate.auth</groupId>
-      <artifactId>authentication</artifactId>
+      <artifactId>authnz</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -80,6 +80,7 @@
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-core</artifactId>
       <version>${driver.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>javax.validation</groupId>
@@ -239,11 +240,13 @@
                             org.apache.cassandra.stargate,
                             org.apache.cassandra.stargate.*,
                             io.stargate.db,
+                            io.stargate.db.query,
+                            io.stargate.db.query.builder,
                             io.stargate.db.datastore,
-                            io.stargate.db.datastore.query,
                             org.javatuples,
                             io.stargate.core,
                             com.codahale.metrics,
+                            com.datastax.oss.driver.*,
                             org.osgi.framework
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>

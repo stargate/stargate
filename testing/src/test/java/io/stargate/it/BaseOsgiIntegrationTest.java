@@ -22,6 +22,7 @@ import io.stargate.it.storage.StargateSpec;
 import io.stargate.it.storage.UseStargateContainer;
 import java.io.File;
 import java.net.URL;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 
 /** This class manages starting Stargate OSGi containers. */
@@ -52,5 +53,10 @@ public class BaseOsgiIntegrationTest {
   public boolean isCassandra4() {
     return !backend.isDse()
         && Version.parse(backend.clusterVersion()).nextStable().compareTo(Version.V4_0_0) >= 0;
+  }
+
+  public static Instant now() {
+    // Avoid using Instants with nanosecond precision as nanos may be lost on the server side
+    return Instant.ofEpochMilli(System.currentTimeMillis());
   }
 }

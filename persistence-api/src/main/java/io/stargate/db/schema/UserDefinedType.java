@@ -119,6 +119,10 @@ public abstract class UserDefinedType implements Column.ColumnType, SchemaEntity
     return ImmutableUserDefinedType.builder().keyspace(ANONYMOUS).name(name).build();
   }
 
+  public static UserDefinedType reference(String ksName, String name) {
+    return ImmutableUserDefinedType.builder().keyspace(ksName).name(name).build();
+  }
+
   @Override
   @Value.Lazy
   public TypeCodec codec() {

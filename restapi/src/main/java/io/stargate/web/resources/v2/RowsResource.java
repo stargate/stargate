@@ -18,13 +18,16 @@ package io.stargate.web.resources.v2;
 import com.codahale.metrics.annotation.Timed;
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.Scope;
+import io.stargate.auth.TypedKeyValue;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.query.ColumnOrder;
-import io.stargate.db.datastore.query.ImmutableColumnOrder;
-import io.stargate.db.datastore.query.Value;
-import io.stargate.db.datastore.query.Where;
+import io.stargate.db.query.BoundDMLQuery;
+import io.stargate.db.query.BoundQuery;
+import io.stargate.db.query.BoundSelect;
+import io.stargate.db.query.builder.BuiltCondition;
+import io.stargate.db.query.builder.ColumnOrder;
+import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.Error;
@@ -46,7 +49,6 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.inject.Inject;
@@ -64,8 +66,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Api(
     produces = MediaType.APPLICATION_JSON,
@@ -74,8 +74,6 @@ import org.slf4j.LoggerFactory;
 @Path("/v2/keyspaces/{keyspaceName}/{tableName}")
 @Produces(MediaType.APPLICATION_JSON)
 public class RowsResource {
-
-  private static final Logger logger = LoggerFactory.getLogger(RowsResource.class);
 
   @Inject private Db db;
   private static final ObjectMapper mapper = new ObjectMapper();
@@ -162,6 +160,7 @@ public class RowsResource {
 
           Object response =
               getRows(
+                  token,
                   fields,
                   raw,
                   sort,
@@ -234,7 +233,7 @@ public class RowsResource {
           DataStore localDB = db.getDataStoreForToken(token, pageSize, pageState);
           final Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
 
-          List<Where<?>> where;
+          List<BuiltCondition> where;
           try {
             where = buildWhereForPath(tableMetadata, path);
           } catch (IllegalArgumentException iae) {
@@ -246,7 +245,7 @@ public class RowsResource {
                 .build();
           }
 
-          Object response = getRows(fields, raw, sort, localDB, tableMetadata, where);
+          Object response = getRows(token, fields, raw, sort, localDB, tableMetadata, where);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();
@@ -292,21 +291,33 @@ public class RowsResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          Map<String, String> requestBody = mapper.readValue(payload, Map.class);
+          @SuppressWarnings("unchecked")
+          Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
 
           Table table = db.getTable(localDB, keyspaceName, tableName);
 
-          List<Value<?>> values =
+          List<ValueModifier> values =
               requestBody.entrySet().stream()
-                  .map((e) -> Converters.colToValue(e, table))
+                  .map(e -> Converters.colToValue(e.getKey(), e.getValue(), table))
                   .collect(Collectors.toList());
 
-          localDB
-              .query()
-              .insertInto(keyspaceName, tableName)
-              .value(values)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+          BoundQuery query =
+              localDB
+                  .queryBuilder()
+                  .insertInto(keyspaceName, tableName)
+                  .value(values)
+                  .build()
+                  .bind();
+
+          db.getAuthorizationService()
+              .authorizeDataWrite(
+                  token,
+                  keyspaceName,
+                  tableName,
+                  TypedKeyValue.forDML((BoundDMLQuery) query),
+                  Scope.MODIFY);
+
+          localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
           Map<String, Object> keys = new HashMap<>();
           for (Column col : table.primaryKeyColumns()) {
@@ -394,7 +405,7 @@ public class RowsResource {
 
           final Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
 
-          List<Where<?>> where;
+          List<BuiltCondition> where;
           try {
             where = buildWhereForPath(tableMetadata, path);
           } catch (IllegalArgumentException iae) {
@@ -406,14 +417,24 @@ public class RowsResource {
                 .build();
           }
 
-          localDB
-              .query()
-              .delete()
-              .from(keyspaceName, tableName)
-              .where(where)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+          BoundQuery query =
+              localDB
+                  .queryBuilder()
+                  .delete()
+                  .from(keyspaceName, tableName)
+                  .where(where)
+                  .build()
+                  .bind();
 
+          db.getAuthorizationService()
+              .authorizeDataWrite(
+                  token,
+                  keyspaceName,
+                  tableName,
+                  TypedKeyValue.forDML((BoundDMLQuery) query),
+                  Scope.DELETE);
+
+          localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }
@@ -464,13 +485,12 @@ public class RowsResource {
       List<PathSegment> path,
       boolean raw,
       String payload)
-      throws UnauthorizedException, com.fasterxml.jackson.core.JsonProcessingException,
-          ExecutionException, InterruptedException {
+      throws Exception {
     DataStore localDB = db.getDataStoreForToken(token);
 
     final Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
 
-    List<Where<?>> where;
+    List<BuiltCondition> where;
     try {
       where = buildWhereForPath(tableMetadata, path);
     } catch (IllegalArgumentException iae) {
@@ -482,32 +502,43 @@ public class RowsResource {
           .build();
     }
 
-    Map<String, String> requestBody = mapper.readValue(payload, Map.class);
-    List<Value<?>> changes =
+    @SuppressWarnings("unchecked")
+    Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
+    List<ValueModifier> changes =
         requestBody.entrySet().stream()
-            .map((e) -> Converters.colToValue(e, tableMetadata))
+            .map(e -> Converters.colToValue(e.getKey(), e.getValue(), tableMetadata))
             .collect(Collectors.toList());
 
-    final ResultSet r =
+    BoundQuery query =
         localDB
-            .query()
+            .queryBuilder()
             .update(keyspaceName, tableName)
             .value(changes)
             .where(where)
-            .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-            .execute();
+            .build()
+            .bind();
 
+    db.getAuthorizationService()
+        .authorizeDataWrite(
+            token,
+            keyspaceName,
+            tableName,
+            TypedKeyValue.forDML((BoundDMLQuery) query),
+            Scope.MODIFY);
+
+    localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
     Object response = raw ? requestBody : new ResponseWrapper(requestBody);
     return Response.status(Response.Status.OK).entity(Converters.writeResponse(response)).build();
   }
 
   private Object getRows(
+      String token,
       String fields,
       boolean raw,
       String sort,
       DataStore localDB,
       Table tableMetadata,
-      List<Where<?>> where)
+      List<BuiltCondition> where)
       throws Exception {
     List<Column> columns;
     if (Strings.isNullOrEmpty(fields)) {
@@ -517,16 +548,25 @@ public class RowsResource {
           Arrays.stream(fields.split(",")).map(Column::reference).collect(Collectors.toList());
     }
 
-    final ResultSet r =
+    BoundQuery query =
         localDB
-            .query()
+            .queryBuilder()
             .select()
             .column(columns)
             .from(tableMetadata.keyspace(), tableMetadata.name())
             .where(where)
             .orderBy(buildSortOrder(sort))
-            .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-            .execute();
+            .build()
+            .bind();
+
+    final ResultSet r =
+        db.getAuthorizationService()
+            .authorizedDataRead(
+                () -> localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
+                token,
+                tableMetadata.keyspace(),
+                tableMetadata.name(),
+                TypedKeyValue.forSelect((BoundSelect) query));
 
     List<Map<String, Object>> rows =
         r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
@@ -548,13 +588,13 @@ public class RowsResource {
 
     for (Map.Entry<String, String> entry : sortOrder.entrySet()) {
       Column.Order colOrder =
-          "asc".equals(entry.getValue().toLowerCase()) ? Column.Order.Asc : Column.Order.Desc;
-      order.add(ImmutableColumnOrder.of(entry.getKey(), colOrder));
+          "asc".equalsIgnoreCase(entry.getValue()) ? Column.Order.ASC : Column.Order.DESC;
+      order.add(ColumnOrder.of(entry.getKey(), colOrder));
     }
     return order;
   }
 
-  private List<Where<?>> buildWhereForPath(Table tableMetadata, List<PathSegment> path) {
+  private List<BuiltCondition> buildWhereForPath(Table tableMetadata, List<PathSegment> path) {
     List<Column> keys = tableMetadata.primaryKeyColumns();
     boolean notAllPartitionKeys = path.size() < tableMetadata.partitionKeyColumns().size();
     boolean tooManyValues = path.size() > keys.size();

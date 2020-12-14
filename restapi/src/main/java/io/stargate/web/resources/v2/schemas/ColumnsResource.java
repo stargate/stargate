@@ -16,9 +16,12 @@
 package io.stargate.web.resources.v2.schemas;
 
 import com.codahale.metrics.annotation.Timed;
+import io.stargate.auth.Scope;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.ImmutableColumn;
+import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.models.Error;
@@ -91,6 +94,11 @@ public class ColumnsResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+          db.getAuthorizationService()
+              .authorizeSchemaRead(
+                  token,
+                  Collections.singletonList(keyspaceName),
+                  Collections.singletonList(tableName));
 
           final Table tableMetadata;
           try {
@@ -153,6 +161,15 @@ public class ColumnsResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+          Keyspace keyspace = localDB.schema().keyspace(keyspaceName);
+          if (keyspace == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        String.format("keyspace '%s' not found", keyspaceName),
+                        Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
 
           String name = columnDefinition.getName();
           Column.Kind kind = Column.Kind.Regular;
@@ -160,20 +177,28 @@ public class ColumnsResource {
             kind = Column.Kind.Static;
           }
 
-          Column column =
-              ImmutableColumn.builder()
-                  .name(name)
-                  .kind(kind)
-                  .type(Column.Type.fromCqlDefinitionOf(columnDefinition.getTypeDefinition()))
-                  .build();
+          ColumnType type;
+          try {
+            type = Column.Type.fromCqlDefinitionOf(keyspace, columnDefinition.getTypeDefinition());
+          } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new Error(e.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
+
+          Column column = ImmutableColumn.builder().name(name).kind(kind).type(type).build();
+
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
 
           localDB
-              .query()
+              .queryBuilder()
               .alter()
               .table(keyspaceName, tableName)
               .addColumn(column)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+              .build()
+              .execute(ConsistencyLevel.LOCAL_QUORUM)
+              .get();
 
           return Response.status(Response.Status.CREATED)
               .entity(
@@ -217,6 +242,11 @@ public class ColumnsResource {
     return RequestHandler.handle(
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
+          db.getAuthorizationService()
+              .authorizeSchemaRead(
+                  token,
+                  Collections.singletonList(keyspaceName),
+                  Collections.singletonList(tableName));
 
           final Table tableMetadata;
           try {
@@ -285,21 +315,17 @@ public class ColumnsResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          String alterInstructions =
-              "RENAME "
-                  + Converters.maybeQuote(columnName)
-                  + " TO "
-                  + Converters.maybeQuote(columnUpdate.getName());
-          localDB
-              .query(
-                  String.format(
-                      "ALTER TABLE %s.%s %s",
-                      Converters.maybeQuote(keyspaceName),
-                      Converters.maybeQuote(tableName),
-                      alterInstructions),
-                  ConsistencyLevel.LOCAL_QUORUM)
-              .get();
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
 
+          localDB
+              .queryBuilder()
+              .alter()
+              .table(keyspaceName, tableName)
+              .renameColumn(columnName, columnUpdate.getName())
+              .build()
+              .execute()
+              .get();
           return Response.status(Response.Status.OK)
               .entity(
                   Converters.writeResponse(
@@ -337,13 +363,17 @@ public class ColumnsResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
+
           localDB
-              .query()
+              .queryBuilder()
               .alter()
               .table(keyspaceName, tableName)
               .dropColumn(columnName)
-              .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
-              .execute();
+              .build()
+              .execute(ConsistencyLevel.LOCAL_QUORUM)
+              .get();
 
           return Response.status(Response.Status.NO_CONTENT).build();
         });

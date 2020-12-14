@@ -15,7 +15,6 @@
  */
 package io.stargate.db.schema;
 
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -44,15 +43,6 @@ public abstract class Table extends AbstractTable {
         .name(name)
         .columns(columns)
         .indexes(indexes)
-        .build();
-  }
-
-  public static Table reference(String keyspace, String name) {
-    return ImmutableTable.builder()
-        .keyspace(keyspace)
-        .name(name)
-        .columns(ImmutableList.of())
-        .indexes(ImmutableList.of())
         .build();
   }
 

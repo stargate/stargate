@@ -15,93 +15,52 @@
  */
 package io.stargate.graphql.schema.fetchers.ddl;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.core.metadata.schema.ClusteringOrder;
-import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
-import com.datastax.oss.driver.api.querybuilder.schema.CreateTable;
-import com.datastax.oss.driver.api.querybuilder.schema.CreateTableStart;
-import com.datastax.oss.driver.api.querybuilder.schema.CreateTableWithOptions;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
+import io.stargate.db.query.Query;
+import io.stargate.db.query.builder.QueryBuilder;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.Kind;
 import java.util.List;
 import java.util.Map;
 
-public class CreateTableFetcher extends DdlQueryFetcher {
+public class CreateTableFetcher extends TableFetcher {
 
-  public CreateTableFetcher(Persistence persistence, AuthenticationService authenticationService) {
-    super(persistence, authenticationService);
+  public CreateTableFetcher(
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(persistence, authenticationService, authorizationService);
   }
 
-  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {
-    CreateTableStart start =
-        SchemaBuilder.createTable(
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("keyspaceName")),
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("tableName")));
-
+  @Override
+  protected Query<?> buildQuery(
+      DataFetchingEnvironment dataFetchingEnvironment,
+      QueryBuilder builder,
+      String keyspaceName,
+      String tableName) {
     Boolean ifNotExists = dataFetchingEnvironment.getArgument("ifNotExists");
-    if (ifNotExists != null && ifNotExists) {
-      start = start.ifNotExists();
-    }
-
-    CreateTable table = null;
     List<Map<String, Object>> partitionKeys = dataFetchingEnvironment.getArgument("partitionKeys");
     if (partitionKeys.isEmpty()) {
       // TODO see if we can enforce that through the schema instead
       throw new IllegalArgumentException("partitionKeys must contain at least one element");
     }
-    for (Map<String, Object> key : partitionKeys) {
-      table =
-          (table == null ? start : table)
-              .withPartitionKey(
-                  CqlIdentifier.fromInternal((String) key.get("name")),
-                  decodeType(key.get("type")));
-    }
-
     List<Map<String, Object>> clusteringKeys =
         dataFetchingEnvironment.getArgument("clusteringKeys");
-    if (clusteringKeys != null) {
-      for (Map<String, Object> key : clusteringKeys) {
-        table =
-            table.withClusteringColumn(
-                CqlIdentifier.fromInternal((String) key.get("name")), decodeType(key.get("type")));
-      }
-    }
-
     List<Map<String, Object>> values = dataFetchingEnvironment.getArgument("values");
-    if (values != null) {
-      for (Map<String, Object> key : values) {
-        table =
-            table.withColumn(
-                CqlIdentifier.fromInternal((String) key.get("name")), decodeType(key.get("type")));
-      }
-    }
 
-    CreateTableWithOptions options = null;
-    if (clusteringKeys != null) {
-      for (Map<String, Object> key : clusteringKeys) {
-        options =
-            (options == null ? table : options)
-                .withClusteringOrder(
-                    CqlIdentifier.fromInternal((String) key.get("name")),
-                    decodeClusteringOrder((String) key.get("order")));
-      }
-    }
-    String query;
-    if (options != null) {
-      query = options.build().getQuery();
-    } else {
-      query = table.build().getQuery();
-    }
-
-    return query;
-  }
-
-  private ClusteringOrder decodeClusteringOrder(String order) {
-    if (order == null) {
-      // Use the same default as CQL
-      return ClusteringOrder.ASC;
-    }
-    return ClusteringOrder.valueOf(order);
+    List<Column> partitionKeyColumns = decodeColumns(partitionKeys, Kind.PartitionKey);
+    List<Column> clusteringColumns = decodeColumns(clusteringKeys, Kind.Clustering);
+    List<Column> regularColumns = decodeColumns(values, Kind.Regular);
+    return builder
+        .create()
+        .table(keyspaceName, tableName)
+        .ifNotExists(ifNotExists != null && ifNotExists)
+        .column(partitionKeyColumns)
+        .column(clusteringColumns)
+        .column(regularColumns)
+        .build();
   }
 }

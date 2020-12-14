@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.26-SNAPSHOT</version>
+    <version>1.0.1-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.it</groupId>
   <artifactId>testing</artifactId>
@@ -186,6 +186,12 @@
       <groupId>io.netty</groupId>
       <artifactId>netty-all</artifactId>
       <version>4.1.50.Final</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <version>1.15.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -424,7 +430,7 @@
                 <configuration>
                   <systemPropertyVariables>
                     <ccm.dse>true</ccm.dse>
-                    <ccm.version>6.8.5</ccm.version>
+                    <ccm.version>6.8.7</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>

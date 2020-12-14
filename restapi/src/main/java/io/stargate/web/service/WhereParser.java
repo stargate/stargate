@@ -21,8 +21,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.stargate.db.datastore.query.ImmutableWhereCondition;
-import io.stargate.db.datastore.query.Where;
+import io.stargate.db.query.builder.BuiltCondition;
+import io.stargate.db.query.builder.BuiltCondition.LHS;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import io.stargate.web.resources.Converters;
@@ -30,19 +30,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import org.javatuples.Pair;
 
 public class WhereParser {
   private static final ObjectMapper mapper = new ObjectMapper();
 
-  public static List<Where<?>> parseWhere(String whereParam, Table tableData) throws IOException {
+  public static List<BuiltCondition> parseWhere(String whereParam, Table tableData)
+      throws IOException {
     JsonNode filterJson;
     try {
       filterJson = mapper.readTree(whereParam);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Input provided is not valid json");
     }
-    List<Where<?>> conditions = new ArrayList<>();
+    List<BuiltCondition> conditions = new ArrayList<>();
 
     if (!filterJson.isObject()) {
       throw new RuntimeException("Was expecting a JSON object as input for where parameter.");
@@ -105,15 +105,11 @@ public class WhereParser {
           }
           Column.ColumnType keyType = mapType.parameters().get(0);
           Column.ColumnType valueType = mapType.parameters().get(1);
+          Object mapKey = Converters.toCqlValue(keyType, entryKey.asText());
+          Object mapValue = Converters.toCqlValue(valueType, entryValue.asText());
           conditions.add(
-              ImmutableWhereCondition.builder()
-                  .column(fieldName.toLowerCase())
-                  .predicate(op.predicate)
-                  .value(
-                      Pair.with(
-                          Converters.typeForValue(keyType, entryKey.asText()),
-                          Converters.typeForValue(valueType, entryValue.asText())))
-                  .build());
+              BuiltCondition.of(
+                  LHS.mapAccess(fieldName.toLowerCase(), mapKey), op.predicate, mapValue));
         } else {
           // Remaining operators: the value is a simple node
           if (!value.isValueNode()) {
@@ -157,7 +153,7 @@ public class WhereParser {
               } else {
                 valueType = columnType;
               }
-              val = Converters.typeForValue(valueType, value.asText());
+              val = Converters.toCqlValue(valueType, value.asText());
             }
             conditions.add(conditionToWhere(fieldName, op, val));
           }
@@ -168,11 +164,7 @@ public class WhereParser {
     return conditions;
   }
 
-  private static Where<?> conditionToWhere(String fieldName, FilterOp op, Object value) {
-    return ImmutableWhereCondition.builder()
-        .value(value)
-        .predicate(op.predicate)
-        .column(fieldName.toLowerCase())
-        .build();
+  private static BuiltCondition conditionToWhere(String fieldName, FilterOp op, Object value) {
+    return BuiltCondition.of(fieldName.toLowerCase(), op.predicate, value);
   }
 }

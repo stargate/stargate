@@ -1,10 +1,11 @@
 package io.stargate.db.datastore;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
-import io.stargate.db.BoundStatement;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
+import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
+import io.stargate.db.Result.Rows;
 import io.stargate.db.Statement;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
@@ -18,6 +19,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
 
 class PersistenceBackedResultSet implements ResultSet {
@@ -29,6 +31,8 @@ class PersistenceBackedResultSet implements ResultSet {
   private final ProtocolVersion driverProtocolVersion;
   private final Deque<Row> fetchedRows;
   private final List<Column> columns;
+  private Predicate<Row> authzFilter;
+  private final Result.Rows initialPage; // Used for calling withRowInspector()
 
   // Paging state to fetch the next page, or null is we've fetched all pages.
   private ByteBuffer nextPagingState;
@@ -38,15 +42,25 @@ class PersistenceBackedResultSet implements ResultSet {
       Parameters parameters,
       @Nullable Statement statement,
       Result.Rows initialPage) {
+    this(connection, parameters, statement, initialPage, null);
+  }
+
+  private PersistenceBackedResultSet(
+      Connection connection,
+      Parameters parameters,
+      Statement statement,
+      Rows initialPage,
+      Predicate<Row> authzFilter) {
     this.connection = connection;
     // We get our metadata in our initial page; let's skip it for following pages
     this.parameters = parameters.withoutMetadataInResult();
     this.statement = statement;
-    this.driverProtocolVersion =
-        PersistenceBackedDataStore.toDriverVersion(parameters.protocolVersion());
+    this.driverProtocolVersion = parameters.protocolVersion().toDriverVersion();
     this.fetchedRows = new ArrayDeque<>(parameters.pageSize().orElse(32));
     this.columns = processColumns(initialPage.resultMetadata.columns);
+    this.authzFilter = authzFilter;
     processNewPage(initialPage);
+    this.initialPage = initialPage;
     if (nextPagingState != null && this.statement == null) {
       throw new IllegalStateException(
           "The statement must be provided if there is more than the initial page.");
@@ -56,12 +70,11 @@ class PersistenceBackedResultSet implements ResultSet {
   static ResultSet create(
       Persistence.Connection connection,
       Result result,
-      @Nullable BoundStatement statement,
+      @Nullable Statement statement,
       Parameters executeParameters) {
     switch (result.kind) {
       case Prepared:
-        throw new AssertionError(
-            "Shouldn't get a 'Prepared' result when executing a prepared statement");
+        throw new AssertionError("Shouldn't get a 'Prepared' result when executing a statement");
       case SchemaChange:
         connection.persistence().waitForSchemaAgreement();
         return ResultSet.empty(true);
@@ -104,7 +117,11 @@ class PersistenceBackedResultSet implements ResultSet {
 
   private void processNewPage(Result.Rows page) {
     for (List<ByteBuffer> rowValues : page.rows) {
-      fetchedRows.addLast(new ArrayListBackedRow(columns, rowValues, driverProtocolVersion));
+      ArrayListBackedRow arrayListBackedRow =
+          new ArrayListBackedRow(columns, rowValues, driverProtocolVersion);
+      if (authzFilter == null || authzFilter.test(arrayListBackedRow)) {
+        fetchedRows.addLast(arrayListBackedRow);
+      }
     }
     nextPagingState = page.resultMetadata.pagingState;
   }
@@ -167,6 +184,12 @@ class PersistenceBackedResultSet implements ResultSet {
       }
       fetchNextPage();
     }
+  }
+
+  @Override
+  public ResultSet withRowInspector(Predicate<Row> authzFilter) {
+    return new PersistenceBackedResultSet(
+        this.connection, this.parameters, this.statement, this.initialPage, authzFilter);
   }
 
   @Override

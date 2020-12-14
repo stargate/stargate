@@ -15,42 +15,34 @@
  */
 package io.stargate.graphql.schema.fetchers.ddl;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
-import com.datastax.oss.driver.api.querybuilder.schema.AlterTableDropColumnEnd;
-import com.datastax.oss.driver.api.querybuilder.schema.AlterTableStart;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
+import io.stargate.db.query.Query;
+import io.stargate.db.query.builder.QueryBuilder;
 import java.util.List;
 
-public class AlterTableDropFetcher extends DdlQueryFetcher {
+public class AlterTableDropFetcher extends TableFetcher {
 
   public AlterTableDropFetcher(
-      Persistence persistence, AuthenticationService authenticationService) {
-    super(persistence, authenticationService);
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(persistence, authenticationService, authorizationService);
   }
 
   @Override
-  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {
-    AlterTableStart start =
-        SchemaBuilder.alterTable(
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("keyspaceName")),
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("tableName")));
-
+  protected Query<?> buildQuery(
+      DataFetchingEnvironment dataFetchingEnvironment,
+      QueryBuilder builder,
+      String keyspaceName,
+      String tableName) {
     List<String> toDrop = dataFetchingEnvironment.getArgument("toDrop");
     if (toDrop.isEmpty()) {
       // TODO see if we can enforce that through the schema instead
       throw new IllegalArgumentException("toDrop must contain at least one element");
     }
-    AlterTableDropColumnEnd table = null;
-    for (String column : toDrop) {
-      if (table != null) {
-        table = table.dropColumn(CqlIdentifier.fromInternal(column));
-      } else {
-        table = start.dropColumn(CqlIdentifier.fromInternal(column));
-      }
-    }
-    return table.build().getQuery();
+    return builder.alter().table(keyspaceName, tableName).dropColumn(toDrop).build();
   }
 }

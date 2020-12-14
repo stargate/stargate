@@ -6,13 +6,16 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-@Path("/checker")
+/**
+ * Handles the two application resources under the '/checker/' path.
+ *
+ * <p>Note that they are a bit redundant with regular DropWizard health checks under '/healthcheck',
+ * but we preserve them because they were there first and some tools depend on them.
+ */
+@Path("/")
 @Produces(MediaType.APPLICATION_JSON)
 public class CheckerResource {
-  private static final Logger logger = LoggerFactory.getLogger(CheckerResource.class);
 
   @Inject private BundleService bundleService;
 

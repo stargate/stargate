@@ -15,48 +15,41 @@
  */
 package io.stargate.graphql.schema.fetchers.ddl;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
-import com.datastax.oss.driver.api.querybuilder.schema.AlterTableAddColumnEnd;
-import com.datastax.oss.driver.api.querybuilder.schema.AlterTableStart;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
+import io.stargate.db.query.Query;
+import io.stargate.db.query.builder.QueryBuilder;
+import io.stargate.db.schema.Column.Kind;
 import java.util.List;
 import java.util.Map;
 
-public class AlterTableAddFetcher extends DdlQueryFetcher {
+public class AlterTableAddFetcher extends TableFetcher {
 
   public AlterTableAddFetcher(
-      Persistence persistence, AuthenticationService authenticationService) {
-    super(persistence, authenticationService);
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
+    super(persistence, authenticationService, authorizationService);
   }
 
-  public String getQuery(DataFetchingEnvironment dataFetchingEnvironment) {
-    AlterTableStart start =
-        SchemaBuilder.alterTable(
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("keyspaceName")),
-            CqlIdentifier.fromInternal(dataFetchingEnvironment.getArgument("tableName")));
-
+  @Override
+  protected Query<?> buildQuery(
+      DataFetchingEnvironment dataFetchingEnvironment,
+      QueryBuilder builder,
+      String keyspaceName,
+      String tableName) {
     List<Map<String, Object>> toAdd = dataFetchingEnvironment.getArgument("toAdd");
     if (toAdd.isEmpty()) {
       // TODO see if we can enforce that through the schema instead
       throw new IllegalArgumentException("toAdd must contain at least one element");
     }
-    AlterTableAddColumnEnd table = null;
-    for (Map<String, Object> column : toAdd) {
-      if (table != null) {
-        table =
-            table.addColumn(
-                CqlIdentifier.fromInternal((String) column.get("name")),
-                decodeType(column.get("type")));
-      } else {
-        table =
-            start.addColumn(
-                CqlIdentifier.fromInternal((String) column.get("name")),
-                decodeType(column.get("type")));
-      }
-    }
-    return table.build().getQuery();
+
+    return builder
+        .alter()
+        .table(keyspaceName, tableName)
+        .addColumn(decodeColumns(toAdd, Kind.Regular))
+        .build();
   }
 }

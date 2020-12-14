@@ -7,15 +7,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import graphql.Scalars;
 import graphql.schema.GraphQLInputObjectType;
 import graphql.schema.GraphQLObjectType;
-import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.Schema;
+import java.util.Collections;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class DmlSchemaUdtTest extends DmlTestBase {
 
   @Override
-  public Keyspace getKeyspace() {
-    return SampleKeyspaces.UDTS;
+  public Schema getCQLSchema() {
+    return Schema.create(Collections.singleton(SampleKeyspaces.UDTS));
   }
 
   @Test

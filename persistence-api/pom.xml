@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>0.0.26-SNAPSHOT</version>
+    <version>1.0.1-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db</groupId>
   <artifactId>persistence-api</artifactId>
@@ -87,6 +87,11 @@
       <version>4.0-alpha4</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -103,8 +108,9 @@
             <Export-Package><![CDATA[
               io.stargate.db,
               io.stargate.db.datastore,
+              io.stargate.db.query,
+              io.stargate.db.query.builder,
               io.stargate.db.schema,
-              io.stargate.db.datastore.query,
               org.javatuples,
               org.apache.cassandra.stargate,
               org.apache.cassandra.stargate.*,

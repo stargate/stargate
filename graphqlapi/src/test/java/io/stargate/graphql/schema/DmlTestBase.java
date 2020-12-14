@@ -5,7 +5,6 @@ import graphql.schema.GraphQLSchema;
 import io.stargate.db.datastore.ArrayListBackedRow;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
-import io.stargate.db.schema.Keyspace;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,10 +14,12 @@ public abstract class DmlTestBase extends GraphQlTestBase {
 
   @Override
   protected GraphQLSchema createGraphQlSchema() {
-    return SchemaFactory.newDmlSchema(persistence, authenticationService, getKeyspace());
+    return SchemaFactory.newDmlSchema(
+        persistence,
+        authenticationService,
+        authorizationService,
+        getCQLSchema().keyspaces().iterator().next());
   }
-
-  public abstract Keyspace getKeyspace();
 
   /** Creates a basic row suitable for faking result sets. */
   protected Row createRow(List<Column> columns, Map<String, Object> data) {

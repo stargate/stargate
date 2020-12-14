@@ -3,11 +3,13 @@ package io.stargate.graphql.schema.fetchers;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.graphql.web.HttpAwareContext;
 import java.nio.ByteBuffer;
 import java.util.Base64;
@@ -19,6 +21,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
 
   protected final Persistence persistence;
   protected final AuthenticationService authenticationService;
+  protected final AuthorizationService authorizationService;
 
   public static final ConsistencyLevel DEFAULT_CONSISTENCY = ConsistencyLevel.LOCAL_QUORUM;
   public static final ConsistencyLevel DEFAULT_SERIAL_CONSISTENCY = ConsistencyLevel.SERIAL;
@@ -31,9 +34,13 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
           .serialConsistencyLevel(DEFAULT_SERIAL_CONSISTENCY)
           .build();
 
-  public CassandraFetcher(Persistence persistence, AuthenticationService authenticationService) {
+  public CassandraFetcher(
+      Persistence persistence,
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
+    this.authorizationService = authorizationService;
   }
 
   @Override
@@ -73,8 +80,10 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
       parameters = DEFAULT_PARAMETERS;
     }
 
+    DataStoreOptions dataStoreOptions =
+        DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
     DataStore dataStore =
-        DataStore.create(persistence, storedCredentials.getRoleName(), parameters);
+        DataStore.create(persistence, storedCredentials.getRoleName(), dataStoreOptions);
     return get(environment, dataStore);
   }
 
