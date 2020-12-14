@@ -330,6 +330,7 @@ public class DsePersistence
       this(null, ClientState.forInternalCalls());
     }
 
+    @SuppressWarnings("RxReturnValueIgnored")
     private DseConnection(@Nullable ClientInfo clientInfo, ClientState clientState) {
       super(clientInfo);
       this.clientState = clientState;
@@ -349,6 +350,7 @@ public class DsePersistence
     }
 
     @Override
+    @SuppressWarnings("RxReturnValueIgnored")
     protected void loginInternally(io.stargate.db.AuthenticatedUser user) {
       try {
         if (user.isFromExternalAuth()
