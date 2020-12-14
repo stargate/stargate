@@ -10,6 +10,8 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.ImmutableParameters;
+import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
@@ -23,6 +25,7 @@ import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -31,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
@@ -323,6 +327,26 @@ public class DocumentDB {
   }
 
   public ResultSet executeSelect(
+      String keyspace,
+      String collection,
+      List<BuiltCondition> predicates,
+      int pageSize,
+      ByteBuffer pageState)
+      throws ExecutionException, InterruptedException {
+    UnaryOperator<Parameters> parametersModifier =
+        p -> ImmutableParameters.builder().pageSize(pageSize).pagingState(pageState).build();
+    return this.builder()
+        .select()
+        .column(DocumentDB.allColumns())
+        .writeTimeColumn("leaf")
+        .from(keyspace, collection)
+        .where(predicates)
+        .build()
+        .execute(parametersModifier)
+        .join();
+  }
+
+  public ResultSet executeSelect(
       String keyspace, String collection, List<BuiltCondition> predicates, boolean allowFiltering)
       throws UnauthorizedException {
     // Run generic authorizeDataRead for now
@@ -341,6 +365,27 @@ public class DocumentDB {
         .join();
   }
 
+  public ResultSet executeSelect(
+      String keyspace,
+      String collection,
+      List<BuiltCondition> predicates,
+      boolean allowFiltering,
+      int pageSize,
+      ByteBuffer pageState) {
+    UnaryOperator<Parameters> parametersModifier =
+        p -> ImmutableParameters.builder().pageSize(pageSize).pagingState(pageState).build();
+    return this.builder()
+        .select()
+        .column(DocumentDB.allColumns())
+        .writeTimeColumn("leaf")
+        .from(keyspace, collection)
+        .where(predicates)
+        .allowFiltering(allowFiltering)
+        .build()
+        .execute(parametersModifier)
+        .join();
+  }
+
   public ResultSet executeSelectAll(String keyspace, String collection)
       throws UnauthorizedException {
     // Run generic authorizeDataRead for now
@@ -354,6 +399,23 @@ public class DocumentDB {
         .from(keyspace, collection)
         .build()
         .execute()
+        .join();
+  }
+
+  public ResultSet executeSelectAll(
+      String keyspace, String collection, int pageSize, ByteBuffer pageState)
+      throws UnauthorizedException {
+    // Run generic authorizeDataRead for now
+    getAuthorizationService().authorizeDataRead(getAuthToken(), keyspace, collection);
+    UnaryOperator<Parameters> parametersModifier =
+        p -> ImmutableParameters.builder().pageSize(pageSize).pagingState(pageState).build();
+    return this.builder()
+        .select()
+        .column(DocumentDB.allColumns())
+        .writeTimeColumn("leaf")
+        .from(keyspace, collection)
+        .build()
+        .execute(parametersModifier)
         .join();
   }
 
