@@ -16,29 +16,34 @@
 package io.stargate.api.sql;
 
 import io.stargate.db.BatchType;
-import io.stargate.db.BoundStatement;
 import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.PreparedStatement;
-import io.stargate.db.datastore.PreparedStatement.Bound;
 import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.query.BindMarker;
+import io.stargate.db.query.BoundQuery;
+import io.stargate.db.query.Query;
+import io.stargate.db.query.QueryType;
+import io.stargate.db.query.TypedValue;
+import io.stargate.db.query.TypedValue.Codec;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
-import org.apache.cassandra.stargate.transport.ProtocolVersion;
+import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.assertj.core.api.Assertions;
 
 public class ValidatingDataStore implements DataStore {
   private final Schema schema;
   private final List<QueryExpectation> expectedQueries = new ArrayList<>();
-  private final List<Prepared> prepared = new ArrayList<>();
+  private final List<Prepared<?>> prepared = new ArrayList<>();
   private final List<ExpectedExecution> expectedExecutions = new ArrayList<>();
 
   public ValidatingDataStore(Schema schema) {
@@ -61,31 +66,40 @@ public class ValidatingDataStore implements DataStore {
   }
 
   @Override
-  public CompletableFuture<ResultSet> query(
-      String queryString, UnaryOperator<Parameters> parametersModifier, Object... values) {
-    throw new UnsupportedOperationException();
+  public Codec valueCodec() {
+    return Codec.testCodec();
   }
 
   @Override
-  public CompletableFuture<PreparedStatement> prepare(String queryString) {
+  public boolean supportsSecondaryIndex() {
+    return true;
+  }
+
+  @Override
+  public <B extends BoundQuery> CompletableFuture<Query<B>> prepare(Query<B> query) {
+    String queryString = query.queryStringForPreparation();
     expectedQueries.stream()
         .filter(qe -> qe.matches(queryString))
         .findAny()
         .orElseGet(() -> Assertions.fail("Unexpected query: " + queryString));
 
-    Prepared p = new Prepared(queryString);
+    Prepared<B> p = new Prepared<>(query);
     prepared.add(p);
     return CompletableFuture.completedFuture(p);
   }
 
   @Override
-  public CompletableFuture<ResultSet> batch(
-      List<Bound> statements, BatchType batchType, UnaryOperator<Parameters> parametersModifier) {
-    throw new UnsupportedOperationException();
+  public CompletableFuture<ResultSet> execute(
+      BoundQuery query, UnaryOperator<Parameters> parametersModifier) {
+    Assertions.assertThat(query).isInstanceOf(ExpectedExecution.class);
+    return ((ExpectedExecution) query).execute();
   }
 
   @Override
-  public CompletableFuture<ResultSet> batch(List<String> queries) {
+  public CompletableFuture<ResultSet> batch(
+      Collection<BoundQuery> queries,
+      BatchType batchType,
+      UnaryOperator<Parameters> parametersModifier) {
     throw new UnsupportedOperationException();
   }
 
@@ -132,21 +146,43 @@ public class ValidatingDataStore implements DataStore {
     return add(new QueryExpectation(table, regex));
   }
 
-  private class Prepared implements PreparedStatement {
+  private class Prepared<B extends BoundQuery> implements Query<B> {
     private final String actualCql;
+    private final Query<B> query;
     private boolean bound;
 
-    private Prepared(String actualCql) {
-      this.actualCql = actualCql;
+    private Prepared(Query<B> query) {
+      this.actualCql = query.queryStringForPreparation();
+      this.query = query;
     }
 
     @Override
-    public String preparedQueryString() {
-      throw new UnsupportedOperationException();
+    public Codec valueCodec() {
+      return Codec.testCodec();
     }
 
     @Override
-    public Bound bind(Object... values) {
+    public List<BindMarker> bindMarkers() {
+      return query.bindMarkers();
+    }
+
+    @Override
+    public Optional<MD5Digest> preparedId() {
+      return Optional.empty();
+    }
+
+    @Override
+    public Query<B> withPreparedId(MD5Digest preparedId) {
+      return this;
+    }
+
+    @Override
+    public String queryStringForPreparation() {
+      return actualCql;
+    }
+
+    @Override
+    public B bindValues(List<TypedValue> values) {
       QueryExpectation expectation =
           expectedQueries.stream()
               .filter(qe -> qe.matches(actualCql, values))
@@ -154,15 +190,13 @@ public class ValidatingDataStore implements DataStore {
               .orElseGet(
                   () ->
                       Assertions.fail(
-                          "Unexpected query: "
-                              + actualCql
-                              + " with params: "
-                              + Arrays.toString(values)));
+                          "Unexpected query: " + actualCql + " with params: " + values));
 
       ExpectedExecution exec = new ExpectedExecution(this, expectation);
       expectedExecutions.add(exec);
       bound = true;
-      return exec;
+      //noinspection unchecked
+      return (B) exec;
     }
 
     public void validate() {
@@ -203,18 +237,22 @@ public class ValidatingDataStore implements DataStore {
       return cqlPattern.matcher(cql).matches();
     }
 
-    private boolean matches(String cql, Object... values) {
-      return matches(cql) && (params == null || Arrays.equals(params, values));
+    private static Object[] values(List<TypedValue> values) {
+      return values.stream().map(TypedValue::javaValue).toArray();
+    }
+
+    private boolean matches(String cql, List<TypedValue> values) {
+      return matches(cql) && (params == null || Arrays.equals(params, values(values)));
     }
   }
 
-  private class ExpectedExecution implements Bound {
+  private class ExpectedExecution implements BoundQuery {
 
-    private final Prepared query;
+    private final Prepared<?> query;
     private final QueryExpectation expectation;
     private boolean executed;
 
-    public ExpectedExecution(Prepared query, QueryExpectation expectation) {
+    public ExpectedExecution(Prepared<?> query, QueryExpectation expectation) {
       this.query = query;
       this.expectation = expectation;
     }
@@ -229,25 +267,24 @@ public class ValidatingDataStore implements DataStore {
       }
     }
 
-    @Override
-    public CompletableFuture<ResultSet> execute(UnaryOperator<Parameters> parametersModifier) {
+    private CompletableFuture<ResultSet> execute() {
       executed = true;
       return CompletableFuture.completedFuture(
           ListBackedResultSet.of(expectation.table, expectation.rows));
     }
 
     @Override
-    public PreparedStatement preparedStatement() {
-      return query;
-    }
-
-    @Override
-    public List<Object> values() {
+    public QueryType type() {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public BoundStatement toPersistenceStatement(ProtocolVersion protocolVersion) {
+    public Source<?> source() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<TypedValue> values() {
       throw new UnsupportedOperationException();
     }
   }

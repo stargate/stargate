@@ -19,20 +19,24 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import io.stargate.api.sql.schema.StorageTable;
 import io.stargate.api.sql.schema.TypeUtils;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.PreparedStatement;
 import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.query.ImmutableWhereCondition;
-import io.stargate.db.datastore.query.Value;
-import io.stargate.db.datastore.query.Where;
-import io.stargate.db.datastore.query.WhereCondition;
+import io.stargate.db.query.BoundQuery;
+import io.stargate.db.query.Predicate;
+import io.stargate.db.query.Query;
+import io.stargate.db.query.builder.BuiltCondition;
+import io.stargate.db.query.builder.BuiltQuery;
+import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Table;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import org.javatuples.Pair;
 
 /** Holds a prepared CQL statement. */
 public class DataSourceStatement {
@@ -43,14 +47,19 @@ public class DataSourceStatement {
       Integer.getInteger("stargate.sql.prepare.timeout.millis", 120000);
 
   private final DataStore dataStore;
-  private final PreparedStatement statement;
+  private final Query<?> statement;
   private final List<Column> resultColumns;
+  private final List<ColumnType> parameterTypes;
 
   private DataSourceStatement(
-      DataStore dataStore, PreparedStatement prepared, List<Column> resultColumns) {
+      DataStore dataStore,
+      Query<?> prepared,
+      List<Column> resultColumns,
+      List<ColumnType> parameterTypes) {
     this.dataStore = dataStore;
     this.statement = prepared;
     this.resultColumns = resultColumns;
+    this.parameterTypes = parameterTypes;
   }
 
   public List<Column> resultColumns() {
@@ -58,12 +67,23 @@ public class DataSourceStatement {
   }
 
   public CompletableFuture<ResultSet> execute(Object... params) {
-    return statement.execute(DEFAULT_CL, params);
-  }
+    List<Object> values = Collections.emptyList();
+    if (params.length > 0) {
+      if (parameterTypes.size() != params.length) {
+        throw new IllegalArgumentException(
+            String.format("Expected %d parameters, got %d", parameterTypes.size(), params.length));
+      }
 
-  private static Object bind(Column.ColumnType type, int idx, Object[] params) {
-    Object value = params[idx];
-    return TypeUtils.toDriverValue(value, type);
+      values = new ArrayList<>(parameterTypes.size());
+      int idx = 0;
+      for (ColumnType type : parameterTypes) {
+        Object value = params[idx++];
+        values.add(TypeUtils.toDriverValue(value, type));
+      }
+    }
+
+    BoundQuery bound = statement.bind(values);
+    return dataStore.execute(bound, DEFAULT_CL);
   }
 
   private static <T> T get(CompletableFuture<T> future) {
@@ -78,92 +98,75 @@ public class DataSourceStatement {
     Table table = sqlTable.table();
     List<Column> columns = table.columns();
 
-    CompletableFuture<PreparedStatement> prepared =
-        dataStore
-            .query()
-            .select()
-            .column(columns)
-            .from(sqlTable.keyspace(), table)
-            .consistencyLevel(DEFAULT_CL)
-            .prepare();
+    BuiltQuery<?> query = dataStore.queryBuilder().select().column(columns).from(table).build();
 
-    return new DataSourceStatement(dataStore, get(prepared), columns);
+    CompletableFuture<? extends Query<?>> prepared = dataStore.prepare(query);
+
+    return new DataSourceStatement(dataStore, get(prepared), columns, Collections.emptyList());
   }
 
   public static DataSourceStatement selectByKey(
       DataStore dataStore, StorageTable sqlTable, List<Column> keyColumns) {
     Table table = sqlTable.table();
-    List<Where<?>> wheres = exactWhere(keyColumns);
+    Pair<List<ColumnType>, List<BuiltCondition>> wheres = exactWhere(keyColumns);
     List<Column> columns = table.columns();
 
-    CompletableFuture<PreparedStatement> prepared =
+    BuiltQuery<?> query =
         dataStore
-            .query()
+            .queryBuilder()
             .select()
             .column(columns)
-            .from(sqlTable.keyspace(), table)
-            .where(wheres)
-            .consistencyLevel(DEFAULT_CL)
-            .prepare();
+            .from(table)
+            .where(wheres.getValue1())
+            .build();
 
-    return new DataSourceStatement(dataStore, get(prepared), columns);
+    CompletableFuture<? extends Query<?>> prepared = dataStore.prepare(query);
+
+    return new DataSourceStatement(dataStore, get(prepared), columns, wheres.getValue0());
   }
 
   public static DataSourceStatement upsert(
       DataStore dataStore, StorageTable sqlTable, List<Column> columns) {
     Table table = sqlTable.table();
 
-    ImmutableList.Builder<Value<?>> list = ImmutableList.builder();
-    int idx = 0;
+    ImmutableList.Builder<ColumnType> types = ImmutableList.builder();
+    ImmutableList.Builder<ValueModifier> values = ImmutableList.builder();
     for (Column c : columns) {
-      int i = idx++;
-      Column.ColumnType type = Objects.requireNonNull(c.type());
-      list.add(Value.<Object[]>create(c, p -> bind(type, i, p)));
+      types.add(Objects.requireNonNull(c.type()));
+      values.add(ValueModifier.marker(c.name()));
     }
-    List<Value<?>> values = list.build();
 
-    CompletableFuture<PreparedStatement> prepared =
-        dataStore
-            .query()
-            .insertInto(sqlTable.keyspace(), table)
-            .value(values)
-            .consistencyLevel(DEFAULT_CL)
-            .prepare();
+    List<ValueModifier> parameters = values.build();
+    BuiltQuery<?> query = dataStore.queryBuilder().insertInto(table).value(parameters).build();
 
-    return new DataSourceStatement(dataStore, get(prepared), Collections.emptyList());
+    CompletableFuture<? extends Query<?>> prepared = dataStore.prepare(query);
+
+    return new DataSourceStatement(
+        dataStore, get(prepared), Collections.emptyList(), types.build());
   }
 
   public static DataSourceStatement delete(
       DataStore dataStore, StorageTable sqlTable, List<Column> keyColumns) {
     Table table = sqlTable.table();
-    List<Where<?>> wheres = exactWhere(keyColumns);
+    Pair<List<ColumnType>, List<BuiltCondition>> wheres = exactWhere(keyColumns);
 
-    CompletableFuture<PreparedStatement> prepared =
-        dataStore
-            .query()
-            .delete()
-            .from(sqlTable.keyspace(), table)
-            .where(wheres)
-            .consistencyLevel(DEFAULT_CL)
-            .prepare();
+    BuiltQuery<?> query =
+        dataStore.queryBuilder().delete().from(table).where(wheres.getValue1()).build();
 
-    return new DataSourceStatement(dataStore, get(prepared), Collections.emptyList());
+    CompletableFuture<? extends Query<?>> prepared = dataStore.prepare(query);
+
+    return new DataSourceStatement(
+        dataStore, get(prepared), Collections.emptyList(), wheres.getValue0());
   }
 
-  private static List<Where<?>> exactWhere(List<Column> columns) {
-    ImmutableList.Builder<Where<?>> list = ImmutableList.builder();
-    int idx = 0;
+  private static Pair<List<ColumnType>, List<BuiltCondition>> exactWhere(List<Column> columns) {
+    ImmutableList.Builder<ColumnType> types = ImmutableList.builder();
+    ImmutableList.Builder<BuiltCondition> conditions = ImmutableList.builder();
     for (Column c : columns) {
-      int i = idx++;
-      Column.ColumnType type = Objects.requireNonNull(c.type());
-      list.add(
-          ImmutableWhereCondition.<Object[]>builder()
-              .column(c)
-              .bindingFunction(p -> bind(type, i, p))
-              .predicate(WhereCondition.Predicate.Eq)
-              .build());
+      types.add(Objects.requireNonNull(c.type()));
+      conditions.add(BuiltCondition.ofMarker(c.name(), Predicate.EQ));
     }
 
-    return list.build();
+    return Pair.with(types.build(), conditions.build());
   }
 }

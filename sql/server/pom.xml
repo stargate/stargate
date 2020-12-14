@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate.api.sql</groupId>
     <artifactId>sql-base</artifactId>
-    <version>0.0.20-SNAPSHOT</version>
+    <version>1.0.1-SNAPSHOT</version>
   </parent>
   <artifactId>avatica-server</artifactId>
   <dependencies>
@@ -20,7 +20,7 @@
     </dependency>
     <dependency>
       <groupId>io.stargate.auth</groupId>
-      <artifactId>authentication</artifactId>
+      <artifactId>authnz</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>

@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import javax.validation.constraints.NotNull;
 
 /**
@@ -31,11 +32,9 @@ import javax.validation.constraints.NotNull;
  */
 public class ListBackedResultSet implements ResultSet {
   private final Iterator<Row> iterator;
-  private final int size;
 
   public static ResultSet of(Table table, List<Map<String, Object>> data) {
     return new ListBackedResultSet(
-        data.size(),
         new Iterator<Row>() {
           private final Iterator<Map<String, Object>> dataIterator = data.iterator();
 
@@ -51,9 +50,8 @@ public class ListBackedResultSet implements ResultSet {
         });
   }
 
-  public ListBackedResultSet(int size, Iterator<Row> iterator) {
+  public ListBackedResultSet(Iterator<Row> iterator) {
     this.iterator = iterator;
-    this.size = size;
   }
 
   @Override
@@ -63,6 +61,11 @@ public class ListBackedResultSet implements ResultSet {
 
   @Override
   public boolean hasNoMoreFetchedRows() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public ResultSet withRowInspector(Predicate<Row> authzFilter) {
     throw new UnsupportedOperationException();
   }
 
