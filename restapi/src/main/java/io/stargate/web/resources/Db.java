@@ -51,7 +51,7 @@ public class Db {
     this.authorizationService = authorizationService;
     this.persistence = persistence;
     this.dataStore =
-        DataStore.create(persistence, DataStoreOptions.defaultsWithAutoPreparedQueries());
+        DataStore.createInternal(persistence, DataStoreOptions.defaultsWithAutoPreparedQueries());
   }
 
   public DataStore getDataStore() {

@@ -9,7 +9,6 @@ import com.google.common.collect.ImmutableList;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import io.dropwizard.testing.junit5.ResourceExtension;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.Table;
@@ -35,14 +34,13 @@ class ColumnResourceTest {
 
   @Test
   void listAllColumnsSuccess() throws Exception {
-    DataStore dataStore = mock(DataStore.class);
     AuthorizationService authorizationService = mock(AuthorizationService.class);
     Table table = mock(Table.class);
     Column column1 = ImmutableColumn.create("c1", Column.Kind.Static, Column.Type.Text);
     Column column2 = ImmutableColumn.create("c2", Column.Kind.Regular, Column.Type.Int);
     List<Column> columns = ImmutableList.of(column1, column2);
 
-    AuthenticatedDB authenticatedDB = new AuthenticatedDB(dataStore, null);
+    AuthenticatedDB authenticatedDB = mock(AuthenticatedDB.class);
     when(db.getDataStoreForToken("token")).thenReturn(authenticatedDB);
     when(db.getAuthorizationService()).thenReturn(authorizationService);
     when(authenticatedDB.getTable("keySpaceName", "tableName")).thenReturn(table);

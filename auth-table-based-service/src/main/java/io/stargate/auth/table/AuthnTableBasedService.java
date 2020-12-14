@@ -56,7 +56,7 @@ public class AuthnTableBasedService implements AuthenticationService {
 
   public void setPersistence(Persistence persistence) {
     this.persistence = persistence;
-    this.dataStore = DataStore.create(persistence);
+    this.dataStore = DataStore.createInternal(persistence);
 
     if (shouldInitializeAuthKeyspace) {
       initAuthTable(this.dataStore);

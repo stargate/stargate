@@ -115,18 +115,24 @@ public interface DataStore extends AsyncQueryExecutor {
   }
 
   /**
-   * Creates a new DataStore on top of the provided persistence. If a username is provided and
-   * isFromExternalAuth is true then a {@link ClientInfo} will be passed to {@link
-   * Persistence#newConnection(io.stargate.db.ClientInfo)} causing the new connection to have an
-   * external ClientState thus causing authorization to be performed if enabled.
+   * Creates a new internal DataStore on top of the provided persistence.
    *
-   * <p>return create(persistence, userName, Parameters.defaults(), clientInfo); Creates a new
-   * DataStore on top of the provided persistence.
-   *
-   * <p>A shortcut for {@link #create(Persistence, DataStoreOptions)} with default options.
+   * <p>A shortcut for {@link #createInternal(Persistence, DataStoreOptions)}.
    */
-  static DataStore create(Persistence persistence) {
-    return create(persistence, DataStoreOptions.defaults());
+  static DataStore createInternal(Persistence persistence) {
+    return createInternal(persistence, DataStoreOptions.defaults());
+  }
+
+  /**
+   * Creates an internal connection with default options intended to be used for system operations.
+   *
+   * @param persistence the persistence to use for querying (this method effectively creates a new
+   *     {@link Persistence.Connection} underneath).
+   * @return the created store.
+   */
+  static DataStore createInternal(Persistence persistence, DataStoreOptions options) {
+    Persistence.Connection connection = persistence.newConnection();
+    return create(connection, options);
   }
 
   /**

@@ -24,6 +24,7 @@ import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
@@ -214,11 +215,17 @@ public class StargateQueryHandler implements QueryHandler {
 
   private void authorizeByToken(ByteBuffer token, CQLStatement statement) {
     AuthenticationPrincipal authenticationPrincipal;
+    ObjectInput in = null;
     try {
-      byte[] bytes = new byte[token.limit()];
+      if (token.position() == token.limit()) {
+        token.flip();
+      }
+      byte[] bytes = new byte[token.remaining()];
       token.get(bytes);
-      ObjectInputStream objectInputStream = new ObjectInputStream(new ByteArrayInputStream(bytes));
-      AuthenticatedUser authenticatedUser = (AuthenticatedUser) objectInputStream.readObject();
+      ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+      in = new ObjectInputStream(bis);
+      AuthenticatedUser authenticatedUser = (AuthenticatedUser) in.readObject();
+
       authenticationPrincipal =
           new AuthenticationPrincipal(
               authenticatedUser.token(),
@@ -226,6 +233,14 @@ public class StargateQueryHandler implements QueryHandler {
               authenticatedUser.isFromExternalAuth());
     } catch (IOException | ClassNotFoundException e) {
       throw new RuntimeException("Failed to deserialize authenticationPrincipal");
+    } finally {
+      try {
+        if (in != null) {
+          in.close();
+        }
+      } catch (IOException ex) {
+        // ignore close exception
+      }
     }
 
     if (!getAuthorizationService().isPresent()) {

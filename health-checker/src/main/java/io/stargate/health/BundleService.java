@@ -43,7 +43,7 @@ public class BundleService {
 
       try {
         Persistence persistence = (Persistence) context.getService(persistenceReference);
-        DataStore dataStore = DataStore.create(persistence);
+        DataStore dataStore = DataStore.createInternal(persistence);
 
         Future<ResultSet> rs =
             dataStore

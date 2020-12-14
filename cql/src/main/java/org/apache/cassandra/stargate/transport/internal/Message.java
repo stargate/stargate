@@ -381,29 +381,21 @@ public abstract class Message {
 
   private static ByteBuffer authenticatedUserToByteBuffer(AuthenticatedUser authenticatedUser)
       throws IOException {
-    byte[] bytes = null;
-    ByteArrayOutputStream bos = null;
-    ObjectOutputStream oos = null;
-    try {
-      bos = new ByteArrayOutputStream();
-      oos = new ObjectOutputStream(bos);
-      oos.writeObject(authenticatedUser);
-      oos.flush();
-      bytes = bos.toByteArray();
-    } finally {
-      if (oos != null) {
-        oos.close();
-      }
-      if (bos != null) {
-        bos.close();
-      }
+    byte[] bytes;
+    try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream)) {
+      objectOutputStream.writeObject(authenticatedUser);
+      objectOutputStream.flush();
+      bytes = outputStream.toByteArray();
     }
 
-    InputStream initialStream = new ByteArrayInputStream(bytes);
-    ByteBuffer byteBuffer = ByteBuffer.allocate(3);
-    while (initialStream.available() > 0) {
-      byteBuffer.put((byte) initialStream.read());
+    InputStream inputStream = new ByteArrayInputStream(bytes);
+    ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length);
+    while (inputStream.available() > 0) {
+      byteBuffer.put((byte) inputStream.read());
     }
+    // flip before sending so its ready to be read on the other side
+    byteBuffer.flip();
     return byteBuffer;
   }
 
