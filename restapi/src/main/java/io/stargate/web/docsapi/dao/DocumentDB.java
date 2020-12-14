@@ -406,7 +406,8 @@ public class DocumentDB {
       String keyspace, String collection, int pageSize, ByteBuffer pageState)
       throws UnauthorizedException {
     // Run generic authorizeDataRead for now
-    getAuthorizationService().authorizeDataRead(getAuthToken(), keyspace, collection);
+    getAuthorizationService()
+        .authorizeDataRead(getAuthToken(), keyspace, collection, SourceAPI.REST);
     UnaryOperator<Parameters> parametersModifier =
         p -> ImmutableParameters.builder().pageSize(pageSize).pagingState(pageState).build();
     return this.builder()
