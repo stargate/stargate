@@ -91,9 +91,11 @@ public class AuthResponse extends Message.Request {
                 } else {
                   future.complete(new AuthChallenge(challenge));
                 }
-              } catch (AuthenticationException e) {
+              } catch (AuthenticationException ae) {
                 ClientMetrics.instance.markAuthFailure();
-                future.complete(ErrorMessage.fromException(e));
+                future.complete(ErrorMessage.fromException(ae));
+              } catch (Exception e) {
+                future.completeExceptionally(e);
               }
             });
     return future;
