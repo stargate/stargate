@@ -356,7 +356,7 @@ public class DsePersistence
     protected void loginInternally(io.stargate.db.AuthenticatedUser user) {
       try {
         if (user.isFromExternalAuth()
-            || Boolean.parseBoolean(
+            && Boolean.parseBoolean(
                 System.getProperty("stargate.cql_use_transitional_auth", "false"))) {
           clientState.login(AuthenticatedUser.ANONYMOUS_USER);
         } else {

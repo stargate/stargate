@@ -71,7 +71,7 @@ public abstract class PlainTextTokenSaslNegotiator implements SaslNegotiator {
       return AuthenticatedUser.of(
           authenticationPrincipal.getRoleName(),
           authenticationPrincipal.getToken(),
-          USE_TRANSITIONAL_AUTH);
+          authenticationPrincipal.isFromExternalAuth());
     } else {
       return wrapped.getAuthenticatedUser();
     }
