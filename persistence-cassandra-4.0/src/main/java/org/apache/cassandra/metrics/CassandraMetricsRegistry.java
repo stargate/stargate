@@ -41,7 +41,7 @@ public class CassandraMetricsRegistry extends MetricRegistry {
     return actualRegistry.counter(name.getMetricName());
   }
 
-  public Counter counter(MetricName name, MetricName alians) {
+  public Counter counter(MetricName name, MetricName alias) {
     return actualRegistry.counter(name.getMetricName());
   }
 
