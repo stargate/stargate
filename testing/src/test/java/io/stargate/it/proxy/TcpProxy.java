@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
  * @see <a
  *     href="https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt">https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt</a>
  */
-@SuppressWarnings("FutureReturnValueIgnored")
 public class TcpProxy implements AutoCloseable {
   private static final Logger LOG = LoggerFactory.getLogger(TcpProxy.class);
 

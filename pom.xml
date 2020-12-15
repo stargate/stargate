@@ -346,6 +346,7 @@
             <compilerArgs combine.children="override">
               <compilerArg>-Xep:MixedMutabilityReturnType:OFF</compilerArg>
               <compilerArg>-Xep:ImmutableEnumChecker:OFF</compilerArg>
+              <compilerArg>-Xep:FutureReturnValueIgnored:OFF</compilerArg>
               <compilerArg>-XepExcludedPaths:.*/target/(?:generated-sources|generated-test-sources)/.*</compilerArg>
             </compilerArgs>
             <showWarnings>true</showWarnings>

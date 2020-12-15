@@ -586,7 +586,6 @@ public class DocumentDB {
   }
 
   @VisibleForTesting
-  @SuppressWarnings("FutureReturnValueIgnored")
   void deleteDeadLeaves(
       String keyspaceName,
       String tableName,

@@ -214,7 +214,6 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     }
   }
 
-  @SuppressWarnings("FutureReturnValueIgnored")
   private void applyState(
       InetAddress endpoint, ApplicationState state, VersionedValue value, EndpointState epState) {
     final ExecutorService executor = StageManager.getStage(Stage.MUTATION);
@@ -258,7 +257,6 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     }
   }
 
-  @SuppressWarnings("FutureReturnValueIgnored")
   private void updateTokens(InetAddress endpoint) {
     final ExecutorService executor = StageManager.getStage(Stage.MUTATION);
     StargateSystemKeyspace.updatePeerInfo(

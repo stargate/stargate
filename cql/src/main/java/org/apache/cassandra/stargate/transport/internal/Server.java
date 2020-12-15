@@ -282,7 +282,6 @@ public class Server implements CassandraDaemon.Server {
       groups.get(type).add(ch);
     }
 
-    @SuppressWarnings("FutureReturnValueIgnored")
     public void send(Event event) {
       groups.get(event.type).writeAndFlush(new EventMessage(event));
     }
@@ -430,7 +429,6 @@ public class Server implements CassandraDaemon.Server {
             "idleStateHandler",
             new IdleStateHandler(false, 0, 0, idleTimeout, TimeUnit.MILLISECONDS) {
               @Override
-              @SuppressWarnings("FutureReturnValueIgnored")
               protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) {
                 logger.info(
                     "Closing client connection {} after timeout of {}ms",

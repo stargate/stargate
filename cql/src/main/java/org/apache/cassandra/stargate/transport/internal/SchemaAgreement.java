@@ -18,7 +18,6 @@ public class SchemaAgreement {
 
   private static final ScheduledThreadPoolExecutor EXECUTOR = new ScheduledThreadPoolExecutor(1);
 
-  @SuppressWarnings("FutureReturnValueIgnored")
   public static CompletableFuture<? extends Result> maybeWaitForAgreement(
       CompletableFuture<? extends Result> future, Persistence persistence) {
     return future.thenCompose(
@@ -50,7 +49,6 @@ public class SchemaAgreement {
     }
 
     @Override
-    @SuppressWarnings("FutureReturnValueIgnored")
     public void run() {
       if (persistence.isInSchemaAgreement()) {
         future.complete(result);

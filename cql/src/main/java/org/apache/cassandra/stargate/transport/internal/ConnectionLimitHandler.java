@@ -46,7 +46,6 @@ final class ConnectionLimitHandler extends ChannelInboundHandlerAdapter {
   private final AtomicLong counter = new AtomicLong(0);
 
   @Override
-  @SuppressWarnings("FutureReturnValueIgnored")
   public void channelActive(ChannelHandlerContext ctx) throws Exception {
     final long count = counter.incrementAndGet();
     long limit = TransportDescriptor.getNativeTransportMaxConcurrentConnections();

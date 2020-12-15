@@ -488,7 +488,6 @@ public abstract class Message {
       }
     }
 
-    @SuppressWarnings("FutureReturnValueIgnored")
     private abstract static class Flusher implements Runnable {
       final EventLoop eventLoop;
       final ConcurrentLinkedQueue<FlushItem> queued = new ConcurrentLinkedQueue<>();
@@ -507,7 +506,6 @@ public abstract class Message {
       }
     }
 
-    @SuppressWarnings("FutureReturnValueIgnored")
     private static final class LegacyFlusher extends Flusher {
       int runsSinceFlush = 0;
       int runsWithNoWork = 0;
@@ -553,7 +551,6 @@ public abstract class Message {
       }
     }
 
-    @SuppressWarnings("FutureReturnValueIgnored")
     private static final class ImmediateFlusher extends Flusher {
       private ImmediateFlusher(EventLoop eventLoop) {
         super(eventLoop);
@@ -679,7 +676,6 @@ public abstract class Message {
     }
 
     /** Note: nothing in this method should block the netty event loop */
-    @SuppressWarnings("FutureReturnValueIgnored")
     void processRequest(ChannelHandlerContext ctx, Request request) {
       final ServerConnection connection;
       long queryStartNanoTime = System.nanoTime();
@@ -791,7 +787,6 @@ public abstract class Message {
   public static final class ExceptionHandler extends ChannelInboundHandlerAdapter {
 
     @Override
-    @SuppressWarnings("FutureReturnValueIgnored")
     public void exceptionCaught(final ChannelHandlerContext ctx, Throwable cause) {
       // Provide error message to client in case channel is still open
       UnexpectedChannelExceptionHandler handler =
