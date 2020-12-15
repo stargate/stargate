@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
@@ -64,7 +65,7 @@ public abstract class GraphQlTestBase {
   @Mock private StoredCredentials storedCredentials;
 
   @Captor private ArgumentCaptor<BoundQuery> queryCaptor;
-  @Captor protected ArgumentCaptor<Callable<ResultSet>> actionCaptor;
+  @Captor protected ArgumentCaptor<Callable<CompletionStage<ResultSet>>> actionCaptor;
   @Captor private ArgumentCaptor<List<BoundQuery>> batchCaptor;
   @Captor protected ArgumentCaptor<DataStoreOptions> dataStoreOptionsCaptor;
 
@@ -80,17 +81,14 @@ public abstract class GraphQlTestBase {
       String roleName = "mock role name";
       when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
       when(storedCredentials.getRoleName()).thenReturn(roleName);
-      when(authorizationService.authorizedDataRead(
+      when(authorizationService.authorizedAsyncDataRead(
               actionCaptor.capture(),
               eq(token),
               anyString(),
               anyString(),
               any(),
               eq(SourceAPI.GRAPHQL)))
-          .then(
-              i -> {
-                return actionCaptor.getValue().call();
-              });
+          .then(i -> actionCaptor.getValue().call());
       dataStoreCreateMock = mockStatic(DataStore.class);
       dataStoreCreateMock
           .when(

@@ -18,6 +18,7 @@ package io.stargate.auth;
 import io.stargate.db.datastore.ResultSet;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionStage;
 
 public interface AuthorizationService {
 
@@ -44,6 +45,18 @@ public interface AuthorizationService {
       List<TypedKeyValue> typedKeyValues,
       SourceAPI sourceAPI)
       throws Exception;
+
+  /**
+   * Async variant of {@link #authorizeDataRead}. Any exception will be returned in the form of a
+   * failed future.
+   */
+  CompletionStage<ResultSet> authorizedAsyncDataRead(
+      Callable<CompletionStage<ResultSet>> action,
+      String token,
+      String keyspace,
+      String table,
+      List<TypedKeyValue> typedKeyValues,
+      SourceAPI sourceAPI);
 
   /**
    * Using the provided token will perform pre-authorization and if not successful throws an

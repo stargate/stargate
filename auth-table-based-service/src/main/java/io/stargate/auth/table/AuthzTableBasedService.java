@@ -19,6 +19,8 @@ import io.stargate.auth.*;
 import io.stargate.db.datastore.ResultSet;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 public class AuthzTableBasedService implements AuthorizationService {
 
@@ -39,6 +41,29 @@ public class AuthzTableBasedService implements AuthorizationService {
       throws Exception {
     // Cannot perform authorization with a table based token so just return
     return action.call();
+  }
+  /**
+   * Authorization for data access is not provided by table based tokens so all authorization will
+   * be deferred to the underlying permissions assigned to the role the token maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public CompletionStage<ResultSet> authorizedAsyncDataRead(
+      Callable<CompletionStage<ResultSet>> action,
+      String token,
+      String keyspace,
+      String table,
+      List<TypedKeyValue> typedKeyValues,
+      SourceAPI sourceAPI) {
+    // Cannot perform authorization with a table based token so just wrap and return
+    try {
+      return action.call();
+    } catch (Exception e) {
+      CompletableFuture<ResultSet> failedFuture = new CompletableFuture<>();
+      failedFuture.completeExceptionally(e);
+      return failedFuture;
+    }
   }
 
   /**

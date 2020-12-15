@@ -24,7 +24,6 @@ import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.BoundSelect;
 import io.stargate.db.query.builder.ColumnOrder;
@@ -39,9 +38,10 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
-public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
+public class QueryFetcher extends DmlFetcher<CompletionStage<Map<String, Object>>> {
 
   public QueryFetcher(
       Table table,
@@ -53,34 +53,36 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
   }
 
   @Override
-  protected Map<String, Object> get(DataFetchingEnvironment environment, DataStore dataStore)
-      throws Exception {
+  protected CompletionStage<Map<String, Object>> get(
+      DataFetchingEnvironment environment, DataStore dataStore) throws Exception {
     BoundQuery query = buildQuery(environment, dataStore);
     HttpAwareContext httpAwareContext = environment.getContext();
     String token = httpAwareContext.getAuthToken();
 
-    ResultSet resultSet =
-        authorizationService.authorizedDataRead(
-            () -> dataStore.execute(query).get(),
+    return authorizationService
+        .authorizedAsyncDataRead(
+            () -> dataStore.execute(query),
             token,
             table.keyspace(),
             table.name(),
             TypedKeyValue.forSelect((BoundSelect) query),
-            SourceAPI.GRAPHQL);
+            SourceAPI.GRAPHQL)
+        .thenApply(
+            resultSet -> {
+              Map<String, Object> result = new HashMap<>();
+              result.put(
+                  "values",
+                  resultSet.currentPageRows().stream()
+                      .map(row -> DataTypeMapping.toGraphQLValue(nameMapping, table, row))
+                      .collect(Collectors.toList()));
 
-    Map<String, Object> result = new HashMap<>();
-    result.put(
-        "values",
-        resultSet.currentPageRows().stream()
-            .map(row -> DataTypeMapping.toGraphQLValue(nameMapping, table, row))
-            .collect(Collectors.toList()));
+              ByteBuffer pageState = resultSet.getPagingState();
+              if (pageState != null) {
+                result.put("pageState", Base64.getEncoder().encodeToString(pageState.array()));
+              }
 
-    ByteBuffer pageState = resultSet.getPagingState();
-    if (pageState != null) {
-      result.put("pageState", Base64.getEncoder().encodeToString(pageState.array()));
-    }
-
-    return result;
+              return result;
+            });
   }
 
   private BoundQuery buildQuery(DataFetchingEnvironment environment, DataStore dataStore) {

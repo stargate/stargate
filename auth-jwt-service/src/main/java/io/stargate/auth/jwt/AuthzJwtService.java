@@ -18,7 +18,11 @@ package io.stargate.auth.jwt;
 import static io.stargate.auth.jwt.AuthnJwtService.CLAIMS_FIELD;
 import static io.stargate.auth.jwt.AuthnJwtService.STARGATE_PREFIX;
 
-import io.stargate.auth.*;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
+import io.stargate.auth.TypedKeyValue;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
@@ -26,6 +30,8 @@ import io.stargate.db.schema.Column.Type;
 import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.regex.Pattern;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -60,6 +66,32 @@ public class AuthzJwtService implements AuthorizationService {
 
     ResultSet result = action.call();
 
+    return filterUnauthorizedRows(result, stargateClaims);
+  }
+
+  @Override
+  public CompletionStage<ResultSet> authorizedAsyncDataRead(
+      Callable<CompletionStage<ResultSet>> action,
+      String token,
+      String keyspace,
+      String table,
+      List<TypedKeyValue> typedKeyValues,
+      SourceAPI sourceAPI) {
+    JSONObject stargateClaims;
+    CompletionStage<ResultSet> resultSetFuture;
+    try {
+      stargateClaims = extractClaimsFromJWT(token);
+      preCheckDataReadWrite(stargateClaims, typedKeyValues);
+      resultSetFuture = action.call();
+    } catch (Exception e) {
+      CompletableFuture<ResultSet> failedFuture = new CompletableFuture<>();
+      failedFuture.completeExceptionally(e);
+      return failedFuture;
+    }
+    return resultSetFuture.thenApply(rs -> filterUnauthorizedRows(rs, stargateClaims));
+  }
+
+  private static ResultSet filterUnauthorizedRows(ResultSet result, JSONObject stargateClaims) {
     if (result == null) {
       return null;
     }
