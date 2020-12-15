@@ -6,7 +6,7 @@
     <artifactId>sql-base</artifactId>
     <version>1.0.1-SNAPSHOT</version>
   </parent>
-  <artifactId>avatica-server</artifactId>
+  <artifactId>sqlapi</artifactId>
   <dependencies>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -23,10 +23,6 @@
       <artifactId>authnz</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.calcite.avatica</groupId>
-      <artifactId>avatica-server</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.calcite</groupId>
@@ -118,12 +114,11 @@
         <configuration>
           <unpackBundle>true</unpackBundle>
           <instructions>
-            <Bundle-Name>Avatica-Server</Bundle-Name>
-            <Bundle-Description>Supports SQL queries in Stargate through Apache Calcite Avatica</Bundle-Description>
-            <Bundle-SymbolicName>io.stargate.api.sql.server.avatica</Bundle-SymbolicName>
+            <Bundle-Name>Stargate-SQL-Server</Bundle-Name>
+            <Bundle-Description>Supports SQL queries in Stargate</Bundle-Description>
+            <Bundle-SymbolicName>io.stargate.api.sql.server</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.api.sql.server.SqlActivator</Bundle-Activator>
             <Import-Package><![CDATA[
-              org.osgi.*,
               io.stargate.auth.*,
               io.stargate.db.*,
               org.apache.cassandra.stargate.db.*,

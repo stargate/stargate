@@ -15,7 +15,6 @@
  */
 package io.stargate.api.sql.server;
 
-import io.stargate.api.sql.server.avatica.AvaticaServer;
 import io.stargate.api.sql.server.postgres.PGServer;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.db.Persistence;
@@ -42,7 +41,6 @@ public class SqlActivator implements BundleActivator {
           PERSISTENCE_IDENTIFIER, AuthenticationService.class.getName());
 
   private Tracker tracker;
-  private AvaticaServer avaticaServer;
   private PGServer pgServer;
 
   @Override
@@ -58,19 +56,6 @@ public class SqlActivator implements BundleActivator {
   }
 
   private synchronized void stopServer() {
-    IllegalStateException ex = new IllegalStateException("Unable to stop service");
-    try {
-      AvaticaServer avaticaServer = this.avaticaServer;
-      if (avaticaServer != null) {
-        log.info("Stopping Avatica Server");
-        avaticaServer.stop();
-      }
-
-      this.avaticaServer = null;
-    } catch (Exception e) {
-      ex.addSuppressed(e);
-    }
-
     try {
       PGServer pgServer = this.pgServer;
       if (pgServer != null) {
@@ -80,22 +65,14 @@ public class SqlActivator implements BundleActivator {
 
       this.pgServer = null;
     } catch (Exception e) {
-      ex.addSuppressed(e);
-    }
-
-    if (ex.getSuppressed().length > 0) {
-      throw ex;
+      throw new IllegalStateException(e);
     }
   }
 
   private synchronized void maybeStart(Persistence persistence, AuthenticationService auth) {
-    if (avaticaServer != null) {
+    if (pgServer != null) {
       return;
     }
-
-    avaticaServer = new AvaticaServer(persistence, auth);
-    log.info("Starting Avatica Server");
-    avaticaServer.start();
 
     pgServer = new PGServer(persistence, auth);
     log.info("Starting PostgreSQL protocol handler");

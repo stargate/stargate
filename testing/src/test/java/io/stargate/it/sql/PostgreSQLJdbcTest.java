@@ -28,31 +28,23 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import org.apache.calcite.avatica.remote.Driver;
-import org.junit.jupiter.api.BeforeAll;
+import java.sql.Timestamp;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(
     initQueries = {
-      "CREATE TABLE sql_test (x int, primary key (x))",
+      "CREATE TABLE sql_test (x int, y timestamp, primary key (x))",
     })
-public class AvaticaJdbcTest extends BaseOsgiIntegrationTest {
-
-  @BeforeAll
-  public static void loadJdbcDriver() throws ClassNotFoundException {
-    Class.forName(Driver.class.getName()); // force the Driver class to initialize
-  }
+public class PostgreSQLJdbcTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void testBasicJdbcQuery(
       StargateConnectionInfo stargate, @TestKeyspace CqlIdentifier keyspaceId) throws SQLException {
     Connection c =
         DriverManager.getConnection(
-            String.format(
-                "jdbc:avatica:remote:url=http://%s:8765;serialization=%s",
-                stargate.seedAddress(), Driver.Serialization.PROTOBUF.name()),
+            String.format("jdbc:postgresql://%s:5432/test", stargate.seedAddress()),
             "cassandra",
             "cassandra");
 
@@ -62,9 +54,12 @@ public class AvaticaJdbcTest extends BaseOsgiIntegrationTest {
     ResultSet rs = p.executeQuery();
     assertThat(rs.next()).isFalse();
 
-    c.createStatement()
-        .executeUpdate(
-            String.format("insert into %s.sql_test (x) values (123)", keyspaceId.asCql(false)));
+    PreparedStatement insert =
+        c.prepareStatement(
+            String.format("insert into %s.sql_test (x, y) values (?, ?)", keyspaceId.asCql(false)));
+    insert.setInt(1, 123);
+    insert.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+    insert.executeUpdate();
 
     rs = p.executeQuery();
     assertThat(rs.next()).isTrue();
