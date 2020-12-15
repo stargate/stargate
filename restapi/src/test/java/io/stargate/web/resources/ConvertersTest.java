@@ -60,7 +60,7 @@ public class ConvertersTest {
     assertThat(actualJson).isEqualTo(expectedJson);
   }
 
-  @SuppressWarnings("unused")
+  @SuppressWarnings("unused") // referenced by @MethodSource
   private static Arguments[] toJsonSamples() throws Exception {
     return new Arguments[] {
       arguments(
@@ -109,7 +109,7 @@ public class ConvertersTest {
     }
   }
 
-  @SuppressWarnings("unused")
+  @SuppressWarnings("unused") // referenced by @MethodSource
   private static Arguments[] toCqlSamples() throws Exception {
     return new Arguments[] {
       // Primitives:

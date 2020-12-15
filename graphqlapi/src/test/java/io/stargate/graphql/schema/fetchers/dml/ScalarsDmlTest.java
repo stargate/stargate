@@ -193,7 +193,7 @@ public class ScalarsDmlTest extends DmlTestBase {
         .isEqualTo(4);
   }
 
-  @SuppressWarnings("unused")
+  @SuppressWarnings("unused") // referenced by @MethodSource
   private static Stream<Arguments> getValues() {
     String timestampLiteral =
         instantFormatter().format(Date.from(Instant.parse("2020-01-03T10:15:31.123Z")));
@@ -261,7 +261,7 @@ public class ScalarsDmlTest extends DmlTestBase {
         arguments(Column.Type.Varint, "92233720368547758070000", null));
   }
 
-  @SuppressWarnings("unused")
+  @SuppressWarnings("unused") // referenced by @MethodSource
   private static Stream<Arguments> getAdditionalLiterals() {
     return Stream.of(
         arguments(Column.Type.Bigint, -1, null),
@@ -270,7 +270,7 @@ public class ScalarsDmlTest extends DmlTestBase {
         arguments(Column.Type.Bigint, 2147483648023L, null));
   }
 
-  @SuppressWarnings("unused")
+  @SuppressWarnings("unused") // referenced by @MethodSource
   private static Stream<Arguments> getIncorrectValues() {
     return Stream.of(arguments(Column.Type.Bigint, "1.2"), arguments(Column.Type.Bigint, "ABC"));
   }

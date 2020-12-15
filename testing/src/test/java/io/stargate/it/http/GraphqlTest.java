@@ -1149,7 +1149,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         .isEqualTo(value);
   }
 
-  @SuppressWarnings("unused")
+  @SuppressWarnings("unused") // referenced by @MethodSource
   private static Stream<Arguments> getScalarValues() {
     return Stream.of(
         arguments(Column.Type.Ascii, "abc"),
