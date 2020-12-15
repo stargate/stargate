@@ -63,11 +63,12 @@ public abstract class SchemaKey {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof SchemaKey)) {
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
     SchemaKey that = (SchemaKey) o;
