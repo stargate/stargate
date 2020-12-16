@@ -6,9 +6,6 @@ import java.util.Collections;
 import java.util.List;
 
 public class DbActivator extends BaseActivator {
-  private final ServicePointer<Persistence> persistence =
-      BaseActivator.ServicePointer.create(Persistence.class);
-
   public DbActivator() {
     super("DB services");
   }
@@ -25,6 +22,6 @@ public class DbActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Collections.singletonList(persistence);
+    return Collections.emptyList();
   }
 }
