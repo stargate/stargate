@@ -18,11 +18,11 @@
 package io.stargate.auth;
 
 public enum SourceAPI {
-  GRAPHQL("graph"),
+  GRAPHQL("graphql"),
   CQL("cql"),
   REST("rest");
 
-  private String name;
+  private final String name;
 
   SourceAPI(String name) {
     this.name = name;
