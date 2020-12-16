@@ -85,8 +85,6 @@ import java.math.BigInteger;
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -142,11 +140,6 @@ public abstract class PersistenceTest {
   @BeforeEach
   public void setup(TestInfo testInfo, ClusterConnectionInfo backend) {
     this.backend = backend;
-
-    Path path =
-        Paths.get(
-            Objects.requireNonNull(getClass().getClassLoader().getResource("stargate-config.yaml"))
-                .getPath());
 
     dataStore = new DataStoreFactory().create(persistence());
     logger.info("{}", dataStore);
