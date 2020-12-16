@@ -15,14 +15,18 @@
  */
 package io.stargate.api.sql.server.postgres;
 
-import java.util.Collections;
-import java.util.List;
+import io.reactivex.Flowable;
+import io.stargate.api.sql.server.postgres.msg.Bind;
+import io.stargate.api.sql.server.postgres.msg.CommandComplete;
+import io.stargate.api.sql.server.postgres.msg.PGServerMessage;
+import io.stargate.api.sql.server.postgres.msg.ParameterStatus;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SetStatement extends Statement {
 
-  private static final Pattern SET_COMMAND = Pattern.compile("SET\\s+(\\S+)\\s*=\\s*(.+)");
+  private static final Pattern SET_COMMAND =
+      Pattern.compile("(?i)SET\\s+(\\S+)\\s*(?:=|TO)\\s*(.+)");
 
   private final String key;
   private final String value;
@@ -43,14 +47,40 @@ public class SetStatement extends Statement {
     return new SetStatement(key, value);
   }
 
+  public String getKey() {
+    return key;
+  }
+
+  public String getValue() {
+    return value;
+  }
+
   @Override
-  public Iterable<Object> execute(Connection connection, List<?> parameters) {
-    connection.setProperty(key, value);
-    return Collections.emptyList();
+  public Portal bind(Bind bind) {
+    return new SetPortal(bind);
   }
 
   @Override
   public String toString() {
     return "SET " + key + " = " + value;
+  }
+
+  private class SetPortal extends Portal {
+
+    private SetPortal(Bind bind) {
+      super(SetStatement.this, bind);
+    }
+
+    @Override
+    protected boolean hasResultSet() {
+      return false;
+    }
+
+    @Override
+    public Flowable<PGServerMessage> execute(Connection connection) {
+      connection.setProperty(key, value);
+
+      return Flowable.just(ParameterStatus.of(key, value), CommandComplete.forSet());
+    }
   }
 }

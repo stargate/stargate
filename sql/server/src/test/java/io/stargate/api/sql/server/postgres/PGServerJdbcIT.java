@@ -112,4 +112,11 @@ class PGServerJdbcIT extends PGServerTestBase {
     statement.setString(2, "abc");
     assertThat(statement.executeUpdate()).isEqualTo(1);
   }
+
+  @Test
+  public void setInPreparedStatement() throws SQLException {
+    Connection connection = openConnection();
+    PreparedStatement prepared = connection.prepareStatement("set application_name = 'test123'");
+    assertThat(prepared.execute()).isFalse();
+  }
 }

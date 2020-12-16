@@ -82,9 +82,17 @@ class PGServerPlainSocketIT extends PGServerTestBase {
     assertThat(serverVersion.getValue0()).isEqualTo("server_version");
     assertThat(serverVersion.getValue1()).isEqualTo("13.0");
 
+    Pair<String, String> serverEncoding = readParameter(c);
+    assertThat(serverEncoding.getValue0()).isEqualTo("server_encoding");
+    assertThat(serverEncoding.getValue1()).isEqualTo("UTF8");
+
     Pair<String, String> timeZone = readParameter(c);
     assertThat(timeZone.getValue0()).isEqualTo("TimeZone");
     assertThat(timeZone.getValue1()).isEqualTo("GMT");
+
+    Pair<String, String> clientEncoding = readParameter(c);
+    assertThat(clientEncoding.getValue0()).isEqualTo("client_encoding");
+    assertThat(clientEncoding.getValue1()).isEqualTo("UTF8");
 
     Map<String, String> notice = readNotice(c, 'N');
     assertThat(notice).containsEntry("S", "WARNING");
@@ -191,6 +199,19 @@ class PGServerPlainSocketIT extends PGServerTestBase {
     assertThat(d.names[0]).isEqualTo("a");
 
     assertThat(readCommandComplete(c)).isEqualTo("SELECT 0");
+    readReadyForQuery(c);
+  }
+
+  @Test
+  public void setQuery() throws IOException {
+    DB c = openConnection();
+    writeQuery(c, "set application_name = test123");
+
+    Pair<String, String> param = readParameter(c);
+    assertThat(param.getValue0()).isEqualTo("application_name");
+    assertThat(param.getValue1()).isEqualTo("test123");
+
+    assertThat(readCommandComplete(c)).isEqualTo("SET");
     readReadyForQuery(c);
   }
 

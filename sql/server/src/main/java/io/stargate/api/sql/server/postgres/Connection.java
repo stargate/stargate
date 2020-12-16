@@ -38,7 +38,6 @@ import io.stargate.api.sql.server.postgres.msg.Parse;
 import io.stargate.api.sql.server.postgres.msg.ParseComplete;
 import io.stargate.api.sql.server.postgres.msg.Query;
 import io.stargate.api.sql.server.postgres.msg.ReadyForQuery;
-import io.stargate.api.sql.server.postgres.msg.RowDescription;
 import io.stargate.api.sql.server.postgres.msg.StartupMessage;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.db.datastore.DataStore;
@@ -171,7 +170,9 @@ public class Connection {
     return Flowable.just(
         new AuthenticationOk(),
         ParameterStatus.serverVersion("13.0"),
+        ParameterStatus.serverEncoding(),
         ParameterStatus.timeZone(),
+        ParameterStatus.clientEncoding(),
         NoticeResponse.warning("PostgreSQL protocol support is experimental in Stargate"),
         ReadyForQuery.instance());
   }
@@ -205,7 +206,7 @@ public class Connection {
               throw new IllegalStateException("Unknown statement: " + statementName);
             });
 
-    return new Portal(statement, message);
+    return statement.bind(message);
   }
 
   private Flowable<PGServerMessage> execute(Query message) {
@@ -220,9 +221,8 @@ public class Connection {
 
   private Flowable<PGServerMessage> executeSimple(String sql) {
     Statement statement = prepareInternal(sql);
-    Portal portal = new Portal(statement, Bind.empty());
-    return Flowable.just((PGServerMessage) RowDescription.from(portal))
-        .concatWith(portal.execute(this));
+    Portal portal = statement.bind(Bind.empty());
+    return portal.describeSimple().concatWith(portal.execute(this));
   }
 
   public Flowable<PGServerMessage> execute(Execute message) {

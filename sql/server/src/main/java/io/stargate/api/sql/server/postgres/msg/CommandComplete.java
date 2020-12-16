@@ -28,7 +28,7 @@ public class CommandComplete extends PGServerMessage {
   }
 
   public static CommandComplete forSet() {
-    return new CommandComplete("SET 0");
+    return new CommandComplete("SET");
   }
 
   public static CommandComplete forSelect(long rowCount) {

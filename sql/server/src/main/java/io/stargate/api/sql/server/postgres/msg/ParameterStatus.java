@@ -28,12 +28,24 @@ public class ParameterStatus extends PGServerMessage {
     this.value = value;
   }
 
+  public static ParameterStatus of(String name, String value) {
+    return new ParameterStatus(name, value);
+  }
+
   public static ParameterStatus serverVersion(String version) {
     return new ParameterStatus("server_version", version);
   }
 
   public static ParameterStatus timeZone() {
     return new ParameterStatus("TimeZone", "GMT");
+  }
+
+  public static ParameterStatus clientEncoding() {
+    return new ParameterStatus("client_encoding", "UTF8");
+  }
+
+  public static ParameterStatus serverEncoding() {
+    return new ParameterStatus("server_encoding", "UTF8");
   }
 
   @Override

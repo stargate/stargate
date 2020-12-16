@@ -15,8 +15,12 @@
  */
 package io.stargate.api.sql.server.postgres;
 
+import io.reactivex.Flowable;
 import io.stargate.api.sql.plan.PreparedSqlQuery;
-import java.util.List;
+import io.stargate.api.sql.server.postgres.msg.Bind;
+import io.stargate.api.sql.server.postgres.msg.CommandComplete;
+import io.stargate.api.sql.server.postgres.msg.PGServerMessage;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class CalciteStatement extends Statement {
 
@@ -32,12 +36,64 @@ public class CalciteStatement extends Statement {
   }
 
   @Override
-  public Iterable<Object> execute(Connection connection, List<?> parameters) {
-    return prepared.execute(parameters);
+  public Portal bind(Bind bind) {
+    if (prepared.isDml()) {
+      return new DmlPortal(bind);
+    } else {
+      return new SelectPortal(bind);
+    }
   }
 
   @Override
   public String toString() {
     return prepared.kind().toString();
+  }
+
+  private class DmlPortal extends Portal {
+
+    public DmlPortal(Bind bind) {
+      super(CalciteStatement.this, bind);
+    }
+
+    @Override
+    protected boolean hasResultSet() {
+      return false;
+    }
+
+    @Override
+    public Flowable<PGServerMessage> execute(Connection connection) {
+      Iterable<Object> rows = prepared.execute(parameters());
+
+      // expect one row with the update count
+      Object next = rows.iterator().next();
+      long count = ((Number) next).longValue();
+      return Flowable.just(CommandComplete.forDml(prepared.kind(), count));
+    }
+  }
+
+  private class SelectPortal extends Portal {
+
+    public SelectPortal(Bind bind) {
+      super(CalciteStatement.this, bind);
+    }
+
+    @Override
+    protected boolean hasResultSet() {
+      return true;
+    }
+
+    @Override
+    public Flowable<PGServerMessage> execute(Connection connection) {
+      Iterable<Object> rows = prepared.execute(parameters());
+
+      AtomicLong count = new AtomicLong();
+      return Flowable.fromIterable(rows)
+          .map(
+              row -> {
+                count.incrementAndGet();
+                return toDataRow(row);
+              })
+          .concatWith(Flowable.defer(() -> Flowable.just(CommandComplete.forSelect(count.get()))));
+    }
   }
 }

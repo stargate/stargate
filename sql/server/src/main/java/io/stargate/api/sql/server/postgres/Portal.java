@@ -18,7 +18,6 @@ package io.stargate.api.sql.server.postgres;
 import io.reactivex.Flowable;
 import io.stargate.api.sql.plan.PreparedSqlQuery;
 import io.stargate.api.sql.server.postgres.msg.Bind;
-import io.stargate.api.sql.server.postgres.msg.CommandComplete;
 import io.stargate.api.sql.server.postgres.msg.DataRow;
 import io.stargate.api.sql.server.postgres.msg.NoData;
 import io.stargate.api.sql.server.postgres.msg.PGServerMessage;
@@ -26,49 +25,30 @@ import io.stargate.api.sql.server.postgres.msg.RowDescription;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-public class Portal {
+public abstract class Portal {
 
-  private final Statement statement;
   private final List<FieldInfo> fields;
   private final List<Object> parameters;
 
   public Portal(Statement statement, Bind bind) {
-    this.statement = statement;
     this.fields = fields(statement, bind.getResultFormatCodes());
     this.parameters = parameters(statement, bind);
   }
 
-  private boolean isDml() {
-    return statement.prepared() != null && statement.prepared().isDml();
+  protected abstract boolean hasResultSet();
+
+  protected List<Object> parameters() {
+    return parameters;
   }
 
-  public Flowable<PGServerMessage> execute(Connection connection) {
-    Iterable<Object> rows = statement.execute(connection, parameters);
+  public abstract Flowable<PGServerMessage> execute(Connection connection);
 
-    if (isDml()) {
-      // expect one row with the update count
-      Object next = rows.iterator().next();
-      long count = ((Number) next).longValue();
-      return Flowable.just(CommandComplete.forDml(statement.prepared().kind(), count));
-    }
-
-    AtomicLong count = new AtomicLong();
-    return Flowable.fromIterable(rows)
-        .map(
-            row -> {
-              count.incrementAndGet();
-              return toDataRow(row);
-            })
-        .concatWith(Flowable.defer(() -> Flowable.just(CommandComplete.forSelect(count.get()))));
-  }
-
-  private PGServerMessage toDataRow(Object row) {
+  protected PGServerMessage toDataRow(Object row) {
     DataRow result = DataRow.create();
 
     if (row instanceof Object[]) {
@@ -201,11 +181,19 @@ public class Portal {
     return values;
   }
 
-  public PGServerMessage describe() {
-    if (isDml()) {
-      return NoData.instance();
+  public Flowable<PGServerMessage> describeSimple() {
+    if (hasResultSet()) {
+      return Flowable.just(RowDescription.from(this));
     } else {
+      return Flowable.empty();
+    }
+  }
+
+  public PGServerMessage describe() {
+    if (hasResultSet()) {
       return RowDescription.from(this);
+    } else {
+      return NoData.instance();
     }
   }
 }

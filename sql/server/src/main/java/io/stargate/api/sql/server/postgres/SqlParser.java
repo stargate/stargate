@@ -18,6 +18,7 @@ package io.stargate.api.sql.server.postgres;
 import io.stargate.api.sql.plan.PreparedSqlQuery;
 import io.stargate.api.sql.plan.QueryPlanner;
 import io.stargate.db.datastore.DataStore;
+import org.apache.calcite.sql.parser.SqlParseException;
 
 public class SqlParser {
   private static final QueryPlanner planner = new QueryPlanner();
@@ -37,6 +38,9 @@ public class SqlParser {
     try {
       PreparedSqlQuery prepared = planner.prepare(sql, dataStore, null);
       return new CalciteStatement(prepared);
+    } catch (SqlParseException e) {
+      throw new IllegalArgumentException(
+          String.format("Unable to parse '%s', error: %s", sql, e.getMessage()), e);
     } catch (Exception e) {
       throw new IllegalStateException(e);
     }

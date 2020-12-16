@@ -16,11 +16,11 @@
 package io.stargate.api.sql.server.postgres;
 
 import io.stargate.api.sql.plan.PreparedSqlQuery;
-import java.util.List;
+import io.stargate.api.sql.server.postgres.msg.Bind;
 
 public abstract class Statement {
 
-  public abstract Iterable<Object> execute(Connection connection, List<?> parameters);
+  public abstract Portal bind(Bind bind);
 
   public PreparedSqlQuery prepared() {
     return null;
