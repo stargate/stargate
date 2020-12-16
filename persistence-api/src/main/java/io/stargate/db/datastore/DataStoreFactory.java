@@ -26,7 +26,6 @@ import javax.annotation.Nullable;
 
 public class DataStoreFactory {
 
-
   /**
    * Creates a new DataStore using the provided connection for querying and with the provided
    * default parameters.
@@ -38,7 +37,6 @@ public class DataStoreFactory {
   public DataStore create(Persistence.Connection connection, @Nonnull DataStoreOptions options) {
     Objects.requireNonNull(options);
     return new PersistenceBackedDataStore(connection, options);
-
   }
 
   /**

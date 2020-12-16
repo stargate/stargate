@@ -1,8 +1,5 @@
 package io.stargate.db;
 
-import io.stargate.core.CoreActivator;
-import io.stargate.core.metrics.api.Metrics;
-import io.stargate.core.metrics.impl.MetricsImpl;
 import io.stargate.db.datastore.DataStoreFactory;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -12,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DbActivator implements BundleActivator, ServiceListener {
-  private static final Logger logger = LoggerFactory.getLogger(CoreActivator.class);
+  private static final Logger logger = LoggerFactory.getLogger(DbActivator.class);
 
   @Override
   public void start(BundleContext context) {
@@ -27,4 +24,3 @@ public class DbActivator implements BundleActivator, ServiceListener {
   @Override
   public void serviceChanged(ServiceEvent serviceEvent) {}
 }
-
