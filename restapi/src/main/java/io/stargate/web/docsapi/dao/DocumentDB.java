@@ -373,7 +373,13 @@ public class DocumentDB {
       int pageSize,
       ByteBuffer pageState) {
     UnaryOperator<Parameters> parametersModifier =
-        p -> ImmutableParameters.builder().pageSize(pageSize).pagingState(pageState).build();
+        p -> {
+          if (pageState != null) {
+            return ImmutableParameters.builder().pageSize(pageSize).pagingState(pageState).build();
+          } else {
+            return ImmutableParameters.builder().pageSize(pageSize).build();
+          }
+        };
     return this.builder()
         .select()
         .column(DocumentDB.allColumns())
@@ -409,7 +415,14 @@ public class DocumentDB {
     getAuthorizationService()
         .authorizeDataRead(getAuthToken(), keyspace, collection, SourceAPI.REST);
     UnaryOperator<Parameters> parametersModifier =
-        p -> ImmutableParameters.builder().pageSize(pageSize).pagingState(pageState).build();
+        p -> {
+          if (pageState != null) {
+            return ImmutableParameters.builder().pageSize(pageSize).pagingState(pageState).build();
+          } else {
+            return ImmutableParameters.builder().pageSize(pageSize).build();
+          }
+        };
+
     return this.builder()
         .select()
         .column(DocumentDB.allColumns())
