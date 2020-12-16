@@ -186,7 +186,8 @@ public class StargateQueryHandler implements QueryHandler {
           castStatement.table());
 
       try {
-        authorization.authorizeDataRead(authToken, castStatement.keyspace(), castStatement.table(), SourceAPI.CQL);
+        authorization.authorizeDataRead(
+            authToken, castStatement.keyspace(), castStatement.table(), SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format(
@@ -211,7 +212,11 @@ public class StargateQueryHandler implements QueryHandler {
 
       try {
         authorization.authorizeDataWrite(
-            authToken, castStatement.keyspace(), castStatement.table(), Scope.TRUNCATE, SourceAPI.CQL);
+            authToken,
+            castStatement.keyspace(),
+            castStatement.table(),
+            Scope.TRUNCATE,
+            SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format(
@@ -351,7 +356,8 @@ public class StargateQueryHandler implements QueryHandler {
             resource);
 
         try {
-          authorization.authorizePermissionManagement(authToken, resource, grantee, scope, SourceAPI.CQL);
+          authorization.authorizePermissionManagement(
+              authToken, resource, grantee, scope, SourceAPI.CQL);
         } catch (io.stargate.auth.UnauthorizedException e) {
           throw new UnauthorizedException(
               String.format("Missing correct permission on role %s", resource));
