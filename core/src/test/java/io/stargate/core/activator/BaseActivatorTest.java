@@ -49,6 +49,9 @@ class BaseActivatorTest {
   @SuppressWarnings("JdkObsolete")
   private static Hashtable<String, String> EXPECTED_PROPERTIES = new Hashtable<>();
 
+  @SuppressWarnings("JdkObsolete")
+  private static Hashtable<String, String> EMPTY_PROPERTIES = new Hashtable<>();
+
   static {
     EXPECTED_PROPERTIES.put("Identifier", "id_1");
   }
@@ -482,6 +485,24 @@ class BaseActivatorTest {
 
     // then
     assertThat(activator.stopCalled).isFalse();
+  }
+
+  @Test
+  public void shouldRegisterServiceWithoutDependencies() throws InvalidSyntaxException {
+    // given
+    BundleContext bundleContext = mock(BundleContext.class);
+    TestServiceNoDependenciesActivator activator = new TestServiceNoDependenciesActivator();
+
+    // when
+    activator.start(bundleContext);
+
+    // then
+    verify(bundleContext, times(1))
+        .registerService(
+            eq(TestServiceNoDependencies.class.getName()),
+            any(TestServiceNoDependencies.class),
+            eq(EMPTY_PROPERTIES));
+    assertThat(activator.started).isTrue();
   }
 
   @SuppressWarnings("unchecked")

@@ -7,6 +7,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
@@ -96,6 +97,10 @@ public class DocumentDB {
     this.dataStore = dataStore;
     this.authToken = authToken;
     this.authorizationService = authorizationService;
+
+    if (!dataStore.supportsSAI() && !dataStore.supportsSecondaryIndex()) {
+      throw new IllegalStateException("Backend does not support any known index types.");
+    }
   }
 
   public AuthorizationService getAuthorizationService() {
@@ -193,9 +198,9 @@ public class DocumentDB {
     }
   }
 
-  public boolean maybeCreateTableIndexes(String keyspaceName, String tableName, boolean isDse) {
+  public boolean maybeCreateTableIndexes(String keyspaceName, String tableName) {
     try {
-      if (isDse) {
+      if (dataStore.supportsSAI()) {
         createSAIIndexes(keyspaceName, tableName);
       } else {
         createDefaultIndexes(keyspaceName, tableName);
@@ -216,14 +221,14 @@ public class DocumentDB {
    * <p>This could cause performance degradation and/or disrupt in-flight requests, since indexes
    * are being dropped and re-created.
    */
-  public boolean upgradeTableIndexes(String keyspaceName, String tableName, boolean isDse) {
-    if (!isDse) {
-      logger.info("Upgrade was attempted on a non-DSE setup.");
+  public boolean upgradeTableIndexes(String keyspaceName, String tableName) {
+    if (!dataStore.supportsSAI()) {
+      logger.info("Upgrade was attempted on a DataStore that does not support SAI.");
       return false;
     }
 
     dropTableIndexes(keyspaceName, tableName);
-    return maybeCreateTableIndexes(keyspaceName, tableName, true);
+    return maybeCreateTableIndexes(keyspaceName, tableName);
   }
 
   /**
@@ -318,7 +323,8 @@ public class DocumentDB {
       String keyspace, String collection, List<BuiltCondition> predicates, boolean allowFiltering)
       throws UnauthorizedException {
     // Run generic authorizeDataRead for now
-    getAuthorizationService().authorizeDataRead(getAuthToken(), keyspace, collection);
+    getAuthorizationService()
+        .authorizeDataRead(getAuthToken(), keyspace, collection, SourceAPI.REST);
 
     return this.builder()
         .select()
@@ -335,7 +341,8 @@ public class DocumentDB {
   public ResultSet executeSelectAll(String keyspace, String collection)
       throws UnauthorizedException {
     // Run generic authorizeDataRead for now
-    getAuthorizationService().authorizeDataRead(getAuthToken(), keyspace, collection);
+    getAuthorizationService()
+        .authorizeDataRead(getAuthToken(), keyspace, collection, SourceAPI.REST);
 
     return this.builder()
         .select()
@@ -510,9 +517,11 @@ public class DocumentDB {
       queries.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
     }
 
-    getAuthorizationService().authorizeDataWrite(authToken, keyspace, table, Scope.DELETE);
+    getAuthorizationService()
+        .authorizeDataWrite(authToken, keyspace, table, Scope.DELETE, SourceAPI.REST);
 
-    getAuthorizationService().authorizeDataWrite(authToken, keyspace, table, Scope.MODIFY);
+    getAuthorizationService()
+        .authorizeDataWrite(authToken, keyspace, table, Scope.MODIFY, SourceAPI.REST);
     dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
   }
 
@@ -559,9 +568,11 @@ public class DocumentDB {
       deleteVarsWithPathKeys[i + 2 + pathToDelete.size()] = patchedKeys.get(i);
     }
 
-    getAuthorizationService().authorizeDataWrite(authToken, keyspace, table, Scope.DELETE);
+    getAuthorizationService()
+        .authorizeDataWrite(authToken, keyspace, table, Scope.DELETE, SourceAPI.REST);
 
-    getAuthorizationService().authorizeDataWrite(authToken, keyspace, table, Scope.MODIFY);
+    getAuthorizationService()
+        .authorizeDataWrite(authToken, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
     dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
   }
@@ -570,7 +581,8 @@ public class DocumentDB {
       String keyspace, String table, String key, List<String> pathToDelete, long microsSinceEpoch)
       throws UnauthorizedException {
 
-    getAuthorizationService().authorizeDataWrite(getAuthToken(), keyspace, table, Scope.DELETE);
+    getAuthorizationService()
+        .authorizeDataWrite(getAuthToken(), keyspace, table, Scope.DELETE, SourceAPI.REST);
     dataStore
         .execute(
             getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch, pathToDelete),
@@ -595,7 +607,7 @@ public class DocumentDB {
       throws UnauthorizedException {
 
     getAuthorizationService()
-        .authorizeDataWrite(getAuthToken(), keyspaceName, tableName, Scope.DELETE);
+        .authorizeDataWrite(getAuthToken(), keyspaceName, tableName, Scope.DELETE, SourceAPI.REST);
 
     List<BoundQuery> queries = new ArrayList<>();
     for (Map.Entry<String, List<JsonNode>> entry : deadLeaves.entrySet()) {

@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 public class CollectionService {
   public DocCollection getCollectionInfo(Table table, Db db) {
-    if (db.isDse()) {
+    if (db.getDataStore().supportsSAI()) {
       List<Index> indexes = table.indexes();
       // If all secondary indexes are not SAI or there are no secondary indexes,
       // then an upgrade is available.
@@ -33,13 +33,12 @@ public class CollectionService {
     }
   }
 
-  public boolean createCollection(
-      String keyspaceName, String tableName, DocumentDB docDB, boolean isDse) {
+  public boolean createCollection(String keyspaceName, String tableName, DocumentDB docDB) {
     boolean created = docDB.maybeCreateTable(keyspaceName, tableName);
     if (!created) {
       return false;
     }
-    docDB.maybeCreateTableIndexes(keyspaceName, tableName, isDse);
+    docDB.maybeCreateTableIndexes(keyspaceName, tableName);
     return true;
   }
 
@@ -49,13 +48,9 @@ public class CollectionService {
   }
 
   public boolean upgradeCollection(
-      String keyspaceName,
-      String tableName,
-      DocumentDB docDB,
-      CollectionUpgradeType upgradeType,
-      boolean isDse) {
+      String keyspaceName, String tableName, DocumentDB docDB, CollectionUpgradeType upgradeType) {
     if (upgradeType == CollectionUpgradeType.SAI_INDEX_UPGRADE) {
-      return docDB.upgradeTableIndexes(keyspaceName, tableName, isDse);
+      return docDB.upgradeTableIndexes(keyspaceName, tableName);
     }
     throw new RuntimeException("Invalid upgrade type: " + upgradeType);
   }

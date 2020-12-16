@@ -149,8 +149,4 @@ public class Db {
     return new DocumentDB(
         getDataStoreInternal(role, pageSize, pageState), token, getAuthorizationService());
   }
-
-  public boolean isDse() {
-    return persistence.name().equals("DataStax Enterprise");
-  }
 }

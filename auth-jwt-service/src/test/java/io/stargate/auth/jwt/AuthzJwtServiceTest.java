@@ -30,6 +30,7 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ArrayListBackedRow;
@@ -89,7 +90,7 @@ public class AuthzJwtServiceTest {
 
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(
-            action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues);
+            action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues, SourceAPI.CQL);
     assertThat(result.rows().get(0)).isEqualTo(row);
   }
 
@@ -107,7 +108,7 @@ public class AuthzJwtServiceTest {
 
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(
-            action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues);
+            action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues, SourceAPI.CQL);
     assertThat(result).isNull();
   }
 
@@ -129,7 +130,7 @@ public class AuthzJwtServiceTest {
 
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(
-            action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues);
+            action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues, SourceAPI.CQL);
     assertThat(result.rows()).isEqualTo(null);
   }
 
@@ -158,7 +159,12 @@ public class AuthzJwtServiceTest {
             UnauthorizedException.class,
             () ->
                 mockAuthzJwtService.authorizedDataRead(
-                    action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues));
+                    action,
+                    signJWT(stargate_claims),
+                    "keyspace",
+                    "table",
+                    typedKeyValues,
+                    SourceAPI.CQL));
     assertThat(ex).hasMessage("Not allowed to access this resource");
   }
 
@@ -185,7 +191,7 @@ public class AuthzJwtServiceTest {
 
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(
-            action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues);
+            action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues, SourceAPI.CQL);
     assertThat(result.rows()).isEqualTo(Collections.emptyList());
   }
 
@@ -217,7 +223,12 @@ public class AuthzJwtServiceTest {
             IllegalArgumentException.class,
             () ->
                 mockAuthzJwtService.authorizedDataRead(
-                    action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues));
+                    action,
+                    signJWT(stargate_claims),
+                    "keyspace",
+                    "table",
+                    typedKeyValues,
+                    SourceAPI.CQL));
     assertThat(ex).hasMessage("Column must be of type text to be used for authorization");
   }
 
@@ -249,7 +260,7 @@ public class AuthzJwtServiceTest {
 
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(
-            action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues);
+            action, signJWT(stargate_claims), "keyspace", "table", typedKeyValues, SourceAPI.CQL);
     assertThat(result.rows().get(0)).isEqualTo(row1);
     assertThat(result.rows().get(1)).isEqualTo(row2);
   }

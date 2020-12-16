@@ -63,8 +63,12 @@ public abstract class BaseActivator implements BundleActivator {
   public synchronized void start(BundleContext context) throws InvalidSyntaxException {
     logger.info("Starting {} ...", activatorName);
     this.context = context;
-    tracker = new Tracker(context, context.createFilter(constructDependenciesFilter()));
-    tracker.open();
+    if (dependencies().isEmpty() && lazyDependencies().isEmpty()) {
+      startServiceInternal();
+    } else {
+      tracker = new Tracker(context, context.createFilter(constructDependenciesFilter()));
+      tracker.open();
+    }
   }
 
   String constructDependenciesFilter() {
@@ -193,7 +197,7 @@ public abstract class BaseActivator implements BundleActivator {
    */
   protected ServiceAndProperties createService() {
     return null;
-  };
+  }
 
   /**
    * It will be called when the OSGi calls {@link this#stop(BundleContext)} and only if service was
