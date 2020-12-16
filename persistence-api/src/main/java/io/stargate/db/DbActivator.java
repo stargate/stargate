@@ -19,8 +19,12 @@ public class DbActivator implements BundleActivator, ServiceListener {
   }
 
   @Override
-  public void stop(BundleContext bundleContext) throws Exception {}
+  public void stop(BundleContext bundleContext) throws Exception {
+    // no-op
+  }
 
   @Override
-  public void serviceChanged(ServiceEvent serviceEvent) {}
+  public void serviceChanged(ServiceEvent serviceEvent) {
+    // no-op
+  }
 }
