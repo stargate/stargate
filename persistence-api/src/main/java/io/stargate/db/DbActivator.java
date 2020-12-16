@@ -1,30 +1,30 @@
 package io.stargate.db;
 
+import io.stargate.core.activator.BaseActivator;
 import io.stargate.db.datastore.DataStoreFactory;
-import org.osgi.framework.BundleActivator;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceEvent;
-import org.osgi.framework.ServiceListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Collections;
+import java.util.List;
 
-public class DbActivator implements BundleActivator, ServiceListener {
-  private static final Logger logger = LoggerFactory.getLogger(DbActivator.class);
+public class DbActivator extends BaseActivator {
+  private final ServicePointer<Persistence> persistence =
+      BaseActivator.ServicePointer.create(Persistence.class);
 
-  @Override
-  public void start(BundleContext context) {
-    logger.info("Registering DB services...");
-
-    context.registerService(DataStoreFactory.class, new DataStoreFactory(), null);
+  public DbActivator() {
+    super("DB services");
   }
 
   @Override
-  public void stop(BundleContext bundleContext) throws Exception {
+  protected ServiceAndProperties createService() {
+    return new ServiceAndProperties(new DataStoreFactory(), DataStoreFactory.class);
+  }
+
+  @Override
+  protected void stopService() {
     // no-op
   }
 
   @Override
-  public void serviceChanged(ServiceEvent serviceEvent) {
-    // no-op
+  protected List<ServicePointer<?>> dependencies() {
+    return Collections.singletonList(persistence);
   }
 }
