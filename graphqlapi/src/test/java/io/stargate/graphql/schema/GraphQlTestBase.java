@@ -86,7 +86,7 @@ public abstract class GraphQlTestBase {
               anyString(),
               anyString(),
               any(),
-              SourceAPI.GRAPHQL))
+              eq(SourceAPI.GRAPHQL)))
           .then(
               i -> {
                 return actionCaptor.getValue().call();
