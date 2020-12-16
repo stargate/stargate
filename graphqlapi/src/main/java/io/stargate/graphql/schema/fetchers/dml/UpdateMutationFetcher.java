@@ -1,11 +1,7 @@
 package io.stargate.graphql.schema.fetchers.dml;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
-import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.Scope;
-import io.stargate.auth.TypedKeyValue;
-import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.*;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
@@ -68,7 +64,8 @@ public class UpdateMutationFetcher extends MutationFetcher {
         table.keyspace(),
         table.name(),
         TypedKeyValue.forDML((BoundDMLQuery) query),
-        Scope.MODIFY);
+        Scope.MODIFY,
+        SourceAPI.GRAPHQL);
 
     return query;
   }

@@ -18,6 +18,7 @@ import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.SourceAPI;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
@@ -77,7 +78,12 @@ public abstract class GraphQlTestBase {
       when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
       when(storedCredentials.getRoleName()).thenReturn(roleName);
       when(authorizationService.authorizedDataRead(
-              actionCaptor.capture(), eq(token), anyString(), anyString(), any()))
+              actionCaptor.capture(),
+              eq(token),
+              anyString(),
+              anyString(),
+              any(),
+              eq(SourceAPI.GRAPHQL)))
           .then(
               i -> {
                 return actionCaptor.getValue().call();

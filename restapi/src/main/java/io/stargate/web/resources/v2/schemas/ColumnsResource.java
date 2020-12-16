@@ -17,6 +17,7 @@ package io.stargate.web.resources.v2.schemas;
 
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
@@ -98,7 +99,8 @@ public class ColumnsResource {
               .authorizeSchemaRead(
                   token,
                   Collections.singletonList(keyspaceName),
-                  Collections.singletonList(tableName));
+                  Collections.singletonList(tableName),
+                  SourceAPI.REST);
 
           final Table tableMetadata;
           try {
@@ -189,7 +191,7 @@ public class ColumnsResource {
           Column column = ImmutableColumn.builder().name(name).kind(kind).type(type).build();
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER, SourceAPI.REST);
 
           localDB
               .queryBuilder()
@@ -246,7 +248,8 @@ public class ColumnsResource {
               .authorizeSchemaRead(
                   token,
                   Collections.singletonList(keyspaceName),
-                  Collections.singletonList(tableName));
+                  Collections.singletonList(tableName),
+                  SourceAPI.REST);
 
           final Table tableMetadata;
           try {
@@ -316,7 +319,7 @@ public class ColumnsResource {
           DataStore localDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER, SourceAPI.REST);
 
           localDB
               .queryBuilder()
@@ -364,7 +367,7 @@ public class ColumnsResource {
           DataStore localDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER, SourceAPI.REST);
 
           localDB
               .queryBuilder()

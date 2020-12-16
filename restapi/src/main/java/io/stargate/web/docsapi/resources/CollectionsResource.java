@@ -2,6 +2,7 @@ package io.stargate.web.docsapi.resources;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.SchemaEntity;
 import io.stargate.db.schema.Table;
@@ -78,7 +79,8 @@ public class CollectionsResource {
               .authorizeSchemaRead(
                   token,
                   Collections.singletonList(namespace),
-                  tables.stream().map(SchemaEntity::name).collect(Collectors.toList()));
+                  tables.stream().map(SchemaEntity::name).collect(Collectors.toList()),
+                  SourceAPI.REST);
 
           List<DocCollection> result =
               tables.stream()
@@ -127,7 +129,7 @@ public class CollectionsResource {
             throw new IllegalArgumentException("`name` is required to create a collection");
           }
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, namespace, info.getName(), Scope.CREATE);
+              .authorizeSchemaWrite(token, namespace, info.getName(), Scope.CREATE, SourceAPI.REST);
 
           boolean res = collectionService.createCollection(namespace, info.getName(), docDB);
           if (res) {
@@ -170,7 +172,7 @@ public class CollectionsResource {
           DataStore localDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, namespace, collection, Scope.DROP);
+              .authorizeSchemaWrite(token, namespace, collection, Scope.DROP, SourceAPI.REST);
 
           Table toDelete = localDB.schema().keyspace(namespace).table(collection);
           if (toDelete == null) {
@@ -224,7 +226,7 @@ public class CollectionsResource {
           DataStore localDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, namespace, collection, Scope.ALTER);
+              .authorizeSchemaWrite(token, namespace, collection, Scope.ALTER, SourceAPI.REST);
 
           Table table = localDB.schema().keyspace(namespace).table(collection);
           if (table == null) {

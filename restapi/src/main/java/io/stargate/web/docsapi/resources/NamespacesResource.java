@@ -18,6 +18,7 @@ package io.stargate.web.docsapi.resources;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.builder.Replication;
 import io.stargate.web.models.Datacenter;
@@ -95,7 +96,8 @@ public class NamespacesResource {
               .authorizeSchemaRead(
                   token,
                   namespaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
-                  null);
+                  null,
+                  SourceAPI.REST);
 
           Object response = raw ? namespaces : new ResponseWrapper(namespaces);
           return Response.status(Response.Status.OK)
@@ -135,7 +137,8 @@ public class NamespacesResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
           db.getAuthorizationService()
-              .authorizeSchemaRead(token, Collections.singletonList(namespaceName), null);
+              .authorizeSchemaRead(
+                  token, Collections.singletonList(namespaceName), null, SourceAPI.REST);
 
           io.stargate.db.schema.Keyspace keyspace = localDB.schema().keyspace(namespaceName);
           if (keyspace == null) {
@@ -204,7 +207,7 @@ public class NamespacesResource {
 
           String keyspaceName = (String) requestBody.get("name");
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, null, Scope.CREATE);
+              .authorizeSchemaWrite(token, keyspaceName, null, Scope.CREATE, SourceAPI.REST);
 
           Replication replication;
           if (requestBody.containsKey("datacenters")) {
@@ -263,7 +266,8 @@ public class NamespacesResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          db.getAuthorizationService().authorizeSchemaWrite(token, namespaceName, null, Scope.DROP);
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, namespaceName, null, Scope.DROP, SourceAPI.REST);
 
           localDB
               .queryBuilder()

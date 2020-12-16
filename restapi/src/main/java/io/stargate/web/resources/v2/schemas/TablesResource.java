@@ -17,6 +17,7 @@ package io.stargate.web.resources.v2.schemas;
 
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
@@ -110,7 +111,8 @@ public class TablesResource {
               .authorizeSchemaRead(
                   token,
                   Collections.singletonList(keyspaceName),
-                  tableResponses.stream().map(TableResponse::getName).collect(Collectors.toList()));
+                  tableResponses.stream().map(TableResponse::getName).collect(Collectors.toList()),
+                  SourceAPI.REST);
 
           Object response = raw ? tableResponses : new ResponseWrapper(tableResponses);
           return Response.status(Response.Status.OK)
@@ -155,7 +157,8 @@ public class TablesResource {
               .authorizeSchemaRead(
                   token,
                   Collections.singletonList(keyspaceName),
-                  Collections.singletonList(tableName));
+                  Collections.singletonList(tableName),
+                  SourceAPI.REST);
 
           Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
 
@@ -214,7 +217,7 @@ public class TablesResource {
           }
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.CREATE);
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.CREATE, SourceAPI.REST);
 
           PrimaryKey primaryKey = tableAdd.getPrimaryKey();
           if (primaryKey == null) {
@@ -307,7 +310,7 @@ public class TablesResource {
           DataStore localDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER);
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER, SourceAPI.REST);
 
           TableOptions options = tableUpdate.getTableOptions();
           List<ClusteringExpression> clusteringExpressions = options.getClusteringExpression();
@@ -374,7 +377,7 @@ public class TablesResource {
           DataStore localDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.DROP);
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.DROP, SourceAPI.REST);
 
           localDB
               .queryBuilder()

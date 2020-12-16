@@ -3,6 +3,7 @@ package io.stargate.web.docsapi.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyInt;
@@ -30,6 +31,7 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ArrayListBackedRow;
 import io.stargate.db.datastore.ResultSet;
@@ -993,7 +995,9 @@ public class DocumentServiceTest {
     when(dbMock.executeSelect(anyString(), anyString(), anyList())).thenReturn(rsMock);
     when(rsMock.rows()).thenReturn(new ArrayList<>());
     when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
+    doNothing()
+        .when(authorizationService)
+        .authorizeDataRead(anyString(), anyString(), anyString(), eq(SourceAPI.REST));
 
     List<PathSegment> path = smallPath();
     JsonNode result = service.getJsonAtPath(dbMock, "ks", "collection", "id", path);
@@ -1010,7 +1014,9 @@ public class DocumentServiceTest {
     DocumentService serviceMock = mock(DocumentService.class, CALLS_REAL_METHODS);
     when(dbMock.executeSelect(anyString(), anyString(), anyList())).thenReturn(rsMock);
     when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
+    doNothing()
+        .when(authorizationService)
+        .authorizeDataRead(anyString(), anyString(), anyString(), eq(SourceAPI.REST));
 
     List<Row> rows = makeInitialRowData();
     when(rsMock.rows()).thenReturn(rows);
@@ -1035,7 +1041,9 @@ public class DocumentServiceTest {
     DocumentService serviceMock = mock(DocumentService.class, CALLS_REAL_METHODS);
     when(dbMock.executeSelect(anyString(), anyString(), anyList())).thenReturn(rsMock);
     when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
+    doNothing()
+        .when(authorizationService)
+        .authorizeDataRead(anyString(), anyString(), anyString(), eq(SourceAPI.REST));
 
     List<Row> rows = makeInitialRowData();
     when(rsMock.rows()).thenReturn(rows);
@@ -1063,7 +1071,9 @@ public class DocumentServiceTest {
     DocumentService serviceMock = mock(DocumentService.class, CALLS_REAL_METHODS);
     when(dbMock.executeSelect(anyString(), anyString(), anyList())).thenReturn(rsMock);
     when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
+    doNothing()
+        .when(authorizationService)
+        .authorizeDataRead(anyString(), anyString(), anyString(), eq(SourceAPI.REST));
 
     List<Row> rows = makeInitialRowData();
     when(rsMock.rows()).thenReturn(rows);
@@ -1187,7 +1197,9 @@ public class DocumentServiceTest {
     AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
     when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
+    doNothing()
+        .when(authorizationService)
+        .authorizeDataRead(anyString(), anyString(), anyString(), eq(SourceAPI.REST));
 
     service.deleteAtPath(dbMock, "keyspace", "collection", "id", smallPath());
     verify(dbMock, times(1)).delete(anyString(), anyString(), anyString(), anyList(), anyLong());
@@ -1369,7 +1381,9 @@ public class DocumentServiceTest {
     when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean())).thenReturn(rsMock);
     when(rsMock.currentPageRows()).thenReturn(rows);
     when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
+    doNothing()
+        .when(authorizationService)
+        .authorizeDataRead(anyString(), anyString(), anyString(), eq(SourceAPI.REST));
 
     List<FilterCondition> filters =
         ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$eq", true));
@@ -1417,7 +1431,9 @@ public class DocumentServiceTest {
     when(dbMock.executeSelectAll(anyString(), anyString())).thenReturn(rsMock);
     when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean())).thenReturn(rsMock);
     when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    doNothing().when(authorizationService).authorizeDataRead(anyString(), anyString(), anyString());
+    doNothing()
+        .when(authorizationService)
+        .authorizeDataRead(anyString(), anyString(), anyString(), eq(SourceAPI.REST));
     when(rsMock.rows()).thenReturn(rows);
     when(rsMock.getPagingState()).thenReturn(ByteBuffer.wrap(new byte[0]));
 
