@@ -19,6 +19,7 @@ package io.stargate.db.cassandra.impl;
 
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
@@ -209,7 +210,7 @@ public class StargateQueryHandler implements QueryHandler {
 
       try {
         authorization.authorizeDataRead(
-            authToken, castStatement.keyspace(), castStatement.columnFamily());
+            authToken, castStatement.keyspace(), castStatement.columnFamily(), SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format(
@@ -235,7 +236,11 @@ public class StargateQueryHandler implements QueryHandler {
 
       try {
         authorization.authorizeDataWrite(
-            authToken, castStatement.keyspace(), castStatement.name(), Scope.TRUNCATE);
+            authToken,
+            castStatement.keyspace(),
+            castStatement.name(),
+            Scope.TRUNCATE,
+            SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format(
@@ -289,7 +294,7 @@ public class StargateQueryHandler implements QueryHandler {
 
     try {
       authorization.authorizeDataWrite(
-          authToken, castStatement.keyspace(), castStatement.columnFamily(), scope);
+          authToken, castStatement.keyspace(), castStatement.columnFamily(), scope, SourceAPI.CQL);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format(
@@ -321,7 +326,7 @@ public class StargateQueryHandler implements QueryHandler {
           role);
 
       try {
-        authorization.authorizeRoleManagement(authToken, role, grantee, scope);
+        authorization.authorizeRoleManagement(authToken, role, grantee, scope, SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("Missing correct permission on role %s", role), e);
@@ -350,7 +355,7 @@ public class StargateQueryHandler implements QueryHandler {
         role);
 
     try {
-      authorization.authorizeRoleManagement(authToken, role, scope);
+      authorization.authorizeRoleManagement(authToken, role, scope, SourceAPI.CQL);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format("Missing correct permission on role %s", role), e);
@@ -376,7 +381,8 @@ public class StargateQueryHandler implements QueryHandler {
           resource);
 
       try {
-        authorization.authorizePermissionManagement(authToken, resource, grantee, scope);
+        authorization.authorizePermissionManagement(
+            authToken, resource, grantee, scope, SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("Missing correct permission on role %s", resource), e);
@@ -393,7 +399,7 @@ public class StargateQueryHandler implements QueryHandler {
           role);
 
       try {
-        authorization.authorizeRoleRead(authToken, role);
+        authorization.authorizeRoleRead(authToken, role, SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("Missing correct permission on role %s", role), e);
@@ -410,7 +416,7 @@ public class StargateQueryHandler implements QueryHandler {
           role);
 
       try {
-        authorization.authorizePermissionRead(authToken, role);
+        authorization.authorizePermissionRead(authToken, role, SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("Missing correct permission on role %s", role), e);
@@ -566,7 +572,7 @@ public class StargateQueryHandler implements QueryHandler {
         tableName);
 
     try {
-      authorization.authorizeSchemaWrite(authToken, keyspaceName, tableName, scope);
+      authorization.authorizeSchemaWrite(authToken, keyspaceName, tableName, scope, SourceAPI.CQL);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format(
