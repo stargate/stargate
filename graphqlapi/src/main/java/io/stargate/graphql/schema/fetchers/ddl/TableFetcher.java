@@ -5,6 +5,7 @@ import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
 import io.stargate.db.query.Query;
@@ -38,7 +39,7 @@ public abstract class TableFetcher extends DdlQueryFetcher {
     }
 
     authorizationService.authorizeSchemaWrite(
-        authenticationPrincipal, keyspaceName, tableName, scope);
+        authenticationPrincipal, keyspaceName, tableName, scope, SourceAPI.GRAPHQL);
 
     return buildQuery(dataFetchingEnvironment, builder, keyspaceName, tableName);
   }

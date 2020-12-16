@@ -21,6 +21,7 @@ import static io.stargate.auth.jwt.AuthnJwtService.STARGATE_PREFIX;
 import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ResultSet;
@@ -53,7 +54,10 @@ public class AuthzJwtService implements AuthorizationService {
       AuthenticationPrincipal authenticationPrincipal,
       String keyspace,
       String table,
-      List<TypedKeyValue> typedKeyValues)
+      List<TypedKeyValue> typedKeyValues,
+      SourceAPI
+          sourceAPI) // this isn’t supported but if you want to use it you’ll need something other
+      // than a JWT
       throws Exception {
     JSONObject stargateClaims = extractClaimsFromJWT(authenticationPrincipal.getToken());
 
@@ -100,7 +104,10 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public void authorizeDataRead(
-      AuthenticationPrincipal authenticationPrincipal, String keyspace, String table)
+      AuthenticationPrincipal authenticationPrincipal,
+      String keyspace,
+      String table,
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -114,7 +121,11 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public void authorizeDataWrite(
-      AuthenticationPrincipal authenticationPrincipal, String keyspace, String table, Scope scope)
+      AuthenticationPrincipal authenticationPrincipal,
+      String keyspace,
+      String table,
+      Scope scope,
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -126,7 +137,8 @@ public class AuthzJwtService implements AuthorizationService {
       String keyspace,
       String table,
       List<TypedKeyValue> typedKeyValues,
-      Scope scope)
+      Scope scope,
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     JSONObject stargateClaims = extractClaimsFromJWT(authenticationPrincipal.getToken());
 
@@ -145,7 +157,8 @@ public class AuthzJwtService implements AuthorizationService {
   public void authorizeSchemaRead(
       AuthenticationPrincipal authenticationPrincipal,
       List<String> keyspaceNames,
-      List<String> tableNames)
+      List<String> tableNames,
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -158,7 +171,11 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public void authorizeSchemaWrite(
-      AuthenticationPrincipal authenticationPrincipal, String keyspace, String table, Scope scope)
+      AuthenticationPrincipal authenticationPrincipal,
+      String keyspace,
+      String table,
+      Scope scope,
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -171,7 +188,10 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public void authorizeRoleManagement(
-      AuthenticationPrincipal authenticationPrincipal, String role, Scope scope)
+      AuthenticationPrincipal authenticationPrincipal,
+      String role,
+      Scope scope,
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -184,7 +204,11 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public void authorizeRoleManagement(
-      AuthenticationPrincipal authenticationPrincipal, String role, String grantee, Scope scope)
+      AuthenticationPrincipal authenticationPrincipal,
+      String role,
+      String grantee,
+      Scope scope,
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -196,7 +220,8 @@ public class AuthzJwtService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizeRoleRead(AuthenticationPrincipal authenticationPrincipal, String role)
+  public void authorizeRoleRead(
+      AuthenticationPrincipal authenticationPrincipal, String role, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -209,7 +234,11 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public void authorizePermissionManagement(
-      AuthenticationPrincipal authenticationPrincipal, String resource, String grantee, Scope scope)
+      AuthenticationPrincipal authenticationPrincipal,
+      String resource,
+      String grantee,
+      Scope scope,
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -221,7 +250,8 @@ public class AuthzJwtService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizePermissionRead(AuthenticationPrincipal authenticationPrincipal, String role)
+  public void authorizePermissionRead(
+      AuthenticationPrincipal authenticationPrincipal, String role, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }

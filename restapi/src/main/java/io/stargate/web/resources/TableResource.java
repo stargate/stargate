@@ -17,6 +17,7 @@ package io.stargate.web.resources;
 
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Kind;
@@ -108,7 +109,8 @@ public class TableResource {
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationPrincipal(),
                   Collections.singletonList(keyspaceName),
-                  tableNames);
+                  tableNames,
+                  SourceAPI.REST);
 
           return Response.status(Response.Status.OK).entity(tableNames).build();
         });
@@ -202,7 +204,8 @@ public class TableResource {
                   authenticatedDB.getAuthenticationPrincipal(),
                   keyspaceName,
                   tableName,
-                  Scope.CREATE);
+                  Scope.CREATE,
+                  SourceAPI.REST);
 
           authenticatedDB
               .getDataStore()
@@ -255,7 +258,8 @@ public class TableResource {
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationPrincipal(),
                   Collections.singletonList(keyspaceName),
-                  Collections.singletonList(tableName));
+                  Collections.singletonList(tableName),
+                  SourceAPI.REST);
 
           Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -339,7 +343,8 @@ public class TableResource {
                   authenticatedDB.getAuthenticationPrincipal(),
                   keyspaceName,
                   tableName,
-                  Scope.DROP);
+                  Scope.DROP,
+                  SourceAPI.REST);
 
           authenticatedDB
               .getDataStore()

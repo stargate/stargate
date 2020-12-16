@@ -22,6 +22,7 @@ import io.reactivex.Single;
 import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
 import java.io.ByteArrayInputStream;
@@ -220,7 +221,10 @@ public class StargateQueryHandler implements QueryHandler {
 
       try {
         authorization.authorizeDataRead(
-            authenticationPrincipal, castStatement.keyspace(), castStatement.table());
+            authenticationPrincipal,
+            castStatement.keyspace(),
+            castStatement.table(),
+            SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format(
@@ -248,7 +252,8 @@ public class StargateQueryHandler implements QueryHandler {
             authenticationPrincipal,
             castStatement.keyspace(),
             castStatement.table(),
-            Scope.TRUNCATE);
+            Scope.TRUNCATE,
+            SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format(
@@ -304,7 +309,11 @@ public class StargateQueryHandler implements QueryHandler {
 
     try {
       authorization.authorizeDataWrite(
-          authenticationPrincipal, castStatement.keyspace(), castStatement.table(), scope);
+          authenticationPrincipal,
+          castStatement.keyspace(),
+          castStatement.table(),
+          scope,
+          SourceAPI.CQL);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format(
@@ -337,7 +346,8 @@ public class StargateQueryHandler implements QueryHandler {
           role);
 
       try {
-        authorization.authorizeRoleManagement(authenticationPrincipal, role, grantee, scope);
+        authorization.authorizeRoleManagement(
+            authenticationPrincipal, role, grantee, scope, SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("Missing correct permission on role %s", role));
@@ -366,7 +376,7 @@ public class StargateQueryHandler implements QueryHandler {
         role);
 
     try {
-      authorization.authorizeRoleManagement(authenticationPrincipal, role, scope);
+      authorization.authorizeRoleManagement(authenticationPrincipal, role, scope, SourceAPI.CQL);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(String.format("Missing correct permission on role %s", role));
     }
@@ -395,7 +405,7 @@ public class StargateQueryHandler implements QueryHandler {
 
         try {
           authorization.authorizePermissionManagement(
-              authenticationPrincipal, resource, grantee, scope);
+              authenticationPrincipal, resource, grantee, scope, SourceAPI.CQL);
         } catch (io.stargate.auth.UnauthorizedException e) {
           throw new UnauthorizedException(
               String.format("Missing correct permission on role %s", resource));
@@ -412,7 +422,7 @@ public class StargateQueryHandler implements QueryHandler {
             role);
 
         try {
-          authorization.authorizePermissionRead(authenticationPrincipal, role);
+          authorization.authorizePermissionRead(authenticationPrincipal, role, SourceAPI.CQL);
         } catch (io.stargate.auth.UnauthorizedException e) {
           throw new UnauthorizedException(
               String.format("Missing correct permission on role %s", role));
@@ -430,7 +440,7 @@ public class StargateQueryHandler implements QueryHandler {
           role);
 
       try {
-        authorization.authorizeRoleRead(authenticationPrincipal, role);
+        authorization.authorizeRoleRead(authenticationPrincipal, role, SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("Missing correct permission on role %s", role));
@@ -532,7 +542,8 @@ public class StargateQueryHandler implements QueryHandler {
         tableName);
 
     try {
-      authorization.authorizeSchemaWrite(authenticationPrincipal, keyspaceName, tableName, scope);
+      authorization.authorizeSchemaWrite(
+          authenticationPrincipal, keyspaceName, tableName, scope, SourceAPI.CQL);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format(

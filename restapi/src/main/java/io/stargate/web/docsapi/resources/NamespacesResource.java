@@ -18,6 +18,7 @@ package io.stargate.web.docsapi.resources;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.db.query.builder.Replication;
 import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
@@ -95,7 +96,8 @@ public class NamespacesResource {
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationPrincipal(),
                   namespaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
-                  null);
+                  null,
+                  SourceAPI.REST);
 
           Object response = raw ? namespaces : new ResponseWrapper(namespaces);
           return Response.status(Response.Status.OK)
@@ -138,7 +140,8 @@ public class NamespacesResource {
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationPrincipal(),
                   Collections.singletonList(namespaceName),
-                  null);
+                  null,
+                  SourceAPI.REST);
 
           io.stargate.db.schema.Keyspace keyspace = authenticatedDB.getKeyspace(namespaceName);
           if (keyspace == null) {
@@ -208,7 +211,11 @@ public class NamespacesResource {
           String keyspaceName = (String) requestBody.get("name");
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(), keyspaceName, null, Scope.CREATE);
+                  authenticatedDB.getAuthenticationPrincipal(),
+                  keyspaceName,
+                  null,
+                  Scope.CREATE,
+                  SourceAPI.REST);
 
           Replication replication;
           if (requestBody.containsKey("datacenters")) {
@@ -270,7 +277,11 @@ public class NamespacesResource {
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(), namespaceName, null, Scope.DROP);
+                  authenticatedDB.getAuthenticationPrincipal(),
+                  namespaceName,
+                  null,
+                  Scope.DROP,
+                  SourceAPI.REST);
 
           authenticatedDB
               .getDataStore()

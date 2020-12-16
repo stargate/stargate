@@ -20,6 +20,7 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
 import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableTable;
@@ -61,7 +62,10 @@ class KeyspaceFormatter {
     ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
     try {
       authorizationService.authorizeSchemaRead(
-          authenticationPrincipal, Collections.singletonList(keyspace.name()), null);
+          authenticationPrincipal,
+          Collections.singletonList(keyspace.name()),
+          null,
+          SourceAPI.GRAPHQL);
     } catch (UnauthorizedException e) {
       LOG.debug("Not returning keyspace {} due to not being authorized", keyspace.name());
       return builder.build();
@@ -113,7 +117,8 @@ class KeyspaceFormatter {
             authorizationService.authorizeSchemaRead(
                 authenticationPrincipal,
                 Collections.singletonList(keyspaceName),
-                Collections.singletonList(((ImmutableTable) child).name()));
+                Collections.singletonList(((ImmutableTable) child).name()),
+                SourceAPI.GRAPHQL);
           } catch (UnauthorizedException e) {
             LOG.debug(
                 "Not returning table {}.{} due to not being authorized",
@@ -136,7 +141,8 @@ class KeyspaceFormatter {
           authorizationService.authorizeSchemaRead(
               authenticationPrincipal,
               Collections.singletonList(keyspaceName),
-              Collections.singletonList(name));
+              Collections.singletonList(name),
+              SourceAPI.GRAPHQL);
         } catch (UnauthorizedException e) {
           LOG.debug("Not returning table {}.{} due to not being authorized", keyspaceName, name);
           return; // Not authorized so return and don't add this table to the list

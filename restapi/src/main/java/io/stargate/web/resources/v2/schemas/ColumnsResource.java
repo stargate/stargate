@@ -17,6 +17,7 @@ package io.stargate.web.resources.v2.schemas;
 
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.ImmutableColumn;
@@ -98,7 +99,8 @@ public class ColumnsResource {
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationPrincipal(),
                   Collections.singletonList(keyspaceName),
-                  Collections.singletonList(tableName));
+                  Collections.singletonList(tableName),
+                  SourceAPI.REST);
 
           final Table tableMetadata;
           try {
@@ -193,7 +195,8 @@ public class ColumnsResource {
                   authenticatedDB.getAuthenticationPrincipal(),
                   keyspaceName,
                   tableName,
-                  Scope.ALTER);
+                  Scope.ALTER,
+                  SourceAPI.REST);
 
           authenticatedDB
               .getDataStore()
@@ -251,7 +254,8 @@ public class ColumnsResource {
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationPrincipal(),
                   Collections.singletonList(keyspaceName),
-                  Collections.singletonList(tableName));
+                  Collections.singletonList(tableName),
+                  SourceAPI.REST);
 
           final Table tableMetadata;
           try {
@@ -325,7 +329,8 @@ public class ColumnsResource {
                   authenticatedDB.getAuthenticationPrincipal(),
                   keyspaceName,
                   tableName,
-                  Scope.ALTER);
+                  Scope.ALTER,
+                  SourceAPI.REST);
 
           authenticatedDB
               .getDataStore()
@@ -378,7 +383,8 @@ public class ColumnsResource {
                   authenticatedDB.getAuthenticationPrincipal(),
                   keyspaceName,
                   tableName,
-                  Scope.ALTER);
+                  Scope.ALTER,
+                  SourceAPI.REST);
 
           authenticatedDB
               .getDataStore()

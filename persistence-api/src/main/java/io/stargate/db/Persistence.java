@@ -116,6 +116,13 @@ public interface Persistence {
   Map<String, List<String>> cqlSupportedOptions();
 
   /**
+   * Execute AUTH_RESPONSE request handling asynchronously on the correct thread pool.
+   *
+   * @param handler a runnable that handles a AUTH_RESPONSE request
+   */
+  void executeAuthResponse(Runnable handler);
+
+  /**
    * A connection to the persistence.
    *
    * <p>It is through this object that a user can be logged in and that the persistence can be

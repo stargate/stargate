@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableList;
 import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
@@ -326,7 +327,8 @@ public class DocumentDB {
       String keyspace, String collection, List<BuiltCondition> predicates, boolean allowFiltering)
       throws UnauthorizedException {
     // Run generic authorizeDataRead for now
-    getAuthorizationService().authorizeDataRead(getAuthenticationPrincipal(), keyspace, collection);
+    getAuthorizationService()
+        .authorizeDataRead(getAuthenticationPrincipal(), keyspace, collection, SourceAPI.REST);
 
     return this.builder()
         .select()
@@ -343,7 +345,8 @@ public class DocumentDB {
   public ResultSet executeSelectAll(String keyspace, String collection)
       throws UnauthorizedException {
     // Run generic authorizeDataRead for now
-    getAuthorizationService().authorizeDataRead(getAuthenticationPrincipal(), keyspace, collection);
+    getAuthorizationService()
+        .authorizeDataRead(getAuthenticationPrincipal(), keyspace, collection, SourceAPI.REST);
 
     return this.builder()
         .select()
@@ -519,10 +522,10 @@ public class DocumentDB {
     }
 
     getAuthorizationService()
-        .authorizeDataWrite(authenticationPrincipal, keyspace, table, Scope.DELETE);
+        .authorizeDataWrite(authenticationPrincipal, keyspace, table, Scope.DELETE, SourceAPI.REST);
 
     getAuthorizationService()
-        .authorizeDataWrite(authenticationPrincipal, keyspace, table, Scope.MODIFY);
+        .authorizeDataWrite(authenticationPrincipal, keyspace, table, Scope.MODIFY, SourceAPI.REST);
     dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
   }
 
@@ -570,10 +573,10 @@ public class DocumentDB {
     }
 
     getAuthorizationService()
-        .authorizeDataWrite(authenticationPrincipal, keyspace, table, Scope.DELETE);
+        .authorizeDataWrite(authenticationPrincipal, keyspace, table, Scope.DELETE, SourceAPI.REST);
 
     getAuthorizationService()
-        .authorizeDataWrite(authenticationPrincipal, keyspace, table, Scope.MODIFY);
+        .authorizeDataWrite(authenticationPrincipal, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
     dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
   }
@@ -583,7 +586,8 @@ public class DocumentDB {
       throws UnauthorizedException {
 
     getAuthorizationService()
-        .authorizeDataWrite(getAuthenticationPrincipal(), keyspace, table, Scope.DELETE);
+        .authorizeDataWrite(
+            getAuthenticationPrincipal(), keyspace, table, Scope.DELETE, SourceAPI.REST);
     dataStore
         .execute(
             getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch, pathToDelete),
@@ -608,7 +612,8 @@ public class DocumentDB {
       throws UnauthorizedException {
 
     getAuthorizationService()
-        .authorizeDataWrite(getAuthenticationPrincipal(), keyspaceName, tableName, Scope.DELETE);
+        .authorizeDataWrite(
+            getAuthenticationPrincipal(), keyspaceName, tableName, Scope.DELETE, SourceAPI.REST);
 
     List<BoundQuery> queries = new ArrayList<>();
     for (Map.Entry<String, List<JsonNode>> entry : deadLeaves.entrySet()) {

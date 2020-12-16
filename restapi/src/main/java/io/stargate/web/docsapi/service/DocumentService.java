@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.node.LongNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
@@ -745,7 +746,8 @@ public class DocumentService {
     return ImmutablePair.of(docsResult, pageState);
   }
 
-  private void addRowsToMap(Map<String, List<Row>> rowsByDoc, List<Row> rows) {
+  @VisibleForTesting
+  void addRowsToMap(Map<String, List<Row>> rowsByDoc, List<Row> rows) {
     for (Row row : rows) {
       String key = row.getString("key");
       List<Row> rowsAtKey = rowsByDoc.getOrDefault(key, new ArrayList<>());
@@ -969,7 +971,8 @@ public class DocumentService {
    * @throws ExecutionException
    * @throws InterruptedException
    */
-  private ImmutablePair<List<Row>, ByteBuffer> searchRows(
+  @VisibleForTesting
+  ImmutablePair<List<Row>, ByteBuffer> searchRows(
       String keyspace,
       String collection,
       DocumentDB db,

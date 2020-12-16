@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.AuthenticatedUser;
 import java.io.ByteArrayInputStream;
@@ -94,7 +95,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
-        .authorizeDataRead(refEq(authenticationPrincipal), eq("system_views"), eq("local_node"));
+        .authorizeDataRead(
+            refEq(authenticationPrincipal),
+            eq("system_views"),
+            eq("local_node"),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -111,7 +116,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeDataWrite(
-            refEq(authenticationPrincipal), eq("ks1"), eq("tbl1"), eq(Scope.DELETE));
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.DELETE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -128,7 +137,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeDataWrite(
-            refEq(authenticationPrincipal), eq("ks1"), eq("tbl1"), eq(Scope.MODIFY));
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.MODIFY),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -140,7 +153,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeDataWrite(
-            refEq(authenticationPrincipal), eq("ks1"), eq("tbl1"), eq(Scope.TRUNCATE));
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.TRUNCATE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -155,7 +172,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("ks1"), eq("tbl2"), eq(Scope.CREATE));
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq("tbl2"),
+            eq(Scope.CREATE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -168,7 +189,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("ks1"), eq("tbl1"), eq(Scope.DELETE));
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.DELETE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -182,7 +207,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("ks1"), eq("tbl1"), eq(Scope.ALTER));
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.ALTER),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -198,7 +227,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("ks2"), eq(null), eq(Scope.CREATE));
+            refEq(authenticationPrincipal),
+            eq("ks2"),
+            eq(null),
+            eq(Scope.CREATE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -212,7 +245,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("ks1"), eq(null), eq(Scope.DELETE));
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.DELETE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -227,7 +264,12 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
-        .authorizeSchemaWrite(refEq(authenticationPrincipal), eq("ks1"), eq(null), eq(Scope.ALTER));
+        .authorizeSchemaWrite(
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.ALTER),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -241,7 +283,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("cycling"), eq(null), eq(Scope.ALTER));
+            refEq(authenticationPrincipal),
+            eq("cycling"),
+            eq(null),
+            eq(Scope.ALTER),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -264,7 +310,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("cycling"), eq("cyclist_by_age"), eq(Scope.ALTER));
+            refEq(authenticationPrincipal),
+            eq("cycling"),
+            eq("cyclist_by_age"),
+            eq(Scope.ALTER),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -287,7 +337,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("cycling"), eq(null), eq(Scope.CREATE));
+            refEq(authenticationPrincipal),
+            eq("cycling"),
+            eq(null),
+            eq(Scope.CREATE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -312,7 +366,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("cycling"), eq(null), eq(Scope.CREATE));
+            refEq(authenticationPrincipal),
+            eq("cycling"),
+            eq(null),
+            eq(Scope.CREATE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -327,7 +385,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("ks1"), eq("tbl1"), eq(Scope.CREATE));
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.CREATE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -345,7 +407,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("ks1"), eq("tbl1"), eq(Scope.CREATE));
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.CREATE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -359,7 +425,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("ks1"), eq(null), eq(Scope.CREATE));
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.CREATE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -385,7 +455,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("cycling"), eq("cyclist_by_age"), eq(Scope.CREATE));
+            refEq(authenticationPrincipal),
+            eq("cycling"),
+            eq("cyclist_by_age"),
+            eq(Scope.CREATE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -400,7 +474,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("ks1"), eq(null), eq(Scope.DELETE));
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.DELETE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -415,7 +493,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("ks1"), eq(null), eq(Scope.DELETE));
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.DELETE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -429,7 +511,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("ks1"), eq(null), eq(Scope.DELETE));
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.DELETE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -443,7 +529,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("ks1"), eq("tbl1"), eq(Scope.DELETE));
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.DELETE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -456,7 +546,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("ks1"), eq(null), eq(Scope.DELETE));
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.DELETE),
+            eq(SourceAPI.CQL));
   }
 
   @Test
@@ -470,7 +564,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal), eq("ks1"), eq("view1"), eq(Scope.DELETE));
+            refEq(authenticationPrincipal),
+            eq("ks1"),
+            eq("view1"),
+            eq(Scope.DELETE),
+            eq(SourceAPI.CQL));
   }
 
   private ByteBuffer createToken() throws IOException {

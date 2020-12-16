@@ -20,6 +20,7 @@ import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
 import io.stargate.db.query.Query;
@@ -52,7 +53,7 @@ public class CreateTypeFetcher extends DdlQueryFetcher {
 
     // Permissions on a type are the same as keyspace
     authorizationService.authorizeSchemaWrite(
-        authenticationPrincipal, keyspaceName, null, Scope.CREATE);
+        authenticationPrincipal, keyspaceName, null, Scope.CREATE, SourceAPI.GRAPHQL);
 
     List<Map<String, Object>> fieldList = dataFetchingEnvironment.getArgument("fields");
     if (fieldList.isEmpty()) {

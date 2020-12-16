@@ -1,30 +1,33 @@
 package io.stargate.core;
 
 import com.codahale.metrics.health.HealthCheckRegistry;
+import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.impl.MetricsImpl;
-import org.osgi.framework.BundleActivator;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceEvent;
-import org.osgi.framework.ServiceListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
-public class CoreActivator implements BundleActivator, ServiceListener {
-  private static final Logger logger = LoggerFactory.getLogger(CoreActivator.class);
+public class CoreActivator extends BaseActivator {
 
-  @Override
-  public void start(BundleContext context) {
-    logger.info("Registering core services...");
-
-    Metrics metrics = new MetricsImpl();
-    context.registerService(Metrics.class, metrics, null);
-    context.registerService(HealthCheckRegistry.class, new HealthCheckRegistry(), null);
+  public CoreActivator() {
+    super("core services");
   }
 
   @Override
-  public void stop(BundleContext bundleContext) throws Exception {}
+  protected List<ServiceAndProperties> createServices() {
+    return Arrays.asList(
+        new ServiceAndProperties(new MetricsImpl(), Metrics.class, null),
+        new ServiceAndProperties(new HealthCheckRegistry(), HealthCheckRegistry.class, null));
+  }
 
   @Override
-  public void serviceChanged(ServiceEvent serviceEvent) {}
+  protected void stopService() {
+    // no-op
+  }
+
+  @Override
+  protected List<ServicePointer<?>> dependencies() {
+    return Collections.emptyList();
+  }
 }

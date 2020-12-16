@@ -2,6 +2,7 @@ package io.stargate.web.docsapi.resources;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.db.schema.SchemaEntity;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
@@ -78,7 +79,8 @@ public class CollectionsResource {
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationPrincipal(),
                   Collections.singletonList(namespace),
-                  tables.stream().map(SchemaEntity::name).collect(Collectors.toList()));
+                  tables.stream().map(SchemaEntity::name).collect(Collectors.toList()),
+                  SourceAPI.REST);
 
           List<DocCollection> result =
               tables.stream()
@@ -128,7 +130,11 @@ public class CollectionsResource {
           }
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  docDB.getAuthenticationPrincipal(), namespace, info.getName(), Scope.CREATE);
+                  docDB.getAuthenticationPrincipal(),
+                  namespace,
+                  info.getName(),
+                  Scope.CREATE,
+                  SourceAPI.REST);
 
           boolean res = collectionService.createCollection(namespace, info.getName(), docDB);
           if (res) {
@@ -172,7 +178,11 @@ public class CollectionsResource {
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(), namespace, collection, Scope.DROP);
+                  authenticatedDB.getAuthenticationPrincipal(),
+                  namespace,
+                  collection,
+                  Scope.DROP,
+                  SourceAPI.REST);
 
           Table toDelete =
               authenticatedDB.getDataStore().schema().keyspace(namespace).table(collection);
@@ -233,7 +243,11 @@ public class CollectionsResource {
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(), namespace, collection, Scope.ALTER);
+                  authenticatedDB.getAuthenticationPrincipal(),
+                  namespace,
+                  collection,
+                  Scope.ALTER,
+                  SourceAPI.REST);
 
           Table table = authenticatedDB.getTable(namespace, collection);
           if (table == null) {

@@ -17,6 +17,7 @@ package io.stargate.web.resources;
 
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.ImmutableColumn;
@@ -102,7 +103,8 @@ public class ColumnResource {
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationPrincipal(),
                   Collections.singletonList(keyspaceName),
-                  Collections.singletonList(tableName));
+                  Collections.singletonList(tableName),
+                  SourceAPI.REST);
 
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -184,7 +186,8 @@ public class ColumnResource {
                   authenticatedDB.getAuthenticationPrincipal(),
                   keyspaceName,
                   tableName,
-                  Scope.ALTER);
+                  Scope.ALTER,
+                  SourceAPI.REST);
 
           authenticatedDB
               .getDataStore()
@@ -238,7 +241,8 @@ public class ColumnResource {
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationPrincipal(),
                   Collections.singletonList(keyspaceName),
-                  Collections.singletonList(tableName));
+                  Collections.singletonList(tableName),
+                  SourceAPI.REST);
 
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
           final Column col = tableMetadata.column(columnName);
@@ -293,7 +297,8 @@ public class ColumnResource {
                   authenticatedDB.getAuthenticationPrincipal(),
                   keyspaceName,
                   tableName,
-                  Scope.ALTER);
+                  Scope.ALTER,
+                  SourceAPI.REST);
 
           authenticatedDB
               .getDataStore()
@@ -349,7 +354,8 @@ public class ColumnResource {
                   authenticatedDB.getAuthenticationPrincipal(),
                   keyspaceName,
                   tableName,
-                  Scope.ALTER);
+                  Scope.ALTER,
+                  SourceAPI.REST);
 
           authenticatedDB
               .getDataStore()

@@ -5,6 +5,7 @@ import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Persistence;
@@ -54,7 +55,8 @@ public class DeleteMutationFetcher extends MutationFetcher {
         table.keyspace(),
         table.name(),
         TypedKeyValue.forDML((BoundDelete) bound),
-        Scope.DELETE);
+        Scope.DELETE,
+        SourceAPI.GRAPHQL);
     return bound;
   }
 }

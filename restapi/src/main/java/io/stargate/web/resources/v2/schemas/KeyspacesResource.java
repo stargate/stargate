@@ -18,6 +18,7 @@ package io.stargate.web.resources.v2.schemas;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.db.query.builder.Replication;
 import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
@@ -96,7 +97,8 @@ public class KeyspacesResource {
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationPrincipal(),
                   keyspaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
-                  null);
+                  null,
+                  SourceAPI.REST);
 
           Object response = raw ? keyspaces : new ResponseWrapper(keyspaces);
           return Response.status(Response.Status.OK)
@@ -139,7 +141,8 @@ public class KeyspacesResource {
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationPrincipal(),
                   Collections.singletonList(keyspaceName),
-                  null);
+                  null,
+                  SourceAPI.REST);
 
           io.stargate.db.schema.Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
@@ -209,7 +212,11 @@ public class KeyspacesResource {
           String keyspaceName = (String) requestBody.get("name");
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(), keyspaceName, null, Scope.CREATE);
+                  authenticatedDB.getAuthenticationPrincipal(),
+                  keyspaceName,
+                  null,
+                  Scope.CREATE,
+                  SourceAPI.REST);
 
           Replication replication;
           if (requestBody.containsKey("datacenters")) {
@@ -271,7 +278,11 @@ public class KeyspacesResource {
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(), keyspaceName, null, Scope.DROP);
+                  authenticatedDB.getAuthenticationPrincipal(),
+                  keyspaceName,
+                  null,
+                  Scope.DROP,
+                  SourceAPI.REST);
 
           authenticatedDB
               .getDataStore()
