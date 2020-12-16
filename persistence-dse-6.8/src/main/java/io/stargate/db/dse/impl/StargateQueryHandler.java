@@ -17,6 +17,7 @@
  */
 package io.stargate.db.dse.impl;
 
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.reactivex.Single;
 import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthorizationService;
@@ -172,7 +173,8 @@ public class StargateQueryHandler implements QueryHandler {
         batchStatement, queryState, options, customPayload, queryStartNanoTime);
   }
 
-  private void authorizeByToken(ByteBuffer token, CQLStatement statement) {
+  @VisibleForTesting
+  protected void authorizeByToken(ByteBuffer token, CQLStatement statement) {
     AuthenticationPrincipal authenticationPrincipal;
     ObjectInput in = null;
     try {

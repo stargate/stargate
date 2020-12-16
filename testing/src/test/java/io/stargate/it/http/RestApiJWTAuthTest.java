@@ -13,10 +13,12 @@ import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
 import io.stargate.web.models.Changeset;
+import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.models.ColumnModel;
 import io.stargate.web.models.Filter;
 import io.stargate.web.models.GetResponseWrapper;
 import io.stargate.web.models.Keyspace;
+import io.stargate.web.models.PrimaryKey;
 import io.stargate.web.models.Query;
 import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.models.RowAdd;
@@ -25,6 +27,7 @@ import io.stargate.web.models.RowUpdate;
 import io.stargate.web.models.Rows;
 import io.stargate.web.models.RowsResponse;
 import io.stargate.web.models.SuccessResponse;
+import io.stargate.web.models.TableAdd;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -537,6 +540,29 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
             tableName,
             rowIdentifier,
             URLEncoder.encode(updateTimestamp, "UTF-8")),
+        HttpStatus.SC_UNAUTHORIZED);
+  }
+
+  @Test
+  public void createTableV2NotAuthorized() throws IOException {
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName("tbl1");
+
+    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+
+    columnDefinitions.add(new ColumnDefinition("k", "uuid"));
+    columnDefinitions.add(new ColumnDefinition("v", "text"));
+
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Collections.singletonList("k"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+        objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_UNAUTHORIZED);
   }
 
