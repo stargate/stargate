@@ -1,22 +1,16 @@
 package io.stargate.db.datastore;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
-import io.stargate.config.store.api.ConfigStore;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.Persistence;
-import io.stargate.db.cdc.datastore.CDCEnabledDataStore;
 import java.net.InetSocketAddress;
 import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class DataStoreFactory {
-  private final ConfigStore configStore;
 
-  public DataStoreFactory(ConfigStore configStore) {
-    this.configStore = configStore;
-  }
 
   /**
    * Creates a new DataStore using the provided connection for querying and with the provided
@@ -28,9 +22,8 @@ public class DataStoreFactory {
    */
   public DataStore create(Persistence.Connection connection, @Nonnull DataStoreOptions options) {
     Objects.requireNonNull(options);
-    PersistenceBackedDataStore persistenceBackedDataStore =
-        new PersistenceBackedDataStore(connection, options);
-    return new CDCEnabledDataStore(persistenceBackedDataStore, configStore);
+    return new PersistenceBackedDataStore(connection, options);
+
   }
 
   /**
