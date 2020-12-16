@@ -171,4 +171,69 @@ class StarterTest {
     assertThat(System.getProperty("stargate.developer_mode")).isEqualTo("true");
     assertThat(System.getProperty("stargate.snitch_classname")).isEqualTo("SimpleSnitch");
   }
+
+  @Test
+  void testSetStargatePropertiesWithIPv4ListenHost() {
+    Starter starter = new Starter();
+    starter.simpleSnitch = true;
+    starter.seedList = Arrays.asList("127.0.0.1", "127.0.0.2");
+    starter.listenHostStr = "127.0.0.1";
+    starter.clusterName = "foo";
+    starter.version = "3.11";
+
+    starter.setStargateProperties();
+
+    assertThat(System.getProperty("stargate.listen_address")).isEqualTo("127.0.0.1");
+  }
+
+  @Test
+  void testSetStargatePropertiesWithInvalidIPv4ListenHost() {
+    Starter starter = new Starter();
+    starter.simpleSnitch = true;
+    starter.seedList = Arrays.asList("127.0.0.1", "127.0.0.2");
+    starter.listenHostStr = "127.0.999.1";
+    starter.clusterName = "foo";
+    starter.version = "3.11";
+
+    RuntimeException thrown =
+        assertThrows(
+            IllegalArgumentException.class,
+            starter::setStargateProperties,
+            "Expected setStargateProperties() to throw RuntimeException");
+
+    assertThat(thrown.getMessage()).isEqualTo("--listen must be a valid IPv4 or IPv6 address");
+  }
+
+  @Test
+  void testSetStargatePropertiesWithIPv6ListenHost() {
+    Starter starter = new Starter();
+    starter.simpleSnitch = true;
+    starter.seedList = Arrays.asList("127.0.0.1", "127.0.0.2");
+    starter.listenHostStr = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
+    starter.clusterName = "foo";
+    starter.version = "3.11";
+
+    starter.setStargateProperties();
+
+    assertThat(System.getProperty("stargate.listen_address"))
+        .isEqualTo("2001:0db8:85a3:0000:0000:8a2e:0370:7334");
+  }
+
+  @Test
+  void testSetStargatePropertiesWithInvalidIPv6ListenHost() {
+    Starter starter = new Starter();
+    starter.simpleSnitch = true;
+    starter.seedList = Arrays.asList("127.0.0.1", "127.0.0.2");
+    starter.listenHostStr = "2001:0db8:85a3:x:0000:8a2e:0370:7334";
+    starter.clusterName = "foo";
+    starter.version = "3.11";
+
+    RuntimeException thrown =
+        assertThrows(
+            IllegalArgumentException.class,
+            starter::setStargateProperties,
+            "Expected setStargateProperties() to throw RuntimeException");
+
+    assertThat(thrown.getMessage()).isEqualTo("--listen must be a valid IPv4 or IPv6 address");
+  }
 }
