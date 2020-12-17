@@ -44,7 +44,7 @@ public class DataStoreFactory {
    * @param options the options for the create data store.
    * @return the created store.
    */
-  public DataStore create(Persistence.Connection connection, @Nonnull DataStoreOptions options) {
+  private DataStore create(Persistence.Connection connection, @Nonnull DataStoreOptions options) {
     Objects.requireNonNull(options);
     return new PersistenceBackedDataStore(connection, options);
   }
