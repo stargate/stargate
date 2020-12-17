@@ -6,6 +6,6 @@ public abstract class DdlTestBase extends GraphQlTestBase {
 
   protected GraphQLSchema createGraphQlSchema() {
     return SchemaFactory.newDdlSchema(
-        persistence, authenticationService, authorizationService, dataStoreFactory);
+        authenticationService, authorizationService, dataStoreFactory);
   }
 }

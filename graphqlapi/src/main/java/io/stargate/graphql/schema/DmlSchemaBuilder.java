@@ -37,7 +37,6 @@ import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeReference;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
@@ -62,7 +61,6 @@ class DmlSchemaBuilder {
 
   private static final Logger LOG = LoggerFactory.getLogger(DmlSchemaBuilder.class);
 
-  private final Persistence persistence;
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
   private final Map<Table, GraphQLOutputType> entityResultMap = new HashMap<>();
@@ -84,12 +82,11 @@ class DmlSchemaBuilder {
   }
 
   DmlSchemaBuilder(
-      Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       Keyspace keyspace,
       DataStoreFactory dataStoreFactory) {
-    this.persistence = persistence;
+
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.keyspace = keyspace;
@@ -218,7 +215,6 @@ class DmlSchemaBuilder {
                 new QueryFetcher(
                     table,
                     nameMapping,
-                    persistence,
                     authenticationService,
                     authorizationService,
                     dataStoreFactory))
@@ -245,7 +241,6 @@ class DmlSchemaBuilder {
                 new QueryFetcher(
                     table,
                     nameMapping,
-                    persistence,
                     authenticationService,
                     authorizationService,
                     dataStoreFactory))
@@ -304,12 +299,7 @@ class DmlSchemaBuilder {
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
         .dataFetcher(
             new UpdateMutationFetcher(
-                table,
-                nameMapping,
-                persistence,
-                authenticationService,
-                authorizationService,
-                dataStoreFactory))
+                table, nameMapping, authenticationService, authorizationService, dataStoreFactory))
         .build();
   }
 
@@ -331,12 +321,7 @@ class DmlSchemaBuilder {
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
         .dataFetcher(
             new InsertMutationFetcher(
-                table,
-                nameMapping,
-                persistence,
-                authenticationService,
-                authorizationService,
-                dataStoreFactory))
+                table, nameMapping, authenticationService, authorizationService, dataStoreFactory))
         .build();
   }
 
@@ -362,12 +347,7 @@ class DmlSchemaBuilder {
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
         .dataFetcher(
             new DeleteMutationFetcher(
-                table,
-                nameMapping,
-                persistence,
-                authenticationService,
-                authorizationService,
-                dataStoreFactory))
+                table, nameMapping, authenticationService, authorizationService, dataStoreFactory))
         .build();
   }
 

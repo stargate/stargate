@@ -2,7 +2,6 @@ package io.stargate.graphql.schema.fetchers.dml;
 
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.*;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.BoundDMLQuery;
@@ -23,17 +22,10 @@ public class UpdateMutationFetcher extends MutationFetcher {
   public UpdateMutationFetcher(
       Table table,
       NameMapping nameMapping,
-      Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(
-        table,
-        nameMapping,
-        persistence,
-        authenticationService,
-        authorizationService,
-        dataStoreFactory);
+    super(table, nameMapping, authenticationService, authorizationService, dataStoreFactory);
   }
 
   @Override

@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
@@ -25,11 +24,10 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
   protected DmlFetcher(
       Table table,
       NameMapping nameMapping,
-      Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(persistence, authenticationService, authorizationService, dataStoreFactory);
+    super(authenticationService, authorizationService, dataStoreFactory);
     this.table = table;
     this.nameMapping = nameMapping;
   }

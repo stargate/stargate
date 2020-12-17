@@ -18,7 +18,6 @@ package io.stargate.graphql.schema.fetchers.ddl;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
@@ -30,11 +29,10 @@ import java.util.Map;
 public class CreateTableFetcher extends TableFetcher {
 
   public CreateTableFetcher(
-      Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(persistence, authenticationService, authorizationService, dataStoreFactory);
+    super(authenticationService, authorizationService, dataStoreFactory);
   }
 
   @Override

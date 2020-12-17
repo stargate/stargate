@@ -22,7 +22,6 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
@@ -47,17 +46,10 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
   public QueryFetcher(
       Table table,
       NameMapping nameMapping,
-      Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(
-        table,
-        nameMapping,
-        persistence,
-        authenticationService,
-        authorizationService,
-        dataStoreFactory);
+    super(table, nameMapping, authenticationService, authorizationService, dataStoreFactory);
   }
 
   @Override

@@ -21,7 +21,6 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.db.Parameters;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.DataStoreOptions;
@@ -54,8 +53,6 @@ public abstract class GraphQlTestBase {
   private final String token = "mock token";
   protected GraphQL graphQl;
   protected GraphQLSchema graphQlSchema;
-
-  @Mock protected Persistence persistence;
   @Mock protected AuthenticationService authenticationService;
   @Mock protected AuthorizationService authorizationService;
   @Mock protected ResultSet resultSet;
@@ -88,7 +85,7 @@ public abstract class GraphQlTestBase {
               i -> {
                 return actionCaptor.getValue().call();
               });
-      when(dataStoreFactory.create(eq(persistence), eq(roleName), dataStoreOptionsCaptor.capture()))
+      when(dataStoreFactory.create(eq(roleName), dataStoreOptionsCaptor.capture()))
           .then(
               i -> {
                 DataStore dataStore = mock(DataStore.class);

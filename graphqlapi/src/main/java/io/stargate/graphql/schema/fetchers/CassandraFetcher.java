@@ -7,7 +7,6 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.DataStoreOptions;
@@ -20,7 +19,6 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 /** Base class for fetchers that access the Cassandra backend. It also handles authentication. */
 public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> {
 
-  protected final Persistence persistence;
   protected final AuthenticationService authenticationService;
   protected final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
@@ -37,11 +35,9 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
           .build();
 
   public CassandraFetcher(
-      Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    this.persistence = persistence;
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
@@ -88,7 +84,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
         DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
     // todo here
     DataStore dataStore =
-        dataStoreFactory.create(persistence, storedCredentials.getRoleName(), dataStoreOptions);
+        dataStoreFactory.create(storedCredentials.getRoleName(), dataStoreOptions);
     return get(environment, dataStore);
   }
 

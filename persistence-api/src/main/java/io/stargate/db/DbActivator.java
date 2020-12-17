@@ -6,13 +6,20 @@ import java.util.Collections;
 import java.util.List;
 
 public class DbActivator extends BaseActivator {
+  private final ServicePointer<Persistence> persistence =
+      BaseActivator.ServicePointer.create(
+          Persistence.class,
+          "Identifier",
+          System.getProperty("stargate.persistence_id", "CassandraPersistence"));
+
   public DbActivator() {
     super("DB services");
   }
 
   @Override
   protected ServiceAndProperties createService() {
-    return new ServiceAndProperties(new DataStoreFactory(), DataStoreFactory.class);
+    return new ServiceAndProperties(
+        new DataStoreFactory(persistence.get()), DataStoreFactory.class);
   }
 
   @Override
@@ -22,6 +29,6 @@ public class DbActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Collections.emptyList();
+    return Collections.singletonList(persistence);
   }
 }

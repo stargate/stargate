@@ -1,6 +1,5 @@
 package io.stargate.health;
 
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
@@ -18,9 +17,6 @@ public class BundleService {
 
   private BundleContext context;
 
-  static String PERSISTENCE_IDENTIFIER =
-      System.getProperty("stargate.persistence_id", "CassandraPersistence");
-
   public BundleService(BundleContext context) {
     this.context = context;
   }
@@ -37,19 +33,14 @@ public class BundleService {
   }
 
   public boolean checkIsReady() {
-    ServiceReference persistenceReference =
-        context.getServiceReference(Persistence.class.getName());
     ServiceReference dataStoreFactoryReference =
         context.getServiceReference(DataStoreFactory.class.getName());
-    if (persistenceReference != null
-        && persistenceReference.getProperty("Identifier").equals(PERSISTENCE_IDENTIFIER)
-        && dataStoreFactoryReference != null) {
+    if (dataStoreFactoryReference != null) {
 
       try {
-        Persistence persistence = (Persistence) context.getService(persistenceReference);
         DataStoreFactory dataStoreFactory =
             (DataStoreFactory) context.getService(dataStoreFactoryReference);
-        DataStore dataStore = dataStoreFactory.create(persistence);
+        DataStore dataStore = dataStoreFactory.create();
 
         Future<ResultSet> rs =
             dataStore

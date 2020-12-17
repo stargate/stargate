@@ -18,24 +18,14 @@ package io.stargate.web.impl;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.metrics.api.Metrics;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreFactory;
 
 public class WebImpl {
 
-  private Persistence persistence;
   private AuthenticationService authenticationService;
   private AuthorizationService authorizationService;
   private Metrics metrics;
   private DataStoreFactory dataStoreFactory;
-
-  public Persistence getPersistence() {
-    return persistence;
-  }
-
-  public void setPersistence(Persistence persistence) {
-    this.persistence = persistence;
-  }
 
   public AuthenticationService getAuthenticationService() {
     return authenticationService;
@@ -72,11 +62,7 @@ public class WebImpl {
   public void start() throws Exception {
     Server server =
         new Server(
-            persistence,
-            this.authenticationService,
-            this.authorizationService,
-            this.metrics,
-            dataStoreFactory);
+            this.authenticationService, this.authorizationService, this.metrics, dataStoreFactory);
     server.run("server", "config.yaml");
   }
 }

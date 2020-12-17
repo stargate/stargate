@@ -19,7 +19,6 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.web.impl.WebImpl;
 import java.util.Arrays;
@@ -37,11 +36,6 @@ public class RestApiActivator extends BaseActivator {
           "AuthIdentifier",
           System.getProperty("stargate.auth_id", "AuthTableBasedService"));
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
-  private final ServicePointer<Persistence> persistence =
-      ServicePointer.create(
-          Persistence.class,
-          "Identifier",
-          System.getProperty("stargate.persistence_id", "CassandraPersistence"));
   private final ServicePointer<AuthorizationService> authorizationService =
       ServicePointer.create(AuthorizationService.class);
 
@@ -56,7 +50,6 @@ public class RestApiActivator extends BaseActivator {
   protected ServiceAndProperties createService() {
     web.setAuthenticationService(authenticationService.get());
     web.setMetrics(metrics.get());
-    web.setPersistence(persistence.get());
     web.setAuthorizationService(authorizationService.get());
     web.setDataStoreFactory(dataStoreFactory.get());
     try {
@@ -74,7 +67,6 @@ public class RestApiActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(
-        authenticationService, metrics, persistence, authorizationService, dataStoreFactory);
+    return Arrays.asList(authenticationService, metrics, authorizationService, dataStoreFactory);
   }
 }

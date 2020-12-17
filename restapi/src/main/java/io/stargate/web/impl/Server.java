@@ -28,7 +28,6 @@ import io.dropwizard.util.JarLocation;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.metrics.api.Metrics;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.web.RestApiActivator;
 import io.stargate.web.config.ApplicationConfiguration;
@@ -62,19 +61,16 @@ import org.osgi.framework.FrameworkUtil;
 
 public class Server extends Application<ApplicationConfiguration> {
 
-  private final Persistence persistence;
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
   private final Metrics metrics;
   private final DataStoreFactory dataStoreFactory;
 
   public Server(
-      Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       Metrics metrics,
       DataStoreFactory dataStoreFactory) {
-    this.persistence = persistence;
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.metrics = metrics;
@@ -106,8 +102,7 @@ public class Server extends Application<ApplicationConfiguration> {
   public void run(
       final ApplicationConfiguration applicationConfiguration, final Environment environment)
       throws IOException {
-    final Db db =
-        new Db(persistence, authenticationService, authorizationService, dataStoreFactory);
+    final Db db = new Db(authenticationService, authorizationService, dataStoreFactory);
 
     configureObjectMapper(environment.getObjectMapper());
 

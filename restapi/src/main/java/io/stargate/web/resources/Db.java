@@ -22,7 +22,6 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Parameters;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.DataStoreOptions;
@@ -38,7 +37,6 @@ import javax.ws.rs.NotFoundException;
 
 public class Db {
 
-  private final Persistence persistence;
   private final DataStore dataStore;
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
@@ -72,24 +70,17 @@ public class Db {
   }
 
   public Db(
-      final Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
-    this.persistence = persistence;
     this.dataStoreFactory = dataStoreFactory;
-    this.dataStore =
-        dataStoreFactory.create(persistence, DataStoreOptions.defaultsWithAutoPreparedQueries());
+    this.dataStore = dataStoreFactory.create(DataStoreOptions.defaultsWithAutoPreparedQueries());
   }
 
   public DataStore getDataStore() {
     return this.dataStore;
-  }
-
-  public Persistence getPersistence() {
-    return this.persistence;
   }
 
   public AuthenticationService getAuthenticationService() {
@@ -103,9 +94,7 @@ public class Db {
   public DataStore getDataStoreForToken(String token) throws UnauthorizedException {
     StoredCredentials storedCredentials = authenticationService.validateToken(token);
     return dataStoreFactory.create(
-        persistence,
-        storedCredentials.getRoleName(),
-        DataStoreOptions.defaultsWithAutoPreparedQueries());
+        storedCredentials.getRoleName(), DataStoreOptions.defaultsWithAutoPreparedQueries());
   }
 
   public DataStore getDataStoreForToken(String token, int pageSize, ByteBuffer pagingState)
@@ -124,7 +113,7 @@ public class Db {
 
     DataStoreOptions options =
         DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
-    return dataStoreFactory.create(this.persistence, role, options);
+    return dataStoreFactory.create(role, options);
   }
 
   public String getRoleNameForToken(String token) throws UnauthorizedException {
