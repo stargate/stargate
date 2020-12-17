@@ -35,6 +35,7 @@ import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 /** Represents a prepared SQL query optimized for execution against a Cassandra storage cluster. */
@@ -111,6 +112,10 @@ public class PreparedSqlQuery {
 
   public boolean isDml() {
     return isDml;
+  }
+
+  public SqlKind kind() {
+    return root.kind;
   }
 
   public Iterable<Object> execute(List<?> parameters) {
