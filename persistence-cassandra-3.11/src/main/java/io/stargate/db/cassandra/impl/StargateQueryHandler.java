@@ -606,13 +606,13 @@ public class StargateQueryHandler implements QueryHandler {
     try {
       Class<?> aClass = stmt.getClass();
 
-      Field f = aClass.getDeclaredField("fieldName");
+      Field f = aClass.getDeclaredField("functionName");
       f.setAccessible(true);
       FunctionName functionName = (FunctionName) f.get(stmt);
 
       return functionName != null ? functionName.keyspace : null;
     } catch (Exception e) {
-      logger.error("Unable to get fieldName", e);
+      logger.error("Unable to get functionName", e);
       throw new RuntimeException("Unable to get private field", e);
     }
   }
