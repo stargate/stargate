@@ -36,6 +36,7 @@ public abstract class UserDefinedType implements Column.ColumnType, SchemaEntity
 
   public abstract String keyspace();
 
+  @Override
   public UserDefinedType frozen(boolean frozen) {
     return ImmutableUserDefinedType.copyOf(this).withIsFrozen(frozen);
   }
@@ -99,7 +100,7 @@ public abstract class UserDefinedType implements Column.ColumnType, SchemaEntity
         if (value != null) {
           Column.ColumnType type = columns().get(count).type();
           Object validated = type.validate(value, columns().get(count).name());
-          udt.set(count, validated, type.codec());
+          udt = udt.set(count, validated, type.codec());
         }
       }
     } catch (Column.ValidationException e) {

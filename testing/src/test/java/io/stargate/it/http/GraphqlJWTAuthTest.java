@@ -180,10 +180,10 @@ public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
 
   private OkHttpClient getHttpClient() {
     return new OkHttpClient.Builder()
-        .connectTimeout(Duration.ofSeconds(180))
-        .callTimeout(Duration.ofSeconds(180))
-        .readTimeout(Duration.ofSeconds(180))
-        .writeTimeout(Duration.ofSeconds(180))
+        .connectTimeout(Duration.ofMinutes(3))
+        .callTimeout(Duration.ofMinutes(3))
+        .readTimeout(Duration.ofMinutes(3))
+        .writeTimeout(Duration.ofMinutes(3))
         .addInterceptor(
             chain ->
                 chain.proceed(

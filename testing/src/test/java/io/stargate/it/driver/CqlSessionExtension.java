@@ -215,7 +215,7 @@ public class CqlSessionExtension
         return session;
       }
     } else if (type == CqlSessionBuilder.class) {
-      return newSessionBuilder(stargate, extensionContext);
+      return newSessionBuilder(extensionContext);
     } else if (type == CqlSessionHelper.class) {
       return (CqlSessionHelper) this::waitForStargateNodes;
     } else if (type == CqlIdentifier.class) {
@@ -259,7 +259,7 @@ public class CqlSessionExtension
 
     if (cqlSessionSpec.createSession()) {
       LOG.debug("Creating new session for {}", context.getElement());
-      session = newSessionBuilder(stargate, context).build();
+      session = newSessionBuilder(context).build();
       waitForStargateNodes(session);
 
       if (cqlSessionSpec.createKeyspace()) {
@@ -314,8 +314,7 @@ public class CqlSessionExtension
     return maybeSpec.orElse(DefaultCqlSessionSpec.INSTANCE);
   }
 
-  private CqlSessionBuilder newSessionBuilder(
-      StargateEnvironmentInfo stargate, ExtensionContext context) {
+  private CqlSessionBuilder newSessionBuilder(ExtensionContext context) {
     OptionsMap options = defaultConfig();
     maybeCustomizeOptions(options, cqlSessionSpec, context);
     CqlSessionBuilder builder = CqlSession.builder().withAuthCredentials("cassandra", "cassandra");
@@ -384,10 +383,10 @@ public class CqlSessionExtension
     config.put(
         TypedDriverOption.LOAD_BALANCING_POLICY_CLASS,
         DcInferringLoadBalancingPolicy.class.getName());
-    config.put(TypedDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(180));
-    config.put(TypedDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT, Duration.ofSeconds(180));
-    config.put(TypedDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(180));
-    config.put(TypedDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180));
+    config.put(TypedDriverOption.REQUEST_TIMEOUT, Duration.ofMinutes(3));
+    config.put(TypedDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT, Duration.ofMinutes(3));
+    config.put(TypedDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofMinutes(3));
+    config.put(TypedDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofMinutes(3));
     config.put(TypedDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5));
     config.put(TypedDriverOption.REQUEST_TRACE_ATTEMPTS, 180 / 5);
     config.put(TypedDriverOption.REQUEST_WARN_IF_SET_KEYSPACE, false);

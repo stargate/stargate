@@ -31,6 +31,7 @@ public class UnsupportedMessageCodec<T extends Message> implements Message.Codec
 
   private static final Logger logger = LoggerFactory.getLogger(UnsupportedMessageCodec.class);
 
+  @Override
   public T decode(ByteBuf body, ProtocolVersion version) {
     if (ProtocolVersion.SUPPORTED.contains(version)) {
       logger.error("Received invalid message for supported protocol version {}", version);
@@ -38,10 +39,12 @@ public class UnsupportedMessageCodec<T extends Message> implements Message.Codec
     throw new ProtocolException("Unsupported message");
   }
 
+  @Override
   public void encode(T t, ByteBuf dest, ProtocolVersion version) {
     throw new ProtocolException("Unsupported message");
   }
 
+  @Override
   public int encodedSize(T t, ProtocolVersion version) {
     return 0;
   }

@@ -31,11 +31,13 @@ import org.apache.cassandra.stargate.transport.internal.SchemaAgreement;
 public class QueryMessage extends Message.Request {
   public static final Message.Codec<QueryMessage> codec =
       new Message.Codec<QueryMessage>() {
+        @Override
         public QueryMessage decode(ByteBuf body, ProtocolVersion version) {
           String query = CBUtil.readLongString(body);
           return new QueryMessage(query, QueryOptions.codec.decode(body, version));
         }
 
+        @Override
         public void encode(QueryMessage msg, ByteBuf dest, ProtocolVersion version) {
           CBUtil.writeLongString(msg.query, dest);
           if (version == ProtocolVersion.V1)
@@ -43,6 +45,7 @@ public class QueryMessage extends Message.Request {
           else QueryOptions.codec.encode(msg.options, dest, version);
         }
 
+        @Override
         public int encodedSize(QueryMessage msg, ProtocolVersion version) {
           int size = CBUtil.sizeOfLongString(msg.query);
 

@@ -117,6 +117,7 @@ public class CassandraPersistenceActivator extends BaseActivator {
   @Override
   protected ServiceAndProperties createService() {
     CassandraPersistence cassandraDB = new CassandraPersistence();
+    @SuppressWarnings("JdkObsolete")
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "CassandraPersistence");
     // TODO copy metrics if this gets invoked more than once?

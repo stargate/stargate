@@ -22,12 +22,11 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.cassandra.auth.user.UserRolesAndPermissions;
@@ -70,7 +69,7 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
     }
   }
 
-  private static final Map<String, AbstractType<?>> TYPES =
+  private static final ImmutableMap<String, AbstractType<?>> TYPES =
       ImmutableMap.<String, AbstractType<?>>builder()
           .put("key", UTF8Type.instance)
           .put("bootstrapped", UTF8Type.instance)
@@ -211,7 +210,7 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
     assertThat(collect(resultBefore, "rpc_address")).containsExactly(PUBLIC_ADDRESS2);
 
     await()
-        .atMost(3, TimeUnit.SECONDS)
+        .atMost(Duration.ofSeconds(3))
         .until(
             () -> {
               Rows resultAfter =
@@ -237,7 +236,7 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
         .containsExactlyInAnyOrder(PUBLIC_ADDRESS2, PUBLIC_ADDRESS3);
 
     await()
-        .atMost(3, TimeUnit.SECONDS)
+        .atMost(Duration.ofSeconds(3))
         .until(
             () -> {
               Rows resultAfter =
@@ -252,7 +251,7 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
         .collect(Collectors.toSet());
   }
 
-  @SuppressWarnings({"unchecked"})
+  @SuppressWarnings({"unchecked", "TypeParameterUnusedInFormals"})
   private static <T> T columnValue(List<ByteBuffer> row, ResultMetadata metadata, String name) {
     OptionalInt index =
         IntStream.range(0, metadata.columnCount)

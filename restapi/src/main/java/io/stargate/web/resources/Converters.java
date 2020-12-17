@@ -362,7 +362,8 @@ public class Converters {
       }
       return fromNumber.apply(number);
     }
-    throw new IllegalArgumentException("Invalid %s value: expected an integer or a string");
+    throw new IllegalArgumentException(
+        String.format("Invalid %s value: expected an integer or a string", type.rawType()));
   }
 
   private static <C extends Collection<Object>> C toCqlCollection(

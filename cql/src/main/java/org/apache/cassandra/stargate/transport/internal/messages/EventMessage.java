@@ -25,14 +25,17 @@ import org.apache.cassandra.stargate.transport.internal.Message;
 public class EventMessage extends Message.Response {
   public static final Message.Codec<EventMessage> codec =
       new Message.Codec<EventMessage>() {
+        @Override
         public EventMessage decode(ByteBuf body, ProtocolVersion version) {
           return new EventMessage(Event.deserialize(body, version));
         }
 
+        @Override
         public void encode(EventMessage msg, ByteBuf dest, ProtocolVersion version) {
           msg.event.serialize(dest, version);
         }
 
+        @Override
         public int encodedSize(EventMessage msg, ProtocolVersion version) {
           return msg.event.serializedSize(version);
         }

@@ -37,6 +37,7 @@ public class TestServiceActivator extends BaseActivator {
 
   @Override
   protected ServiceAndProperties createService() {
+    @SuppressWarnings("JdkObsolete")
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "id_1");
 

@@ -37,6 +37,7 @@ public class TestServiceActivatorTwoServices extends BaseActivator {
 
   @Override
   protected List<ServiceAndProperties> createServices() {
+    @SuppressWarnings("JdkObsolete")
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "id_1");
 

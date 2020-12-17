@@ -25,12 +25,15 @@ import org.apache.cassandra.stargate.transport.internal.Message;
 public class ReadyMessage extends Message.Response {
   public static final Message.Codec<ReadyMessage> codec =
       new Message.Codec<ReadyMessage>() {
+        @Override
         public ReadyMessage decode(ByteBuf body, ProtocolVersion version) {
           return new ReadyMessage();
         }
 
+        @Override
         public void encode(ReadyMessage msg, ByteBuf dest, ProtocolVersion version) {}
 
+        @Override
         public int encodedSize(ReadyMessage msg, ProtocolVersion version) {
           return 0;
         }

@@ -46,7 +46,7 @@ public abstract class RowsImpacted {
 
   protected abstract Set<PartitionKey> computePartitionKeys();
 
-  public static class Keys extends RowsImpacted {
+  public static final class Keys extends RowsImpacted {
     private final List<PrimaryKey> primaryKeys;
 
     public Keys(List<PrimaryKey> primaryKeys) {
@@ -79,7 +79,7 @@ public abstract class RowsImpacted {
       if (this == o) {
         return true;
       }
-      if (o == null || getClass() != o.getClass()) {
+      if (!(o instanceof Keys)) {
         return false;
       }
       Keys keys = (Keys) o;
@@ -97,7 +97,7 @@ public abstract class RowsImpacted {
     }
   }
 
-  public static class Ranges extends RowsImpacted {
+  public static final class Ranges extends RowsImpacted {
     private final List<RowsRange> rowsRanges;
 
     public Ranges(List<RowsRange> rowsRanges) {
@@ -125,7 +125,7 @@ public abstract class RowsImpacted {
       if (this == o) {
         return true;
       }
-      if (o == null || getClass() != o.getClass()) {
+      if (!(o instanceof Ranges)) {
         return false;
       }
       Ranges ranges = (Ranges) o;

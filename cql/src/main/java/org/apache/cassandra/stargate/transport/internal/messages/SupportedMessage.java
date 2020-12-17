@@ -28,14 +28,17 @@ import org.apache.cassandra.stargate.transport.internal.Message;
 public class SupportedMessage extends Message.Response {
   public static final Message.Codec<SupportedMessage> codec =
       new Message.Codec<SupportedMessage>() {
+        @Override
         public SupportedMessage decode(ByteBuf body, ProtocolVersion version) {
           return new SupportedMessage(CBUtil.readStringToStringListMap(body));
         }
 
+        @Override
         public void encode(SupportedMessage msg, ByteBuf dest, ProtocolVersion version) {
           CBUtil.writeStringToStringListMap(msg.supported, dest);
         }
 
+        @Override
         public int encodedSize(SupportedMessage msg, ProtocolVersion version) {
           return CBUtil.sizeOfStringToStringListMap(msg.supported);
         }
