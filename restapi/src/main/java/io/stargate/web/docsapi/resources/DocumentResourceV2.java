@@ -3,6 +3,7 @@ package io.stargate.web.docsapi.resources;
 import com.datastax.oss.driver.api.core.NoNodeAvailableException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
@@ -59,8 +60,18 @@ public class DocumentResourceV2 {
   @Inject private Db dbFactory;
   private static final Logger logger = LoggerFactory.getLogger(DocumentResourceV2.class);
   private static final ObjectMapper mapper = new ObjectMapper();
-  private final DocumentService documentService = new DocumentService();
+  private final DocumentService documentService;
   private final int DEFAULT_PAGE_SIZE = 100;
+
+  public DocumentResourceV2() {
+    documentService = new DocumentService();
+  }
+
+  @VisibleForTesting
+  DocumentResourceV2(Db dbFactory, DocumentService documentService) {
+    this.dbFactory = dbFactory;
+    this.documentService = documentService;
+  }
 
   @POST
   @ManagedAsync

@@ -19,6 +19,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
@@ -315,7 +316,8 @@ public class RowsResource {
                   keyspaceName,
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
-                  Scope.MODIFY);
+                  Scope.MODIFY,
+                  SourceAPI.REST);
 
           localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
@@ -432,7 +434,8 @@ public class RowsResource {
                   keyspaceName,
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
-                  Scope.DELETE);
+                  Scope.DELETE,
+                  SourceAPI.REST);
 
           localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
           return Response.status(Response.Status.NO_CONTENT).build();
@@ -524,7 +527,8 @@ public class RowsResource {
             keyspaceName,
             tableName,
             TypedKeyValue.forDML((BoundDMLQuery) query),
-            Scope.MODIFY);
+            Scope.MODIFY,
+            SourceAPI.REST);
 
     localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
     Object response = raw ? requestBody : new ResponseWrapper(requestBody);
@@ -566,7 +570,8 @@ public class RowsResource {
                 token,
                 tableMetadata.keyspace(),
                 tableMetadata.name(),
-                TypedKeyValue.forSelect((BoundSelect) query));
+                TypedKeyValue.forSelect((BoundSelect) query),
+                SourceAPI.REST);
 
     List<Map<String, Object>> rows =
         r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());

@@ -172,11 +172,6 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     }
   }
 
-  private static Instant now() {
-    // Avoid using Instants with nanosecond precision as nanos may be lost on the server side
-    return Instant.ofEpochMilli(System.currentTimeMillis());
-  }
-
   private static void createSessionAndSchema() throws Exception {
     session =
         CqlSession.builder()

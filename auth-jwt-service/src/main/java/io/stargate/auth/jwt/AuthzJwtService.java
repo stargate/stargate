@@ -18,10 +18,7 @@ package io.stargate.auth.jwt;
 import static io.stargate.auth.jwt.AuthnJwtService.CLAIMS_FIELD;
 import static io.stargate.auth.jwt.AuthnJwtService.STARGATE_PREFIX;
 
-import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.Scope;
-import io.stargate.auth.TypedKeyValue;
-import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.*;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
@@ -52,7 +49,10 @@ public class AuthzJwtService implements AuthorizationService {
       String token,
       String keyspace,
       String table,
-      List<TypedKeyValue> typedKeyValues)
+      List<TypedKeyValue> typedKeyValues,
+      SourceAPI
+          sourceAPI) // this isn’t supported but if you want to use it you’ll need something other
+      // than a JWT
       throws Exception {
     JSONObject stargateClaims = extractClaimsFromJWT(token);
 
@@ -98,7 +98,7 @@ public class AuthzJwtService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizeDataRead(String token, String keyspace, String table)
+  public void authorizeDataRead(String token, String keyspace, String table, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -111,7 +111,8 @@ public class AuthzJwtService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizeDataWrite(String token, String keyspace, String table, Scope scope)
+  public void authorizeDataWrite(
+      String token, String keyspace, String table, Scope scope, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -119,7 +120,12 @@ public class AuthzJwtService implements AuthorizationService {
   /** {@inheritdoc} */
   @Override
   public void authorizeDataWrite(
-      String token, String keyspace, String table, List<TypedKeyValue> typedKeyValues, Scope scope)
+      String token,
+      String keyspace,
+      String table,
+      List<TypedKeyValue> typedKeyValues,
+      Scope scope,
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     JSONObject stargateClaims = extractClaimsFromJWT(token);
 
@@ -135,7 +141,8 @@ public class AuthzJwtService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizeSchemaRead(String token, List<String> keyspaceNames, List<String> tableNames)
+  public void authorizeSchemaRead(
+      String token, List<String> keyspaceNames, List<String> tableNames, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -147,7 +154,70 @@ public class AuthzJwtService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizeSchemaWrite(String token, String keyspace, String table, Scope scope)
+  public void authorizeSchemaWrite(
+      String token, String keyspace, String table, Scope scope, SourceAPI sourceAPI)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a JWT token so just return
+  }
+
+  /**
+   * Authorization for role management is not provided by JWTs so all authorization will be deferred
+   * to the underlying permissions assigned to the role the JWT maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeRoleManagement(String token, String role, Scope scope, SourceAPI sourceAPI)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a JWT token so just return
+  }
+
+  /**
+   * Authorization for role management is not provided by JWTs so all authorization will be deferred
+   * to the underlying permissions assigned to the role the JWT maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeRoleManagement(
+      String token, String role, String grantee, Scope scope, SourceAPI sourceAPI)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a JWT token so just return
+  }
+
+  /**
+   * Authorization for role management is not provided by JWTs so all authorization will be deferred
+   * to the underlying permissions assigned to the role the JWT maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeRoleRead(String token, String role, SourceAPI sourceAPI)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a JWT token so just return
+  }
+
+  /**
+   * Authorization for permission management is not provided by JWTs so all authorization will be
+   * deferred to the underlying permissions assigned to the role the JWT maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizePermissionManagement(
+      String token, String resource, String grantee, Scope scope, SourceAPI sourceAPI)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a JWT token so just return
+  }
+
+  /**
+   * Authorization for permission management is not provided by JWTs so all authorization will be
+   * deferred to the underlying permissions assigned to the role the JWT maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizePermissionRead(String token, String role, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }

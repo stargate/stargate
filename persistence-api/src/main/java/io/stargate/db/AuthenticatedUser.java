@@ -26,11 +26,25 @@ public interface AuthenticatedUser {
   @Nullable
   String token();
 
+  boolean isFromExternalAuth();
+
   static AuthenticatedUser of(String userName) {
-    return ImmutableAuthenticatedUser.builder().name(userName).build();
+    return ImmutableAuthenticatedUser.builder().name(userName).isFromExternalAuth(false).build();
   }
 
   static AuthenticatedUser of(String userName, String token) {
-    return ImmutableAuthenticatedUser.builder().name(userName).token(token).build();
+    return ImmutableAuthenticatedUser.builder()
+        .name(userName)
+        .token(token)
+        .isFromExternalAuth(false)
+        .build();
+  }
+
+  static AuthenticatedUser of(String userName, String token, boolean useTransitionalAuth) {
+    return ImmutableAuthenticatedUser.builder()
+        .name(userName)
+        .token(token)
+        .isFromExternalAuth(useTransitionalAuth)
+        .build();
   }
 }

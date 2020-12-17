@@ -27,7 +27,6 @@ import io.stargate.web.models.RowsResponse;
 import io.stargate.web.models.SuccessResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -193,7 +192,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   @Test
   public void updateRowV1() throws IOException {
     String rowIdentifier = "9876";
-    String updateTimestamp = Instant.now().toString();
+    String updateTimestamp = now().toString();
 
     addRowV1(rowIdentifier, updateTimestamp, "10");
 
@@ -239,7 +238,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   @Test
   public void updateRowV1NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
-    String updateTimestamp = Instant.now().toString();
+    String updateTimestamp = now().toString();
 
     RowUpdate rowUpdate = new RowUpdate();
     Changeset itemCountChange = new Changeset();
@@ -262,7 +261,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   @Test
   public void addRowV1NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
-    String updateTimestamp = Instant.now().toString();
+    String updateTimestamp = now().toString();
 
     List<ColumnModel> columns = new ArrayList<>();
 
@@ -294,7 +293,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   @Test
   public void queryRowV1() throws IOException {
     String rowIdentifier = "9876";
-    String updateTimestamp = Instant.now().toString();
+    String updateTimestamp = now().toString();
 
     addRowV1(rowIdentifier, updateTimestamp, "20");
 
@@ -336,7 +335,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   @Test
   public void queryRowV1NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
-    String updateTimestamp = Instant.now().toString();
+    String updateTimestamp = now().toString();
 
     Query query = new Query();
     query.setColumnNames(Arrays.asList("userid", "item_count", "last_update_timestamp"));
@@ -368,7 +367,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   @Test
   public void deleteRowV1() throws IOException {
     String rowIdentifier = "9876";
-    String updateTimestamp = Instant.now().toString();
+    String updateTimestamp = now().toString();
 
     addRowV1(rowIdentifier, updateTimestamp, "30");
 
@@ -386,7 +385,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   @Test
   public void deleteRowV1NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
-    String updateTimestamp = Instant.now().toString();
+    String updateTimestamp = now().toString();
 
     RestUtils.delete(
         authToken,
@@ -402,7 +401,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   @Test
   public void updateRowV2() throws IOException {
     String rowIdentifier = "9876";
-    String updateTimestamp = Instant.now().toString();
+    String updateTimestamp = now().toString();
     addRowV2(rowIdentifier, updateTimestamp, "88");
 
     Map<String, String> rowUpdate = new HashMap<>();
@@ -430,7 +429,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   @Test
   public void updateRowV2NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
-    String updateTimestamp = Instant.now().toString();
+    String updateTimestamp = now().toString();
     Map<String, String> rowUpdate = new HashMap<>();
     rowUpdate.put("userid", rowIdentifier);
     rowUpdate.put("last_update_timestamp", updateTimestamp);
@@ -452,7 +451,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   @Test
   public void addRowV2NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
-    String updateTimestamp = Instant.now().toString();
+    String updateTimestamp = now().toString();
     Map<String, String> row = new HashMap<>();
     row.put("userid", rowIdentifier);
     row.put("item_count", "0");
@@ -468,7 +467,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   @Test
   public void queryRowV2() throws IOException {
     String rowIdentifier = "9876";
-    String updateTimestamp = Instant.now().toString();
+    String updateTimestamp = now().toString();
     addRowV2(rowIdentifier, updateTimestamp, "99");
 
     String whereClause =
@@ -492,7 +491,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   @Test
   public void queryRowV2NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
-    String updateTimestamp = Instant.now().toString();
+    String updateTimestamp = now().toString();
 
     String whereClause =
         String.format(
@@ -509,7 +508,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   @Test
   public void deleteRowV2() throws IOException {
     String rowIdentifier = "9876";
-    String updateTimestamp = Instant.now().toString();
+    String updateTimestamp = now().toString();
     addRowV2(rowIdentifier, updateTimestamp, "88");
 
     RestUtils.delete(
@@ -527,7 +526,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   @Test
   public void deleteRowV2NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
-    String updateTimestamp = Instant.now().toString();
+    String updateTimestamp = now().toString();
 
     RestUtils.delete(
         authToken,
