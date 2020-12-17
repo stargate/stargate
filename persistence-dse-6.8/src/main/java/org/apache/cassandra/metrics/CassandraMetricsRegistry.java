@@ -186,7 +186,7 @@ public class CassandraMetricsRegistry extends MetricRegistry {
   }
 
   /** A value class encapsulating a metric's owning class and name. */
-  public static class MetricName implements Comparable<MetricName> {
+  public static final class MetricName implements Comparable<MetricName> {
     private final String group;
     private final String type;
     private final String name;

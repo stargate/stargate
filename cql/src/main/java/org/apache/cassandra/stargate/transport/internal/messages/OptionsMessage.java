@@ -32,12 +32,15 @@ import org.apache.cassandra.utils.ChecksumType;
 public class OptionsMessage extends Message.Request {
   public static final Message.Codec<OptionsMessage> codec =
       new Message.Codec<OptionsMessage>() {
+        @Override
         public OptionsMessage decode(ByteBuf body, ProtocolVersion version) {
           return new OptionsMessage();
         }
 
+        @Override
         public void encode(OptionsMessage msg, ByteBuf dest, ProtocolVersion version) {}
 
+        @Override
         public int encodedSize(OptionsMessage msg, ProtocolVersion version) {
           return 0;
         }

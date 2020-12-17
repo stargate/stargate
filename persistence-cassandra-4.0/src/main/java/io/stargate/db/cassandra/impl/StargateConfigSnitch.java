@@ -26,14 +26,17 @@ public class StargateConfigSnitch extends GossipingPropertyFileSnitch {
     return super.getDatacenter(inetAddress);
   }
 
+  @Override
   public String getLocalDatacenter() {
     return this.dc;
   }
 
+  @Override
   public String getLocalRack() {
     return this.rack;
   }
 
+  @Override
   public String toString() {
     return "StargateConfigSnitch{myDC='" + this.dc + '\'' + ", myRack='" + this.rack + "'}";
   }

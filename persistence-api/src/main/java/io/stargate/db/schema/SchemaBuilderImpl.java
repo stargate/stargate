@@ -68,10 +68,6 @@ public class SchemaBuilderImpl {
   private boolean indexEntries;
   private boolean indexFull;
   private boolean indexCustom;
-  private String edgeLabel;
-  private String vertexLabel;
-  private String fromVertex;
-  private String toVertex;
   private List<Column> fromColumns = new ArrayList<>();
   private List<Column> toColumns = new ArrayList<>();
   private Map<String, String> replication = Collections.emptyMap();
@@ -345,14 +341,10 @@ public class SchemaBuilderImpl {
   }
 
   @DSLAction
-  public void from(String fromVertex) {
-    this.fromVertex = fromVertex;
-  }
+  public void from(String fromVertex) {}
 
   @DSLAction
-  public void to(String toVertex) {
-    this.toVertex = toVertex;
-  }
+  public void to(String toVertex) {}
 
   @DSLAction
   public void fromColumn(String... columns) {
@@ -526,29 +518,6 @@ public class SchemaBuilderImpl {
       materializedViewColumns.clear();
       materializedViewName = null;
     }
-  }
-
-  private List<Column> updateColumnKind(List<Column> columns, Table table) {
-    List<Column> result = new ArrayList<>(columns.size());
-    for (int i = 0; i < columns.size(); i++) {
-      result.add(
-          ImmutableColumn.builder()
-              .from(columns.get(i))
-              .kind(table.primaryKeyColumns().get(i).kind())
-              .build());
-    }
-    return result;
-  }
-
-  private List<ColumnMappingMetadata> createColumnMappings(Table table, List<Column> columns) {
-    List<ColumnMappingMetadata> columnMappings = new ArrayList<>();
-
-    for (int i = 0; i < columns.size(); i++) {
-      columnMappings.add(
-          ColumnMappingMetadata.create(
-              table.primaryKeyColumns().get(i).name(), columns.get(i).name()));
-    }
-    return columnMappings;
   }
 
   @DSLAction

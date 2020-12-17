@@ -113,7 +113,7 @@ public class ConfigWithOverrides {
   }
 
   private <T> void validateType(String settingName, Object configValue, Class<T> expectedType) {
-    if (!(expectedType.isAssignableFrom(configValue.getClass()))) {
+    if (!expectedType.isAssignableFrom(configValue.getClass())) {
       throw new IllegalArgumentException(
           String.format(
               "The config value for %s has wrong type: %s. It should be of a %s type",

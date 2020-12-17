@@ -39,6 +39,7 @@ import org.apache.cassandra.stargate.utils.MD5Digest;
 public class BatchMessage extends Message.Request {
   public static final Message.Codec<BatchMessage> codec =
       new Message.Codec<BatchMessage>() {
+        @Override
         public BatchMessage decode(ByteBuf body, ProtocolVersion version) {
           byte type = body.readByte();
           if (type < 0 || type > 2) {
@@ -66,6 +67,7 @@ public class BatchMessage extends Message.Request {
           return new BatchMessage(new Batch(BatchType.fromId(type), statements), options);
         }
 
+        @Override
         public void encode(BatchMessage msg, ByteBuf dest, ProtocolVersion version) {
           int queries = msg.batch.size();
 
@@ -88,6 +90,7 @@ public class BatchMessage extends Message.Request {
           else QueryOptions.codec.encode(msg.options, dest, version);
         }
 
+        @Override
         public int encodedSize(BatchMessage msg, ProtocolVersion version) {
           int size = 3; // type + nb queries
           for (Statement s : msg.batch.statements()) {

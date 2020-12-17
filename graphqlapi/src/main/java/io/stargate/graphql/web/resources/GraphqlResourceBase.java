@@ -164,15 +164,13 @@ public class GraphqlResourceBase {
       ExecutionInput input, GraphQL graphql, @Suspended AsyncResponse asyncResponse) {
     graphql
         .executeAsync(input)
-        .whenComplete(
-            (result, error) -> {
-              if (error != null) {
-                LOG.error("Unexpected error while processing GraphQL request", error);
-                GraphqlResourceBase.replyWithGraphqlError(
-                    Status.INTERNAL_SERVER_ERROR, "Internal server error", asyncResponse);
-              } else {
-                asyncResponse.resume(result.toSpecification());
-              }
+        .thenApply(result -> asyncResponse.resume(result.toSpecification()))
+        .exceptionally(
+            error -> {
+              LOG.error("Unexpected error while processing GraphQL request", error);
+              GraphqlResourceBase.replyWithGraphqlError(
+                  Status.INTERNAL_SERVER_ERROR, "Internal server error", asyncResponse);
+              return null;
             });
   }
 

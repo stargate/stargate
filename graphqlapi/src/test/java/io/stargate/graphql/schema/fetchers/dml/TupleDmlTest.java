@@ -109,6 +109,7 @@ public class TupleDmlTest extends DmlTestBase {
     return createRow(Collections.singletonList(column), values);
   }
 
+  @SuppressWarnings("unused") // referenced by @MethodSource
   private static Stream<Arguments> getValues() {
     return Stream.of(
         arguments(0, new Object[] {1.3f, -0.9f}),

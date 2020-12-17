@@ -34,10 +34,12 @@ public class LZ4Compressor implements Compressor {
     decompressor = lz4Factory.safeDecompressor();
   }
 
+  @Override
   public int maxCompressedLength(int length) {
     return compressor.maxCompressedLength(length);
   }
 
+  @Override
   public int compress(byte[] src, int srcOffset, int length, byte[] dest, int destOffset)
       throws IOException {
     try {
@@ -47,6 +49,7 @@ public class LZ4Compressor implements Compressor {
     }
   }
 
+  @Override
   public byte[] decompress(byte[] src, int offset, int length, int expectedDecompressedLength)
       throws IOException {
     try {

@@ -22,7 +22,7 @@ import java.util.Objects;
 
 /** AuthTokenResponse contains an authentication token to be used for future requests. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class AuthTokenResponse {
+public final class AuthTokenResponse {
   private String authToken = null;
 
   public AuthTokenResponse authToken(String authToken) {
@@ -47,7 +47,7 @@ public class AuthTokenResponse {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof AuthTokenResponse)) {
       return false;
     }
     AuthTokenResponse authTokenResponse = (AuthTokenResponse) o;

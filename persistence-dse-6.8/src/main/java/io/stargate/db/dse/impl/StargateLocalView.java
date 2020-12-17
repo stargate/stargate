@@ -13,6 +13,7 @@ public class StargateLocalView extends StargateNodeView {
   }
 
   @Override
+  @SuppressWarnings("RxReturnValueIgnored")
   public DataSet data() {
     DataSet result = newDataSet();
 

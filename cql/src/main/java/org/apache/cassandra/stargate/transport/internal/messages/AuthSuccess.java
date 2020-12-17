@@ -31,6 +31,7 @@ import org.apache.cassandra.stargate.transport.internal.Message;
 public class AuthSuccess extends Message.Response {
   public static final Message.Codec<AuthSuccess> codec =
       new Message.Codec<AuthSuccess>() {
+        @Override
         public AuthSuccess decode(ByteBuf body, ProtocolVersion version) {
           ByteBuffer b = CBUtil.readValue(body);
           byte[] token = null;
@@ -41,10 +42,12 @@ public class AuthSuccess extends Message.Response {
           return new AuthSuccess(token);
         }
 
+        @Override
         public void encode(AuthSuccess success, ByteBuf dest, ProtocolVersion version) {
           CBUtil.writeValue(success.token, dest);
         }
 
+        @Override
         public int encodedSize(AuthSuccess success, ProtocolVersion version) {
           return CBUtil.sizeOfValue(success.token);
         }
