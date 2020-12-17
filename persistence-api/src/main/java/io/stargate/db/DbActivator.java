@@ -2,6 +2,7 @@ package io.stargate.db;
 
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.db.datastore.DataStoreFactory;
+import io.stargate.db.datastore.DefaultDataStoreFactory;
 import java.util.Collections;
 import java.util.List;
 
@@ -19,7 +20,7 @@ public class DbActivator extends BaseActivator {
   @Override
   protected ServiceAndProperties createService() {
     return new ServiceAndProperties(
-        new DataStoreFactory(persistence.get()), DataStoreFactory.class);
+        new DefaultDataStoreFactory(persistence.get()), DataStoreFactory.class);
   }
 
   @Override

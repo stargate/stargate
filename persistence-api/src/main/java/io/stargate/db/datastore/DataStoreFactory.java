@@ -15,66 +15,12 @@
  */
 package io.stargate.db.datastore;
 
-import com.datastax.oss.driver.shaded.guava.common.base.Strings;
-import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.Persistence;
-import java.net.InetSocketAddress;
-import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public class DataStoreFactory {
-
-  private final Persistence persistence;
-
-  /**
-   * @param persistence the persistence to use for querying (some methods effectively creates a new
-   *     {@link Persistence.Connection} underneath).
-   */
-  public DataStoreFactory(Persistence persistence) {
-    this.persistence = persistence;
-  }
-
-  /**
-   * Creates a new DataStore using the provided connection for querying and with the provided
-   * default parameters.
-   *
-   * @param connection the persistence connection to use for querying.
-   * @param options the options for the create data store.
-   * @return the created store.
-   */
-  private DataStore create(Persistence.Connection connection, @Nonnull DataStoreOptions options) {
-    Objects.requireNonNull(options);
-    return new PersistenceBackedDataStore(connection, options);
-  }
-
-  /**
-   * Creates a new DataStore on top of the provided persistence. If a username is provided then a
-   * {@link ClientInfo} will be passed to {@link
-   * Persistence#newConnection(io.stargate.db.ClientInfo)} causing the new connection to have an
-   * external ClientState thus causing authorization to be performed if enabled.
-   *
-   * @param userName the user name to login for this store. For convenience, if it is {@code null}
-   *     or the empty string, no login attempt is performed (so no authentication must be setup).
-   * @param options the options for the create data store.
-   * @param clientInfo the ClientInfo to be used for creating a connection.
-   * @return the created store.
-   */
-  public DataStore create(
-      @Nullable String userName,
-      @Nonnull DataStoreOptions options,
-      @Nullable ClientInfo clientInfo) {
-    Persistence.Connection connection = persistence.newConnection();
-    if (clientInfo != null) {
-      connection = persistence.newConnection(clientInfo);
-    }
-
-    if (userName != null && !userName.isEmpty()) {
-      connection.login(AuthenticatedUser.of(userName));
-    }
-    return create(connection, options);
-  }
+public interface DataStoreFactory {
 
   /**
    * Creates a new DataStore on top of the provided persistence. If a username is provided then a
@@ -87,15 +33,7 @@ public class DataStoreFactory {
    * @param options the options for the create data store.
    * @return the created store.
    */
-  public DataStore create(@Nullable String userName, @Nonnull DataStoreOptions options) {
-    ClientInfo clientInfo = null;
-    if (!Strings.isNullOrEmpty(userName)) {
-      // Must have a clientInfo so that an external ClientState is used in order for authorization
-      // to be performed
-      clientInfo = new ClientInfo(new InetSocketAddress("127.0.0.1", 0), null);
-    }
-    return create(userName, options, clientInfo);
-  }
+  DataStore create(@Nullable String userName, @Nonnull DataStoreOptions options);
 
   /**
    * Creates a new DataStore on top of the provided persistence. If a username is provided then a
@@ -111,7 +49,7 @@ public class DataStoreFactory {
    *
    * <p>A shortcut for {@link #create(DataStoreOptions)} with default options.
    */
-  public DataStore create() {
+  default DataStore create() {
     return create(DataStoreOptions.defaults());
   }
 
@@ -120,7 +58,7 @@ public class DataStoreFactory {
    *
    * <p>A shortcut for {@link #create(String, DataStoreOptions)} with a {@code null} userName.
    */
-  public DataStore create(DataStoreOptions options) {
-    return create((String) null, options);
+  default DataStore create(DataStoreOptions options) {
+    return create(null, options);
   }
 }
