@@ -1,10 +1,7 @@
 package io.stargate.graphql.schema.fetchers.ddl;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
-import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.Scope;
-import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.*;
 import io.stargate.db.Persistence;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
@@ -39,7 +36,8 @@ public abstract class TableFetcher extends DdlQueryFetcher {
       scope = Scope.DROP;
     }
 
-    authorizationService.authorizeSchemaWrite(token, keyspaceName, tableName, scope);
+    authorizationService.authorizeSchemaWrite(
+        token, keyspaceName, tableName, scope, SourceAPI.GRAPHQL);
 
     return buildQuery(dataFetchingEnvironment, builder, keyspaceName, tableName);
   }

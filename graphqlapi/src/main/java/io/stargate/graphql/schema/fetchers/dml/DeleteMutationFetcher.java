@@ -1,11 +1,7 @@
 package io.stargate.graphql.schema.fetchers.dml;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
-import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.Scope;
-import io.stargate.auth.TypedKeyValue;
-import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.*;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.BoundDelete;
@@ -54,7 +50,8 @@ public class DeleteMutationFetcher extends MutationFetcher {
         table.keyspace(),
         table.name(),
         TypedKeyValue.forDML((BoundDelete) bound),
-        Scope.DELETE);
+        Scope.DELETE,
+        SourceAPI.GRAPHQL);
     return bound;
   }
 }

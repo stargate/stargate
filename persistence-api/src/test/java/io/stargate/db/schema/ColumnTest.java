@@ -712,14 +712,23 @@ public class ColumnTest {
     assertThat(Type.fromCqlDefinitionOf(ks, "text")).isEqualTo(Type.Text);
     assertThat(Type.fromCqlDefinitionOf(ks, "int")).isEqualTo(Type.Int);
     assertThat(Type.fromCqlDefinitionOf(ks, "list<text>")).isEqualTo(Type.List.of(Type.Text));
+    assertThat(Type.fromCqlDefinitionOf(ks, "list  <text>")).isEqualTo(Type.List.of(Type.Text));
     assertThat(Type.fromCqlDefinitionOf(ks, "set<bigint>")).isEqualTo(Type.Set.of(Type.Bigint));
+    assertThat(Type.fromCqlDefinitionOf(ks, "set  <bigint>")).isEqualTo(Type.Set.of(Type.Bigint));
     assertThat(Type.fromCqlDefinitionOf(ks, "map<text, bigint>"))
+        .isEqualTo(Type.Map.of(Type.Text, Type.Bigint));
+    assertThat(Type.fromCqlDefinitionOf(ks, "map  <text, bigint>"))
         .isEqualTo(Type.Map.of(Type.Text, Type.Bigint));
     assertThat(Type.fromCqlDefinitionOf(ks, "my_udt")).isEqualTo(udt);
     assertThat(Type.fromCqlDefinitionOf(ks, "set<my_udt>")).isEqualTo(Type.Set.of(udt));
+    assertThat(Type.fromCqlDefinitionOf(ks, "set  <my_udt>")).isEqualTo(Type.Set.of(udt));
     assertThat(Type.fromCqlDefinitionOf(ks, "frozen<list<int>>"))
         .isEqualTo(Type.List.of(Type.Int).frozen());
+    assertThat(Type.fromCqlDefinitionOf(ks, "frozen  <list<int>>"))
+        .isEqualTo(Type.List.of(Type.Int).frozen());
     assertThat(Type.fromCqlDefinitionOf(ks, "frozen<map<text, my_udt>>"))
+        .isEqualTo(Type.Map.of(Type.Text, udt).frozen());
+    assertThat(Type.fromCqlDefinitionOf(ks, "frozen  <map<text, my_udt>>"))
         .isEqualTo(Type.Map.of(Type.Text, udt).frozen());
   }
 }

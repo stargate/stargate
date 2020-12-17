@@ -210,6 +210,11 @@ class PersistenceBackedDataStore implements DataStore {
   }
 
   @Override
+  public boolean supportsSAI() {
+    return persistence().supportsSAI();
+  }
+
+  @Override
   public void waitForSchemaAgreement() {
     persistence().waitForSchemaAgreement();
   }

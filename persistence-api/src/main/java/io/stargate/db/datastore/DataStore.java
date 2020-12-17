@@ -154,6 +154,9 @@ public interface DataStore extends AsyncQueryExecutor {
   /** Returns true if the persistence backend supports secondary indexes */
   boolean supportsSecondaryIndex();
 
+  /** Returns true if the persistence backend supports Storage Attached Indexes. */
+  boolean supportsSAI();
+
   /** Returns true if in schema agreement */
   boolean isInSchemaAgreement();
 

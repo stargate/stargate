@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.node.LongNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
@@ -405,7 +406,7 @@ public class DocumentService {
     // but we can force the permissions refetch by logging in again.
     if (created) {
       db = dbFactory.getDocDataStoreForToken(authToken);
-      db.maybeCreateTableIndexes(keyspace, collection, dbFactory.isDse());
+      db.maybeCreateTableIndexes(keyspace, collection);
     }
 
     // Left-pad the path segments that represent arrays
@@ -745,7 +746,8 @@ public class DocumentService {
     return ImmutablePair.of(docsResult, pageState);
   }
 
-  private void addRowsToMap(Map<String, List<Row>> rowsByDoc, List<Row> rows) {
+  @VisibleForTesting
+  void addRowsToMap(Map<String, List<Row>> rowsByDoc, List<Row> rows) {
     for (Row row : rows) {
       String key = row.getString("key");
       List<Row> rowsAtKey = rowsByDoc.getOrDefault(key, new ArrayList<>());
@@ -969,7 +971,8 @@ public class DocumentService {
    * @throws ExecutionException
    * @throws InterruptedException
    */
-  private ImmutablePair<List<Row>, ByteBuffer> searchRows(
+  @VisibleForTesting
+  ImmutablePair<List<Row>, ByteBuffer> searchRows(
       String keyspace,
       String collection,
       DocumentDB db,
@@ -978,7 +981,7 @@ public class DocumentService {
       List<String> path,
       Boolean recurse,
       String documentKey)
-      throws ExecutionException, InterruptedException, UnauthorizedException {
+      throws UnauthorizedException {
     StringBuilder pathStr = new StringBuilder();
     List<BuiltCondition> predicates = new ArrayList<>();
 
@@ -1047,7 +1050,7 @@ public class DocumentService {
       SingleFilterCondition singleFilter = (SingleFilterCondition) filter;
       FilterOp queryOp = singleFilter.getFilterOp();
       String queryValueField = singleFilter.getValueColumnName();
-      Object queryValue = singleFilter.getValue();
+      Object queryValue = singleFilter.getValue(db.treatBooleansAsNumeric());
       if (queryOp != FilterOp.EXISTS) {
         predicates.add(BuiltCondition.of(queryValueField, queryOp.predicate, queryValue));
       }

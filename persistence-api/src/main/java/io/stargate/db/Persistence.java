@@ -87,8 +87,12 @@ public interface Persistence {
   boolean isInSchemaAgreement();
 
   default boolean supportsSecondaryIndex() {
-    return true;
+    return Boolean.parseBoolean(
+        System.getProperty("stargate.persistence.2i.support.default", "true"));
   }
+
+  /** Returns true if the persistence backend supports Storage Attached Indexes. */
+  boolean supportsSAI();
 
   /** Wait for schema to agree across the cluster */
   default void waitForSchemaAgreement() {
@@ -110,6 +114,13 @@ public interface Persistence {
    * <p><b>Important:</b> At a minimum, this must return the {@code "CQL_VERSION"} option.
    */
   Map<String, List<String>> cqlSupportedOptions();
+
+  /**
+   * Execute AUTH_RESPONSE request handling asynchronously on the correct thread pool.
+   *
+   * @param handler a runnable that handles a AUTH_RESPONSE request
+   */
+  void executeAuthResponse(Runnable handler);
 
   /**
    * A connection to the persistence.

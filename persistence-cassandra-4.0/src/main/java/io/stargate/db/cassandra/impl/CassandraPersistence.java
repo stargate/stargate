@@ -275,10 +275,20 @@ public class CassandraPersistence
   }
 
   @Override
+  public boolean supportsSAI() {
+    return false;
+  }
+
+  @Override
   public Map<String, List<String>> cqlSupportedOptions() {
     return ImmutableMap.<String, List<String>>builder()
         .put(StartupMessage.CQL_VERSION, ImmutableList.of(QueryProcessor.CQL_VERSION.toString()))
         .build();
+  }
+
+  @Override
+  public void executeAuthResponse(Runnable handler) {
+    executor.execute(handler);
   }
 
   /**
@@ -339,7 +349,13 @@ public class CassandraPersistence
     @Override
     protected void loginInternally(io.stargate.db.AuthenticatedUser user) {
       try {
-        clientState.login(new AuthenticatedUser(user.name()));
+        if (user.isFromExternalAuth()
+            || Boolean.parseBoolean(
+                System.getProperty("stargate.cql_use_transitional_auth", "false"))) {
+          clientState.login(AuthenticatedUser.ANONYMOUS_USER);
+        } else {
+          clientState.login(new AuthenticatedUser(user.name()));
+        }
       } catch (AuthenticationException e) {
         throw new org.apache.cassandra.stargate.exceptions.AuthenticationException(e);
       }

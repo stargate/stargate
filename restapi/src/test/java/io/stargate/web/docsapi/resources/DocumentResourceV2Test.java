@@ -28,27 +28,19 @@ import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
-import org.powermock.reflect.Whitebox;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest
 public class DocumentResourceV2Test {
   private static final ObjectMapper mapper = new ObjectMapper();
-  private DocumentService documentServiceMock = mock(DocumentService.class);
-  private Db dbFactoryMock = mock(Db.class);
+  private final DocumentService documentServiceMock = mock(DocumentService.class);
+  private final Db dbFactoryMock = mock(Db.class);
   private DocumentResourceV2 documentResourceV2;
 
-  @Before
+  @BeforeEach
   public void setup() {
-    documentResourceV2 = new DocumentResourceV2();
-    Whitebox.setInternalState(documentResourceV2, DocumentService.class, documentServiceMock);
-    Whitebox.setInternalState(documentResourceV2, Db.class, dbFactoryMock);
+    documentResourceV2 = new DocumentResourceV2(dbFactoryMock, documentServiceMock);
   }
 
   @Test
@@ -194,7 +186,7 @@ public class DocumentResourceV2Test {
     ObjectNode mockedReturn = mapper.createObjectNode();
     mockedReturn.set("someData", BooleanNode.valueOf(true));
 
-    PowerMockito.when(
+    Mockito.when(
             documentServiceMock.getJsonAtPath(
                 anyObject(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(mockedReturn);
@@ -236,7 +228,7 @@ public class DocumentResourceV2Test {
     ObjectNode mockedReturn = mapper.createObjectNode();
     mockedReturn.set("someData", BooleanNode.valueOf(true));
 
-    PowerMockito.when(
+    Mockito.when(
             documentServiceMock.getJsonAtPath(
                 anyObject(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(mockedReturn);
@@ -279,15 +271,15 @@ public class DocumentResourceV2Test {
     ObjectNode mockedReturn = mapper.createObjectNode();
     mockedReturn.set("someData", BooleanNode.valueOf(true));
 
-    PowerMockito.when(
+    Mockito.when(
             documentServiceMock.searchDocumentsV2(
                 anyObject(), anyString(), anyString(), anyList(), anyList(), anyString()))
         .thenReturn(ImmutablePair.of(mockedReturn, null));
 
-    PowerMockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
+    Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
         .thenCallRealMethod();
 
-    PowerMockito.when(documentServiceMock.convertToSelectionList(anyObject())).thenCallRealMethod();
+    Mockito.when(documentServiceMock.convertToSelectionList(anyObject())).thenCallRealMethod();
 
     Response r =
         documentResourceV2.getDocPath(
@@ -327,7 +319,7 @@ public class DocumentResourceV2Test {
     ObjectNode mockedReturn = mapper.createObjectNode();
     mockedReturn.set("someData", BooleanNode.valueOf(true));
 
-    PowerMockito.when(
+    Mockito.when(
             documentServiceMock.getJsonAtPath(
                 anyObject(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(mockedReturn);
@@ -369,7 +361,7 @@ public class DocumentResourceV2Test {
     String pageStateParam = null;
     List<PathSegment> path = new ArrayList<>();
 
-    PowerMockito.when(
+    Mockito.when(
             documentServiceMock.getJsonAtPath(
                 anyObject(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(null);
@@ -429,10 +421,10 @@ public class DocumentResourceV2Test {
     searchResult.set("id1", mapper.createArrayNode());
     searchResult.set("id2", mapper.createArrayNode());
 
-    PowerMockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
+    Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
         .thenReturn(conditions);
 
-    PowerMockito.when(
+    Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
                 anyObject(),
                 anyObject(),
@@ -488,10 +480,10 @@ public class DocumentResourceV2Test {
     searchResult.set("id1", mapper.createArrayNode());
     searchResult.set("id2", mapper.createArrayNode());
 
-    PowerMockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
+    Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
         .thenReturn(conditions);
 
-    PowerMockito.when(
+    Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
                 anyObject(),
                 anyObject(),
@@ -544,13 +536,13 @@ public class DocumentResourceV2Test {
     searchResult.set("id1", mapper.createArrayNode());
     searchResult.set("id2", mapper.createArrayNode());
 
-    PowerMockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
+    Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
         .thenReturn(conditions);
 
-    PowerMockito.when(documentServiceMock.convertToSelectionList(anyObject()))
+    Mockito.when(documentServiceMock.convertToSelectionList(anyObject()))
         .thenReturn(ImmutableList.of("field1"));
 
-    PowerMockito.when(
+    Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
                 anyObject(),
                 anyObject(),
@@ -597,9 +589,9 @@ public class DocumentResourceV2Test {
     conditions.add(
         new SingleFilterCondition(ImmutableList.of("a", "b", "c", "field1"), "$eq", "value"));
 
-    PowerMockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
+    Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
         .thenReturn(conditions);
-    PowerMockito.when(documentServiceMock.convertToSelectionList(anyObject()))
+    Mockito.when(documentServiceMock.convertToSelectionList(anyObject()))
         .thenReturn(ImmutableList.of("field1"));
 
     Response r =
@@ -636,7 +628,7 @@ public class DocumentResourceV2Test {
     conditions.add(
         new SingleFilterCondition(ImmutableList.of("a", "b", "c", "field2"), "$eq", "value"));
 
-    PowerMockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
+    Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
         .thenReturn(conditions);
 
     Response r =
@@ -673,10 +665,10 @@ public class DocumentResourceV2Test {
     conditions.add(
         new SingleFilterCondition(ImmutableList.of("a", "b", "c", "field1"), "$eq", "value"));
 
-    PowerMockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
+    Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
         .thenReturn(conditions);
 
-    PowerMockito.when(documentServiceMock.convertToSelectionList(anyObject()))
+    Mockito.when(documentServiceMock.convertToSelectionList(anyObject()))
         .thenReturn(ImmutableList.of("field1"));
 
     Response r =
@@ -714,7 +706,7 @@ public class DocumentResourceV2Test {
     searchResult.set("id1", mapper.createArrayNode());
     searchResult.set("id2", mapper.createArrayNode());
 
-    PowerMockito.when(
+    Mockito.when(
             documentServiceMock.getFullDocuments(
                 anyObject(),
                 anyObject(),
