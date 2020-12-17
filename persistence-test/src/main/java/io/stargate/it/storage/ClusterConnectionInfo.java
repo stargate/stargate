@@ -43,4 +43,9 @@ public interface ClusterConnectionInfo {
   default boolean supportsCounters() {
     return true;
   }
+
+  default boolean supportsSAI() {
+    // OSS C* does not support SAI (yet?)
+    return isDse();
+  }
 }

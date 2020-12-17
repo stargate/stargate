@@ -17,6 +17,7 @@ package io.stargate.web.resources;
 
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
@@ -146,7 +147,8 @@ public class RowResource {
                       token,
                       keyspaceName,
                       tableName,
-                      TypedKeyValue.forSelect((BoundSelect) query));
+                      TypedKeyValue.forSelect((BoundSelect) query),
+                      SourceAPI.REST);
 
           final List<Map<String, Object>> rows =
               r.rows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
@@ -214,7 +216,8 @@ public class RowResource {
                       token,
                       keyspaceName,
                       tableName,
-                      Collections.emptyList());
+                      Collections.emptyList(),
+                      SourceAPI.REST);
 
           final List<Map<String, Object>> rows =
               r.currentPageRows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
@@ -337,7 +340,8 @@ public class RowResource {
                       token,
                       keyspaceName,
                       tableName,
-                      TypedKeyValue.forSelect((BoundSelect) query));
+                      TypedKeyValue.forSelect((BoundSelect) query),
+                      SourceAPI.REST);
 
           final List<Map<String, Object>> rows =
               r.currentPageRows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
@@ -411,7 +415,8 @@ public class RowResource {
                   keyspaceName,
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
-                  Scope.MODIFY);
+                  Scope.MODIFY,
+                  SourceAPI.REST);
 
           localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
@@ -471,7 +476,8 @@ public class RowResource {
                   keyspaceName,
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
-                  Scope.DELETE);
+                  Scope.DELETE,
+                  SourceAPI.REST);
 
           localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
@@ -541,7 +547,8 @@ public class RowResource {
                   keyspaceName,
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
-                  Scope.MODIFY);
+                  Scope.MODIFY,
+                  SourceAPI.REST);
 
           localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 

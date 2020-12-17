@@ -20,6 +20,7 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
@@ -64,7 +65,8 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
             token,
             table.keyspace(),
             table.name(),
-            TypedKeyValue.forSelect((BoundSelect) query));
+            TypedKeyValue.forSelect((BoundSelect) query),
+            SourceAPI.GRAPHQL);
 
     Map<String, Object> result = new HashMap<>();
     result.put(

@@ -18,6 +18,7 @@ package io.stargate.web.resources.v2.schemas;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.builder.Replication;
 import io.stargate.web.models.Datacenter;
@@ -96,7 +97,8 @@ public class KeyspacesResource {
               .authorizeSchemaRead(
                   token,
                   keyspaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
-                  null);
+                  null,
+                  SourceAPI.REST);
 
           Object response = raw ? keyspaces : new ResponseWrapper(keyspaces);
           return Response.status(Response.Status.OK)
@@ -136,7 +138,8 @@ public class KeyspacesResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
           db.getAuthorizationService()
-              .authorizeSchemaRead(token, Collections.singletonList(keyspaceName), null);
+              .authorizeSchemaRead(
+                  token, Collections.singletonList(keyspaceName), null, SourceAPI.REST);
 
           io.stargate.db.schema.Keyspace keyspace = localDB.schema().keyspace(keyspaceName);
           if (keyspace == null) {
@@ -205,7 +208,7 @@ public class KeyspacesResource {
 
           String keyspaceName = (String) requestBody.get("name");
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, null, Scope.CREATE);
+              .authorizeSchemaWrite(token, keyspaceName, null, Scope.CREATE, SourceAPI.REST);
 
           Replication replication;
           if (requestBody.containsKey("datacenters")) {
@@ -264,7 +267,8 @@ public class KeyspacesResource {
         () -> {
           DataStore localDB = db.getDataStoreForToken(token);
 
-          db.getAuthorizationService().authorizeSchemaWrite(token, keyspaceName, null, Scope.DROP);
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(token, keyspaceName, null, Scope.DROP, SourceAPI.REST);
 
           localDB
               .queryBuilder()

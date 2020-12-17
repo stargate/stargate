@@ -67,25 +67,37 @@ public class AuthResponse extends Message.Request {
 
   @Override
   protected CompletableFuture<? extends Response> execute(long queryStartNanoTime) {
-    try {
-      Authenticator.SaslNegotiator negotiator = ((ServerConnection) connection).getSaslNegotiator();
-      byte[] challenge = negotiator.evaluateResponse(token);
-      if (negotiator.isComplete()) {
-        AuthenticatedUser authenticatedUser = negotiator.getAuthenticatedUser();
-        persistenceConnection().login(authenticatedUser);
-        if (authenticatedUser.token() != null) {
-          ((ServerConnection) connection).clientInfo().setAuthToken(authenticatedUser.token());
-        }
+    CompletableFuture<Response> future = new CompletableFuture<>();
+    persistence()
+        .executeAuthResponse(
+            () -> {
+              try {
+                Authenticator.SaslNegotiator negotiator =
+                    ((ServerConnection) connection).getSaslNegotiator();
+                byte[] challenge = negotiator.evaluateResponse(token);
+                if (negotiator.isComplete()) {
+                  AuthenticatedUser authenticatedUser = negotiator.getAuthenticatedUser();
+                  persistenceConnection().login(authenticatedUser);
+                  if (authenticatedUser.token() != null) {
+                    ((ServerConnection) connection)
+                        .clientInfo()
+                        .setAuthToken(authenticatedUser.token());
+                  }
 
-        ClientMetrics.instance.markAuthSuccess();
-        // authentication is complete, send a ready message to the client
-        return CompletableFuture.completedFuture(new AuthSuccess(challenge));
-      } else {
-        return CompletableFuture.completedFuture(new AuthChallenge(challenge));
-      }
-    } catch (AuthenticationException e) {
-      ClientMetrics.instance.markAuthFailure();
-      return CompletableFuture.completedFuture(ErrorMessage.fromException(e));
-    }
+                  ClientMetrics.instance.markAuthSuccess();
+                  // authentication is complete, send a ready message to the client
+
+                  future.complete(new AuthSuccess(challenge));
+                } else {
+                  future.complete(new AuthChallenge(challenge));
+                }
+              } catch (AuthenticationException ae) {
+                ClientMetrics.instance.markAuthFailure();
+                future.complete(ErrorMessage.fromException(ae));
+              } catch (Exception e) {
+                future.completeExceptionally(e);
+              }
+            });
+    return future;
   }
 }

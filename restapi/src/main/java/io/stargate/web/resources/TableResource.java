@@ -17,6 +17,7 @@ package io.stargate.web.resources;
 
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
@@ -106,7 +107,8 @@ public class TableResource {
                   .collect(Collectors.toList());
 
           db.getAuthorizationService()
-              .authorizeSchemaRead(token, Collections.singletonList(keyspaceName), tableNames);
+              .authorizeSchemaRead(
+                  token, Collections.singletonList(keyspaceName), tableNames, SourceAPI.REST);
 
           return Response.status(Response.Status.OK).entity(tableNames).build();
         });
@@ -196,7 +198,7 @@ public class TableResource {
           }
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.CREATE);
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.CREATE, SourceAPI.REST);
 
           localDB
               .queryBuilder()
@@ -248,7 +250,8 @@ public class TableResource {
               .authorizeSchemaRead(
                   token,
                   Collections.singletonList(keyspaceName),
-                  Collections.singletonList(tableName));
+                  Collections.singletonList(tableName),
+                  SourceAPI.REST);
 
           Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
 
@@ -328,7 +331,7 @@ public class TableResource {
           DataStore localDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.DROP);
+              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.DROP, SourceAPI.REST);
 
           localDB
               .queryBuilder()
