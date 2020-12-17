@@ -19,6 +19,7 @@ import io.stargate.db.datastore.ResultSet;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 public interface AuthorizationService {
 
@@ -51,7 +52,7 @@ public interface AuthorizationService {
    * failed future.
    */
   CompletionStage<ResultSet> authorizedAsyncDataRead(
-      Callable<CompletionStage<ResultSet>> action,
+      Supplier<CompletionStage<ResultSet>> action,
       String token,
       String keyspace,
       String table,

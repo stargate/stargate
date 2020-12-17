@@ -15,12 +15,18 @@
  */
 package io.stargate.auth.table;
 
-import io.stargate.auth.*;
-import io.stargate.db.datastore.ResultSet;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
+
+import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
+import io.stargate.auth.TypedKeyValue;
+import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.datastore.ResultSet;
 
 public class AuthzTableBasedService implements AuthorizationService {
 
@@ -50,20 +56,13 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public CompletionStage<ResultSet> authorizedAsyncDataRead(
-      Callable<CompletionStage<ResultSet>> action,
+      Supplier<CompletionStage<ResultSet>> action,
       String token,
       String keyspace,
       String table,
       List<TypedKeyValue> typedKeyValues,
       SourceAPI sourceAPI) {
-    // Cannot perform authorization with a table based token so just wrap and return
-    try {
-      return action.call();
-    } catch (Exception e) {
-      CompletableFuture<ResultSet> failedFuture = new CompletableFuture<>();
-      failedFuture.completeExceptionally(e);
-      return failedFuture;
-    }
+    return CompletableFuture.completedFuture(null).thenCompose(__ -> action.get());
   }
 
   /**

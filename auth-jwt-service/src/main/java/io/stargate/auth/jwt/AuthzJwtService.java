@@ -15,8 +15,14 @@
  */
 package io.stargate.auth.jwt;
 
-import static io.stargate.auth.jwt.AuthnJwtService.CLAIMS_FIELD;
-import static io.stargate.auth.jwt.AuthnJwtService.STARGATE_PREFIX;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -27,17 +33,13 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.regex.Pattern;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static io.stargate.auth.jwt.AuthnJwtService.CLAIMS_FIELD;
+import static io.stargate.auth.jwt.AuthnJwtService.STARGATE_PREFIX;
 
 public class AuthzJwtService implements AuthorizationService {
 
@@ -72,24 +74,22 @@ public class AuthzJwtService implements AuthorizationService {
 
   @Override
   public CompletionStage<ResultSet> authorizedAsyncDataRead(
-      Callable<CompletionStage<ResultSet>> action,
+      Supplier<CompletionStage<ResultSet>> action,
       String token,
       String keyspace,
       String table,
       List<TypedKeyValue> typedKeyValues,
       SourceAPI sourceAPI) {
     JSONObject stargateClaims;
-    CompletionStage<ResultSet> resultSetFuture;
     try {
       stargateClaims = extractClaimsFromJWT(token);
       preCheckDataReadWrite(stargateClaims, typedKeyValues);
-      resultSetFuture = action.call();
     } catch (Exception e) {
       CompletableFuture<ResultSet> failedFuture = new CompletableFuture<>();
       failedFuture.completeExceptionally(e);
       return failedFuture;
     }
-    return resultSetFuture.thenApply(rs -> filterUnauthorizedRows(rs, stargateClaims));
+    return action.get().thenApply(rs -> filterUnauthorizedRows(rs, stargateClaims));
   }
 
   private static ResultSet filterUnauthorizedRows(ResultSet result, JSONObject stargateClaims) {
