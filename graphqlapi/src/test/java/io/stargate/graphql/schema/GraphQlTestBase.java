@@ -96,7 +96,7 @@ public abstract class GraphQlTestBase {
 
                 // Batches use multiple data store instances, one per each mutation
                 // We need to capture the parameters provided at dataStore creation
-                DataStoreOptions dataStoreOptions = i.getArgument(2, DataStoreOptions.class);
+                DataStoreOptions dataStoreOptions = i.getArgument(1, DataStoreOptions.class);
                 when(dataStore.batch(batchCaptor.capture()))
                     .then(
                         batchInvoke -> {
