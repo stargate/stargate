@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -45,7 +46,9 @@ public class SwaggerUIResource {
 
     // Save the templated file away for later so that we only have to do this conversion once.
     indexFile =
-        new BufferedReader(new InputStreamReader(entry.openConnection().getInputStream()))
+        new BufferedReader(
+                new InputStreamReader(
+                    entry.openConnection().getInputStream(), StandardCharsets.UTF_8))
             .lines()
             .collect(Collectors.joining("\n"));
   }
@@ -94,7 +97,8 @@ public class SwaggerUIResource {
     // something like Velocity but that feels overkill for a single field.
     String formattedIndexFile =
         indexFile.replaceFirst("AUTHENTICATION_TOKEN", token == null ? "" : token);
-    return Response.ok(new ByteArrayInputStream(formattedIndexFile.getBytes()))
+    return Response.ok(
+            new ByteArrayInputStream(formattedIndexFile.getBytes(StandardCharsets.UTF_8)))
         .type(MediaType.TEXT_HTML)
         .build();
   }

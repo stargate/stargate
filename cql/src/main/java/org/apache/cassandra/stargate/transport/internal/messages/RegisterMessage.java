@@ -33,6 +33,7 @@ import org.apache.cassandra.stargate.transport.internal.ServerConnection;
 public class RegisterMessage extends Message.Request {
   public static final Message.Codec<RegisterMessage> codec =
       new Message.Codec<RegisterMessage>() {
+        @Override
         public RegisterMessage decode(ByteBuf body, ProtocolVersion version) {
           int length = body.readUnsignedShort();
           List<Event.Type> eventTypes = new ArrayList<>(length);
@@ -41,11 +42,13 @@ public class RegisterMessage extends Message.Request {
           return new RegisterMessage(eventTypes);
         }
 
+        @Override
         public void encode(RegisterMessage msg, ByteBuf dest, ProtocolVersion version) {
           dest.writeShort(msg.eventTypes.size());
           for (Event.Type type : msg.eventTypes) CBUtil.writeEnumValue(type, dest);
         }
 
+        @Override
         public int encodedSize(RegisterMessage msg, ProtocolVersion version) {
           int size = 2;
           for (Event.Type type : msg.eventTypes) size += CBUtil.sizeOfEnumValue(type);

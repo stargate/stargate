@@ -24,6 +24,8 @@ public enum FilterOp {
   public final String cqlOp;
   public final Predicate predicate;
   public final String rawValue;
+
+  @SuppressWarnings("MutableConstantField")
   public static final Set<FilterOp> LIMITED_SUPPORT_FILTERS =
       ImmutableSet.of(FilterOp.NE, FilterOp.IN, FilterOp.NIN);
 

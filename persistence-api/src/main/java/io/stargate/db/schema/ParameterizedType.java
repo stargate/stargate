@@ -42,6 +42,7 @@ import org.immutables.value.Value;
 
 public abstract class ParameterizedType implements Column.ColumnType {
 
+  @Override
   public abstract List<Column.ColumnType> parameters();
 
   @Override
@@ -163,7 +164,7 @@ public abstract class ParameterizedType implements Column.ColumnType {
         Collection validated;
         Set set = (Set) value;
         try {
-          validated = set.getClass().newInstance();
+          validated = set.getClass().getDeclaredConstructor().newInstance();
         } catch (Exception e) {
           validated = new HashSet<>(set.size());
         }
@@ -228,7 +229,7 @@ public abstract class ParameterizedType implements Column.ColumnType {
         Map validated;
         Map<?, ?> map = (Map<?, ?>) value;
         try {
-          validated = map.getClass().newInstance();
+          validated = map.getClass().getDeclaredConstructor().newInstance();
         } catch (Exception e) {
           validated = new HashMap(map.size());
         }
@@ -328,7 +329,7 @@ public abstract class ParameterizedType implements Column.ColumnType {
           }
           Object validated = type.validate(o, fieldLocation);
 
-          tupleValue.set(count, validated, type.codec());
+          tupleValue = tupleValue.set(count, validated, type.codec());
         }
       }
       return value;
@@ -349,7 +350,7 @@ public abstract class ParameterizedType implements Column.ColumnType {
         for (int count = 0; count < parameters.length; count++) {
           Column.ColumnType columnType = parameters().get(count);
           Object validated = columnType.validate(parameters[count], "[" + count + "]");
-          tuple.set(count, validated, columnType.codec());
+          tuple = tuple.set(count, validated, columnType.codec());
         }
       } catch (Column.ValidationException e) {
         throw new IllegalArgumentException(

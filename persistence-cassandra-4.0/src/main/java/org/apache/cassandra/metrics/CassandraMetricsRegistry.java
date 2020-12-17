@@ -24,9 +24,11 @@ import javax.management.ObjectName;
  *
  * <p>This class must mimic the exact public API of the original one.
  */
+@SuppressWarnings("InconsistentCapitalization") // `Metrics` field vs `metrics` parameters
 public class CassandraMetricsRegistry extends MetricRegistry {
 
   public static volatile MetricRegistry actualRegistry = new MetricRegistry();
+
   public static final CassandraMetricsRegistry Metrics = new CassandraMetricsRegistry();
 
   private final Map<String, ThreadPoolMetrics> threadPoolMetrics = new ConcurrentHashMap<>();
@@ -196,7 +198,7 @@ public class CassandraMetricsRegistry extends MetricRegistry {
   }
 
   /** A value class encapsulating a metric's owning class and name. */
-  public static class MetricName implements Comparable<MetricName> {
+  public static final class MetricName implements Comparable<MetricName> {
     private final String group;
     private final String type;
     private final String name;

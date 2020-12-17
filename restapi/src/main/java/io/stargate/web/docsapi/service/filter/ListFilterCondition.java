@@ -23,14 +23,17 @@ public class ListFilterCondition implements FilterCondition {
     this.listValue = listValue;
   }
 
+  @Override
   public List<Object> getValue() {
     return listValue;
   }
 
+  @Override
   public FilterOp getFilterOp() {
     return op;
   }
 
+  @Override
   public String getField() {
     return field;
   }
@@ -39,15 +42,18 @@ public class ListFilterCondition implements FilterCondition {
     return String.join(".", path);
   }
 
+  @Override
   public String getFullFieldPath() {
     if (getPathString().isEmpty()) return field;
     return getPathString() + "." + field;
   }
 
+  @Override
   public List<String> getPath() {
     return path;
   }
 
+  @Override
   public String toString() {
     return String.format("ListFilterCondition{%s, %s, %s, %s}", path, field, op, listValue);
   }

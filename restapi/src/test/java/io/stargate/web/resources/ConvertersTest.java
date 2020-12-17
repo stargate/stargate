@@ -61,6 +61,7 @@ public class ConvertersTest {
     assertThat(actualJson).isEqualTo(expectedJson);
   }
 
+  @SuppressWarnings("unused") // referenced by @MethodSource
   private static Arguments[] toJsonSamples() throws Exception {
     return new Arguments[] {
       arguments(
@@ -109,6 +110,7 @@ public class ConvertersTest {
     }
   }
 
+  @SuppressWarnings("unused") // referenced by @MethodSource
   private static Arguments[] toCqlSamples() throws Exception {
     return new Arguments[] {
       // Primitives:
@@ -220,6 +222,7 @@ public class ConvertersTest {
         .hasMessageContaining(expectedError);
   }
 
+  @SuppressWarnings("unused") // referenced by @MethodSource
   private static Arguments[] toCqlErrorSamples() {
     return new Arguments[] {
       arguments(Type.Text, "1", "Invalid Text value '1': expected a string"),

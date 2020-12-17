@@ -27,6 +27,7 @@ import org.apache.cassandra.stargate.transport.internal.Message;
 public class AuthChallenge extends Message.Response {
   public static final Message.Codec<AuthChallenge> codec =
       new Message.Codec<AuthChallenge>() {
+        @Override
         public AuthChallenge decode(ByteBuf body, ProtocolVersion version) {
           ByteBuffer b = CBUtil.readValue(body);
           byte[] token = new byte[b.remaining()];
@@ -34,10 +35,12 @@ public class AuthChallenge extends Message.Response {
           return new AuthChallenge(token);
         }
 
+        @Override
         public void encode(AuthChallenge challenge, ByteBuf dest, ProtocolVersion version) {
           CBUtil.writeValue(challenge.token, dest);
         }
 
+        @Override
         public int encodedSize(AuthChallenge challenge, ProtocolVersion version) {
           return CBUtil.sizeOfValue(challenge.token);
         }

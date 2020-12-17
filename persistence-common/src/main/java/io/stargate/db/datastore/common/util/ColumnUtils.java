@@ -24,6 +24,7 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ParameterizedType;
 import io.stargate.db.schema.UserDefinedType;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -198,15 +199,16 @@ public class ColumnUtils {
         udt.checkKeyspaceSet();
         return new UserType(
             udt.keyspace(),
-            ByteBuffer.wrap(udt.name().getBytes()),
+            ByteBuffer.wrap(udt.name().getBytes(StandardCharsets.UTF_8)),
             (List)
                 udt.columns().stream()
                     .map(c -> FieldIdentifier.forInternalString(c.name()))
                     .collect(toList()),
             (List) udt.columns().stream().map(c -> toInternalType(c.type())).collect(toList()),
             !type.isFrozen());
+      default:
+        return CODECS.get(type.rawType()).internalType();
     }
-    return CODECS.get(type.rawType()).internalType();
   }
 
   public static Object toInternalValue(Column.ColumnType type, Object external) {
@@ -221,8 +223,9 @@ public class ColumnUtils {
         return toInternalTuple(type, external);
       case UDT:
         return toInternalUdt(type, external);
+      default:
+        return CODECS.get(type.rawType()).internalConversion().apply(external);
     }
-    return CODECS.get(type.rawType()).internalConversion().apply(external);
   }
 
   private static Object toInternalList(Column.ColumnType type, Object external) {
@@ -343,8 +346,9 @@ public class ColumnUtils {
         return toExternalTuple(type, internal);
       case UDT:
         return toExternalUdt(type, internal);
+      default:
+        return CODECS.get(type.rawType()).externalConversion().apply(internal);
     }
-    return CODECS.get(type.rawType()).externalConversion().apply(internal);
   }
 
   private static Object toExternalList(Column.ColumnType type, Object internal) {
@@ -392,7 +396,8 @@ public class ColumnUtils {
         ByteBuffer buffer = value.slice();
         buffer.limit(size);
         value.position(value.position() + size);
-        tuple.set(count++, toExternalValue(p, toInternalType(p).compose(buffer)), p.codec());
+        tuple =
+            tuple.set(count++, toExternalValue(p, toInternalType(p).compose(buffer)), p.codec());
       }
     }
 
@@ -414,10 +419,11 @@ public class ColumnUtils {
         ByteBuffer buffer = value.slice();
         buffer.limit(size);
         value.position(value.position() + size);
-        udtValue.set(
-            count++,
-            toExternalValue(column.type(), toInternalType(column.type()).compose(buffer)),
-            column.type().codec());
+        udtValue =
+            udtValue.set(
+                count++,
+                toExternalValue(column.type(), toInternalType(column.type()).compose(buffer)),
+                column.type().codec());
       }
     }
 

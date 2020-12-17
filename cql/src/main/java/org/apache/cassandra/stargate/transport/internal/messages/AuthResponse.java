@@ -37,6 +37,7 @@ import org.apache.cassandra.stargate.transport.internal.ServerConnection;
 public class AuthResponse extends Message.Request {
   public static final Message.Codec<AuthResponse> codec =
       new Message.Codec<AuthResponse>() {
+        @Override
         public AuthResponse decode(ByteBuf body, ProtocolVersion version) {
           if (version == ProtocolVersion.V1)
             throw new ProtocolException(
@@ -48,10 +49,12 @@ public class AuthResponse extends Message.Request {
           return new AuthResponse(token);
         }
 
+        @Override
         public void encode(AuthResponse response, ByteBuf dest, ProtocolVersion version) {
           CBUtil.writeValue(response.token, dest);
         }
 
+        @Override
         public int encodedSize(AuthResponse response, ProtocolVersion version) {
           return CBUtil.sizeOfValue(response.token);
         }

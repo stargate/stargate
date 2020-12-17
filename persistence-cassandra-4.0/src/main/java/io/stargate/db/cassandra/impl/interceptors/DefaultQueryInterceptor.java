@@ -264,6 +264,8 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
       case RPC_READY:
         notifyRpcChange(endpoint, epState.isRpcReady());
         break;
+      default:
+        // ignore other states
     }
   }
 

@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -48,7 +47,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   private static String authToken;
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final OkHttpClient client =
-      new OkHttpClient().newBuilder().readTimeout(3, TimeUnit.MINUTES).build();
+      new OkHttpClient().newBuilder().readTimeout(Duration.ofMinutes(3)).build();
 
   private String host;
   private String hostWithPort;
@@ -939,14 +938,13 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths",
         204);
 
-    r =
-        RestUtils.delete(
-            authToken,
-            hostWithPort
-                + "/v2/namespaces/"
-                + keyspace
-                + "/collections/collection/1/quiz/nests/q1/options/[0]",
-            204);
+    RestUtils.delete(
+        authToken,
+        hostWithPort
+            + "/v2/namespaces/"
+            + keyspace
+            + "/collections/collection/1/quiz/nests/q1/options/[0]",
+        204);
 
     r =
         RestUtils.get(

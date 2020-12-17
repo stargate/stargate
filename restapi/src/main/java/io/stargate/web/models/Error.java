@@ -24,7 +24,8 @@ import java.util.Objects;
 /** A description of an error state */
 @ApiModel(description = "A description of an error state")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Error {
+@SuppressWarnings("JavaLangClash")
+public final class Error {
   private String description = null;
   private int code;
   private String internalTxId = null;

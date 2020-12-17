@@ -18,9 +18,8 @@ package io.stargate.it.http;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 import okhttp3.Headers;
-import okhttp3.Headers.Builder;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -38,8 +37,8 @@ public class RestUtils {
   private static OkHttpClient client() {
     return new OkHttpClient()
         .newBuilder()
-        .readTimeout(3, TimeUnit.MINUTES)
-        .writeTimeout(3, TimeUnit.MINUTES)
+        .readTimeout(Duration.ofMinutes(3))
+        .writeTimeout(Duration.ofMinutes(3))
         .build();
   }
 
@@ -97,7 +96,9 @@ public class RestUtils {
       String authToken, String path, String requestBody, int expectedStatusCode)
       throws IOException {
     return postWithHeader(
-        authToken == null ? null : new Builder().add("X-Cassandra-Token", authToken).build(),
+        authToken == null
+            ? null
+            : new Headers.Builder().add("X-Cassandra-Token", authToken).build(),
         path,
         requestBody,
         expectedStatusCode);
