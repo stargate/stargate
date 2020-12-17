@@ -465,7 +465,7 @@ public class StargateQueryHandler implements QueryHandler {
       keyspaceName = castStatement.keyspace();
       tableName = ((CreateTableStatement) castStatement).table();
     } else if (statement instanceof DropTableStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       keyspaceName = castStatement.keyspace();
       tableName = ((DropTableStatement) castStatement).table();
     } else if (statement instanceof AlterTableStatement) {
@@ -477,7 +477,7 @@ public class StargateQueryHandler implements QueryHandler {
       keyspaceName = castStatement.keyspace();
       tableName = null;
     } else if (statement instanceof DropKeyspaceStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       keyspaceName = castStatement.keyspace();
       tableName = null;
     } else if (statement instanceof AlterKeyspaceStatement) {
@@ -513,24 +513,24 @@ public class StargateQueryHandler implements QueryHandler {
       keyspaceName = castStatement.keyspace();
       tableName = ((CreateViewStatement) castStatement).table();
     } else if (statement instanceof DropAggregateStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       keyspaceName = castStatement.keyspace();
     } else if (statement instanceof DropFunctionStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       keyspaceName = castStatement.keyspace();
     } else if (statement instanceof DropIndexStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       keyspaceName = castStatement.keyspace();
       tableName = ((DropIndexStatement) castStatement).table();
     } else if (statement instanceof DropTriggerStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       keyspaceName = castStatement.keyspace();
       tableName = ((DropTriggerStatement) castStatement).table();
     } else if (statement instanceof DropTypeStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       keyspaceName = castStatement.keyspace();
     } else if (statement instanceof DropViewStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       keyspaceName = castStatement.keyspace();
       tableName = ((DropViewStatement) castStatement).table();
     }
@@ -561,7 +561,10 @@ public class StargateQueryHandler implements QueryHandler {
   private String getRoleResourceFromStatement(Object stmt, String fieldName) {
     try {
       Class<?> aClass = stmt.getClass();
-      if (stmt instanceof ListUsersStatement || stmt instanceof ListPermissionsStatement) {
+      if (stmt instanceof ListUsersStatement
+          || stmt instanceof ListPermissionsStatement
+          || stmt instanceof RevokeRoleStatement
+          || stmt instanceof GrantRoleStatement) {
         aClass = aClass.getSuperclass();
       } else if (stmt instanceof GrantPermissionsStatement
           || stmt instanceof RevokePermissionsStatement) {

@@ -49,12 +49,14 @@ import org.apache.cassandra.cql3.statements.CreateRoleStatement;
 import org.apache.cassandra.cql3.statements.DeleteStatement;
 import org.apache.cassandra.cql3.statements.DropRoleStatement;
 import org.apache.cassandra.cql3.statements.GrantPermissionsStatement;
+import org.apache.cassandra.cql3.statements.GrantRoleStatement;
 import org.apache.cassandra.cql3.statements.ListPermissionsStatement;
 import org.apache.cassandra.cql3.statements.ListRolesStatement;
 import org.apache.cassandra.cql3.statements.ListUsersStatement;
 import org.apache.cassandra.cql3.statements.ModificationStatement;
 import org.apache.cassandra.cql3.statements.PermissionsManagementStatement;
 import org.apache.cassandra.cql3.statements.RevokePermissionsStatement;
+import org.apache.cassandra.cql3.statements.RevokeRoleStatement;
 import org.apache.cassandra.cql3.statements.RoleManagementStatement;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.cql3.statements.TruncateStatement;
@@ -196,7 +198,7 @@ public class StargateQueryHandler implements QueryHandler {
         batchStatement, queryState, options, customPayload, queryStartNanoTime);
   }
 
-  private void authorizeByToken(ByteBuffer token, CQLStatement statement) {
+  protected void authorizeByToken(ByteBuffer token, CQLStatement statement) {
     AuthenticationPrincipal authenticationPrincipal;
     ObjectInput in = null;
     try {
@@ -478,7 +480,9 @@ public class StargateQueryHandler implements QueryHandler {
       Class<?> aClass = stmt.getClass();
       if (stmt instanceof ListUsersStatement
           || stmt instanceof GrantPermissionsStatement
-          || stmt instanceof RevokePermissionsStatement) {
+          || stmt instanceof RevokePermissionsStatement
+          || stmt instanceof GrantRoleStatement
+          || stmt instanceof RevokeRoleStatement) {
         aClass = aClass.getSuperclass();
       }
 
@@ -522,7 +526,7 @@ public class StargateQueryHandler implements QueryHandler {
       keyspaceName = getKeyspaceNameFromSuper(stmt);
       tableName = getTableName(stmt);
     } else if (statement instanceof DropTableStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
 
       DropTableStatement stmt = (DropTableStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
@@ -539,7 +543,7 @@ public class StargateQueryHandler implements QueryHandler {
       CreateKeyspaceStatement stmt = (CreateKeyspaceStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof DropKeyspaceStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
 
       DropKeyspaceStatement stmt = (DropKeyspaceStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
@@ -556,7 +560,6 @@ public class StargateQueryHandler implements QueryHandler {
       scope = Scope.ALTER;
       AlterViewStatement stmt = (AlterViewStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
-      tableName = getTableName(stmt);
     } else if (statement instanceof CreateAggregateStatement) {
       scope = Scope.CREATE;
       CreateAggregateStatement stmt = (CreateAggregateStatement) statement;
@@ -583,34 +586,31 @@ public class StargateQueryHandler implements QueryHandler {
       scope = Scope.CREATE;
       CreateViewStatement stmt = (CreateViewStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
-      tableName = getTableName(stmt);
     } else if (statement instanceof DropAggregateStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       DropAggregateStatement stmt = (DropAggregateStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof DropFunctionStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       DropFunctionStatement stmt = (DropFunctionStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof DropIndexStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       DropIndexStatement stmt = (DropIndexStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
-      tableName = getTableName(stmt);
     } else if (statement instanceof DropTriggerStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       DropTriggerStatement stmt = (DropTriggerStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
       tableName = getTableName(stmt);
     } else if (statement instanceof DropTypeStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       DropTypeStatement stmt = (DropTypeStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof DropViewStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       DropViewStatement stmt = (DropViewStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
-      tableName = getTableName(stmt);
     }
 
     logger.debug(
@@ -638,7 +638,11 @@ public class StargateQueryHandler implements QueryHandler {
 
   private String getTableName(Object stmt) {
     try {
-      Field f = stmt.getClass().getDeclaredField("tableName");
+      Class<?> aClass = stmt.getClass();
+      if (stmt instanceof AlterTableStatement || stmt instanceof AlterTypeStatement) {
+        aClass = aClass.getSuperclass();
+      }
+      Field f = aClass.getDeclaredField("tableName");
       f.setAccessible(true);
       return (String) f.get(stmt);
     } catch (Exception e) {
@@ -649,7 +653,13 @@ public class StargateQueryHandler implements QueryHandler {
 
   private String getKeyspaceNameFromSuper(Object stmt) {
     try {
-      Field f = stmt.getClass().getSuperclass().getDeclaredField("keyspaceName");
+      Class<?> superclass = stmt.getClass().getSuperclass();
+
+      if (stmt instanceof AlterTableStatement || stmt instanceof AlterTypeStatement) {
+        superclass = superclass.getSuperclass();
+      }
+
+      Field f = superclass.getDeclaredField("keyspaceName");
       f.setAccessible(true);
       return (String) f.get(stmt);
     } catch (Exception e) {

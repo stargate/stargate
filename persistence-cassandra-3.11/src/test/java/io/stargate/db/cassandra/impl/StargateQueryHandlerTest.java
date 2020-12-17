@@ -1,4 +1,4 @@
-package io.stargate.db.dse.impl;
+package io.stargate.db.cassandra.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -23,56 +23,58 @@ import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.cassandra.config.CFMetaData;
+import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.ColumnIdentifier;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.VariableSpecifications;
+import org.apache.cassandra.cql3.statements.AlterKeyspaceStatement;
 import org.apache.cassandra.cql3.statements.AlterRoleStatement;
+import org.apache.cassandra.cql3.statements.AlterTableStatement;
+import org.apache.cassandra.cql3.statements.AlterTypeStatement;
+import org.apache.cassandra.cql3.statements.AlterViewStatement;
 import org.apache.cassandra.cql3.statements.BatchStatement;
+import org.apache.cassandra.cql3.statements.BatchStatement.Parsed;
+import org.apache.cassandra.cql3.statements.CreateAggregateStatement;
+import org.apache.cassandra.cql3.statements.CreateFunctionStatement;
+import org.apache.cassandra.cql3.statements.CreateIndexStatement;
+import org.apache.cassandra.cql3.statements.CreateKeyspaceStatement;
 import org.apache.cassandra.cql3.statements.CreateRoleStatement;
+import org.apache.cassandra.cql3.statements.CreateTableStatement;
+import org.apache.cassandra.cql3.statements.CreateTriggerStatement;
+import org.apache.cassandra.cql3.statements.CreateTypeStatement;
+import org.apache.cassandra.cql3.statements.CreateViewStatement;
 import org.apache.cassandra.cql3.statements.DeleteStatement;
+import org.apache.cassandra.cql3.statements.DropAggregateStatement;
+import org.apache.cassandra.cql3.statements.DropFunctionStatement;
+import org.apache.cassandra.cql3.statements.DropIndexStatement;
+import org.apache.cassandra.cql3.statements.DropKeyspaceStatement;
 import org.apache.cassandra.cql3.statements.DropRoleStatement;
+import org.apache.cassandra.cql3.statements.DropTableStatement;
+import org.apache.cassandra.cql3.statements.DropTriggerStatement;
+import org.apache.cassandra.cql3.statements.DropTypeStatement;
+import org.apache.cassandra.cql3.statements.DropViewStatement;
+import org.apache.cassandra.cql3.statements.GrantPermissionsStatement;
 import org.apache.cassandra.cql3.statements.GrantRoleStatement;
 import org.apache.cassandra.cql3.statements.ListPermissionsStatement;
 import org.apache.cassandra.cql3.statements.ListRolesStatement;
+import org.apache.cassandra.cql3.statements.ParsedStatement;
 import org.apache.cassandra.cql3.statements.PermissionsManagementStatement;
+import org.apache.cassandra.cql3.statements.RevokePermissionsStatement;
 import org.apache.cassandra.cql3.statements.RevokeRoleStatement;
 import org.apache.cassandra.cql3.statements.SelectStatement;
-import org.apache.cassandra.cql3.statements.TruncateStatement;
 import org.apache.cassandra.cql3.statements.UpdateStatement;
 import org.apache.cassandra.cql3.statements.UseStatement;
-import org.apache.cassandra.cql3.statements.schema.AlterKeyspaceStatement;
-import org.apache.cassandra.cql3.statements.schema.AlterTableStatement;
-import org.apache.cassandra.cql3.statements.schema.AlterTypeStatement;
-import org.apache.cassandra.cql3.statements.schema.AlterViewStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateAggregateStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateFunctionStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateIndexStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateKeyspaceStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateTableStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateTriggerStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateTypeStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateViewStatement;
-import org.apache.cassandra.cql3.statements.schema.DropAggregateStatement;
-import org.apache.cassandra.cql3.statements.schema.DropFunctionStatement;
-import org.apache.cassandra.cql3.statements.schema.DropIndexStatement;
-import org.apache.cassandra.cql3.statements.schema.DropKeyspaceStatement;
-import org.apache.cassandra.cql3.statements.schema.DropTableStatement;
-import org.apache.cassandra.cql3.statements.schema.DropTableStatement.Raw;
-import org.apache.cassandra.cql3.statements.schema.DropTriggerStatement;
-import org.apache.cassandra.cql3.statements.schema.DropTypeStatement;
-import org.apache.cassandra.cql3.statements.schema.DropViewStatement;
 import org.apache.cassandra.db.marshal.AsciiType;
 import org.apache.cassandra.schema.KeyspaceMetadata;
 import org.apache.cassandra.schema.KeyspaceParams;
-import org.apache.cassandra.schema.SchemaManager;
-import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.schema.Tables;
 import org.apache.cassandra.service.ClientState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class StargateQueryHandlerTest extends BaseDseTest {
+class StargateQueryHandlerTest extends BaseCassandraTest {
 
   AuthenticatedUser authenticatedUser = AuthenticatedUser.of("username", "token");
   AuthenticationPrincipal authenticationPrincipal =
@@ -88,39 +90,50 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler = new StargateQueryHandler();
     queryHandler.setAuthorizationService(atomicReference);
 
-    TableMetadata tableMetadata =
-        TableMetadata.builder("ks1", "tbl1")
-            .addPartitionKeyColumn("key", AsciiType.instance)
+    CFMetaData tableMetadata =
+        CFMetaData.Builder.create("ks1", "tbl1")
+            .addPartitionKey("key", AsciiType.instance)
             .addRegularColumn("value", AsciiType.instance)
             .build();
 
     KeyspaceMetadata keyspaceMetadata =
         KeyspaceMetadata.create("ks1", KeyspaceParams.local(), Tables.of(tableMetadata));
-    SchemaManager.instance.load(keyspaceMetadata);
+    if (Schema.instance.getKSMetaData("ks1") == null) {
+      Schema.instance.load(keyspaceMetadata);
+    }
+
+    CFMetaData cyclingTableMetadata =
+        CFMetaData.Builder.create("cycling", "tbl1")
+            .addPartitionKey("key", AsciiType.instance)
+            .addRegularColumn("value", AsciiType.instance)
+            .build();
+
+    KeyspaceMetadata cyclingKeyspaceMetadata =
+        KeyspaceMetadata.create("cycling", KeyspaceParams.local(), Tables.of(cyclingTableMetadata));
+    if (Schema.instance.getKSMetaData("cycling") == null) {
+      Schema.instance.load(cyclingKeyspaceMetadata);
+    }
   }
 
   @Test
   void authorizeByTokenSelectStatement() throws IOException, UnauthorizedException {
-    SelectStatement.Raw rawStatement =
-        (SelectStatement.Raw) QueryProcessor.parseStatement("select * from system.local");
+    SelectStatement.RawStatement rawStatement =
+        (SelectStatement.RawStatement) QueryProcessor.parseStatement("select * from system.local");
 
-    CQLStatement statement = rawStatement.prepare(false);
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeDataRead(
-            refEq(authenticationPrincipal),
-            eq("system_views"),
-            eq("local_node"),
-            eq(SourceAPI.CQL));
+            refEq(authenticationPrincipal), eq("system"), eq("local"), eq(SourceAPI.CQL));
   }
 
   @Test
   void authorizeByTokenSelectStatementBadToken() {
-    SelectStatement.Raw rawStatement =
-        (SelectStatement.Raw) QueryProcessor.parseStatement("select * from system.local");
+    SelectStatement.RawStatement rawStatement =
+        (SelectStatement.RawStatement) QueryProcessor.parseStatement("select * from system.local");
 
-    CQLStatement statement = rawStatement.prepare(false);
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     ;
     RuntimeException thrown =
@@ -140,7 +153,8 @@ class StargateQueryHandlerTest extends BaseDseTest {
     CQLStatement statement =
         rawStatement.prepare(
             new VariableSpecifications(
-                Collections.singletonList(new ColumnIdentifier("key", true))));
+                Collections.singletonList(new ColumnIdentifier("key", true))),
+            ClientState.forInternalCalls());
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -161,7 +175,8 @@ class StargateQueryHandlerTest extends BaseDseTest {
     CQLStatement statement =
         rawStatement.prepare(
             new VariableSpecifications(
-                Collections.singletonList(new ColumnIdentifier("key", true))));
+                Collections.singletonList(new ColumnIdentifier("key", true))),
+            ClientState.forInternalCalls());
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -175,9 +190,9 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
   @Test
   void authorizeByTokenTruncateStatement() throws IOException, UnauthorizedException {
-    TruncateStatement.Raw rawStatement = QueryProcessor.parseStatement("truncate ks1.tbl1");
+    ParsedStatement rawStatement = QueryProcessor.parseStatement("truncate ks1.tbl1");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -191,12 +206,12 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
   @Test
   void authorizeByTokenAlterSchemaStatementCreateTable() throws IOException, UnauthorizedException {
-    CreateTableStatement.Raw rawStatement =
-        (CreateTableStatement.Raw)
+    CreateTableStatement.RawStatement rawStatement =
+        (CreateTableStatement.RawStatement)
             QueryProcessor.parseStatement(
                 "CREATE TABLE IF NOT EXISTS ks1.tbl2 (key uuid PRIMARY KEY,value text);");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -209,11 +224,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementDeleteTable() throws IOException, UnauthorizedException {
-    DropTableStatement.Raw rawStatement =
-        (Raw) QueryProcessor.parseStatement("drop table ks1.tbl1");
+  void authorizeByTokenAlterSchemaStatementDropTable() throws IOException, UnauthorizedException {
+    DropTableStatement rawStatement =
+        (DropTableStatement) QueryProcessor.parseStatement("drop table ks1.tbl1");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -227,11 +242,10 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
   @Test
   void authorizeByTokenAlterSchemaStatementAlterTable() throws IOException, UnauthorizedException {
-    AlterTableStatement.Raw rawStatement =
-        (AlterTableStatement.Raw)
-            QueryProcessor.parseStatement("ALTER TABLE ks1.tbl1 ADD val2 INT");
+    AlterTableStatement rawStatement =
+        (AlterTableStatement) QueryProcessor.parseStatement("ALTER TABLE ks1.tbl1 ADD val2 INT");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -246,12 +260,12 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAlterSchemaStatementCreateKeyspace()
       throws IOException, UnauthorizedException {
-    CreateKeyspaceStatement.Raw rawStatement =
-        (CreateKeyspaceStatement.Raw)
+    CreateKeyspaceStatement rawStatement =
+        (CreateKeyspaceStatement)
             QueryProcessor.parseStatement(
                 "CREATE KEYSPACE ks2 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -266,10 +280,10 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAlterSchemaStatementDeleteKeyspace()
       throws IOException, UnauthorizedException {
-    DropKeyspaceStatement.Raw rawStatement =
-        (DropKeyspaceStatement.Raw) QueryProcessor.parseStatement("drop keyspace ks1");
+    DropKeyspaceStatement rawStatement =
+        (DropKeyspaceStatement) QueryProcessor.parseStatement("drop keyspace ks1");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -280,12 +294,12 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAlterSchemaStatementAlterKeyspace()
       throws IOException, UnauthorizedException {
-    AlterKeyspaceStatement.Raw rawStatement =
-        (AlterKeyspaceStatement.Raw)
+    AlterKeyspaceStatement rawStatement =
+        (AlterKeyspaceStatement)
             QueryProcessor.parseStatement(
                 "ALTER KEYSPACE ks1 WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', 'SearchAnalytics' : 1 } AND DURABLE_WRITES = false;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -299,11 +313,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
   @Test
   void authorizeByTokenAlterSchemaStatementAlterType() throws IOException, UnauthorizedException {
-    AlterTypeStatement.Raw rawStatement =
-        (AlterTypeStatement.Raw)
+    AlterTypeStatement rawStatement =
+        (AlterTypeStatement)
             QueryProcessor.parseStatement("ALTER TYPE cycling.fullname ADD middlename text;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -317,8 +331,8 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
   @Test
   void authorizeByTokenAlterSchemaStatementAlterView() throws IOException, UnauthorizedException {
-    AlterViewStatement.Raw rawStatement =
-        (AlterViewStatement.Raw)
+    AlterViewStatement rawStatement =
+        (AlterViewStatement)
             QueryProcessor.parseStatement(
                 "ALTER MATERIALIZED VIEW cycling.cyclist_by_age \n"
                     + "WITH compression = { \n"
@@ -330,7 +344,7 @@ class StargateQueryHandlerTest extends BaseDseTest {
                     + "  'max_threshold' : 64\n"
                     + "};");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -345,21 +359,16 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAlterSchemaStatementCreateAggregate()
       throws IOException, UnauthorizedException {
-    CreateAggregateStatement.Raw rawStatement =
-        (CreateAggregateStatement.Raw)
+    CreateAggregateStatement rawStatement =
+        (CreateAggregateStatement)
             QueryProcessor.parseStatement(
-                "CREATE OR REPLACE AGGREGATE cycling.average (\n"
-                    + "  int\n"
-                    + ") \n"
+                "CREATE OR REPLACE AGGREGATE cycling.average (int) \n"
                     + "  SFUNC avgState \n"
                     + "  STYPE tuple<int,bigint> \n"
                     + "  FINALFUNC avgFinal \n"
-                    + "  INITCOND (0, 0)\n"
-                    + ";");
+                    + "  INITCOND (1,1);");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
-
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(), rawStatement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationPrincipal),
@@ -372,8 +381,8 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAlterSchemaStatementCreateFunction()
       throws IOException, UnauthorizedException {
-    CreateFunctionStatement.Raw rawStatement =
-        (CreateFunctionStatement.Raw)
+    CreateFunctionStatement rawStatement =
+        (CreateFunctionStatement)
             QueryProcessor.parseStatement(
                 "CREATE OR REPLACE FUNCTION cycling.fLog (\n"
                     + "  input double\n"
@@ -386,7 +395,7 @@ class StargateQueryHandlerTest extends BaseDseTest {
                     + "    $$ \n"
                     + ";");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -400,12 +409,12 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
   @Test
   void authorizeByTokenAlterSchemaStatementCreateIndex() throws IOException, UnauthorizedException {
-    CreateIndexStatement.Raw rawStatement =
-        (CreateIndexStatement.Raw)
+    CreateIndexStatement rawStatement =
+        (CreateIndexStatement)
             QueryProcessor.parseStatement(
                 "CREATE INDEX IF NOT EXISTS value_idx ON ks1.tbl1 (value);");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -420,14 +429,14 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAlterSchemaStatementCreateTrigger()
       throws IOException, UnauthorizedException {
-    CreateTriggerStatement.Raw rawStatement =
-        (CreateTriggerStatement.Raw)
+    CreateTriggerStatement rawStatement =
+        (CreateTriggerStatement)
             QueryProcessor.parseStatement(
                 "CREATE TRIGGER trigger1\n"
                     + "  ON ks1.tbl1\n"
                     + "  USING 'org.apache.cassandra.triggers.AuditTrigger'");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -441,11 +450,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
   @Test
   void authorizeByTokenAlterSchemaStatementCreateType() throws IOException, UnauthorizedException {
-    CreateTypeStatement.Raw rawStatement =
-        (CreateTypeStatement.Raw)
+    CreateTypeStatement rawStatement =
+        (CreateTypeStatement)
             QueryProcessor.parseStatement("CREATE TYPE IF NOT EXISTS ks1.type1 (a text, b text);");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -459,8 +468,8 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
   @Test
   void authorizeByTokenAlterSchemaStatementCreateView() throws IOException, UnauthorizedException {
-    CreateViewStatement.Raw rawStatement =
-        (CreateViewStatement.Raw)
+    CreateViewStatement rawStatement =
+        (CreateViewStatement)
             QueryProcessor.parseStatement(
                 "CREATE MATERIALIZED VIEW IF NOT EXISTS cycling.cyclist_by_age AS\n"
                     + "  SELECT age, cid, birthday, country, name\n"
@@ -475,7 +484,7 @@ class StargateQueryHandlerTest extends BaseDseTest {
                     + "  }\n"
                     + "  AND comment = 'Based on table cyclist';");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -490,11 +499,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAlterSchemaStatementDropAggregate()
       throws IOException, UnauthorizedException {
-    DropAggregateStatement.Raw rawStatement =
-        (DropAggregateStatement.Raw)
+    DropAggregateStatement rawStatement =
+        (DropAggregateStatement)
             QueryProcessor.parseStatement("DROP AGGREGATE IF EXISTS ks1.agg1;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -505,11 +514,10 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAlterSchemaStatementDropFunction()
       throws IOException, UnauthorizedException {
-    DropFunctionStatement.Raw rawStatement =
-        (DropFunctionStatement.Raw)
-            QueryProcessor.parseStatement("DROP FUNCTION IF EXISTS ks1.fLog;");
+    DropFunctionStatement rawStatement =
+        (DropFunctionStatement) QueryProcessor.parseStatement("DROP FUNCTION IF EXISTS ks1.fLog;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -519,11 +527,10 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
   @Test
   void authorizeByTokenAlterSchemaStatementDropIndex() throws IOException, UnauthorizedException {
-    DropIndexStatement.Raw rawStatement =
-        (DropIndexStatement.Raw)
-            QueryProcessor.parseStatement("DROP INDEX IF EXISTS ks1.value_idx;");
+    DropIndexStatement rawStatement =
+        (DropIndexStatement) QueryProcessor.parseStatement("DROP INDEX IF EXISTS ks1.value_idx;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -533,11 +540,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
   @Test
   void authorizeByTokenAlterSchemaStatementDropTrigger() throws IOException, UnauthorizedException {
-    DropTriggerStatement.Raw rawStatement =
-        (DropTriggerStatement.Raw)
+    DropTriggerStatement rawStatement =
+        (DropTriggerStatement)
             QueryProcessor.parseStatement("DROP TRIGGER IF EXISTS trigger1 ON ks1.tbl1;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -551,10 +558,10 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
   @Test
   void authorizeByTokenAlterSchemaStatementDropType() throws IOException, UnauthorizedException {
-    DropTypeStatement.Raw rawStatement =
-        (DropTypeStatement.Raw) QueryProcessor.parseStatement("DROP TYPE IF EXISTS ks1.typ1;");
+    DropTypeStatement rawStatement =
+        (DropTypeStatement) QueryProcessor.parseStatement("DROP TYPE IF EXISTS ks1.typ1;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -564,11 +571,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
   @Test
   void authorizeByTokenAlterSchemaStatementDropView() throws IOException, UnauthorizedException {
-    DropViewStatement.Raw rawStatement =
-        (DropViewStatement.Raw)
+    DropViewStatement rawStatement =
+        (DropViewStatement)
             QueryProcessor.parseStatement("DROP MATERIALIZED VIEW IF EXISTS ks1.view1;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -583,10 +590,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAuthorizationStatementPermissionsManagementStatement()
       throws IOException, UnauthorizedException {
-    PermissionsManagementStatement.Raw rawStatement =
-        QueryProcessor.parseStatement("GRANT ALL ON KEYSPACE ks1 TO role1;");
+    PermissionsManagementStatement rawStatement =
+        (PermissionsManagementStatement)
+            QueryProcessor.parseStatement("GRANT ALL ON KEYSPACE ks1 TO role1;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -601,10 +609,10 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAuthorizationStatementListPermissionsStatement()
       throws IOException, UnauthorizedException {
-    ListPermissionsStatement.Raw rawStatement =
-        QueryProcessor.parseStatement("LIST ALL PERMISSIONS OF sam;");
+    ListPermissionsStatement rawStatement =
+        (ListPermissionsStatement) QueryProcessor.parseStatement("LIST ALL PERMISSIONS OF sam;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -615,9 +623,10 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAuthorizationStatementListRolesStatement()
       throws IOException, UnauthorizedException {
-    ListRolesStatement.Raw rawStatement = QueryProcessor.parseStatement("LIST ROLES;");
+    ListRolesStatement rawStatement =
+        (ListRolesStatement) QueryProcessor.parseStatement("LIST ROLES;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -625,13 +634,14 @@ class StargateQueryHandlerTest extends BaseDseTest {
   }
 
   @Test
-  void authorizeByTokenAuthorizationStatementRevokeRoleStatement()
+  void authorizeByTokenAuthorizationStatementRevokePermissionsStatement()
       throws IOException, UnauthorizedException {
-    RevokeRoleStatement.Raw rawStatement =
-        QueryProcessor.parseStatement(
-            "REVOKE SELECT, MODIFY\n" + "ON KEYSPACE cycling \n" + "FROM coach;");
+    RevokePermissionsStatement rawStatement =
+        (RevokePermissionsStatement)
+            QueryProcessor.parseStatement(
+                "REVOKE SELECT\n" + "ON KEYSPACE cycling \n" + "FROM coach;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -644,12 +654,13 @@ class StargateQueryHandlerTest extends BaseDseTest {
   }
 
   @Test
-  void authorizeByTokenAuthorizationStatementGrantRoleStatement()
+  void authorizeByTokenAuthorizationStatementGrantPermissionsStatement()
       throws IOException, UnauthorizedException {
-    GrantRoleStatement.Raw rawStatement =
-        QueryProcessor.parseStatement("GRANT ALTER\n" + "ON KEYSPACE cycling\n" + "TO coach;");
+    GrantPermissionsStatement rawStatement =
+        (GrantPermissionsStatement)
+            QueryProcessor.parseStatement("GRANT ALTER\n" + "ON KEYSPACE cycling\n" + "TO coach;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -664,9 +675,10 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAuthorizationStatementListRolesStatementWithRole()
       throws IOException, UnauthorizedException {
-    ListRolesStatement.Raw rawStatement = QueryProcessor.parseStatement("LIST ROLES OF coach;");
+    ListRolesStatement rawStatement =
+        (ListRolesStatement) QueryProcessor.parseStatement("LIST ROLES OF coach;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -676,10 +688,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAuthenticationStatementRevokeRoleStatement()
       throws IOException, UnauthorizedException {
-    RevokeRoleStatement.Raw rawStatement =
-        QueryProcessor.parseStatement("REVOKE cycling_admin\n" + "FROM coach;");
+    RevokeRoleStatement rawStatement =
+        (RevokeRoleStatement)
+            QueryProcessor.parseStatement("REVOKE cycling_admin\n" + "FROM coach;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -694,10 +707,10 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAuthenticationStatementGrantRoleStatement()
       throws IOException, UnauthorizedException {
-    GrantRoleStatement.Raw rawStatement =
-        QueryProcessor.parseStatement("GRANT cycling_admin\n" + "TO coach;");
+    GrantRoleStatement rawStatement =
+        (GrantRoleStatement) QueryProcessor.parseStatement("GRANT cycling_admin\n" + "TO coach;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -710,13 +723,14 @@ class StargateQueryHandlerTest extends BaseDseTest {
   }
 
   @Test
-  void authorizeByTokenAuthenticationStatementGrantRoleStatementOnTable()
+  void authorizeByTokenAuthenticationStatementGrantPermissionsStatementOnTable()
       throws IOException, UnauthorizedException {
-    GrantRoleStatement.Raw rawStatement =
-        QueryProcessor.parseStatement(
-            "GRANT ALTER\n" + "ON TABLE cycling.cyclist_name\n" + "TO coach;");
+    GrantPermissionsStatement rawStatement =
+        (GrantPermissionsStatement)
+            QueryProcessor.parseStatement(
+                "GRANT ALTER\n" + "ON TABLE cycling.cyclist_name\n" + "TO coach;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -731,10 +745,10 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAuthenticationStatementDropRoleStatement()
       throws IOException, UnauthorizedException {
-    DropRoleStatement.Raw rawStatement =
-        QueryProcessor.parseStatement("DROP ROLE IF EXISTS team_manager;");
+    DropRoleStatement rawStatement =
+        (DropRoleStatement) QueryProcessor.parseStatement("DROP ROLE IF EXISTS team_manager;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -748,13 +762,14 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAuthenticationStatementCreateRoleStatement()
       throws IOException, UnauthorizedException {
-    CreateRoleStatement.Raw rawStatement =
-        QueryProcessor.parseStatement(
-            "CREATE ROLE IF NOT EXISTS coach \n"
-                + "WITH PASSWORD = 'All4One2day!' \n"
-                + "  AND LOGIN = true;");
+    CreateRoleStatement rawStatement =
+        (CreateRoleStatement)
+            QueryProcessor.parseStatement(
+                "CREATE ROLE IF NOT EXISTS coach \n"
+                    + "WITH PASSWORD = 'All4One2day!' \n"
+                    + "  AND LOGIN = true;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -765,10 +780,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
   @Test
   void authorizeByTokenAuthenticationStatementAlterRoleStatement()
       throws IOException, UnauthorizedException {
-    AlterRoleStatement.Raw rawStatement =
-        QueryProcessor.parseStatement("ALTER ROLE sandy WITH PASSWORD = 'bestTeam';");
+    AlterRoleStatement rawStatement =
+        (AlterRoleStatement)
+            QueryProcessor.parseStatement("ALTER ROLE sandy WITH PASSWORD = 'bestTeam';");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
@@ -778,9 +794,9 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
   @Test
   void authorizeByTokenUseStatement() throws IOException {
-    UseStatement.Raw rawStatement = QueryProcessor.parseStatement("use ks1;");
+    UseStatement rawStatement = (UseStatement) QueryProcessor.parseStatement("use ks1;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verifyNoInteractions(authorizationService);
@@ -788,29 +804,30 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
   @Test
   void authorizeByTokenBatchStatement() throws IOException, UnauthorizedException {
-    BatchStatement.Raw rawStatement =
-        QueryProcessor.parseStatement(
-            "BEGIN BATCH\n"
-                + "\n"
-                + "  INSERT INTO ks1.tbl1 (\n"
-                + "    key, value\n"
-                + "  ) VALUES (\n"
-                + "    'foo', 'bar'\n"
-                + "  );\n"
-                + "\n"
-                + "  INSERT INTO ks1.tbl1 (\n"
-                + "    key, value\n"
-                + "  ) VALUES (\n"
-                + "    'fizz', 'buzz'\n"
-                + "  );\n"
-                + "\n"
-                + "  UPDATE ks1.tbl1\n"
-                + "  SET value = 'baz'\n"
-                + "  WHERE key = 'foo';\n"
-                + "\n"
-                + "APPLY BATCH;");
+    BatchStatement.Parsed rawStatement =
+        (Parsed)
+            QueryProcessor.parseStatement(
+                "BEGIN BATCH\n"
+                    + "\n"
+                    + "  INSERT INTO ks1.tbl1 (\n"
+                    + "    key, value\n"
+                    + "  ) VALUES (\n"
+                    + "    'foo', 'bar'\n"
+                    + "  );\n"
+                    + "\n"
+                    + "  INSERT INTO ks1.tbl1 (\n"
+                    + "    key, value\n"
+                    + "  ) VALUES (\n"
+                    + "    'fizz', 'buzz'\n"
+                    + "  );\n"
+                    + "\n"
+                    + "  UPDATE ks1.tbl1\n"
+                    + "  SET value = 'baz'\n"
+                    + "  WHERE key = 'foo';\n"
+                    + "\n"
+                    + "APPLY BATCH;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(3))

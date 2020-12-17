@@ -17,6 +17,7 @@
  */
 package io.stargate.db.cassandra.impl;
 
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -41,6 +42,7 @@ import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryHandler;
 import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.QueryProcessor;
+import org.apache.cassandra.cql3.functions.FunctionName;
 import org.apache.cassandra.cql3.statements.AlterKeyspaceStatement;
 import org.apache.cassandra.cql3.statements.AlterRoleStatement;
 import org.apache.cassandra.cql3.statements.AlterTableStatement;
@@ -69,6 +71,7 @@ import org.apache.cassandra.cql3.statements.DropTriggerStatement;
 import org.apache.cassandra.cql3.statements.DropTypeStatement;
 import org.apache.cassandra.cql3.statements.DropViewStatement;
 import org.apache.cassandra.cql3.statements.GrantPermissionsStatement;
+import org.apache.cassandra.cql3.statements.GrantRoleStatement;
 import org.apache.cassandra.cql3.statements.ListPermissionsStatement;
 import org.apache.cassandra.cql3.statements.ListRolesStatement;
 import org.apache.cassandra.cql3.statements.ListUsersStatement;
@@ -76,6 +79,7 @@ import org.apache.cassandra.cql3.statements.ModificationStatement;
 import org.apache.cassandra.cql3.statements.ParsedStatement;
 import org.apache.cassandra.cql3.statements.PermissionsManagementStatement;
 import org.apache.cassandra.cql3.statements.RevokePermissionsStatement;
+import org.apache.cassandra.cql3.statements.RevokeRoleStatement;
 import org.apache.cassandra.cql3.statements.RoleManagementStatement;
 import org.apache.cassandra.cql3.statements.SchemaAlteringStatement;
 import org.apache.cassandra.cql3.statements.SelectStatement;
@@ -214,7 +218,8 @@ public class StargateQueryHandler implements QueryHandler {
         batchStatement, queryState, options, customPayload, queryStartNanoTime);
   }
 
-  private void authorizeByToken(ByteBuffer token, CQLStatement statement) {
+  @VisibleForTesting
+  protected void authorizeByToken(ByteBuffer token, CQLStatement statement) {
     AuthenticationPrincipal authenticationPrincipal;
     ObjectInput in = null;
     try {
@@ -409,10 +414,10 @@ public class StargateQueryHandler implements QueryHandler {
       tableName = castStatement.columnFamily();
     } else if (statement instanceof CreateAggregateStatement) {
       scope = Scope.CREATE;
-      keyspaceName = castStatement.keyspace();
+      keyspaceName = getKeyspaceNameFromFunction(statement);
     } else if (statement instanceof CreateFunctionStatement) {
       scope = Scope.CREATE;
-      keyspaceName = castStatement.keyspace();
+      keyspaceName = getKeyspaceNameFromFunction(statement);
     } else if (statement instanceof CreateIndexStatement) {
       scope = Scope.CREATE;
       keyspaceName = castStatement.keyspace();
@@ -429,24 +434,24 @@ public class StargateQueryHandler implements QueryHandler {
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     } else if (statement instanceof DropAggregateStatement) {
-      scope = Scope.DELETE;
-      keyspaceName = castStatement.keyspace();
+      scope = Scope.DROP;
+      keyspaceName = getKeyspaceNameFromFunction(statement);
     } else if (statement instanceof DropFunctionStatement) {
-      scope = Scope.DELETE;
-      keyspaceName = castStatement.keyspace();
+      scope = Scope.DROP;
+      keyspaceName = getKeyspaceNameFromFunction(statement);
     } else if (statement instanceof DropIndexStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     } else if (statement instanceof DropTriggerStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     } else if (statement instanceof DropTypeStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       keyspaceName = castStatement.keyspace();
     } else if (statement instanceof DropViewStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     }
@@ -597,12 +602,29 @@ public class StargateQueryHandler implements QueryHandler {
     }
   }
 
+  private String getKeyspaceNameFromFunction(CQLStatement stmt) {
+    try {
+      Class<?> aClass = stmt.getClass();
+
+      Field f = aClass.getDeclaredField("fieldName");
+      f.setAccessible(true);
+      FunctionName functionName = (FunctionName) f.get(stmt);
+
+      return functionName != null ? functionName.keyspace : null;
+    } catch (Exception e) {
+      logger.error("Unable to get fieldName", e);
+      throw new RuntimeException("Unable to get private field", e);
+    }
+  }
+
   private String getRoleResourceFromStatement(Object stmt, String fieldName) {
     try {
       Class<?> aClass = stmt.getClass();
       if (stmt instanceof ListUsersStatement
           || stmt instanceof GrantPermissionsStatement
-          || stmt instanceof RevokePermissionsStatement) {
+          || stmt instanceof RevokePermissionsStatement
+          || stmt instanceof GrantRoleStatement
+          || stmt instanceof RevokeRoleStatement) {
         aClass = aClass.getSuperclass();
       }
 

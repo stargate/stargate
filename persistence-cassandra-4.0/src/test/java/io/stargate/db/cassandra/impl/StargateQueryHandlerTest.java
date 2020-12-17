@@ -1,4 +1,4 @@
-package io.stargate.db.dse.impl;
+package io.stargate.db.cassandra.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -62,17 +62,18 @@ import org.apache.cassandra.cql3.statements.schema.DropTableStatement.Raw;
 import org.apache.cassandra.cql3.statements.schema.DropTriggerStatement;
 import org.apache.cassandra.cql3.statements.schema.DropTypeStatement;
 import org.apache.cassandra.cql3.statements.schema.DropViewStatement;
+import org.apache.cassandra.db.commitlog.CommitLog;
 import org.apache.cassandra.db.marshal.AsciiType;
 import org.apache.cassandra.schema.KeyspaceMetadata;
 import org.apache.cassandra.schema.KeyspaceParams;
-import org.apache.cassandra.schema.SchemaManager;
+import org.apache.cassandra.schema.Schema;
 import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.schema.Tables;
 import org.apache.cassandra.service.ClientState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class StargateQueryHandlerTest extends BaseDseTest {
+class StargateQueryHandlerTest extends BaseCassandraTest {
 
   AuthenticatedUser authenticatedUser = AuthenticatedUser.of("username", "token");
   AuthenticationPrincipal authenticationPrincipal =
@@ -96,31 +97,41 @@ class StargateQueryHandlerTest extends BaseDseTest {
 
     KeyspaceMetadata keyspaceMetadata =
         KeyspaceMetadata.create("ks1", KeyspaceParams.local(), Tables.of(tableMetadata));
-    SchemaManager.instance.load(keyspaceMetadata);
+    if (Schema.instance.getKeyspaceMetadata("ks1") == null) {
+      Schema.instance.load(keyspaceMetadata);
+    }
+
+    TableMetadata cyclingTableMetadata =
+        TableMetadata.builder("cycling", "tbl1")
+            .addPartitionKeyColumn("key", AsciiType.instance)
+            .addRegularColumn("value", AsciiType.instance)
+            .build();
+
+    KeyspaceMetadata cyclingKeyspaceMetadata =
+        KeyspaceMetadata.create("cycling", KeyspaceParams.local(), Tables.of(cyclingTableMetadata));
+    if (Schema.instance.getKeyspaceMetadata("cycling") == null) {
+      Schema.instance.load(cyclingKeyspaceMetadata);
+    }
+    CommitLog.instance.start();
   }
 
   @Test
   void authorizeByTokenSelectStatement() throws IOException, UnauthorizedException {
-    SelectStatement.Raw rawStatement =
-        (SelectStatement.Raw) QueryProcessor.parseStatement("select * from system.local");
+    SelectStatement.Raw rawStatement = QueryProcessor.parseStatement("select * from system.local");
 
-    CQLStatement statement = rawStatement.prepare(false);
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeDataRead(
-            refEq(authenticationPrincipal),
-            eq("system_views"),
-            eq("local_node"),
-            eq(SourceAPI.CQL));
+            refEq(authenticationPrincipal), eq("system"), eq("local"), eq(SourceAPI.CQL));
   }
 
   @Test
   void authorizeByTokenSelectStatementBadToken() {
-    SelectStatement.Raw rawStatement =
-        (SelectStatement.Raw) QueryProcessor.parseStatement("select * from system.local");
+    SelectStatement.Raw rawStatement = QueryProcessor.parseStatement("select * from system.local");
 
-    CQLStatement statement = rawStatement.prepare(false);
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
 
     ;
     RuntimeException thrown =
@@ -337,7 +348,7 @@ class StargateQueryHandlerTest extends BaseDseTest {
         .authorizeSchemaWrite(
             refEq(authenticationPrincipal),
             eq("cycling"),
-            eq("cyclist_by_age"),
+            eq(null),
             eq(Scope.ALTER),
             eq(SourceAPI.CQL));
   }
@@ -482,7 +493,7 @@ class StargateQueryHandlerTest extends BaseDseTest {
         .authorizeSchemaWrite(
             refEq(authenticationPrincipal),
             eq("cycling"),
-            eq("cyclist_by_age"),
+            eq(null),
             eq(Scope.CREATE),
             eq(SourceAPI.CQL));
   }
@@ -573,11 +584,7 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationPrincipal),
-            eq("ks1"),
-            eq("view1"),
-            eq(Scope.DROP),
-            eq(SourceAPI.CQL));
+            refEq(authenticationPrincipal), eq("ks1"), eq(null), eq(Scope.DROP), eq(SourceAPI.CQL));
   }
 
   @Test
@@ -628,8 +635,7 @@ class StargateQueryHandlerTest extends BaseDseTest {
   void authorizeByTokenAuthorizationStatementRevokeRoleStatement()
       throws IOException, UnauthorizedException {
     RevokeRoleStatement.Raw rawStatement =
-        QueryProcessor.parseStatement(
-            "REVOKE SELECT, MODIFY\n" + "ON KEYSPACE cycling \n" + "FROM coach;");
+        QueryProcessor.parseStatement("REVOKE SELECT\n" + "ON KEYSPACE cycling \n" + "FROM coach;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
 
