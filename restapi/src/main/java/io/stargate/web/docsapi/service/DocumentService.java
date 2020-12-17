@@ -860,7 +860,7 @@ public class DocumentService {
                   new ArrayList<>(),
                   false,
                   null,
-                  pageSize,
+                  totalSize,
                   initialPagingState)
               .right;
       return ImmutablePair.of(docsResult, finalPagingState);
@@ -947,7 +947,7 @@ public class DocumentService {
                   new ArrayList<>(),
                   false,
                   null,
-                  pageSize,
+                  totalSize,
                   initialPagingState)
               .right;
     } else {
