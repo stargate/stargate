@@ -27,6 +27,7 @@ import org.apache.cassandra.stargate.transport.internal.Message;
 public class PrepareMessage extends Message.Request {
   public static final Message.Codec<PrepareMessage> codec =
       new Message.Codec<PrepareMessage>() {
+        @Override
         public PrepareMessage decode(ByteBuf body, ProtocolVersion version) {
           String query = CBUtil.readLongString(body);
           String keyspace = null;
@@ -43,6 +44,7 @@ public class PrepareMessage extends Message.Request {
           return new PrepareMessage(query, keyspace);
         }
 
+        @Override
         public void encode(PrepareMessage msg, ByteBuf dest, ProtocolVersion version) {
           CBUtil.writeLongString(msg.query, dest);
           if (version.isGreaterOrEqualTo(ProtocolVersion.V5)) {
@@ -55,6 +57,7 @@ public class PrepareMessage extends Message.Request {
           }
         }
 
+        @Override
         public int encodedSize(PrepareMessage msg, ProtocolVersion version) {
           int size = CBUtil.sizeOfLongString(msg.query);
           if (version.isGreaterOrEqualTo(ProtocolVersion.V5)) {

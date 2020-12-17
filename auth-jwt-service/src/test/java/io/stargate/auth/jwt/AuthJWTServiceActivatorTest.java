@@ -41,6 +41,7 @@ public class AuthJWTServiceActivatorTest {
 
     activator.start(bundleContext);
 
+    @SuppressWarnings("JdkObsolete")
     Hashtable<String, String> expectedProps = new Hashtable<>();
     expectedProps.put("AuthIdentifier", AuthJWTServiceActivator.AUTH_JWT_IDENTIFIER);
 
@@ -65,6 +66,7 @@ public class AuthJWTServiceActivatorTest {
 
     activator.start(bundleContext);
 
+    @SuppressWarnings("JdkObsolete")
     Hashtable<String, String> expectedProps = new Hashtable<>();
     expectedProps.put("AuthIdentifier", AuthJWTServiceActivator.AUTH_JWT_IDENTIFIER);
 
@@ -91,6 +93,7 @@ public class AuthJWTServiceActivatorTest {
         assertThrows(RuntimeException.class, () -> activator.start(bundleContext));
     assertThat(ex).hasMessage("Property `stargate.auth.jwt_provider_url` must be set");
 
+    @SuppressWarnings("JdkObsolete")
     Hashtable<String, String> expectedProps = new Hashtable<>();
     expectedProps.put("AuthIdentifier", AuthJWTServiceActivator.AUTH_JWT_IDENTIFIER);
 
@@ -117,6 +120,7 @@ public class AuthJWTServiceActivatorTest {
         assertThrows(RuntimeException.class, () -> activator.start(bundleContext));
     assertThat(ex).hasMessage("Property `stargate.auth.jwt_provider_url` must be set");
 
+    @SuppressWarnings("JdkObsolete")
     Hashtable<String, String> expectedProps = new Hashtable<>();
     expectedProps.put("AuthIdentifier", AuthJWTServiceActivator.AUTH_JWT_IDENTIFIER);
 
@@ -143,6 +147,7 @@ public class AuthJWTServiceActivatorTest {
         assertThrows(RuntimeException.class, () -> activator.start(bundleContext));
     assertThat(ex).hasMessage("Failed to create JwtValidator: no protocol: foo");
 
+    @SuppressWarnings("JdkObsolete")
     Hashtable<String, String> expectedProps = new Hashtable<>();
     expectedProps.put("AuthIdentifier", AuthJWTServiceActivator.AUTH_JWT_IDENTIFIER);
 

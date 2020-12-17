@@ -19,7 +19,6 @@ import static io.stargate.starter.Starter.STARTED_MESSAGE;
 import static java.lang.management.ManagementFactory.getRuntimeMXBean;
 
 import com.datastax.oss.driver.api.core.Version;
-import io.stargate.it.storage.StargateParameters.Builder;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -144,13 +143,13 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
 
   private static StargateParameters parameters(StargateSpec spec, ExtensionContext context)
       throws Exception {
-    Builder builder = StargateParameters.builder();
+    StargateParameters.Builder builder = StargateParameters.builder();
 
     String customizer = spec.parametersCustomizer().trim();
     if (!customizer.isEmpty()) {
       Object testInstance = context.getTestInstance().orElse(null);
       Class<?> testClass = context.getRequiredTestClass();
-      Method method = testClass.getMethod(customizer, Builder.class);
+      Method method = testClass.getMethod(customizer, StargateParameters.Builder.class);
       method.invoke(testInstance, builder);
     }
 
@@ -408,7 +407,8 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     private Collection<String> args(ClusterConnectionInfo backend) {
       try {
         Class<?> argsProviderClass = Class.forName(ARGS_PROVIDER_CLASS_NAME);
-        ArgumentProvider provider = (ArgumentProvider) argsProviderClass.newInstance();
+        ArgumentProvider provider =
+            (ArgumentProvider) argsProviderClass.getDeclaredConstructor().newInstance();
         return provider.commandArguments(backend);
       } catch (Exception e) {
         throw new IllegalStateException(e);

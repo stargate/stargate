@@ -8,9 +8,11 @@ import io.stargate.db.Persistence;
 import io.stargate.db.datastore.common.StargateConfigSnitch;
 import io.stargate.db.datastore.common.StargateSeedProvider;
 import io.stargate.db.dse.impl.DsePersistence;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -129,6 +131,7 @@ public class DsePersistenceActivator extends BaseActivator {
     dseDB = new DsePersistence();
     // TODO copy metrics if this gets invoked more than once?
     CassandraMetricsRegistry.actualRegistry = metrics.get().getRegistry("persistence-dse-68");
+    @SuppressWarnings("JdkObsolete")
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "DsePersistence");
     try {
@@ -145,14 +148,12 @@ public class DsePersistenceActivator extends BaseActivator {
 
   @Override
   protected void stopService() {
-    try {
-      if (dseDB != null) dseDB.destroy();
-    } finally {
-      try {
-        FileUtils.deleteDirectory(baseDir);
-      } catch (IOException e) {
-        throw new IOError(e);
+    try (Closeable ignored = () -> FileUtils.deleteDirectory(baseDir)) {
+      if (dseDB != null) {
+        dseDB.destroy();
       }
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
   }
 

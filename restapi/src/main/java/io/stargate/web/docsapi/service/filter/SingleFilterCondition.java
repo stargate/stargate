@@ -56,10 +56,12 @@ public class SingleFilterCondition implements FilterCondition {
     this.booleanValue = booleanValue;
   }
 
+  @Override
   public FilterOp getFilterOp() {
     return op;
   }
 
+  @Override
   public List<String> getPath() {
     return path;
   }
@@ -68,10 +70,12 @@ public class SingleFilterCondition implements FilterCondition {
     return String.join(".", path);
   }
 
+  @Override
   public String getField() {
     return field;
   }
 
+  @Override
   public String getFullFieldPath() {
     if (getPathString().isEmpty()) return field;
     return getPathString() + "." + field;
@@ -87,6 +91,7 @@ public class SingleFilterCondition implements FilterCondition {
     }
   }
 
+  @Override
   public Object getValue() {
     if (doubleValue != null) {
       return doubleValue;
@@ -122,6 +127,7 @@ public class SingleFilterCondition implements FilterCondition {
     return doubleValue;
   }
 
+  @Override
   public String toString() {
     return String.format("SingleFilterCondition{%s, %s, %s, %s}", path, field, op, getValue());
   }

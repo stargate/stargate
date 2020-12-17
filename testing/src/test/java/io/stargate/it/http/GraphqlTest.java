@@ -81,6 +81,7 @@ import com.example.graphql.client.schema.type.ColumnInput;
 import com.example.graphql.client.schema.type.DataTypeInput;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharStreams;
@@ -178,12 +179,11 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .withConfigLoader(
                 DriverConfigLoader.programmaticBuilder()
                     .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
-                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(180))
+                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofMinutes(3))
                     .withDuration(
-                        DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT,
-                        Duration.ofSeconds(180))
+                        DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT, Duration.ofMinutes(3))
                     .withDuration(
-                        DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
+                        DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofMinutes(3))
                     .build())
             .withAuthCredentials("cassandra", "cassandra")
             .addContactPoint(new InetSocketAddress(stargate.seedAddress(), 9043))
@@ -197,7 +197,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     String queries = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
     assertThat(queries).isNotNull();
 
-    for (String q : queries.split(";")) {
+    for (String q : Splitter.on(';').split(queries)) {
       if (q.trim().equals("")) {
         continue;
       }
@@ -1149,6 +1149,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         .isEqualTo(value);
   }
 
+  @SuppressWarnings("unused") // referenced by @MethodSource
   private static Stream<Arguments> getScalarValues() {
     return Stream.of(
         arguments(Column.Type.Ascii, "abc"),
@@ -1553,10 +1554,10 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
 
   private OkHttpClient getHttpClient() {
     return new OkHttpClient.Builder()
-        .connectTimeout(Duration.ofSeconds(180))
-        .callTimeout(Duration.ofSeconds(180))
-        .readTimeout(Duration.ofSeconds(180))
-        .writeTimeout(Duration.ofSeconds(180))
+        .connectTimeout(Duration.ofMinutes(3))
+        .callTimeout(Duration.ofMinutes(3))
+        .readTimeout(Duration.ofMinutes(3))
+        .writeTimeout(Duration.ofMinutes(3))
         .addInterceptor(
             chain ->
                 chain.proceed(

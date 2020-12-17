@@ -67,14 +67,9 @@ public class HttpAwareContext {
     }
 
     public void setExecutionResult(CompletableFuture<ResultSet> result) {
-      result.whenComplete(
-          (r, e) -> {
-            if (e != null) {
-              executionFuture.completeExceptionally(e);
-            } else {
-              executionFuture.complete(r);
-            }
-          });
+      result
+          .thenApply(executionFuture::complete)
+          .exceptionally(executionFuture::completeExceptionally);
     }
 
     public void setExecutionResult(Exception ex) {

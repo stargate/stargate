@@ -31,6 +31,7 @@ import org.apache.cassandra.stargate.utils.MD5Digest;
 public class ExecuteMessage extends Message.Request {
   public static final Message.Codec<ExecuteMessage> codec =
       new Message.Codec<ExecuteMessage>() {
+        @Override
         public ExecuteMessage decode(ByteBuf body, ProtocolVersion version) {
           MD5Digest statementId = MD5Digest.wrap(CBUtil.readBytes(body));
 
@@ -42,6 +43,7 @@ public class ExecuteMessage extends Message.Request {
               statementId, resultMetadataId, QueryOptions.codec.decode(body, version));
         }
 
+        @Override
         public void encode(ExecuteMessage msg, ByteBuf dest, ProtocolVersion version) {
           CBUtil.writeBytes(msg.statementId.bytes, dest);
 
@@ -56,6 +58,7 @@ public class ExecuteMessage extends Message.Request {
           }
         }
 
+        @Override
         public int encodedSize(ExecuteMessage msg, ProtocolVersion version) {
           int size = 0;
           size += CBUtil.sizeOfBytes(msg.statementId.bytes);

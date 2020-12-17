@@ -32,8 +32,9 @@ public class ColumnUtils {
         return decodeUDT(src, version);
       case Tuple:
         return decodeTuple(src, version);
+      default:
+        return type;
     }
-    return type;
   }
 
   private static Column.ColumnType decodeUDT(ByteBuf src, ProtocolVersion version) {
@@ -97,6 +98,8 @@ public class ColumnUtils {
           encodeType(t, dest, version);
         }
         break;
+      default:
+        // Nothing else to do for simple types
     }
   }
 
@@ -128,6 +131,7 @@ public class ColumnUtils {
           size += encodeSizeType(t, version);
         }
         break;
+      default: // fall though (simple types)
     }
     return size;
   }

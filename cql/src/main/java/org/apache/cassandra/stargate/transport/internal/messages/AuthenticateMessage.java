@@ -26,16 +26,19 @@ import org.apache.cassandra.stargate.transport.internal.Message;
 public class AuthenticateMessage extends Message.Response {
   public static final Message.Codec<AuthenticateMessage> codec =
       new Message.Codec<AuthenticateMessage>() {
+        @Override
         public AuthenticateMessage decode(ByteBuf body, ProtocolVersion version) {
           String authenticator = CBUtil.readString(body);
           return new AuthenticateMessage(authenticator);
         }
 
+        @Override
         public void encode(AuthenticateMessage msg, ByteBuf dest, ProtocolVersion version) {
           // Safe to skip. `msg.authenticator` is a FQCN string. All characters are ASCII encoded.
           CBUtil.writeAsciiString(msg.authenticator, dest);
         }
 
+        @Override
         public int encodedSize(AuthenticateMessage msg, ProtocolVersion version) {
           return CBUtil.sizeOfAsciiString(msg.authenticator);
         }

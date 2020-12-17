@@ -61,6 +61,7 @@ public class DocCollection {
     this.upgradeType = upgradeType;
   }
 
+  @Override
   public String toString() {
     return String.format(
         "DocCollection(name=%s, upgradeAvailable=%s, upgradeType=%s)",

@@ -27,6 +27,9 @@ import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 
+// Even though there are multiple `Change` enum, they're each specific to one subclass so their
+// usage is unambiguous.
+@SuppressWarnings("SameNameButDifferent")
 public abstract class Event {
   public enum Type {
     TOPOLOGY_CHANGE(ProtocolVersion.V3),
@@ -54,11 +57,13 @@ public abstract class Event {
           "Event " + eventType.name() + " not valid for protocol version " + version);
     switch (eventType) {
       case TOPOLOGY_CHANGE:
-        return TopologyChange.deserializeEvent(cb, version);
+        return TopologyChange.deserializeEvent(cb);
       case STATUS_CHANGE:
-        return StatusChange.deserializeEvent(cb, version);
+        return StatusChange.deserializeEvent(cb);
       case SCHEMA_CHANGE:
         return SchemaChange.deserializeEvent(cb, version);
+      default:
+        // fall through
     }
     throw new AssertionError();
   }
@@ -122,17 +127,19 @@ public abstract class Event {
     }
 
     // Assumes the type has already been deserialized
-    private static TopologyChange deserializeEvent(ByteBuf cb, ProtocolVersion version) {
+    private static TopologyChange deserializeEvent(ByteBuf cb) {
       Change change = CBUtil.readEnumValue(Change.class, cb);
       InetSocketAddress node = CBUtil.readInet(cb);
       return new TopologyChange(change, node);
     }
 
+    @Override
     protected void serializeEvent(ByteBuf dest, ProtocolVersion version) {
       CBUtil.writeEnumValue(change, dest);
       CBUtil.writeInet(node, dest);
     }
 
+    @Override
     protected int eventSerializedSize(ProtocolVersion version) {
       return CBUtil.sizeOfEnumValue(change) + CBUtil.sizeOfInet(node);
     }
@@ -178,17 +185,19 @@ public abstract class Event {
     }
 
     // Assumes the type has already been deserialized
-    private static StatusChange deserializeEvent(ByteBuf cb, ProtocolVersion version) {
+    private static StatusChange deserializeEvent(ByteBuf cb) {
       Status status = CBUtil.readEnumValue(Status.class, cb);
       InetSocketAddress node = CBUtil.readInet(cb);
       return new StatusChange(status, node);
     }
 
+    @Override
     protected void serializeEvent(ByteBuf dest, ProtocolVersion version) {
       CBUtil.writeEnumValue(status, dest);
       CBUtil.writeInet(node, dest);
     }
 
+    @Override
     protected int eventSerializedSize(ProtocolVersion version) {
       return CBUtil.sizeOfEnumValue(status) + CBUtil.sizeOfInet(node);
     }
@@ -277,6 +286,7 @@ public abstract class Event {
       }
     }
 
+    @Override
     public void serializeEvent(ByteBuf dest, ProtocolVersion version) {
       if (target == Target.FUNCTION || target == Target.AGGREGATE) {
         if (version.isGreaterOrEqualTo(ProtocolVersion.V4)) {
@@ -318,6 +328,7 @@ public abstract class Event {
       }
     }
 
+    @Override
     public int eventSerializedSize(ProtocolVersion version) {
       if (target == Target.FUNCTION || target == Target.AGGREGATE) {
         if (version.isGreaterOrEqualTo(ProtocolVersion.V4))

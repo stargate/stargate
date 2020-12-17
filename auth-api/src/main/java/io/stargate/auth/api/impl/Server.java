@@ -39,12 +39,8 @@ import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Server extends Application<ApplicationConfiguration> {
-
-  private static final Logger logger = LoggerFactory.getLogger(Server.class);
 
   AuthenticationService authenticationService;
   private final Metrics metrics;

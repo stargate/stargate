@@ -47,14 +47,17 @@ public class StartupMessage extends Message.Request {
 
   public static final Message.Codec<StartupMessage> codec =
       new Message.Codec<StartupMessage>() {
+        @Override
         public StartupMessage decode(ByteBuf body, ProtocolVersion version) {
           return new StartupMessage(upperCaseKeys(CBUtil.readStringMap(body)));
         }
 
+        @Override
         public void encode(StartupMessage msg, ByteBuf dest, ProtocolVersion version) {
           CBUtil.writeStringMap(msg.options, dest);
         }
 
+        @Override
         public int encodedSize(StartupMessage msg, ProtocolVersion version) {
           return CBUtil.sizeOfStringMap(msg.options);
         }

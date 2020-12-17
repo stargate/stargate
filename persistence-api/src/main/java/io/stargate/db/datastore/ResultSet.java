@@ -89,6 +89,7 @@ public interface ResultSet extends Iterable<Row> {
   }
 
   @NotNull
+  @Override
   Iterator<Row> iterator();
 
   /**
