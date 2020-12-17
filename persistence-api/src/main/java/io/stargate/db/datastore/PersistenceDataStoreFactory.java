@@ -24,10 +24,10 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public class DefaultDataStoreFactory implements DataStoreFactory {
+public class PersistenceDataStoreFactory implements DataStoreFactory {
   private final Persistence persistence;
 
-  public DefaultDataStoreFactory(Persistence persistence) {
+  public PersistenceDataStoreFactory(Persistence persistence) {
     this.persistence = persistence;
   }
 

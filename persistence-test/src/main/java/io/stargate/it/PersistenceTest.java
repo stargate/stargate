@@ -138,7 +138,7 @@ public abstract class PersistenceTest {
   public void setup(TestInfo testInfo, ClusterConnectionInfo backend) {
     this.backend = backend;
 
-    dataStore = new DefaultDataStoreFactory(persistence()).create();
+    dataStore = new PersistenceDataStoreFactory(persistence()).create();
     logger.info("{}", dataStore);
 
     Optional<String> name = testInfo.getTestMethod().map(Method::getName);
