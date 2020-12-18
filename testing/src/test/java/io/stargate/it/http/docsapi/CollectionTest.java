@@ -106,6 +106,7 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
 
   @AfterEach
   public void teardown() {
+    session.execute(String.format("drop keyspace %s", keyspace));
     session.close();
   }
 
