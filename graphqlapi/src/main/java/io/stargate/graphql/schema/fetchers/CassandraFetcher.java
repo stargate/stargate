@@ -82,7 +82,6 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
 
     DataStoreOptions dataStoreOptions =
         DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
-    // todo here
     DataStore dataStore =
         dataStoreFactory.create(storedCredentials.getRoleName(), dataStoreOptions);
     return get(environment, dataStore);
