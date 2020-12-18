@@ -77,11 +77,17 @@ public class Db {
     return new AuthenticatedDB(dataStore, authenticationSubject);
   }
 
+<<<<<<< HEAD
   public AuthenticatedDB getDataStoreForToken(String token, int pageSize, ByteBuffer pagingState)
       throws UnauthorizedException {
     AuthenticationSubject authenticationSubject = authenticationService.validateToken(token);
     return new AuthenticatedDB(
         getDataStoreInternal(authenticationSubject, pageSize, pagingState), authenticationSubject);
+=======
+  private DataStore getDataStoreInternal(String role) {
+    DataStoreOptions options = DataStoreOptions.builder().alwaysPrepareQueries(true).build();
+    return dataStoreFactory.create(role, options);
+>>>>>>> Remove validation of columns, we'll see if that's faster
   }
 
   private DataStore getDataStoreInternal(
