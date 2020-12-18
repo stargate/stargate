@@ -22,11 +22,11 @@ import graphql.schema.Coercing;
 import graphql.schema.CoercingParseLiteralException;
 import graphql.schema.CoercingParseValueException;
 import graphql.schema.CoercingSerializeException;
+import io.stargate.core.util.ByteBufferUtils;
 import java.math.BigDecimal;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.Base64;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -172,12 +172,12 @@ abstract class StringCoercing<DriverTypeT> implements Coercing<DriverTypeT, Stri
       new StringCoercing<ByteBuffer>() {
         @Override
         protected String format(ByteBuffer value) {
-          return Base64.getEncoder().encodeToString(value.array());
+          return ByteBufferUtils.toBase64(value);
         }
 
         @Override
         protected ByteBuffer parse(String value) {
-          return ByteBuffer.wrap(Base64.getDecoder().decode(value));
+          return ByteBufferUtils.fromBase64(value);
         }
       };
 

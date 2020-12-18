@@ -36,16 +36,19 @@ import org.apache.cassandra.stargate.utils.MD5Digest;
 public class ResultMessage extends Message.Response {
   public static final Message.Codec<ResultMessage> codec =
       new Message.Codec<ResultMessage>() {
+        @Override
         public ResultMessage decode(ByteBuf body, ProtocolVersion version) {
           Result.Kind kind = Result.Kind.fromId(body.readInt());
           return new ResultMessage(SUBCODECS.get(kind).decode(body, version));
         }
 
+        @Override
         public void encode(ResultMessage msg, ByteBuf dest, ProtocolVersion version) {
           dest.writeInt(msg.result.kind.id);
           SUBCODECS.get(msg.result.kind).encode(msg.result, dest, version);
         }
 
+        @Override
         public int encodedSize(ResultMessage msg, ProtocolVersion version) {
           return 4 + SUBCODECS.get(msg.result.kind).encodedSize(msg.result, version);
         }

@@ -234,6 +234,7 @@ public abstract class BaseActivator implements BundleActivator {
       this.properties = properties;
     }
 
+    @SuppressWarnings("JdkObsolete")
     public ServiceAndProperties(Object service, Class<?> targetServiceClass) {
       this(service, targetServiceClass, new Hashtable<>());
     }

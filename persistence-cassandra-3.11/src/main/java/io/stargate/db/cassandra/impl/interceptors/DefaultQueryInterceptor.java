@@ -243,7 +243,7 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
 
         // This fix schedules a schema pull for the non-member node and is required because
         // `StorageService.onChange()` doesn't do this for non-member nodes.
-        MigrationManager.instance.scheduleSchemaPull(endpoint, epState);
+        MigrationManager.scheduleSchemaPull(endpoint, epState);
         break;
       case HOST_ID:
         StargateSystemKeyspace.updatePeerInfo(
@@ -252,6 +252,8 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
       case RPC_READY:
         notifyRpcChange(endpoint, epState.isRpcReady());
         break;
+      default:
+        // ignore other states
     }
   }
 

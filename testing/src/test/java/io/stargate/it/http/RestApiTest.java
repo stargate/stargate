@@ -779,12 +779,11 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     primaryKey.setClusteringKey(Collections.singletonList("date"));
     tableAdd.setPrimaryKey(primaryKey);
 
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables", host, keyspace),
-            objectMapper.writeValueAsString(tableAdd),
-            HttpStatus.SC_CREATED);
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v1/keyspaces/%s/tables", host, keyspace),
+        objectMapper.writeValueAsString(tableAdd),
+        HttpStatus.SC_CREATED);
 
     List<ColumnModel> columns = new ArrayList<>();
     ColumnModel nameColumn = new ColumnModel();
@@ -830,7 +829,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     query.setFilters(filters);
     query.setPageSize(1);
 
-    body =
+    String body =
         RestUtils.post(
             authToken,
             String.format(

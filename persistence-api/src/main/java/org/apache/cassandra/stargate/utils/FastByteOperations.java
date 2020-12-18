@@ -168,6 +168,7 @@ public class FastByteOperations {
 
     static final boolean BIG_ENDIAN = ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN);
 
+    @Override
     public int compare(
         byte[] buffer1, int offset1, int length1, byte[] buffer2, int offset2, int length2) {
       return compareTo(
@@ -179,10 +180,12 @@ public class FastByteOperations {
           length2);
     }
 
+    @Override
     public int compare(ByteBuffer buffer1, byte[] buffer2, int offset2, int length2) {
       return compare(buffer1, buffer1.position(), buffer1.remaining(), buffer2, offset2, length2);
     }
 
+    @Override
     public int compare(
         ByteBuffer buffer1, int position1, int length1, byte[] buffer2, int offset2, int length2) {
       Object obj1;
@@ -198,10 +201,12 @@ public class FastByteOperations {
       return compareTo(obj1, offset1, length1, buffer2, BYTE_ARRAY_BASE_OFFSET + offset2, length2);
     }
 
+    @Override
     public int compare(ByteBuffer buffer1, ByteBuffer buffer2) {
       return compareTo(buffer1, buffer2);
     }
 
+    @Override
     public void copy(ByteBuffer src, int srcPosition, byte[] trg, int trgPosition, int length) {
       if (src.hasArray()) {
         System.arraycopy(src.array(), src.arrayOffset() + srcPosition, trg, trgPosition, length);
@@ -215,6 +220,7 @@ public class FastByteOperations {
       }
     }
 
+    @Override
     public void copy(
         ByteBuffer srcBuf, int srcPosition, ByteBuffer trgBuf, int trgPosition, int length) {
       Object src;
@@ -381,6 +387,7 @@ public class FastByteOperations {
       return length1 - length2;
     }
 
+    @Override
     public int compare(
         ByteBuffer buffer1, int position1, int length1, byte[] buffer2, int offset2, int length2) {
       if (buffer1.hasArray()) {
@@ -396,6 +403,7 @@ public class FastByteOperations {
       return compare(buffer1, ByteBuffer.wrap(buffer2, offset2, length2));
     }
 
+    @Override
     public int compare(ByteBuffer buffer1, byte[] buffer2, int offset2, int length2) {
       if (buffer1.hasArray()) {
         return compare(
@@ -410,6 +418,7 @@ public class FastByteOperations {
       return compare(buffer1, ByteBuffer.wrap(buffer2, offset2, length2));
     }
 
+    @Override
     public int compare(ByteBuffer buffer1, ByteBuffer buffer2) {
       int end1 = buffer1.limit();
       int end2 = buffer2.limit();
@@ -423,6 +432,7 @@ public class FastByteOperations {
       return buffer1.remaining() - buffer2.remaining();
     }
 
+    @Override
     public void copy(ByteBuffer src, int srcPosition, byte[] trg, int trgPosition, int length) {
       if (src.hasArray()) {
         System.arraycopy(src.array(), src.arrayOffset() + srcPosition, trg, trgPosition, length);
@@ -433,6 +443,7 @@ public class FastByteOperations {
       src.get(trg, trgPosition, length);
     }
 
+    @Override
     public void copy(ByteBuffer src, int srcPosition, ByteBuffer trg, int trgPosition, int length) {
       if (src.hasArray() && trg.hasArray()) {
         System.arraycopy(

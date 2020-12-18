@@ -17,7 +17,6 @@ package io.stargate.db.schema;
 
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
-import java.time.ZoneId;
 import java.util.EnumMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -29,7 +28,6 @@ public class ColumnUtils {
   private static final Pattern UNQUOTED_IDENTIFIER = Pattern.compile("[a-z][a-z0-9_]*");
 
   public static final Pattern WHITESPACE_PATTERN = Pattern.compile("(?U)\\s");
-  private static ZoneId UTC = ZoneId.of("UTC");
 
   @Value.Immutable(prehash = true)
   abstract static class Codecs {

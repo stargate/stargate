@@ -60,9 +60,11 @@ public class PersistenceDataStoreFactory implements DataStoreFactory {
       @Nullable String userName,
       @Nonnull DataStoreOptions options,
       @Nullable ClientInfo clientInfo) {
-    Persistence.Connection connection = persistence.newConnection();
+    Persistence.Connection connection;
     if (clientInfo != null) {
       connection = persistence.newConnection(clientInfo);
+    } else {
+      connection = persistence.newConnection();
     }
 
     if (userName != null && !userName.isEmpty()) {

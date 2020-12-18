@@ -50,6 +50,7 @@ public class ConfigStoreActivator extends BaseActivator {
   protected ServiceAndProperties createService() {
     Metrics metrics = metricsService.get();
 
+    @SuppressWarnings("JdkObsolete")
     Hashtable<String, String> props = new Hashtable<>();
     props.put("ConfigStoreIdentifier", CONFIG_STORE_YAML_IDENTIFIER);
 

@@ -191,10 +191,10 @@ public class Frame {
         throw ErrorMessage.wrap(e, streamId);
       }
 
-      long bodyLength = buffer.getUnsignedInt(idx);
+      int bodyLength = buffer.getInt(idx);
       idx += Header.BODY_LENGTH_SIZE;
 
-      long frameLength = bodyLength + Header.LENGTH;
+      long frameLength = (long) bodyLength + Header.LENGTH;
       if (frameLength > MAX_FRAME_LENGTH) {
         // Enter the discard mode and discard everything received so far.
         discardingTooLongFrame = true;
@@ -211,7 +211,7 @@ public class Frame {
       ClientRequestSizeMetrics.bytesRecievedPerFrame.update(frameLength);
 
       // extract body
-      ByteBuf body = buffer.slice(idx, (int) bodyLength);
+      ByteBuf body = buffer.slice(idx, bodyLength);
       body.retain();
 
       idx += bodyLength;
@@ -267,6 +267,7 @@ public class Frame {
 
   @ChannelHandler.Sharable
   public static class Encoder extends MessageToMessageEncoder<Frame> {
+    @Override
     public void encode(ChannelHandlerContext ctx, Frame frame, List<Object> results)
         throws IOException {
       ByteBuf header = CBUtil.allocator.buffer(Header.LENGTH);
@@ -296,6 +297,7 @@ public class Frame {
 
   @ChannelHandler.Sharable
   public static class InboundBodyTransformer extends MessageToMessageDecoder<Frame> {
+    @Override
     public void decode(ChannelHandlerContext ctx, Frame frame, List<Object> results)
         throws IOException {
       Connection connection = ctx.channel().attr(Connection.attributeKey).get();
@@ -324,6 +326,7 @@ public class Frame {
 
   @ChannelHandler.Sharable
   public static class OutboundBodyTransformer extends MessageToMessageEncoder<Frame> {
+    @Override
     public void encode(ChannelHandlerContext ctx, Frame frame, List<Object> results)
         throws IOException {
       Connection connection = ctx.channel().attr(Connection.attributeKey).get();

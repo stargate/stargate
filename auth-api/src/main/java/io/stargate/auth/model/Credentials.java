@@ -23,7 +23,7 @@ import java.util.Objects;
 
 /** Credentials object used to remain compliant with existiing API contract */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Credentials {
+public final class Credentials {
   String username;
   String password;
 
@@ -59,7 +59,7 @@ public class Credentials {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof Credentials)) {
       return false;
     }
     Credentials that = (Credentials) o;

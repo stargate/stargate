@@ -252,19 +252,16 @@ public class AuthnTableBasedService implements AuthenticationService {
 
       storedCredentials.setRoleName(username);
 
-      final ResultSet r =
-          dataStore
-              .queryBuilder()
-              .update(AUTH_KEYSPACE, AUTH_TABLE)
-              .ttl(tokenTTL)
-              .value("username", username)
-              .value("created_timestamp", timestamp)
-              .where("auth_token", Predicate.EQ, UUID.fromString(token))
-              .build()
-              .execute(ConsistencyLevel.LOCAL_QUORUM)
-              .get();
-    } catch (UnauthorizedException uae) {
-      throw uae;
+      dataStore
+          .queryBuilder()
+          .update(AUTH_KEYSPACE, AUTH_TABLE)
+          .ttl(tokenTTL)
+          .value("username", username)
+          .value("created_timestamp", timestamp)
+          .where("auth_token", Predicate.EQ, UUID.fromString(token))
+          .build()
+          .execute(ConsistencyLevel.LOCAL_QUORUM)
+          .get();
     } catch (InterruptedException | ExecutionException e) {
       logger.error("Failed to validate token", e);
       throw new RuntimeException(e);

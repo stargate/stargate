@@ -19,6 +19,8 @@ import static graphql.Scalars.GraphQLString;
 import static graphql.schema.GraphQLList.list;
 
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.FormatMethod;
+import com.google.errorprone.annotations.FormatString;
 import graphql.Scalars;
 import graphql.introspection.Introspection;
 import graphql.schema.GraphQLArgument;
@@ -540,7 +542,8 @@ class DmlSchemaBuilder {
         .build();
   }
 
-  private void warn(Exception e, String format, Object... arguments) {
+  @FormatMethod
+  private void warn(Exception e, @FormatString String format, Object... arguments) {
     String message = String.format(format, arguments);
     warnings.add(message + " (" + e.getMessage() + ")");
     if (!(e instanceof SchemaWarningException)) {

@@ -16,7 +16,6 @@ import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -36,7 +35,7 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
   private static String authToken;
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final OkHttpClient client =
-      new OkHttpClient().newBuilder().readTimeout(3, TimeUnit.MINUTES).build();
+      new OkHttpClient().newBuilder().readTimeout(Duration.ofMinutes(3)).build();
 
   private String host;
   private String hostWithPort;

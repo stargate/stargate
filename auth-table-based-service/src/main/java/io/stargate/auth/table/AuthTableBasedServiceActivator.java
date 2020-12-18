@@ -26,8 +26,9 @@ import java.util.List;
 import net.jcip.annotations.GuardedBy;
 
 public class AuthTableBasedServiceActivator extends BaseActivator {
-
+  @SuppressWarnings("JdkObsolete")
   static Hashtable<String, String> props = new Hashtable<>();
+
   private final ServicePointer<DataStoreFactory> dataStoreFactory =
       ServicePointer.create(DataStoreFactory.class);
   public static final String AUTH_TABLE_IDENTIFIER = "AuthTableBasedService";
@@ -47,6 +48,8 @@ public class AuthTableBasedServiceActivator extends BaseActivator {
   private final AuthzTableBasedService authzTableBasedService = new AuthzTableBasedService();
 
   @Override
+  // The parent class calls createServices() from a synchronized method
+  @SuppressWarnings("GuardedBy")
   protected List<ServiceAndProperties> createServices() {
     if (AUTH_TABLE_IDENTIFIER.equals(
         System.getProperty("stargate.auth_id", AUTH_TABLE_IDENTIFIER))) {
@@ -64,6 +67,7 @@ public class AuthTableBasedServiceActivator extends BaseActivator {
     // no-op
   }
 
+  @Override
   protected List<ServicePointer<?>> dependencies() {
     return Collections.singletonList(dataStoreFactory);
   }

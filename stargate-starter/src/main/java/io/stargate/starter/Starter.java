@@ -20,7 +20,6 @@ import com.github.rvesse.airline.SingleCommand;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.help.License;
-import com.github.rvesse.airline.annotations.restrictions.Pattern;
 import com.github.rvesse.airline.annotations.restrictions.Port;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import com.github.rvesse.airline.help.cli.CliCommandUsageGenerator;
@@ -51,6 +50,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.felix.framework.Felix;
 import org.apache.felix.framework.util.FelixConstants;
 import org.apache.felix.resolver.Logger;
@@ -109,9 +109,6 @@ public class Starter {
       title = "listen_ip",
       arity = 1,
       description = "address stargate services should listen on (default: 127.0.0.1)")
-  @Pattern(
-      pattern = "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$",
-      description = "Must be a valid IP address")
   protected String listenHostStr = "127.0.0.1";
 
   @Order(value = 5)
@@ -269,6 +266,10 @@ public class Starter {
       throw new IllegalArgumentException("--cluster-version must be a number");
     }
 
+    if (!InetAddressValidator.getInstance().isValid(listenHostStr)) {
+      throw new IllegalArgumentException("--listen must be a valid IPv4 or IPv6 address");
+    }
+
     if (developerMode) {
       if (seedList.size() == 0) {
         // Default to use itself as seed in developer mode
@@ -412,8 +413,8 @@ public class Starter {
         // Avoid loading the wrong persistance module
         if (!dse
             && (name.contains("persistence-dse")
-                || name.contains("persistence-cassandra")
-                    && !name.contains("persistence-cassandra-" + version))) continue;
+                || (name.contains("persistence-cassandra")
+                    && !name.contains("persistence-cassandra-" + version)))) continue;
 
         if (dse
             && (name.contains("persistence-cassandra")

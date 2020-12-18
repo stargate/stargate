@@ -20,24 +20,27 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class StarterTest {
 
+  Starter starter;
+
   @BeforeEach
   public void reset() {
     System.setProperties(null);
+
+    starter = new Starter();
+    starter.simpleSnitch = true;
+    starter.clusterName = "foo";
+    starter.version = "3.11";
+    starter.seedList = Arrays.asList("127.0.0.1", "127.0.0.2");
   }
 
   @Test
   void testSetStargatePropertiesWithIPSeedNode() {
-    Starter starter = new Starter();
-    starter.simpleSnitch = true;
-    starter.seedList = Arrays.asList("127.0.0.1", "127.0.0.2");
-    starter.clusterName = "foo";
-    starter.version = "3.11";
-
     starter.setStargateProperties();
 
     assertThat(System.getProperty("stargate.seed_list")).isEqualTo("127.0.0.1,127.0.0.2");
@@ -45,11 +48,8 @@ class StarterTest {
 
   @Test
   void testSetStargatePropertiesWithHostSeedNode() {
-    Starter starter = new Starter();
-    starter.simpleSnitch = true;
     starter.seedList = Arrays.asList("cassandra.apache.org", "datastax.com");
-    starter.clusterName = "foo";
-    starter.version = "3.11";
+
     starter.setStargateProperties();
 
     assertThat(System.getProperty("stargate.seed_list"))
@@ -58,11 +58,8 @@ class StarterTest {
 
   @Test
   void testSetStargatePropertiesWithBadHostSeedNode() {
-    Starter starter = new Starter();
-    starter.simpleSnitch = true;
     starter.seedList = Arrays.asList("google.com", "datasta.cmo", "cassandra.apache.org");
-    starter.clusterName = "foo";
-    starter.version = "3.11";
+
     RuntimeException thrown =
         assertThrows(
             RuntimeException.class,
@@ -75,11 +72,7 @@ class StarterTest {
 
   @Test
   void testSetStargatePropertiesMissingSeedNode() {
-    Starter starter = new Starter();
-    starter.simpleSnitch = true;
     starter.seedList = new ArrayList<>();
-    starter.clusterName = "foo";
-    starter.version = "3.11";
 
     RuntimeException thrown =
         assertThrows(
@@ -93,11 +86,9 @@ class StarterTest {
 
   @Test
   void testSetStargatePropertiesMissingDC() {
-    Starter starter = new Starter();
     starter.simpleSnitch = false;
     starter.rack = "rack0";
-    starter.clusterName = "foo";
-    starter.version = "3.11";
+
     RuntimeException thrown =
         assertThrows(
             IllegalArgumentException.class,
@@ -110,11 +101,9 @@ class StarterTest {
 
   @Test
   void testSetStargatePropertiesMissingRack() {
-    Starter starter = new Starter();
     starter.simpleSnitch = false;
     starter.dc = "dc1";
-    starter.clusterName = "foo";
-    starter.version = "3.11";
+
     RuntimeException thrown =
         assertThrows(
             IllegalArgumentException.class,
@@ -127,9 +116,7 @@ class StarterTest {
 
   @Test
   void testSetStargatePropertiesMissingVersion() {
-    Starter starter = new Starter();
-    starter.simpleSnitch = true;
-    starter.clusterName = "foo";
+    starter.version = null;
 
     RuntimeException thrown =
         assertThrows(
@@ -142,11 +129,7 @@ class StarterTest {
 
   @Test
   void testSeedsNotPresentThrows() {
-    Starter starter = new Starter();
-    starter.simpleSnitch = true;
-
-    starter.clusterName = "foo";
-    starter.version = "3.11";
+    starter.seedList = Collections.emptyList();
 
     assertThrows(
         IllegalArgumentException.class,
@@ -156,19 +139,59 @@ class StarterTest {
 
   @Test
   void testDeveloperModeSetsDefaultSeedsAndSnitch() {
-    Starter starter = new Starter();
     starter.developerMode = true;
-
-    starter.clusterName = "foo";
-    starter.version = "3.11";
-
-    assertThat(starter.seedList).hasSize(0);
-    assertThat(starter.simpleSnitch).isFalse();
+    starter.simpleSnitch = false;
+    starter.seedList = new ArrayList<>();
 
     starter.setStargateProperties();
 
     assertThat(System.getProperty("stargate.seed_list")).isEqualTo("127.0.0.1");
     assertThat(System.getProperty("stargate.developer_mode")).isEqualTo("true");
     assertThat(System.getProperty("stargate.snitch_classname")).isEqualTo("SimpleSnitch");
+  }
+
+  @Test
+  void testSetStargatePropertiesWithIPv4ListenHost() {
+    starter.listenHostStr = "127.0.0.1";
+
+    starter.setStargateProperties();
+
+    assertThat(System.getProperty("stargate.listen_address")).isEqualTo("127.0.0.1");
+  }
+
+  @Test
+  void testSetStargatePropertiesWithInvalidIPv4ListenHost() {
+    starter.listenHostStr = "127.0.999.1";
+
+    RuntimeException thrown =
+        assertThrows(
+            IllegalArgumentException.class,
+            starter::setStargateProperties,
+            "Expected setStargateProperties() to throw RuntimeException");
+
+    assertThat(thrown.getMessage()).isEqualTo("--listen must be a valid IPv4 or IPv6 address");
+  }
+
+  @Test
+  void testSetStargatePropertiesWithIPv6ListenHost() {
+    starter.listenHostStr = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
+
+    starter.setStargateProperties();
+
+    assertThat(System.getProperty("stargate.listen_address"))
+        .isEqualTo("2001:0db8:85a3:0000:0000:8a2e:0370:7334");
+  }
+
+  @Test
+  void testSetStargatePropertiesWithInvalidIPv6ListenHost() {
+    starter.listenHostStr = "2001:0db8:85a3:x:0000:8a2e:0370:7334";
+
+    RuntimeException thrown =
+        assertThrows(
+            IllegalArgumentException.class,
+            starter::setStargateProperties,
+            "Expected setStargateProperties() to throw RuntimeException");
+
+    assertThat(thrown.getMessage()).isEqualTo("--listen must be a valid IPv4 or IPv6 address");
   }
 }

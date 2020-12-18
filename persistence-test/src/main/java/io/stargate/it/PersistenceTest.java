@@ -194,15 +194,15 @@ public abstract class PersistenceTest {
   @Test
   public void testAlterAndDrop() throws ExecutionException, InterruptedException {
     createKeyspace();
-    ResultSet createTable =
-        dataStore
-            .queryBuilder()
-            .create()
-            .table(keyspace, table)
-            .column("created", Boolean, PartitionKey)
-            .build()
-            .execute()
-            .join();
+    //    ResultSet createTable =
+    dataStore
+        .queryBuilder()
+        .create()
+        .table(keyspace, table)
+        .column("created", Boolean, PartitionKey)
+        .build()
+        .execute()
+        .join();
 
     // TODO: [doug] 2020-07-10, Fri, 16:50 More schemaAgreement to revisit
     // assertThat(createTable.waitedForSchemaAgreement()).isTrue();
@@ -217,15 +217,15 @@ public abstract class PersistenceTest {
                 .keyspace(keyspace)
                 .table(table));
 
-    ResultSet alterTable =
-        dataStore
-            .queryBuilder()
-            .alter()
-            .table(keyspace, table)
-            .addColumn("added", Boolean)
-            .build()
-            .execute()
-            .join();
+    //    ResultSet alterTable =
+    dataStore
+        .queryBuilder()
+        .alter()
+        .table(keyspace, table)
+        .addColumn("added", Boolean)
+        .build()
+        .execute()
+        .join();
     // TODO: [doug] 2020-07-10, Fri, 16:50 More schemaAgreement to revisit
     //        assertThat(alterTable.waitedForSchemaAgreement()).isTrue();
     assertThat(dataStore.schema().keyspace(keyspace).table(table))
@@ -239,8 +239,8 @@ public abstract class PersistenceTest {
                 .keyspace(keyspace)
                 .table(table));
 
-    ResultSet dropTable =
-        dataStore.queryBuilder().drop().table(keyspace, table).build().execute().join();
+    //    ResultSet dropTable =
+    dataStore.queryBuilder().drop().table(keyspace, table).build().execute().join();
     // TODO: [doug] 2020-07-10, Fri, 16:50 More schemaAgreement to revisit
     //        assertThat(dropTable.waitedForSchemaAgreement()).isTrue();
     assertThat(dataStore.schema().keyspace(keyspace).table(table)).isNull();
@@ -285,7 +285,8 @@ public abstract class PersistenceTest {
   @Disabled("Disabling for now since it currently just hangs")
   @Test
   public void testInsertingAndReadingDifferentTypes() throws Exception {
-    Keyspace ks = createKeyspace();
+    //    Keyspace ks =
+    createKeyspace();
 
     Column.ColumnType nestedTuple = Tuple.of(Int, Double);
     Column.ColumnType tupleType = Tuple.of(Varchar, nestedTuple);
@@ -1311,15 +1312,14 @@ public abstract class PersistenceTest {
   @Test
   public void testSimpleSelectStmt() throws ExecutionException, InterruptedException {
     createKeyspace();
-    ResultSet createTable =
-        dataStore
-            .queryBuilder()
-            .create()
-            .table(keyspace, table)
-            .column("graph", Boolean, PartitionKey)
-            .build()
-            .execute()
-            .join();
+    dataStore
+        .queryBuilder()
+        .create()
+        .table(keyspace, table)
+        .column("graph", Boolean, PartitionKey)
+        .build()
+        .execute()
+        .join();
 
     dataStore.waitForSchemaAgreement();
 
@@ -1341,18 +1341,17 @@ public abstract class PersistenceTest {
     assertThat(select.one().getBoolean("graph")).isTrue();
   }
 
-  private Keyspace createKeyspace() throws ExecutionException, InterruptedException {
-    ResultSet result =
-        dataStore
-            .queryBuilder()
-            .create()
-            .keyspace(keyspace)
-            .ifNotExists()
-            .withReplication(Replication.simpleStrategy(1))
-            .andDurableWrites(true)
-            .build()
-            .execute()
-            .join();
+  private Keyspace createKeyspace() {
+    dataStore
+        .queryBuilder()
+        .create()
+        .keyspace(keyspace)
+        .ifNotExists()
+        .withReplication(Replication.simpleStrategy(1))
+        .andDurableWrites(true)
+        .build()
+        .execute()
+        .join();
 
     Keyspace keyspace = dataStore.schema().keyspace(this.keyspace);
     assertThat(keyspace).isNotNull();

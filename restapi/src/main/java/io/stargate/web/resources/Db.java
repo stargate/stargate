@@ -29,10 +29,10 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.TimeUnit;
 import javax.ws.rs.NotFoundException;
 
 public class Db {
@@ -43,7 +43,7 @@ public class Db {
   private final LoadingCache<String, String> docsTokensToRoles =
       Caffeine.newBuilder()
           .maximumSize(10_000)
-          .expireAfterWrite(1, TimeUnit.MINUTES)
+          .expireAfterWrite(Duration.ofMinutes(1))
           .build(token -> getRoleNameForToken(token));
   private final DataStoreFactory dataStoreFactory;
 

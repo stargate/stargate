@@ -15,6 +15,8 @@
  */
 package io.stargate.graphql.web;
 
+import com.google.errorprone.annotations.FormatMethod;
+import com.google.errorprone.annotations.FormatString;
 import graphql.GraphQL;
 import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
@@ -153,8 +155,9 @@ public class GraphqlCache implements EventListener {
     return map;
   }
 
+  @FormatMethod
   private void addOrReplaceDmlGraphql(
-      String keyspaceName, String reason, String... reasonArguments) {
+      String keyspaceName, @FormatString String reason, Object... reasonArguments) {
     if (LOG.isDebugEnabled()) {
       LOG.debug(
           "Refreshing GraphQL schema for keyspace {} because {}",

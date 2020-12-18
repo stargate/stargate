@@ -98,7 +98,7 @@ class DataTypeMapping {
       String fieldName = nameMapping.getCqlName(type, entry.getKey());
       ColumnType fieldType = type.fieldType(fieldName);
       Object value = toDBValue(fieldType, entry.getValue(), nameMapping);
-      udt.set(fieldName, value, fieldType.codec());
+      udt = udt.set(fieldName, value, fieldType.codec());
     }
     return udt;
   }
@@ -113,7 +113,7 @@ class DataTypeMapping {
       ColumnType subType = subTypes.get(i);
       Object item = object.get("item" + i);
       Object value = toDBValue(subType, item, nameMapping);
-      tuple.set(i, value, subType.codec());
+      tuple = tuple.set(i, value, subType.codec());
     }
     return tuple;
   }
