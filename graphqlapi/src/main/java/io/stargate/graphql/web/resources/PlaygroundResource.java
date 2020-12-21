@@ -20,6 +20,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -46,7 +47,9 @@ public class PlaygroundResource {
     URL entry = bundle.getEntry("/playground.html");
     // Save the templated file away for later so that we only have to do this conversion once.
     playgroundFile =
-        new BufferedReader(new InputStreamReader(entry.openConnection().getInputStream()))
+        new BufferedReader(
+                new InputStreamReader(
+                    entry.openConnection().getInputStream(), StandardCharsets.UTF_8))
             .lines()
             .collect(Collectors.joining("\n"));
   }

@@ -27,9 +27,9 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.TimeUnit;
 
 public class Db {
 
@@ -40,7 +40,7 @@ public class Db {
   private final LoadingCache<String, AuthenticationPrincipal> docsTokensToRoles =
       Caffeine.newBuilder()
           .maximumSize(10_000)
-          .expireAfterWrite(1, TimeUnit.MINUTES)
+          .expireAfterWrite(Duration.ofMinutes(1))
           .build(this::getAuthenticationPrincipalForToken);
 
   public Db(

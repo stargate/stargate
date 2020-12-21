@@ -31,13 +31,9 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @NotThreadSafe
 public class AuthApiTest extends BaseOsgiIntegrationTest {
-
-  private static final Logger logger = LoggerFactory.getLogger(AuthApiTest.class);
 
   private String host;
   private static final ObjectMapper objectMapper = new ObjectMapper();

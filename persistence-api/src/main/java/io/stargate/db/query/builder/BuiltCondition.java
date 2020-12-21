@@ -185,7 +185,7 @@ public abstract class BuiltCondition {
       return false;
     }
 
-    static class ColumnName extends LHS {
+    static final class ColumnName extends LHS {
       private final String columnName;
 
       private ColumnName(String columnName) {
@@ -215,7 +215,7 @@ public abstract class BuiltCondition {
         if (this == o) {
           return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof ColumnName)) {
           return false;
         }
         ColumnName that = (ColumnName) o;
@@ -233,7 +233,7 @@ public abstract class BuiltCondition {
       }
     }
 
-    static class MapElement extends LHS {
+    static final class MapElement extends LHS {
       private final String columnName;
       private final Value<?> keyValue;
 
@@ -285,7 +285,7 @@ public abstract class BuiltCondition {
         if (this == o) {
           return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof MapElement)) {
           return false;
         }
         MapElement that = (MapElement) o;

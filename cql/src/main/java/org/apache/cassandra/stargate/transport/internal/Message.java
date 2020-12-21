@@ -315,6 +315,7 @@ public abstract class Message {
 
   @ChannelHandler.Sharable
   public static class ProtocolDecoder extends MessageToMessageDecoder<Frame> {
+    @Override
     public void decode(ChannelHandlerContext ctx, Frame frame, List results) {
       boolean isRequest = frame.header.type.direction == Direction.REQUEST;
       boolean isTracing = frame.header.flags.contains(Frame.Header.Flag.TRACING);
@@ -401,7 +402,7 @@ public abstract class Message {
 
   @ChannelHandler.Sharable
   public static class ProtocolEncoder extends MessageToMessageEncoder<Message> {
-
+    @Override
     public void encode(ChannelHandlerContext ctx, Message message, List results) {
       Connection connection = ctx.channel().attr(Connection.attributeKey).get();
       // The only case the connection can be null is when we send the initial STARTUP message
@@ -537,6 +538,7 @@ public abstract class Message {
         super(eventLoop);
       }
 
+      @Override
       public void run() {
 
         boolean doneWork = false;
@@ -578,6 +580,7 @@ public abstract class Message {
         super(eventLoop);
       }
 
+      @Override
       public void run() {
         boolean doneWork = false;
         FlushItem flush;
@@ -817,12 +820,7 @@ public abstract class Message {
         ChannelFuture future = ctx.writeAndFlush(errorMessage);
         // On protocol exception, close the channel as soon as the message have been sent
         if (cause instanceof ProtocolException) {
-          future.addListener(
-              new ChannelFutureListener() {
-                public void operationComplete(ChannelFuture future) {
-                  ctx.close();
-                }
-              });
+          future.addListener((ChannelFutureListener) future1 -> ctx.close());
         }
       }
     }

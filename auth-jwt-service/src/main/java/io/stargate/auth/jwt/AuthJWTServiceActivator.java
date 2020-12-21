@@ -40,6 +40,7 @@ public class AuthJWTServiceActivator implements BundleActivator {
 
   public static final String AUTH_JWT_IDENTIFIER = "AuthJwtService";
 
+  @SuppressWarnings("JdkObsolete")
   private static final Hashtable<String, String> props = new Hashtable<>();
 
   static {

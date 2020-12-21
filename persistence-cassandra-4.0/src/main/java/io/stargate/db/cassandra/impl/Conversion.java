@@ -276,6 +276,8 @@ public class Conversion {
         org.apache.cassandra.exceptions.PreparedQueryNotFoundException pnfe =
             (org.apache.cassandra.exceptions.PreparedQueryNotFoundException) e;
         return addSuppressed(new PreparedQueryNotFoundException(MD5Digest.wrap(pnfe.id.bytes)), e);
+      case PROTOCOL_ERROR:
+        // fall through
     }
     noSpamLogger.error(
         "Unhandled Cassandra exception code {} in the persistence conversion "

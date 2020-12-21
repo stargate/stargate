@@ -160,6 +160,7 @@ public class QueryOptions {
       }
     }
 
+    @Override
     public QueryOptions decode(ByteBuf body, ProtocolVersion version) {
       ConsistencyLevel consistency = CBUtil.readConsistencyLevel(body);
       EnumSet<QueryOptions.Codec.Flag> flags =
@@ -220,6 +221,7 @@ public class QueryOptions {
       return new QueryOptions(consistency, values, names, skipMetadata, options, version);
     }
 
+    @Override
     public void encode(QueryOptions options, ByteBuf dest, ProtocolVersion version) {
       CBUtil.writeConsistencyLevel(options.getConsistency(), dest);
 
@@ -246,6 +248,7 @@ public class QueryOptions {
       // don't bother.
     }
 
+    @Override
     public int encodedSize(QueryOptions options, ProtocolVersion version) {
       int size = 0;
 

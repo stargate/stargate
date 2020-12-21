@@ -91,6 +91,7 @@ public abstract class Result {
     }
   }
 
+  @SuppressWarnings("JavaLangClash")
   public static class Void extends Result {
     public Void() {
       super(Kind.Void);

@@ -69,6 +69,7 @@ public class ErrorMessage extends Message.Response {
 
   public static final Message.Codec<ErrorMessage> codec =
       new Message.Codec<ErrorMessage>() {
+        @Override
         public ErrorMessage decode(ByteBuf body, ProtocolVersion version) {
           ExceptionCode code = ExceptionCode.fromValue(body.readInt());
           String msg = CBUtil.readString(body);
@@ -208,6 +209,7 @@ public class ErrorMessage extends Message.Response {
           return new ErrorMessage(pe);
         }
 
+        @Override
         public void encode(ErrorMessage msg, ByteBuf dest, ProtocolVersion version) {
           final PersistenceException err = getBackwardsCompatibleException(msg, version);
           dest.writeInt(err.code().value);
@@ -285,9 +287,13 @@ public class ErrorMessage extends Message.Response {
               CBUtil.writeConsistencyLevel(cwue.consistency, dest);
               dest.writeInt(cwue.received);
               dest.writeInt(cwue.blockFor);
+              break;
+            default:
+              // Other errors: nothing more than code + message
           }
         }
 
+        @Override
         public int encodedSize(ErrorMessage msg, ProtocolVersion version) {
           PersistenceException err = getBackwardsCompatibleException(msg, version);
           String errorString = err.getMessage() == null ? "" : err.getMessage();
@@ -356,6 +362,8 @@ public class ErrorMessage extends Message.Response {
                       + 4
                       + 4; // receivedFor: 4, blockFor: 4
               break;
+            default:
+              // Other errors: nothing more than code + message
           }
           return size;
         }
@@ -376,6 +384,7 @@ public class ErrorMessage extends Message.Response {
         case FUNCTION_FAILURE:
         case CDC_WRITE_FAILURE:
           return new InvalidRequestException(msg.toString());
+        default: // fall through
       }
     }
 
@@ -392,6 +401,7 @@ public class ErrorMessage extends Message.Response {
           CasWriteUnknownResultException cwue = (CasWriteUnknownResultException) msg.error;
           return new WriteTimeoutException(
               WriteType.CAS, cwue.consistency, cwue.received, cwue.blockFor);
+        default: // fall through
       }
     }
 

@@ -38,7 +38,7 @@ public abstract class BuiltQueryTest {
     this.expectedQueryType = expectedQueryType;
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "TypeParameterUnusedInFormals"})
   protected <B extends BoundQuery> B checkedCast(BoundQuery bound) {
     try {
       return (B) bound;

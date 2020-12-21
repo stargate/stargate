@@ -6,6 +6,7 @@ import static org.apache.cassandra.cql3.QueryProcessor.executeOnceInternal;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -129,7 +130,11 @@ public class StargateSystemKeyspace {
   /** Copy of {@link TableId#forSystemTable(String, String)} without assertion. */
   private static TableId forSystemTable(String keyspace, String table) {
     return TableId.fromUUID(
-        UUID.nameUUIDFromBytes(ArrayUtils.addAll(keyspace.getBytes(), table.getBytes())));
+        UUID.nameUUIDFromBytes(
+            ArrayUtils.addAll(
+                // Keyspace and tables names are limited to [a-zA-Z_0-9]+, so ASCII will do
+                keyspace.getBytes(StandardCharsets.US_ASCII),
+                table.getBytes(StandardCharsets.US_ASCII))));
   }
 
   public static Tables tables() {

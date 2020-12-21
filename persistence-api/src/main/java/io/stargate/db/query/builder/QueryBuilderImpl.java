@@ -26,6 +26,8 @@ import com.github.misberner.apcommons.util.AFModifier;
 import com.github.misberner.duzzt.annotations.DSLAction;
 import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
 import com.github.misberner.duzzt.annotations.SubExpr;
+import com.google.errorprone.annotations.FormatMethod;
+import com.google.errorprone.annotations.FormatString;
 import io.stargate.db.query.AsyncQueryExecutor;
 import io.stargate.db.query.BindMarker;
 import io.stargate.db.query.Modification.Operation;
@@ -48,7 +50,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -771,7 +772,8 @@ public class QueryBuilderImpl {
     throw new AssertionError("Unknown query type");
   }
 
-  private static IllegalArgumentException invalid(String format, Object... args) {
+  @FormatMethod
+  private static IllegalArgumentException invalid(@FormatString String format, Object... args) {
     return new IllegalArgumentException(format(format, args));
   }
 
@@ -1438,7 +1440,7 @@ public class QueryBuilderImpl {
         valueCodec,
         executor,
         builder,
-        new HashSet<>(selectedColumns),
+        allSelected,
         internalWhereValues,
         internalBindMarkers,
         wheres,

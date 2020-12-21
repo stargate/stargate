@@ -413,8 +413,8 @@ public class Starter {
         // Avoid loading the wrong persistance module
         if (!dse
             && (name.contains("persistence-dse")
-                || name.contains("persistence-cassandra")
-                    && !name.contains("persistence-cassandra-" + version))) continue;
+                || (name.contains("persistence-cassandra")
+                    && !name.contains("persistence-cassandra-" + version)))) continue;
 
         if (dse
             && (name.contains("persistence-cassandra")

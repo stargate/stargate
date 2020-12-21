@@ -15,7 +15,7 @@ class ReflectionUtils {
   private static final Method requestExecute;
   private static final Method requestSetTracingRequested;
   private static final Method responseGetTracingId;
-  private static final Constructor<?> optionsWithNamesCtor;
+  private static final Constructor<? extends QueryOptions> optionsWithNamesCtor;
 
   static {
     try {
@@ -33,8 +33,10 @@ class ReflectionUtils {
       // passed as that argument, actually does create a DefaultQueryOptions, so we're good.
       Class<?> defaultOptionsClass =
           Class.forName("org.apache.cassandra.cql3.QueryOptions$DefaultQueryOptions");
-      Class<?> withNamesClass =
-          Class.forName("org.apache.cassandra.cql3.QueryOptions$OptionsWithNames");
+      @SuppressWarnings("unchecked")
+      Class<? extends QueryOptions> withNamesClass =
+          (Class<? extends QueryOptions>)
+              Class.forName("org.apache.cassandra.cql3.QueryOptions$OptionsWithNames");
 
       optionsWithNamesCtor = withNamesClass.getDeclaredConstructor(defaultOptionsClass, List.class);
       optionsWithNamesCtor.setAccessible(true);
@@ -46,6 +48,7 @@ class ReflectionUtils {
     }
   }
 
+  @SuppressWarnings("TypeParameterUnusedInFormals")
   private static <T> T invoke(Method method, Object target, Object... args) {
     try {
       Object result = method.invoke(target, args);
@@ -64,10 +67,9 @@ class ReflectionUtils {
     }
   }
 
-  private static <T> T newInstance(Constructor<?> ctor, Object... args) {
+  private static <T> T newInstance(Constructor<T> ctor, Object... args) {
     try {
-      Object result = ctor.newInstance(args);
-      return (T) result;
+      return ctor.newInstance(args);
     } catch (IllegalAccessException e) {
       throw new AssertionError();
     } catch (InstantiationException | InvocationTargetException e) {

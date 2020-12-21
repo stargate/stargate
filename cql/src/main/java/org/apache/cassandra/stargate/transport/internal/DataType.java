@@ -121,7 +121,6 @@ public enum DataType {
       case CUSTOM:
         return CBUtil.readString(cb);
       case LIST:
-        return DataType.toType(codec.decodeOne(cb, version));
       case SET:
         return DataType.toType(codec.decodeOne(cb, version));
       case MAP:
@@ -163,8 +162,6 @@ public enum DataType {
         CBUtil.writeString((String) value, cb);
         break;
       case LIST:
-        codec.writeOne(DataType.fromType((AbstractType) value, version), cb, version);
-        break;
       case SET:
         codec.writeOne(DataType.fromType((AbstractType) value, version), cb, version);
         break;
@@ -189,6 +186,8 @@ public enum DataType {
         for (int i = 0; i < tt.size(); i++)
           codec.writeOne(DataType.fromType(tt.type(i), version), cb, version);
         break;
+      default:
+        // nothing to do for simple types (make ErrorProne happy)
     }
   }
 

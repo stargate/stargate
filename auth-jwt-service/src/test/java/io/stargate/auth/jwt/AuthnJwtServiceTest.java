@@ -28,7 +28,6 @@ import com.nimbusds.jose.proc.BadJOSEException;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jose.proc.SimpleSecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.JWTClaimsSet.Builder;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
 import com.nimbusds.jwt.proc.DefaultJWTProcessor;
@@ -92,7 +91,8 @@ public class AuthnJwtServiceTest {
       throws UnauthorizedException, ParseException, JOSEException, BadJOSEException {
     Map<String, Object> stargate_claims = new HashMap<>();
     stargate_claims.put("x-stargate-role", "user");
-    JWTClaimsSet jwtClaimsSet = new Builder().claim("stargate_claims", stargate_claims).build();
+    JWTClaimsSet jwtClaimsSet =
+        new JWTClaimsSet.Builder().claim("stargate_claims", stargate_claims).build();
     when(jwtProcessorMocked.process("token", null)).thenReturn(jwtClaimsSet);
 
     AuthenticationPrincipal authenticationPrincipal = mockAuthnJwtService.validateToken("token");
@@ -105,7 +105,7 @@ public class AuthnJwtServiceTest {
   public void validateTokenMissingClaims() throws ParseException, JOSEException, BadJOSEException {
     Map<String, Object> stargate_claims = new HashMap<>();
     stargate_claims.put("x-stargate-role", "user");
-    JWTClaimsSet jwtClaimsSet = new Builder().claim("claims", stargate_claims).build();
+    JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder().claim("claims", stargate_claims).build();
     when(jwtProcessorMocked.process("token", null)).thenReturn(jwtClaimsSet);
 
     UnauthorizedException ex =
@@ -117,7 +117,8 @@ public class AuthnJwtServiceTest {
   public void validateTokenMissingRole() throws ParseException, JOSEException, BadJOSEException {
     Map<String, Object> stargate_claims = new HashMap<>();
     stargate_claims.put("x-stargate-foo", "user");
-    JWTClaimsSet jwtClaimsSet = new Builder().claim("stargate_claims", stargate_claims).build();
+    JWTClaimsSet jwtClaimsSet =
+        new JWTClaimsSet.Builder().claim("stargate_claims", stargate_claims).build();
     when(jwtProcessorMocked.process("token", null)).thenReturn(jwtClaimsSet);
 
     UnauthorizedException ex =
@@ -129,7 +130,8 @@ public class AuthnJwtServiceTest {
   public void validateTokenEmptyRole() throws ParseException, JOSEException, BadJOSEException {
     Map<String, Object> stargate_claims = new HashMap<>();
     stargate_claims.put("x-stargate-role", "");
-    JWTClaimsSet jwtClaimsSet = new Builder().claim("stargate_claims", stargate_claims).build();
+    JWTClaimsSet jwtClaimsSet =
+        new JWTClaimsSet.Builder().claim("stargate_claims", stargate_claims).build();
     when(jwtProcessorMocked.process("token", null)).thenReturn(jwtClaimsSet);
 
     UnauthorizedException ex =
@@ -141,7 +143,8 @@ public class AuthnJwtServiceTest {
   public void validateTokenRoleWrongType() throws ParseException, JOSEException, BadJOSEException {
     Map<String, Object> stargate_claims = new HashMap<>();
     stargate_claims.put("x-stargate-role", 1);
-    JWTClaimsSet jwtClaimsSet = new Builder().claim("stargate_claims", stargate_claims).build();
+    JWTClaimsSet jwtClaimsSet =
+        new JWTClaimsSet.Builder().claim("stargate_claims", stargate_claims).build();
     when(jwtProcessorMocked.process("token", null)).thenReturn(jwtClaimsSet);
 
     UnauthorizedException ex =

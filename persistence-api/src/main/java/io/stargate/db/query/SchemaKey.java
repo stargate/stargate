@@ -63,6 +63,7 @@ public abstract class SchemaKey {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object o) {
     if (this == o) {
       return true;
