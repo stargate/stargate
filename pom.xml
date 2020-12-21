@@ -135,6 +135,7 @@
         <module>config-store-api</module>
         <module>config-store-yaml</module>
         <!-- testing last -->
+        <module>testing-services</module>
         <module>testing</module>
       </modules>
     </profile>

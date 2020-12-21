@@ -1,12 +1,16 @@
 package io.stargate.db.dse;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import io.stargate.auth.AuthorizationProcessor;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.common.StargateConfigSnitch;
 import io.stargate.db.datastore.common.StargateSeedProvider;
+import io.stargate.db.dse.impl.DelegatingAuthorizer;
 import io.stargate.db.dse.impl.DsePersistence;
 import java.io.Closeable;
 import java.io.File;
@@ -19,9 +23,9 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
-import org.apache.cassandra.auth.CassandraAuthorizer;
 import org.apache.cassandra.auth.PasswordAuthenticator;
 import org.apache.cassandra.config.Config;
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.config.GuardrailsConfig;
 import org.apache.cassandra.config.ParameterizedClass;
 import org.apache.cassandra.dht.Murmur3Partitioner;
@@ -32,12 +36,20 @@ import org.apache.commons.io.FileUtils;
 
 public class DsePersistenceActivator extends BaseActivator {
 
+  private static final String AUTHZ_PROCESSOR_ID =
+      System.getProperty("stargate.authorization.processor.id");
+
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private final LazyServicePointer<AuthorizationService> authorizationService =
       LazyServicePointer.create(
           AuthorizationService.class,
           "AuthIdentifier",
           System.getProperty("stargate.auth_id", "AuthTableBasedService"));
+  private final ServicePointer<AuthorizationProcessor> authorizationProcessor =
+      ServicePointer.create(
+          AuthorizationProcessor.class,
+          "AuthProcessorId",
+          AUTHZ_PROCESSOR_ID == null ? "NONE" : AUTHZ_PROCESSOR_ID);
 
   private DsePersistence dseDB;
   private File baseDir;
@@ -89,7 +101,7 @@ public class DsePersistenceActivator extends BaseActivator {
     if (enableAuth.equalsIgnoreCase("true")) {
       // TODO: Use DseAuthenticator and DseAuthorizer. We need to configure them properly
       c.authenticator = PasswordAuthenticator.class.getCanonicalName();
-      c.authorizer = CassandraAuthorizer.class.getCanonicalName();
+      c.authorizer = DelegatingAuthorizer.class.getName();
     }
 
     c.cluster_name = clusterName;
@@ -155,6 +167,10 @@ public class DsePersistenceActivator extends BaseActivator {
 
       dseDB.setAuthorizationService(authorizationService.get());
       dseDB.initialize(makeConfig(baseDir));
+
+      DelegatingAuthorizer authorizer = DatabaseDescriptor.getAuthorizer().implementation();
+      authorizer.setProcessor(authorizationProcessor.get());
+
       return new ServiceAndProperties(dseDB, Persistence.class, props);
     } catch (IOException e) {
       throw new IOError(e);
@@ -174,7 +190,14 @@ public class DsePersistenceActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Collections.singletonList(metrics);
+    Builder<ServicePointer<?>> dependencies = ImmutableList.builder();
+    dependencies.add(metrics);
+
+    if (AUTHZ_PROCESSOR_ID != null) {
+      dependencies.add(authorizationProcessor);
+    }
+
+    return dependencies.build();
   }
 
   @Override
