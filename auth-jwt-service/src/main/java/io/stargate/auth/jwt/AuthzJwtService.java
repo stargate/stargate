@@ -83,7 +83,7 @@ public class AuthzJwtService implements AuthorizationService {
     try {
       stargateClaims = extractClaimsFromJWT(token);
       preCheckDataReadWrite(stargateClaims, typedKeyValues);
-    } catch (Exception e) {
+    } catch (Throwable e) {
       CompletableFuture<ResultSet> failedFuture = new CompletableFuture<>();
       failedFuture.completeExceptionally(e);
       return failedFuture;
