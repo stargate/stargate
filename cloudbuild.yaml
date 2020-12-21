@@ -52,7 +52,7 @@ steps:
       - 'PERSISTENCE_BACKEND=cassandra-3.11'
       - 'COMMIT_ID=$COMMIT_SHA'
   - id: 'cassandra-4.0'
-    waitFor: [ 'build' ]
+    waitFor: [ 'cassandra-3.11' ]
     name: 'gcr.io/stargateio/stargate-builder:v1.0.3'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]
@@ -64,7 +64,7 @@ steps:
       - 'PERSISTENCE_BACKEND=cassandra-4.0'
       - 'COMMIT_ID=$COMMIT_SHA'
   - id: 'dse-6.8'
-    waitFor: [ 'build' ]
+    waitFor: [ 'cassandra-4.0' ]
     name: 'gcr.io/stargateio/stargate-builder:v1.0.3'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]
@@ -76,6 +76,7 @@ steps:
       - 'PERSISTENCE_BACKEND=dse-6.8'
       - 'COMMIT_ID=$COMMIT_SHA'
   - name: 'gcr.io/cloud-builders/gsutil'
+    waitFor: [ 'dse-6.8' ]
     args:
       - '-m'
       - 'rsync'
