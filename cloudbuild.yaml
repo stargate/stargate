@@ -91,6 +91,6 @@ steps:
 
 substitutions:
   _BUCKET: 'stargateio-github_cloudbuild'
-timeout: 10800s
+timeout: 14400s
 options:
   machineType: 'N1_HIGHCPU_32'
