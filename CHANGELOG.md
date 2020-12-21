@@ -1,11 +1,31 @@
 # Changelog
 
-## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+## [v1.0.1](https://github.com/stargate/stargate/tree/v1.0.1) (2020-12-17)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.0...HEAD)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.0...v1.0.1)
+
+**Fixed bugs:**
+
+- Put `AuthResponse` validation on a separate thread pool [\#529](https://github.com/stargate/stargate/issues/529)
+- DocumentDBTest does not run in CI [\#527](https://github.com/stargate/stargate/issues/527)
+- Creating a table using REAT API with a column definition of map containing space in between causes 404 [\#522](https://github.com/stargate/stargate/issues/522)
+
+**Closed issues:**
+
+- BaseActivator does not work when no dependent services are needed [\#541](https://github.com/stargate/stargate/issues/541)
+- Question: what should I use as the SEED param when running in Kubernetes? [\#535](https://github.com/stargate/stargate/issues/535)
 
 **Merged pull requests:**
 
+- Modify validation of listen address to support IPv4 and IPv6 [\#546](https://github.com/stargate/stargate/pull/546) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- BaseActivator does not work when no dependent services are needed [\#542](https://github.com/stargate/stargate/pull/542) ([tomekl007](https://github.com/tomekl007))
+- Support service access permissions [\#538](https://github.com/stargate/stargate/pull/538) ([tomekl007](https://github.com/tomekl007))
+- Re-include Docs API unit tests \(fixes \#527\) [\#531](https://github.com/stargate/stargate/pull/531) ([dimas-b](https://github.com/dimas-b))
+- Fix: Move CQL AuthResponse request handling to request threads [\#530](https://github.com/stargate/stargate/pull/530) ([mpenick](https://github.com/mpenick))
+- Declare support for SAI in Persistence [\#528](https://github.com/stargate/stargate/pull/528) ([dimas-b](https://github.com/dimas-b))
+- Fix \#522 - Allow space between CQL base types and parameters [\#525](https://github.com/stargate/stargate/pull/525) ([eribeiro](https://github.com/eribeiro))
+- Add changelog [\#523](https://github.com/stargate/stargate/pull/523) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Bumping version for next release [\#518](https://github.com/stargate/stargate/pull/518) ([github-actions[bot]](https://github.com/apps/github-actions))
 - Make RestApiJWTAuthTest runnable with Java 11 [\#516](https://github.com/stargate/stargate/pull/516) ([dimas-b](https://github.com/dimas-b))
 
 ## [v1.0.0](https://github.com/stargate/stargate/tree/v1.0.0) (2020-12-09)
@@ -80,6 +100,7 @@
 - Publish health checks from each bundle [\#431](https://github.com/stargate/stargate/pull/431) ([olim7t](https://github.com/olim7t))
 - Use single-port Dropwizard servers for all web resources [\#429](https://github.com/stargate/stargate/pull/429) ([olim7t](https://github.com/olim7t))
 - GraphQL: Add dropKeyspace mutation \(fixes \#410\) [\#416](https://github.com/stargate/stargate/pull/416) ([olim7t](https://github.com/olim7t))
+- Add new auth-jwt-service [\#339](https://github.com/stargate/stargate/pull/339) ([dougwettlaufer](https://github.com/dougwettlaufer))
 
 ## [v0.0.26](https://github.com/stargate/stargate/tree/v0.0.26) (2020-11-25)
 
@@ -113,6 +134,7 @@
 - GraphQL: Switch the web stack to DropWizard [\#400](https://github.com/stargate/stargate/issues/400)
 - GraphQL: extract 'FilterOperator' enum [\#307](https://github.com/stargate/stargate/issues/307)
 - GraphQL: add UDT DDL operations [\#285](https://github.com/stargate/stargate/issues/285)
+- Document API appears to return success with incorrect auth token [\#281](https://github.com/stargate/stargate/issues/281)
 - Upgrade graphql-java-servlet dependency once it supports async [\#131](https://github.com/stargate/stargate/issues/131)
 
 **Merged pull requests:**
@@ -131,6 +153,10 @@
 ## [v0.0.23](https://github.com/stargate/stargate/tree/v0.0.23) (2020-11-13)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v0.0.22...v0.0.23)
+
+**Implemented enhancements:**
+
+- GraphQL: Add support for tuple type [\#233](https://github.com/stargate/stargate/issues/233)
 
 **Closed issues:**
 
@@ -161,6 +187,7 @@
 - GraphQL: Support Tuples [\#368](https://github.com/stargate/stargate/pull/368) ([jorgebay](https://github.com/jorgebay))
 - CQL: Proxy protocol integration tests [\#361](https://github.com/stargate/stargate/pull/361) ([mpenick](https://github.com/mpenick))
 - CQL: Add integration tests for `system.local` and `system.peers` [\#351](https://github.com/stargate/stargate/pull/351) ([mpenick](https://github.com/mpenick))
+- REST v1: collection types are not reported in table v1/kesyspaces/{ks}/tables/{t} [\#220](https://github.com/stargate/stargate/pull/220) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Revisit GraphQL naming conventions \(fixes \#118\) [\#216](https://github.com/stargate/stargate/pull/216) ([olim7t](https://github.com/olim7t))
 
 ## [v0.0.22](https://github.com/stargate/stargate/tree/v0.0.22) (2020-11-04)
@@ -200,16 +227,11 @@
 - GraphQL: Support more formats for custom scalars \(fixes \#326\) [\#348](https://github.com/stargate/stargate/pull/348) ([olim7t](https://github.com/olim7t))
 - Bind to 0.0.0.0 for cql unless flag set \(matching other services\) [\#347](https://github.com/stargate/stargate/pull/347) ([tjake](https://github.com/tjake))
 - Cache file read by config-store-yaml to improve performance [\#343](https://github.com/stargate/stargate/pull/343) ([tomekl007](https://github.com/tomekl007))
-- Add new auth-jwt-service [\#339](https://github.com/stargate/stargate/pull/339) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - REST: Support collection operators [\#313](https://github.com/stargate/stargate/pull/313) ([olim7t](https://github.com/olim7t))
 
 ## [v0.0.20](https://github.com/stargate/stargate/tree/v0.0.20) (2020-10-28)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v0.0.19...v0.0.20)
-
-**Implemented enhancements:**
-
-- GraphQL: Add support for tuple type [\#233](https://github.com/stargate/stargate/issues/233)
 
 **Fixed bugs:**
 
@@ -289,6 +311,7 @@
 - Upload code coverage to codacy [\#293](https://github.com/stargate/stargate/pull/293) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Bumping version for next release [\#292](https://github.com/stargate/stargate/pull/292) ([github-actions[bot]](https://github.com/apps/github-actions))
 - Re-login after creating table on the fly to refresh permissions [\#287](https://github.com/stargate/stargate/pull/287) ([EricBorczuk](https://github.com/EricBorczuk))
+- GraphQL: add collection filters [\#286](https://github.com/stargate/stargate/pull/286) ([olim7t](https://github.com/olim7t))
 - Support logged batches in GraphQL [\#284](https://github.com/stargate/stargate/pull/284) ([jorgebay](https://github.com/jorgebay))
 - \#83 Auth resource tests [\#248](https://github.com/stargate/stargate/pull/248) ([FRosner](https://github.com/FRosner))
 
@@ -302,7 +325,6 @@
 
 **Closed issues:**
 
-- Document API appears to return success with incorrect auth token [\#281](https://github.com/stargate/stargate/issues/281)
 - Support UDTs as embedded types [\#126](https://github.com/stargate/stargate/issues/126)
 - Don't ignore clustering key on get/delete row [\#86](https://github.com/stargate/stargate/issues/86)
 - Add integration tests for auth-api [\#82](https://github.com/stargate/stargate/issues/82)
@@ -310,7 +332,6 @@
 **Merged pull requests:**
 
 - Fix initializing auth in auth-table-based-service \(fixes \#288\) [\#290](https://github.com/stargate/stargate/pull/290) ([dougwettlaufer](https://github.com/dougwettlaufer))
-- GraphQL: add collection filters [\#286](https://github.com/stargate/stargate/pull/286) ([olim7t](https://github.com/olim7t))
 - Unauthorized response [\#282](https://github.com/stargate/stargate/pull/282) ([EricBorczuk](https://github.com/EricBorczuk))
 - Bumping version for next release [\#280](https://github.com/stargate/stargate/pull/280) ([github-actions[bot]](https://github.com/apps/github-actions))
 - GraphQL: Fix consistency and paging options [\#279](https://github.com/stargate/stargate/pull/279) ([mpenick](https://github.com/mpenick))
@@ -338,9 +359,9 @@
 - Small fixes/additions to the Documents API [\#264](https://github.com/stargate/stargate/pull/264) ([EricBorczuk](https://github.com/EricBorczuk))
 - GraphQL: test nested collections and fixes [\#263](https://github.com/stargate/stargate/pull/263) ([jorgebay](https://github.com/jorgebay))
 - Bumping version for next release [\#258](https://github.com/stargate/stargate/pull/258) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Support prepopulated tabs and headers in playground [\#238](https://github.com/stargate/stargate/pull/238) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Add parameterMacro to swagger to support prefilling the auth header [\#236](https://github.com/stargate/stargate/pull/236) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Cleanup persistence API and move DataStore on top of it [\#222](https://github.com/stargate/stargate/pull/222) ([pcmanus](https://github.com/pcmanus))
-- REST v1: collection types are not reported in table v1/kesyspaces/{ks}/tables/{t} [\#220](https://github.com/stargate/stargate/pull/220) ([dougwettlaufer](https://github.com/dougwettlaufer))
 
 ## [v0.0.15](https://github.com/stargate/stargate/tree/v0.0.15) (2020-10-13)
 
@@ -368,7 +389,6 @@
 - add document api diagram change [\#249](https://github.com/stargate/stargate/pull/249) ([polandll](https://github.com/polandll))
 - Fix failing test due to timestamp parsing \(Java 9\) [\#242](https://github.com/stargate/stargate/pull/242) ([FRosner](https://github.com/FRosner))
 - Upgrade maven bundle plugin to avoid ConcurrentModificationException [\#241](https://github.com/stargate/stargate/pull/241) ([FRosner](https://github.com/FRosner))
-- Support prepopulated tabs and headers in playground [\#238](https://github.com/stargate/stargate/pull/238) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Centralize versions for common dependencies [\#235](https://github.com/stargate/stargate/pull/235) ([olim7t](https://github.com/olim7t))
 - Fix and test GraphQL error handling [\#231](https://github.com/stargate/stargate/pull/231) ([jorgebay](https://github.com/jorgebay))
 - Re-add build step: Cache Maven packages [\#229](https://github.com/stargate/stargate/pull/229) ([dimas-b](https://github.com/dimas-b))
@@ -492,7 +512,6 @@
 - Set heap in starctl [\#112](https://github.com/stargate/stargate/pull/112) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Add endpoint for token by username [\#111](https://github.com/stargate/stargate/pull/111) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - CQL: Add token-based authentication [\#42](https://github.com/stargate/stargate/pull/42) ([mpenick](https://github.com/mpenick))
-- Setup sonar [\#14](https://github.com/stargate/stargate/pull/14) ([dougwettlaufer](https://github.com/dougwettlaufer))
 
 ## [v0.0.8](https://github.com/stargate/stargate/tree/v0.0.8) (2020-09-21)
 
@@ -556,6 +575,7 @@
 - Remove coordinator and filterchain [\#31](https://github.com/stargate/stargate/pull/31) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Add logback.xml [\#30](https://github.com/stargate/stargate/pull/30) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - add NOTICE, licenses-report, license headers [\#28](https://github.com/stargate/stargate/pull/28) ([csplinter](https://github.com/csplinter))
+- Update CODEOWNERS [\#21](https://github.com/stargate/stargate/pull/21) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Create CODE\_OF\_CONDUCT.md [\#20](https://github.com/stargate/stargate/pull/20) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Update README.md [\#17](https://github.com/stargate/stargate/pull/17) ([dougwettlaufer](https://github.com/dougwettlaufer))
 
@@ -608,10 +628,10 @@
 
 **Merged pull requests:**
 
-- Update CODEOWNERS [\#21](https://github.com/stargate/stargate/pull/21) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Bind http services to the listen address [\#18](https://github.com/stargate/stargate/pull/18) ([jorgebay](https://github.com/jorgebay))
 - Add testing module [\#16](https://github.com/stargate/stargate/pull/16) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Add maven-publish workflow [\#15](https://github.com/stargate/stargate/pull/15) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Setup sonar [\#14](https://github.com/stargate/stargate/pull/14) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Update readme [\#11](https://github.com/stargate/stargate/pull/11) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Add core auth modules [\#10](https://github.com/stargate/stargate/pull/10) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - CQL and supporting modules [\#9](https://github.com/stargate/stargate/pull/9) ([mpenick](https://github.com/mpenick))
