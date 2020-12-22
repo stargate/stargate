@@ -45,7 +45,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<Completio
   }
 
   @Override
-  public final CompletionStage<ResultT> get(DataFetchingEnvironment environment) throws Exception {
+  public final CompletionStage<ResultT> get(DataFetchingEnvironment environment) {
     HttpAwareContext httpAwareContext = environment.getContext();
     String token = httpAwareContext.getAuthToken();
     return authenticationService
