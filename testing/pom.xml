@@ -323,11 +323,11 @@
           </execution>
         </executions>
       </plugin>
-      <!-- Unpack all classes for all stargate dependencies, otherwise jacoco ignores classes it cant find in this module -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
+          <!-- Unpack all classes for all stargate dependencies, otherwise jacoco ignores classes it cant find in this module -->
           <execution>
             <id>unpack</id>
             <phase>package</phase>
@@ -340,6 +340,24 @@
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
               <overWriteReleases>false</overWriteReleases>
               <overWriteSnapshots>true</overWriteSnapshots>
+            </configuration>
+          </execution>
+          <!-- Add the testing-services bundle for integration tests -->
+          <execution>
+            <id>copy-testing-services</id>
+            <phase>pre-integration-test</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>io.stargate.it</groupId>
+                  <artifactId>testing-services</artifactId>
+                  <version>${project.version}</version>
+                </artifactItem>
+              </artifactItems>
+              <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
             </configuration>
           </execution>
         </executions>

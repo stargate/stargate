@@ -46,4 +46,8 @@ public interface StargateEnvironmentInfo {
    * @throws UnsupportedOperationException when attempting to modify a shared environment.
    */
   void removeNode(StargateConnectionInfo node);
+
+  void addStdOutListener(OutputListener listener);
+
+  void removeStdOutListener(OutputListener listener);
 }

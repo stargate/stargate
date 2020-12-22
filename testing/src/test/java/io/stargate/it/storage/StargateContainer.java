@@ -331,6 +331,20 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
       internalNode.awaitExit();
       nodes.remove(node);
     }
+
+    @Override
+    public void addStdOutListener(OutputListener listener) {
+      for (Node node : nodes) {
+        node.addStdOutListener(listener);
+      }
+    }
+
+    @Override
+    public void removeStdOutListener(OutputListener listener) {
+      for (Node node : nodes) {
+        node.removeStdOutListener(listener);
+      }
+    }
   }
 
   private static class Node implements StargateConnectionInfo, ExecuteResultHandler {
@@ -349,6 +363,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     private final String datacenter;
     private final String rack;
     private final File cacheDir;
+    private final Collection<OutputListener> stdoutListeners = new ConcurrentLinkedQueue<>();
 
     private Node(
         int nodeIndex,
@@ -438,6 +453,10 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
                   ready.complete(null);
                 }
 
+                for (OutputListener listener : stdoutListeners) {
+                  listener.processLine(nodeIndex, line);
+                }
+
                 LOG.info("sg{}-{}> {}", instanceNum, nodeIndex, line);
               }
             };
@@ -473,6 +492,14 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
       } finally {
         exit.countDown();
       }
+    }
+
+    private void addStdOutListener(OutputListener listener) {
+      stdoutListeners.add(listener);
+    }
+
+    private void removeStdOutListener(OutputListener listener) {
+      stdoutListeners.remove(listener);
     }
 
     private void cleanup() {
