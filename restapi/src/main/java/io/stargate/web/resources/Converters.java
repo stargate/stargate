@@ -44,10 +44,12 @@ import io.stargate.web.models.TableOptions;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -206,13 +208,14 @@ public class Converters {
       case Inet:
       case Duration:
         throw new IllegalArgumentException(
-            String.format("Invalid %s value: expected a string", type.rawType()));
+            String.format("Invalid %s value '%s': expected a string", type.rawType(), jsonValue));
       case Boolean:
         if (jsonValue instanceof Boolean) {
           return jsonValue;
         } else {
           throw new IllegalArgumentException(
-              "Invalid Boolean value: expected a boolean or a string");
+              String.format(
+                  "Invalid Boolean value '%s': expected a boolean or a string", jsonValue));
         }
       case Tinyint:
         return toCqlInt(
@@ -254,19 +257,22 @@ public class Converters {
           return BigInteger.valueOf(((Number) jsonValue).longValue());
         } else {
           throw new IllegalArgumentException(
-              "Invalid Varint value: expected an integer or a string");
+              String.format(
+                  "Invalid Varint value '%s': expected an integer or a string", jsonValue));
         }
       case Float:
         if (jsonValue instanceof Number) {
           return ((Number) jsonValue).floatValue();
         } else {
-          throw new IllegalArgumentException("Invalid Float value: expected a number or a string");
+          throw new IllegalArgumentException(
+              String.format("Invalid Float value '%s': expected a number or a string", jsonValue));
         }
       case Double:
         if (jsonValue instanceof Number) {
           return ((Number) jsonValue).doubleValue();
         } else {
-          throw new IllegalArgumentException("Invalid Double value: expected a number or a string");
+          throw new IllegalArgumentException(
+              String.format("Invalid Double value '%s': expected a number or a string", jsonValue));
         }
       case Decimal:
         if (jsonValue instanceof BigDecimal) {
@@ -275,26 +281,30 @@ public class Converters {
           return BigDecimal.valueOf(((Number) jsonValue).doubleValue());
         } else {
           throw new IllegalArgumentException(
-              "Invalid Decimal value: expected a number or a string");
+              String.format(
+                  "Invalid Decimal value '%s': expected a number or a string", jsonValue));
         }
       case Date:
         if (jsonValue instanceof Integer || jsonValue instanceof Long) {
           return EPOCH.plusDays(cqlDateToDaysSinceEpoch(((Number) jsonValue).longValue()));
         } else {
-          throw new IllegalArgumentException("Invalid Date value: expected an integer or a string");
+          throw new IllegalArgumentException(
+              String.format("Invalid Date value '%s': expected an integer or a string", jsonValue));
         }
       case Time:
         if (jsonValue instanceof Integer || jsonValue instanceof Long) {
           return LocalTime.ofNanoOfDay(((Number) jsonValue).longValue());
         } else {
-          throw new IllegalArgumentException("Invalid Time value: expected an integer or a string");
+          throw new IllegalArgumentException(
+              String.format("Invalid Time value '%s': expected an integer or a string", jsonValue));
         }
       case Timestamp:
         if (jsonValue instanceof Integer || jsonValue instanceof Long) {
           return Instant.ofEpochMilli(((Number) jsonValue).longValue());
         } else {
           throw new IllegalArgumentException(
-              "Invalid Timestamp value: expected an integer or a string");
+              String.format(
+                  "Invalid Timestamp value '%s': expected an integer or a string", jsonValue));
         }
       case List:
         if (jsonValue instanceof List) {
@@ -302,7 +312,8 @@ public class Converters {
               type, (List<Object>) jsonValue, ArrayList::new, Collections.emptyList());
         } else {
           throw new IllegalArgumentException(
-              "Invalid List value: expected a JSON array or a string");
+              String.format(
+                  "Invalid List value '%s': expected a JSON array or a string", jsonValue));
         }
       case Set:
         if (jsonValue instanceof List) {
@@ -310,28 +321,33 @@ public class Converters {
               type, (List<Object>) jsonValue, LinkedHashSet::new, Collections.emptySet());
         } else {
           throw new IllegalArgumentException(
-              "Invalid Set value: expected a JSON array or a string");
+              String.format(
+                  "Invalid Set value '%s': expected a JSON array or a string", jsonValue));
         }
       case Map:
         if (jsonValue instanceof List) {
           return toCqlMap(type, (List<Object>) jsonValue);
         } else {
           throw new IllegalArgumentException(
-              "Invalid Map value: expected a JSON array of key/value objects, or a string");
+              String.format(
+                  "Invalid Map value '%s': expected a JSON array of key/value objects, or a string",
+                  jsonValue));
         }
       case Tuple:
         if (jsonValue instanceof List) {
           return toCqlTuple((TupleType) type, (List<Object>) jsonValue);
         } else {
           throw new IllegalArgumentException(
-              "Invalid Tuple value: expected a JSON array or a string");
+              String.format(
+                  "Invalid Tuple value '%s': expected a JSON array or a string", jsonValue));
         }
       case UDT:
         if (jsonValue instanceof Map) {
           return toCqlUdt((UserDefinedType) type, (Map<String, Object>) jsonValue);
         } else {
           throw new IllegalArgumentException(
-              "Invalid UDT value: expected a JSON object or a string");
+              String.format(
+                  "Invalid UDT value '%s': expected a JSON object or a string", jsonValue));
         }
       default:
         throw new AssertionError("Unsupported data type: " + type.rawType());
@@ -350,7 +366,7 @@ public class Converters {
         return fromBigIntegerExact.apply((BigInteger) jsonValue);
       } catch (ArithmeticException e) {
         throw new IllegalArgumentException(
-            String.format("Invalid %s value %s: out of range", type.rawType(), jsonValue));
+            String.format("Invalid %s value '%s': out of range", type.rawType(), jsonValue));
       }
     }
     if (jsonValue instanceof Integer || jsonValue instanceof Long) {
@@ -358,12 +374,13 @@ public class Converters {
       long longValue = number.longValue();
       if (longValue < min || longValue > max) {
         throw new IllegalArgumentException(
-            String.format("Invalid %s value %s: out of range", type.rawType(), jsonValue));
+            String.format("Invalid %s value '%s': out of range", type.rawType(), jsonValue));
       }
       return fromNumber.apply(number);
     }
     throw new IllegalArgumentException(
-        String.format("Invalid %s value: expected an integer or a string", type.rawType()));
+        String.format(
+            "Invalid %s value '%s': expected an integer or a string", type.rawType(), jsonValue));
   }
 
   private static <C extends Collection<Object>> C toCqlCollection(
@@ -381,7 +398,7 @@ public class Converters {
       } catch (Exception e) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid %s element at index %d (%s)", type.rawType(), index, e.getMessage()));
+                "%s (at index %d of %s '%s')", e.getMessage(), index, type.rawType(), jsonValues));
       }
       index += 1;
     }
@@ -402,7 +419,9 @@ public class Converters {
           || !((Map) jsonValue).containsKey("key")
           || !((Map) jsonValue).containsKey("value")) {
         throw new IllegalArgumentException(
-            "Invalid Map value: inner elements must be objects with two fields 'key' and 'value'");
+            String.format(
+                "Invalid Map value '%s': inner elements must be objects with two fields 'key' and 'value'",
+                jsonEntries));
       }
       @SuppressWarnings("unchecked")
       Map<String, Object> jsonEntry = (Map<String, Object>) jsonValue;
@@ -411,13 +430,14 @@ public class Converters {
         key = toCqlValue(keyType, jsonEntry.get("key"));
       } catch (Exception e) {
         throw new IllegalArgumentException(
-            String.format("Invalid Map key at index %d (%s)", index, e.getMessage()));
+            String.format("%s (key at index %d of Map '%s')", e.getMessage(), index, jsonEntries));
       }
       try {
-        value = jsonEntry.get("value");
+        value = toCqlValue(valueType, jsonEntry.get("value"));
       } catch (Exception e) {
         throw new IllegalArgumentException(
-            String.format("Invalid Map value at index %d (%s)", index, e.getMessage()));
+            String.format(
+                "%s (value at index %d of Map '%s')", e.getMessage(), index, jsonEntries));
       }
       result.put(key, toCqlValue(valueType, value));
       index += 1;
@@ -433,7 +453,8 @@ public class Converters {
         fields.add(toCqlValue(type.parameters().get(index), jsonValue));
       } catch (Exception e) {
         throw new IllegalArgumentException(
-            String.format("Invalid Tuple field at index %d (%s)", index, e.getMessage()));
+            String.format(
+                "%s (field at index %d of Tuple '%s')", e.getMessage(), index, jsonValues));
       }
       index += 1;
     }
@@ -448,14 +469,15 @@ public class Converters {
       Object jsonFieldValue = jsonEntry.getValue();
       if (!type.columnMap().containsKey(fieldId)) {
         throw new IllegalArgumentException(
-            String.format("Invalid UDT value: unknown field name \"%s\"", fieldId));
+            String.format(
+                "Invalid UDT value '%s': unknown field name \"%s\"", jsonObject, fieldId));
       }
       Column.ColumnType fieldType = type.fieldType(fieldId);
       try {
         udtValue = udtValue.set(fieldId, toCqlValue(fieldType, jsonFieldValue), fieldType.codec());
       } catch (Exception e) {
         throw new IllegalArgumentException(
-            String.format("Invalid UDT field %s (%s)", fieldId, e.getMessage()), e);
+            String.format("%s (field '%s' of UDT '%s')", e.getMessage(), fieldId, jsonObject));
       }
     }
     return udtValue;
@@ -465,8 +487,8 @@ public class Converters {
     if (raw < 0 || raw > MAX_CQL_LONG_VALUE)
       throw new IllegalArgumentException(
           String.format(
-              "Invalid Date value: numeric literals must be between 0 and %d (got %d)",
-              MAX_CQL_LONG_VALUE, raw));
+              "Invalid Date value '%d': numeric literals must be between 0 and %d",
+              raw, MAX_CQL_LONG_VALUE));
     return (int) (raw - EPOCH_AS_CQL_LONG);
   }
 
@@ -490,63 +512,105 @@ public class Converters {
     // Handle complex types separately because they already handle parsing errors:
     if (rawType == Column.Type.List) {
       return toCqlCollection(type, value, ArrayList::new, Collections.emptyList(), '[', ']');
-    } else if (rawType == Column.Type.Set) {
+    }
+    if (rawType == Column.Type.Set) {
       return toCqlCollection(type, value, LinkedHashSet::new, Collections.emptySet(), '{', '}');
-    } else if (rawType == Column.Type.Map) {
+    }
+    if (rawType == Column.Type.Map) {
       return toCqlMap(type, value);
-    } else if (rawType == Column.Type.Tuple) {
+    }
+    if (rawType == Column.Type.Tuple) {
       return toCqlTuple((TupleType) type, value);
-    } else if (rawType == Column.Type.UDT) {
+    }
+
+    if (rawType == Column.Type.UDT) {
       return toCqlUdt((UserDefinedType) type, value);
-    } else {
-      try {
-        switch (rawType) {
-          case Text:
-          case Varchar:
-          case Ascii:
-            return value;
-          case Boolean:
-            return Boolean.valueOf(value);
-          case Tinyint:
-            return Byte.valueOf(value);
-          case Smallint:
-            return Short.valueOf(value);
-          case Int:
-            return Integer.valueOf(value);
-          case Bigint:
-          case Counter:
-            return Long.valueOf(value);
-          case Float:
-            return Float.parseFloat(value);
-          case Double:
-            return Double.parseDouble(value);
-          case Varint:
-            return new BigInteger(value);
-          case Decimal:
-            return new BigDecimal(value);
-          case Uuid:
-          case Timeuuid:
-            return UUID.fromString(value);
-          case Blob:
-            return ByteBuffer.wrap(Base64.getDecoder().decode(value));
-          case Inet:
-            return InetAddress.getByName(value);
-          case Date:
-            return LocalDate.parse(value);
-          case Time:
-            return LocalTime.parse(value);
-          case Timestamp:
-            return Instant.parse(value);
-          case Duration:
-            return CqlDuration.from(value);
-          default:
-            throw new AssertionError("Unsupported data type: " + rawType);
-        }
-      } catch (Exception e) {
+    }
+
+    if (rawType == Column.Type.Text
+        || rawType == Column.Type.Varchar
+        || rawType == Column.Type.Ascii) {
+      return value;
+    }
+
+    if (rawType == Column.Type.Boolean) {
+      // Boolean.parseBoolean returns false for anything not equal to "true"
+      if (value.equalsIgnoreCase("true")) {
+        return true;
+      } else if (value.equalsIgnoreCase("false")) {
+        return false;
+      } else {
         throw new IllegalArgumentException(
-            String.format("Invalid %s value: %s", rawType, e.getMessage()));
+            String.format("Invalid Boolean value '%s': cannot parse", value));
       }
     }
+
+    try {
+      if (rawType == Column.Type.Uuid || rawType == Column.Type.Timeuuid) {
+        return UUID.fromString(value);
+      }
+      if (rawType == Column.Type.Blob) {
+        return ByteBuffer.wrap(Base64.getDecoder().decode(value));
+      }
+      if (rawType == Column.Type.Duration) {
+        return CqlDuration.from(value);
+      }
+      if (rawType == Column.Type.Tinyint) {
+        return Byte.valueOf(value);
+      }
+      if (rawType == Column.Type.Smallint) {
+        return Short.valueOf(value);
+      }
+      if (rawType == Column.Type.Int) {
+        return Integer.valueOf(value);
+      }
+      if (rawType == Column.Type.Bigint || rawType == Column.Type.Counter) {
+        return Long.valueOf(value);
+      }
+      if (rawType == Column.Type.Float) {
+        return Float.parseFloat(value);
+      }
+      if (rawType == Column.Type.Double) {
+        return Double.parseDouble(value);
+      }
+      if (rawType == Column.Type.Varint) {
+        return new BigInteger(value);
+      }
+      if (rawType == Column.Type.Decimal) {
+        return new BigDecimal(value);
+      }
+    } catch (IllegalArgumentException e) {
+      // The exception's message doesn't really add information in any of those cases, use a generic
+      // description:
+      throw new IllegalArgumentException(
+          String.format("Invalid %s value '%s': cannot parse", rawType, value));
+    }
+
+    if (rawType == Column.Type.Inet) {
+      try {
+        return InetAddress.getByName(value);
+      } catch (UnknownHostException e) {
+        throw new IllegalArgumentException("Invalid Inet value " + e.getMessage());
+      }
+    }
+
+    try {
+      if (rawType == Column.Type.Date) {
+        return LocalDate.parse(value);
+      }
+      if (rawType == Column.Type.Time) {
+        return LocalTime.parse(value);
+      }
+      if (rawType == Column.Type.Timestamp) {
+        return Instant.parse(value);
+      }
+    } catch (DateTimeParseException e) {
+      // The original message is pretty detailed, keep it:
+      throw new IllegalArgumentException(
+          String.format("Invalid %s value: %s", rawType, e.getMessage()));
+    }
+
+    throw new AssertionError("Unsupported data type: " + rawType);
   }
 
   private static <C extends Collection<Object>> C toCqlCollection(
@@ -557,13 +621,25 @@ public class Converters {
       char openingBrace,
       char closingBrace) {
     int idx = ParseUtils.skipSpaces(value, 0);
+    if (idx >= value.length()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid %s value '%s': at character %d expecting '%c' but got EOF",
+              type.rawType(), value, idx, openingBrace));
+    }
     if (value.charAt(idx++) != openingBrace) {
       throw new IllegalArgumentException(
           String.format(
-              "Invalid %s value: at character %d expecting '%s' but got '%c'",
-              type.rawType(), idx, openingBrace, value.charAt(idx)));
+              "Invalid %s value '%s': at character %d expecting '%s' but got '%c'",
+              type.rawType(), value, idx, openingBrace, value.charAt(idx)));
     }
     idx = ParseUtils.skipSpaces(value, idx);
+    if (idx >= value.length()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid %s value '%s': at character %d expecting element or '%c' but got EOF",
+              type.rawType(), value, idx, closingBrace));
+    }
     if (value.charAt(idx) == closingBrace) {
       return empty;
     }
@@ -574,40 +650,59 @@ public class Converters {
       if (n < 0) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid %s value: invalid CQL value at character %d", type.rawType(), idx));
+                "Invalid %s value '%s': invalid CQL value at character %d",
+                type.rawType(), value, idx));
       }
 
       collection.add(toCqlValue(elementType, value.substring(idx, n)));
       idx = n;
 
       idx = ParseUtils.skipSpaces(value, idx);
+      if (idx >= value.length()) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid %s value '%s': at character %d expecting ',' or '%c' but got EOF",
+                type.rawType(), value, idx, closingBrace));
+      }
       if (value.charAt(idx) == closingBrace) {
         return collection;
       }
       if (value.charAt(idx++) != ',') {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid %s value: at character %d expecting ',' but got '%c'",
-                type.rawType(), idx, value.charAt(idx)));
+                "Invalid %s value '%s': at character %d expecting ',' but got '%c'",
+                type.rawType(), value, idx, value.charAt(idx)));
       }
 
       idx = ParseUtils.skipSpaces(value, idx);
     }
     throw new IllegalArgumentException(
-        String.format("Invalid %s value: missing closing '%s'", type.rawType(), closingBrace));
+        String.format(
+            "Invalid %s value '%s': missing closing '%s'", type.rawType(), value, closingBrace));
   }
 
   private static Map<Object, Object> toCqlMap(Column.ColumnType type, String value) {
     int idx = ParseUtils.skipSpaces(value, 0);
+    if (idx >= value.length()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid Map value '%s': at character %d expecting '{' but got EOF", value, idx));
+    }
     if (value.charAt(idx++) != '{') {
       throw new IllegalArgumentException(
           String.format(
-              "Invalid map value: at character %d expecting '{' but got '%c'",
-              idx, value.charAt(idx)));
+              "Invalid map value '%s': at character %d expecting '{' but got '%c'",
+              value, idx, value.charAt(idx)));
     }
 
     idx = ParseUtils.skipSpaces(value, idx);
 
+    if (idx >= value.length()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid Map value '%s': at character %d expecting element or '}' but got EOF",
+              value, idx));
+    }
     if (value.charAt(idx) == '}') {
       return Collections.emptyMap();
     }
@@ -620,25 +715,30 @@ public class Converters {
       int n = ParseUtils.skipCqlValue(value, idx);
       if (n < 0) {
         throw new IllegalArgumentException(
-            String.format("Invalid map value: invalid CQL value at character %d", idx));
+            String.format("Invalid map value '%s': invalid CQL value at character %d", value, idx));
       }
 
       Object k = toCqlValue(keyType, value.substring(idx, n));
       idx = n;
 
       idx = ParseUtils.skipSpaces(value, idx);
-      if (value.charAt(idx++) != ':') {
+      if (idx >= value.length()) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid map value: at character %d expecting ':' but got '%c'",
-                idx, value.charAt(idx)));
+                "Invalid map value '%s': at character %d expecting ':' but got EOF", value, idx));
       }
-      idx = ParseUtils.skipSpaces(value, idx);
+      if (value.charAt(idx) != ':') {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid map value '%s': at character %d expecting ':' but got '%c'",
+                value, idx, value.charAt(idx)));
+      }
+      idx = ParseUtils.skipSpaces(value, ++idx);
 
       n = ParseUtils.skipCqlValue(value, idx);
       if (n < 0) {
         throw new IllegalArgumentException(
-            String.format("Invalid map value: invalid CQL value at character %d", idx));
+            String.format("Invalid map value '%s': invalid CQL value at character %d", value, idx));
       }
 
       Object v = toCqlValue(valueType, value.substring(idx, n));
@@ -647,94 +747,106 @@ public class Converters {
       map.put(k, v);
 
       idx = ParseUtils.skipSpaces(value, idx);
+      if (idx >= value.length()) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid map value '%s': at character %d expecting ',' or '}' but got EOF",
+                value, idx));
+      }
       if (value.charAt(idx) == '}') {
         return map;
       }
       if (value.charAt(idx++) != ',') {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid map value: at character %d expecting ',' but got '%c'",
-                idx, value.charAt(idx)));
+                "Invalid map value '%s': at character %d expecting ',' but got '%c'",
+                value, idx, value.charAt(idx)));
       }
 
       idx = ParseUtils.skipSpaces(value, idx);
     }
-    throw new IllegalArgumentException("Invalid map value: missing closing '}'");
+    throw new IllegalArgumentException(
+        String.format("Invalid map value '%s': missing closing '}'", value));
   }
 
   private static TupleValue toCqlTuple(TupleType type, String value) {
     List<Object> fields = new ArrayList<>();
     int length = value.length();
 
-    int position = ParseUtils.skipSpaces(value, 0);
-    if (value.charAt(position) != '(') {
+    int idx = ParseUtils.skipSpaces(value, 0);
+    if (idx >= value.length()) {
       throw new IllegalArgumentException(
           String.format(
-              "Invalid tuple value: at character %d expecting '(' but got '%c'",
-              position, value.charAt(position)));
+              "Invalid Tuple value '%s': at character %d expecting '(' but got EOF", value, idx));
+    }
+    if (value.charAt(idx) != '(') {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid tuple value '%s': at character %d expecting '(' but got '%c'",
+              value, idx, value.charAt(idx)));
     }
 
-    position++;
-    position = ParseUtils.skipSpaces(value, position);
+    idx++;
+    idx = ParseUtils.skipSpaces(value, idx);
 
     int fieldIndex = 0;
-    while (position < length) {
-      if (value.charAt(position) == ')') {
-        position = ParseUtils.skipSpaces(value, position + 1);
-        if (position == length) {
+    while (idx < length) {
+      if (value.charAt(idx) == ')') {
+        idx = ParseUtils.skipSpaces(value, idx + 1);
+        if (idx == length) {
           return type.create(fields.toArray());
         }
         throw new IllegalArgumentException(
             String.format(
-                "Invalid tuple value: at character %d expecting EOF or blank, but got \"%s\"",
-                position, value.substring(position)));
+                "Invalid tuple value '%s': at character %d expecting EOF or blank, but got \"%s\"",
+                value, idx, value.substring(idx)));
       }
-      int n = ParseUtils.skipCqlValue(value, position);
+      int n = ParseUtils.skipCqlValue(value, idx);
       if (n < 0) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid tuple value: invalid CQL value at field %d (character %d)",
-                fieldIndex, position));
+                "Invalid tuple value '%s': invalid CQL value at field %d (character %d)",
+                value, fieldIndex, idx));
       }
 
-      String fieldValue = value.substring(position, n);
+      String fieldValue = value.substring(idx, n);
       try {
         fields.add(toCqlValue(type.parameters().get(fieldIndex), fieldValue));
       } catch (Exception e) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid tuple value: invalid CQL value at field %d (character %d): %s",
-                fieldIndex, position, e.getMessage()),
+                "Invalid tuple value '%s': invalid CQL value at field %d (character %d): %s",
+                value, fieldIndex, idx, e.getMessage()),
             e);
       }
 
-      position = n;
+      idx = n;
 
-      position = ParseUtils.skipSpaces(value, position);
-      if (position == length) {
+      idx = ParseUtils.skipSpaces(value, idx);
+      if (idx == length) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid tuple value: at field %d (character %d) expecting ',' or ')', but got EOF",
-                fieldIndex, position));
+                "Invalid tuple value '%s': at field %d (character %d) expecting ',' or ')', but got EOF",
+                value, fieldIndex, idx));
       }
-      if (value.charAt(position) == ')') {
+      if (value.charAt(idx) == ')') {
         continue;
       }
-      if (value.charAt(position) != ',') {
+      if (value.charAt(idx) != ',') {
         throw new IllegalArgumentException(
             String.format(
-                "Cannot parse tuple value, at field %d (character %d) expecting ',' but got '%c'",
-                fieldIndex, position, value.charAt(position)));
+                "Invalid tuple value '%s': at field %d (character %d) expecting ',' but got '%c'",
+                value, fieldIndex, idx, value.charAt(idx)));
       }
-      ++position; // skip ','
+      ++idx; // skip ','
 
-      position = ParseUtils.skipSpaces(value, position);
+      idx = ParseUtils.skipSpaces(value, idx);
       fieldIndex += 1;
     }
     throw new IllegalArgumentException(
         String.format(
-            "Invalid tuple value: at field %d (character %d) expecting CQL value or ')', got EOF",
-            fieldIndex, position));
+            "Invalid tuple value '%s': at field %d (character %d) expecting CQL value or ')', got EOF",
+            value, fieldIndex, idx));
   }
 
   @SuppressWarnings("unchecked")
@@ -742,75 +854,83 @@ public class Converters {
     UdtValue udtValue = type.create();
     int length = value.length();
 
-    int position = ParseUtils.skipSpaces(value, 0);
-    if (value.charAt(position) != '{') {
+    int idx = ParseUtils.skipSpaces(value, 0);
+    if (idx >= value.length()) {
       throw new IllegalArgumentException(
           String.format(
-              "Invalid UDT value: at character %d: expecting '{' but got '%c'",
-              position, value.charAt(position)));
+              "Invalid UDT value '%s': at character %d expecting '{' but got EOF", value, idx));
+    }
+    if (value.charAt(idx) != '{') {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid UDT value '%s': at character %d expecting '{' but got '%c'",
+              value, idx, value.charAt(idx)));
     }
 
-    position++;
-    position = ParseUtils.skipSpaces(value, position);
+    idx++;
+    idx = ParseUtils.skipSpaces(value, idx);
 
-    if (position == length) {
+    if (idx == length) {
       throw new IllegalArgumentException(
           String.format(
-              "Invalid UDT value: at character %d: expecting CQL identifier or '}', got EOF",
-              position));
+              "Invalid UDT value '%s': at character %d expecting CQL identifier or '}', got EOF",
+              value, idx));
     }
 
     String id = null;
-    while (position < length) {
-      if (value.charAt(position) == '}') {
-        position = ParseUtils.skipSpaces(value, position + 1);
-        if (position == length) {
+    while (idx < length) {
+      if (value.charAt(idx) == '}') {
+        idx = ParseUtils.skipSpaces(value, idx + 1);
+        if (idx == length) {
           return udtValue;
         }
         throw new IllegalArgumentException(
             String.format(
-                "Invalid UDT value: at character %d expecting EOF or blank, but got \"%s\"",
-                position, value.substring(position)));
+                "Invalid UDT value '%s': at character %d expecting EOF or blank, but got \"%s\"",
+                value, idx, value.substring(idx)));
       }
-      int n = ParseUtils.skipCqlId(value, position);
+      int n = ParseUtils.skipCqlId(value, idx);
       if (n < 0) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid UDT value: cannot parse a CQL identifier at character %d", position));
+                "Invalid UDT value '%s': cannot parse a CQL identifier at character %d",
+                value, idx));
       }
-      id = value.substring(position, n);
-      position = n;
+      id = value.substring(idx, n);
+      idx = n;
 
       if (!type.columnMap().containsKey(id)) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid UDT value: unknown field name at character %d: \"%s\"", position, id));
+                "Invalid UDT value '%s': unknown field name at character %d: \"%s\"",
+                value, idx, id));
       }
 
-      position = ParseUtils.skipSpaces(value, position);
-      if (position == length) {
+      idx = ParseUtils.skipSpaces(value, idx);
+      if (idx == length) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid UDT value: at field %s (character %d) expecting ':', but got EOF",
-                id, position));
+                "Invalid UDT value '%s': at field %s (character %d) expecting ':', but got EOF",
+                value, id, idx));
       }
-      if (value.charAt(position) != ':') {
+      if (value.charAt(idx) != ':') {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid UDT value: at field %s (character %d) expecting ':', but got '%c'",
-                id, position, value.charAt(position)));
+                "Invalid UDT value '%s': at field %s (character %d) expecting ':', but got '%c'",
+                value, id, idx, value.charAt(idx)));
       }
-      position++;
-      position = ParseUtils.skipSpaces(value, position);
+      idx++;
+      idx = ParseUtils.skipSpaces(value, idx);
 
-      n = ParseUtils.skipCqlValue(value, position);
+      n = ParseUtils.skipCqlValue(value, idx);
       if (n < 0) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid UDT value: invalid CQL value at field %s (character %d)", id, position));
+                "Invalid UDT value '%s': invalid CQL value at field %s (character %d)",
+                value, id, idx));
       }
 
-      String fieldValue = value.substring(position, n);
+      String fieldValue = value.substring(idx, n);
       // This works because ids occur at most once in UDTs
       Column.ColumnType fieldType = type.fieldType(id);
       try {
@@ -818,36 +938,36 @@ public class Converters {
       } catch (Exception e) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid UDT value: invalid CQL value at field %s (character %d): %s",
-                id, position, e.getMessage()),
+                "Invalid UDT value '%s': invalid CQL value at field %s (character %d): %s",
+                value, id, idx, e.getMessage()),
             e);
       }
-      position = n;
+      idx = n;
 
-      position = ParseUtils.skipSpaces(value, position);
-      if (position == length) {
+      idx = ParseUtils.skipSpaces(value, idx);
+      if (idx == length) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid UDT value: at field %s (character %d) expecting ',' or '}', but got EOF",
-                id, position));
+                "Invalid UDT value '%s': at field %s (character %d) expecting ',' or '}', but got EOF",
+                value, id, idx));
       }
-      if (value.charAt(position) == '}') {
+      if (value.charAt(idx) == '}') {
         continue;
       }
-      if (value.charAt(position) != ',') {
+      if (value.charAt(idx) != ',') {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid UDT value: at field %s (character %d) expecting ',' but got '%c'",
-                id, position, value.charAt(position)));
+                "Invalid UDT value '%s': at field %s (character %d) expecting ',' but got '%c'",
+                value, id, idx, value.charAt(idx)));
       }
-      ++position; // skip ','
+      ++idx; // skip ','
 
-      position = ParseUtils.skipSpaces(value, position);
+      idx = ParseUtils.skipSpaces(value, idx);
     }
     throw new IllegalArgumentException(
         String.format(
-            "Invalid UDT value: at field %s (character %d): expecting CQL identifier or '}', got EOF",
-            id, position));
+            "Invalid UDT value '%s': at field %s (character %d): expecting CQL identifier or '}', got EOF",
+            value, id, idx));
   }
 
   public static Column.Kind getColumnKind(ColumnDefinition def, PrimaryKey primaryKey) {
