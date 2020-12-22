@@ -18,7 +18,7 @@ package io.stargate.auth.table;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
-import io.stargate.db.Persistence;
+import io.stargate.db.datastore.DataStoreFactory;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Hashtable;
@@ -26,15 +26,11 @@ import java.util.List;
 import net.jcip.annotations.GuardedBy;
 
 public class AuthTableBasedServiceActivator extends BaseActivator {
-
   @SuppressWarnings("JdkObsolete")
-  private static Hashtable<String, String> props = new Hashtable<>();
+  static Hashtable<String, String> props = new Hashtable<>();
 
-  private final ServicePointer<Persistence> persistence =
-      ServicePointer.create(
-          Persistence.class,
-          "Identifier",
-          System.getProperty("stargate.persistence_id", "CassandraPersistence"));
+  private final ServicePointer<DataStoreFactory> dataStoreFactory =
+      ServicePointer.create(DataStoreFactory.class);
   public static final String AUTH_TABLE_IDENTIFIER = "AuthTableBasedService";
 
   static {
@@ -57,7 +53,7 @@ public class AuthTableBasedServiceActivator extends BaseActivator {
   protected List<ServiceAndProperties> createServices() {
     if (AUTH_TABLE_IDENTIFIER.equals(
         System.getProperty("stargate.auth_id", AUTH_TABLE_IDENTIFIER))) {
-      authnTableBasedService.setPersistence(persistence.get());
+      authnTableBasedService.setDataStoreFactory(dataStoreFactory.get());
 
       return Arrays.asList(
           new ServiceAndProperties(authnTableBasedService, AuthenticationService.class, props),
@@ -73,6 +69,6 @@ public class AuthTableBasedServiceActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Collections.singletonList(persistence);
+    return Collections.singletonList(dataStoreFactory);
   }
 }

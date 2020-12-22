@@ -23,8 +23,8 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.core.util.ByteBufferUtils;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.BoundSelect;
@@ -46,10 +46,10 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
   public QueryFetcher(
       Table table,
       NameMapping nameMapping,
-      Persistence persistence,
       AuthenticationService authenticationService,
-      AuthorizationService authorizationService) {
-    super(table, nameMapping, persistence, authenticationService, authorizationService);
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
+    super(table, nameMapping, authenticationService, authorizationService, dataStoreFactory);
   }
 
   @Override

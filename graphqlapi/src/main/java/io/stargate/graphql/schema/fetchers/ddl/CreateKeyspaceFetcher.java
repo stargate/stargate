@@ -17,7 +17,7 @@ package io.stargate.graphql.schema.fetchers.ddl;
 
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.*;
-import io.stargate.db.Persistence;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.query.builder.Replication;
@@ -29,10 +29,10 @@ import java.util.Map;
 public class CreateKeyspaceFetcher extends DdlQueryFetcher {
 
   public CreateKeyspaceFetcher(
-      Persistence persistence,
       AuthenticationService authenticationService,
-      AuthorizationService authorizationService) {
-    super(persistence, authenticationService, authorizationService);
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
+    super(authenticationService, authorizationService, dataStoreFactory);
   }
 
   @Override
