@@ -16,6 +16,7 @@
 package io.stargate.auth;
 
 import io.stargate.db.Authenticator.SaslNegotiator;
+import java.util.concurrent.CompletionStage;
 
 public interface AuthenticationService {
 
@@ -24,6 +25,8 @@ public interface AuthenticationService {
   String createToken(String key) throws UnauthorizedException;
 
   StoredCredentials validateToken(String token) throws UnauthorizedException;
+
+  CompletionStage<StoredCredentials> validateTokenAsync(String token);
 
   SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped);
 }

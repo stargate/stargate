@@ -14,10 +14,11 @@ import io.stargate.graphql.web.HttpAwareContext;
 import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /** Base class for fetchers that access the Cassandra backend. It also handles authentication. */
-public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> {
+public abstract class CassandraFetcher<ResultT> implements DataFetcher<CompletionStage<ResultT>> {
 
   protected final Persistence persistence;
   protected final AuthenticationService authenticationService;
@@ -44,12 +45,17 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
   }
 
   @Override
-  public final ResultT get(DataFetchingEnvironment environment) throws Exception {
+  public final CompletionStage<ResultT> get(DataFetchingEnvironment environment) throws Exception {
     HttpAwareContext httpAwareContext = environment.getContext();
-
     String token = httpAwareContext.getAuthToken();
-    StoredCredentials storedCredentials = authenticationService.validateToken(token);
+    return authenticationService
+        .validateTokenAsync(token)
+        .thenApply(credentials -> createDataStore(environment, credentials))
+        .thenCompose(dataStore -> get(environment, dataStore));
+  }
 
+  private DataStore createDataStore(
+      DataFetchingEnvironment environment, StoredCredentials storedCredentials) {
     Parameters parameters;
     Map<String, Object> options = environment.getArgument("options");
     if (options != null) {
@@ -82,11 +88,9 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
 
     DataStoreOptions dataStoreOptions =
         DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
-    DataStore dataStore =
-        DataStore.create(persistence, storedCredentials.getRoleName(), dataStoreOptions);
-    return get(environment, dataStore);
+    return DataStore.create(persistence, storedCredentials.getRoleName(), dataStoreOptions);
   }
 
-  protected abstract ResultT get(DataFetchingEnvironment environment, DataStore dataStore)
-      throws Exception;
+  protected abstract CompletionStage<ResultT> get(
+      DataFetchingEnvironment environment, DataStore dataStore);
 }

@@ -24,6 +24,8 @@ import io.stargate.graphql.schema.fetchers.CassandraFetcher;
 import io.stargate.graphql.web.HttpAwareContext;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 public class AllKeyspacesFetcher extends CassandraFetcher<List<Map<String, Object>>> {
 
@@ -35,12 +37,13 @@ public class AllKeyspacesFetcher extends CassandraFetcher<List<Map<String, Objec
   }
 
   @Override
-  protected List<Map<String, Object>> get(
+  protected CompletionStage<List<Map<String, Object>>> get(
       DataFetchingEnvironment environment, DataStore dataStore) {
     HttpAwareContext httpAwareContext = environment.getContext();
     String token = httpAwareContext.getAuthToken();
 
-    return KeyspaceFormatter.formatResult(
-        dataStore.schema().keyspaces(), environment, authorizationService, token);
+    return CompletableFuture.completedFuture(
+        KeyspaceFormatter.formatResult(
+            dataStore.schema().keyspaces(), environment, authorizationService, token));
   }
 }

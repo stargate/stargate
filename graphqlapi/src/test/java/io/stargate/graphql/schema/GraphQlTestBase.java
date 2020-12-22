@@ -79,7 +79,8 @@ public abstract class GraphQlTestBase {
     try {
       Schema schema = getCQLSchema();
       String roleName = "mock role name";
-      when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
+      when(authenticationService.validateTokenAsync(token))
+          .thenReturn(CompletableFuture.completedFuture(storedCredentials));
       when(storedCredentials.getRoleName()).thenReturn(roleName);
       when(authorizationService.authorizedAsyncDataRead(
               actionCaptor.capture(),

@@ -41,7 +41,7 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
-public class QueryFetcher extends DmlFetcher<CompletionStage<Map<String, Object>>> {
+public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
 
   public QueryFetcher(
       Table table,
@@ -54,7 +54,7 @@ public class QueryFetcher extends DmlFetcher<CompletionStage<Map<String, Object>
 
   @Override
   protected CompletionStage<Map<String, Object>> get(
-      DataFetchingEnvironment environment, DataStore dataStore) throws Exception {
+      DataFetchingEnvironment environment, DataStore dataStore) {
     BoundQuery query = buildQuery(environment, dataStore);
     HttpAwareContext httpAwareContext = environment.getContext();
     String token = httpAwareContext.getAuthToken();

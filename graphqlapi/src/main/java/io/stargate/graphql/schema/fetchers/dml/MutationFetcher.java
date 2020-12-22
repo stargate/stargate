@@ -32,7 +32,7 @@ import io.stargate.graphql.web.HttpAwareContext;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<String, Object>>> {
+public abstract class MutationFetcher extends DmlFetcher<Map<String, Object>> {
   protected MutationFetcher(
       Table table,
       NameMapping nameMapping,

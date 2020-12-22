@@ -39,7 +39,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Base class for fetchers that execute a single DDL query, such as a CREATE KEYSPACE or DROP TABLE.
  */
-public abstract class DdlQueryFetcher extends CassandraFetcher<CompletableFuture<Boolean>> {
+public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
 
   protected DdlQueryFetcher(
       Persistence persistence,
@@ -49,8 +49,8 @@ public abstract class DdlQueryFetcher extends CassandraFetcher<CompletableFuture
   }
 
   @Override
-  protected CompletableFuture<Boolean> get(DataFetchingEnvironment environment, DataStore dataStore)
-      throws Exception {
+  protected CompletableFuture<Boolean> get(
+      DataFetchingEnvironment environment, DataStore dataStore) {
     return dataStore
         .execute(buildQuery(environment, dataStore.queryBuilder()).bind())
         .thenApply(rs -> true);

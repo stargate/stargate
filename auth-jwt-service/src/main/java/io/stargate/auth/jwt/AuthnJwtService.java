@@ -27,6 +27,8 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Authenticator.SaslNegotiator;
 import java.text.ParseException;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,6 +90,18 @@ public class AuthnJwtService implements AuthenticationService {
     StoredCredentials storedCredentials = new StoredCredentials();
     storedCredentials.setRoleName(roleName);
     return storedCredentials;
+  }
+
+  @Override
+  public CompletionStage<StoredCredentials> validateTokenAsync(String token) {
+    // The validation does not perform any blocking I/O, just wrap the result in a completed future.
+    try {
+      return CompletableFuture.completedFuture(validateToken(token));
+    } catch (Throwable t) {
+      CompletableFuture<StoredCredentials> failedFuture = new CompletableFuture<>();
+      failedFuture.completeExceptionally(t);
+      return failedFuture;
+    }
   }
 
   @Override

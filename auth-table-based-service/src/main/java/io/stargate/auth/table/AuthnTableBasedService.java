@@ -30,6 +30,8 @@ import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.mindrot.jbcrypt.BCrypt;
@@ -220,60 +222,75 @@ public class AuthnTableBasedService implements AuthenticationService {
 
   @Override
   public StoredCredentials validateToken(String token) throws UnauthorizedException {
-    if (Strings.isNullOrEmpty(token)) {
-      throw new UnauthorizedException("authorization failed - missing token");
-    }
+    UUID uuid = parseToken(token);
 
-    UUID uuid;
     try {
-      uuid = UUID.fromString(token);
-    } catch (IllegalArgumentException exception) {
-      throw new UnauthorizedException("authorization failed - bad token");
-    }
-
-    StoredCredentials storedCredentials = new StoredCredentials();
-    try {
-      ResultSet resultSet =
-          dataStore
-              .queryBuilder()
-              .select()
-              .star()
-              .from(AUTH_KEYSPACE, AUTH_TABLE)
-              .where("auth_token", Predicate.EQ, uuid)
-              .build()
-              .execute()
-              .get();
-
-      if (resultSet.hasNoMoreFetchedRows()) {
-        throw new UnauthorizedException("authorization failed");
-      }
-
-      Row row = resultSet.one();
-      if (row.isNull("username")) {
-        throw new RuntimeException("unable to get username from token table");
-      }
-
-      int timestamp = row.getInt("created_timestamp");
-      String username = row.getString("username");
-
-      storedCredentials.setRoleName(username);
-
-      dataStore
-          .queryBuilder()
-          .update(AUTH_KEYSPACE, AUTH_TABLE)
-          .ttl(tokenTTL)
-          .value("username", username)
-          .value("created_timestamp", timestamp)
-          .where("auth_token", Predicate.EQ, UUID.fromString(token))
-          .build()
-          .execute(ConsistencyLevel.LOCAL_QUORUM)
-          .get();
+      ResultSet resultSet = queryAuthTable(uuid).get();
+      Row row = extractCredentialsRow(resultSet);
+      updateAuthTableTtl(row).get();
+      return new StoredCredentials().roleName(row.getString("username"));
     } catch (InterruptedException | ExecutionException e) {
       logger.error("Failed to validate token", e);
       throw new RuntimeException(e);
     }
+  }
 
-    return storedCredentials;
+  @Override
+  public CompletionStage<StoredCredentials> validateTokenAsync(String token) {
+    return CompletableFuture.completedFuture(token)
+        .thenApply(this::parseToken)
+        .thenCompose(this::queryAuthTable)
+        .thenApply(this::extractCredentialsRow)
+        .thenCompose(
+            row ->
+                updateAuthTableTtl(row)
+                    .thenApply(__ -> new StoredCredentials().roleName(row.getString("username"))));
+  }
+
+  private UUID parseToken(String token) throws UnauthorizedException {
+    if (Strings.isNullOrEmpty(token)) {
+      throw new UnauthorizedException("authorization failed - missing token");
+    }
+    try {
+      return UUID.fromString(token);
+    } catch (IllegalArgumentException exception) {
+      throw new UnauthorizedException("authorization failed - bad token");
+    }
+  }
+
+  private CompletableFuture<ResultSet> queryAuthTable(UUID uuid) {
+    return dataStore
+        .queryBuilder()
+        .select()
+        .star()
+        .from(AUTH_KEYSPACE, AUTH_TABLE)
+        .where("auth_token", Predicate.EQ, uuid)
+        .build()
+        .execute();
+  }
+
+  private Row extractCredentialsRow(ResultSet resultSet) throws UnauthorizedException {
+    if (resultSet.hasNoMoreFetchedRows()) {
+      throw new UnauthorizedException("authorization failed");
+    }
+
+    Row row = resultSet.one();
+    if (row.isNull("username")) {
+      throw new RuntimeException("unable to get username from token table");
+    }
+    return row;
+  }
+
+  private CompletableFuture<ResultSet> updateAuthTableTtl(Row row) {
+    return dataStore
+        .queryBuilder()
+        .update(AUTH_KEYSPACE, AUTH_TABLE)
+        .ttl(tokenTTL)
+        .value("username", row.getString("username"))
+        .value("created_timestamp", row.getInt("created_timestamp"))
+        .where("auth_token", Predicate.EQ, row.getUuid("auth_token"))
+        .build()
+        .execute(ConsistencyLevel.LOCAL_QUORUM);
   }
 
   @Override
