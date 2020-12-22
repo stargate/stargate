@@ -20,8 +20,8 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Authenticator.SaslNegotiator;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
@@ -42,7 +42,6 @@ public class AuthnTableBasedService implements AuthenticationService {
 
   private static final Logger logger = LoggerFactory.getLogger(AuthnTableBasedService.class);
 
-  private Persistence persistence;
   private DataStore dataStore;
   private static final String AUTH_KEYSPACE =
       System.getProperty("stargate.auth_keyspace", "data_endpoint_auth");
@@ -52,13 +51,8 @@ public class AuthnTableBasedService implements AuthenticationService {
   private static final boolean shouldInitializeAuthKeyspace =
       Boolean.parseBoolean(System.getProperty("stargate.auth_tablebased_init", "true"));
 
-  public Persistence getPersistence() {
-    return persistence;
-  }
-
-  public void setPersistence(Persistence persistence) {
-    this.persistence = persistence;
-    this.dataStore = DataStore.create(persistence);
+  public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
+    this.dataStore = dataStoreFactory.create();
 
     if (shouldInitializeAuthKeyspace) {
       initAuthTable(this.dataStore);

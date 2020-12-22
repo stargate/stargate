@@ -7,8 +7,8 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.StoredCredentials;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.graphql.web.HttpAwareContext;
 import java.nio.ByteBuffer;
@@ -20,9 +20,9 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 /** Base class for fetchers that access the Cassandra backend. It also handles authentication. */
 public abstract class CassandraFetcher<ResultT> implements DataFetcher<CompletionStage<ResultT>> {
 
-  protected final Persistence persistence;
   protected final AuthenticationService authenticationService;
   protected final AuthorizationService authorizationService;
+  private final DataStoreFactory dataStoreFactory;
 
   public static final ConsistencyLevel DEFAULT_CONSISTENCY = ConsistencyLevel.LOCAL_QUORUM;
   public static final ConsistencyLevel DEFAULT_SERIAL_CONSISTENCY = ConsistencyLevel.SERIAL;
@@ -36,12 +36,12 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<Completio
           .build();
 
   public CassandraFetcher(
-      Persistence persistence,
       AuthenticationService authenticationService,
-      AuthorizationService authorizationService) {
-    this.persistence = persistence;
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
+    this.dataStoreFactory = dataStoreFactory;
   }
 
   @Override
@@ -88,7 +88,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<Completio
 
     DataStoreOptions dataStoreOptions =
         DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
-    return DataStore.create(persistence, storedCredentials.getRoleName(), dataStoreOptions);
+    return dataStoreFactory.create(storedCredentials.getRoleName(), dataStoreOptions);
   }
 
   protected abstract CompletionStage<ResultT> get(
