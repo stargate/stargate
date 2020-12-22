@@ -18,6 +18,7 @@ package io.stargate.auth.jwt;
 import static io.stargate.auth.jwt.AuthnJwtService.CLAIMS_FIELD;
 import static io.stargate.auth.jwt.AuthnJwtService.STARGATE_PREFIX;
 
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -70,30 +71,32 @@ public class AuthzJwtService implements AuthorizationService {
       return null;
     }
 
-    return result.withRowInspector(
-        row -> {
-          if (row == null) {
-            return true;
-          }
+    return result.withRowInspector(row -> hasCorrectClaims(stargateClaims, row));
+  }
 
-          for (Column col : row.columns()) {
-            if (stargateClaims.has(STARGATE_PREFIX + col.name())) {
+  @VisibleForTesting
+  static boolean hasCorrectClaims(JSONObject stargateClaims, io.stargate.db.datastore.Row row) {
+    if (row == null) {
+      return true;
+    }
 
-              String stargateClaimValue;
-              try {
-                stargateClaimValue = stargateClaims.getString(STARGATE_PREFIX + col.name());
-              } catch (JSONException e) {
-                log.warn("Unable to get stargate claim for " + STARGATE_PREFIX + col.name());
-                return false;
-              }
-              String columnValue = row.getString(col.name());
-              if (!stargateClaimValue.equals(columnValue)) {
-                return false;
-              }
-            }
-          }
-          return true;
-        });
+    for (Column col : row.columns()) {
+      if (stargateClaims.has(STARGATE_PREFIX + col.name())) {
+
+        String stargateClaimValue;
+        try {
+          stargateClaimValue = stargateClaims.getString(STARGATE_PREFIX + col.name());
+        } catch (JSONException e) {
+          log.warn("Unable to get stargate claim for " + STARGATE_PREFIX + col.name());
+          return false;
+        }
+        String columnValue = row.getString(col.name());
+        if (!stargateClaimValue.equals(columnValue)) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   /**

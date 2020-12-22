@@ -51,6 +51,8 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -289,6 +291,106 @@ public class AuthzJwtServiceTest {
             SourceAPI.CQL);
     assertThat(result.rows().get(0)).isEqualTo(row1);
     assertThat(result.rows().get(1)).isEqualTo(row2);
+  }
+
+  @Test
+  public void shouldReturnTrueIfRowIsNull() {
+    // when
+    boolean result = AuthzJwtService.hasCorrectClaims(null, null);
+
+    // then
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  public void shouldReturnTrueIfColumnAndClaimHaveTheSameValue() {
+    // given
+    String columnName = "column_to_check";
+    String columnValue = "value";
+    JSONObject stargateClaims = new JSONObject().put("x-stargate-" + columnName, columnValue);
+    Row row = mockRow(columnName, columnValue);
+
+    // when
+    boolean result = AuthzJwtService.hasCorrectClaims(stargateClaims, row);
+    // then
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  public void shouldReturnFalseIfColumnAndClaimDoesNotHaveTheSameValue() {
+    // given
+    String columnName = "column_to_check";
+    JSONObject stargateClaims = new JSONObject().put("x-stargate-" + columnName, "value");
+    Row row = mockRow(columnName, "different_value");
+
+    // when
+    boolean result = AuthzJwtService.hasCorrectClaims(stargateClaims, row);
+    // then
+    assertThat(result).isFalse();
+  }
+
+  @Test
+  public void shouldReturnTrueIfOneOfTheColumnsAndClaimHaveTheSameValue() {
+    // given
+    JSONObject stargateClaims = new JSONObject().put("x-stargate-column_to_check", "value");
+    Row row = mockRow("column_to_check", "value", "column2", "different_value");
+
+    // when
+    boolean result = AuthzJwtService.hasCorrectClaims(stargateClaims, row);
+    // then
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  public void shouldReturnTrueIfColumnsAreEmpty() {
+    // given
+    JSONObject stargateClaims = new JSONObject().put("x-stargate-column_to_check", "value");
+    Row row = mock(Row.class);
+    when(row.columns()).thenReturn(Collections.emptyList());
+
+    // when
+    boolean result = AuthzJwtService.hasCorrectClaims(stargateClaims, row);
+    // then
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  public void shouldReturnFalseIfGettingClaimsFailed() {
+    // given
+    JSONObject stargateClaims = mock(JSONObject.class);
+    Row row = mockRow("column_to_check", "value");
+    when(stargateClaims.has("x-stargate-column_to_check")).thenReturn(true);
+    when(stargateClaims.getString("x-stargate-column_to_check"))
+        .thenThrow(new JSONException("problem"));
+
+    // when
+    boolean result = AuthzJwtService.hasCorrectClaims(stargateClaims, row);
+    // then
+    assertThat(result).isFalse();
+  }
+
+  private Row mockRow(String columnName, String value, String columnName2, String value2) {
+    Row row = mock(Row.class);
+    when(row.getString(columnName)).thenReturn(value);
+    when(row.getString(columnName2)).thenReturn(value2);
+    Column col1 = mockColumn(columnName);
+    Column col2 = mockColumn(columnName2);
+    when(row.columns()).thenReturn(Arrays.asList(col1, col2));
+    return row;
+  }
+
+  private Row mockRow(String columnName, String value) {
+    Column column = mockColumn(columnName);
+    Row row = mock(Row.class);
+    when(row.getString(columnName)).thenReturn(value);
+    when(row.columns()).thenReturn(Collections.singletonList(column));
+    return row;
+  }
+
+  private Column mockColumn(String columnName) {
+    Column col = mock(Column.class);
+    when(col.name()).thenReturn(columnName);
+    return col;
   }
 
   private String signJWT(Map<String, Object> stargate_claims) throws JOSEException {
