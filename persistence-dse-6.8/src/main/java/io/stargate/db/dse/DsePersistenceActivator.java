@@ -46,10 +46,7 @@ public class DsePersistenceActivator extends BaseActivator {
           "AuthIdentifier",
           System.getProperty("stargate.auth_id", "AuthTableBasedService"));
   private final ServicePointer<AuthorizationProcessor> authorizationProcessor =
-      ServicePointer.create(
-          AuthorizationProcessor.class,
-          "AuthProcessorId",
-          AUTHZ_PROCESSOR_ID == null ? "NONE" : AUTHZ_PROCESSOR_ID);
+      ServicePointer.create(AuthorizationProcessor.class, "AuthProcessorId", AUTHZ_PROCESSOR_ID);
 
   private DsePersistence dseDB;
   private File baseDir;

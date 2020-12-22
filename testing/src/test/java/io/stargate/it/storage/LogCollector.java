@@ -24,8 +24,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.junit.jupiter.api.extension.ExtensionContext.Store;
 
-public class LogCollector implements OutputListener, AutoCloseable {
+public class LogCollector implements OutputListener, Store.CloseableResource {
 
   private final Map<Integer, Queue<String>> outputs = new ConcurrentHashMap<>();
   private final StargateEnvironmentInfo stargate;

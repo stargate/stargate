@@ -17,14 +17,15 @@ package io.stargate.testing;
 
 import io.stargate.auth.AuthorizationProcessor;
 import io.stargate.core.activator.BaseActivator;
-import io.stargate.testing.auth.AuthorizationProcessorImpl;
+import io.stargate.testing.auth.LoggingAuthorizationProcessorImpl;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 
 public class TestingServicesActivator extends BaseActivator {
 
-  private static final String TEST_AUTHZ_PROCESSOR_ID = "TestAuthzProcessor";
+  public static final String AUTHZ_PROCESSOR_PROPERTY = "stargate.authorization.processor.id";
+  public static final String LOGGING_AUTHZ_PROCESSOR_ID = "LoggingAuthzProcessor";
 
   public TestingServicesActivator() {
     super("testing-services");
@@ -32,11 +33,11 @@ public class TestingServicesActivator extends BaseActivator {
 
   @Override
   protected List<ServiceAndProperties> createServices() {
-    if (TEST_AUTHZ_PROCESSOR_ID.equals(System.getProperty("stargate.authorization.processor.id"))) {
-      AuthorizationProcessorImpl authzProcessor = new AuthorizationProcessorImpl();
+    if (LOGGING_AUTHZ_PROCESSOR_ID.equals(System.getProperty(AUTHZ_PROCESSOR_PROPERTY))) {
+      LoggingAuthorizationProcessorImpl authzProcessor = new LoggingAuthorizationProcessorImpl();
 
       Hashtable<String, String> props = new Hashtable<>();
-      props.put("AuthProcessorId", TEST_AUTHZ_PROCESSOR_ID);
+      props.put("AuthProcessorId", LOGGING_AUTHZ_PROCESSOR_ID);
 
       return Collections.singletonList(
           new ServiceAndProperties(authzProcessor, AuthorizationProcessor.class, props));

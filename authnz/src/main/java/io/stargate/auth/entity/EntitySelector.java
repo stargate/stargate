@@ -43,4 +43,9 @@ public class EntitySelector {
   public boolean isWildcard() {
     return name == null;
   }
+
+  @Override
+  public String toString() {
+    return name == null ? "*" : name;
+  }
 }

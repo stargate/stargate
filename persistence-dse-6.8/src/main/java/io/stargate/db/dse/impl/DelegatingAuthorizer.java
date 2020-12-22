@@ -34,6 +34,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.cassandra.auth.AuthenticatedUser;
 import org.apache.cassandra.auth.CassandraAuthorizer;
 import org.apache.cassandra.auth.DataResource;
@@ -48,6 +50,9 @@ import org.javatuples.Pair;
 
 public class DelegatingAuthorizer extends CassandraAuthorizer {
 
+  private static final long PROCESSING_TIMEOUT_MILLIS =
+      Long.getLong("stargate.authorization.processing.timeout.millis", 5 * 60 * 1000);
+
   private AuthorizationProcessor authProcessor;
 
   public void setProcessor(AuthorizationProcessor processor) {
@@ -61,17 +66,17 @@ public class DelegatingAuthorizer extends CassandraAuthorizer {
       IResource resource,
       RoleResource grantee,
       GrantMode... grantModes) {
-    AuthorizationProcessor processor = authProcessor;
-    if (processor == null) {
+    if (authProcessor == null) {
       return super.grant(performer, permissions, resource, grantee, grantModes);
     }
 
     Collection<CompletableFuture<Void>> stages = new ArrayList<>(grantModes.length);
 
+    permissions = filterSupported(permissions);
     for (GrantMode grantMode : grantModes) {
       Pair<PermissionKind, AuthorizationOutcome> mode = grantMode(grantMode);
       CompletionStage<Void> stage =
-          processor.addPermissions(
+          authProcessor.addPermissions(
               ImmutableActor.of(performer.getName()),
               mode.getValue1(),
               mode.getValue0(),
@@ -84,7 +89,7 @@ public class DelegatingAuthorizer extends CassandraAuthorizer {
 
     get(CompletableFuture.allOf(stages.toArray(new CompletableFuture[0])));
 
-    // assume all permissions were granted if we did not an exception
+    // assume all permissions were granted if we did not get an exception
     return permissions;
   }
 
@@ -95,17 +100,17 @@ public class DelegatingAuthorizer extends CassandraAuthorizer {
       IResource resource,
       RoleResource revokee,
       GrantMode... grantModes) {
-    AuthorizationProcessor processor = authProcessor;
-    if (processor == null) {
+    if (authProcessor == null) {
       return super.revoke(performer, permissions, resource, revokee, grantModes);
     }
 
     Collection<CompletableFuture<Void>> stages = new ArrayList<>(grantModes.length);
 
+    permissions = filterSupported(permissions);
     for (GrantMode grantMode : grantModes) {
       Pair<PermissionKind, AuthorizationOutcome> mode = grantMode(grantMode);
       CompletionStage<Void> stage =
-          processor.addPermissions(
+          authProcessor.removePermissions(
               ImmutableActor.of(performer.getName()),
               mode.getValue1(),
               mode.getValue0(),
@@ -118,14 +123,14 @@ public class DelegatingAuthorizer extends CassandraAuthorizer {
 
     get(CompletableFuture.allOf(stages.toArray(new CompletableFuture[0])));
 
-    // assume all permissions were revoked if we did not an exception
+    // assume all permissions were revoked if we did not get an exception
     return permissions;
   }
 
   private static void get(CompletionStage<Void> stage) {
     try {
       // wait for completion since the calling API is synchronous
-      stage.toCompletableFuture().get();
+      stage.toCompletableFuture().get(PROCESSING_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
     } catch (ExecutionException e) {
       Throwable cause = e.getCause();
       if (cause instanceof RequestValidationException) {
@@ -207,10 +212,18 @@ public class DelegatingAuthorizer extends CassandraAuthorizer {
     return authResource;
   }
 
+  private Set<Permission> filterSupported(Set<Permission> permissions) {
+    return permissions.stream().filter(DelegatingAuthorizer::supported).collect(Collectors.toSet());
+  }
+
+  private static boolean supported(Permission permission) {
+    return CorePermission.getDomain().equals(permission.domain());
+  }
+
   private static Collection<AccessPermission> permissions(Set<Permission> permissions) {
     Collection<AccessPermission> accessPermissions = new ArrayList<>(permissions.size());
     for (Permission permission : permissions) {
-      if (!CorePermission.getDomain().equals(permission.domain())) {
+      if (!supported(permission)) {
         throw new IllegalArgumentException("Unsupported permission: " + permission);
       }
 

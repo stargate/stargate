@@ -23,14 +23,17 @@ import io.stargate.auth.entity.Actor;
 import io.stargate.auth.entity.AuthorizedResource;
 import io.stargate.auth.entity.EntitySelector;
 import java.util.Collection;
+import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AuthorizationProcessorImpl implements AuthorizationProcessor {
+public class LoggingAuthorizationProcessorImpl implements AuthorizationProcessor {
 
-  private static final Logger log = LoggerFactory.getLogger(AuthorizationProcessorImpl.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(LoggingAuthorizationProcessorImpl.class);
 
   @Override
   public CompletionStage<Void> addPermissions(
@@ -42,10 +45,12 @@ public class AuthorizationProcessorImpl implements AuthorizationProcessor {
       EntitySelector grantee) {
     log.warn(
         "testing: addPermissions: {}, {}, {}, {}, {}, {}",
-        performer,
+        performer.roleName(),
         outcome,
         kind,
-        permissions,
+        permissions.stream()
+            .map(AccessPermission::name)
+            .collect(Collectors.toCollection(TreeSet::new)),
         resource,
         grantee);
     return CompletableFuture.completedFuture(null);
@@ -61,10 +66,12 @@ public class AuthorizationProcessorImpl implements AuthorizationProcessor {
       EntitySelector grantee) {
     log.warn(
         "testing: removePermissions: {}, {}, {}, {}, {}, {}",
-        performer,
+        performer.roleName(),
         outcome,
         kind,
-        permissions,
+        permissions.stream()
+            .map(AccessPermission::name)
+            .collect(Collectors.toCollection(TreeSet::new)),
         resource,
         grantee);
     return CompletableFuture.completedFuture(null);
