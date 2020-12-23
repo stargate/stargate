@@ -200,13 +200,18 @@ public class TableResource {
           db.getAuthorizationService()
               .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.CREATE, SourceAPI.REST);
 
+          int ttl = 0;
+          if (options != null && options.getDefaultTimeToLive() != null) {
+            ttl = options.getDefaultTimeToLive();
+          }
+
           localDB
               .queryBuilder()
               .create()
               .table(keyspaceName, tableName)
               .ifNotExists(tableAdd.getIfNotExists())
               .column(columns)
-              .withDefaultTTL(options.getDefaultTimeToLive())
+              .withDefaultTTL(ttl)
               .build()
               .execute(ConsistencyLevel.LOCAL_QUORUM)
               .get();

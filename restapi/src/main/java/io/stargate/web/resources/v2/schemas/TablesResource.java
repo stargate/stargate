@@ -258,13 +258,18 @@ public class TablesResource {
             columns.add(Column.create(columnName, kind, type, order));
           }
 
+          int ttl = 0;
+          if (options != null && options.getDefaultTimeToLive() != null) {
+            ttl = options.getDefaultTimeToLive();
+          }
+
           localDB
               .queryBuilder()
               .create()
               .table(keyspaceName, tableName)
               .ifNotExists(tableAdd.getIfNotExists())
               .column(columns)
-              .withDefaultTTL(options.getDefaultTimeToLive())
+              .withDefaultTTL(ttl)
               .build()
               .execute(ConsistencyLevel.LOCAL_QUORUM)
               .get();
