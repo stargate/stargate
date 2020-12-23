@@ -47,7 +47,9 @@ public class TestingServicesActivator extends BaseActivator {
   }
 
   @Override
-  protected void stopService() {}
+  protected void stopService() {
+    // no-op
+  }
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
