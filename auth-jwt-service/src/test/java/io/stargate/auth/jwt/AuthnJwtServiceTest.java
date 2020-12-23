@@ -98,7 +98,7 @@ public class AuthnJwtServiceTest {
     AuthenticationSubject authenticationSubject = mockAuthnJwtService.validateToken("token");
 
     assertThat(authenticationSubject).isNotNull();
-    assertThat(authenticationSubject.getRoleName()).isEqualTo("user");
+    assertThat(authenticationSubject.roleName()).isEqualTo("user");
   }
 
   @Test

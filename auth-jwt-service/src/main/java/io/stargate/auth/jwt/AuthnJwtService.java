@@ -85,7 +85,7 @@ public class AuthnJwtService implements AuthenticationService {
       throw new UnauthorizedException("JWT must have a value for " + ROLE_FIELD);
     }
 
-    return new AuthenticationSubject(token, roleName);
+    return AuthenticationSubject.of(token, roleName);
   }
 
   @Override

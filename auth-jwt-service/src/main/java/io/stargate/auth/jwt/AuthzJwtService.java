@@ -61,7 +61,7 @@ public class AuthzJwtService implements AuthorizationService {
           sourceAPI) // this isn’t supported but if you want to use it you’ll need something other
       // than a JWT
       throws Exception {
-    JSONObject stargateClaims = extractClaimsFromJWT(authenticationSubject.getToken());
+    JSONObject stargateClaims = extractClaimsFromJWT(authenticationSubject.token());
 
     preCheckDataReadWrite(stargateClaims, typedKeyValues);
 
@@ -144,7 +144,7 @@ public class AuthzJwtService implements AuthorizationService {
       Scope scope,
       SourceAPI sourceAPI)
       throws UnauthorizedException {
-    JSONObject stargateClaims = extractClaimsFromJWT(authenticationSubject.getToken());
+    JSONObject stargateClaims = extractClaimsFromJWT(authenticationSubject.token());
 
     preCheckDataReadWrite(stargateClaims, typedKeyValues);
 

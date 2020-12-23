@@ -95,7 +95,7 @@ class PlainTextJwtTokenSaslNegotiatorTest {
     final byte[] clientResponse = createClientResponse(TOKEN_USERNAME, TOKEN);
 
     AuthenticationService authentication = mock(AuthenticationService.class);
-    when(authentication.validateToken(TOKEN)).thenReturn(new AuthenticationSubject(TOKEN, ROLE));
+    when(authentication.validateToken(TOKEN)).thenReturn(AuthenticationSubject.of(TOKEN, ROLE));
 
     PlainTextTokenSaslNegotiator negotiator =
         new PlainTextJwtTokenSaslNegotiator(authentication, null, TOKEN_USERNAME, TOKEN_MAX_LENGTH);

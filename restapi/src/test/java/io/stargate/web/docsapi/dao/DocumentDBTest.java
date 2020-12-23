@@ -77,7 +77,7 @@ public class DocumentDBTest {
         .when(authorizationService)
         .authorizeDataRead(
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
-    documentDB = new DocumentDB(ds, new AuthenticationSubject("foo", "bar"), authorizationService);
+    documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
   }
 
   @Test
@@ -204,7 +204,7 @@ public class DocumentDBTest {
         .when(authorizationService)
         .authorizeDataRead(
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
-    documentDB = new DocumentDB(ds, new AuthenticationSubject("foo", "bar"), authorizationService);
+    documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
     List<String> path = ImmutableList.of("a", "b", "c");
     Map<String, Object> map = documentDB.newBindMap(path);
     map.put("key", "key");
@@ -237,7 +237,7 @@ public class DocumentDBTest {
         .when(authorizationService)
         .authorizeDataRead(
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
-    documentDB = new DocumentDB(ds, new AuthenticationSubject("foo", "bar"), authorizationService);
+    documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
     List<String> path = ImmutableList.of("a", "b", "c");
     List<String> patchedKeys = ImmutableList.of("eric");
     Map<String, Object> map = documentDB.newBindMap(path);
@@ -287,7 +287,7 @@ public class DocumentDBTest {
         .when(authorizationService)
         .authorizeDataRead(
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
-    documentDB = new DocumentDB(ds, new AuthenticationSubject("foo", "bar"), authorizationService);
+    documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
     List<String> path = ImmutableList.of("a", "b", "c");
     List<Object[]> vars = new ArrayList<>();
     vars.add(new Object[path.size() + 2]);
@@ -316,7 +316,7 @@ public class DocumentDBTest {
         .when(authorizationService)
         .authorizeDataRead(
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
-    documentDB = new DocumentDB(ds, new AuthenticationSubject("foo", "bar"), authorizationService);
+    documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
 
     Map<String, List<JsonNode>> deadLeaves = new HashMap<>();
     deadLeaves.put("$.a", new ArrayList<>());

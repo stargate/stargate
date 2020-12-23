@@ -77,7 +77,7 @@ import org.junit.jupiter.api.Test;
 class StargateQueryHandlerTest extends BaseCassandraTest {
 
   AuthenticatedUser authenticatedUser = AuthenticatedUser.of("username", "token");
-  AuthenticationSubject authenticationSubject = new AuthenticationSubject("token", "username");
+  AuthenticationSubject authenticationSubject = AuthenticationSubject.of("token", "username");
   StargateQueryHandler queryHandler;
   AuthorizationService authorizationService;
 

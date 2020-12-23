@@ -275,7 +275,7 @@ public class StargateQueryHandler implements QueryHandler {
       AuthenticatedUser authenticatedUser = (AuthenticatedUser) in.readObject();
 
       authenticationSubject =
-          new AuthenticationSubject(
+          AuthenticationSubject.of(
               authenticatedUser.token(),
               authenticatedUser.name(),
               authenticatedUser.isFromExternalAuth());

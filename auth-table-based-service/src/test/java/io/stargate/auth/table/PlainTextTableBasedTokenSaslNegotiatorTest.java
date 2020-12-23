@@ -88,7 +88,7 @@ class PlainTextTableBasedTokenSaslNegotiatorTest {
     final byte[] clientResponse = createClientResponse(TOKEN_USERNAME, TOKEN);
 
     AuthenticationService authentication = mock(AuthenticationService.class);
-    when(authentication.validateToken(TOKEN)).thenReturn(new AuthenticationSubject(TOKEN, ROLE));
+    when(authentication.validateToken(TOKEN)).thenReturn(AuthenticationSubject.of(TOKEN, ROLE));
 
     PlainTextTokenSaslNegotiator negotiator =
         new PlainTextTableBasedTokenSaslNegotiator(

@@ -15,45 +15,26 @@
  */
 package io.stargate.auth;
 
-public class AuthenticationSubject {
+import org.immutables.value.Value;
 
-  private String token;
-  private String roleName;
-  private boolean fromExternalAuth;
+@Value.Immutable
+public interface AuthenticationSubject {
 
-  public AuthenticationSubject(String token, String roleName, boolean fromExternalAuth) {
-    this.token = token;
-    this.roleName = roleName;
-    this.fromExternalAuth = fromExternalAuth;
+  String token();
+
+  String roleName();
+
+  boolean isFromExternalAuth();
+
+  static AuthenticationSubject of(String token, String roleName, boolean fromExternalAuth) {
+    return ImmutableAuthenticationSubject.builder()
+        .token(token)
+        .roleName(roleName)
+        .isFromExternalAuth(fromExternalAuth)
+        .build();
   }
 
-  public AuthenticationSubject(String token, String roleName) {
-    this.token = token;
-    this.roleName = roleName;
-    this.fromExternalAuth = false;
-  }
-
-  public String getToken() {
-    return token;
-  }
-
-  public void setToken(String token) {
-    this.token = token;
-  }
-
-  public String getRoleName() {
-    return roleName;
-  }
-
-  public void setRoleName(String roleName) {
-    this.roleName = roleName;
-  }
-
-  public boolean isFromExternalAuth() {
-    return fromExternalAuth;
-  }
-
-  public void setFromExternalAuth(boolean fromExternalAuth) {
-    this.fromExternalAuth = fromExternalAuth;
+  static AuthenticationSubject of(String token, String roleName) {
+    return ImmutableAuthenticationSubject.builder().token(token).roleName(roleName).build();
   }
 }

@@ -84,7 +84,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
         DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
     DataStore dataStore =
         dataStoreFactory.create(
-            authenticationSubject.getRoleName(),
+            authenticationSubject.roleName(),
             authenticationSubject.isFromExternalAuth(),
             dataStoreOptions);
     return get(environment, dataStore, authenticationSubject);

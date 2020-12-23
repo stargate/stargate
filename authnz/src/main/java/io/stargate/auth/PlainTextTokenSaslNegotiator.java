@@ -67,8 +67,8 @@ public abstract class PlainTextTokenSaslNegotiator implements SaslNegotiator {
   public AuthenticatedUser getAuthenticatedUser() throws AuthenticationException {
     if (authenticationSubject != null) {
       return AuthenticatedUser.of(
-          authenticationSubject.getRoleName(),
-          authenticationSubject.getToken(),
+          authenticationSubject.roleName(),
+          authenticationSubject.token(),
           authenticationSubject.isFromExternalAuth());
     } else {
       return wrapped.getAuthenticatedUser();

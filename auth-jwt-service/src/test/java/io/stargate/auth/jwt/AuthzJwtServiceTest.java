@@ -94,7 +94,7 @@ public class AuthzJwtServiceTest {
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(
             action,
-            new AuthenticationSubject(signJWT(stargate_claims), "web-user"),
+            AuthenticationSubject.of(signJWT(stargate_claims), "web-user"),
             "keyspace",
             "table",
             typedKeyValues,
@@ -117,7 +117,7 @@ public class AuthzJwtServiceTest {
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(
             action,
-            new AuthenticationSubject(signJWT(stargate_claims), "web-user"),
+            AuthenticationSubject.of(signJWT(stargate_claims), "web-user"),
             "keyspace",
             "table",
             typedKeyValues,
@@ -144,7 +144,7 @@ public class AuthzJwtServiceTest {
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(
             action,
-            new AuthenticationSubject(signJWT(stargate_claims), "web-user"),
+            AuthenticationSubject.of(signJWT(stargate_claims), "web-user"),
             "keyspace",
             "table",
             typedKeyValues,
@@ -178,7 +178,7 @@ public class AuthzJwtServiceTest {
             () ->
                 mockAuthzJwtService.authorizedDataRead(
                     action,
-                    new AuthenticationSubject(signJWT(stargate_claims), "web-user"),
+                    AuthenticationSubject.of(signJWT(stargate_claims), "web-user"),
                     "keyspace",
                     "table",
                     typedKeyValues,
@@ -210,7 +210,7 @@ public class AuthzJwtServiceTest {
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(
             action,
-            new AuthenticationSubject(signJWT(stargate_claims), "web-user"),
+            AuthenticationSubject.of(signJWT(stargate_claims), "web-user"),
             "keyspace",
             "table",
             typedKeyValues,
@@ -247,7 +247,7 @@ public class AuthzJwtServiceTest {
             () ->
                 mockAuthzJwtService.authorizedDataRead(
                     action,
-                    new AuthenticationSubject(signJWT(stargate_claims), "web-user"),
+                    AuthenticationSubject.of(signJWT(stargate_claims), "web-user"),
                     "keyspace",
                     "table",
                     typedKeyValues,
@@ -284,7 +284,7 @@ public class AuthzJwtServiceTest {
     ResultSet result =
         mockAuthzJwtService.authorizedDataRead(
             action,
-            new AuthenticationSubject(signJWT(stargate_claims), "web-user"),
+            AuthenticationSubject.of(signJWT(stargate_claims), "web-user"),
             "keyspace",
             "table",
             typedKeyValues,

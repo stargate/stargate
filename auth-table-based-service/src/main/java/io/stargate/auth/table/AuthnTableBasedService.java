@@ -265,7 +265,7 @@ public class AuthnTableBasedService implements AuthenticationService {
       throw new RuntimeException(e);
     }
 
-    return new AuthenticationSubject(token, username);
+    return AuthenticationSubject.of(token, username);
   }
 
   @Override

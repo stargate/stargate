@@ -73,7 +73,7 @@ public abstract class GraphQlTestBase {
       Schema schema = getCQLSchema();
       String roleName = "mock role name";
       when(authenticationService.validateToken(token)).thenReturn(authenticationSubject);
-      when(authenticationSubject.getRoleName()).thenReturn(roleName);
+      when(authenticationSubject.roleName()).thenReturn(roleName);
       when(authorizationService.authorizedDataRead(
               actionCaptor.capture(),
               eq(authenticationSubject),

@@ -70,7 +70,7 @@ public class Db {
     AuthenticationSubject authenticationSubject = authenticationService.validateToken(token);
     DataStore dataStore =
         dataStoreFactory.create(
-            authenticationSubject.getRoleName(),
+            authenticationSubject.roleName(),
             authenticationSubject.isFromExternalAuth(),
             DataStoreOptions.defaultsWithAutoPreparedQueries());
 
@@ -95,7 +95,7 @@ public class Db {
     DataStoreOptions options =
         DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
     return dataStoreFactory.create(
-        authenticationSubject.getRoleName(), authenticationSubject.isFromExternalAuth(), options);
+        authenticationSubject.roleName(), authenticationSubject.isFromExternalAuth(), options);
   }
 
   public AuthenticationSubject getAuthenticationSubjectForToken(String token)
