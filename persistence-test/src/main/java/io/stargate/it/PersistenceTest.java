@@ -62,9 +62,7 @@ import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Result;
 import io.stargate.db.SimpleStatement;
-import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.Row;
+import io.stargate.db.datastore.*;
 import io.stargate.db.query.TypedValue;
 import io.stargate.db.query.builder.Replication;
 import io.stargate.db.schema.Column;
@@ -140,7 +138,7 @@ public abstract class PersistenceTest {
   public void setup(TestInfo testInfo, ClusterConnectionInfo backend) {
     this.backend = backend;
 
-    dataStore = DataStore.createInternal(persistence());
+    dataStore = new PersistenceDataStoreFactory(persistence()).create();
     logger.info("{}", dataStore);
 
     Optional<String> name = testInfo.getTestMethod().map(Method::getName);

@@ -18,17 +18,17 @@ package io.stargate.graphql.schema.fetchers.ddl;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.db.Persistence;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 
 public class DropTableFetcher extends TableFetcher {
 
   public DropTableFetcher(
-      Persistence persistence,
       AuthenticationService authenticationService,
-      AuthorizationService authorizationService) {
-    super(persistence, authenticationService, authorizationService);
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
+    super(authenticationService, authorizationService, dataStoreFactory);
   }
 
   @Override

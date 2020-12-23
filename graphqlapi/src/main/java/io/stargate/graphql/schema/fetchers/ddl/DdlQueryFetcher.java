@@ -20,8 +20,8 @@ import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column;
@@ -42,10 +42,10 @@ import java.util.Map;
 public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
 
   protected DdlQueryFetcher(
-      Persistence persistence,
       AuthenticationService authenticationService,
-      AuthorizationService authorizationService) {
-    super(persistence, authenticationService, authorizationService);
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
+    super(authenticationService, authorizationService, dataStoreFactory);
   }
 
   @Override

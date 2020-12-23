@@ -22,8 +22,8 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Parameters;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import java.nio.ByteBuffer;
@@ -33,7 +33,6 @@ import java.util.concurrent.CompletionException;
 
 public class Db {
 
-  private final Persistence persistence;
   private final DataStore dataStore;
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
@@ -42,24 +41,20 @@ public class Db {
           .maximumSize(10_000)
           .expireAfterWrite(Duration.ofMinutes(1))
           .build(this::getAuthenticationPrincipalForToken);
+  private final DataStoreFactory dataStoreFactory;
 
   public Db(
-      final Persistence persistence,
       AuthenticationService authenticationService,
-      AuthorizationService authorizationService) {
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
-    this.persistence = persistence;
-    this.dataStore =
-        DataStore.createInternal(persistence, DataStoreOptions.defaultsWithAutoPreparedQueries());
+    this.dataStoreFactory = dataStoreFactory;
+    this.dataStore = dataStoreFactory.create(DataStoreOptions.defaultsWithAutoPreparedQueries());
   }
 
   public DataStore getDataStore() {
     return this.dataStore;
-  }
-
-  public Persistence getPersistence() {
-    return this.persistence;
   }
 
   public AuthenticationService getAuthenticationService() {
@@ -73,8 +68,7 @@ public class Db {
   public AuthenticatedDB getDataStoreForToken(String token) throws UnauthorizedException {
     AuthenticationPrincipal authenticationPrincipal = authenticationService.validateToken(token);
     DataStore dataStore =
-        DataStore.create(
-            persistence,
+        dataStoreFactory.create(
             authenticationPrincipal.getRoleName(),
             authenticationPrincipal.isFromExternalAuth(),
             DataStoreOptions.defaultsWithAutoPreparedQueries());
@@ -100,8 +94,7 @@ public class Db {
 
     DataStoreOptions options =
         DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
-    return DataStore.create(
-        this.persistence,
+    return dataStoreFactory.create(
         authenticationPrincipal.getRoleName(),
         authenticationPrincipal.isFromExternalAuth(),
         options);

@@ -8,8 +8,8 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
@@ -27,10 +27,10 @@ public class UpdateMutationFetcher extends MutationFetcher {
   public UpdateMutationFetcher(
       Table table,
       NameMapping nameMapping,
-      Persistence persistence,
       AuthenticationService authenticationService,
-      AuthorizationService authorizationService) {
-    super(table, nameMapping, persistence, authenticationService, authorizationService);
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
+    super(table, nameMapping, authenticationService, authorizationService, dataStoreFactory);
   }
 
   @Override
