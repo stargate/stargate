@@ -258,7 +258,10 @@ public class TablesResource {
             columns.add(Column.create(columnName, kind, type, order));
           }
 
-          int ttl = (options == null) ? 0 : options.getDefaultTimeToLive();
+          int ttl = 0;
+          if (options != null && options.getDefaultTimeToLive() != null) {
+            ttl = options.getDefaultTimeToLive();
+          }
 
           localDB
               .queryBuilder()

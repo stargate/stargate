@@ -200,7 +200,10 @@ public class TableResource {
           db.getAuthorizationService()
               .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.CREATE, SourceAPI.REST);
 
-          int ttl = (options == null) ? 0 : options.getDefaultTimeToLive();
+          int ttl = 0;
+          if (options != null && options.getDefaultTimeToLive() != null) {
+            ttl = options.getDefaultTimeToLive();
+          }
 
           localDB
               .queryBuilder()
