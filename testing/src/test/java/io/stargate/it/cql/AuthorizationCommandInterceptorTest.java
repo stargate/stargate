@@ -48,11 +48,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
     })
 @ExtendWith(StargateLogExtension.class)
 public class AuthorizationCommandInterceptorTest extends BaseOsgiIntegrationTest {
+  private static CqlSession session;
   private LogCollector log;
 
   @BeforeAll
   public static void checkDse(ClusterConnectionInfo backend) {
     assumeTrue(backend.isDse()); // TODO: Support C*
+  }
+
+  @BeforeAll
+  public static void buildSession(CqlSessionBuilder builder) {
+    session = builder.withKeyspace("auth_keyspace2").build();
   }
 
   @SuppressWarnings("unused") // referenced in @StargateSpec
@@ -68,52 +74,82 @@ public class AuthorizationCommandInterceptorTest extends BaseOsgiIntegrationTest
     this.log = log;
   }
 
-  private List<String> addedMsgs(CqlSession session, String cql) {
+  private List<String> addedMsgs(String cql) {
     session.execute(cql);
     return log.filter(0, Pattern.compile(".+testing: addPermissions: (.+)"), 1);
   }
 
-  private List<String> removedMsgs(CqlSession session, String cql) {
+  private List<String> removedMsgs(String cql) {
     session.execute(cql);
     return log.filter(0, Pattern.compile(".+testing: removePermissions: (.+)"), 1);
   }
 
   @Test
-  public void grantSelect(CqlSession session) {
-    assertThat(addedMsgs(session, "GRANT SELECT on auth_keyspace2.table3 TO 'auth_user1'"))
+  public void grantSelect() {
+    assertThat(addedMsgs("GRANT SELECT on auth_keyspace2.table3 TO 'auth_user1'"))
         .containsExactly(
             "cassandra, ALLOW, ACCESS, [SELECT], AuthorizedResource{kind=TABLE, keyspace=auth_keyspace2, element=table3}, auth_user1");
   }
 
   @Test
-  public void revokeSelect(CqlSessionBuilder builder) {
-    CqlSession session = builder.withKeyspace("auth_keyspace2").build();
-    assertThat(removedMsgs(session, "REVOKE SELECT on table3 FROM 'auth_user1'"))
+  public void revokeSelect() {
+    assertThat(removedMsgs("REVOKE SELECT on table3 FROM 'auth_user1'"))
         .containsExactly(
             "cassandra, ALLOW, ACCESS, [SELECT], AuthorizedResource{kind=TABLE, keyspace=auth_keyspace2, element=table3}, auth_user1");
   }
 
   @Test
-  public void restrictUpdate(CqlSessionBuilder builder) {
-    CqlSession session = builder.withKeyspace("auth_keyspace2").build();
-    assertThat(addedMsgs(session, "RESTRICT UPDATE on table3 TO 'auth_user1'"))
+  public void grantDescribeAllKeyspaces() {
+    assertThat(addedMsgs("GRANT DESCRIBE ON ALL KEYSPACES TO 'auth_user1'"))
+        .containsExactly(
+            "cassandra, ALLOW, ACCESS, [DESCRIBE], AuthorizedResource{kind=TABLE, keyspace=*, element=*}, auth_user1");
+  }
+
+  @Test
+  public void grantTruncateAllTables() {
+    assertThat(addedMsgs("GRANT TRUNCATE ON ALL TABLES IN KEYSPACE auth_keyspace2 TO 'auth_user1'"))
+        .containsExactly(
+            "cassandra, ALLOW, ACCESS, [TRUNCATE], AuthorizedResource{kind=TABLE, keyspace=auth_keyspace2, element=*}, auth_user1");
+  }
+
+  @Test
+  public void grantExecuteAllFunctions() {
+    assertThat(addedMsgs("GRANT EXECUTE ON ALL FUNCTIONS TO auth_user1"))
+        .containsExactly(
+            "cassandra, ALLOW, ACCESS, [EXECUTE], AuthorizedResource{kind=FUNCTION, keyspace=*, element=*}, auth_user1");
+  }
+
+  @Test
+  public void grantExecuteAllFunctionsInKeyspace() {
+    assertThat(addedMsgs("GRANT EXECUTE ON ALL FUNCTIONS IN KEYSPACE auth_keyspace2 TO auth_user1"))
+        .containsExactly(
+            "cassandra, ALLOW, ACCESS, [EXECUTE], AuthorizedResource{kind=FUNCTION, keyspace=auth_keyspace2, element=*}, auth_user1");
+  }
+
+  @Test
+  public void restrictUpdate() {
+    assertThat(addedMsgs("RESTRICT UPDATE on table3 TO 'auth_user1'"))
         .containsExactly(
             "cassandra, DENY, ACCESS, [UPDATE], AuthorizedResource{kind=TABLE, keyspace=auth_keyspace2, element=table3}, auth_user1");
   }
 
   @Test
-  public void unrestrictUpdate(CqlSession session) {
-    assertThat(removedMsgs(session, "UNRESTRICT UPDATE on auth_keyspace2.table3 FROM 'auth_user1'"))
+  public void unrestrictUpdate() {
+    assertThat(removedMsgs("UNRESTRICT UPDATE on auth_keyspace2.table3 FROM 'auth_user1'"))
         .containsExactly(
             "cassandra, DENY, ACCESS, [UPDATE], AuthorizedResource{kind=TABLE, keyspace=auth_keyspace2, element=table3}, auth_user1");
   }
 
   @Test
-  public void authorizeTruncate(CqlSession session) {
-    assertThat(
-            addedMsgs(
-                session,
-                "GRANT AUTHORIZE FOR SELECT, TRUNCATE on auth_keyspace2.table3 TO 'auth_user1'"))
+  public void authorizeTruncate() {
+    assertThat(addedMsgs("GRANT AUTHORIZE FOR SELECT, TRUNCATE on table3 TO 'auth_user1'"))
+        .containsExactly(
+            "cassandra, ALLOW, AUTHORITY, [SELECT, TRUNCATE], AuthorizedResource{kind=TABLE, keyspace=auth_keyspace2, element=table3}, auth_user1");
+  }
+
+  @Test
+  public void revokeAuthorizeTruncate() {
+    assertThat(removedMsgs("REVOKE AUTHORIZE FOR SELECT, TRUNCATE on table3 FROM 'auth_user1'"))
         .containsExactly(
             "cassandra, ALLOW, AUTHORITY, [SELECT, TRUNCATE], AuthorizedResource{kind=TABLE, keyspace=auth_keyspace2, element=table3}, auth_user1");
   }
