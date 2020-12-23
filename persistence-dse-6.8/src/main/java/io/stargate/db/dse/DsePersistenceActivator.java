@@ -23,6 +23,7 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
+import org.apache.cassandra.auth.IAuthorizer;
 import org.apache.cassandra.auth.PasswordAuthenticator;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.DatabaseDescriptor;
@@ -165,8 +166,10 @@ public class DsePersistenceActivator extends BaseActivator {
       dseDB.setAuthorizationService(authorizationService.get());
       dseDB.initialize(makeConfig(baseDir));
 
-      DelegatingAuthorizer authorizer = DatabaseDescriptor.getAuthorizer().implementation();
-      authorizer.setProcessor(authorizationProcessor.get());
+      IAuthorizer authorizer = DatabaseDescriptor.getAuthorizer().implementation();
+      if (authorizer instanceof DelegatingAuthorizer) {
+        ((DelegatingAuthorizer) authorizer).setProcessor(authorizationProcessor.get());
+      }
 
       return new ServiceAndProperties(dseDB, Persistence.class, props);
     } catch (IOException e) {
