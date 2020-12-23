@@ -102,4 +102,17 @@ public class PersistenceDataStoreFactory implements DataStoreFactory {
     }
     return create(userName, isFromExternalAuth, options, clientInfo);
   }
+
+  /** @inheritdoc */
+  @Override
+  public DataStore createInternal() {
+    return createInternal(DataStoreOptions.defaults());
+  }
+
+  /** @inheritdoc */
+  @Override
+  public DataStore createInternal(DataStoreOptions options) {
+    Persistence.Connection connection = persistence.newConnection();
+    return create(connection, options);
+  }
 }

@@ -64,4 +64,18 @@ public interface DataStoreFactory {
   default DataStore create(DataStoreOptions options) {
     return create(null, options);
   }
+
+  /**
+   * Creates a new internal DataStore on top of the provided persistence.
+   *
+   * <p>A shortcut for {@link #createInternal(DataStoreOptions)}.
+   */
+  DataStore createInternal();
+
+  /**
+   * Creates an internal connection with default options intended to be used for system operations.
+   *
+   * @return the created store.
+   */
+  DataStore createInternal(DataStoreOptions options);
 }

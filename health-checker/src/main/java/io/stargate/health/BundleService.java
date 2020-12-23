@@ -40,7 +40,7 @@ public class BundleService {
       try {
         DataStoreFactory dataStoreFactory =
             (DataStoreFactory) context.getService(dataStoreFactoryReference);
-        DataStore dataStore = dataStoreFactory.create();
+        DataStore dataStore = dataStoreFactory.createInternal();
 
         Future<ResultSet> rs =
             dataStore

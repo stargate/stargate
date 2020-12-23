@@ -72,7 +72,7 @@ public class GraphqlCache implements EventListener {
         newGraphql(
             SchemaFactory.newDdlSchema(
                 authenticationService, authorizationService, dataStoreFactory));
-    DataStore dataStore = dataStoreFactory.create();
+    DataStore dataStore = dataStoreFactory.createInternal();
     this.defaultKeyspace = findDefaultKeyspace(dataStore);
     this.dmlGraphqls =
         initDmlGraphqls(
@@ -167,7 +167,7 @@ public class GraphqlCache implements EventListener {
           String.format(reason, reasonArguments));
     }
     try {
-      DataStore dataStore = dataStoreFactory.create();
+      DataStore dataStore = dataStoreFactory.createInternal();
       Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
       if (keyspace == null) {
         // This happens when come from a notification for a keyspace that was just dropped

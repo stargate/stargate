@@ -50,7 +50,7 @@ public class AuthnTableBasedService implements AuthenticationService {
       Boolean.parseBoolean(System.getProperty("stargate.auth_tablebased_init", "true"));
 
   public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
-    this.dataStore = dataStoreFactory.create();
+    this.dataStore = dataStoreFactory.createInternal();
 
     if (shouldInitializeAuthKeyspace) {
       initAuthTable(this.dataStore);

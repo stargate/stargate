@@ -50,7 +50,8 @@ public class Db {
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
-    this.dataStore = dataStoreFactory.create(DataStoreOptions.defaultsWithAutoPreparedQueries());
+    this.dataStore =
+        dataStoreFactory.createInternal(DataStoreOptions.defaultsWithAutoPreparedQueries());
   }
 
   public DataStore getDataStore() {
