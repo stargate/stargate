@@ -15,7 +15,7 @@
  */
 package io.stargate.web.resources;
 
-import io.stargate.auth.AuthenticationPrincipal;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
@@ -26,11 +26,11 @@ import javax.ws.rs.NotFoundException;
 public class AuthenticatedDB {
 
   private DataStore dataStore;
-  private AuthenticationPrincipal authenticationPrincipal;
+  private AuthenticationSubject authenticationSubject;
 
-  public AuthenticatedDB(DataStore dataStore, AuthenticationPrincipal authenticationPrincipal) {
+  public AuthenticatedDB(DataStore dataStore, AuthenticationSubject authenticationSubject) {
     this.dataStore = dataStore;
-    this.authenticationPrincipal = authenticationPrincipal;
+    this.authenticationSubject = authenticationSubject;
   }
 
   public Collection<Table> getTables(String keyspaceName) {
@@ -71,11 +71,11 @@ public class AuthenticatedDB {
     this.dataStore = dataStore;
   }
 
-  public AuthenticationPrincipal getAuthenticationPrincipal() {
-    return authenticationPrincipal;
+  public AuthenticationSubject getAuthenticationSubject() {
+    return authenticationSubject;
   }
 
-  public void setAuthenticationPrincipal(AuthenticationPrincipal authenticationPrincipal) {
-    this.authenticationPrincipal = authenticationPrincipal;
+  public void setAuthenticationSubject(AuthenticationSubject authenticationSubject) {
+    this.authenticationSubject = authenticationSubject;
   }
 }

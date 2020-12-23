@@ -95,7 +95,7 @@ public class KeyspacesResource {
 
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   keyspaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
                   null,
                   SourceAPI.REST);
@@ -139,7 +139,7 @@ public class KeyspacesResource {
           AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   null,
                   SourceAPI.REST);
@@ -212,7 +212,7 @@ public class KeyspacesResource {
           String keyspaceName = (String) requestBody.get("name");
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
                   null,
                   Scope.CREATE,
@@ -278,7 +278,7 @@ public class KeyspacesResource {
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
                   null,
                   Scope.DROP,

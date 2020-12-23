@@ -16,8 +16,8 @@
 package io.stargate.graphql.schema.fetchers.ddl;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
@@ -43,12 +43,12 @@ public class CreateKeyspaceFetcher extends DdlQueryFetcher {
   protected Query<?> buildQuery(
       DataFetchingEnvironment dataFetchingEnvironment,
       QueryBuilder builder,
-      AuthenticationPrincipal authenticationPrincipal)
+      AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
     String keyspaceName = dataFetchingEnvironment.getArgument("name");
 
     authorizationService.authorizeSchemaWrite(
-        authenticationPrincipal, keyspaceName, null, Scope.CREATE, SourceAPI.GRAPHQL);
+        authenticationSubject, keyspaceName, null, Scope.CREATE, SourceAPI.GRAPHQL);
 
     boolean ifNotExists =
         dataFetchingEnvironment.getArgumentOrDefault("ifNotExists", Boolean.FALSE);

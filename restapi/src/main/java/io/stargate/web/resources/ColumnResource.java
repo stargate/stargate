@@ -101,7 +101,7 @@ public class ColumnResource {
           AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
                   SourceAPI.REST);
@@ -183,7 +183,7 @@ public class ColumnResource {
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   Scope.ALTER,
@@ -239,7 +239,7 @@ public class ColumnResource {
           AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
                   SourceAPI.REST);
@@ -294,7 +294,7 @@ public class ColumnResource {
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   Scope.ALTER,
@@ -351,7 +351,7 @@ public class ColumnResource {
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   Scope.ALTER,

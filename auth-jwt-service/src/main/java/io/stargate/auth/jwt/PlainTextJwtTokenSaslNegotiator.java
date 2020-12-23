@@ -58,8 +58,8 @@ public class PlainTextJwtTokenSaslNegotiator extends PlainTextTokenSaslNegotiato
       String password = String.valueOf(tmpPassword);
       credentials.clearPassword();
 
-      authenticationPrincipal = authentication.validateToken(password);
-      if (authenticationPrincipal == null) {
+      authenticationSubject = authentication.validateToken(password);
+      if (authenticationSubject == null) {
         logger.error("Null credentials returned from authentication service");
         return false;
       }

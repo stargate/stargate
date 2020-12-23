@@ -107,7 +107,7 @@ public class TableResource {
 
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   tableNames,
                   SourceAPI.REST);
@@ -201,7 +201,7 @@ public class TableResource {
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   Scope.CREATE,
@@ -261,7 +261,7 @@ public class TableResource {
           AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
                   SourceAPI.REST);
@@ -345,7 +345,7 @@ public class TableResource {
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   Scope.DROP,

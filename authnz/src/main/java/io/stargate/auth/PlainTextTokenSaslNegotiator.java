@@ -35,11 +35,9 @@ public abstract class PlainTextTokenSaslNegotiator implements SaslNegotiator {
 
   protected final AuthenticationService authentication;
   private final Authenticator.SaslNegotiator wrapped;
-  protected AuthenticationPrincipal authenticationPrincipal;
+  protected AuthenticationSubject authenticationSubject;
   protected final String tokenUsername;
   protected final int tokenMaxLength;
-  private static final boolean USE_TRANSITIONAL_AUTH =
-      Boolean.parseBoolean(System.getProperty("stargate.cql_use_transitional_auth", "false"));
 
   public PlainTextTokenSaslNegotiator(
       AuthenticationService authentication,
@@ -62,16 +60,16 @@ public abstract class PlainTextTokenSaslNegotiator implements SaslNegotiator {
 
   @Override
   public boolean isComplete() {
-    return authenticationPrincipal != null || wrapped.isComplete();
+    return authenticationSubject != null || wrapped.isComplete();
   }
 
   @Override
   public AuthenticatedUser getAuthenticatedUser() throws AuthenticationException {
-    if (authenticationPrincipal != null) {
+    if (authenticationSubject != null) {
       return AuthenticatedUser.of(
-          authenticationPrincipal.getRoleName(),
-          authenticationPrincipal.getToken(),
-          authenticationPrincipal.isFromExternalAuth());
+          authenticationSubject.getRoleName(),
+          authenticationSubject.getToken(),
+          authenticationSubject.isFromExternalAuth());
     } else {
       return wrapped.getAuthenticatedUser();
     }

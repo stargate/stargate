@@ -16,8 +16,8 @@ import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
-import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.db.Parameters;
@@ -56,7 +56,7 @@ public abstract class GraphQlTestBase {
   @Mock protected AuthenticationService authenticationService;
   @Mock protected AuthorizationService authorizationService;
   @Mock protected ResultSet resultSet;
-  @Mock private AuthenticationPrincipal authenticationPrincipal;
+  @Mock private AuthenticationSubject authenticationSubject;
   @Mock protected DataStoreFactory dataStoreFactory;
 
   @Captor private ArgumentCaptor<BoundQuery> queryCaptor;
@@ -72,11 +72,11 @@ public abstract class GraphQlTestBase {
     try {
       Schema schema = getCQLSchema();
       String roleName = "mock role name";
-      when(authenticationService.validateToken(token)).thenReturn(authenticationPrincipal);
-      when(authenticationPrincipal.getRoleName()).thenReturn(roleName);
+      when(authenticationService.validateToken(token)).thenReturn(authenticationSubject);
+      when(authenticationSubject.getRoleName()).thenReturn(roleName);
       when(authorizationService.authorizedDataRead(
               actionCaptor.capture(),
-              eq(authenticationPrincipal),
+              eq(authenticationSubject),
               anyString(),
               anyString(),
               any(),

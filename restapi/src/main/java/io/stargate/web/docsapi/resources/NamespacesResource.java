@@ -94,7 +94,7 @@ public class NamespacesResource {
 
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   namespaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
                   null,
                   SourceAPI.REST);
@@ -138,7 +138,7 @@ public class NamespacesResource {
           AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(namespaceName),
                   null,
                   SourceAPI.REST);
@@ -211,7 +211,7 @@ public class NamespacesResource {
           String keyspaceName = (String) requestBody.get("name");
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
                   null,
                   Scope.CREATE,
@@ -277,7 +277,7 @@ public class NamespacesResource {
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   namespaceName,
                   null,
                   Scope.DROP,

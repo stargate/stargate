@@ -16,8 +16,8 @@
 package io.stargate.auth.table;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
-import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Authenticator.SaslNegotiator;
 import io.stargate.db.datastore.DataStore;
@@ -213,7 +213,7 @@ public class AuthnTableBasedService implements AuthenticationService {
   }
 
   @Override
-  public AuthenticationPrincipal validateToken(String token) throws UnauthorizedException {
+  public AuthenticationSubject validateToken(String token) throws UnauthorizedException {
     if (Strings.isNullOrEmpty(token)) {
       throw new UnauthorizedException("authorization failed - missing token");
     }
@@ -265,7 +265,7 @@ public class AuthnTableBasedService implements AuthenticationService {
       throw new RuntimeException(e);
     }
 
-    return new AuthenticationPrincipal(token, username);
+    return new AuthenticationSubject(token, username);
   }
 
   @Override

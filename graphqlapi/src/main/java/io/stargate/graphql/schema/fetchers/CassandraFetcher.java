@@ -2,8 +2,8 @@ package io.stargate.graphql.schema.fetchers;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
@@ -48,7 +48,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
     HttpAwareContext httpAwareContext = environment.getContext();
 
     String token = httpAwareContext.getAuthToken();
-    AuthenticationPrincipal authenticationPrincipal = authenticationService.validateToken(token);
+    AuthenticationSubject authenticationSubject = authenticationService.validateToken(token);
 
     Parameters parameters;
     Map<String, Object> options = environment.getArgument("options");
@@ -84,15 +84,15 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
         DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
     DataStore dataStore =
         dataStoreFactory.create(
-            authenticationPrincipal.getRoleName(),
-            authenticationPrincipal.isFromExternalAuth(),
+            authenticationSubject.getRoleName(),
+            authenticationSubject.isFromExternalAuth(),
             dataStoreOptions);
-    return get(environment, dataStore, authenticationPrincipal);
+    return get(environment, dataStore, authenticationSubject);
   }
 
   protected abstract ResultT get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
-      AuthenticationPrincipal authenticationPrincipal)
+      AuthenticationSubject authenticationSubject)
       throws Exception;
 }

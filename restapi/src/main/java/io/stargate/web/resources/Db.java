@@ -17,8 +17,8 @@ package io.stargate.web.resources;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Parameters;
@@ -36,11 +36,11 @@ public class Db {
   private final DataStore dataStore;
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
-  private final LoadingCache<String, AuthenticationPrincipal> docsTokensToRoles =
+  private final LoadingCache<String, AuthenticationSubject> docsTokensToRoles =
       Caffeine.newBuilder()
           .maximumSize(10_000)
           .expireAfterWrite(Duration.ofMinutes(1))
-          .build(this::getAuthenticationPrincipalForToken);
+          .build(this::getAuthenticationSubjectForToken);
   private final DataStoreFactory dataStoreFactory;
 
   public Db(
@@ -67,26 +67,25 @@ public class Db {
   }
 
   public AuthenticatedDB getDataStoreForToken(String token) throws UnauthorizedException {
-    AuthenticationPrincipal authenticationPrincipal = authenticationService.validateToken(token);
+    AuthenticationSubject authenticationSubject = authenticationService.validateToken(token);
     DataStore dataStore =
         dataStoreFactory.create(
-            authenticationPrincipal.getRoleName(),
-            authenticationPrincipal.isFromExternalAuth(),
+            authenticationSubject.getRoleName(),
+            authenticationSubject.isFromExternalAuth(),
             DataStoreOptions.defaultsWithAutoPreparedQueries());
 
-    return new AuthenticatedDB(dataStore, authenticationPrincipal);
+    return new AuthenticatedDB(dataStore, authenticationSubject);
   }
 
   public AuthenticatedDB getDataStoreForToken(String token, int pageSize, ByteBuffer pagingState)
       throws UnauthorizedException {
-    AuthenticationPrincipal authenticationPrincipal = authenticationService.validateToken(token);
+    AuthenticationSubject authenticationSubject = authenticationService.validateToken(token);
     return new AuthenticatedDB(
-        getDataStoreInternal(authenticationPrincipal, pageSize, pagingState),
-        authenticationPrincipal);
+        getDataStoreInternal(authenticationSubject, pageSize, pagingState), authenticationSubject);
   }
 
   private DataStore getDataStoreInternal(
-      AuthenticationPrincipal authenticationPrincipal, int pageSize, ByteBuffer pagingState) {
+      AuthenticationSubject authenticationSubject, int pageSize, ByteBuffer pagingState) {
     Parameters parameters =
         Parameters.builder()
             .pageSize(pageSize)
@@ -96,12 +95,10 @@ public class Db {
     DataStoreOptions options =
         DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
     return dataStoreFactory.create(
-        authenticationPrincipal.getRoleName(),
-        authenticationPrincipal.isFromExternalAuth(),
-        options);
+        authenticationSubject.getRoleName(), authenticationSubject.isFromExternalAuth(), options);
   }
 
-  public AuthenticationPrincipal getAuthenticationPrincipalForToken(String token)
+  public AuthenticationSubject getAuthenticationSubjectForToken(String token)
       throws UnauthorizedException {
     return authenticationService.validateToken(token);
   }
@@ -110,7 +107,7 @@ public class Db {
     AuthenticatedDB authenticatedDB = getDataStoreForToken(token);
     return new DocumentDB(
         authenticatedDB.getDataStore(),
-        authenticatedDB.getAuthenticationPrincipal(),
+        authenticatedDB.getAuthenticationSubject(),
         getAuthorizationService());
   }
 
@@ -120,9 +117,9 @@ public class Db {
       throw new UnauthorizedException("Missing token");
     }
 
-    AuthenticationPrincipal authenticationPrincipal;
+    AuthenticationSubject authenticationSubject;
     try {
-      authenticationPrincipal = docsTokensToRoles.get(token);
+      authenticationSubject = docsTokensToRoles.get(token);
     } catch (CompletionException e) {
       if (e.getCause() instanceof UnauthorizedException) {
         throw (UnauthorizedException) e.getCause();
@@ -130,13 +127,13 @@ public class Db {
       throw e;
     }
 
-    if (authenticationPrincipal == null) {
-      throw new UnauthorizedException("Missing authenticationPrincipal");
+    if (authenticationSubject == null) {
+      throw new UnauthorizedException("Missing authenticationSubject");
     }
 
     return new DocumentDB(
-        getDataStoreInternal(authenticationPrincipal, pageSize, pageState),
-        authenticationPrincipal,
+        getDataStoreInternal(authenticationSubject, pageSize, pageState),
+        authenticationSubject,
         getAuthorizationService());
   }
 }

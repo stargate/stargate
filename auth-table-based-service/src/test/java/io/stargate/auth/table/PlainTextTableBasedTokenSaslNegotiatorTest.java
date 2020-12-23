@@ -6,8 +6,8 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.Credentials;
 import io.stargate.auth.PlainTextTokenSaslNegotiator;
 import io.stargate.auth.UnauthorizedException;
@@ -88,7 +88,7 @@ class PlainTextTableBasedTokenSaslNegotiatorTest {
     final byte[] clientResponse = createClientResponse(TOKEN_USERNAME, TOKEN);
 
     AuthenticationService authentication = mock(AuthenticationService.class);
-    when(authentication.validateToken(TOKEN)).thenReturn(new AuthenticationPrincipal(TOKEN, ROLE));
+    when(authentication.validateToken(TOKEN)).thenReturn(new AuthenticationSubject(TOKEN, ROLE));
 
     PlainTextTokenSaslNegotiator negotiator =
         new PlainTextTableBasedTokenSaslNegotiator(

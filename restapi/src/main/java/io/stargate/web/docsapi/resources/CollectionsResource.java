@@ -77,7 +77,7 @@ public class CollectionsResource {
 
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(namespace),
                   tables.stream().map(SchemaEntity::name).collect(Collectors.toList()),
                   SourceAPI.REST);
@@ -130,7 +130,7 @@ public class CollectionsResource {
           }
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  docDB.getAuthenticationPrincipal(),
+                  docDB.getAuthenticationSubject(),
                   namespace,
                   info.getName(),
                   Scope.CREATE,
@@ -178,7 +178,7 @@ public class CollectionsResource {
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   namespace,
                   collection,
                   Scope.DROP,
@@ -196,7 +196,7 @@ public class CollectionsResource {
               collection,
               new DocumentDB(
                   authenticatedDB.getDataStore(),
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   db.getAuthorizationService()));
           return Response.status(Response.Status.NO_CONTENT).build();
         });
@@ -243,7 +243,7 @@ public class CollectionsResource {
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   namespace,
                   collection,
                   Scope.ALTER,
@@ -271,7 +271,7 @@ public class CollectionsResource {
                   collection,
                   new DocumentDB(
                       authenticatedDB.getDataStore(),
-                      authenticatedDB.getAuthenticationPrincipal(),
+                      authenticatedDB.getAuthenticationSubject(),
                       db.getAuthorizationService()),
                   request.getUpgradeType());
 

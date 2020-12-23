@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import io.stargate.auth.AuthenticationPrincipal;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
@@ -61,7 +61,7 @@ public class DocumentDB {
 
   final DataStore dataStore;
   private final AuthorizationService authorizationService;
-  private final AuthenticationPrincipal authenticationPrincipal;
+  private final AuthenticationSubject authenticationSubject;
 
   static {
     allColumnNames = new ArrayList<>();
@@ -95,10 +95,10 @@ public class DocumentDB {
 
   public DocumentDB(
       DataStore dataStore,
-      AuthenticationPrincipal authenticationPrincipal,
+      AuthenticationSubject authenticationSubject,
       AuthorizationService authorizationService) {
     this.dataStore = dataStore;
-    this.authenticationPrincipal = authenticationPrincipal;
+    this.authenticationSubject = authenticationSubject;
     this.authorizationService = authorizationService;
 
     if (!dataStore.supportsSAI() && !dataStore.supportsSecondaryIndex()) {
@@ -110,8 +110,8 @@ public class DocumentDB {
     return authorizationService;
   }
 
-  public AuthenticationPrincipal getAuthenticationPrincipal() {
-    return authenticationPrincipal;
+  public AuthenticationSubject getAuthenticationSubject() {
+    return authenticationSubject;
   }
 
   public boolean treatBooleansAsNumeric() {
@@ -327,7 +327,7 @@ public class DocumentDB {
       throws UnauthorizedException {
     // Run generic authorizeDataRead for now
     getAuthorizationService()
-        .authorizeDataRead(getAuthenticationPrincipal(), keyspace, collection, SourceAPI.REST);
+        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
 
     return this.builder()
         .select()
@@ -345,7 +345,7 @@ public class DocumentDB {
       throws UnauthorizedException {
     // Run generic authorizeDataRead for now
     getAuthorizationService()
-        .authorizeDataRead(getAuthenticationPrincipal(), keyspace, collection, SourceAPI.REST);
+        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
 
     return this.builder()
         .select()
@@ -521,10 +521,10 @@ public class DocumentDB {
     }
 
     getAuthorizationService()
-        .authorizeDataWrite(authenticationPrincipal, keyspace, table, Scope.DELETE, SourceAPI.REST);
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
 
     getAuthorizationService()
-        .authorizeDataWrite(authenticationPrincipal, keyspace, table, Scope.MODIFY, SourceAPI.REST);
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
     dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
   }
 
@@ -572,10 +572,10 @@ public class DocumentDB {
     }
 
     getAuthorizationService()
-        .authorizeDataWrite(authenticationPrincipal, keyspace, table, Scope.DELETE, SourceAPI.REST);
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
 
     getAuthorizationService()
-        .authorizeDataWrite(authenticationPrincipal, keyspace, table, Scope.MODIFY, SourceAPI.REST);
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
     dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
   }
@@ -586,7 +586,7 @@ public class DocumentDB {
 
     getAuthorizationService()
         .authorizeDataWrite(
-            getAuthenticationPrincipal(), keyspace, table, Scope.DELETE, SourceAPI.REST);
+            getAuthenticationSubject(), keyspace, table, Scope.DELETE, SourceAPI.REST);
     dataStore
         .execute(
             getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch, pathToDelete),
@@ -612,7 +612,7 @@ public class DocumentDB {
 
     getAuthorizationService()
         .authorizeDataWrite(
-            getAuthenticationPrincipal(), keyspaceName, tableName, Scope.DELETE, SourceAPI.REST);
+            getAuthenticationSubject(), keyspaceName, tableName, Scope.DELETE, SourceAPI.REST);
 
     List<BoundQuery> queries = new ArrayList<>();
     for (Map.Entry<String, List<JsonNode>> entry : deadLeaves.entrySet()) {

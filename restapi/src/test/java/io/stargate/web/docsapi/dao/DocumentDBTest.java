@@ -18,7 +18,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
-import io.stargate.auth.AuthenticationPrincipal;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
@@ -76,9 +76,8 @@ public class DocumentDBTest {
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationPrincipal.class), anyString(), anyString(), eq(SourceAPI.REST));
-    documentDB =
-        new DocumentDB(ds, new AuthenticationPrincipal("foo", "bar"), authorizationService);
+            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
+    documentDB = new DocumentDB(ds, new AuthenticationSubject("foo", "bar"), authorizationService);
   }
 
   @Test
@@ -204,9 +203,8 @@ public class DocumentDBTest {
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationPrincipal.class), anyString(), anyString(), eq(SourceAPI.REST));
-    documentDB =
-        new DocumentDB(ds, new AuthenticationPrincipal("foo", "bar"), authorizationService);
+            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
+    documentDB = new DocumentDB(ds, new AuthenticationSubject("foo", "bar"), authorizationService);
     List<String> path = ImmutableList.of("a", "b", "c");
     Map<String, Object> map = documentDB.newBindMap(path);
     map.put("key", "key");
@@ -238,9 +236,8 @@ public class DocumentDBTest {
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationPrincipal.class), anyString(), anyString(), eq(SourceAPI.REST));
-    documentDB =
-        new DocumentDB(ds, new AuthenticationPrincipal("foo", "bar"), authorizationService);
+            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
+    documentDB = new DocumentDB(ds, new AuthenticationSubject("foo", "bar"), authorizationService);
     List<String> path = ImmutableList.of("a", "b", "c");
     List<String> patchedKeys = ImmutableList.of("eric");
     Map<String, Object> map = documentDB.newBindMap(path);
@@ -289,9 +286,8 @@ public class DocumentDBTest {
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationPrincipal.class), anyString(), anyString(), eq(SourceAPI.REST));
-    documentDB =
-        new DocumentDB(ds, new AuthenticationPrincipal("foo", "bar"), authorizationService);
+            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
+    documentDB = new DocumentDB(ds, new AuthenticationSubject("foo", "bar"), authorizationService);
     List<String> path = ImmutableList.of("a", "b", "c");
     List<Object[]> vars = new ArrayList<>();
     vars.add(new Object[path.size() + 2]);
@@ -319,9 +315,8 @@ public class DocumentDBTest {
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationPrincipal.class), anyString(), anyString(), eq(SourceAPI.REST));
-    documentDB =
-        new DocumentDB(ds, new AuthenticationPrincipal("foo", "bar"), authorizationService);
+            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
+    documentDB = new DocumentDB(ds, new AuthenticationSubject("foo", "bar"), authorizationService);
 
     Map<String, List<JsonNode>> deadLeaves = new HashMap<>();
     deadLeaves.put("$.a", new ArrayList<>());

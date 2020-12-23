@@ -18,8 +18,8 @@ package io.stargate.graphql.schema.fetchers.dml;
 import com.google.common.collect.ImmutableList;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
-import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
@@ -56,14 +56,14 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
   protected Map<String, Object> get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
-      AuthenticationPrincipal authenticationPrincipal)
+      AuthenticationSubject authenticationSubject)
       throws Exception {
     BoundQuery query = buildQuery(environment, dataStore);
 
     ResultSet resultSet =
         authorizationService.authorizedDataRead(
             () -> dataStore.execute(query).get(),
-            authenticationPrincipal,
+            authenticationSubject,
             table.keyspace(),
             table.name(),
             TypedKeyValue.forSelect((BoundSelect) query),

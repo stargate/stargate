@@ -1,8 +1,8 @@
 package io.stargate.graphql.schema.fetchers.dml;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
@@ -37,7 +37,7 @@ public class UpdateMutationFetcher extends MutationFetcher {
   protected BoundQuery buildQuery(
       DataFetchingEnvironment environment,
       DataStore dataStore,
-      AuthenticationPrincipal authenticationPrincipal)
+      AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
     boolean ifExists =
         environment.containsArgument("ifExists")
@@ -57,7 +57,7 @@ public class UpdateMutationFetcher extends MutationFetcher {
             .bind();
 
     authorizationService.authorizeDataWrite(
-        authenticationPrincipal,
+        authenticationSubject,
         table.keyspace(),
         table.name(),
         TypedKeyValue.forDML((BoundDMLQuery) query),

@@ -15,19 +15,19 @@
  */
 package io.stargate.auth;
 
-public class AuthenticationPrincipal {
+public class AuthenticationSubject {
 
   private String token;
   private String roleName;
   private boolean fromExternalAuth;
 
-  public AuthenticationPrincipal(String token, String roleName, boolean fromExternalAuth) {
+  public AuthenticationSubject(String token, String roleName, boolean fromExternalAuth) {
     this.token = token;
     this.roleName = roleName;
     this.fromExternalAuth = fromExternalAuth;
   }
 
-  public AuthenticationPrincipal(String token, String roleName) {
+  public AuthenticationSubject(String token, String roleName) {
     this.token = token;
     this.roleName = roleName;
     this.fromExternalAuth = false;

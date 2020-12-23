@@ -312,7 +312,7 @@ public class RowsResource {
 
           db.getAuthorizationService()
               .authorizeDataWrite(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
@@ -431,7 +431,7 @@ public class RowsResource {
 
           db.getAuthorizationService()
               .authorizeDataWrite(
-                  authenticatedDB.getAuthenticationPrincipal(),
+                  authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
@@ -525,7 +525,7 @@ public class RowsResource {
 
     db.getAuthorizationService()
         .authorizeDataWrite(
-            authenticatedDB.getAuthenticationPrincipal(),
+            authenticatedDB.getAuthenticationSubject(),
             keyspaceName,
             tableName,
             TypedKeyValue.forDML((BoundDMLQuery) query),
@@ -573,7 +573,7 @@ public class RowsResource {
                         .getDataStore()
                         .execute(query, ConsistencyLevel.LOCAL_QUORUM)
                         .get(),
-                authenticatedDB.getAuthenticationPrincipal(),
+                authenticatedDB.getAuthenticationSubject(),
                 tableMetadata.keyspace(),
                 tableMetadata.name(),
                 TypedKeyValue.forSelect((BoundSelect) query),

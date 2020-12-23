@@ -15,7 +15,7 @@
  */
 package io.stargate.auth.table;
 
-import io.stargate.auth.AuthenticationPrincipal;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
@@ -36,7 +36,7 @@ public class AuthzTableBasedService implements AuthorizationService {
   @Override
   public ResultSet authorizedDataRead(
       Callable<ResultSet> action,
-      AuthenticationPrincipal authenticationPrincipal,
+      AuthenticationSubject authenticationSubject,
       String keyspace,
       String table,
       List<TypedKeyValue> typedKeyValues,
@@ -54,7 +54,7 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public void authorizeDataRead(
-      AuthenticationPrincipal authenticationPrincipal,
+      AuthenticationSubject authenticationSubject,
       String keyspaceNames,
       String tableNames,
       SourceAPI sourceAPI)
@@ -70,7 +70,7 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public void authorizeDataWrite(
-      AuthenticationPrincipal authenticationPrincipal,
+      AuthenticationSubject authenticationSubject,
       String keyspaceNames,
       String tableNames,
       Scope scope,
@@ -87,7 +87,7 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public void authorizeDataWrite(
-      AuthenticationPrincipal authenticationPrincipal,
+      AuthenticationSubject authenticationSubject,
       String keyspace,
       String table,
       List<TypedKeyValue> typedKeyValues,
@@ -106,7 +106,7 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public void authorizeSchemaRead(
-      AuthenticationPrincipal authenticationPrincipal,
+      AuthenticationSubject authenticationSubject,
       List<String> keyspaceNames,
       List<String> tableNames,
       SourceAPI sourceAPI)
@@ -123,7 +123,7 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public void authorizeSchemaWrite(
-      AuthenticationPrincipal authenticationPrincipal,
+      AuthenticationSubject authenticationSubject,
       String keyspace,
       String table,
       Scope scope,
@@ -140,10 +140,7 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public void authorizeRoleManagement(
-      AuthenticationPrincipal authenticationPrincipal,
-      String role,
-      Scope scope,
-      SourceAPI sourceAPI)
+      AuthenticationSubject authenticationSubject, String role, Scope scope, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -156,7 +153,7 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public void authorizeRoleManagement(
-      AuthenticationPrincipal authenticationPrincipal,
+      AuthenticationSubject authenticationSubject,
       String role,
       String grantee,
       Scope scope,
@@ -173,7 +170,7 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public void authorizeRoleRead(
-      AuthenticationPrincipal authenticationPrincipal, String role, SourceAPI sourceAPI)
+      AuthenticationSubject authenticationSubject, String role, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -187,7 +184,7 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public void authorizePermissionManagement(
-      AuthenticationPrincipal authenticationPrincipal,
+      AuthenticationSubject authenticationSubject,
       String resource,
       String grantee,
       Scope scope,
@@ -205,7 +202,7 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public void authorizePermissionRead(
-      AuthenticationPrincipal authenticationPrincipal, String role, SourceAPI sourceAPI)
+      AuthenticationSubject authenticationSubject, String role, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }

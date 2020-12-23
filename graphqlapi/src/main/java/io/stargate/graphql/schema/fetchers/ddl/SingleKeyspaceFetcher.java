@@ -16,8 +16,8 @@
 package io.stargate.graphql.schema.fetchers.ddl;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
@@ -38,7 +38,7 @@ public class SingleKeyspaceFetcher extends CassandraFetcher<Map<String, Object>>
   protected Map<String, Object> get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
-      AuthenticationPrincipal authenticationPrincipal) {
+      AuthenticationSubject authenticationSubject) {
     String keyspaceName = environment.getArgument("name");
 
     Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
@@ -47,6 +47,6 @@ public class SingleKeyspaceFetcher extends CassandraFetcher<Map<String, Object>>
     }
 
     return KeyspaceFormatter.formatResult(
-        keyspace, environment, authorizationService, authenticationPrincipal);
+        keyspace, environment, authorizationService, authenticationSubject);
   }
 }

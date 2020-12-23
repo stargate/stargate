@@ -1,9 +1,8 @@
 package io.stargate.graphql.schema.fetchers.ddl;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.*;
-import io.stargate.auth.AuthenticationPrincipal;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
@@ -25,7 +24,7 @@ public abstract class TableFetcher extends DdlQueryFetcher {
   protected Query<?> buildQuery(
       DataFetchingEnvironment dataFetchingEnvironment,
       QueryBuilder builder,
-      AuthenticationPrincipal authenticationPrincipal)
+      AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
     String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
     String tableName = dataFetchingEnvironment.getArgument("tableName");
@@ -40,7 +39,7 @@ public abstract class TableFetcher extends DdlQueryFetcher {
     }
 
     authorizationService.authorizeSchemaWrite(
-        authenticationPrincipal, keyspaceName, tableName, scope, SourceAPI.GRAPHQL);
+        authenticationSubject, keyspaceName, tableName, scope, SourceAPI.GRAPHQL);
 
     return buildQuery(dataFetchingEnvironment, builder, keyspaceName, tableName);
   }
