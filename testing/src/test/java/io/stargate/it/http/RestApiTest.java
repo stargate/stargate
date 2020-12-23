@@ -243,6 +243,36 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void createTableWithNullOptions() throws IOException {
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName("t1");
+
+    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+
+    columnDefinitions.add(new ColumnDefinition("id", "uuid"));
+    columnDefinitions.add(new ColumnDefinition("lastName", "text"));
+    columnDefinitions.add(new ColumnDefinition("firstName", "text"));
+
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Collections.singletonList("id"));
+    tableAdd.setPrimaryKey(primaryKey);
+    tableAdd.setTableOptions(null);
+
+    String body =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/tables", host, keyspace),
+            objectMapper.writeValueAsString(tableAdd),
+            HttpStatus.SC_CREATED);
+
+    SuccessResponse successResponse =
+        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
+    assertThat(successResponse.getSuccess()).isTrue();
+  }
+
+  @Test
   public void getRow() throws IOException {
     String tableName = "tbl_getrow_" + System.currentTimeMillis();
     createTable(tableName);
