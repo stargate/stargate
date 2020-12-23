@@ -220,34 +220,7 @@ public class StargateQueryHandler implements QueryHandler {
 
   @VisibleForTesting
   protected void authorizeByToken(ByteBuffer token, CQLStatement statement) {
-    AuthenticationPrincipal authenticationPrincipal;
-    ObjectInput in = null;
-    try {
-      if (token.position() == token.limit()) {
-        token.flip();
-      }
-      byte[] bytes = new byte[token.remaining()];
-      token.get(bytes);
-      ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-      in = new ObjectInputStream(bis);
-      AuthenticatedUser authenticatedUser = (AuthenticatedUser) in.readObject();
-
-      authenticationPrincipal =
-          new AuthenticationPrincipal(
-              authenticatedUser.token(),
-              authenticatedUser.name(),
-              authenticatedUser.isFromExternalAuth());
-    } catch (IOException | ClassNotFoundException e) {
-      throw new RuntimeException("Failed to deserialize authenticationPrincipal");
-    } finally {
-      try {
-        if (in != null) {
-          in.close();
-        }
-      } catch (IOException ex) {
-        // ignore close exception
-      }
-    }
+    AuthenticationPrincipal authenticationPrincipal = loadAuthenticationPrincipal(token);
 
     if (!getAuthorizationService().isPresent()) {
       throw new RuntimeException(
@@ -331,6 +304,38 @@ public class StargateQueryHandler implements QueryHandler {
           "Unable to authorize statement "
               + (statement != null ? statement.getClass().getName() : "null"));
     }
+  }
+
+  private AuthenticationPrincipal loadAuthenticationPrincipal(ByteBuffer token) {
+    AuthenticationPrincipal authenticationPrincipal;
+    ObjectInput in = null;
+    try {
+      if (token.position() == token.limit()) {
+        token.flip();
+      }
+      byte[] bytes = new byte[token.remaining()];
+      token.get(bytes);
+      ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+      in = new ObjectInputStream(bis);
+      AuthenticatedUser authenticatedUser = (AuthenticatedUser) in.readObject();
+
+      authenticationPrincipal =
+          new AuthenticationPrincipal(
+              authenticatedUser.token(),
+              authenticatedUser.name(),
+              authenticatedUser.isFromExternalAuth());
+    } catch (IOException | ClassNotFoundException e) {
+      throw new RuntimeException("Failed to deserialize authenticationPrincipal");
+    } finally {
+      try {
+        if (in != null) {
+          in.close();
+        }
+      } catch (IOException ex) {
+        // ignore close exception
+      }
+    }
+    return authenticationPrincipal;
   }
 
   private void authorizeModificationStatement(
