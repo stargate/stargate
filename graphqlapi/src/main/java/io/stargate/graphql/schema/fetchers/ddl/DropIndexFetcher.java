@@ -19,12 +19,13 @@ import com.google.common.base.Splitter;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import java.util.List;
 
-public class DropIndexFetcher extends DdlQueryFetcher {
+public class DropIndexFetcher extends IndexFetcher {
 
   public DropIndexFetcher(
       AuthenticationService authenticationService,
@@ -34,10 +35,17 @@ public class DropIndexFetcher extends DdlQueryFetcher {
   }
 
   @Override
-  protected Query<?> buildQuery(
-      DataFetchingEnvironment dataFetchingEnvironment, QueryBuilder builder) {
+  protected Scope getScope() {
+    return Scope.DROP;
+  }
 
-    String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
+  @Override
+  protected Query<?> buildQuery(
+      DataFetchingEnvironment dataFetchingEnvironment,
+      QueryBuilder builder,
+      String keyspaceName,
+      String tableName) {
+
     String indexName = dataFetchingEnvironment.getArgument("indexName");
     boolean ifExists = dataFetchingEnvironment.getArgumentOrDefault("ifExists", Boolean.FALSE);
 

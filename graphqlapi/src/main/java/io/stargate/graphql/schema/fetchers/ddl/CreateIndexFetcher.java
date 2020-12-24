@@ -19,6 +19,7 @@ import com.google.common.base.Splitter;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
@@ -27,7 +28,7 @@ import io.stargate.db.schema.ImmutableCollectionIndexingType;
 import java.util.Arrays;
 import java.util.List;
 
-public class CreateIndexFetcher extends DdlQueryFetcher {
+public class CreateIndexFetcher extends IndexFetcher {
 
   public CreateIndexFetcher(
       AuthenticationService authenticationService,
@@ -37,11 +38,16 @@ public class CreateIndexFetcher extends DdlQueryFetcher {
   }
 
   @Override
-  protected Query<?> buildQuery(
-      DataFetchingEnvironment dataFetchingEnvironment, QueryBuilder builder) {
+  protected Scope getScope() {
+    return Scope.CREATE;
+  }
 
-    String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
-    String tableName = dataFetchingEnvironment.getArgument("tableName");
+  @Override
+  protected Query<?> buildQuery(
+      DataFetchingEnvironment dataFetchingEnvironment,
+      QueryBuilder builder,
+      String keyspaceName,
+      String tableName) {
     String columnName = dataFetchingEnvironment.getArgument("columnName");
 
     if (keyspaceName == null) {
