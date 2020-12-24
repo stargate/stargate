@@ -84,6 +84,9 @@ public class CreateIndexFetcherTest extends DdlTestBase {
       arguments(
           "createIndex(keyspaceName:\"library\", tableName:\"sales\")",
           "Missing field argument columnName @ 'createIndex'"),
+      arguments(
+          "createIndex(keyspaceName:\"library\", tableName:\"sales\", columnName:\"prices\", indexKeys: true, indexEntries: true)",
+          "The indexEntries, indexKeys, indexValues and indexFull options are mutually exclusive"),
     };
   }
 }

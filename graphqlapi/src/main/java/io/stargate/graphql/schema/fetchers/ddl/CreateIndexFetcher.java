@@ -71,12 +71,12 @@ public class CreateIndexFetcher extends DdlQueryFetcher {
 
     long paramsCount =
         Arrays.asList(indexEntries, indexKeys, indexValues, indexFull).stream()
-            .filter(i -> i == true)
+            .filter(i -> i)
             .count();
 
     if (paramsCount > 1) {
       throw new IllegalArgumentException(
-          "indexEntries, indexKeys, indexValues, indexFull are mutually excludents");
+          "The indexEntries, indexKeys, indexValues and indexFull options are mutually exclusive");
     }
 
     CollectionIndexingType indexingType =
