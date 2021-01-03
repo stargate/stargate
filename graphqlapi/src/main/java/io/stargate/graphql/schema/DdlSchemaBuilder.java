@@ -467,12 +467,33 @@ class DdlSchemaBuilder {
             GraphQLArgument.newArgument().name("columnName").type(nonNull(Scalars.GraphQLString)))
         .argument(GraphQLArgument.newArgument().name("indexName").type(Scalars.GraphQLString))
         .argument(
-            GraphQLArgument.newArgument().name("customIndexClass").type(Scalars.GraphQLString))
+            GraphQLArgument.newArgument()
+                .name("indexType")
+                .description(
+                    "Adds a custom index type that can be identified by name (e.g., StorageAttachedIndex), "
+                        + "or class name (e.g., org.apache.cassandra.index.sasi.SASIIndex) ")
+                .type(Scalars.GraphQLString))
         .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
-        .argument(GraphQLArgument.newArgument().name("indexEntries").type(Scalars.GraphQLBoolean))
-        .argument(GraphQLArgument.newArgument().name("indexKeys").type(Scalars.GraphQLBoolean))
-        .argument(GraphQLArgument.newArgument().name("indexValues").type(Scalars.GraphQLBoolean))
-        .argument(GraphQLArgument.newArgument().name("indexFull").type(Scalars.GraphQLBoolean))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("indexKeys")
+                .description("Index keys of a map")
+                .type(Scalars.GraphQLBoolean))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("indexEntries")
+                .description("Index entries of a map")
+                .type(Scalars.GraphQLBoolean))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("indexValues")
+                .description("Index values of a collection (set/list/map)")
+                .type(Scalars.GraphQLBoolean))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("indexFull")
+                .description("Full index of a frozen collection (set/list/map)")
+                .type(Scalars.GraphQLBoolean))
         .type(Scalars.GraphQLBoolean)
         .dataFetcher(
             new CreateIndexFetcher(authenticationService, authorizationService, dataStoreFactory))

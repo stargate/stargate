@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.List;
 
 public class CreateIndexFetcher extends IndexFetcher {
-
   public CreateIndexFetcher(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
@@ -65,8 +64,7 @@ public class CreateIndexFetcher extends IndexFetcher {
 
     boolean ifNotExists =
         dataFetchingEnvironment.getArgumentOrDefault("ifNotExists", Boolean.FALSE);
-    String customIndexClass =
-        dataFetchingEnvironment.getArgumentOrDefault("customIndexClass", null);
+    String customIndexClass = dataFetchingEnvironment.getArgumentOrDefault("indexType", null);
 
     boolean indexEntries =
         dataFetchingEnvironment.getArgumentOrDefault("indexEntries", Boolean.FALSE);

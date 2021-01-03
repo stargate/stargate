@@ -1,6 +1,7 @@
 package io.stargate.graphql.schema.fetchers.ddl;
 
 import static com.datastax.oss.driver.shaded.guava.common.base.Preconditions.checkNotNull;
+
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.*;
 import io.stargate.auth.UnauthorizedException;
