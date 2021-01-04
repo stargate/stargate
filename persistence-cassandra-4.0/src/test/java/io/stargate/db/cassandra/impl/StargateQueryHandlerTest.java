@@ -15,10 +15,8 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.AuthenticatedUser;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -811,15 +809,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
     objectOutputStream.writeObject(authenticatedUser);
     objectOutputStream.flush();
-    byte[] bytes = outputStream.toByteArray();
 
-    InputStream inputStream = new ByteArrayInputStream(bytes);
-    ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length);
-    while (inputStream.available() > 0) {
-      byteBuffer.put((byte) inputStream.read());
-    }
-
-    byteBuffer.flip();
-    return byteBuffer;
+    return ByteBuffer.wrap(outputStream.toByteArray());
   }
 }

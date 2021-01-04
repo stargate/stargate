@@ -36,10 +36,8 @@ import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -390,14 +388,7 @@ public abstract class Message {
       bytes = outputStream.toByteArray();
     }
 
-    InputStream inputStream = new ByteArrayInputStream(bytes);
-    ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length);
-    while (inputStream.available() > 0) {
-      byteBuffer.put((byte) inputStream.read());
-    }
-    // flip before sending so its ready to be read on the other side
-    byteBuffer.flip();
-    return byteBuffer;
+    return ByteBuffer.wrap(bytes);
   }
 
   @ChannelHandler.Sharable
