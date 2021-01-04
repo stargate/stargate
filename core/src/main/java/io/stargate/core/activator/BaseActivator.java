@@ -203,7 +203,9 @@ public abstract class BaseActivator implements BundleActivator {
    * It will be called when the OSGi calls {@link this#stop(BundleContext)} and only if service was
    * already started.
    */
-  protected abstract void stopService();
+  protected void stopService() {
+    // no-op
+  }
 
   /**
    * @return List of dependent services that this component relies on. It provides the

@@ -53,11 +53,6 @@ public class AuthApiActivator extends BaseActivator {
   }
 
   @Override
-  protected void stopService() {
-    // no-op
-  }
-
-  @Override
   protected List<ServicePointer<?>> dependencies() {
     return Arrays.asList(metric, authenticationService);
   }

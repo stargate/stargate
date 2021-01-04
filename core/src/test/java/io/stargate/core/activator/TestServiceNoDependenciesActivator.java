@@ -24,11 +24,6 @@ public class TestServiceNoDependenciesActivator extends BaseActivator {
   }
 
   @Override
-  protected void stopService() {
-    // no-op
-  }
-
-  @Override
   protected ServiceAndProperties createService() {
     return new ServiceAndProperties(
         new TestServiceNoDependencies(), TestServiceNoDependencies.class);

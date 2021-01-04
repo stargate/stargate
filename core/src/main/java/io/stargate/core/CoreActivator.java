@@ -22,11 +22,6 @@ public class CoreActivator extends BaseActivator {
   }
 
   @Override
-  protected void stopService() {
-    // no-op
-  }
-
-  @Override
   protected List<ServicePointer<?>> dependencies() {
     return Collections.emptyList();
   }
