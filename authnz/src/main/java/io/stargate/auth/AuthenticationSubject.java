@@ -35,6 +35,10 @@ public interface AuthenticationSubject {
   }
 
   static AuthenticationSubject of(String token, String roleName) {
-    return ImmutableAuthenticationSubject.builder().token(token).roleName(roleName).build();
+    return ImmutableAuthenticationSubject.builder()
+        .token(token)
+        .roleName(roleName)
+        .isFromExternalAuth(false)
+        .build();
   }
 }
