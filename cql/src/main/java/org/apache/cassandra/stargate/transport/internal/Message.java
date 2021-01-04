@@ -31,14 +31,11 @@ import io.netty.channel.EventLoop;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.MessageToMessageEncoder;
-import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -347,15 +344,11 @@ public abstract class Message {
               message
                   .getCustomPayload()
                   .put(
-                      "token",
-                      authenticatedUserToByteBuffer(
-                          ((ServerConnection) connection).clientInfo().getAuthenticatedUser()));
+                      "token", ((ServerConnection) connection).clientInfo().getAuthenticatedUser());
             } else {
               customPayload =
                   Collections.singletonMap(
-                      "token",
-                      authenticatedUserToByteBuffer(
-                          ((ServerConnection) connection).clientInfo().getAuthenticatedUser()));
+                      "token", ((ServerConnection) connection).clientInfo().getAuthenticatedUser());
               message.setCustomPayload(customPayload);
             }
           }
@@ -376,19 +369,6 @@ public abstract class Message {
         throw ErrorMessage.wrap(ex, frame.header.streamId);
       }
     }
-  }
-
-  private static ByteBuffer authenticatedUserToByteBuffer(AuthenticatedUser authenticatedUser)
-      throws IOException {
-    byte[] bytes;
-    try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream)) {
-      objectOutputStream.writeObject(authenticatedUser);
-      objectOutputStream.flush();
-      bytes = outputStream.toByteArray();
-    }
-
-    return ByteBuffer.wrap(bytes);
   }
 
   @ChannelHandler.Sharable

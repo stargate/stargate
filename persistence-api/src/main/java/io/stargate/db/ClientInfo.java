@@ -3,6 +3,7 @@ package io.stargate.db;
 import static java.lang.String.format;
 
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
@@ -13,7 +14,7 @@ public class ClientInfo {
 
   private volatile DriverInfo driverInfo;
 
-  private AuthenticatedUser authenticatedUser;
+  private ByteBuffer authenticatedUser;
 
   public ClientInfo(InetSocketAddress remoteAddress, @Nullable InetSocketAddress publicAddress) {
     this.remoteAddress = remoteAddress;
@@ -40,11 +41,11 @@ public class ClientInfo {
     return Optional.ofNullable(driverInfo);
   }
 
-  public AuthenticatedUser getAuthenticatedUser() {
+  public ByteBuffer getAuthenticatedUser() {
     return authenticatedUser;
   }
 
-  public void setAuthenticatedUser(AuthenticatedUser authenticatedUser) {
+  public void setAuthenticatedUser(ByteBuffer authenticatedUser) {
     this.authenticatedUser = authenticatedUser;
   }
 
