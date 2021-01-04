@@ -367,9 +367,7 @@ public class DsePersistence
     @SuppressWarnings("RxReturnValueIgnored")
     protected void loginInternally(io.stargate.db.AuthenticatedUser user) {
       try {
-        if (user.isFromExternalAuth()
-            && Boolean.parseBoolean(
-                System.getProperty("stargate.cql_use_transitional_auth", "false"))) {
+        if (user.isFromExternalAuth() && Boolean.getBoolean("stargate.cql_use_transitional_auth")) {
           clientState.login(AuthenticatedUser.ANONYMOUS_USER);
         } else {
           // For now, we're blocking as the login() API is synchronous. If this is a problem, we may
