@@ -52,7 +52,9 @@ public class ServerConnection extends Connection {
     super(channel, version, tracker);
     this.clientInfo =
         new ClientInfo(
-            (InetSocketAddress) channel.remoteAddress(),
+            proxyInfo != null
+                ? proxyInfo.sourceAddress
+                : (InetSocketAddress) channel.remoteAddress(),
             proxyInfo != null ? proxyInfo.publicAddress : null);
     this.persistenceConnection = persistence.newConnection(clientInfo);
     this.authentication = authentication;
