@@ -1,7 +1,6 @@
 package io.stargate.web.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
@@ -14,6 +13,7 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.ColumnDefinition;
+import java.util.Collections;
 import java.util.List;
 import javax.ws.rs.core.GenericType;
 import org.junit.jupiter.api.AfterEach;
@@ -42,7 +42,7 @@ class ColumnResourceTest {
     List<Column> columns = ImmutableList.of(column1, column2);
 
     AuthenticatedDB authenticatedDB = mock(AuthenticatedDB.class);
-    when(db.getDataStoreForToken("token", any())).thenReturn(authenticatedDB);
+    when(db.getDataStoreForToken("token", Collections.emptyMap())).thenReturn(authenticatedDB);
     when(db.getAuthorizationService()).thenReturn(authorizationService);
     when(authenticatedDB.getTable("keySpaceName", "tableName")).thenReturn(table);
     when(table.columns()).thenReturn(columns);

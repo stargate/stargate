@@ -15,6 +15,7 @@
  */
 package io.stargate.core;
 
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,6 +24,9 @@ import javax.servlet.http.HttpServletRequest;
 public class RequestToHeadersMapper {
 
   public static Map<String, String> getAllHeaders(HttpServletRequest request) {
+    if (request == null) {
+      return Collections.emptyMap();
+    }
     Map<String, String> allHeaders = new HashMap<>();
     Enumeration<String> headerNames = request.getHeaderNames();
     while (headerNames.hasMoreElements()) {
