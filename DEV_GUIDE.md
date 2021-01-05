@@ -13,6 +13,8 @@ mvn xml-format:xml-format fmt:format
 
 ## Building
 
+**__For building locally and running, Stargate only supports jdk 8 at the moment due to it's backend dependencies.__**
+
 To build locally run the following:
 
 ```sh
