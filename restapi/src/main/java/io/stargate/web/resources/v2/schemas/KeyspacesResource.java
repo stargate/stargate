@@ -15,6 +15,8 @@
  */
 package io.stargate.web.resources.v2.schemas;
 
+import static io.stargate.core.RequestToHeadersMapper.getAllHeaders;
+
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
@@ -40,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
@@ -48,6 +51,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -83,10 +87,11 @@ public class KeyspacesResource {
           @HeaderParam("X-Cassandra-Token")
           String token,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
-          final boolean raw) {
+          final boolean raw,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
 
           List<Keyspace> keyspaces =
               authenticatedDB.getKeyspaces().stream()
@@ -133,10 +138,11 @@ public class KeyspacesResource {
           @PathParam("keyspaceName")
           final String keyspaceName,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
-          final boolean raw) {
+          final boolean raw,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
           db.getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
@@ -202,10 +208,11 @@ public class KeyspacesResource {
                       + "      ],\n"
                       + "}\n"
                       + "```")
-          String payload) {
+          String payload,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
 
           Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
 
@@ -271,10 +278,11 @@ public class KeyspacesResource {
           String token,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
-          final String keyspaceName) {
+          final String keyspaceName,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(

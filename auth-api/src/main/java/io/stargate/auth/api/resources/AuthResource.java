@@ -15,6 +15,8 @@
  */
 package io.stargate.auth.api.resources;
 
+import static io.stargate.core.RequestToHeadersMapper.getAllHeaders;
+
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.model.AuthTokenResponse;
@@ -28,10 +30,12 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
@@ -75,7 +79,8 @@ public class AuthResource {
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  public Response createToken(@ApiParam(value = "", required = true) Secret secret) {
+  public Response createToken(
+      @ApiParam(value = "", required = true) Secret secret, @Context HttpServletRequest request) {
     if (secret == null) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide a body to the request"))
@@ -96,7 +101,7 @@ public class AuthResource {
 
     String token;
     try {
-      token = authService.createToken(secret.getKey(), secret.getSecret());
+      token = authService.createToken(secret.getKey(), secret.getSecret(), getAllHeaders(request));
     } catch (UnauthorizedException e) {
       return Response.status(Response.Status.UNAUTHORIZED)
           .entity(new Error("Failed to create token: " + e.getMessage()))
@@ -127,7 +132,9 @@ public class AuthResource {
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  public Response createToken(@ApiParam(value = "", required = true) Credentials credentials) {
+  public Response createToken(
+      @ApiParam(value = "", required = true) Credentials credentials,
+      @Context HttpServletRequest request) {
     if (credentials == null) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide a body to the request"))
@@ -148,7 +155,9 @@ public class AuthResource {
 
     String token;
     try {
-      token = authService.createToken(credentials.getUsername(), credentials.getPassword());
+      token =
+          authService.createToken(
+              credentials.getUsername(), credentials.getPassword(), getAllHeaders(request));
     } catch (UnauthorizedException e) {
       return Response.status(Response.Status.UNAUTHORIZED)
           .entity(new Error("Failed to create token: " + e.getMessage()))
@@ -197,7 +206,8 @@ public class AuthResource {
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   public Response createTokenFromUsername(
-      @ApiParam(value = "", required = true) UsernameCredentials usernameCredentials) {
+      @ApiParam(value = "", required = true) UsernameCredentials usernameCredentials,
+      @Context HttpServletRequest request) {
     if (!shouldEnableUsernameToken) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Generating a token for a username is not allowed"))
@@ -218,7 +228,7 @@ public class AuthResource {
 
     String token;
     try {
-      token = authService.createToken(usernameCredentials.getUsername());
+      token = authService.createToken(usernameCredentials.getUsername(), getAllHeaders(request));
     } catch (UnauthorizedException e) {
       return Response.status(Response.Status.UNAUTHORIZED)
           .entity(new Error("Failed to create token: " + e.getMessage()))

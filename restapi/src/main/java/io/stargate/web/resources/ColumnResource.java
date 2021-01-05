@@ -15,6 +15,8 @@
  */
 package io.stargate.web.resources;
 
+import static io.stargate.core.RequestToHeadersMapper.getAllHeaders;
+
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
@@ -36,6 +38,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -45,6 +48,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -95,10 +99,11 @@ public class ColumnResource {
           final String keyspaceName,
       @ApiParam(value = "Name of the table to use for the request.", required = true)
           @PathParam("tableName")
-          final String tableName) {
+          final String tableName,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
           db.getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
@@ -152,10 +157,11 @@ public class ColumnResource {
       @ApiParam(value = "Name of the table to use for the request.", required = true)
           @PathParam("tableName")
           final String tableName,
-      @ApiParam(value = "", required = true) @NotNull final ColumnDefinition columnDefinition) {
+      @ApiParam(value = "", required = true) @NotNull final ColumnDefinition columnDefinition,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
           Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -233,10 +239,11 @@ public class ColumnResource {
           final String tableName,
       @ApiParam(value = "Name of the column to use for the request.", required = true)
           @PathParam("columnName")
-          final String columnName) {
+          final String columnName,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
           db.getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
@@ -287,10 +294,11 @@ public class ColumnResource {
           final String tableName,
       @ApiParam(value = "Name of the column to use for the request.", required = true)
           @PathParam("columnName")
-          final String columnName) {
+          final String columnName,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
@@ -344,10 +352,11 @@ public class ColumnResource {
           @PathParam("tableName")
           final String tableName,
       @PathParam("columnName") final String columnName,
-      @ApiParam(value = "", required = true) @NotNull final ColumnUpdate columnUpdate) {
+      @ApiParam(value = "", required = true) @NotNull final ColumnUpdate columnUpdate,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(

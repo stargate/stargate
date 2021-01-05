@@ -48,7 +48,8 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
     HttpAwareContext httpAwareContext = environment.getContext();
 
     String token = httpAwareContext.getAuthToken();
-    AuthenticationSubject authenticationSubject = authenticationService.validateToken(token);
+    AuthenticationSubject authenticationSubject =
+        authenticationService.validateToken(token, httpAwareContext.getAllHeaders());
 
     Parameters parameters;
     Map<String, Object> options = environment.getArgument("options");
