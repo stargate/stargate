@@ -22,6 +22,4 @@ public interface Index extends SchemaEntity {
   int priority();
 
   String indexTypeName();
-
-  enum IndexKind {}
 }
