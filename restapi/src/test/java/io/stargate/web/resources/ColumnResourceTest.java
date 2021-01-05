@@ -1,6 +1,7 @@
 package io.stargate.web.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
@@ -41,7 +42,7 @@ class ColumnResourceTest {
     List<Column> columns = ImmutableList.of(column1, column2);
 
     AuthenticatedDB authenticatedDB = mock(AuthenticatedDB.class);
-    when(db.getDataStoreForToken("token")).thenReturn(authenticatedDB);
+    when(db.getDataStoreForToken("token", any())).thenReturn(authenticatedDB);
     when(db.getAuthorizationService()).thenReturn(authorizationService);
     when(authenticatedDB.getTable("keySpaceName", "tableName")).thenReturn(table);
     when(table.columns()).thenReturn(columns);

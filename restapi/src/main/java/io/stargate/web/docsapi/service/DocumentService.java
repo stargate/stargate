@@ -400,9 +400,10 @@ public class DocumentService {
       List<PathSegment> path,
       boolean patching,
       Db dbFactory,
-      boolean isJson)
+      boolean isJson,
+      Map<String, String> headers)
       throws UnauthorizedException {
-    DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
+    DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
 
     JsonSurfer surfer = JsonSurferGson.INSTANCE;
 
@@ -410,7 +411,7 @@ public class DocumentService {
     // After creating the table, it can take up to 2 seconds for permissions cache to be updated,
     // but we can force the permissions refetch by logging in again.
     if (created) {
-      db = dbFactory.getDocDataStoreForToken(authToken);
+      db = dbFactory.getDocDataStoreForToken(authToken, headers);
       db.maybeCreateTableIndexes(keyspace, collection);
     }
 
@@ -795,7 +796,8 @@ public class DocumentService {
       List<String> fields,
       ByteBuffer initialPagingState,
       int pageSize,
-      int limit)
+      int limit,
+      Map<String, String> headers)
       throws ExecutionException, InterruptedException, UnauthorizedException {
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashMap<String, List<Row>> rowsByDoc = new LinkedHashMap<>();
@@ -813,7 +815,7 @@ public class DocumentService {
               false,
               null);
       addRowsToMap(rowsByDoc, page.left);
-      db = dbFactory.getDocDataStoreForToken(authToken, pageSize, page.right);
+      db = dbFactory.getDocDataStoreForToken(authToken, pageSize, page.right, headers);
     } while (rowsByDoc.keySet().size() <= limit && page.right != null);
 
     // Either we've reached the end of all rows in the collection, or we have enough rows
@@ -831,7 +833,7 @@ public class DocumentService {
         }
         docsResult.set(e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
       }
-      db = dbFactory.getDocDataStoreForToken(authToken, totalSize, initialPagingState);
+      db = dbFactory.getDocDataStoreForToken(authToken, totalSize, initialPagingState, headers);
       ByteBuffer finalPagingState =
           searchRows(
                   keyspace,
@@ -874,7 +876,8 @@ public class DocumentService {
       List<String> fields,
       ByteBuffer initialPagingState,
       int pageSize,
-      int limit)
+      int limit,
+      Map<String, String> headers)
       throws ExecutionException, InterruptedException, UnauthorizedException {
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashMap<String, Boolean> existsByDoc = new LinkedHashMap<>();
@@ -894,7 +897,7 @@ public class DocumentService {
               null);
       updateExistenceForMap(
           existsByDoc, countsByDoc, page.left, filters, db.treatBooleansAsNumeric());
-      db = dbFactory.getDocDataStoreForToken(authToken, pageSize, page.right);
+      db = dbFactory.getDocDataStoreForToken(authToken, pageSize, page.right, headers);
     } while (existsByDoc.keySet().size() <= limit && page.right != null);
 
     // Either we've reached the end of all rows in the collection, or we have enough rows
@@ -914,7 +917,7 @@ public class DocumentService {
           i++;
         }
       }
-      db = dbFactory.getDocDataStoreForToken(authToken, totalSize, initialPagingState);
+      db = dbFactory.getDocDataStoreForToken(authToken, totalSize, initialPagingState, headers);
       finalPagingState =
           searchRows(
                   keyspace,
@@ -933,7 +936,7 @@ public class DocumentService {
     List<BuiltCondition> predicate =
         ImmutableList.of(BuiltCondition.of("key", Predicate.IN, new ArrayList<>(docNames)));
 
-    db = dbFactory.getDocDataStoreForToken(authToken);
+    db = dbFactory.getDocDataStoreForToken(authToken, headers);
 
     List<Row> rows = db.executeSelect(keyspace, collection, predicate).rows();
     Map<String, List<Row>> rowsByDoc = new HashMap<>();

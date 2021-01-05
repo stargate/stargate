@@ -33,6 +33,7 @@ import io.stargate.db.schema.Schema;
 import io.stargate.graphql.web.HttpAwareContext;
 import io.stargate.graphql.web.HttpAwareContext.BatchContext;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -72,7 +73,8 @@ public abstract class GraphQlTestBase {
     try {
       Schema schema = getCQLSchema();
       String roleName = "mock role name";
-      when(authenticationService.validateToken(token)).thenReturn(authenticationSubject);
+      when(authenticationService.validateToken(token, Collections.emptyMap()))
+          .thenReturn(authenticationSubject);
       when(authenticationSubject.roleName()).thenReturn(roleName);
       when(authorizationService.authorizedDataRead(
               actionCaptor.capture(),

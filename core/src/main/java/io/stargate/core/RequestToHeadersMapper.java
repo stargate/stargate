@@ -13,20 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.auth;
+package io.stargate.core;
 
-import io.stargate.db.Authenticator.SaslNegotiator;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 
-public interface AuthenticationService {
+public class RequestToHeadersMapper {
 
-  String createToken(String key, String secret, Map<String, String> headers)
-      throws UnauthorizedException;
-
-  String createToken(String key, Map<String, String> headers) throws UnauthorizedException;
-
-  AuthenticationSubject validateToken(String token, Map<String, String> headers)
-      throws UnauthorizedException;
-
-  SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped, Map<String, String> headers);
+  public static Map<String, String> getAllHeaders(HttpServletRequest request) {
+    Map<String, String> allHeaders = new HashMap<>();
+    Enumeration<String> headerNames = request.getHeaderNames();
+    while (headerNames.hasMoreElements()) {
+      String headerName = headerNames.nextElement();
+      allHeaders.put(headerName, request.getHeader(headerName));
+    }
+    System.out.println("return headers:" + allHeaders);
+    return allHeaders;
+  }
 }

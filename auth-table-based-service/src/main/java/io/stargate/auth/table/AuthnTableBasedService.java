@@ -29,6 +29,7 @@ import io.stargate.db.query.builder.Replication;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -90,7 +91,8 @@ public class AuthnTableBasedService implements AuthenticationService {
   }
 
   @Override
-  public String createToken(String key, String secret) throws UnauthorizedException {
+  public String createToken(String key, String secret, Map<String, String> headers)
+      throws UnauthorizedException {
     UUID token = UUID.randomUUID();
 
     String hash;
@@ -110,7 +112,7 @@ public class AuthnTableBasedService implements AuthenticationService {
   }
 
   @Override
-  public String createToken(String key) throws UnauthorizedException {
+  public String createToken(String key, Map<String, String> headers) throws UnauthorizedException {
     UUID token = UUID.randomUUID();
 
     String username;
@@ -213,7 +215,8 @@ public class AuthnTableBasedService implements AuthenticationService {
   }
 
   @Override
-  public AuthenticationSubject validateToken(String token) throws UnauthorizedException {
+  public AuthenticationSubject validateToken(String token, Map<String, String> headers)
+      throws UnauthorizedException {
     if (Strings.isNullOrEmpty(token)) {
       throw new UnauthorizedException("authorization failed - missing token");
     }
@@ -269,11 +272,12 @@ public class AuthnTableBasedService implements AuthenticationService {
   }
 
   @Override
-  public SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped) {
+  public SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped, Map<String, String> headers) {
     return new PlainTextTableBasedTokenSaslNegotiator(
         this,
         wrapped,
         System.getProperty("stargate.cql_token_username", "token"),
-        Integer.parseInt(System.getProperty("stargate.cql_token_max_length", "36")));
+        Integer.parseInt(System.getProperty("stargate.cql_token_max_length", "36")),
+        headers);
   }
 }

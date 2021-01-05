@@ -25,6 +25,7 @@ import io.stargate.db.Authenticator;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.Persistence;
 import java.net.InetSocketAddress;
+import java.util.Collections;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.security.cert.X509Certificate;
 import org.apache.cassandra.stargate.transport.ProtocolException;
@@ -131,8 +132,11 @@ public class ServerConnection extends Connection {
               .getAuthenticator()
               .newSaslNegotiator(clientInfo.remoteAddress().getAddress(), certificates());
 
+      // todo how to pass headers here
       saslNegotiator =
-          authentication == null ? negotiator : authentication.getSaslNegotiator(negotiator);
+          authentication == null
+              ? negotiator
+              : authentication.getSaslNegotiator(negotiator, Collections.emptyMap());
     }
     return saslNegotiator;
   }

@@ -45,13 +45,13 @@ public class AuthnJwtService implements AuthenticationService {
   }
 
   @Override
-  public String createToken(String key, String secret) {
+  public String createToken(String key, String secret, Map<String, String> headers) {
     throw new UnsupportedOperationException(
         "Creating a token is not supported for AuthnJwtService. Tokens must be created out of band.");
   }
 
   @Override
-  public String createToken(String key) {
+  public String createToken(String key, Map<String, String> headers) {
     throw new UnsupportedOperationException(
         "Creating a token is not supported for AuthnJwtService. Tokens must be created out of band.");
   }
@@ -67,7 +67,8 @@ public class AuthnJwtService implements AuthenticationService {
    *     properly signed.
    */
   @Override
-  public AuthenticationSubject validateToken(String token) throws UnauthorizedException {
+  public AuthenticationSubject validateToken(String token, Map<String, String> headers)
+      throws UnauthorizedException {
     if (Strings.isNullOrEmpty(token)) {
       throw new UnauthorizedException("authorization failed - missing token");
     }
@@ -89,12 +90,13 @@ public class AuthnJwtService implements AuthenticationService {
   }
 
   @Override
-  public SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped) {
+  public SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped, Map<String, String> headers) {
     return new PlainTextJwtTokenSaslNegotiator(
         this,
         wrapped,
         System.getProperty("stargate.cql_token_username", "token"),
-        Integer.parseInt(System.getProperty("stargate.cql_token_max_length", "4096")));
+        Integer.parseInt(System.getProperty("stargate.cql_token_max_length", "4096")),
+        headers);
   }
 
   /**

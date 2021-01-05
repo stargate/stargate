@@ -16,12 +16,15 @@ import io.stargate.db.Authenticator.SaslNegotiator;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Map;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 
 class PlainTextJwtTokenSaslNegotiatorTest {
 
+  private final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
   private final String TOKEN =
       "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJZTm9oTElUUjZMOHhT"
           + "NC1iVnp6TEhCdTY3NTRranc4QnFBZ2Nmc2hoUGk4In0.eyJleHAiOjE2MDU1OTk1ODMsImlhdCI6MTYwNTU5ODk4Myw"
@@ -95,10 +98,12 @@ class PlainTextJwtTokenSaslNegotiatorTest {
     final byte[] clientResponse = createClientResponse(TOKEN_USERNAME, TOKEN);
 
     AuthenticationService authentication = mock(AuthenticationService.class);
-    when(authentication.validateToken(TOKEN)).thenReturn(AuthenticationSubject.of(TOKEN, ROLE));
+    when(authentication.validateToken(TOKEN, EMPTY_HEADERS))
+        .thenReturn(AuthenticationSubject.of(TOKEN, ROLE));
 
     PlainTextTokenSaslNegotiator negotiator =
-        new PlainTextJwtTokenSaslNegotiator(authentication, null, TOKEN_USERNAME, TOKEN_MAX_LENGTH);
+        new PlainTextJwtTokenSaslNegotiator(
+            authentication, null, TOKEN_USERNAME, TOKEN_MAX_LENGTH, EMPTY_HEADERS);
     assertThat(negotiator.evaluateResponse(clientResponse)).isNull();
     assertThat(negotiator.isComplete()).isTrue();
     assertThat(negotiator.getAuthenticatedUser().name()).isEqualTo(ROLE);
@@ -115,7 +120,7 @@ class PlainTextJwtTokenSaslNegotiatorTest {
 
     PlainTextTokenSaslNegotiator negotiator =
         new PlainTextJwtTokenSaslNegotiator(
-            null, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH);
+            null, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH, EMPTY_HEADERS);
     assertThat(negotiator.evaluateResponse(clientResponse)).isNull();
     assertThat(negotiator.isComplete()).isTrue();
     assertThat(negotiator.getAuthenticatedUser().name()).isEqualTo(ROLE);
@@ -130,7 +135,7 @@ class PlainTextJwtTokenSaslNegotiatorTest {
 
     PlainTextTokenSaslNegotiator negotiator =
         new PlainTextJwtTokenSaslNegotiator(
-            null, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH);
+            null, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH, EMPTY_HEADERS);
     assertThat(
             negotiator.attemptTokenAuthentication(
                 createClientResponse(TOKEN_USERNAME, tooLongToken)))
@@ -141,14 +146,14 @@ class PlainTextJwtTokenSaslNegotiatorTest {
   @Test
   public void authServiceReturnsNullCredentials() throws UnauthorizedException, IOException {
     AuthenticationService authentication = mock(AuthenticationService.class);
-    when(authentication.validateToken(TOKEN)).thenReturn(null);
+    when(authentication.validateToken(TOKEN, EMPTY_HEADERS)).thenReturn(null);
 
     SaslNegotiator wrappedNegotiator = mock(SaslNegotiator.class);
     when(wrappedNegotiator.isComplete()).thenReturn(false);
 
     PlainTextTokenSaslNegotiator negotiator =
         new PlainTextJwtTokenSaslNegotiator(
-            authentication, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH);
+            authentication, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH, EMPTY_HEADERS);
     assertThat(negotiator.attemptTokenAuthentication(createClientResponse(TOKEN_USERNAME, TOKEN)))
         .isFalse();
     assertThat(negotiator.isComplete()).isFalse();
@@ -157,7 +162,7 @@ class PlainTextJwtTokenSaslNegotiatorTest {
   @Test
   public void authServiceThrowsUnauthorized() throws UnauthorizedException, IOException {
     AuthenticationService authentication = mock(AuthenticationService.class);
-    when(authentication.validateToken(TOKEN))
+    when(authentication.validateToken(TOKEN, EMPTY_HEADERS))
         .thenThrow(new UnauthorizedException("Not authorized"));
 
     SaslNegotiator wrappedNegotiator = mock(SaslNegotiator.class);
@@ -165,7 +170,7 @@ class PlainTextJwtTokenSaslNegotiatorTest {
 
     PlainTextJwtTokenSaslNegotiator negotiator =
         new PlainTextJwtTokenSaslNegotiator(
-            authentication, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH);
+            authentication, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH, EMPTY_HEADERS);
     assertThat(negotiator.attemptTokenAuthentication(createClientResponse(TOKEN_USERNAME, TOKEN)))
         .isFalse();
     assertThat(negotiator.isComplete()).isFalse();

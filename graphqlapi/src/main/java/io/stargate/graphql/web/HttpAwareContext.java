@@ -15,11 +15,13 @@
  */
 package io.stargate.graphql.web;
 
+import io.stargate.core.RequestToHeadersMapper;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
@@ -43,6 +45,10 @@ public class HttpAwareContext {
 
   public String getAuthToken() {
     return request.getHeader("X-Cassandra-Token");
+  }
+
+  public Map<String, String> getAllHeaders() {
+    return RequestToHeadersMapper.getAllHeaders(request);
   }
 
   public BatchContext getBatchContext() {
