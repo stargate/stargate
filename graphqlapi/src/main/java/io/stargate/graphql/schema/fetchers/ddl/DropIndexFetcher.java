@@ -15,7 +15,6 @@
  */
 package io.stargate.graphql.schema.fetchers.ddl;
 
-import com.google.common.base.Splitter;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
@@ -23,7 +22,6 @@ import io.stargate.auth.Scope;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
-import java.util.List;
 
 public class DropIndexFetcher extends IndexFetcher {
 
@@ -31,12 +29,7 @@ public class DropIndexFetcher extends IndexFetcher {
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(authenticationService, authorizationService, dataStoreFactory);
-  }
-
-  @Override
-  protected Scope getScope() {
-    return Scope.DROP;
+    super(authenticationService, authorizationService, dataStoreFactory, Scope.DROP);
   }
 
   @Override
@@ -48,15 +41,6 @@ public class DropIndexFetcher extends IndexFetcher {
 
     String indexName = dataFetchingEnvironment.getArgument("indexName");
     boolean ifExists = dataFetchingEnvironment.getArgumentOrDefault("ifExists", Boolean.FALSE);
-
-    if (keyspaceName == null) {
-      List<String> parts = Splitter.on('.').splitToList(indexName);
-      if (parts.size() < 2) {
-        throw new IllegalArgumentException("Missing field argument keyspaceName @ 'dropIndex'");
-      }
-      keyspaceName = parts.get(0);
-      indexName = parts.get(1);
-    }
 
     return builder.drop().index(keyspaceName, indexName).ifExists(ifExists).build();
   }

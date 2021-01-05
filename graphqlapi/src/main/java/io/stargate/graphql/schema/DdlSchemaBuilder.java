@@ -460,7 +460,8 @@ class DdlSchemaBuilder {
   private GraphQLFieldDefinition buildCreateIndex() {
     return GraphQLFieldDefinition.newFieldDefinition()
         .name("createIndex")
-        .argument(GraphQLArgument.newArgument().name("keyspaceName").type(Scalars.GraphQLString))
+        .argument(
+            GraphQLArgument.newArgument().name("keyspaceName").type(nonNull(Scalars.GraphQLString)))
         .argument(
             GraphQLArgument.newArgument().name("tableName").type(nonNull(Scalars.GraphQLString)))
         .argument(
@@ -476,24 +477,13 @@ class DdlSchemaBuilder {
         .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
         .argument(
             GraphQLArgument.newArgument()
-                .name("indexKeys")
-                .description("Index keys of a map")
-                .type(Scalars.GraphQLBoolean))
-        .argument(
-            GraphQLArgument.newArgument()
-                .name("indexEntries")
-                .description("Index entries of a map")
-                .type(Scalars.GraphQLBoolean))
-        .argument(
-            GraphQLArgument.newArgument()
-                .name("indexValues")
-                .description("Index values of a collection (set/list/map)")
-                .type(Scalars.GraphQLBoolean))
-        .argument(
-            GraphQLArgument.newArgument()
-                .name("indexFull")
-                .description("Full index of a frozen collection (set/list/map)")
-                .type(Scalars.GraphQLBoolean))
+                .name("indexKind")
+                .description(
+                    "KEYS (indexes keys of a map),"
+                        + " ENTRIES (index entries of a map),"
+                        + " VALUES (index values of a collection),"
+                        + " FULL (full index of a frozen collection)")
+                .type(buildIndexKind()))
         .type(Scalars.GraphQLBoolean)
         .dataFetcher(
             new CreateIndexFetcher(authenticationService, authorizationService, dataStoreFactory))
@@ -503,7 +493,8 @@ class DdlSchemaBuilder {
   private GraphQLFieldDefinition buildDropIndex() {
     return GraphQLFieldDefinition.newFieldDefinition()
         .name("dropIndex")
-        .argument(GraphQLArgument.newArgument().name("keyspaceName").type(Scalars.GraphQLString))
+        .argument(
+            GraphQLArgument.newArgument().name("keyspaceName").type(nonNull(Scalars.GraphQLString)))
         .argument(
             GraphQLArgument.newArgument().name("indexName").type(nonNull(Scalars.GraphQLString)))
         .argument(GraphQLArgument.newArgument().name("ifExists").type(Scalars.GraphQLBoolean))
@@ -511,6 +502,17 @@ class DdlSchemaBuilder {
         .dataFetcher(
             new DropIndexFetcher(authenticationService, authorizationService, dataStoreFactory))
         .build();
+  }
+
+  private GraphQLEnumType buildIndexKind() {
+    return register(
+        GraphQLEnumType.newEnum()
+            .name("IndexKind")
+            .value("KEYS")
+            .value("VALUES")
+            .value("ENTRIES")
+            .value("FULL")
+            .build());
   }
 
   private GraphQLInputObjectType buildClusteringKeyInput() {

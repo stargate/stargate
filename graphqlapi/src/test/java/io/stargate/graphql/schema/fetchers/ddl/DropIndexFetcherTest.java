@@ -37,9 +37,6 @@ public class DropIndexFetcherTest extends DdlTestBase {
           "dropIndex(keyspaceName:\"library\", indexName:\"books_author_idx\")",
           "DROP INDEX library.books_author_idx"),
       arguments(
-          "dropIndex(indexName:\"library.books_author_idx\")",
-          "DROP INDEX library.books_author_idx"),
-      arguments(
           "dropIndex(keyspaceName:\"library\", indexName:\"books_author_idx\", ifExists: true)",
           "DROP INDEX IF EXISTS library.books_author_idx")
     };
@@ -55,7 +52,7 @@ public class DropIndexFetcherTest extends DdlTestBase {
   public static Arguments[] failingQueries() {
     return new Arguments[] {
       arguments(
-          "dropIndex(keyspace:\"library\")", "Missing field argument indexName @ 'dropIndex'"),
+          "dropIndex(keyspaceName:\"library\")", "Missing field argument indexName @ 'dropIndex'"),
       arguments(
           "dropIndex(indexName:\"books_author_idx\")",
           "Missing field argument keyspaceName @ 'dropIndex'"),

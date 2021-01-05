@@ -15,7 +15,6 @@
  */
 package io.stargate.graphql.schema.fetchers.ddl;
 
-import com.google.common.base.Splitter;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
@@ -25,20 +24,13 @@ import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.CollectionIndexingType;
 import io.stargate.db.schema.ImmutableCollectionIndexingType;
-import java.util.Arrays;
-import java.util.List;
 
 public class CreateIndexFetcher extends IndexFetcher {
   public CreateIndexFetcher(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(authenticationService, authorizationService, dataStoreFactory);
-  }
-
-  @Override
-  protected Scope getScope() {
-    return Scope.CREATE;
+    super(authenticationService, authorizationService, dataStoreFactory, Scope.CREATE);
   }
 
   @Override
@@ -49,38 +41,35 @@ public class CreateIndexFetcher extends IndexFetcher {
       String tableName) {
     String columnName = dataFetchingEnvironment.getArgument("columnName");
 
-    if (keyspaceName == null) {
-      List<String> parts = Splitter.on('.').splitToList(tableName);
-      if (parts.size() < 2) {
-        throw new IllegalArgumentException("Missing field argument keyspaceName @ 'createIndex'");
-      }
-      keyspaceName = parts.get(0);
-      tableName = parts.get(1);
-    }
-
-    String indexName =
-        dataFetchingEnvironment.getArgumentOrDefault(
-            "indexName", tableName + "_" + columnName + "_idx");
+    String indexName = dataFetchingEnvironment.getArgument("indexName");
 
     boolean ifNotExists =
         dataFetchingEnvironment.getArgumentOrDefault("ifNotExists", Boolean.FALSE);
     String customIndexClass = dataFetchingEnvironment.getArgumentOrDefault("indexType", null);
 
-    boolean indexEntries =
-        dataFetchingEnvironment.getArgumentOrDefault("indexEntries", Boolean.FALSE);
-    boolean indexKeys = dataFetchingEnvironment.getArgumentOrDefault("indexKeys", Boolean.FALSE);
-    boolean indexValues =
-        dataFetchingEnvironment.getArgumentOrDefault("indexValues", Boolean.FALSE);
-    boolean indexFull = dataFetchingEnvironment.getArgumentOrDefault("indexFull", Boolean.FALSE);
-
-    long paramsCount =
-        Arrays.asList(indexEntries, indexKeys, indexValues, indexFull).stream()
-            .filter(i -> i)
-            .count();
-
-    if (paramsCount > 1) {
-      throw new IllegalArgumentException(
-          "The indexEntries, indexKeys, indexValues and indexFull options are mutually exclusive");
+    String indexKind = dataFetchingEnvironment.getArgumentOrDefault("indexKind", null);
+    boolean indexKeys = false;
+    boolean indexEntries = false;
+    boolean indexValues = false;
+    boolean indexFull = false;
+    if (indexKind != null) {
+      switch (indexKind) {
+        case "KEYS":
+          indexKeys = true;
+          break;
+        case "VALUES":
+          indexValues = true;
+          break;
+        case "ENTRIES":
+          indexEntries = true;
+          break;
+        case "FULL":
+          indexFull = true;
+          break;
+        default:
+          throw new IllegalArgumentException(
+              String.format("Invalid indexKind value: %s", indexKind));
+      }
     }
 
     CollectionIndexingType indexingType =

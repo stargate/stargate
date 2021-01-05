@@ -12,13 +12,17 @@ import io.stargate.graphql.web.HttpAwareContext;
 
 public abstract class IndexFetcher extends DdlQueryFetcher {
 
-  protected Scope scope;
+  protected final Scope scope;
 
   protected IndexFetcher(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
+      DataStoreFactory dataStoreFactory,
+      Scope scope) {
     super(authenticationService, authorizationService, dataStoreFactory);
+
+    checkNotNull(scope, "No Scope provided");
+    this.scope = scope;
   }
 
   @Override
@@ -28,9 +32,6 @@ public abstract class IndexFetcher extends DdlQueryFetcher {
     String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
     String tableName = dataFetchingEnvironment.getArgument("tableName");
 
-    scope = getScope();
-    checkNotNull(scope, "No Scope provided");
-
     HttpAwareContext httpAwareContext = dataFetchingEnvironment.getContext();
     String token = httpAwareContext.getAuthToken();
 
@@ -39,8 +40,6 @@ public abstract class IndexFetcher extends DdlQueryFetcher {
 
     return buildQuery(dataFetchingEnvironment, builder, keyspaceName, tableName);
   }
-
-  protected abstract Scope getScope();
 
   protected abstract Query<?> buildQuery(
       DataFetchingEnvironment dataFetchingEnvironment,

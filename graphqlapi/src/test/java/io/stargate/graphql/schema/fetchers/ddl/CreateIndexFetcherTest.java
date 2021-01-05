@@ -35,13 +35,7 @@ public class CreateIndexFetcherTest extends DdlTestBase {
     return new Arguments[] {
       arguments(
           "createIndex(keyspaceName:\"library\", tableName:\"sales\", columnName:\"title\")",
-          "CREATE INDEX sales_title_idx ON library.sales (title)"),
-      arguments(
-          "createIndex(tableName:\"library.sales\", columnName:\"title\")",
-          "CREATE INDEX sales_title_idx ON library.sales (title)"),
-      arguments(
-          "createIndex(keyspaceName:\"library\", tableName:\"sales\", columnName:\"title\", ifNotExists: true)",
-          "CREATE INDEX IF NOT EXISTS sales_title_idx ON library.sales (title)"),
+          "CREATE INDEX ON library.sales (title)"),
       arguments(
           "createIndex(keyspaceName:\"library\", tableName:\"sales\", columnName:\"title\", indexName:\"test_idx\")",
           "CREATE INDEX test_idx ON library.sales (title)"),
@@ -49,20 +43,20 @@ public class CreateIndexFetcherTest extends DdlTestBase {
           "createIndex(keyspaceName:\"library\", tableName:\"sales\", columnName:\"title\", indexName:\"test_idx\", ifNotExists: true)",
           "CREATE INDEX IF NOT EXISTS test_idx ON library.sales (title)"),
       arguments(
-          "createIndex(keyspaceName:\"library\", tableName:\"sales\", columnName:\"title\", customIndexClass:\"org.apache.cassandra.index.sasi.SASIIndex\")",
-          "CREATE CUSTOM INDEX sales_title_idx ON library.sales (title) USING 'org.apache.cassandra.index.sasi.SASIIndex'"),
+          "createIndex(keyspaceName:\"library\", tableName:\"sales\", columnName:\"title\", indexType:\"org.apache.cassandra.index.sasi.SASIIndex\")",
+          "CREATE CUSTOM INDEX ON library.sales (title) USING 'org.apache.cassandra.index.sasi.SASIIndex'"),
       arguments(
-          "createIndex(keyspaceName:\"library\", tableName:\"sales\", columnName:\"ranking\", indexKeys: true)",
-          "CREATE INDEX sales_ranking_idx ON library.sales (KEYS(ranking))"),
+          "createIndex(keyspaceName:\"library\", tableName:\"sales\", columnName:\"ranking\", indexKind: KEYS)",
+          "CREATE INDEX ON library.sales (KEYS(ranking))"),
       arguments(
-          "createIndex(keyspaceName:\"library\", tableName:\"sales\", columnName:\"ranking\", indexEntries: true)",
-          "CREATE INDEX sales_ranking_idx ON library.sales (ENTRIES(ranking))"),
+          "createIndex(keyspaceName:\"library\", tableName:\"sales\", columnName:\"ranking\", indexKind: ENTRIES)",
+          "CREATE INDEX ON library.sales (ENTRIES(ranking))"),
       arguments(
-          "createIndex(keyspaceName:\"library\", tableName:\"sales\", columnName:\"ranking\", indexValues: true)",
-          "CREATE INDEX sales_ranking_idx ON library.sales (VALUES(ranking))"),
+          "createIndex(keyspaceName:\"library\", tableName:\"sales\", columnName:\"ranking\", indexKind: VALUES)",
+          "CREATE INDEX ON library.sales (VALUES(ranking))"),
       arguments(
-          "createIndex(keyspaceName:\"library\", tableName:\"sales\", columnName:\"prices\", indexFull: true)",
-          "CREATE INDEX sales_prices_idx ON library.sales (FULL(prices))"),
+          "createIndex(keyspaceName:\"library\", tableName:\"sales\", columnName:\"prices\", indexKind: FULL)",
+          "CREATE INDEX ON library.sales (FULL(prices))"),
     };
   }
 
@@ -84,9 +78,6 @@ public class CreateIndexFetcherTest extends DdlTestBase {
       arguments(
           "createIndex(keyspaceName:\"library\", tableName:\"sales\")",
           "Missing field argument columnName @ 'createIndex'"),
-      arguments(
-          "createIndex(keyspaceName:\"library\", tableName:\"sales\", columnName:\"prices\", indexKeys: true, indexEntries: true)",
-          "The indexEntries, indexKeys, indexValues and indexFull options are mutually exclusive"),
     };
   }
 }
