@@ -17,6 +17,8 @@
  */
 package org.apache.cassandra.stargate.transport.internal;
 
+import static io.stargate.core.RequestToHeadersMapper.toHeaders;
+
 import com.codahale.metrics.Counter;
 import io.netty.channel.Channel;
 import io.netty.handler.ssl.SslHandler;
@@ -25,7 +27,6 @@ import io.stargate.db.Authenticator;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.Persistence;
 import java.net.InetSocketAddress;
-import java.util.Collections;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.security.cert.X509Certificate;
 import org.apache.cassandra.stargate.transport.ProtocolException;
@@ -132,11 +133,10 @@ public class ServerConnection extends Connection {
               .getAuthenticator()
               .newSaslNegotiator(clientInfo.remoteAddress().getAddress(), certificates());
 
-      // todo how to pass headers here
       saslNegotiator =
           authentication == null
               ? negotiator
-              : authentication.getSaslNegotiator(negotiator, Collections.emptyMap());
+              : authentication.getSaslNegotiator(negotiator, toHeaders(clientInfo.publicAddress()));
     }
     return saslNegotiator;
   }

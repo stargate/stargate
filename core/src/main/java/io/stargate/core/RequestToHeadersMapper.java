@@ -15,13 +15,12 @@
  */
 package io.stargate.core;
 
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
+import java.net.InetSocketAddress;
+import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 
 public class RequestToHeadersMapper {
+  public static final String TENANT_ID_HEADER_NAME = "tenant_id";
 
   public static Map<String, String> getAllHeaders(HttpServletRequest request) {
     if (request == null) {
@@ -33,7 +32,17 @@ public class RequestToHeadersMapper {
       String headerName = headerNames.nextElement();
       allHeaders.put(headerName, request.getHeader(headerName));
     }
-    System.out.println("return headers:" + allHeaders);
     return allHeaders;
+  }
+
+  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+  public static Map<String, String> toHeaders(
+      Optional<InetSocketAddress> sourceAddressWithEncodedTenantId) {
+    Map<String, String> tenantIdHeaders = new HashMap<>();
+    sourceAddressWithEncodedTenantId
+        .map(tenantIdAddress -> UUID.nameUUIDFromBytes(tenantIdAddress.getAddress().getAddress()))
+        .ifPresent(
+            tenantIdUUID -> tenantIdHeaders.put(TENANT_ID_HEADER_NAME, tenantIdUUID.toString()));
+    return tenantIdHeaders;
   }
 }
