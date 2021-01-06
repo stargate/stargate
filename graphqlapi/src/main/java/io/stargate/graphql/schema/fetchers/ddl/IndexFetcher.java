@@ -3,12 +3,15 @@ package io.stargate.graphql.schema.fetchers.ddl;
 import static com.datastax.oss.driver.shaded.guava.common.base.Preconditions.checkNotNull;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.*;
+import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
-import io.stargate.graphql.web.HttpAwareContext;
 
 public abstract class IndexFetcher extends DdlQueryFetcher {
 
@@ -27,16 +30,15 @@ public abstract class IndexFetcher extends DdlQueryFetcher {
 
   @Override
   protected Query<?> buildQuery(
-      DataFetchingEnvironment dataFetchingEnvironment, QueryBuilder builder)
+      DataFetchingEnvironment dataFetchingEnvironment,
+      QueryBuilder builder,
+      AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
     String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
     String tableName = dataFetchingEnvironment.getArgument("tableName");
 
-    HttpAwareContext httpAwareContext = dataFetchingEnvironment.getContext();
-    String token = httpAwareContext.getAuthToken();
-
     authorizationService.authorizeSchemaWrite(
-        token, keyspaceName, tableName, scope, SourceAPI.GRAPHQL);
+        authenticationSubject, keyspaceName, tableName, scope, SourceAPI.GRAPHQL);
 
     return buildQuery(dataFetchingEnvironment, builder, keyspaceName, tableName);
   }
