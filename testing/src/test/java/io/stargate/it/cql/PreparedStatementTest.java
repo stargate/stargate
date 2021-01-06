@@ -89,7 +89,7 @@ public class PreparedStatementTest extends BaseOsgiIntegrationTest {
 
     assertThatThrownBy(() -> session.execute(ps.bind()))
         .isInstanceOf(InvalidQueryException.class)
-        .hasMessage("Undefined column name d");
+        .hasMessageContaining("Undefined column name d");
   }
 
   @Test
