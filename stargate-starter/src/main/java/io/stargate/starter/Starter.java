@@ -19,17 +19,24 @@ import com.github.rvesse.airline.HelpOption;
 import com.github.rvesse.airline.SingleCommand;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
+import com.github.rvesse.airline.annotations.Parser;
 import com.github.rvesse.airline.annotations.help.License;
 import com.github.rvesse.airline.annotations.restrictions.Port;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import com.github.rvesse.airline.help.cli.CliCommandUsageGenerator;
+import com.github.rvesse.airline.model.OptionMetadata;
 import com.github.rvesse.airline.parser.ParseResult;
+import com.github.rvesse.airline.parser.ParseState;
 import com.github.rvesse.airline.parser.errors.ParseException;
+import com.github.rvesse.airline.parser.options.AbstractOptionParser;
+import io.stargate.starter.Starter.NodeToolOptionParser;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.ClosedWatchServiceException;
@@ -49,6 +56,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
+import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.felix.framework.Felix;
@@ -64,6 +72,7 @@ import org.osgi.framework.ServiceReference;
 /** Starts a OSGi container and installs and starts all needed bundles */
 @License(url = "https://www.apache.org/licenses/LICENSE-2.0")
 @Command(name = "Stargate")
+@Parser(defaultParsersFirst = false, optionParsers = NodeToolOptionParser.class)
 public class Starter {
 
   public static final String STARTED_MESSAGE = "Finished starting bundles.";
@@ -79,13 +88,12 @@ public class Starter {
 
   @Inject protected HelpOption<Starter> help;
 
-  @Required
   @Order(value = 1)
   @Option(
       name = {"--cluster-name"},
       title = "cluster_name",
       arity = 1,
-      description = "Name of backend cluster")
+      description = "Name of backend cluster (required unless --nodetool is specified)")
   protected String clusterName;
 
   @Order(value = 2)
@@ -223,6 +231,21 @@ public class Starter {
       name = {"--disable-mbean-registration", "Whether the mbean registration should be disabled"})
   protected boolean disableMBeanRegistration = false;
 
+  @Order(value = 1000)
+  @Option(
+      name = "--nodetool",
+      description = "Run nodetool with all of the following arguments and exit")
+  protected boolean nodetool;
+
+  @Order(value = 1001)
+  @Option(
+      hidden = true,
+      name = "-T",
+      title = "arg",
+      arity = 1,
+      description = "Command line arguments for --nodetool (zero or more)")
+  protected List<String> toolArgs = new ArrayList<>();
+
   private BundleContext context;
   private Felix framework;
   private List<Bundle> bundleList;
@@ -264,6 +287,10 @@ public class Starter {
   protected void setStargateProperties() {
     if (version == null || version.trim().isEmpty() || !NumberUtils.isParsable(version)) {
       throw new IllegalArgumentException("--cluster-version must be a number");
+    }
+
+    if (clusterName == null || clusterName.trim().isEmpty()) {
+      throw new IllegalArgumentException("--cluster-name must be specified");
     }
 
     if (!InetAddressValidator.getInstance().isValid(listenHostStr)) {
@@ -348,7 +375,9 @@ public class Starter {
   public void start() throws BundleException {
     // Setup properties used by Stargate framework
     try {
-      setStargateProperties();
+      if (!nodetool) {
+        setStargateProperties();
+      }
     } catch (Exception e) {
       System.err.println(e.getMessage());
       System.exit(2);
@@ -373,6 +402,27 @@ public class Starter {
       Bundle b = context.installBundle(jar.toURI().toString());
       bundleList.add(b);
     }
+
+    if (nodetool) {
+      Bundle bundle = bundleList.get(0); // expect the persistence bundle to be first in the list
+      try {
+        Class<?> tool = bundle.loadClass("org.apache.cassandra.tools.NodeTool");
+
+        System.out.println("Running NodeTool from " + bundle.getSymbolicName());
+
+        Method main = tool.getMethod("main", String[].class);
+
+        main.invoke(null, (Object) toolArgs.toArray(new String[0]));
+
+        // exit just in case, NodeTool is expected to call System.exit() when done.
+        System.exit(5);
+      } catch (ClassNotFoundException e) {
+        // ignore and continue
+      } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
     // Start all installed bundles.
     for (Bundle bundle : bundleList) {
       System.out.println("Starting bundle " + bundle.getSymbolicName());
@@ -424,6 +474,10 @@ public class Starter {
         if (name.contains("persistence-cassandra") || name.contains("persistence-dse")) {
           System.out.println("Loading persistence backend " + name);
           foundVersion = true;
+
+          // Put the persistence bundle first in the list
+          jars.add(0, file);
+          continue;
         }
 
         if (name.endsWith(".jar") && !name.startsWith("stargate-starter-")) {
@@ -585,5 +639,32 @@ public class Starter {
 
   public static void main(String[] args) {
     cli(args, Starter.class);
+  }
+
+  public static class NodeToolOptionParser<T> extends AbstractOptionParser<T> {
+
+    @Override
+    public ParseState<T> parseOptions(
+        PeekingIterator<String> tokens, ParseState<T> state, List<OptionMetadata> allowedOptions) {
+      OptionMetadata nodetoolOption = findOption(state, allowedOptions, "--nodetool");
+
+      String token = tokens.peek();
+      if (!nodetoolOption.getOptions().contains(token)) {
+        return null; // fallback to default parsers
+      }
+
+      OptionMetadata argsOption = findOption(state, allowedOptions, "-T");
+
+      // drop the peeked token
+      tokens.next();
+      state = state.withOptionValue(nodetoolOption, "true");
+
+      // treat remaining tokens as NodeTool args
+      while (tokens.hasNext()) {
+        state = state.withOptionValue(argsOption, tokens.next());
+      }
+
+      return state;
+    }
   }
 }

@@ -22,6 +22,8 @@ public interface StargateConnectionInfo {
 
   int cqlPort();
 
+  int jmxPort();
+
   String clusterName();
 
   String datacenter();
