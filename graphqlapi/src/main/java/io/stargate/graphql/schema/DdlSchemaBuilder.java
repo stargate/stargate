@@ -36,9 +36,11 @@ import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.schema.fetchers.ddl.AllKeyspacesFetcher;
 import io.stargate.graphql.schema.fetchers.ddl.AlterTableAddFetcher;
 import io.stargate.graphql.schema.fetchers.ddl.AlterTableDropFetcher;
+import io.stargate.graphql.schema.fetchers.ddl.CreateIndexFetcher;
 import io.stargate.graphql.schema.fetchers.ddl.CreateKeyspaceFetcher;
 import io.stargate.graphql.schema.fetchers.ddl.CreateTableFetcher;
 import io.stargate.graphql.schema.fetchers.ddl.CreateTypeFetcher;
+import io.stargate.graphql.schema.fetchers.ddl.DropIndexFetcher;
 import io.stargate.graphql.schema.fetchers.ddl.DropKeyspaceFetcher;
 import io.stargate.graphql.schema.fetchers.ddl.DropTableFetcher;
 import io.stargate.graphql.schema.fetchers.ddl.DropTypeFetcher;
@@ -72,6 +74,8 @@ class DdlSchemaBuilder {
                 buildDropTable(),
                 buildCreateType(),
                 buildDropType(),
+                buildCreateIndex(),
+                buildDropIndex(),
                 buildCreateKeyspace(),
                 buildDropKeyspace()))
         .query(buildQuery(buildKeyspaceByName(), buildKeyspaces()))
@@ -451,6 +455,64 @@ class DdlSchemaBuilder {
         .dataFetcher(
             new CreateTableFetcher(authenticationService, authorizationService, dataStoreFactory))
         .build();
+  }
+
+  private GraphQLFieldDefinition buildCreateIndex() {
+    return GraphQLFieldDefinition.newFieldDefinition()
+        .name("createIndex")
+        .argument(
+            GraphQLArgument.newArgument().name("keyspaceName").type(nonNull(Scalars.GraphQLString)))
+        .argument(
+            GraphQLArgument.newArgument().name("tableName").type(nonNull(Scalars.GraphQLString)))
+        .argument(
+            GraphQLArgument.newArgument().name("columnName").type(nonNull(Scalars.GraphQLString)))
+        .argument(GraphQLArgument.newArgument().name("indexName").type(Scalars.GraphQLString))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("indexType")
+                .description(
+                    "Adds a custom index type that can be identified by name (e.g., StorageAttachedIndex), "
+                        + "or class name (e.g., org.apache.cassandra.index.sasi.SASIIndex) ")
+                .type(Scalars.GraphQLString))
+        .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("indexKind")
+                .description(
+                    "KEYS (indexes keys of a map),"
+                        + " ENTRIES (index entries of a map),"
+                        + " VALUES (index values of a collection),"
+                        + " FULL (full index of a frozen collection)")
+                .type(buildIndexKind()))
+        .type(Scalars.GraphQLBoolean)
+        .dataFetcher(
+            new CreateIndexFetcher(authenticationService, authorizationService, dataStoreFactory))
+        .build();
+  }
+
+  private GraphQLFieldDefinition buildDropIndex() {
+    return GraphQLFieldDefinition.newFieldDefinition()
+        .name("dropIndex")
+        .argument(
+            GraphQLArgument.newArgument().name("keyspaceName").type(nonNull(Scalars.GraphQLString)))
+        .argument(
+            GraphQLArgument.newArgument().name("indexName").type(nonNull(Scalars.GraphQLString)))
+        .argument(GraphQLArgument.newArgument().name("ifExists").type(Scalars.GraphQLBoolean))
+        .type(Scalars.GraphQLBoolean)
+        .dataFetcher(
+            new DropIndexFetcher(authenticationService, authorizationService, dataStoreFactory))
+        .build();
+  }
+
+  private GraphQLEnumType buildIndexKind() {
+    return register(
+        GraphQLEnumType.newEnum()
+            .name("IndexKind")
+            .value("KEYS")
+            .value("VALUES")
+            .value("ENTRIES")
+            .value("FULL")
+            .build());
   }
 
   private GraphQLInputObjectType buildClusteringKeyInput() {

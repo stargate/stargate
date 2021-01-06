@@ -1030,12 +1030,12 @@ public class QueryBuilderImpl {
     }
     query.append(" INDEX");
     if (ifNotExists) {
-      query.append(" IF NOT EXISTS ");
+      query.append(" IF NOT EXISTS");
     } else if (indexName != null && indexExists(schemaKeyspace(), indexName)) {
       throw invalid("An index named %s already exists", indexName);
     }
     if (indexName != null) {
-      query.append(cqlName(indexName));
+      query.append(" " + cqlName(indexName));
     }
     query.append(" ON ");
     addName(query, table);
@@ -1066,7 +1066,7 @@ public class QueryBuilderImpl {
     }
     query.append(")");
     if (customIndexClass != null) {
-      query.append("USING").append(format("'%s'", customIndexClass));
+      query.append(" USING").append(format(" '%s'", customIndexClass));
     }
     return new BuiltOther(valueCodec, executor, query.toString());
   }
