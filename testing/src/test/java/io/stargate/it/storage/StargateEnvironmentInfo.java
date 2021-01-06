@@ -15,11 +15,14 @@
  */
 package io.stargate.it.storage;
 
+import java.io.File;
 import java.util.List;
 
 public interface StargateEnvironmentInfo {
 
   String id();
+
+  File starterJarFile();
 
   List<? extends StargateConnectionInfo> nodes();
 
