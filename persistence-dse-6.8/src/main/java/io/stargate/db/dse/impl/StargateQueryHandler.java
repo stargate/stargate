@@ -262,14 +262,14 @@ public class StargateQueryHandler implements QueryHandler {
     ByteBuffer roleName = customPayload.get("roleName");
     ByteBuffer isFromExternalAuth = customPayload.get("isFromExternalAuth");
 
-    if (token == null || roleName == null || isFromExternalAuth == null) {
-      throw new IllegalStateException("token, roleName, and isFromExternalAuth must be provided");
+    if (token == null || roleName == null) {
+      throw new IllegalStateException("token and roleName must be provided");
     }
 
     return AuthenticationSubject.of(
         StandardCharsets.UTF_8.decode(token).toString(),
         StandardCharsets.UTF_8.decode(roleName).toString(),
-        (isFromExternalAuth.get(0) == ((byte) 1)));
+        (isFromExternalAuth != null));
   }
 
   private void authorizeModificationStatement(

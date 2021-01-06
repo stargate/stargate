@@ -9,17 +9,18 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.google.common.collect.ImmutableMap;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.AuthenticatedUser;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.Schema;
@@ -126,7 +127,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeByTokenSelectStatementBadToken() {
+  void authorizeByTokenSelectStatementMissingRoleName() {
     SelectStatement.RawStatement rawStatement =
         (SelectStatement.RawStatement) QueryProcessor.parseStatement("select * from system.local");
 
@@ -136,9 +137,11 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     RuntimeException thrown =
         assertThrows(
             RuntimeException.class,
-            () -> queryHandler.authorizeByToken(ByteBuffer.allocate(10), statement));
+            () ->
+                queryHandler.authorizeByToken(
+                    ImmutableMap.of("token", ByteBuffer.allocate(10)), statement));
 
-    assertThat(thrown.getMessage()).isEqualTo("Failed to deserialize authenticationSubject");
+    assertThat(thrown.getMessage()).isEqualTo("token and roleName must be provided");
   }
 
   @Test
@@ -815,12 +818,19 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq(SourceAPI.CQL));
   }
 
-  private ByteBuffer createToken() throws IOException {
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-    ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
-    objectOutputStream.writeObject(authenticatedUser);
-    objectOutputStream.flush();
+  private Map<String, ByteBuffer> createToken() {
+    ByteBuffer token =
+        authenticatedUser.token() != null
+            ? ByteBuffer.wrap(authenticatedUser.token().getBytes(StandardCharsets.UTF_8))
+            : null;
+    ByteBuffer roleName =
+        ByteBuffer.wrap(authenticatedUser.name().getBytes(StandardCharsets.UTF_8));
+    ByteBuffer isFromExternalAuth =
+        authenticatedUser.isFromExternalAuth() ? ByteBuffer.allocate(1) : null;
 
-    return ByteBuffer.wrap(outputStream.toByteArray());
+    return ImmutableMap.of(
+        "token", token,
+        "roleName", roleName,
+        "isFromExternalAuth", isFromExternalAuth);
   }
 }

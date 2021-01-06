@@ -57,10 +57,7 @@ public class ClientInfo {
             : null;
     this.roleName = ByteBuffer.wrap(authenticatedUser.name().getBytes(StandardCharsets.UTF_8));
     this.isFromExternalAuth =
-        ByteBuffer.wrap(
-            (authenticatedUser.isFromExternalAuth()
-                ? new byte[] {(byte) 1}
-                : new byte[] {(byte) 0}));
+        authenticatedUser.isFromExternalAuth() ? ByteBuffer.allocate(1) : null;
   }
 
   public ByteBuffer getToken() {

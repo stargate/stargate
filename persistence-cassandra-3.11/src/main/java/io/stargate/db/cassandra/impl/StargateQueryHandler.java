@@ -22,19 +22,16 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
-import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectInputStream;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.validation.constraints.NotNull;
 import org.apache.cassandra.auth.IResource;
 import org.apache.cassandra.auth.RoleResource;
 import org.apache.cassandra.cql3.BatchQueryOptions;
@@ -155,7 +152,7 @@ public class StargateQueryHandler implements QueryHandler {
     }
 
     if (customPayload != null && customPayload.containsKey("token")) {
-      authorizeByToken(customPayload.get("token"), statement);
+      authorizeByToken(customPayload, statement);
     }
 
     return QueryProcessor.instance.processStatement(
@@ -195,7 +192,7 @@ public class StargateQueryHandler implements QueryHandler {
     }
 
     if (customPayload != null && customPayload.containsKey("token")) {
-      authorizeByToken(customPayload.get("token"), statement);
+      authorizeByToken(customPayload, statement);
     }
 
     return QueryProcessor.instance.processPrepared(
@@ -211,7 +208,7 @@ public class StargateQueryHandler implements QueryHandler {
       long queryStartNanoTime)
       throws RequestExecutionException, RequestValidationException {
     if (customPayload != null && customPayload.containsKey("token")) {
-      authorizeByToken(customPayload.get("token"), batchStatement);
+      authorizeByToken(customPayload, batchStatement);
     }
 
     return QueryProcessor.instance.processBatch(
@@ -219,8 +216,8 @@ public class StargateQueryHandler implements QueryHandler {
   }
 
   @VisibleForTesting
-  protected void authorizeByToken(ByteBuffer token, CQLStatement statement) {
-    AuthenticationSubject authenticationSubject = loadAuthenticationSubject(token);
+  protected void authorizeByToken(Map<String, ByteBuffer> customPayload, CQLStatement statement) {
+    AuthenticationSubject authenticationSubject = loadAuthenticationSubject(customPayload);
 
     if (!getAuthorizationService().isPresent()) {
       throw new RuntimeException(
@@ -306,36 +303,20 @@ public class StargateQueryHandler implements QueryHandler {
     }
   }
 
-  private AuthenticationSubject loadAuthenticationSubject(ByteBuffer token) {
-    AuthenticationSubject authenticationSubject;
-    ObjectInput in = null;
-    try {
-      if (token.position() == token.limit()) {
-        token.flip();
-      }
-      byte[] bytes = new byte[token.remaining()];
-      token.get(bytes);
-      ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-      in = new ObjectInputStream(bis);
-      AuthenticatedUser authenticatedUser = (AuthenticatedUser) in.readObject();
+  @NotNull
+  private AuthenticationSubject loadAuthenticationSubject(Map<String, ByteBuffer> customPayload) {
+    ByteBuffer token = customPayload.get("token");
+    ByteBuffer roleName = customPayload.get("roleName");
+    ByteBuffer isFromExternalAuth = customPayload.get("isFromExternalAuth");
 
-      authenticationSubject =
-          AuthenticationSubject.of(
-              authenticatedUser.token(),
-              authenticatedUser.name(),
-              authenticatedUser.isFromExternalAuth());
-    } catch (IOException | ClassNotFoundException e) {
-      throw new RuntimeException("Failed to deserialize authenticationSubject");
-    } finally {
-      try {
-        if (in != null) {
-          in.close();
-        }
-      } catch (IOException ex) {
-        // ignore close exception
-      }
+    if (token == null || roleName == null) {
+      throw new IllegalStateException("token and roleName must be provided");
     }
-    return authenticationSubject;
+
+    return AuthenticationSubject.of(
+        StandardCharsets.UTF_8.decode(token).toString(),
+        StandardCharsets.UTF_8.decode(roleName).toString(),
+        (isFromExternalAuth != null));
   }
 
   private void authorizeModificationStatement(

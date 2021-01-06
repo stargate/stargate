@@ -124,8 +124,7 @@ class StargateQueryHandlerTest extends BaseDseTest {
                 queryHandler.authorizeByToken(
                     ImmutableMap.of("token", ByteBuffer.allocate(10)), statement));
 
-    assertThat(thrown.getMessage())
-        .isEqualTo("token, roleName, and isFromExternalAuth must be provided");
+    assertThat(thrown.getMessage()).isEqualTo("token and roleName must be provided");
   }
 
   @Test
@@ -798,7 +797,7 @@ class StargateQueryHandlerTest extends BaseDseTest {
             eq(SourceAPI.CQL));
   }
 
-  private Map<String, ByteBuffer> createToken() throws IOException {
+  private Map<String, ByteBuffer> createToken() {
     ByteBuffer token =
         authenticatedUser.token() != null
             ? ByteBuffer.wrap(authenticatedUser.token().getBytes(StandardCharsets.UTF_8))
@@ -806,17 +805,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
     ByteBuffer roleName =
         ByteBuffer.wrap(authenticatedUser.name().getBytes(StandardCharsets.UTF_8));
     ByteBuffer isFromExternalAuth =
-        ByteBuffer.wrap(
-            (authenticatedUser.isFromExternalAuth()
-                ? new byte[] {(byte) 1}
-                : new byte[] {(byte) 0}));
+        authenticatedUser.isFromExternalAuth() ? ByteBuffer.allocate(1) : null;
 
-    Map<String, ByteBuffer> customPayload =
-        ImmutableMap.of(
-            "token", token,
-            "roleName", roleName,
-            "isFromExternalAuth", isFromExternalAuth);
-
-    return customPayload;
+    return ImmutableMap.of(
+        "token", token,
+        "roleName", roleName,
+        "isFromExternalAuth", isFromExternalAuth);
   }
 }
