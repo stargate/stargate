@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 public class DocumentDB {
   private static final Logger logger = LoggerFactory.getLogger(DocumentDB.class);
   private static final List<Character> forbiddenCharacters;
+  private static final List<Column> allColumns;
   private static final List<String> allColumnNames;
   private static final List<Column.ColumnType> allColumnTypes;
   private static final List<String> allPathColumnNames;
@@ -68,26 +69,33 @@ public class DocumentDB {
   private final AuthenticationSubject authenticationSubject;
 
   static {
+    allColumns = new ArrayList<>();
     allColumnNames = new ArrayList<>();
     allColumnTypes = new ArrayList<>();
     allPathColumnNames = new ArrayList<>();
     allPathColumnTypes = new ArrayList<>();
     allColumnNames.add("key");
     allColumnTypes.add(Type.Text);
+    allColumns.add(Column.create("key", Type.Text));
     for (int i = 0; i < MAX_DEPTH; i++) {
       allPathColumnNames.add("p" + i);
       allPathColumnTypes.add(Type.Text);
+      allColumns.add(Column.create("p" + i, Type.Text));
     }
     allColumnNames.addAll(allPathColumnNames);
     allColumnTypes.addAll(allPathColumnTypes);
     allColumnNames.add("leaf");
     allColumnTypes.add(Type.Text);
+    allColumns.add(Column.create("leaf", Type.Text));
     allColumnNames.add("text_value");
     allColumnTypes.add(Type.Text);
+    allColumns.add(Column.create("text_value", Type.Text));
     allColumnNames.add("dbl_value");
     allColumnTypes.add(Type.Double);
+    allColumns.add(Column.create("dbl_value", Type.Double));
     allColumnNames.add("bool_value");
     allColumnTypes.add(Type.Boolean);
+    allColumns.add(Column.create("bool_value", Type.Boolean));
 
     forbiddenCharacters = ImmutableList.of('[', ']', ',', '.', '\'', '*');
 
@@ -139,10 +147,6 @@ public class DocumentDB {
   }
 
   public static List<Column> allColumns() {
-    List<Column> allColumns = new ArrayList<>(allColumnNames.size());
-    for (int i = 0; i < allColumnNames.size(); i++) {
-      allColumns.add(Column.create(allColumnNames.get(i), allColumnTypes.get(i)));
-    }
     return allColumns;
   }
 
