@@ -18,7 +18,6 @@
 package org.apache.cassandra.stargate.transport.internal;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -40,6 +39,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -349,12 +349,12 @@ public abstract class Message {
                   .getCustomPayload()
                   .put("isFromExternalAuth", clientInfo.getIsFromExternalAuth());
             } else {
-              customPayload =
-                  ImmutableMap.of(
-                      "token", clientInfo.getToken(),
-                      "roleName", clientInfo.getRoleName(),
-                      "isFromExternalAuth", clientInfo.getIsFromExternalAuth());
-              message.setCustomPayload(customPayload);
+              Map<String, ByteBuffer> payload = new HashMap<>();
+              payload.put("token", clientInfo.getToken());
+              payload.put("roleName", clientInfo.getRoleName());
+              payload.put("isFromExternalAuth", clientInfo.getIsFromExternalAuth());
+
+              message.setCustomPayload(payload);
             }
           }
           req.attach(connection);
