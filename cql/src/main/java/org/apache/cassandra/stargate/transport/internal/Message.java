@@ -18,6 +18,7 @@
 package org.apache.cassandra.stargate.transport.internal;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -38,7 +39,6 @@ import io.stargate.db.Persistence;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -340,15 +340,20 @@ public abstract class Message {
           if (connection != null
               && ((ServerConnection) connection).clientInfo() != null
               && ((ServerConnection) connection).clientInfo().getAuthenticatedUser() != null) {
+            ClientInfo clientInfo = ((ServerConnection) connection).clientInfo();
+
             if (customPayload != null) {
+              message.getCustomPayload().put("token", clientInfo.getToken());
+              message.getCustomPayload().put("roleName", clientInfo.getRoleName());
               message
                   .getCustomPayload()
-                  .put(
-                      "token", ((ServerConnection) connection).clientInfo().getAuthenticatedUser());
+                  .put("isFromExternalAuth", clientInfo.getIsFromExternalAuth());
             } else {
               customPayload =
-                  Collections.singletonMap(
-                      "token", ((ServerConnection) connection).clientInfo().getAuthenticatedUser());
+                  ImmutableMap.of(
+                      "token", clientInfo.getToken(),
+                      "roleName", clientInfo.getRoleName(),
+                      "isFromExternalAuth", clientInfo.getIsFromExternalAuth());
               message.setCustomPayload(customPayload);
             }
           }

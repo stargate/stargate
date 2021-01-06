@@ -20,9 +20,6 @@ package org.apache.cassandra.stargate.transport.internal.messages;
 import io.netty.buffer.ByteBuf;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.Authenticator;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
@@ -87,7 +84,7 @@ public class AuthResponse extends Message.Request {
                   if (authenticatedUser.token() != null) {
                     ((ServerConnection) connection)
                         .clientInfo()
-                        .setAuthenticatedUser(authenticatedUserToByteBuffer(authenticatedUser));
+                        .setAuthenticatedUser(authenticatedUser);
                   }
 
                   ClientMetrics.instance.markAuthSuccess();
@@ -105,18 +102,5 @@ public class AuthResponse extends Message.Request {
               }
             });
     return future;
-  }
-
-  private ByteBuffer authenticatedUserToByteBuffer(AuthenticatedUser authenticatedUser)
-      throws IOException {
-    byte[] bytes;
-    try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream)) {
-      objectOutputStream.writeObject(authenticatedUser);
-      objectOutputStream.flush();
-      bytes = outputStream.toByteArray();
-    }
-
-    return ByteBuffer.wrap(bytes);
   }
 }

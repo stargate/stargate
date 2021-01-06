@@ -4,6 +4,7 @@ import static java.lang.String.format;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
@@ -14,7 +15,10 @@ public class ClientInfo {
 
   private volatile DriverInfo driverInfo;
 
-  private ByteBuffer authenticatedUser;
+  private AuthenticatedUser authenticatedUser;
+  private ByteBuffer token;
+  private ByteBuffer roleName;
+  private ByteBuffer isFromExternalAuth;
 
   public ClientInfo(InetSocketAddress remoteAddress, @Nullable InetSocketAddress publicAddress) {
     this.remoteAddress = remoteAddress;
@@ -41,12 +45,34 @@ public class ClientInfo {
     return Optional.ofNullable(driverInfo);
   }
 
-  public ByteBuffer getAuthenticatedUser() {
+  public AuthenticatedUser getAuthenticatedUser() {
     return authenticatedUser;
   }
 
-  public void setAuthenticatedUser(ByteBuffer authenticatedUser) {
+  public void setAuthenticatedUser(AuthenticatedUser authenticatedUser) {
     this.authenticatedUser = authenticatedUser;
+    this.token =
+        authenticatedUser.token() != null
+            ? ByteBuffer.wrap(authenticatedUser.token().getBytes(StandardCharsets.UTF_8))
+            : null;
+    this.roleName = ByteBuffer.wrap(authenticatedUser.name().getBytes(StandardCharsets.UTF_8));
+    this.isFromExternalAuth =
+        ByteBuffer.wrap(
+            (authenticatedUser.isFromExternalAuth()
+                ? new byte[] {(byte) 1}
+                : new byte[] {(byte) 0}));
+  }
+
+  public ByteBuffer getToken() {
+    return token;
+  }
+
+  public ByteBuffer getRoleName() {
+    return roleName;
+  }
+
+  public ByteBuffer getIsFromExternalAuth() {
+    return isFromExternalAuth;
   }
 
   @Override
