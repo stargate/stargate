@@ -23,7 +23,7 @@ import java.util.List;
  * bytes.
  */
 public class HAProxyProtocolDetectingDecoder extends ByteToMessageDecoder {
-  private static String NAME = "proxyProtocolDetectingDecoder";
+  private static final String NAME = "proxyProtocolDetectingDecoder";
 
   // Neither of these header prefixes overlap with valid CQL protocol message headers. The only
   // valid CQL request opcodes during startup are STARTUP (0x01) and OPTIONS (0x05).
@@ -69,7 +69,8 @@ public class HAProxyProtocolDetectingDecoder extends ByteToMessageDecoder {
                   Attribute<ProxyInfo> attrProxy = ctx.channel().attr(ProxyInfo.attributeKey);
                   attrProxy.set(
                       new ProxyInfo(
-                          new InetSocketAddress(msg.destinationAddress(), msg.destinationPort())));
+                          new InetSocketAddress(msg.destinationAddress(), msg.destinationPort()),
+                          new InetSocketAddress(msg.sourceAddress(), msg.sourcePort())));
                 }
               });
     } else {
