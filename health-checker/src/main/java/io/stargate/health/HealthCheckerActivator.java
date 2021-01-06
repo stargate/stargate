@@ -39,11 +39,6 @@ public class HealthCheckerActivator extends BaseActivator {
   }
 
   @Override
-  protected void stopService() {
-    // no-op
-  }
-
-  @Override
   protected List<ServicePointer<?>> dependencies() {
     return Arrays.asList(metrics, healthCheckRegistry);
   }

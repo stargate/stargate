@@ -298,6 +298,11 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     }
 
     @Override
+    public File starterJarFile() {
+      return starterJar();
+    }
+
+    @Override
     public List<? extends StargateConnectionInfo> nodes() {
       return nodes;
     }
@@ -340,6 +345,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     private final CompletableFuture<Void> ready = new CompletableFuture<>();
     private final CountDownLatch exit = new CountDownLatch(1);
     private final int cqlPort;
+    private final int jmxPort;
     private final String datacenter;
     private final String rack;
     private final File cacheDir;
@@ -355,6 +361,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
       this.instanceNum = instanceNum;
       this.listenAddress = env.listenAddress(nodeIndex);
       this.cqlPort = env.cqlPort();
+      this.jmxPort = env.jmxPort(nodeIndex);
       this.clusterName = backend.clusterName();
       this.datacenter = backend.datacenter();
       this.rack = backend.rack();
@@ -401,7 +408,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
       cmd.addArgument("--cql-port");
       cmd.addArgument(String.valueOf(cqlPort));
       cmd.addArgument("--jmx-port");
-      cmd.addArgument(String.valueOf(env.jmxPort(nodeIndex)));
+      cmd.addArgument(String.valueOf(jmxPort));
     }
 
     private Collection<String> args(ClusterConnectionInfo backend) {
@@ -528,6 +535,11 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     @Override
     public int cqlPort() {
       return cqlPort;
+    }
+
+    @Override
+    public int jmxPort() {
+      return jmxPort;
     }
 
     @Override

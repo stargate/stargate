@@ -128,6 +128,19 @@ class StarterTest {
   }
 
   @Test
+  void testSetStargatePropertiesMissingClusterName() {
+    starter.clusterName = null;
+
+    RuntimeException thrown =
+        assertThrows(
+            IllegalArgumentException.class,
+            starter::setStargateProperties,
+            "Expected setStargateProperties() to throw RuntimeException");
+
+    assertThat(thrown.getMessage()).isEqualTo("--cluster-name must be specified");
+  }
+
+  @Test
   void testSeedsNotPresentThrows() {
     starter.seedList = Collections.emptyList();
 

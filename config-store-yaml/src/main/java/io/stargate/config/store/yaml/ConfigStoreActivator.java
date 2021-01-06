@@ -63,11 +63,6 @@ public class ConfigStoreActivator extends BaseActivator {
   }
 
   @Override
-  protected void stopService() {
-    // no-op
-  }
-
-  @Override
   protected List<ServicePointer<?>> dependencies() {
     return Collections.singletonList(metricsService);
   }

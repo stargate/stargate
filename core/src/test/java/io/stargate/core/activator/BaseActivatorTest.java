@@ -535,11 +535,6 @@ class BaseActivatorTest {
       }
 
       @Override
-      protected void stopService() {
-        // no-op
-      }
-
-      @Override
       protected List<ServicePointer<?>> dependencies() {
         return serviceDependencies;
       }

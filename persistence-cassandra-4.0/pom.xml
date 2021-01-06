@@ -9,7 +9,7 @@
   <groupId>io.stargate.db.cassandra</groupId>
   <artifactId>persistence-cassandra-4.0</artifactId>
   <properties>
-    <cassandra.version>4.0-beta1</cassandra.version>
+    <cassandra.version>4.0-beta2</cassandra.version>
   </properties>
   <dependencies>
     <dependency>
@@ -145,7 +145,7 @@
           <reuseForks>false</reuseForks>
           <forkCount>1</forkCount>
           <systemPropertyVariables>
-            <ccm.version>4.0-beta2</ccm.version>
+            <ccm.version>${cassandra.version}</ccm.version>
           </systemPropertyVariables>
         </configuration>
       </plugin>
