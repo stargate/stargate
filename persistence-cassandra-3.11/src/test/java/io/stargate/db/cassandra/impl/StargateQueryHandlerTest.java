@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.cassandra.config.CFMetaData;
@@ -828,9 +829,11 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     ByteBuffer isFromExternalAuth =
         authenticatedUser.isFromExternalAuth() ? ByteBuffer.allocate(1) : null;
 
-    return ImmutableMap.of(
-        "token", token,
-        "roleName", roleName,
-        "isFromExternalAuth", isFromExternalAuth);
+    Map<String, ByteBuffer> payload = new HashMap<>();
+    payload.put("token", token);
+    payload.put("roleName", roleName);
+    payload.put("isFromExternalAuth", isFromExternalAuth);
+
+    return payload;
   }
 }
