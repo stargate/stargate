@@ -22,11 +22,7 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.ResponseHeader;
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -419,8 +415,10 @@ public class DocumentResourceV2 {
     logger.debug("Delete: Collection = {}, id = {}, path = {}", collection, id, new ArrayList<>());
     return handle(
         () -> {
-          DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
-          documentService.deleteAtPath(db, namespace, collection, id, new ArrayList<>());
+          Map<String, String> allHeaders = getAllHeaders(request);
+          DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, allHeaders);
+          documentService.deleteAtPath(
+              db, namespace, collection, id, new ArrayList<>(), allHeaders);
           return Response.noContent().build();
         });
   }
@@ -461,8 +459,9 @@ public class DocumentResourceV2 {
     logger.debug("Delete: Collection = {}, id = {}, path = {}", collection, id, path);
     return handle(
         () -> {
-          DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
-          documentService.deleteAtPath(db, namespace, collection, id, path);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, allHeaders);
+          documentService.deleteAtPath(db, namespace, collection, id, path, allHeaders);
           return Response.noContent().build();
         });
   }
@@ -602,8 +601,10 @@ public class DocumentResourceV2 {
       @Context HttpServletRequest request) {
     return handle(
         () -> {
+          Map<String, String> allHeaders = getAllHeaders(request);
           List<FilterCondition> filters = new ArrayList<>();
           List<String> selectionList = new ArrayList<>();
+
           if (where != null) {
             JsonNode filterJson = mapper.readTree(where);
             filters = documentService.convertToFilterOps(path, filterJson);
@@ -634,8 +635,9 @@ public class DocumentResourceV2 {
 
           JsonNode node;
           if (filters.isEmpty()) {
-            DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
-            node = documentService.getJsonAtPath(db, namespace, collection, id, path);
+
+            DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, allHeaders);
+            node = documentService.getJsonAtPath(db, namespace, collection, id, path, allHeaders);
             if (node == null) {
               return Response.noContent().build();
             }
@@ -663,7 +665,7 @@ public class DocumentResourceV2 {
                     getAllHeaders(request));
             ImmutablePair<JsonNode, ByteBuffer> result =
                 documentService.searchDocumentsV2(
-                    db, namespace, collection, filters, selectionList, id);
+                    db, namespace, collection, filters, selectionList, id, allHeaders);
 
             if (result == null) {
               return Response.noContent().build();

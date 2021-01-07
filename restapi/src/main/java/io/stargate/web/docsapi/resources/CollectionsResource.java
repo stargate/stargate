@@ -23,6 +23,7 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -77,7 +78,8 @@ public class CollectionsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
           Set<Table> tables = (Set<Table>) authenticatedDB.getTables(namespace);
 
           db.getAuthorizationService()
@@ -85,7 +87,8 @@ public class CollectionsResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(namespace),
                   tables.stream().map(SchemaEntity::name).collect(Collectors.toList()),
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           List<DocCollection> result =
               tables.stream()
@@ -129,7 +132,8 @@ public class CollectionsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          DocumentDB docDB = db.getDocDataStoreForToken(token, allHeaders);
           DocCollection info = mapper.readValue(payload, DocCollection.class);
           if (info.getName() == null) {
             throw new IllegalArgumentException("`name` is required to create a collection");
@@ -140,7 +144,8 @@ public class CollectionsResource {
                   namespace,
                   info.getName(),
                   Scope.CREATE,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           boolean res = collectionService.createCollection(namespace, info.getName(), docDB);
           if (res) {
@@ -181,7 +186,8 @@ public class CollectionsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
@@ -189,7 +195,8 @@ public class CollectionsResource {
                   namespace,
                   collection,
                   Scope.DROP,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           Table toDelete =
               authenticatedDB.getDataStore().schema().keyspace(namespace).table(collection);
@@ -247,8 +254,8 @@ public class CollectionsResource {
       @Context HttpServletRequest servletRequest) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getDataStoreForToken(token, getAllHeaders(servletRequest));
+          Map<String, String> allHeaders = getAllHeaders(servletRequest);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
@@ -256,7 +263,8 @@ public class CollectionsResource {
                   namespace,
                   collection,
                   Scope.ALTER,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           Table table = authenticatedDB.getTable(namespace, collection);
           if (table == null) {

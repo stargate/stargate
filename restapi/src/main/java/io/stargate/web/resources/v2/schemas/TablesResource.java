@@ -105,7 +105,8 @@ public class TablesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           List<TableResponse> tableResponses =
               authenticatedDB.getTables(keyspaceName).stream()
@@ -117,7 +118,8 @@ public class TablesResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   tableResponses.stream().map(TableResponse::getName).collect(Collectors.toList()),
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           Object response = raw ? tableResponses : new ResponseWrapper(tableResponses);
           return Response.status(Response.Status.OK)
@@ -158,13 +160,15 @@ public class TablesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
           db.getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -203,7 +207,8 @@ public class TablesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
           if (keyspace == null) {
@@ -229,7 +234,8 @@ public class TablesResource {
                   keyspaceName,
                   tableName,
                   Scope.CREATE,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           PrimaryKey primaryKey = tableAdd.getPrimaryKey();
           if (primaryKey == null) {
@@ -326,7 +332,8 @@ public class TablesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
@@ -334,7 +341,8 @@ public class TablesResource {
                   keyspaceName,
                   tableName,
                   Scope.ALTER,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           TableOptions options = tableUpdate.getTableOptions();
           List<ClusteringExpression> clusteringExpressions = options.getClusteringExpression();
@@ -400,7 +408,8 @@ public class TablesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
@@ -408,7 +417,8 @@ public class TablesResource {
                   keyspaceName,
                   tableName,
                   Scope.DROP,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           authenticatedDB
               .getDataStore()

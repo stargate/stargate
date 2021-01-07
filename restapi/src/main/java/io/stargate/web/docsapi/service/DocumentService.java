@@ -440,14 +440,20 @@ public class DocumentService {
     long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
     if (patching) {
       db.deletePatchedPathsThenInsertBatch(
-          keyspace, collection, id, bindVariableList, convertedPath, firstLevelKeys, now);
+          keyspace, collection, id, bindVariableList, convertedPath, firstLevelKeys, now, headers);
     } else {
-      db.deleteThenInsertBatch(keyspace, collection, id, bindVariableList, convertedPath, now);
+      db.deleteThenInsertBatch(
+          keyspace, collection, id, bindVariableList, convertedPath, now, headers);
     }
   }
 
   public JsonNode getJsonAtPath(
-      DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path)
+      DocumentDB db,
+      String keyspace,
+      String collection,
+      String id,
+      List<PathSegment> path,
+      Map<String, String> headers)
       throws ExecutionException, InterruptedException, UnauthorizedException {
     List<BuiltCondition> predicates = new ArrayList<>();
     predicates.add(BuiltCondition.of("key", Predicate.EQ, id));
@@ -476,7 +482,7 @@ public class DocumentService {
         convertToJsonDoc(rows, false, db.treatBooleansAsNumeric());
     if (!result.right.isEmpty()) {
       logger.info(String.format("Deleting %d dead leaves", result.right.size()));
-      db.deleteDeadLeaves(keyspace, collection, id, result.right);
+      db.deleteDeadLeaves(keyspace, collection, id, result.right, headers);
     }
     JsonNode node = result.left.at(pathStr.toString());
     if (node.isMissingNode()) {
@@ -617,7 +623,12 @@ public class DocumentService {
   }
 
   public void deleteAtPath(
-      DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path)
+      DocumentDB db,
+      String keyspace,
+      String collection,
+      String id,
+      List<PathSegment> path,
+      Map<String, String> headers)
       throws UnauthorizedException {
     List<String> convertedPath = new ArrayList<>(path.size());
     for (PathSegment pathSegment : path) {
@@ -626,7 +637,7 @@ public class DocumentService {
     }
     Long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
 
-    db.delete(keyspace, collection, id, convertedPath, now);
+    db.delete(keyspace, collection, id, convertedPath, now, headers);
   }
 
   public JsonNode searchDocuments(
@@ -636,7 +647,8 @@ public class DocumentService {
       String documentKey,
       List<FilterCondition> filters,
       List<PathSegment> path,
-      Boolean recurse)
+      Boolean recurse,
+      Map<String, String> headers)
       throws ExecutionException, InterruptedException, UnauthorizedException {
     StringBuilder pathStr = new StringBuilder();
 
@@ -651,7 +663,8 @@ public class DocumentService {
                 new ArrayList<>(),
                 pathSegmentValues,
                 recurse,
-                documentKey)
+                documentKey,
+                headers)
             .left;
 
     if (rows.size() == 0) return null;
@@ -665,7 +678,7 @@ public class DocumentService {
           convertToJsonDoc(entry.getValue(), true, db.treatBooleansAsNumeric());
       if (!result.right.isEmpty()) {
         logger.info(String.format("Deleting %d dead leaves", result.right.size()));
-        db.deleteDeadLeaves(keyspace, collection, entry.getKey(), result.right);
+        db.deleteDeadLeaves(keyspace, collection, entry.getKey(), result.right, headers);
       }
       JsonNode node = result.left.requiredAt(pathStr.toString());
       docsResult.set(entry.getKey(), node);
@@ -684,13 +697,14 @@ public class DocumentService {
       String collection,
       List<FilterCondition> filters,
       List<String> fields,
-      String documentId)
+      String documentId,
+      Map<String, String> headers)
       throws ExecutionException, InterruptedException, UnauthorizedException {
     FilterCondition first = filters.get(0);
     List<String> path = first.getPath();
 
     ImmutablePair<List<Row>, ByteBuffer> searchResult =
-        searchRows(keyspace, collection, db, filters, fields, path, false, documentId);
+        searchRows(keyspace, collection, db, filters, fields, path, false, documentId, headers);
     List<Row> rows = searchResult.left;
     ByteBuffer pageState = searchResult.right;
     if (rows.size() == 0) {
@@ -813,7 +827,8 @@ public class DocumentService {
               new ArrayList<>(),
               new ArrayList<>(),
               false,
-              null);
+              null,
+              headers);
       addRowsToMap(rowsByDoc, page.left);
       db = dbFactory.getDocDataStoreForToken(authToken, pageSize, page.right, headers);
     } while (rowsByDoc.keySet().size() <= limit && page.right != null);
@@ -843,7 +858,8 @@ public class DocumentService {
                   new ArrayList<>(),
                   new ArrayList<>(),
                   false,
-                  null)
+                  null,
+                  headers)
               .right;
       return ImmutablePair.of(docsResult, finalPagingState);
     } else {
@@ -894,7 +910,8 @@ public class DocumentService {
               new ArrayList<>(),
               new ArrayList<>(),
               false,
-              null);
+              null,
+              headers);
       updateExistenceForMap(
           existsByDoc, countsByDoc, page.left, filters, db.treatBooleansAsNumeric());
       db = dbFactory.getDocDataStoreForToken(authToken, pageSize, page.right, headers);
@@ -927,7 +944,8 @@ public class DocumentService {
                   new ArrayList<>(),
                   new ArrayList<>(),
                   false,
-                  null)
+                  null,
+                  headers)
               .right;
     } else {
       finalPagingState = null;
@@ -988,7 +1006,8 @@ public class DocumentService {
       List<String> fields,
       List<String> path,
       Boolean recurse,
-      String documentKey)
+      String documentKey,
+      Map<String, String> headers)
       throws UnauthorizedException {
     StringBuilder pathStr = new StringBuilder();
     List<BuiltCondition> predicates = new ArrayList<>();
@@ -1067,9 +1086,9 @@ public class DocumentService {
     ResultSet r;
 
     if (predicates.size() > 0) {
-      r = db.executeSelect(keyspace, collection, predicates, true);
+      r = db.executeSelect(keyspace, collection, predicates, true, headers);
     } else {
-      r = db.executeSelectAll(keyspace, collection);
+      r = db.executeSelectAll(keyspace, collection, headers);
     }
 
     List<Row> rows = r.currentPageRows();

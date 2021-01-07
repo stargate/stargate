@@ -99,13 +99,15 @@ public class ColumnsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
           db.getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           final Table tableMetadata;
           try {
@@ -168,7 +170,8 @@ public class ColumnsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
           Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -202,7 +205,8 @@ public class ColumnsResource {
                   keyspaceName,
                   tableName,
                   Scope.ALTER,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           authenticatedDB
               .getDataStore()
@@ -256,13 +260,15 @@ public class ColumnsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
           db.getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           final Table tableMetadata;
           try {
@@ -330,7 +336,8 @@ public class ColumnsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
@@ -338,7 +345,8 @@ public class ColumnsResource {
                   keyspaceName,
                   tableName,
                   Scope.ALTER,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           authenticatedDB
               .getDataStore()
@@ -385,7 +393,8 @@ public class ColumnsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
@@ -393,7 +402,8 @@ public class ColumnsResource {
                   keyspaceName,
                   tableName,
                   Scope.ALTER,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           authenticatedDB
               .getDataStore()

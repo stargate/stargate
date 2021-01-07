@@ -17,6 +17,7 @@ package io.stargate.auth;
 
 import io.stargate.db.datastore.ResultSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 public interface AuthorizationService {
@@ -32,6 +33,7 @@ public interface AuthorizationService {
    * @param typedKeyValues A list of {@link TypedKeyValue} that will be used in the query and should
    *     be authorized against the token.
    * @param sourceAPI The source api which calls this method.
+   * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...)
    * @return On success will return the result of the query and otherwise will return an exception
    *     relating to the failure to authorize.
    * @throws Exception An exception relating to the failure to authorize.
@@ -42,7 +44,8 @@ public interface AuthorizationService {
       String keyspace,
       String table,
       List<TypedKeyValue> typedKeyValues,
-      SourceAPI sourceAPI)
+      SourceAPI sourceAPI,
+      Map<String, String> headers)
       throws Exception;
 
   /**
@@ -54,13 +57,15 @@ public interface AuthorizationService {
    * @param keyspace The keyspace containing the table with data to be read.
    * @param table The table within the provided keyspace containing the data to be read.
    * @param sourceAPI The source api which calls this method.
+   * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...)
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeDataRead(
       AuthenticationSubject authenticationSubject,
       String keyspace,
       String table,
-      SourceAPI sourceAPI)
+      SourceAPI sourceAPI,
+      Map<String, String> headers)
       throws UnauthorizedException;
 
   /**
@@ -74,6 +79,7 @@ public interface AuthorizationService {
    * @param table The table within the provided keyspace containing the data to be modified.
    * @param scope The table within the provided keyspace that is being modified.
    * @param sourceAPI The source api which calls this method.
+   * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...)
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeDataWrite(
@@ -81,7 +87,8 @@ public interface AuthorizationService {
       String keyspace,
       String table,
       Scope scope,
-      SourceAPI sourceAPI)
+      SourceAPI sourceAPI,
+      Map<String, String> headers)
       throws UnauthorizedException;
 
   /**
@@ -92,6 +99,7 @@ public interface AuthorizationService {
    *     be authorized against the token.
    * @param scope The {@link Scope} of the action to be performed.
    * @param sourceAPI The source api which calls this method.
+   * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...)
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeDataWrite(
@@ -100,7 +108,8 @@ public interface AuthorizationService {
       String table,
       List<TypedKeyValue> typedKeyValues,
       Scope scope,
-      SourceAPI sourceAPI)
+      SourceAPI sourceAPI,
+      Map<String, String> headers)
       throws UnauthorizedException;
 
   /**
@@ -111,13 +120,15 @@ public interface AuthorizationService {
    *     resource being read.
    * @param tableNames The table(s) within the provided keyspace(s) that is being read.
    * @param sourceAPI The source api which calls this method.
+   * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...)
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeSchemaRead(
       AuthenticationSubject authenticationSubject,
       List<String> keyspaceNames,
       List<String> tableNames,
-      SourceAPI sourceAPI)
+      SourceAPI sourceAPI,
+      Map<String, String> headers)
       throws UnauthorizedException;
 
   /**
@@ -130,6 +141,7 @@ public interface AuthorizationService {
    * @param table The table within the provided keyspace that is being modified.
    * @param scope The {@link Scope} of the action to be performed.
    * @param sourceAPI The source api which calls this method.
+   * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...)
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeSchemaWrite(
@@ -137,7 +149,8 @@ public interface AuthorizationService {
       String keyspace,
       String table,
       Scope scope,
-      SourceAPI sourceAPI)
+      SourceAPI sourceAPI,
+      Map<String, String> headers)
       throws UnauthorizedException;
 
   /**
@@ -147,10 +160,15 @@ public interface AuthorizationService {
    * @param role The role which is being modified.
    * @param scope The {@link Scope} of the action to be performed.
    * @param sourceAPI The source api which calls this method.
+   * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...)
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeRoleManagement(
-      AuthenticationSubject authenticationSubject, String role, Scope scope, SourceAPI sourceAPI)
+      AuthenticationSubject authenticationSubject,
+      String role,
+      Scope scope,
+      SourceAPI sourceAPI,
+      Map<String, String> headers)
       throws UnauthorizedException;
 
   /**
@@ -161,6 +179,7 @@ public interface AuthorizationService {
    * @param grantee The role that is being granted or revoked the role.
    * @param scope The {@link Scope} of the action to be performed.
    * @param sourceAPI The source api which calls this method.
+   * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...)
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeRoleManagement(
@@ -168,7 +187,8 @@ public interface AuthorizationService {
       String role,
       String grantee,
       Scope scope,
-      SourceAPI sourceAPI)
+      SourceAPI sourceAPI,
+      Map<String, String> headers)
       throws UnauthorizedException;
 
   /**
@@ -177,10 +197,14 @@ public interface AuthorizationService {
    * @param authenticationSubject The authenticated user to use for authorization.
    * @param role The role that is being accessed.
    * @param sourceAPI The source api which calls this method.
+   * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...)
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeRoleRead(
-      AuthenticationSubject authenticationSubject, String role, SourceAPI sourceAPI)
+      AuthenticationSubject authenticationSubject,
+      String role,
+      SourceAPI sourceAPI,
+      Map<String, String> headers)
       throws UnauthorizedException;
 
   /**
@@ -191,6 +215,7 @@ public interface AuthorizationService {
    * @param grantee The role that is being granted access to the resource.
    * @param scope The {@link Scope} of the action to be performed.
    * @param sourceAPI The source api which calls this method.
+   * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...)
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizePermissionManagement(
@@ -198,7 +223,8 @@ public interface AuthorizationService {
       String resource,
       String grantee,
       Scope scope,
-      SourceAPI sourceAPI)
+      SourceAPI sourceAPI,
+      Map<String, String> headers)
       throws UnauthorizedException;
 
   /**
@@ -207,9 +233,13 @@ public interface AuthorizationService {
    * @param authenticationSubject The authenticated user to use for authorization.
    * @param role The role for which the permissions are being accessed.
    * @param sourceAPI The source api which calls this method.
+   * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...)
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizePermissionRead(
-      AuthenticationSubject authenticationSubject, String role, SourceAPI sourceAPI)
+      AuthenticationSubject authenticationSubject,
+      String role,
+      SourceAPI sourceAPI,
+      Map<String, String> headers)
       throws UnauthorizedException;
 }

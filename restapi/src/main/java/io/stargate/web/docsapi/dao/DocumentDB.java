@@ -323,11 +323,16 @@ public class DocumentDB {
   }
 
   public ResultSet executeSelect(
-      String keyspace, String collection, List<BuiltCondition> predicates, boolean allowFiltering)
+      String keyspace,
+      String collection,
+      List<BuiltCondition> predicates,
+      boolean allowFiltering,
+      Map<String, String> headers)
       throws UnauthorizedException {
     // Run generic authorizeDataRead for now
     getAuthorizationService()
-        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
+        .authorizeDataRead(
+            getAuthenticationSubject(), keyspace, collection, SourceAPI.REST, headers);
 
     return this.builder()
         .select()
@@ -341,11 +346,12 @@ public class DocumentDB {
         .join();
   }
 
-  public ResultSet executeSelectAll(String keyspace, String collection)
+  public ResultSet executeSelectAll(String keyspace, String collection, Map<String, String> headers)
       throws UnauthorizedException {
     // Run generic authorizeDataRead for now
     getAuthorizationService()
-        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
+        .authorizeDataRead(
+            getAuthenticationSubject(), keyspace, collection, SourceAPI.REST, headers);
 
     return this.builder()
         .select()
@@ -510,7 +516,8 @@ public class DocumentDB {
       String key,
       List<Object[]> vars,
       List<String> pathToDelete,
-      long microsSinceEpoch)
+      long microsSinceEpoch,
+      Map<String, String> headers)
       throws UnauthorizedException {
 
     List<BoundQuery> queries = new ArrayList<>(1 + vars.size());
@@ -521,10 +528,12 @@ public class DocumentDB {
     }
 
     getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
+        .authorizeDataWrite(
+            authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST, headers);
 
     getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
+        .authorizeDataWrite(
+            authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST, headers);
     dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
   }
 
@@ -539,7 +548,8 @@ public class DocumentDB {
       List<Object[]> vars,
       List<String> pathToDelete,
       List<String> patchedKeys,
-      long microsSinceEpoch)
+      long microsSinceEpoch,
+      Map<String, String> headers)
       throws UnauthorizedException {
     boolean hasPath = !pathToDelete.isEmpty();
 
@@ -572,21 +582,28 @@ public class DocumentDB {
     }
 
     getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
+        .authorizeDataWrite(
+            authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST, headers);
 
     getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
+        .authorizeDataWrite(
+            authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST, headers);
 
     dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
   }
 
   public void delete(
-      String keyspace, String table, String key, List<String> pathToDelete, long microsSinceEpoch)
+      String keyspace,
+      String table,
+      String key,
+      List<String> pathToDelete,
+      long microsSinceEpoch,
+      Map<String, String> headers)
       throws UnauthorizedException {
 
     getAuthorizationService()
         .authorizeDataWrite(
-            getAuthenticationSubject(), keyspace, table, Scope.DELETE, SourceAPI.REST);
+            getAuthenticationSubject(), keyspace, table, Scope.DELETE, SourceAPI.REST, headers);
     dataStore
         .execute(
             getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch, pathToDelete),
@@ -595,10 +612,14 @@ public class DocumentDB {
   }
 
   public void deleteDeadLeaves(
-      String keyspaceName, String tableName, String key, Map<String, List<JsonNode>> deadLeaves)
+      String keyspaceName,
+      String tableName,
+      String key,
+      Map<String, List<JsonNode>> deadLeaves,
+      Map<String, String> headers)
       throws UnauthorizedException {
     long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
-    deleteDeadLeaves(keyspaceName, tableName, key, now, deadLeaves);
+    deleteDeadLeaves(keyspaceName, tableName, key, now, deadLeaves, headers);
   }
 
   @VisibleForTesting
@@ -607,12 +628,18 @@ public class DocumentDB {
       String tableName,
       String key,
       long microsTimestamp,
-      Map<String, List<JsonNode>> deadLeaves)
+      Map<String, List<JsonNode>> deadLeaves,
+      Map<String, String> headers)
       throws UnauthorizedException {
 
     getAuthorizationService()
         .authorizeDataWrite(
-            getAuthenticationSubject(), keyspaceName, tableName, Scope.DELETE, SourceAPI.REST);
+            getAuthenticationSubject(),
+            keyspaceName,
+            tableName,
+            Scope.DELETE,
+            SourceAPI.REST,
+            headers);
 
     List<BoundQuery> queries = new ArrayList<>();
     for (Map.Entry<String, List<JsonNode>> entry : deadLeaves.entrySet()) {

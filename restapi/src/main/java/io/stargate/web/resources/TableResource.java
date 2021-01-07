@@ -40,10 +40,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
@@ -103,7 +100,8 @@ public class TableResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           List<String> tableNames =
               authenticatedDB.getTables(keyspaceName).stream()
@@ -115,7 +113,8 @@ public class TableResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   tableNames,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           return Response.status(Response.Status.OK).entity(tableNames).build();
         });
@@ -152,7 +151,8 @@ public class TableResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
           Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -211,7 +211,8 @@ public class TableResource {
                   keyspaceName,
                   tableName,
                   Scope.CREATE,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           int ttl = 0;
           if (options != null && options.getDefaultTimeToLive() != null) {
@@ -265,13 +266,15 @@ public class TableResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
           db.getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -349,7 +352,8 @@ public class TableResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
@@ -357,7 +361,8 @@ public class TableResource {
                   keyspaceName,
                   tableName,
                   Scope.DROP,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           authenticatedDB
               .getDataStore()

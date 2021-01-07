@@ -129,7 +129,8 @@ public class RowResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           BoundQuery query =
               authenticatedDB
@@ -155,7 +156,8 @@ public class RowResource {
                       keyspaceName,
                       tableName,
                       TypedKeyValue.forSelect((BoundSelect) query),
-                      SourceAPI.REST);
+                      SourceAPI.REST,
+                      allHeaders);
 
           final List<Map<String, Object>> rows =
               r.rows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
@@ -212,8 +214,9 @@ public class RowResource {
             pageSize = pageSizeParam;
           }
 
+          Map<String, String> allHeaders = getAllHeaders(request);
           AuthenticatedDB authenticatedDB =
-              db.getDataStoreForToken(token, pageSize, pageState, getAllHeaders(request));
+              db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
 
           BoundQuery query =
               authenticatedDB
@@ -236,7 +239,8 @@ public class RowResource {
                       keyspaceName,
                       tableName,
                       Collections.emptyList(),
-                      SourceAPI.REST);
+                      SourceAPI.REST,
+                      allHeaders);
 
           final List<Map<String, Object>> rows =
               r.currentPageRows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
@@ -295,8 +299,9 @@ public class RowResource {
             pageSize = queryModel.getPageSize();
           }
 
+          Map<String, String> allHeaders = getAllHeaders(request);
           AuthenticatedDB authenticatedDB =
-              db.getDataStoreForToken(token, pageSize, pageState, getAllHeaders(request));
+              db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
 
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -367,7 +372,8 @@ public class RowResource {
                       keyspaceName,
                       tableName,
                       TypedKeyValue.forSelect((BoundSelect) query),
-                      SourceAPI.REST);
+                      SourceAPI.REST,
+                      allHeaders);
 
           final List<Map<String, Object>> rows =
               r.currentPageRows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
@@ -416,7 +422,8 @@ public class RowResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           List<ValueModifier> values =
               rowAdd.getColumns().stream()
@@ -444,7 +451,8 @@ public class RowResource {
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.MODIFY,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
@@ -486,7 +494,8 @@ public class RowResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           BoundQuery query =
               authenticatedDB
@@ -507,7 +516,8 @@ public class RowResource {
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.DELETE,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
@@ -553,7 +563,8 @@ public class RowResource {
       final RowUpdate changeSet) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -579,7 +590,8 @@ public class RowResource {
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.MODIFY,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 

@@ -201,7 +201,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getJsonAtPath(
-                anyObject(), anyString(), anyString(), anyString(), anyObject()))
+                anyObject(), anyString(), anyString(), anyString(), anyObject(), any()))
         .thenReturn(mockedReturn);
 
     Response r =
@@ -244,7 +244,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getJsonAtPath(
-                anyObject(), anyString(), anyString(), anyString(), anyObject()))
+                anyObject(), anyString(), anyString(), anyString(), anyObject(), any()))
         .thenReturn(mockedReturn);
 
     Response r =
@@ -288,7 +288,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.searchDocumentsV2(
-                anyObject(), anyString(), anyString(), anyList(), anyList(), anyString()))
+                anyObject(), anyString(), anyString(), anyList(), anyList(), anyString(), any()))
         .thenReturn(ImmutablePair.of(mockedReturn, null));
 
     Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
@@ -337,7 +337,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getJsonAtPath(
-                anyObject(), anyString(), anyString(), anyString(), anyObject()))
+                anyObject(), anyString(), anyString(), anyString(), anyObject(), any()))
         .thenReturn(mockedReturn);
 
     Response r =
@@ -380,7 +380,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getJsonAtPath(
-                anyObject(), anyString(), anyString(), anyString(), anyObject()))
+                anyObject(), anyString(), anyString(), anyString(), anyObject(), any()))
         .thenReturn(null);
 
     Response r =

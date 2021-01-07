@@ -91,7 +91,8 @@ public class KeyspacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           List<Keyspace> keyspaces =
               authenticatedDB.getKeyspaces().stream()
@@ -103,7 +104,8 @@ public class KeyspacesResource {
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
                   null,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           Object response = raw ? keyspaces : new ResponseWrapper(keyspaces);
           return Response.status(Response.Status.OK)
@@ -142,13 +144,15 @@ public class KeyspacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
           db.getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   null,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           io.stargate.db.schema.Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
@@ -212,7 +216,8 @@ public class KeyspacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
 
@@ -223,7 +228,8 @@ public class KeyspacesResource {
                   keyspaceName,
                   null,
                   Scope.CREATE,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           Replication replication;
           if (requestBody.containsKey("datacenters")) {
@@ -282,7 +288,8 @@ public class KeyspacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
@@ -290,7 +297,8 @@ public class KeyspacesResource {
                   keyspaceName,
                   null,
                   Scope.DROP,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           authenticatedDB
               .getDataStore()

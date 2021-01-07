@@ -32,12 +32,7 @@ import io.stargate.db.query.TypedValue.Codec;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.SchemaBuilder.SchemaBuilder__5;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +45,7 @@ public class DocumentDBTest {
   private DocumentDB documentDB;
   private TestDataStore ds;
   private static final ObjectMapper mapper = new ObjectMapper();
+  private static final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
 
   private static Schema buildSchema() {
     SchemaBuilder__5 schemaBuilder =
@@ -76,7 +72,11 @@ public class DocumentDBTest {
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
+            any(AuthenticationSubject.class),
+            anyString(),
+            anyString(),
+            eq(SourceAPI.REST),
+            eq(EMPTY_HEADERS));
     documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
   }
 
@@ -203,7 +203,11 @@ public class DocumentDBTest {
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
+            any(AuthenticationSubject.class),
+            anyString(),
+            anyString(),
+            eq(SourceAPI.REST),
+            eq(EMPTY_HEADERS));
     documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
     List<String> path = ImmutableList.of("a", "b", "c");
     Map<String, Object> map = documentDB.newBindMap(path);
@@ -213,7 +217,8 @@ public class DocumentDBTest {
     map.put("dbl_value", null);
     map.put("text_value", null);
     Object[] values = map.values().toArray();
-    documentDB.deleteThenInsertBatch("keyspace", "table", "key", singletonList(values), path, 1L);
+    documentDB.deleteThenInsertBatch(
+        "keyspace", "table", "key", singletonList(values), path, 1L, EMPTY_HEADERS);
 
     List<BoundQuery> generatedQueries = ds.getRecentStatements();
     assertThat(generatedQueries).hasSize(2);
@@ -236,7 +241,11 @@ public class DocumentDBTest {
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
+            any(AuthenticationSubject.class),
+            anyString(),
+            anyString(),
+            eq(SourceAPI.REST),
+            eq(EMPTY_HEADERS));
     documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
     List<String> path = ImmutableList.of("a", "b", "c");
     List<String> patchedKeys = ImmutableList.of("eric");
@@ -248,7 +257,7 @@ public class DocumentDBTest {
     map.put("text_value", null);
     Object[] values = map.values().toArray();
     documentDB.deletePatchedPathsThenInsertBatch(
-        "keyspace", "table", "key", singletonList(values), path, patchedKeys, 1L);
+        "keyspace", "table", "key", singletonList(values), path, patchedKeys, 1L, EMPTY_HEADERS);
 
     List<BoundQuery> generatedQueries = ds.getRecentStatements();
     assertThat(generatedQueries).hasSize(4);
@@ -286,7 +295,11 @@ public class DocumentDBTest {
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
+            any(AuthenticationSubject.class),
+            anyString(),
+            anyString(),
+            eq(SourceAPI.REST),
+            eq(EMPTY_HEADERS));
     documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
     List<String> path = ImmutableList.of("a", "b", "c");
     List<Object[]> vars = new ArrayList<>();
@@ -297,7 +310,7 @@ public class DocumentDBTest {
     vars.get(0)[3] = "b";
     vars.get(0)[4] = "c";
 
-    documentDB.delete("keyspace", "table", "key", path, 1L);
+    documentDB.delete("keyspace", "table", "key", path, 1L, EMPTY_HEADERS);
 
     List<BoundQuery> generatedQueries = ds.getRecentStatements();
     assertThat(generatedQueries).hasSize(1);
@@ -315,7 +328,11 @@ public class DocumentDBTest {
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
+            any(AuthenticationSubject.class),
+            anyString(),
+            anyString(),
+            eq(SourceAPI.REST),
+            eq(EMPTY_HEADERS));
     documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
 
     Map<String, List<JsonNode>> deadLeaves = new HashMap<>();
@@ -329,7 +346,7 @@ public class DocumentDBTest {
     deadLeaves.put("$.b", new ArrayList<>());
     deadLeaves.get("$.b").add(arrayNode);
 
-    documentDB.deleteDeadLeaves("keyspace", "table", "key", 1L, deadLeaves);
+    documentDB.deleteDeadLeaves("keyspace", "table", "key", 1L, deadLeaves, EMPTY_HEADERS);
 
     List<BoundQuery> generatedQueries = ds.getRecentStatements();
     assertThat(generatedQueries).hasSize(2);

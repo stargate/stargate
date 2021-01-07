@@ -161,8 +161,9 @@ public class RowsResource {
             pageSize = pageSizeParam;
           }
 
+          Map<String, String> allHeaders = getAllHeaders(request);
           AuthenticatedDB authenticatedDB =
-              db.getDataStoreForToken(token, pageSize, pageState, getAllHeaders(request));
+              db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
           Object response =
@@ -172,7 +173,8 @@ public class RowsResource {
                   sort,
                   authenticatedDB,
                   tableMetadata,
-                  WhereParser.parseWhere(where, tableMetadata));
+                  WhereParser.parseWhere(where, tableMetadata),
+                  allHeaders);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();
@@ -237,8 +239,9 @@ public class RowsResource {
             pageSize = pageSizeParam;
           }
 
+          Map<String, String> allHeaders = getAllHeaders(request);
           AuthenticatedDB authenticatedDB =
-              db.getDataStoreForToken(token, pageSize, pageState, getAllHeaders(request));
+              db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
           List<BuiltCondition> where;
@@ -253,7 +256,8 @@ public class RowsResource {
                 .build();
           }
 
-          Object response = getRows(fields, raw, sort, authenticatedDB, tableMetadata, where);
+          Object response =
+              getRows(fields, raw, sort, authenticatedDB, tableMetadata, where, allHeaders);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();
@@ -298,7 +302,8 @@ public class RowsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           @SuppressWarnings("unchecked")
           Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
@@ -326,7 +331,8 @@ public class RowsResource {
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.MODIFY,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
@@ -415,7 +421,8 @@ public class RowsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -448,7 +455,8 @@ public class RowsResource {
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.DELETE,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  allHeaders);
 
           authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
           return Response.status(Response.Status.NO_CONTENT).build();
@@ -545,7 +553,8 @@ public class RowsResource {
             tableName,
             TypedKeyValue.forDML((BoundDMLQuery) query),
             Scope.MODIFY,
-            SourceAPI.REST);
+            SourceAPI.REST,
+            headers);
 
     authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
     Object response = raw ? requestBody : new ResponseWrapper(requestBody);
@@ -558,7 +567,8 @@ public class RowsResource {
       String sort,
       AuthenticatedDB authenticatedDB,
       Table tableMetadata,
-      List<BuiltCondition> where)
+      List<BuiltCondition> where,
+      Map<String, String> headers)
       throws Exception {
     List<Column> columns;
     if (Strings.isNullOrEmpty(fields)) {
@@ -592,7 +602,8 @@ public class RowsResource {
                 tableMetadata.keyspace(),
                 tableMetadata.name(),
                 TypedKeyValue.forSelect((BoundSelect) query),
-                SourceAPI.REST);
+                SourceAPI.REST,
+                headers);
 
     List<Map<String, Object>> rows =
         r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
