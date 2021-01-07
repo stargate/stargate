@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
@@ -60,7 +61,7 @@ public class DocumentDB {
 
   final DataStore dataStore;
   private final AuthorizationService authorizationService;
-  private final String authToken;
+  private final AuthenticationSubject authenticationSubject;
 
   static {
     allColumnNames = new ArrayList<>();
@@ -93,9 +94,11 @@ public class DocumentDB {
   }
 
   public DocumentDB(
-      DataStore dataStore, String authToken, AuthorizationService authorizationService) {
+      DataStore dataStore,
+      AuthenticationSubject authenticationSubject,
+      AuthorizationService authorizationService) {
     this.dataStore = dataStore;
-    this.authToken = authToken;
+    this.authenticationSubject = authenticationSubject;
     this.authorizationService = authorizationService;
 
     if (!dataStore.supportsSAI() && !dataStore.supportsSecondaryIndex()) {
@@ -107,8 +110,8 @@ public class DocumentDB {
     return authorizationService;
   }
 
-  public String getAuthToken() {
-    return authToken;
+  public AuthenticationSubject getAuthenticationSubject() {
+    return authenticationSubject;
   }
 
   public boolean treatBooleansAsNumeric() {
@@ -235,8 +238,8 @@ public class DocumentDB {
    * Drops indexes of `tableName` in preparation for replacing them with SAI. Note that the boolean
    * column index does not get altered, this is because SAI doesn't support booleans.
    *
-   * @param keyspaceName
-   * @param tableName
+   * @param keyspaceName The name of the keyspace containing the indexes that are being dropped.
+   * @param tableName The name of the table used in the indexes that are being dropped.
    */
   public void dropTableIndexes(String keyspaceName, String tableName) {
     try {
@@ -324,7 +327,7 @@ public class DocumentDB {
       throws UnauthorizedException {
     // Run generic authorizeDataRead for now
     getAuthorizationService()
-        .authorizeDataRead(getAuthToken(), keyspace, collection, SourceAPI.REST);
+        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
 
     return this.builder()
         .select()
@@ -342,7 +345,7 @@ public class DocumentDB {
       throws UnauthorizedException {
     // Run generic authorizeDataRead for now
     getAuthorizationService()
-        .authorizeDataRead(getAuthToken(), keyspace, collection, SourceAPI.REST);
+        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
 
     return this.builder()
         .select()
@@ -518,10 +521,10 @@ public class DocumentDB {
     }
 
     getAuthorizationService()
-        .authorizeDataWrite(authToken, keyspace, table, Scope.DELETE, SourceAPI.REST);
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
 
     getAuthorizationService()
-        .authorizeDataWrite(authToken, keyspace, table, Scope.MODIFY, SourceAPI.REST);
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
     dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
   }
 
@@ -569,10 +572,10 @@ public class DocumentDB {
     }
 
     getAuthorizationService()
-        .authorizeDataWrite(authToken, keyspace, table, Scope.DELETE, SourceAPI.REST);
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
 
     getAuthorizationService()
-        .authorizeDataWrite(authToken, keyspace, table, Scope.MODIFY, SourceAPI.REST);
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
     dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
   }
@@ -582,7 +585,8 @@ public class DocumentDB {
       throws UnauthorizedException {
 
     getAuthorizationService()
-        .authorizeDataWrite(getAuthToken(), keyspace, table, Scope.DELETE, SourceAPI.REST);
+        .authorizeDataWrite(
+            getAuthenticationSubject(), keyspace, table, Scope.DELETE, SourceAPI.REST);
     dataStore
         .execute(
             getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch, pathToDelete),
@@ -607,7 +611,8 @@ public class DocumentDB {
       throws UnauthorizedException {
 
     getAuthorizationService()
-        .authorizeDataWrite(getAuthToken(), keyspaceName, tableName, Scope.DELETE, SourceAPI.REST);
+        .authorizeDataWrite(
+            getAuthenticationSubject(), keyspaceName, tableName, Scope.DELETE, SourceAPI.REST);
 
     List<BoundQuery> queries = new ArrayList<>();
     for (Map.Entry<String, List<JsonNode>> entry : deadLeaves.entrySet()) {

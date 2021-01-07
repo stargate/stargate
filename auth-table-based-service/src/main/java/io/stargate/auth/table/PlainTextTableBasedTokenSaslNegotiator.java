@@ -18,6 +18,7 @@
 package io.stargate.auth.table;
 
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.Credentials;
 import io.stargate.auth.PlainTextTokenSaslNegotiator;
 import io.stargate.db.Authenticator.SaslNegotiator;
@@ -58,13 +59,14 @@ public class PlainTextTableBasedTokenSaslNegotiator extends PlainTextTokenSaslNe
       String password = String.valueOf(tmpPassword);
       credentials.clearPassword();
 
-      storedCredentials = authentication.validateToken(password);
-      if (storedCredentials == null) {
+      authenticationSubject = authentication.validateToken(password);
+      if (authenticationSubject == null) {
         logger.error("Null credentials returned from authentication service");
         return false;
       }
-      // Not setting token in the password field here since a table based token doesn't give us the
+      // Not setting token in the token field here since a table based token doesn't give us the
       // information we need for further authorization
+      authenticationSubject = AuthenticationSubject.of("", authenticationSubject.roleName());
     } catch (Exception e) {
       logger.error("Unable to validate token", e);
       return false;

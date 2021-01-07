@@ -35,6 +35,9 @@ public interface DataStoreFactory {
    */
   DataStore create(@Nullable String userName, @Nonnull DataStoreOptions options);
 
+  DataStore create(
+      @Nullable String userName, boolean isFromExternalAuth, @Nonnull DataStoreOptions options);
+
   /**
    * Creates a new DataStore on top of the provided persistence. If a username is provided then a
    * {@link ClientInfo} will be passed to {@link
@@ -61,4 +64,18 @@ public interface DataStoreFactory {
   default DataStore create(DataStoreOptions options) {
     return create(null, options);
   }
+
+  /**
+   * Creates a new internal DataStore on top of the provided persistence.
+   *
+   * <p>A shortcut for {@link #createInternal(DataStoreOptions)}.
+   */
+  DataStore createInternal();
+
+  /**
+   * Creates an internal connection with default options intended to be used for system operations.
+   *
+   * @return the created store.
+   */
+  DataStore createInternal(DataStoreOptions options);
 }

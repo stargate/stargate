@@ -84,7 +84,7 @@ public class AuthResponse extends Message.Request {
                   if (authenticatedUser.token() != null) {
                     ((ServerConnection) connection)
                         .clientInfo()
-                        .setAuthToken(authenticatedUser.token());
+                        .setAuthenticatedUser(authenticatedUser);
                   }
 
                   ClientMetrics.instance.markAuthSuccess();

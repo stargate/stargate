@@ -17,6 +17,8 @@
  */
 package io.stargate.db.cassandra.impl;
 
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
@@ -29,6 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.validation.constraints.NotNull;
 import org.apache.cassandra.auth.IResource;
 import org.apache.cassandra.auth.RoleResource;
 import org.apache.cassandra.cql3.BatchQueryOptions;
@@ -36,6 +39,7 @@ import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryHandler;
 import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.QueryProcessor;
+import org.apache.cassandra.cql3.functions.FunctionName;
 import org.apache.cassandra.cql3.statements.AlterKeyspaceStatement;
 import org.apache.cassandra.cql3.statements.AlterRoleStatement;
 import org.apache.cassandra.cql3.statements.AlterTableStatement;
@@ -64,6 +68,7 @@ import org.apache.cassandra.cql3.statements.DropTriggerStatement;
 import org.apache.cassandra.cql3.statements.DropTypeStatement;
 import org.apache.cassandra.cql3.statements.DropViewStatement;
 import org.apache.cassandra.cql3.statements.GrantPermissionsStatement;
+import org.apache.cassandra.cql3.statements.GrantRoleStatement;
 import org.apache.cassandra.cql3.statements.ListPermissionsStatement;
 import org.apache.cassandra.cql3.statements.ListRolesStatement;
 import org.apache.cassandra.cql3.statements.ListUsersStatement;
@@ -71,6 +76,7 @@ import org.apache.cassandra.cql3.statements.ModificationStatement;
 import org.apache.cassandra.cql3.statements.ParsedStatement;
 import org.apache.cassandra.cql3.statements.PermissionsManagementStatement;
 import org.apache.cassandra.cql3.statements.RevokePermissionsStatement;
+import org.apache.cassandra.cql3.statements.RevokeRoleStatement;
 import org.apache.cassandra.cql3.statements.RoleManagementStatement;
 import org.apache.cassandra.cql3.statements.SchemaAlteringStatement;
 import org.apache.cassandra.cql3.statements.SelectStatement;
@@ -146,7 +152,7 @@ public class StargateQueryHandler implements QueryHandler {
     }
 
     if (customPayload != null && customPayload.containsKey("token")) {
-      authorizeByToken(customPayload.get("token"), statement);
+      authorizeByToken(customPayload, statement);
     }
 
     return QueryProcessor.instance.processStatement(
@@ -186,7 +192,7 @@ public class StargateQueryHandler implements QueryHandler {
     }
 
     if (customPayload != null && customPayload.containsKey("token")) {
-      authorizeByToken(customPayload.get("token"), statement);
+      authorizeByToken(customPayload, statement);
     }
 
     return QueryProcessor.instance.processPrepared(
@@ -202,15 +208,16 @@ public class StargateQueryHandler implements QueryHandler {
       long queryStartNanoTime)
       throws RequestExecutionException, RequestValidationException {
     if (customPayload != null && customPayload.containsKey("token")) {
-      authorizeByToken(customPayload.get("token"), batchStatement);
+      authorizeByToken(customPayload, batchStatement);
     }
 
     return QueryProcessor.instance.processBatch(
         batchStatement, queryState, options, customPayload, queryStartNanoTime);
   }
 
-  private void authorizeByToken(ByteBuffer token, CQLStatement statement) {
-    String authToken = StandardCharsets.UTF_8.decode(token).toString();
+  @VisibleForTesting
+  protected void authorizeByToken(Map<String, ByteBuffer> customPayload, CQLStatement statement) {
+    AuthenticationSubject authenticationSubject = loadAuthenticationSubject(customPayload);
 
     if (!getAuthorizationService().isPresent()) {
       throw new RuntimeException(
@@ -228,7 +235,10 @@ public class StargateQueryHandler implements QueryHandler {
 
       try {
         authorization.authorizeDataRead(
-            authToken, castStatement.keyspace(), castStatement.columnFamily(), SourceAPI.CQL);
+            authenticationSubject,
+            castStatement.keyspace(),
+            castStatement.columnFamily(),
+            SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format(
@@ -242,7 +252,7 @@ public class StargateQueryHandler implements QueryHandler {
           castStatement.keyspace(),
           castStatement.columnFamily());
     } else if (statement instanceof ModificationStatement) {
-      authorizeModificationStatement(statement, authToken, authorization);
+      authorizeModificationStatement(statement, authenticationSubject, authorization);
     } else if (statement instanceof TruncateStatement) {
       TruncateStatement castStatement = (TruncateStatement) statement;
       logger.debug(
@@ -253,7 +263,7 @@ public class StargateQueryHandler implements QueryHandler {
 
       try {
         authorization.authorizeDataWrite(
-            authToken,
+            authenticationSubject,
             castStatement.keyspace(),
             castStatement.columnFamily(),
             Scope.TRUNCATE,
@@ -271,11 +281,11 @@ public class StargateQueryHandler implements QueryHandler {
           castStatement.keyspace(),
           castStatement.columnFamily());
     } else if (statement instanceof SchemaAlteringStatement) {
-      authorizeSchemaAlteringStatement(statement, authToken, authorization);
+      authorizeSchemaAlteringStatement(statement, authenticationSubject, authorization);
     } else if (statement instanceof AuthorizationStatement) {
-      authorizeAuthorizationStatement(statement, authToken, authorization);
+      authorizeAuthorizationStatement(statement, authenticationSubject, authorization);
     } else if (statement instanceof AuthenticationStatement) {
-      authorizeAuthenticationStatement(statement, authToken, authorization);
+      authorizeAuthenticationStatement(statement, authenticationSubject, authorization);
     } else if (statement instanceof UseStatement) {
       // NOOP on UseStatement since it doesn't require authorization
       logger.debug("Skipping auth on UseStatement since it's not required");
@@ -283,7 +293,7 @@ public class StargateQueryHandler implements QueryHandler {
       BatchStatement castStatement = (BatchStatement) statement;
       List<ModificationStatement> statements = castStatement.getStatements();
       for (ModificationStatement stmt : statements) {
-        authorizeModificationStatement(stmt, authToken, authorization);
+        authorizeModificationStatement(stmt, authenticationSubject, authorization);
       }
     } else {
       logger.warn("Tried to authorize unsupported statement");
@@ -293,8 +303,26 @@ public class StargateQueryHandler implements QueryHandler {
     }
   }
 
+  @NotNull
+  private AuthenticationSubject loadAuthenticationSubject(Map<String, ByteBuffer> customPayload) {
+    ByteBuffer token = customPayload.get("token");
+    ByteBuffer roleName = customPayload.get("roleName");
+    ByteBuffer isFromExternalAuth = customPayload.get("isFromExternalAuth");
+
+    if (token == null || roleName == null) {
+      throw new IllegalStateException("token and roleName must be provided");
+    }
+
+    return AuthenticationSubject.of(
+        StandardCharsets.UTF_8.decode(token).toString(),
+        StandardCharsets.UTF_8.decode(roleName).toString(),
+        (isFromExternalAuth != null));
+  }
+
   private void authorizeModificationStatement(
-      CQLStatement statement, String authToken, AuthorizationService authorization) {
+      CQLStatement statement,
+      AuthenticationSubject authenticationSubject,
+      AuthorizationService authorization) {
     ModificationStatement castStatement = (ModificationStatement) statement;
     Scope scope;
     if (statement instanceof DeleteStatement) {
@@ -311,7 +339,11 @@ public class StargateQueryHandler implements QueryHandler {
 
     try {
       authorization.authorizeDataWrite(
-          authToken, castStatement.keyspace(), castStatement.columnFamily(), scope, SourceAPI.CQL);
+          authenticationSubject,
+          castStatement.keyspace(),
+          castStatement.columnFamily(),
+          scope,
+          SourceAPI.CQL);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format(
@@ -327,7 +359,9 @@ public class StargateQueryHandler implements QueryHandler {
   }
 
   private void authorizeSchemaAlteringStatement(
-      CQLStatement statement, String authToken, AuthorizationService authorization) {
+      CQLStatement statement,
+      AuthenticationSubject authenticationSubject,
+      AuthorizationService authorization) {
     SchemaAlteringStatement castStatement = (SchemaAlteringStatement) statement;
     Scope scope = null;
     String keyspaceName = null;
@@ -366,10 +400,10 @@ public class StargateQueryHandler implements QueryHandler {
       tableName = castStatement.columnFamily();
     } else if (statement instanceof CreateAggregateStatement) {
       scope = Scope.CREATE;
-      keyspaceName = castStatement.keyspace();
+      keyspaceName = getKeyspaceNameFromFunction(statement);
     } else if (statement instanceof CreateFunctionStatement) {
       scope = Scope.CREATE;
-      keyspaceName = castStatement.keyspace();
+      keyspaceName = getKeyspaceNameFromFunction(statement);
     } else if (statement instanceof CreateIndexStatement) {
       scope = Scope.CREATE;
       keyspaceName = castStatement.keyspace();
@@ -386,24 +420,24 @@ public class StargateQueryHandler implements QueryHandler {
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     } else if (statement instanceof DropAggregateStatement) {
-      scope = Scope.DELETE;
-      keyspaceName = castStatement.keyspace();
+      scope = Scope.DROP;
+      keyspaceName = getKeyspaceNameFromFunction(statement);
     } else if (statement instanceof DropFunctionStatement) {
-      scope = Scope.DELETE;
-      keyspaceName = castStatement.keyspace();
+      scope = Scope.DROP;
+      keyspaceName = getKeyspaceNameFromFunction(statement);
     } else if (statement instanceof DropIndexStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     } else if (statement instanceof DropTriggerStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     } else if (statement instanceof DropTypeStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       keyspaceName = castStatement.keyspace();
     } else if (statement instanceof DropViewStatement) {
-      scope = Scope.DELETE;
+      scope = Scope.DROP;
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     }
@@ -415,7 +449,8 @@ public class StargateQueryHandler implements QueryHandler {
         tableName);
 
     try {
-      authorization.authorizeSchemaWrite(authToken, keyspaceName, tableName, scope, SourceAPI.CQL);
+      authorization.authorizeSchemaWrite(
+          authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format(
@@ -431,7 +466,9 @@ public class StargateQueryHandler implements QueryHandler {
   }
 
   private void authorizeAuthenticationStatement(
-      CQLStatement statement, String authToken, AuthorizationService authorization) {
+      CQLStatement statement,
+      AuthenticationSubject authenticationSubject,
+      AuthorizationService authorization) {
     AuthenticationStatement castStatement = (AuthenticationStatement) statement;
     Scope scope = null;
     String role = null;
@@ -447,7 +484,8 @@ public class StargateQueryHandler implements QueryHandler {
           role);
 
       try {
-        authorization.authorizeRoleManagement(authToken, role, grantee, scope, SourceAPI.CQL);
+        authorization.authorizeRoleManagement(
+            authenticationSubject, role, grantee, scope, SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("Missing correct permission on role %s", role), e);
@@ -476,7 +514,7 @@ public class StargateQueryHandler implements QueryHandler {
         role);
 
     try {
-      authorization.authorizeRoleManagement(authToken, role, scope, SourceAPI.CQL);
+      authorization.authorizeRoleManagement(authenticationSubject, role, scope, SourceAPI.CQL);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format("Missing correct permission on role %s", role), e);
@@ -487,7 +525,9 @@ public class StargateQueryHandler implements QueryHandler {
   }
 
   private void authorizeAuthorizationStatement(
-      CQLStatement statement, String authToken, AuthorizationService authorization) {
+      CQLStatement statement,
+      AuthenticationSubject authenticationSubject,
+      AuthorizationService authorization) {
     AuthorizationStatement castStatement = (AuthorizationStatement) statement;
 
     if (statement instanceof PermissionsManagementStatement) {
@@ -503,7 +543,7 @@ public class StargateQueryHandler implements QueryHandler {
 
       try {
         authorization.authorizePermissionManagement(
-            authToken, resource, grantee, scope, SourceAPI.CQL);
+            authenticationSubject, resource, grantee, scope, SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("Missing correct permission on role %s", resource), e);
@@ -520,7 +560,7 @@ public class StargateQueryHandler implements QueryHandler {
           role);
 
       try {
-        authorization.authorizeRoleRead(authToken, role, SourceAPI.CQL);
+        authorization.authorizeRoleRead(authenticationSubject, role, SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("Missing correct permission on role %s", role), e);
@@ -537,7 +577,7 @@ public class StargateQueryHandler implements QueryHandler {
           role);
 
       try {
-        authorization.authorizePermissionRead(authToken, role, SourceAPI.CQL);
+        authorization.authorizePermissionRead(authenticationSubject, role, SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("Missing correct permission on role %s", role), e);
@@ -548,12 +588,29 @@ public class StargateQueryHandler implements QueryHandler {
     }
   }
 
+  private String getKeyspaceNameFromFunction(CQLStatement stmt) {
+    try {
+      Class<?> aClass = stmt.getClass();
+
+      Field f = aClass.getDeclaredField("functionName");
+      f.setAccessible(true);
+      FunctionName functionName = (FunctionName) f.get(stmt);
+
+      return functionName != null ? functionName.keyspace : null;
+    } catch (Exception e) {
+      logger.error("Unable to get functionName", e);
+      throw new RuntimeException("Unable to get private field", e);
+    }
+  }
+
   private String getRoleResourceFromStatement(Object stmt, String fieldName) {
     try {
       Class<?> aClass = stmt.getClass();
       if (stmt instanceof ListUsersStatement
           || stmt instanceof GrantPermissionsStatement
-          || stmt instanceof RevokePermissionsStatement) {
+          || stmt instanceof RevokePermissionsStatement
+          || stmt instanceof GrantRoleStatement
+          || stmt instanceof RevokeRoleStatement) {
         aClass = aClass.getSuperclass();
       }
 

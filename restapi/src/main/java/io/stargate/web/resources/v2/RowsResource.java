@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.BoundQuery;
@@ -34,6 +33,7 @@ import io.stargate.db.schema.Table;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.GetResponseWrapper;
 import io.stargate.web.models.ResponseWrapper;
+import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
@@ -156,16 +156,15 @@ public class RowsResource {
             pageSize = pageSizeParam;
           }
 
-          DataStore localDB = db.getDataStoreForToken(token, pageSize, pageState);
-          final Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, pageSize, pageState);
+          final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
           Object response =
               getRows(
-                  token,
                   fields,
                   raw,
                   sort,
-                  localDB,
+                  authenticatedDB,
                   tableMetadata,
                   WhereParser.parseWhere(where, tableMetadata));
           return Response.status(Response.Status.OK)
@@ -231,8 +230,8 @@ public class RowsResource {
             pageSize = pageSizeParam;
           }
 
-          DataStore localDB = db.getDataStoreForToken(token, pageSize, pageState);
-          final Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, pageSize, pageState);
+          final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
           List<BuiltCondition> where;
           try {
@@ -246,7 +245,7 @@ public class RowsResource {
                 .build();
           }
 
-          Object response = getRows(token, fields, raw, sort, localDB, tableMetadata, where);
+          Object response = getRows(fields, raw, sort, authenticatedDB, tableMetadata, where);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();
@@ -290,12 +289,12 @@ public class RowsResource {
       @ApiParam(value = "", required = true) String payload) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
           @SuppressWarnings("unchecked")
           Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
 
-          Table table = db.getTable(localDB, keyspaceName, tableName);
+          Table table = authenticatedDB.getTable(keyspaceName, tableName);
 
           List<ValueModifier> values =
               requestBody.entrySet().stream()
@@ -303,7 +302,8 @@ public class RowsResource {
                   .collect(Collectors.toList());
 
           BoundQuery query =
-              localDB
+              authenticatedDB
+                  .getDataStore()
                   .queryBuilder()
                   .insertInto(keyspaceName, tableName)
                   .value(values)
@@ -312,14 +312,14 @@ public class RowsResource {
 
           db.getAuthorizationService()
               .authorizeDataWrite(
-                  token,
+                  authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.MODIFY,
                   SourceAPI.REST);
 
-          localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
+          authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
           Map<String, Object> keys = new HashMap<>();
           for (Column col : table.primaryKeyColumns()) {
@@ -403,9 +403,9 @@ public class RowsResource {
           List<PathSegment> path) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
-          final Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
+          final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
           List<BuiltCondition> where;
           try {
@@ -420,7 +420,8 @@ public class RowsResource {
           }
 
           BoundQuery query =
-              localDB
+              authenticatedDB
+                  .getDataStore()
                   .queryBuilder()
                   .delete()
                   .from(keyspaceName, tableName)
@@ -430,14 +431,14 @@ public class RowsResource {
 
           db.getAuthorizationService()
               .authorizeDataWrite(
-                  token,
+                  authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.DELETE,
                   SourceAPI.REST);
 
-          localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
+          authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }
@@ -489,9 +490,9 @@ public class RowsResource {
       boolean raw,
       String payload)
       throws Exception {
-    DataStore localDB = db.getDataStoreForToken(token);
+    AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
-    final Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
+    final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
     List<BuiltCondition> where;
     try {
@@ -513,7 +514,8 @@ public class RowsResource {
             .collect(Collectors.toList());
 
     BoundQuery query =
-        localDB
+        authenticatedDB
+            .getDataStore()
             .queryBuilder()
             .update(keyspaceName, tableName)
             .value(changes)
@@ -523,24 +525,23 @@ public class RowsResource {
 
     db.getAuthorizationService()
         .authorizeDataWrite(
-            token,
+            authenticatedDB.getAuthenticationSubject(),
             keyspaceName,
             tableName,
             TypedKeyValue.forDML((BoundDMLQuery) query),
             Scope.MODIFY,
             SourceAPI.REST);
 
-    localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
+    authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
     Object response = raw ? requestBody : new ResponseWrapper(requestBody);
     return Response.status(Response.Status.OK).entity(Converters.writeResponse(response)).build();
   }
 
   private Object getRows(
-      String token,
       String fields,
       boolean raw,
       String sort,
-      DataStore localDB,
+      AuthenticatedDB authenticatedDB,
       Table tableMetadata,
       List<BuiltCondition> where)
       throws Exception {
@@ -553,7 +554,8 @@ public class RowsResource {
     }
 
     BoundQuery query =
-        localDB
+        authenticatedDB
+            .getDataStore()
             .queryBuilder()
             .select()
             .column(columns)
@@ -566,8 +568,12 @@ public class RowsResource {
     final ResultSet r =
         db.getAuthorizationService()
             .authorizedDataRead(
-                () -> localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
-                token,
+                () ->
+                    authenticatedDB
+                        .getDataStore()
+                        .execute(query, ConsistencyLevel.LOCAL_QUORUM)
+                        .get(),
+                authenticatedDB.getAuthenticationSubject(),
                 tableMetadata.keyspace(),
                 tableMetadata.name(),
                 TypedKeyValue.forSelect((BoundSelect) query),

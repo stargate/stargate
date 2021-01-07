@@ -18,7 +18,13 @@ package io.stargate.auth.jwt;
 import static io.stargate.auth.jwt.AuthnJwtService.CLAIMS_FIELD;
 import static io.stargate.auth.jwt.AuthnJwtService.STARGATE_PREFIX;
 
-import io.stargate.auth.*;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import io.stargate.auth.AuthenticationSubject;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
+import io.stargate.auth.TypedKeyValue;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
@@ -47,7 +53,7 @@ public class AuthzJwtService implements AuthorizationService {
   @Override
   public ResultSet authorizedDataRead(
       Callable<ResultSet> action,
-      String token,
+      AuthenticationSubject authenticationSubject,
       String keyspace,
       String table,
       List<TypedKeyValue> typedKeyValues,
@@ -55,7 +61,7 @@ public class AuthzJwtService implements AuthorizationService {
           sourceAPI) // this isn’t supported but if you want to use it you’ll need something other
       // than a JWT
       throws Exception {
-    JSONObject stargateClaims = extractClaimsFromJWT(token);
+    JSONObject stargateClaims = extractClaimsFromJWT(authenticationSubject.token());
 
     preCheckDataReadWrite(stargateClaims, typedKeyValues);
 
@@ -65,30 +71,32 @@ public class AuthzJwtService implements AuthorizationService {
       return null;
     }
 
-    return result.withRowInspector(
-        row -> {
-          if (row == null) {
-            return true;
-          }
+    return result.withRowInspector(row -> hasCorrectClaims(stargateClaims, row));
+  }
 
-          for (Column col : row.columns()) {
-            if (stargateClaims.has(STARGATE_PREFIX + col.name())) {
+  @VisibleForTesting
+  static boolean hasCorrectClaims(JSONObject stargateClaims, io.stargate.db.datastore.Row row) {
+    if (row == null) {
+      return true;
+    }
 
-              String stargateClaimValue;
-              try {
-                stargateClaimValue = stargateClaims.getString(STARGATE_PREFIX + col.name());
-              } catch (JSONException e) {
-                log.warn("Unable to get stargate claim for " + STARGATE_PREFIX + col.name());
-                return false;
-              }
-              String columnValue = row.getString(col.name());
-              if (!stargateClaimValue.equals(columnValue)) {
-                return false;
-              }
-            }
-          }
-          return true;
-        });
+    for (Column col : row.columns()) {
+      if (stargateClaims.has(STARGATE_PREFIX + col.name())) {
+
+        String stargateClaimValue;
+        try {
+          stargateClaimValue = stargateClaims.getString(STARGATE_PREFIX + col.name());
+        } catch (JSONException e) {
+          log.warn("Unable to get stargate claim for " + STARGATE_PREFIX + col.name());
+          return false;
+        }
+        String columnValue = row.getString(col.name());
+        if (!stargateClaimValue.equals(columnValue)) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   /**
@@ -99,7 +107,11 @@ public class AuthzJwtService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizeDataRead(String token, String keyspace, String table, SourceAPI sourceAPI)
+  public void authorizeDataRead(
+      AuthenticationSubject authenticationSubject,
+      String keyspace,
+      String table,
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -113,7 +125,11 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public void authorizeDataWrite(
-      String token, String keyspace, String table, Scope scope, SourceAPI sourceAPI)
+      AuthenticationSubject authenticationSubject,
+      String keyspace,
+      String table,
+      Scope scope,
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -121,14 +137,14 @@ public class AuthzJwtService implements AuthorizationService {
   /** {@inheritdoc} */
   @Override
   public void authorizeDataWrite(
-      String token,
+      AuthenticationSubject authenticationSubject,
       String keyspace,
       String table,
       List<TypedKeyValue> typedKeyValues,
       Scope scope,
       SourceAPI sourceAPI)
       throws UnauthorizedException {
-    JSONObject stargateClaims = extractClaimsFromJWT(token);
+    JSONObject stargateClaims = extractClaimsFromJWT(authenticationSubject.token());
 
     preCheckDataReadWrite(stargateClaims, typedKeyValues);
 
@@ -143,7 +159,10 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public void authorizeSchemaRead(
-      String token, List<String> keyspaceNames, List<String> tableNames, SourceAPI sourceAPI)
+      AuthenticationSubject authenticationSubject,
+      List<String> keyspaceNames,
+      List<String> tableNames,
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -156,19 +175,11 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public void authorizeSchemaWrite(
-      String token, String keyspace, String table, Scope scope, SourceAPI sourceAPI)
-      throws UnauthorizedException {
-    // Cannot perform authorization with a JWT token so just return
-  }
-
-  /**
-   * Authorization for role management is not provided by JWTs so all authorization will be deferred
-   * to the underlying permissions assigned to the role the JWT maps to.
-   *
-   * <p>{@inheritdoc}
-   */
-  @Override
-  public void authorizeRoleManagement(String token, String role, Scope scope, SourceAPI sourceAPI)
+      AuthenticationSubject authenticationSubject,
+      String keyspace,
+      String table,
+      Scope scope,
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -181,7 +192,7 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public void authorizeRoleManagement(
-      String token, String role, String grantee, Scope scope, SourceAPI sourceAPI)
+      AuthenticationSubject authenticationSubject, String role, Scope scope, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -193,7 +204,25 @@ public class AuthzJwtService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizeRoleRead(String token, String role, SourceAPI sourceAPI)
+  public void authorizeRoleManagement(
+      AuthenticationSubject authenticationSubject,
+      String role,
+      String grantee,
+      Scope scope,
+      SourceAPI sourceAPI)
+      throws UnauthorizedException {
+    // Cannot perform authorization with a JWT token so just return
+  }
+
+  /**
+   * Authorization for role management is not provided by JWTs so all authorization will be deferred
+   * to the underlying permissions assigned to the role the JWT maps to.
+   *
+   * <p>{@inheritdoc}
+   */
+  @Override
+  public void authorizeRoleRead(
+      AuthenticationSubject authenticationSubject, String role, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -206,7 +235,11 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public void authorizePermissionManagement(
-      String token, String resource, String grantee, Scope scope, SourceAPI sourceAPI)
+      AuthenticationSubject authenticationSubject,
+      String resource,
+      String grantee,
+      Scope scope,
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -218,7 +251,8 @@ public class AuthzJwtService implements AuthorizationService {
    * <p>{@inheritdoc}
    */
   @Override
-  public void authorizePermissionRead(String token, String role, SourceAPI sourceAPI)
+  public void authorizePermissionRead(
+      AuthenticationSubject authenticationSubject, String role, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }

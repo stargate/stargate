@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
@@ -33,7 +34,6 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
-import io.stargate.graphql.web.HttpAwareContext;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -53,16 +53,17 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
   }
 
   @Override
-  protected Map<String, Object> get(DataFetchingEnvironment environment, DataStore dataStore)
+  protected Map<String, Object> get(
+      DataFetchingEnvironment environment,
+      DataStore dataStore,
+      AuthenticationSubject authenticationSubject)
       throws Exception {
     BoundQuery query = buildQuery(environment, dataStore);
-    HttpAwareContext httpAwareContext = environment.getContext();
-    String token = httpAwareContext.getAuthToken();
 
     ResultSet resultSet =
         authorizationService.authorizedDataRead(
             () -> dataStore.execute(query).get(),
-            token,
+            authenticationSubject,
             table.keyspace(),
             table.name(),
             TypedKeyValue.forSelect((BoundSelect) query),

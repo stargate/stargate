@@ -18,7 +18,6 @@ package io.stargate.web.resources.v2.schemas;
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Kind;
@@ -34,6 +33,7 @@ import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.models.TableAdd;
 import io.stargate.web.models.TableOptions;
 import io.stargate.web.models.TableResponse;
+import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
@@ -100,16 +100,16 @@ public class TablesResource {
           final boolean raw) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
           List<TableResponse> tableResponses =
-              db.getTables(localDB, keyspaceName).stream()
+              authenticatedDB.getTables(keyspaceName).stream()
                   .map(this::getTable)
                   .collect(Collectors.toList());
 
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  token,
+                  authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   tableResponses.stream().map(TableResponse::getName).collect(Collectors.toList()),
                   SourceAPI.REST);
@@ -152,15 +152,15 @@ public class TablesResource {
           final boolean raw) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  token,
+                  authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
                   SourceAPI.REST);
 
-          Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
+          Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
           TableResponse tableResponse = getTable(tableMetadata);
           Object response = raw ? tableResponse : new ResponseWrapper(tableResponse);
@@ -196,9 +196,9 @@ public class TablesResource {
       @ApiParam(value = "", required = true) @NotNull final TableAdd tableAdd) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
-          Keyspace keyspace = localDB.schema().keyspace(keyspaceName);
+          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -217,7 +217,12 @@ public class TablesResource {
           }
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.CREATE, SourceAPI.REST);
+              .authorizeSchemaWrite(
+                  authenticatedDB.getAuthenticationSubject(),
+                  keyspaceName,
+                  tableName,
+                  Scope.CREATE,
+                  SourceAPI.REST);
 
           PrimaryKey primaryKey = tableAdd.getPrimaryKey();
           if (primaryKey == null) {
@@ -263,7 +268,8 @@ public class TablesResource {
             ttl = options.getDefaultTimeToLive();
           }
 
-          localDB
+          authenticatedDB
+              .getDataStore()
               .queryBuilder()
               .create()
               .table(keyspaceName, tableName)
@@ -312,10 +318,15 @@ public class TablesResource {
       @ApiParam(value = "table name", required = true) @NotNull final TableAdd tableUpdate) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER, SourceAPI.REST);
+              .authorizeSchemaWrite(
+                  authenticatedDB.getAuthenticationSubject(),
+                  keyspaceName,
+                  tableName,
+                  Scope.ALTER,
+                  SourceAPI.REST);
 
           TableOptions options = tableUpdate.getTableOptions();
           List<ClusteringExpression> clusteringExpressions = options.getClusteringExpression();
@@ -336,7 +347,8 @@ public class TablesResource {
                 .build();
           }
 
-          localDB
+          authenticatedDB
+              .getDataStore()
               .queryBuilder()
               .alter()
               .table(keyspaceName, tableName)
@@ -379,12 +391,18 @@ public class TablesResource {
           final String tableName) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.DROP, SourceAPI.REST);
+              .authorizeSchemaWrite(
+                  authenticatedDB.getAuthenticationSubject(),
+                  keyspaceName,
+                  tableName,
+                  Scope.DROP,
+                  SourceAPI.REST);
 
-          localDB
+          authenticatedDB
+              .getDataStore()
               .queryBuilder()
               .drop()
               .table(keyspaceName, tableName)

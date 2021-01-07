@@ -23,7 +23,7 @@ public interface AuthenticationService {
 
   String createToken(String key) throws UnauthorizedException;
 
-  StoredCredentials validateToken(String token) throws UnauthorizedException;
+  AuthenticationSubject validateToken(String token) throws UnauthorizedException;
 
   SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped);
 }

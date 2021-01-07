@@ -22,6 +22,7 @@ import graphql.GraphQLException;
 import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
@@ -44,7 +45,9 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
 
   @Override
   protected CompletableFuture<Map<String, Object>> get(
-      DataFetchingEnvironment environment, DataStore dataStore) {
+      DataFetchingEnvironment environment,
+      DataStore dataStore,
+      AuthenticationSubject authenticationSubject) {
     BoundQuery query = null;
     Exception buildException = null;
 
@@ -53,7 +56,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       // buildStatement() could throw an unchecked exception.
       // As the statement might be part of a batch, we need to make sure the
       // batched operation completes.
-      query = buildQuery(environment, dataStore);
+      query = buildQuery(environment, dataStore, authenticationSubject);
     } catch (Exception e) {
       buildException = e;
     }
@@ -114,7 +117,10 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
         .thenApply(v -> ImmutableMap.of("value", environment.getArgument("value")));
   }
 
-  protected abstract BoundQuery buildQuery(DataFetchingEnvironment environment, DataStore dataStore)
+  protected abstract BoundQuery buildQuery(
+      DataFetchingEnvironment environment,
+      DataStore dataStore,
+      AuthenticationSubject authenticationSubject)
       throws Exception;
 
   protected Integer getTTL(DataFetchingEnvironment environment) {

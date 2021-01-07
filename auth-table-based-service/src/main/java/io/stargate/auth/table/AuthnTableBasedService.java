@@ -17,7 +17,7 @@ package io.stargate.auth.table;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import io.stargate.auth.AuthenticationService;
-import io.stargate.auth.StoredCredentials;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Authenticator.SaslNegotiator;
 import io.stargate.db.datastore.DataStore;
@@ -50,7 +50,7 @@ public class AuthnTableBasedService implements AuthenticationService {
       Boolean.parseBoolean(System.getProperty("stargate.auth_tablebased_init", "true"));
 
   public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
-    this.dataStore = dataStoreFactory.create();
+    this.dataStore = dataStoreFactory.createInternal();
 
     if (shouldInitializeAuthKeyspace) {
       initAuthTable(this.dataStore);
@@ -213,7 +213,7 @@ public class AuthnTableBasedService implements AuthenticationService {
   }
 
   @Override
-  public StoredCredentials validateToken(String token) throws UnauthorizedException {
+  public AuthenticationSubject validateToken(String token) throws UnauthorizedException {
     if (Strings.isNullOrEmpty(token)) {
       throw new UnauthorizedException("authorization failed - missing token");
     }
@@ -225,7 +225,7 @@ public class AuthnTableBasedService implements AuthenticationService {
       throw new UnauthorizedException("authorization failed - bad token");
     }
 
-    StoredCredentials storedCredentials = new StoredCredentials();
+    String username;
     try {
       ResultSet resultSet =
           dataStore
@@ -248,9 +248,7 @@ public class AuthnTableBasedService implements AuthenticationService {
       }
 
       int timestamp = row.getInt("created_timestamp");
-      String username = row.getString("username");
-
-      storedCredentials.setRoleName(username);
+      username = row.getString("username");
 
       dataStore
           .queryBuilder()
@@ -267,7 +265,7 @@ public class AuthnTableBasedService implements AuthenticationService {
       throw new RuntimeException(e);
     }
 
-    return storedCredentials;
+    return AuthenticationSubject.of(token, username);
   }
 
   @Override

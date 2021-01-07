@@ -3,6 +3,8 @@ package io.stargate.db;
 import static java.lang.String.format;
 
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
@@ -13,7 +15,10 @@ public class ClientInfo {
 
   private volatile DriverInfo driverInfo;
 
-  private String authToken;
+  private AuthenticatedUser authenticatedUser;
+  private ByteBuffer token;
+  private ByteBuffer roleName;
+  private ByteBuffer isFromExternalAuth;
 
   public ClientInfo(InetSocketAddress remoteAddress, @Nullable InetSocketAddress publicAddress) {
     this.remoteAddress = remoteAddress;
@@ -40,12 +45,31 @@ public class ClientInfo {
     return Optional.ofNullable(driverInfo);
   }
 
-  public String getAuthToken() {
-    return authToken;
+  public AuthenticatedUser getAuthenticatedUser() {
+    return authenticatedUser;
   }
 
-  public void setAuthToken(String authToken) {
-    this.authToken = authToken;
+  public void setAuthenticatedUser(AuthenticatedUser authenticatedUser) {
+    this.authenticatedUser = authenticatedUser;
+    this.token =
+        authenticatedUser.token() != null
+            ? ByteBuffer.wrap(authenticatedUser.token().getBytes(StandardCharsets.UTF_8))
+            : null;
+    this.roleName = ByteBuffer.wrap(authenticatedUser.name().getBytes(StandardCharsets.UTF_8));
+    this.isFromExternalAuth =
+        authenticatedUser.isFromExternalAuth() ? ByteBuffer.allocate(1) : null;
+  }
+
+  public ByteBuffer getToken() {
+    return token;
+  }
+
+  public ByteBuffer getRoleName() {
+    return roleName;
+  }
+
+  public ByteBuffer getIsFromExternalAuth() {
+    return isFromExternalAuth;
   }
 
   @Override

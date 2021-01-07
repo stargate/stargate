@@ -17,6 +17,7 @@ package io.stargate.graphql.schema.fetchers.ddl;
 
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
@@ -48,13 +49,21 @@ public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
   }
 
   @Override
-  protected Boolean get(DataFetchingEnvironment environment, DataStore dataStore) throws Exception {
-    dataStore.execute(buildQuery(environment, dataStore.queryBuilder()).bind()).get();
+  protected Boolean get(
+      DataFetchingEnvironment environment,
+      DataStore dataStore,
+      AuthenticationSubject authenticationSubject)
+      throws Exception {
+    dataStore
+        .execute(buildQuery(environment, dataStore.queryBuilder(), authenticationSubject).bind())
+        .get();
     return true;
   }
 
   protected abstract Query<?> buildQuery(
-      DataFetchingEnvironment dataFetchingEnvironment, QueryBuilder builder)
+      DataFetchingEnvironment dataFetchingEnvironment,
+      QueryBuilder builder,
+      AuthenticationSubject authenticationSubject)
       throws UnauthorizedException;
 
   protected ColumnType decodeType(Object typeObject) {

@@ -15,7 +15,6 @@
  */
 package io.stargate.db.datastore;
 
-import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.Persistence;
@@ -52,12 +51,15 @@ public class PersistenceDataStoreFactory implements DataStoreFactory {
    *
    * @param userName the user name to login for this store. For convenience, if it is {@code null}
    *     or the empty string, no login attempt is performed (so no authentication must be setup).
+   * @param isFromExternalAuth Whether the request was authenticated using internal Cassandra/DSE
+   *     auth mechanisms or used an external source.
    * @param options the options for the create data store.
    * @param clientInfo the ClientInfo to be used for creating a connection.
    * @return the created store.
    */
   private DataStore create(
       @Nullable String userName,
+      boolean isFromExternalAuth,
       @Nonnull DataStoreOptions options,
       @Nullable ClientInfo clientInfo) {
     Persistence.Connection connection;
@@ -67,7 +69,7 @@ public class PersistenceDataStoreFactory implements DataStoreFactory {
       connection = persistence.newConnection();
     }
 
-    if (userName != null && !userName.isEmpty()) {
+    if (!isFromExternalAuth) {
       connection.login(AuthenticatedUser.of(userName));
     }
     return create(connection, options);
@@ -86,12 +88,31 @@ public class PersistenceDataStoreFactory implements DataStoreFactory {
    */
   @Override
   public DataStore create(@Nullable String userName, @Nonnull DataStoreOptions options) {
+    return create(userName, false, options);
+  }
+
+  @Override
+  public DataStore create(
+      @Nullable String userName, boolean isFromExternalAuth, @Nonnull DataStoreOptions options) {
     ClientInfo clientInfo = null;
-    if (!Strings.isNullOrEmpty(userName)) {
+    if (!isFromExternalAuth) {
       // Must have a clientInfo so that an external ClientState is used in order for authorization
       // to be performed
       clientInfo = new ClientInfo(new InetSocketAddress("127.0.0.1", 0), null);
     }
-    return create(userName, options, clientInfo);
+    return create(userName, isFromExternalAuth, options, clientInfo);
+  }
+
+  /** @inheritdoc */
+  @Override
+  public DataStore createInternal() {
+    return createInternal(DataStoreOptions.defaults());
+  }
+
+  /** @inheritdoc */
+  @Override
+  public DataStore createInternal(DataStoreOptions options) {
+    Persistence.Connection connection = persistence.newConnection();
+    return create(connection, options);
   }
 }

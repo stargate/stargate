@@ -19,7 +19,6 @@ import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.BoundQuery;
@@ -128,23 +127,29 @@ public class RowResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
           BoundQuery query =
-              localDB
+              authenticatedDB
+                  .getDataStore()
                   .queryBuilder()
                   .select()
                   .from(keyspaceName, tableName)
                   .where(
-                      buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI()))
+                      buildWhereClause(
+                          authenticatedDB, keyspaceName, tableName, request.getRequestURI()))
                   .build()
                   .bind();
 
           final ResultSet r =
               db.getAuthorizationService()
                   .authorizedDataRead(
-                      () -> localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
-                      token,
+                      () ->
+                          authenticatedDB
+                              .getDataStore()
+                              .execute(query, ConsistencyLevel.LOCAL_QUORUM)
+                              .get(),
+                      authenticatedDB.getAuthenticationSubject(),
                       keyspaceName,
                       tableName,
                       TypedKeyValue.forSelect((BoundSelect) query),
@@ -204,16 +209,26 @@ public class RowResource {
             pageSize = pageSizeParam;
           }
 
-          DataStore localDB = db.getDataStoreForToken(token, pageSize, pageState);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, pageSize, pageState);
 
           BoundQuery query =
-              localDB.queryBuilder().select().from(keyspaceName, tableName).build().bind();
+              authenticatedDB
+                  .getDataStore()
+                  .queryBuilder()
+                  .select()
+                  .from(keyspaceName, tableName)
+                  .build()
+                  .bind();
 
           final ResultSet r =
               db.getAuthorizationService()
                   .authorizedDataRead(
-                      () -> localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
-                      token,
+                      () ->
+                          authenticatedDB
+                              .getDataStore()
+                              .execute(query, ConsistencyLevel.LOCAL_QUORUM)
+                              .get(),
+                      authenticatedDB.getAuthenticationSubject(),
                       keyspaceName,
                       tableName,
                       Collections.emptyList(),
@@ -275,9 +290,9 @@ public class RowResource {
             pageSize = queryModel.getPageSize();
           }
 
-          DataStore localDB = db.getDataStoreForToken(token, pageSize, pageState);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, pageSize, pageState);
 
-          final Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
+          final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
           List<Column> selectedColumns = Collections.emptyList();
           if (queryModel.getColumnNames() != null && queryModel.getColumnNames().size() != 0) {
@@ -323,7 +338,8 @@ public class RowResource {
           }
 
           BoundQuery query =
-              localDB
+              authenticatedDB
+                  .getDataStore()
                   .queryBuilder()
                   .select()
                   .column(selectedColumns)
@@ -336,8 +352,12 @@ public class RowResource {
           ResultSet r =
               db.getAuthorizationService()
                   .authorizedDataRead(
-                      () -> localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
-                      token,
+                      () ->
+                          authenticatedDB
+                              .getDataStore()
+                              .execute(query, ConsistencyLevel.LOCAL_QUORUM)
+                              .get(),
+                      authenticatedDB.getAuthenticationSubject(),
                       keyspaceName,
                       tableName,
                       TypedKeyValue.forSelect((BoundSelect) query),
@@ -389,7 +409,7 @@ public class RowResource {
           final RowAdd rowAdd) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
           List<ValueModifier> values =
               rowAdd.getColumns().stream()
@@ -398,11 +418,12 @@ public class RowResource {
                           Converters.colToValue(
                               c.getName(),
                               c.getValue(),
-                              db.getTable(localDB, keyspaceName, tableName)))
+                              authenticatedDB.getTable(keyspaceName, tableName)))
                   .collect(Collectors.toList());
 
           BoundQuery query =
-              localDB
+              authenticatedDB
+                  .getDataStore()
                   .queryBuilder()
                   .insertInto(keyspaceName, tableName)
                   .value(values)
@@ -411,14 +432,14 @@ public class RowResource {
 
           db.getAuthorizationService()
               .authorizeDataWrite(
-                  token,
+                  authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.MODIFY,
                   SourceAPI.REST);
 
-          localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
+          authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
           return Response.status(Response.Status.CREATED).entity(new RowsResponse(true, 1)).build();
         });
@@ -458,28 +479,30 @@ public class RowResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
           BoundQuery query =
-              localDB
+              authenticatedDB
+                  .getDataStore()
                   .queryBuilder()
                   .delete()
                   .from(keyspaceName, tableName)
                   .where(
-                      buildWhereClause(localDB, keyspaceName, tableName, request.getRequestURI()))
+                      buildWhereClause(
+                          authenticatedDB, keyspaceName, tableName, request.getRequestURI()))
                   .build()
                   .bind();
 
           db.getAuthorizationService()
               .authorizeDataWrite(
-                  token,
+                  authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.DELETE,
                   SourceAPI.REST);
 
-          localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
+          authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
           return Response.status(Response.Status.NO_CONTENT).entity(new SuccessResponse()).build();
         });
@@ -523,9 +546,9 @@ public class RowResource {
       final RowUpdate changeSet) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
-          final Table tableMetadata = db.getTable(localDB, keyspaceName, tableName);
+          final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
           List<ValueModifier> changes =
               changeSet.getChangeset().stream()
@@ -533,7 +556,8 @@ public class RowResource {
                   .collect(Collectors.toList());
 
           BoundQuery query =
-              localDB
+              authenticatedDB
+                  .getDataStore()
                   .queryBuilder()
                   .update(keyspaceName, tableName)
                   .value(changes)
@@ -543,14 +567,14 @@ public class RowResource {
 
           db.getAuthorizationService()
               .authorizeDataWrite(
-                  token,
+                  authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.MODIFY,
                   SourceAPI.REST);
 
-          localDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
+          authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
           return Response.status(Response.Status.OK).entity(new SuccessResponse()).build();
         });
@@ -619,8 +643,8 @@ public class RowResource {
   }
 
   private List<BuiltCondition> buildWhereClause(
-      DataStore localDB, String keyspaceName, String tableName, String path) {
-    return buildWhereClause(path, db.getTable(localDB, keyspaceName, tableName));
+      AuthenticatedDB authenticatedDB, String keyspaceName, String tableName, String path) {
+    return buildWhereClause(path, authenticatedDB.getTable(keyspaceName, tableName));
   }
 
   private List<BuiltCondition> buildWhereClause(String path, Table tableMetadata) {

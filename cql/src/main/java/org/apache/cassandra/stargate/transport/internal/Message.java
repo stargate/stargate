@@ -37,10 +37,9 @@ import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -340,21 +339,22 @@ public abstract class Message {
 
           if (connection != null
               && ((ServerConnection) connection).clientInfo() != null
-              && ((ServerConnection) connection).clientInfo().getAuthToken() != null) {
+              && ((ServerConnection) connection).clientInfo().getAuthenticatedUser() != null) {
+            ClientInfo clientInfo = ((ServerConnection) connection).clientInfo();
+
             if (customPayload != null) {
+              message.getCustomPayload().put("token", clientInfo.getToken());
+              message.getCustomPayload().put("roleName", clientInfo.getRoleName());
               message
                   .getCustomPayload()
-                  .put(
-                      "token",
-                      StandardCharsets.UTF_8.encode(
-                          ((ServerConnection) connection).clientInfo().getAuthToken()));
+                  .put("isFromExternalAuth", clientInfo.getIsFromExternalAuth());
             } else {
-              customPayload =
-                  Collections.singletonMap(
-                      "token",
-                      StandardCharsets.UTF_8.encode(
-                          ((ServerConnection) connection).clientInfo().getAuthToken()));
-              message.setCustomPayload(customPayload);
+              Map<String, ByteBuffer> payload = new HashMap<>();
+              payload.put("token", clientInfo.getToken());
+              payload.put("roleName", clientInfo.getRoleName());
+              payload.put("isFromExternalAuth", clientInfo.getIsFromExternalAuth());
+
+              message.setCustomPayload(payload);
             }
           }
           req.attach(connection);

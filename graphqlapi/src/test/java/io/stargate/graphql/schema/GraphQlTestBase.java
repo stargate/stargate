@@ -17,9 +17,9 @@ import graphql.GraphQLError;
 import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
-import io.stargate.auth.StoredCredentials;
 import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
@@ -56,7 +56,7 @@ public abstract class GraphQlTestBase {
   @Mock protected AuthenticationService authenticationService;
   @Mock protected AuthorizationService authorizationService;
   @Mock protected ResultSet resultSet;
-  @Mock private StoredCredentials storedCredentials;
+  @Mock private AuthenticationSubject authenticationSubject;
   @Mock protected DataStoreFactory dataStoreFactory;
 
   @Captor private ArgumentCaptor<BoundQuery> queryCaptor;
@@ -72,11 +72,11 @@ public abstract class GraphQlTestBase {
     try {
       Schema schema = getCQLSchema();
       String roleName = "mock role name";
-      when(authenticationService.validateToken(token)).thenReturn(storedCredentials);
-      when(storedCredentials.getRoleName()).thenReturn(roleName);
+      when(authenticationService.validateToken(token)).thenReturn(authenticationSubject);
+      when(authenticationSubject.roleName()).thenReturn(roleName);
       when(authorizationService.authorizedDataRead(
               actionCaptor.capture(),
-              eq(token),
+              eq(authenticationSubject),
               anyString(),
               anyString(),
               any(),
@@ -85,7 +85,7 @@ public abstract class GraphQlTestBase {
               i -> {
                 return actionCaptor.getValue().call();
               });
-      when(dataStoreFactory.create(eq(roleName), dataStoreOptionsCaptor.capture()))
+      when(dataStoreFactory.create(eq(roleName), eq(false), dataStoreOptionsCaptor.capture()))
           .then(
               i -> {
                 DataStore dataStore = mock(DataStore.class);
@@ -96,7 +96,7 @@ public abstract class GraphQlTestBase {
 
                 // Batches use multiple data store instances, one per each mutation
                 // We need to capture the parameters provided at dataStore creation
-                DataStoreOptions dataStoreOptions = i.getArgument(1, DataStoreOptions.class);
+                DataStoreOptions dataStoreOptions = i.getArgument(2, DataStoreOptions.class);
                 when(dataStore.batch(batchCaptor.capture()))
                     .then(
                         batchInvoke -> {

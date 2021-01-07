@@ -13,39 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db;
+package io.stargate.auth;
 
-import java.io.Serializable;
-import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface AuthenticatedUser extends Serializable {
+public interface AuthenticationSubject {
 
-  String name();
-
-  @Nullable
   String token();
+
+  String roleName();
 
   boolean isFromExternalAuth();
 
-  static AuthenticatedUser of(String userName) {
-    return ImmutableAuthenticatedUser.builder().name(userName).isFromExternalAuth(false).build();
-  }
-
-  static AuthenticatedUser of(String userName, String token) {
-    return ImmutableAuthenticatedUser.builder()
-        .name(userName)
+  static AuthenticationSubject of(String token, String roleName, boolean fromExternalAuth) {
+    return ImmutableAuthenticationSubject.builder()
         .token(token)
-        .isFromExternalAuth(false)
+        .roleName(roleName)
+        .isFromExternalAuth(fromExternalAuth)
         .build();
   }
 
-  static AuthenticatedUser of(String userName, String token, boolean useTransitionalAuth) {
-    return ImmutableAuthenticatedUser.builder()
-        .name(userName)
+  static AuthenticationSubject of(String token, String roleName) {
+    return ImmutableAuthenticationSubject.builder()
         .token(token)
-        .isFromExternalAuth(useTransitionalAuth)
+        .roleName(roleName)
+        .isFromExternalAuth(false)
         .build();
   }
 }

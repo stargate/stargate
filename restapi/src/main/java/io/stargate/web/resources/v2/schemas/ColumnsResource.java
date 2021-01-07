@@ -18,7 +18,6 @@ package io.stargate.web.resources.v2.schemas;
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.ImmutableColumn;
@@ -27,6 +26,7 @@ import io.stargate.db.schema.Table;
 import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.ResponseWrapper;
+import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
@@ -94,17 +94,17 @@ public class ColumnsResource {
           final boolean raw) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  token,
+                  authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
                   SourceAPI.REST);
 
           final Table tableMetadata;
           try {
-            tableMetadata = db.getTable(localDB, keyspaceName, tableName);
+            tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
           } catch (Exception e) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -162,8 +162,8 @@ public class ColumnsResource {
       @ApiParam(value = "", required = true) @NotNull final ColumnDefinition columnDefinition) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
-          Keyspace keyspace = localDB.schema().keyspace(keyspaceName);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -191,9 +191,15 @@ public class ColumnsResource {
           Column column = ImmutableColumn.builder().name(name).kind(kind).type(type).build();
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER, SourceAPI.REST);
+              .authorizeSchemaWrite(
+                  authenticatedDB.getAuthenticationSubject(),
+                  keyspaceName,
+                  tableName,
+                  Scope.ALTER,
+                  SourceAPI.REST);
 
-          localDB
+          authenticatedDB
+              .getDataStore()
               .queryBuilder()
               .alter()
               .table(keyspaceName, tableName)
@@ -243,17 +249,17 @@ public class ColumnsResource {
           final boolean raw) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  token,
+                  authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
                   SourceAPI.REST);
 
           final Table tableMetadata;
           try {
-            tableMetadata = db.getTable(localDB, keyspaceName, tableName);
+            tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
           } catch (Exception e) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -316,12 +322,18 @@ public class ColumnsResource {
       @NotNull final ColumnDefinition columnUpdate) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER, SourceAPI.REST);
+              .authorizeSchemaWrite(
+                  authenticatedDB.getAuthenticationSubject(),
+                  keyspaceName,
+                  tableName,
+                  Scope.ALTER,
+                  SourceAPI.REST);
 
-          localDB
+          authenticatedDB
+              .getDataStore()
               .queryBuilder()
               .alter()
               .table(keyspaceName, tableName)
@@ -364,12 +376,18 @@ public class ColumnsResource {
           final String columnName) {
     return RequestHandler.handle(
         () -> {
-          DataStore localDB = db.getDataStoreForToken(token);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
 
           db.getAuthorizationService()
-              .authorizeSchemaWrite(token, keyspaceName, tableName, Scope.ALTER, SourceAPI.REST);
+              .authorizeSchemaWrite(
+                  authenticatedDB.getAuthenticationSubject(),
+                  keyspaceName,
+                  tableName,
+                  Scope.ALTER,
+                  SourceAPI.REST);
 
-          localDB
+          authenticatedDB
+              .getDataStore()
               .queryBuilder()
               .alter()
               .table(keyspaceName, tableName)
