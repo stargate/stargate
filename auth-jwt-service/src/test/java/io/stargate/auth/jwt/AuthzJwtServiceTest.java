@@ -60,6 +60,7 @@ public class AuthzJwtServiceTest {
 
   private AuthzJwtService mockAuthzJwtService;
   private SecretKey key;
+  private static final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
 
   @BeforeEach
   void setup() {
@@ -98,7 +99,8 @@ public class AuthzJwtServiceTest {
             "keyspace",
             "table",
             typedKeyValues,
-            SourceAPI.CQL);
+            SourceAPI.CQL,
+            EMPTY_HEADERS);
     assertThat(result.rows().get(0)).isEqualTo(row);
   }
 
@@ -121,7 +123,8 @@ public class AuthzJwtServiceTest {
             "keyspace",
             "table",
             typedKeyValues,
-            SourceAPI.CQL);
+            SourceAPI.CQL,
+            EMPTY_HEADERS);
     assertThat(result).isNull();
   }
 
@@ -148,7 +151,8 @@ public class AuthzJwtServiceTest {
             "keyspace",
             "table",
             typedKeyValues,
-            SourceAPI.CQL);
+            SourceAPI.CQL,
+            EMPTY_HEADERS);
     assertThat(result.rows()).isEqualTo(null);
   }
 
@@ -182,7 +186,8 @@ public class AuthzJwtServiceTest {
                     "keyspace",
                     "table",
                     typedKeyValues,
-                    SourceAPI.CQL));
+                    SourceAPI.CQL,
+                    EMPTY_HEADERS));
     assertThat(ex).hasMessage("Not allowed to access this resource");
   }
 
@@ -214,7 +219,8 @@ public class AuthzJwtServiceTest {
             "keyspace",
             "table",
             typedKeyValues,
-            SourceAPI.CQL);
+            SourceAPI.CQL,
+            EMPTY_HEADERS);
     assertThat(result.rows()).isEqualTo(Collections.emptyList());
   }
 
@@ -251,7 +257,8 @@ public class AuthzJwtServiceTest {
                     "keyspace",
                     "table",
                     typedKeyValues,
-                    SourceAPI.CQL));
+                    SourceAPI.CQL,
+                    EMPTY_HEADERS));
     assertThat(ex).hasMessage("Column must be of type text to be used for authorization");
   }
 
@@ -288,7 +295,8 @@ public class AuthzJwtServiceTest {
             "keyspace",
             "table",
             typedKeyValues,
-            SourceAPI.CQL);
+            SourceAPI.CQL,
+            EMPTY_HEADERS);
     assertThat(result.rows().get(0)).isEqualTo(row1);
     assertThat(result.rows().get(1)).isEqualTo(row2);
   }
