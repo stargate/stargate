@@ -53,7 +53,7 @@ class RequestToHeadersMapperTest {
   public void shouldMapInetSocketAddressToHeader() throws UnknownHostException {
     // given
     Optional<InetSocketAddress> inetSocketAddress =
-        Optional.of(new InetSocketAddress(Inet6Address.getLocalHost(), 1000));
+        Optional.of(new InetSocketAddress(Inet6Address.getByName("::1"), 1000));
 
     // when
     Map<String, String> allHeaders = RequestToHeadersMapper.toHeaders(inetSocketAddress);
@@ -63,7 +63,7 @@ class RequestToHeadersMapperTest {
         .containsExactly(
             new AbstractMap.SimpleEntry<>(
                 RequestToHeadersMapper.TENANT_ID_HEADER_NAME,
-                "ab930ac7-4e8a-31a5-ae63-fa9aafda6dd5"));
+                "cf404dc8-0617-3c24-9b5b-4fe2531e6d8c"));
   }
 
   @Test
