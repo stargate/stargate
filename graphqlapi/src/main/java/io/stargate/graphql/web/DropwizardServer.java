@@ -19,6 +19,7 @@ import io.dropwizard.Application;
 import io.dropwizard.Configuration;
 import io.dropwizard.cli.Cli;
 import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
+import io.dropwizard.forms.MultiPartBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
@@ -32,6 +33,9 @@ import io.stargate.graphql.web.resources.PlaygroundResource;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlCache;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlDdlResource;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlDmlResource;
+import io.stargate.graphql.web.resources.schemafirst.AdminResource;
+import io.stargate.graphql.web.resources.schemafirst.NamespaceResource;
+import io.stargate.graphql.web.resources.schemafirst.SchemaFirstCache;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
@@ -80,7 +84,7 @@ public class DropwizardServer extends Application<Configuration> {
   }
 
   @Override
-  public void run(final Configuration config, final Environment environment) {
+  public void run(final Configuration config, final Environment environment) throws Exception {
 
     GraphqlCache graphqlCache =
         new GraphqlCache(
@@ -94,6 +98,20 @@ public class DropwizardServer extends Application<Configuration> {
                 bind(graphqlCache).to(GraphqlCache.class);
               }
             });
+
+    SchemaFirstCache schemaFirstCache =
+        new SchemaFirstCache(
+            persistence, authenticationService, authorizationService, dataStoreFactory);
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(schemaFirstCache).to(SchemaFirstCache.class);
+              }
+            });
+
     environment
         .jersey()
         .register(
@@ -104,9 +122,15 @@ public class DropwizardServer extends Application<Configuration> {
               }
             });
 
+    environment.jersey().register(PlaygroundResource.class);
+
+    // CQL-first API:
     environment.jersey().register(GraphqlDmlResource.class);
     environment.jersey().register(GraphqlDdlResource.class);
-    environment.jersey().register(PlaygroundResource.class);
+
+    // GraphQL-first API:
+    environment.jersey().register(AdminResource.class);
+    environment.jersey().register(NamespaceResource.class);
 
     enableCors(environment);
 
@@ -120,6 +144,7 @@ public class DropwizardServer extends Application<Configuration> {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
     bootstrap.setMetricRegistry(metrics.getRegistry("graphqlapi"));
+    bootstrap.addBundle(new MultiPartBundle());
   }
 
   private void enableCors(Environment environment) {

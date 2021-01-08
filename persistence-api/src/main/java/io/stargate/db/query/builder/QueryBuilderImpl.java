@@ -822,8 +822,6 @@ public class QueryBuilderImpl {
     String ksName = cqlName(keyspaceName);
     if (ifNotExists) {
       query.append("IF NOT EXISTS ");
-    } else if (schema.keyspace(keyspaceName) != null) {
-      throw invalid("A keyspace named %s already exists", ksName);
     }
     query.append(ksName);
 

@@ -16,7 +16,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> {
   protected final AuthenticationService authenticationService;
   protected final AuthorizationService authorizationService;
-  private final DataStoreFactory dataStoreFactory;
+  protected final DataStoreFactory dataStoreFactory;
 
   public static final ConsistencyLevel DEFAULT_CONSISTENCY = ConsistencyLevel.LOCAL_QUORUM;
   public static final ConsistencyLevel DEFAULT_SERIAL_CONSISTENCY = ConsistencyLevel.SERIAL;
