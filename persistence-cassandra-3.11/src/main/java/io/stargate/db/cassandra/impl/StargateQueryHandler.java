@@ -255,8 +255,7 @@ public class StargateQueryHandler implements QueryHandler {
           castStatement.keyspace(),
           castStatement.columnFamily());
     } else if (statement instanceof ModificationStatement) {
-      authorizeModificationStatement(
-          statement, authenticationSubject, authorization, EMPTY_HEADERS);
+      authorizeModificationStatement(statement, authenticationSubject, authorization);
     } else if (statement instanceof TruncateStatement) {
       TruncateStatement castStatement = (TruncateStatement) statement;
       logger.debug(
@@ -301,7 +300,7 @@ public class StargateQueryHandler implements QueryHandler {
       BatchStatement castStatement = (BatchStatement) statement;
       List<ModificationStatement> statements = castStatement.getStatements();
       for (ModificationStatement stmt : statements) {
-        authorizeModificationStatement(stmt, authenticationSubject, authorization, EMPTY_HEADERS);
+        authorizeModificationStatement(stmt, authenticationSubject, authorization);
       }
     } else {
       logger.warn("Tried to authorize unsupported statement");
@@ -330,8 +329,7 @@ public class StargateQueryHandler implements QueryHandler {
   private void authorizeModificationStatement(
       CQLStatement statement,
       AuthenticationSubject authenticationSubject,
-      AuthorizationService authorization,
-      Map<String, String> headers) {
+      AuthorizationService authorization) {
     ModificationStatement castStatement = (ModificationStatement) statement;
     Scope scope;
     if (statement instanceof DeleteStatement) {
@@ -353,7 +351,7 @@ public class StargateQueryHandler implements QueryHandler {
           castStatement.columnFamily(),
           scope,
           SourceAPI.CQL,
-          headers);
+          EMPTY_HEADERS);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format(
