@@ -285,14 +285,11 @@ public class StargateQueryHandler implements QueryHandler {
           castStatement.keyspace(),
           castStatement.columnFamily());
     } else if (statement instanceof SchemaAlteringStatement) {
-      authorizeSchemaAlteringStatement(
-          statement, authenticationSubject, authorization, EMPTY_HEADERS);
+      authorizeSchemaAlteringStatement(statement, authenticationSubject, authorization);
     } else if (statement instanceof AuthorizationStatement) {
-      authorizeAuthorizationStatement(
-          statement, authenticationSubject, authorization, EMPTY_HEADERS);
+      authorizeAuthorizationStatement(statement, authenticationSubject, authorization);
     } else if (statement instanceof AuthenticationStatement) {
-      authorizeAuthenticationStatement(
-          statement, authenticationSubject, authorization, EMPTY_HEADERS);
+      authorizeAuthenticationStatement(statement, authenticationSubject, authorization);
     } else if (statement instanceof UseStatement) {
       // NOOP on UseStatement since it doesn't require authorization
       logger.debug("Skipping auth on UseStatement since it's not required");
@@ -369,8 +366,7 @@ public class StargateQueryHandler implements QueryHandler {
   private void authorizeSchemaAlteringStatement(
       CQLStatement statement,
       AuthenticationSubject authenticationSubject,
-      AuthorizationService authorization,
-      Map<String, String> headers) {
+      AuthorizationService authorization) {
     SchemaAlteringStatement castStatement = (SchemaAlteringStatement) statement;
     Scope scope = null;
     String keyspaceName = null;
@@ -477,8 +473,7 @@ public class StargateQueryHandler implements QueryHandler {
   private void authorizeAuthenticationStatement(
       CQLStatement statement,
       AuthenticationSubject authenticationSubject,
-      AuthorizationService authorization,
-      Map<String, String> headers) {
+      AuthorizationService authorization) {
     AuthenticationStatement castStatement = (AuthenticationStatement) statement;
     Scope scope = null;
     String role = null;
@@ -495,7 +490,7 @@ public class StargateQueryHandler implements QueryHandler {
 
       try {
         authorization.authorizeRoleManagement(
-            authenticationSubject, role, grantee, scope, SourceAPI.CQL, headers);
+            authenticationSubject, role, grantee, scope, SourceAPI.CQL, EMPTY_HEADERS);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("Missing correct permission on role %s", role), e);
@@ -525,7 +520,7 @@ public class StargateQueryHandler implements QueryHandler {
 
     try {
       authorization.authorizeRoleManagement(
-          authenticationSubject, role, scope, SourceAPI.CQL, headers);
+          authenticationSubject, role, scope, SourceAPI.CQL, EMPTY_HEADERS);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format("Missing correct permission on role %s", role), e);
@@ -538,8 +533,7 @@ public class StargateQueryHandler implements QueryHandler {
   private void authorizeAuthorizationStatement(
       CQLStatement statement,
       AuthenticationSubject authenticationSubject,
-      AuthorizationService authorization,
-      Map<String, String> headers) {
+      AuthorizationService authorization) {
     AuthorizationStatement castStatement = (AuthorizationStatement) statement;
 
     if (statement instanceof PermissionsManagementStatement) {
@@ -555,7 +549,7 @@ public class StargateQueryHandler implements QueryHandler {
 
       try {
         authorization.authorizePermissionManagement(
-            authenticationSubject, resource, grantee, scope, SourceAPI.CQL, headers);
+            authenticationSubject, resource, grantee, scope, SourceAPI.CQL, EMPTY_HEADERS);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("Missing correct permission on role %s", resource), e);
@@ -572,7 +566,7 @@ public class StargateQueryHandler implements QueryHandler {
           role);
 
       try {
-        authorization.authorizeRoleRead(authenticationSubject, role, SourceAPI.CQL, headers);
+        authorization.authorizeRoleRead(authenticationSubject, role, SourceAPI.CQL, EMPTY_HEADERS);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("Missing correct permission on role %s", role), e);
@@ -589,7 +583,8 @@ public class StargateQueryHandler implements QueryHandler {
           role);
 
       try {
-        authorization.authorizePermissionRead(authenticationSubject, role, SourceAPI.CQL, headers);
+        authorization.authorizePermissionRead(
+            authenticationSubject, role, SourceAPI.CQL, EMPTY_HEADERS);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format("Missing correct permission on role %s", role), e);
