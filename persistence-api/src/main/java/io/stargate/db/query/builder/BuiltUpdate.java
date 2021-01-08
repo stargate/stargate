@@ -1,6 +1,5 @@
 package io.stargate.db.query.builder;
 
-import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
 import io.stargate.db.query.AsyncQueryExecutor;
 import io.stargate.db.query.BindMarker;
 import io.stargate.db.query.BoundUpdate;
@@ -62,8 +61,6 @@ public class BuiltUpdate extends BuiltDML<BuiltUpdate.Bound> {
   @Override
   protected BuiltUpdate.Bound createBoundQuery(BoundInfo info) {
     RowsImpacted rowsUpdated = info.rowsUpdated();
-    Preconditions.checkArgument(
-        !rowsUpdated.isRanges(), "Invalid WHERE clause for UPDATE: cannot UPDATE a range of rows");
 
     return new BuiltUpdate.Bound(
         this,
@@ -104,8 +101,6 @@ public class BuiltUpdate extends BuiltDML<BuiltUpdate.Bound> {
           conditions,
           ttl,
           timestamp);
-      Preconditions.checkArgument(
-          !rowsUpdated.isRanges(), "Range UPDATEs are not supported by CQL");
     }
   }
 }
