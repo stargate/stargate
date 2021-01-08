@@ -26,6 +26,7 @@ import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.query.builder.Replication;
+import io.stargate.graphql.web.HttpAwareContext;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,14 +47,14 @@ public class CreateKeyspaceFetcher extends DdlQueryFetcher {
       AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
     String keyspaceName = dataFetchingEnvironment.getArgument("name");
-
+    HttpAwareContext httpAwareContext = dataFetchingEnvironment.getContext();
     authorizationService.authorizeSchemaWrite(
         authenticationSubject,
         keyspaceName,
         null,
         Scope.CREATE,
         SourceAPI.GRAPHQL,
-        dataFetchingEnvironment.getContext());
+        httpAwareContext.getAllHeaders());
 
     boolean ifNotExists =
         dataFetchingEnvironment.getArgumentOrDefault("ifNotExists", Boolean.FALSE);
