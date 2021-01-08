@@ -61,7 +61,11 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>io.dropwizard.metrics</groupId>
+      <groupId>io.dropwizard</groupId>
+      <artifactId>dropwizard-forms</artifactId>
+    </dependency>
+    <dependency>
+    <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-healthchecks</artifactId>
       <version>4.1.11</version>
       <scope>provided</scope>
