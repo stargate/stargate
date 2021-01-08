@@ -1,6 +1,6 @@
 package io.stargate.web.docsapi.resources;
 
-import static io.stargate.core.RequestToHeadersMapper.getAllHeaders;
+import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
 import com.datastax.oss.driver.api.core.NoNodeAvailableException;
 import com.fasterxml.jackson.databind.JsonNode;

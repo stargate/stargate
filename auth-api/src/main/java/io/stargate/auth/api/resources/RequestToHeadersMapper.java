@@ -13,15 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.core;
+package io.stargate.auth.api.resources;
 
-import java.net.InetSocketAddress;
 import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 
 public class RequestToHeadersMapper {
-  public static final String TENANT_ID_HEADER_NAME = "tenant_id";
-
   public static Map<String, String> getAllHeaders(HttpServletRequest request) {
     if (request == null) {
       return Collections.emptyMap();
@@ -33,16 +30,5 @@ public class RequestToHeadersMapper {
       allHeaders.put(headerName, request.getHeader(headerName));
     }
     return allHeaders;
-  }
-
-  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  public static Map<String, String> toHeaders(
-      Optional<InetSocketAddress> sourceAddressWithEncodedTenantId) {
-    Map<String, String> tenantIdHeaders = new HashMap<>();
-    sourceAddressWithEncodedTenantId
-        .map(tenantIdAddress -> UUID.nameUUIDFromBytes(tenantIdAddress.getAddress().getAddress()))
-        .ifPresent(
-            tenantIdUUID -> tenantIdHeaders.put(TENANT_ID_HEADER_NAME, tenantIdUUID.toString()));
-    return tenantIdHeaders;
   }
 }

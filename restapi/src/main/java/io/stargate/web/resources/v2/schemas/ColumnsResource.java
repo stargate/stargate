@@ -15,7 +15,7 @@
  */
 package io.stargate.web.resources.v2.schemas;
 
-import static io.stargate.core.RequestToHeadersMapper.getAllHeaders;
+import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;

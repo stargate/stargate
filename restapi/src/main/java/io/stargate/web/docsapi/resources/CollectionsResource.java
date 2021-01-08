@@ -1,6 +1,6 @@
 package io.stargate.web.docsapi.resources;
 
-import static io.stargate.core.RequestToHeadersMapper.getAllHeaders;
+import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;

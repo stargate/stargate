@@ -15,7 +15,7 @@
  */
 package io.stargate.auth.api.resources;
 
-import static io.stargate.core.RequestToHeadersMapper.getAllHeaders;
+import static io.stargate.auth.api.resources.RequestToHeadersMapper.getAllHeaders;
 
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.UnauthorizedException;

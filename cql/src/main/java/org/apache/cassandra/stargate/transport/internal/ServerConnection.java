@@ -17,7 +17,7 @@
  */
 package org.apache.cassandra.stargate.transport.internal;
 
-import static io.stargate.core.RequestToHeadersMapper.toHeaders;
+import static org.apache.cassandra.stargate.RequestToHeadersMapper.toHeaders;
 
 import com.codahale.metrics.Counter;
 import io.netty.channel.Channel;

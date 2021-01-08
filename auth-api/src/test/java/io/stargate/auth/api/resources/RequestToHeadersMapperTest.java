@@ -13,16 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.core;
+package io.stargate.auth.api.resources;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.net.Inet6Address;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
-import java.util.*;
+import java.util.AbstractMap;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 
@@ -47,34 +48,5 @@ class RequestToHeadersMapperTest {
             new AbstractMap.SimpleEntry<>("a", "value_a"),
             new AbstractMap.SimpleEntry<>("b", "123"),
             new AbstractMap.SimpleEntry<>("c", null));
-  }
-
-  @Test
-  public void shouldMapInetSocketAddressToHeader() throws UnknownHostException {
-    // given
-    Optional<InetSocketAddress> inetSocketAddress =
-        Optional.of(new InetSocketAddress(Inet6Address.getByName("::1"), 1000));
-
-    // when
-    Map<String, String> allHeaders = RequestToHeadersMapper.toHeaders(inetSocketAddress);
-
-    //
-    assertThat(allHeaders)
-        .containsExactly(
-            new AbstractMap.SimpleEntry<>(
-                RequestToHeadersMapper.TENANT_ID_HEADER_NAME,
-                "cf404dc8-0617-3c24-9b5b-4fe2531e6d8c"));
-  }
-
-  @Test
-  public void shouldNotMapInetSocketAddressIfItsNotPresent() {
-    // given
-    Optional<InetSocketAddress> inetSocketAddress = Optional.empty();
-
-    // when
-    Map<String, String> allHeaders = RequestToHeadersMapper.toHeaders(inetSocketAddress);
-
-    //
-    assertThat(allHeaders).isEmpty();
   }
 }
