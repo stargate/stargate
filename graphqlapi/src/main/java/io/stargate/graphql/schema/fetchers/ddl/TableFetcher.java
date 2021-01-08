@@ -10,8 +10,11 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
+import java.util.Collections;
+import java.util.Map;
 
 public abstract class TableFetcher extends DdlQueryFetcher {
+  private static final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
 
   protected TableFetcher(
       AuthenticationService authenticationService,
@@ -39,7 +42,7 @@ public abstract class TableFetcher extends DdlQueryFetcher {
     }
 
     authorizationService.authorizeSchemaWrite(
-        authenticationSubject, keyspaceName, tableName, scope, SourceAPI.GRAPHQL);
+        authenticationSubject, keyspaceName, tableName, scope, SourceAPI.GRAPHQL, EMPTY_HEADERS);
 
     return buildQuery(dataFetchingEnvironment, builder, keyspaceName, tableName);
   }

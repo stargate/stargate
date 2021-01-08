@@ -14,6 +14,7 @@ import io.stargate.db.query.BoundDelete;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
+import io.stargate.graphql.web.HttpAwareContext;
 
 public class DeleteMutationFetcher extends MutationFetcher {
 
@@ -32,7 +33,7 @@ public class DeleteMutationFetcher extends MutationFetcher {
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
-
+    HttpAwareContext httpAwareContext = environment.getContext();
     boolean ifExists =
         environment.containsArgument("ifExists")
             && environment.getArgument("ifExists") != null
@@ -56,7 +57,8 @@ public class DeleteMutationFetcher extends MutationFetcher {
         table.name(),
         TypedKeyValue.forDML((BoundDelete) bound),
         Scope.DELETE,
-        SourceAPI.GRAPHQL);
+        SourceAPI.GRAPHQL,
+        httpAwareContext.getAllHeaders());
     return bound;
   }
 }

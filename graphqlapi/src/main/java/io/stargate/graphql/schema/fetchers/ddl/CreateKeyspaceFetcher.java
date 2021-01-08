@@ -48,7 +48,12 @@ public class CreateKeyspaceFetcher extends DdlQueryFetcher {
     String keyspaceName = dataFetchingEnvironment.getArgument("name");
 
     authorizationService.authorizeSchemaWrite(
-        authenticationSubject, keyspaceName, null, Scope.CREATE, SourceAPI.GRAPHQL);
+        authenticationSubject,
+        keyspaceName,
+        null,
+        Scope.CREATE,
+        SourceAPI.GRAPHQL,
+        dataFetchingEnvironment.getContext());
 
     boolean ifNotExists =
         dataFetchingEnvironment.getArgumentOrDefault("ifNotExists", Boolean.FALSE);

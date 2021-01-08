@@ -80,6 +80,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   AuthenticationSubject authenticationSubject = AuthenticationSubject.of("token", "username");
   StargateQueryHandler queryHandler;
   AuthorizationService authorizationService;
+  private static final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
 
   @BeforeEach
   public void initTest() {
@@ -124,7 +125,11 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeDataRead(
-            refEq(authenticationSubject), eq("system"), eq("local"), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("system"),
+            eq("local"),
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -164,7 +169,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("ks1"),
             eq("tbl1"),
             eq(Scope.DELETE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -186,7 +192,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("ks1"),
             eq("tbl1"),
             eq(Scope.MODIFY),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -202,7 +209,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("ks1"),
             eq("tbl1"),
             eq(Scope.TRUNCATE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -221,7 +229,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("ks1"),
             eq("tbl2"),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -234,7 +243,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq("tbl1"), eq(Scope.DROP), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.DROP),
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -251,7 +265,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("ks1"),
             eq("tbl1"),
             eq(Scope.ALTER),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -267,7 +282,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks2"), eq(null), eq(Scope.CREATE), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks2"),
+            eq(null),
+            eq(Scope.CREATE),
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -281,7 +301,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq(null), eq(Scope.DROP), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.DROP),
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -297,7 +322,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq(null), eq(Scope.ALTER), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.ALTER),
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -315,7 +345,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("cycling"),
             eq(null),
             eq(Scope.ALTER),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -342,7 +373,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("cycling"),
             eq("cyclist_by_age"),
             eq(Scope.ALTER),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -364,7 +396,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("cycling"),
             eq(null),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -393,7 +426,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("cycling"),
             eq(null),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -412,7 +446,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("ks1"),
             eq("tbl1"),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -434,7 +469,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("ks1"),
             eq("tbl1"),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -448,7 +484,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq(null), eq(Scope.CREATE), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.CREATE),
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -478,7 +519,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("cycling"),
             eq("cyclist_by_age"),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -493,7 +535,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq(null), eq(Scope.DROP), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.DROP),
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -507,7 +554,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq(null), eq(Scope.DROP), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.DROP),
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -520,7 +572,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq(null), eq(Scope.DROP), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.DROP),
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -534,7 +591,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq("tbl1"), eq(Scope.DROP), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.DROP),
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -547,7 +609,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq(null), eq(Scope.DROP), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.DROP),
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -565,7 +632,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("ks1"),
             eq("view1"),
             eq(Scope.DROP),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -584,7 +652,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("data/ks1"),
             eq("roles/role1"),
             eq(Scope.AUTHORIZE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -597,7 +666,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
-        .authorizePermissionRead(refEq(authenticationSubject), eq("roles/sam"), eq(SourceAPI.CQL));
+        .authorizePermissionRead(
+            refEq(authenticationSubject), eq("roles/sam"), eq(SourceAPI.CQL), eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -610,7 +680,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
-        .authorizeRoleRead(refEq(authenticationSubject), eq(null), eq(SourceAPI.CQL));
+        .authorizeRoleRead(
+            refEq(authenticationSubject), eq(null), eq(SourceAPI.CQL), eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -630,7 +701,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("data/cycling"),
             eq("roles/coach"),
             eq(Scope.AUTHORIZE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -649,7 +721,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("data/cycling"),
             eq("roles/coach"),
             eq(Scope.AUTHORIZE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -662,7 +735,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
-        .authorizeRoleRead(refEq(authenticationSubject), eq("roles/coach"), eq(SourceAPI.CQL));
+        .authorizeRoleRead(
+            refEq(authenticationSubject), eq("roles/coach"), eq(SourceAPI.CQL), eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -681,7 +755,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("roles/cycling_admin"),
             eq("roles/coach"),
             eq(Scope.AUTHORIZE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -699,7 +774,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("roles/cycling_admin"),
             eq("roles/coach"),
             eq(Scope.AUTHORIZE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -719,7 +795,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("data/cycling/cyclist_name"),
             eq("roles/coach"),
             eq(Scope.AUTHORIZE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -736,7 +813,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             refEq(authenticationSubject),
             eq("roles/team_manager"),
             eq(Scope.DROP),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -754,7 +832,11 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeRoleManagement(
-            refEq(authenticationSubject), eq("roles/coach"), eq(Scope.CREATE), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("roles/coach"),
+            eq(Scope.CREATE),
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -769,7 +851,11 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeRoleManagement(
-            refEq(authenticationSubject), eq("roles/sandy"), eq(Scope.ALTER), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("roles/sandy"),
+            eq(Scope.ALTER),
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   @Test
@@ -816,7 +902,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("ks1"),
             eq("tbl1"),
             eq(Scope.MODIFY),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(EMPTY_HEADERS));
   }
 
   private Map<String, ByteBuffer> createToken() {

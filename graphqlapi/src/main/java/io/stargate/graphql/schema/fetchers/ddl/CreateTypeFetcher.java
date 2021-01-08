@@ -28,6 +28,7 @@ import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.UserDefinedType;
+import io.stargate.graphql.web.HttpAwareContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -47,13 +48,17 @@ public class CreateTypeFetcher extends DdlQueryFetcher {
       QueryBuilder builder,
       AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
-
     String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
     String typeName = dataFetchingEnvironment.getArgument("typeName");
-
+    HttpAwareContext httpAwareContext = dataFetchingEnvironment.getContext();
     // Permissions on a type are the same as keyspace
     authorizationService.authorizeSchemaWrite(
-        authenticationSubject, keyspaceName, null, Scope.CREATE, SourceAPI.GRAPHQL);
+        authenticationSubject,
+        keyspaceName,
+        null,
+        Scope.CREATE,
+        SourceAPI.GRAPHQL,
+        httpAwareContext.getAllHeaders());
 
     List<Map<String, Object>> fieldList = dataFetchingEnvironment.getArgument("fields");
     if (fieldList.isEmpty()) {

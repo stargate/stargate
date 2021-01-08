@@ -99,6 +99,7 @@ public class StargateQueryHandler implements QueryHandler {
   private static final Logger logger = LoggerFactory.getLogger(StargateQueryHandler.class);
   private final List<QueryInterceptor> interceptors = new CopyOnWriteArrayList<>();
   private AtomicReference<AuthorizationService> authorizationService;
+  private static final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
 
   void register(QueryInterceptor interceptor) {
     this.interceptors.add(interceptor);
@@ -153,8 +154,7 @@ public class StargateQueryHandler implements QueryHandler {
     }
 
     if (customPayload != null && customPayload.containsKey("token")) {
-      // todo extract tenant_id and map to header
-      authorizeByToken(customPayload, statement, Collections.emptyMap());
+      authorizeByToken(customPayload, statement);
     }
 
     return QueryProcessor.instance.processStatement(
@@ -194,8 +194,7 @@ public class StargateQueryHandler implements QueryHandler {
     }
 
     if (customPayload != null && customPayload.containsKey("token")) {
-      // todo extract tenant_id and map to header
-      authorizeByToken(customPayload, statement, Collections.emptyMap());
+      authorizeByToken(customPayload, statement);
     }
 
     return QueryProcessor.instance.processPrepared(
@@ -211,8 +210,7 @@ public class StargateQueryHandler implements QueryHandler {
       long queryStartNanoTime)
       throws RequestExecutionException, RequestValidationException {
     if (customPayload != null && customPayload.containsKey("token")) {
-      // todo extract tenant_id and map to header
-      authorizeByToken(customPayload, batchStatement, Collections.emptyMap());
+      authorizeByToken(customPayload, batchStatement);
     }
 
     return QueryProcessor.instance.processBatch(
@@ -220,8 +218,7 @@ public class StargateQueryHandler implements QueryHandler {
   }
 
   @VisibleForTesting
-  protected void authorizeByToken(
-      Map<String, ByteBuffer> customPayload, CQLStatement statement, Map<String, String> headers) {
+  protected void authorizeByToken(Map<String, ByteBuffer> customPayload, CQLStatement statement) {
     AuthenticationSubject authenticationSubject = loadAuthenticationSubject(customPayload);
 
     if (!getAuthorizationService().isPresent()) {
@@ -244,7 +241,7 @@ public class StargateQueryHandler implements QueryHandler {
             castStatement.keyspace(),
             castStatement.columnFamily(),
             SourceAPI.CQL,
-            headers);
+            EMPTY_HEADERS);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format(
@@ -258,9 +255,8 @@ public class StargateQueryHandler implements QueryHandler {
           castStatement.keyspace(),
           castStatement.columnFamily());
     } else if (statement instanceof ModificationStatement) {
-      // todo extract tenant_id and map to header
       authorizeModificationStatement(
-          statement, authenticationSubject, authorization, Collections.emptyMap());
+          statement, authenticationSubject, authorization, EMPTY_HEADERS);
     } else if (statement instanceof TruncateStatement) {
       TruncateStatement castStatement = (TruncateStatement) statement;
       logger.debug(
@@ -276,7 +272,7 @@ public class StargateQueryHandler implements QueryHandler {
             castStatement.columnFamily(),
             Scope.TRUNCATE,
             SourceAPI.CQL,
-            headers);
+            EMPTY_HEADERS);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format(
@@ -290,17 +286,14 @@ public class StargateQueryHandler implements QueryHandler {
           castStatement.keyspace(),
           castStatement.columnFamily());
     } else if (statement instanceof SchemaAlteringStatement) {
-      // todo extract tenant_id and map to header
       authorizeSchemaAlteringStatement(
-          statement, authenticationSubject, authorization, Collections.emptyMap());
+          statement, authenticationSubject, authorization, EMPTY_HEADERS);
     } else if (statement instanceof AuthorizationStatement) {
-      // todo extract tenant_id and map to header
       authorizeAuthorizationStatement(
-          statement, authenticationSubject, authorization, Collections.emptyMap());
+          statement, authenticationSubject, authorization, EMPTY_HEADERS);
     } else if (statement instanceof AuthenticationStatement) {
-      // todo extract tenant_id and map to header
       authorizeAuthenticationStatement(
-          statement, authenticationSubject, authorization, Collections.emptyMap());
+          statement, authenticationSubject, authorization, EMPTY_HEADERS);
     } else if (statement instanceof UseStatement) {
       // NOOP on UseStatement since it doesn't require authorization
       logger.debug("Skipping auth on UseStatement since it's not required");
@@ -308,9 +301,7 @@ public class StargateQueryHandler implements QueryHandler {
       BatchStatement castStatement = (BatchStatement) statement;
       List<ModificationStatement> statements = castStatement.getStatements();
       for (ModificationStatement stmt : statements) {
-        // todo extract tenant_id and map to header
-        authorizeModificationStatement(
-            stmt, authenticationSubject, authorization, Collections.emptyMap());
+        authorizeModificationStatement(stmt, authenticationSubject, authorization, EMPTY_HEADERS);
       }
     } else {
       logger.warn("Tried to authorize unsupported statement");
@@ -469,14 +460,8 @@ public class StargateQueryHandler implements QueryHandler {
         tableName);
 
     try {
-      // todo extract tenant_id and map to header
       authorization.authorizeSchemaWrite(
-          authenticationSubject,
-          keyspaceName,
-          tableName,
-          scope,
-          SourceAPI.CQL,
-          Collections.emptyMap());
+          authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL, EMPTY_HEADERS);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format(
