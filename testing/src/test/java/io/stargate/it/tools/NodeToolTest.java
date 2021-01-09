@@ -52,7 +52,7 @@ public class NodeToolTest extends BaseOsgiIntegrationTest {
             .getCanonicalFile();
   }
 
-  private Queue<String> nodetool(String... args) throws IOException {
+  protected CommandLine baseStarterCommand() throws IOException {
     CommandLine cmd = new CommandLine("java");
     cmd.addArgument("-Dstargate.libdir=" + starterJar.getParentFile().getCanonicalPath());
     cmd.addArgument("-jar");
@@ -64,6 +64,12 @@ public class NodeToolTest extends BaseOsgiIntegrationTest {
     if (backend.isDse()) {
       cmd.addArgument("--dse");
     }
+
+    return cmd;
+  }
+
+  protected Queue<String> nodetool(String... args) throws IOException {
+    CommandLine cmd = baseStarterCommand();
 
     cmd.addArgument("--nodetool");
     cmd.addArgument("--host");

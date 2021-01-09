@@ -35,7 +35,6 @@ import java.io.IOError;
 import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -416,10 +415,8 @@ public class Starter {
 
         // exit just in case, NodeTool is expected to call System.exit() when done.
         System.exit(5);
-      } catch (ClassNotFoundException e) {
-        // ignore and continue
-      } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-        throw new IllegalStateException(e);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
       }
     }
 
