@@ -1,11 +1,15 @@
 package io.stargate.db.cassandra;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import io.stargate.auth.AuthorizationProcessor;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.cassandra.impl.CassandraPersistence;
+import io.stargate.db.cassandra.impl.DelegatingAuthorizer;
 import io.stargate.db.cassandra.impl.StargateConfigSnitch;
 import io.stargate.db.cassandra.impl.StargateSeedProvider;
 import java.io.File;
@@ -17,9 +21,10 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
-import org.apache.cassandra.auth.CassandraAuthorizer;
+import org.apache.cassandra.auth.IAuthorizer;
 import org.apache.cassandra.auth.PasswordAuthenticator;
 import org.apache.cassandra.config.Config;
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.config.ParameterizedClass;
 import org.apache.cassandra.dht.Murmur3Partitioner;
 import org.apache.cassandra.io.util.FileUtils;
@@ -31,12 +36,18 @@ import org.slf4j.LoggerFactory;
 public class CassandraPersistenceActivator extends BaseActivator {
 
   private static final Logger logger = LoggerFactory.getLogger(CassandraPersistenceActivator.class);
+
+  private static final String AUTHZ_PROCESSOR_ID =
+      System.getProperty("stargate.authorization.processor.id");
+
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private final LazyServicePointer<AuthorizationService> authorizationService =
       LazyServicePointer.create(
           AuthorizationService.class,
           "AuthIdentifier",
           System.getProperty("stargate.auth_id", "AuthTableBasedService"));
+  private final ServicePointer<AuthorizationProcessor> authorizationProcessor =
+      ServicePointer.create(AuthorizationProcessor.class, "AuthProcessorId", AUTHZ_PROCESSOR_ID);
 
   public CassandraPersistenceActivator() {
     super("persistence-cassandra-4.0");
@@ -84,7 +95,7 @@ public class CassandraPersistenceActivator extends BaseActivator {
 
     if (enableAuth.equalsIgnoreCase("true")) {
       c.authenticator = PasswordAuthenticator.class.getCanonicalName();
-      c.authorizer = CassandraAuthorizer.class.getCanonicalName();
+      c.authorizer = DelegatingAuthorizer.class.getCanonicalName();
     }
 
     c.cluster_name = clusterName;
@@ -130,6 +141,12 @@ public class CassandraPersistenceActivator extends BaseActivator {
 
       cassandraDB.setAuthorizationService(authorizationService.get());
       cassandraDB.initialize(makeConfig(baseDir));
+
+      IAuthorizer authorizer = DatabaseDescriptor.getAuthorizer();
+      if (authorizer instanceof DelegatingAuthorizer) {
+        ((DelegatingAuthorizer) authorizer).setProcessor(authorizationProcessor.get());
+      }
+
       return new ServiceAndProperties(cassandraDB, Persistence.class, props);
     } catch (IOException e) {
       logger.error("Error initializing cassandra persistence", e);
@@ -139,7 +156,14 @@ public class CassandraPersistenceActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Collections.singletonList(metrics);
+    Builder<ServicePointer<?>> dependencies = ImmutableList.builder();
+    dependencies.add(metrics);
+
+    if (AUTHZ_PROCESSOR_ID != null) {
+      dependencies.add(authorizationProcessor);
+    }
+
+    return dependencies.build();
   }
 
   @Override
