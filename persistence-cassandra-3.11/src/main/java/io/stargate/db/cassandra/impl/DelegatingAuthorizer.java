@@ -13,11 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.dse.impl;
+package io.stargate.db.cassandra.impl;
 
-import static org.apache.cassandra.exceptions.ExceptionCode.SERVER_ERROR;
-
-import com.datastax.bdp.cassandra.auth.AuthRequestExecutionException;
 import io.stargate.auth.AuthorizationOutcome;
 import io.stargate.auth.AuthorizationProcessor;
 import io.stargate.auth.PermissionKind;
@@ -31,22 +28,19 @@ import io.stargate.auth.entity.ResourceKind;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import org.apache.cassandra.auth.AuthenticatedUser;
 import org.apache.cassandra.auth.CassandraAuthorizer;
 import org.apache.cassandra.auth.DataResource;
 import org.apache.cassandra.auth.FunctionResource;
-import org.apache.cassandra.auth.GrantMode;
 import org.apache.cassandra.auth.IResource;
 import org.apache.cassandra.auth.Permission;
 import org.apache.cassandra.auth.RoleResource;
-import org.apache.cassandra.auth.permission.CorePermission;
-import org.apache.cassandra.stargate.exceptions.RequestValidationException;
-import org.javatuples.Pair;
+import org.apache.cassandra.exceptions.RequestExecutionException;
+import org.apache.cassandra.exceptions.RequestValidationException;
+import org.apache.cassandra.stargate.exceptions.AuthenticationException;
 
 public class DelegatingAuthorizer extends CassandraAuthorizer {
 
@@ -60,71 +54,51 @@ public class DelegatingAuthorizer extends CassandraAuthorizer {
   }
 
   @Override
-  public Set<Permission> grant(
+  public void grant(
       AuthenticatedUser performer,
       Set<Permission> permissions,
       IResource resource,
-      RoleResource grantee,
-      GrantMode... grantModes) {
+      RoleResource grantee)
+      throws RequestValidationException, RequestExecutionException {
     if (authProcessor == null) {
-      return super.grant(performer, permissions, resource, grantee, grantModes);
+      super.grant(performer, permissions, resource, grantee);
+      return;
     }
 
-    Collection<CompletableFuture<Void>> stages = new ArrayList<>(grantModes.length);
+    CompletionStage<Void> stage =
+        authProcessor.addPermissions(
+            ImmutableActor.of(performer.getName()),
+            AuthorizationOutcome.ALLOW,
+            PermissionKind.ACCESS,
+            permissions(permissions),
+            resource(resource),
+            role(grantee));
 
-    permissions = filterSupported(permissions);
-    for (GrantMode grantMode : grantModes) {
-      Pair<PermissionKind, AuthorizationOutcome> mode = grantMode(grantMode);
-      CompletionStage<Void> stage =
-          authProcessor.addPermissions(
-              ImmutableActor.of(performer.getName()),
-              mode.getValue1(),
-              mode.getValue0(),
-              permissions(permissions),
-              resource(resource),
-              role(grantee));
-
-      stages.add(stage.toCompletableFuture());
-    }
-
-    get(CompletableFuture.allOf(stages.toArray(new CompletableFuture[0])));
-
-    // assume all permissions were granted if we did not get an exception
-    return permissions;
+    get(stage);
   }
 
   @Override
-  public Set<Permission> revoke(
+  public void revoke(
       AuthenticatedUser performer,
       Set<Permission> permissions,
       IResource resource,
-      RoleResource revokee,
-      GrantMode... grantModes) {
+      RoleResource revokee)
+      throws RequestValidationException, RequestExecutionException {
     if (authProcessor == null) {
-      return super.revoke(performer, permissions, resource, revokee, grantModes);
+      super.revoke(performer, permissions, resource, revokee);
+      return;
     }
 
-    Collection<CompletableFuture<Void>> stages = new ArrayList<>(grantModes.length);
+    CompletionStage<Void> stage =
+        authProcessor.removePermissions(
+            ImmutableActor.of(performer.getName()),
+            AuthorizationOutcome.ALLOW,
+            PermissionKind.ACCESS,
+            permissions(permissions),
+            resource(resource),
+            role(revokee));
 
-    permissions = filterSupported(permissions);
-    for (GrantMode grantMode : grantModes) {
-      Pair<PermissionKind, AuthorizationOutcome> mode = grantMode(grantMode);
-      CompletionStage<Void> stage =
-          authProcessor.removePermissions(
-              ImmutableActor.of(performer.getName()),
-              mode.getValue1(),
-              mode.getValue0(),
-              permissions(permissions),
-              resource(resource),
-              role(revokee));
-
-      stages.add(stage.toCompletableFuture());
-    }
-
-    get(CompletableFuture.allOf(stages.toArray(new CompletableFuture[0])));
-
-    // assume all permissions were revoked if we did not get an exception
-    return permissions;
+    get(stage);
   }
 
   private static void get(CompletionStage<Void> stage) {
@@ -133,29 +107,13 @@ public class DelegatingAuthorizer extends CassandraAuthorizer {
       stage.toCompletableFuture().get(PROCESSING_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
     } catch (ExecutionException e) {
       Throwable cause = e.getCause();
-      if (cause instanceof RequestValidationException) {
-        throw (RequestValidationException) cause;
+      if (cause instanceof org.apache.cassandra.stargate.exceptions.RequestValidationException) {
+        throw (org.apache.cassandra.stargate.exceptions.RequestValidationException) cause;
       }
 
-      throw new AuthRequestExecutionException(SERVER_ERROR, e.getMessage(), e);
+      throw new AuthenticationException(e.getMessage(), e);
     } catch (Exception e) {
-      throw new AuthRequestExecutionException(SERVER_ERROR, e.getMessage(), e);
-    }
-  }
-
-  private static Pair<PermissionKind, AuthorizationOutcome> grantMode(GrantMode grantMode) {
-    switch (grantMode) {
-      case GRANTABLE:
-        return Pair.with(PermissionKind.AUTHORITY, AuthorizationOutcome.ALLOW);
-
-      case GRANT:
-        return Pair.with(PermissionKind.ACCESS, AuthorizationOutcome.ALLOW);
-
-      case RESTRICT:
-        return Pair.with(PermissionKind.ACCESS, AuthorizationOutcome.DENY);
-
-      default:
-        throw new UnsupportedOperationException("Unsupported grant mode: " + grantMode);
+      throw new AuthenticationException(e.getMessage(), e);
     }
   }
 
@@ -197,9 +155,6 @@ public class DelegatingAuthorizer extends CassandraAuthorizer {
       } else if (dr.isKeyspaceLevel()) {
         EntitySelector keyspace = EntitySelector.byName(dr.getKeyspace());
         authResource = ImmutableAuthorizedResource.of(ResourceKind.KEYSPACE).withKeyspace(keyspace);
-      } else if (dr.isAllTablesLevel()) {
-        EntitySelector keyspace = EntitySelector.byName(dr.getKeyspace());
-        authResource = ImmutableAuthorizedResource.of(ResourceKind.TABLE).withKeyspace(keyspace);
       } else if (dr.isTableLevel()) {
         EntitySelector keyspace = EntitySelector.byName(dr.getKeyspace());
         EntitySelector element = EntitySelector.byName(dr.getTable());
@@ -217,21 +172,9 @@ public class DelegatingAuthorizer extends CassandraAuthorizer {
     return authResource;
   }
 
-  private Set<Permission> filterSupported(Set<Permission> permissions) {
-    return permissions.stream().filter(DelegatingAuthorizer::supported).collect(Collectors.toSet());
-  }
-
-  private static boolean supported(Permission permission) {
-    return CorePermission.getDomain().equals(permission.domain());
-  }
-
   private static Collection<AccessPermission> permissions(Set<Permission> permissions) {
     Collection<AccessPermission> accessPermissions = new ArrayList<>(permissions.size());
     for (Permission permission : permissions) {
-      if (!supported(permission)) {
-        throw new IllegalArgumentException("Unsupported permission: " + permission);
-      }
-
       accessPermissions.add(ImmutableAccessPermission.of(permission.name()));
     }
 

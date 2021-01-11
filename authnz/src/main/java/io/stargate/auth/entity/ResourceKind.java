@@ -16,6 +16,7 @@
 package io.stargate.auth.entity;
 
 public enum ResourceKind {
+  KEYSPACE,
   TABLE,
   FUNCTION,
 }

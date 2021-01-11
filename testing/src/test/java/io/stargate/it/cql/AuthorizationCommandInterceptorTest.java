@@ -16,6 +16,7 @@
 package io.stargate.it.cql;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -50,11 +51,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 public class AuthorizationCommandInterceptorTest extends BaseOsgiIntegrationTest {
   private static CqlSession session;
   private LogCollector log;
-
-  @BeforeAll
-  public static void checkDse(ClusterConnectionInfo backend) {
-    assumeTrue(backend.isDse()); // TODO: Support C*
-  }
 
   @BeforeAll
   public static void buildSession(CqlSessionBuilder builder) {
@@ -100,16 +96,40 @@ public class AuthorizationCommandInterceptorTest extends BaseOsgiIntegrationTest
 
   @Test
   public void grantDescribeAllKeyspaces() {
+    assumeTrue(backend.isDse());
     assertThat(addedMsgs("GRANT DESCRIBE ON ALL KEYSPACES TO 'auth_user1'"))
         .containsExactly(
-            "cassandra, ALLOW, ACCESS, [DESCRIBE], AuthorizedResource{kind=TABLE, keyspace=*, element=*}, auth_user1");
+            "cassandra, ALLOW, ACCESS, [DESCRIBE], AuthorizedResource{kind=KEYSPACE, keyspace=*, element=*}, auth_user1");
+  }
+
+  @Test
+  public void revokeDescribeKeyspace() {
+    assumeTrue(backend.isDse());
+    assertThat(removedMsgs("REVOKE DESCRIBE ON KEYSPACE auth_keyspace2 FROM 'auth_user1'"))
+        .containsExactly(
+            "cassandra, ALLOW, ACCESS, [DESCRIBE], AuthorizedResource{kind=KEYSPACE, keyspace=auth_keyspace2, element=*}, auth_user1");
   }
 
   @Test
   public void grantTruncateAllTables() {
+    assumeTrue(backend.isDse());
     assertThat(addedMsgs("GRANT TRUNCATE ON ALL TABLES IN KEYSPACE auth_keyspace2 TO 'auth_user1'"))
         .containsExactly(
             "cassandra, ALLOW, ACCESS, [TRUNCATE], AuthorizedResource{kind=TABLE, keyspace=auth_keyspace2, element=*}, auth_user1");
+  }
+
+  @Test
+  public void grantModifyAllKeyspaces() {
+    assertThat(addedMsgs("GRANT MODIFY ON ALL KEYSPACES TO 'auth_user1'"))
+        .containsExactly(
+            "cassandra, ALLOW, ACCESS, [MODIFY], AuthorizedResource{kind=KEYSPACE, keyspace=*, element=*}, auth_user1");
+  }
+
+  @Test
+  public void grantModifyTablesInOneKeyspace() {
+    assertThat(addedMsgs("GRANT MODIFY ON KEYSPACE auth_keyspace2 TO 'auth_user1'"))
+        .containsExactly(
+            "cassandra, ALLOW, ACCESS, [MODIFY], AuthorizedResource{kind=KEYSPACE, keyspace=auth_keyspace2, element=*}, auth_user1");
   }
 
   @Test
@@ -128,6 +148,7 @@ public class AuthorizationCommandInterceptorTest extends BaseOsgiIntegrationTest
 
   @Test
   public void restrictUpdate() {
+    assumeTrue(backend.isDse());
     assertThat(addedMsgs("RESTRICT UPDATE on table3 TO 'auth_user1'"))
         .containsExactly(
             "cassandra, DENY, ACCESS, [UPDATE], AuthorizedResource{kind=TABLE, keyspace=auth_keyspace2, element=table3}, auth_user1");
@@ -135,13 +156,29 @@ public class AuthorizationCommandInterceptorTest extends BaseOsgiIntegrationTest
 
   @Test
   public void unrestrictUpdate() {
+    assumeTrue(backend.isDse());
     assertThat(removedMsgs("UNRESTRICT UPDATE on auth_keyspace2.table3 FROM 'auth_user1'"))
         .containsExactly(
             "cassandra, DENY, ACCESS, [UPDATE], AuthorizedResource{kind=TABLE, keyspace=auth_keyspace2, element=table3}, auth_user1");
   }
 
   @Test
-  public void authorizeTruncate() {
+  public void grantModify() {
+    assertThat(addedMsgs("GRANT MODIFY on table3 TO 'auth_user1'"))
+        .containsExactly(
+            "cassandra, ALLOW, ACCESS, [MODIFY], AuthorizedResource{kind=TABLE, keyspace=auth_keyspace2, element=table3}, auth_user1");
+  }
+
+  @Test
+  public void revokeModify() {
+    assertThat(removedMsgs("REVOKE MODIFY on table3 FROM 'auth_user1'"))
+        .containsExactly(
+            "cassandra, ALLOW, ACCESS, [MODIFY], AuthorizedResource{kind=TABLE, keyspace=auth_keyspace2, element=table3}, auth_user1");
+  }
+
+  @Test
+  public void grantAuthorizeTruncate(ClusterConnectionInfo backend) {
+    assumeTrue(backend.isDse());
     assertThat(addedMsgs("GRANT AUTHORIZE FOR SELECT, TRUNCATE on table3 TO 'auth_user1'"))
         .containsExactly(
             "cassandra, ALLOW, AUTHORITY, [SELECT, TRUNCATE], AuthorizedResource{kind=TABLE, keyspace=auth_keyspace2, element=table3}, auth_user1");
@@ -149,8 +186,29 @@ public class AuthorizationCommandInterceptorTest extends BaseOsgiIntegrationTest
 
   @Test
   public void revokeAuthorizeTruncate() {
+    assumeTrue(backend.isDse());
     assertThat(removedMsgs("REVOKE AUTHORIZE FOR SELECT, TRUNCATE on table3 FROM 'auth_user1'"))
         .containsExactly(
             "cassandra, ALLOW, AUTHORITY, [SELECT, TRUNCATE], AuthorizedResource{kind=TABLE, keyspace=auth_keyspace2, element=table3}, auth_user1");
+  }
+
+  @Test
+  public void grantAuthorize(ClusterConnectionInfo backend) {
+    assertThat(addedMsgs("GRANT AUTHORIZE on table3 TO 'auth_user1'"))
+        .containsExactly(
+            "cassandra, ALLOW, ACCESS, [AUTHORIZE], AuthorizedResource{kind=TABLE, keyspace=auth_keyspace2, element=table3}, auth_user1");
+  }
+
+  @Test
+  public void revokeAuthorize(ClusterConnectionInfo backend) {
+    assertThat(removedMsgs("REVOKE AUTHORIZE on table3 FROM 'auth_user1'"))
+        .containsExactly(
+            "cassandra, ALLOW, ACCESS, [AUTHORIZE], AuthorizedResource{kind=TABLE, keyspace=auth_keyspace2, element=table3}, auth_user1");
+  }
+
+  @Test
+  public void grantDescribeAllMBeans(ClusterConnectionInfo backend) {
+    assertThatThrownBy(() -> addedMsgs("GRANT DESCRIBE ON ALL MBEANS TO 'auth_user1'"))
+        .hasMessageContaining("Unsupported resource type");
   }
 }
