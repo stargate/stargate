@@ -687,6 +687,7 @@ public abstract class Message {
         connection.validateNewMessage(request.type, connection.getVersion());
 
         logger.trace("Received: {}, v={}", request, connection.getVersion());
+        ClientMetrics.instance.markCQLOperation();
         connection.requests.inc();
 
         CompletableFuture<? extends Response> req = request.execute(queryStartNanoTime);
