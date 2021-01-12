@@ -4,6 +4,8 @@ import com.google.common.collect.ImmutableList;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.db.ImmutableParameters;
+import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
@@ -12,9 +14,12 @@ import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
 import io.stargate.graphql.schema.fetchers.CassandraFetcher;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
@@ -30,6 +35,38 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     super(authenticationService, authorizationService, dataStoreFactory);
     this.table = table;
     this.nameMapping = nameMapping;
+  }
+
+  @Override
+  protected Parameters getDatastoreParameters(DataFetchingEnvironment environment) {
+    Map<String, Object> options = environment.getArgument("options");
+    if (options == null) {
+      return DEFAULT_PARAMETERS;
+    }
+
+    ImmutableParameters.Builder builder = Parameters.builder().from(DEFAULT_PARAMETERS);
+
+    Object consistency = options.get("consistency");
+    if (consistency != null) {
+      builder.consistencyLevel(ConsistencyLevel.valueOf((String) consistency));
+    }
+
+    Object serialConsistency = options.get("serialConsistency");
+    if (serialConsistency != null) {
+      builder.serialConsistencyLevel(ConsistencyLevel.valueOf((String) serialConsistency));
+    }
+
+    Object pageSize = options.get("pageSize");
+    if (pageSize != null) {
+      builder.pageSize((Integer) pageSize);
+    }
+
+    Object pageState = options.get("pageState");
+    if (pageState != null) {
+      builder.pagingState(ByteBuffer.wrap(Base64.getDecoder().decode((String) pageState)));
+    }
+
+    return builder.build();
   }
 
   protected List<BuiltCondition> buildConditions(
