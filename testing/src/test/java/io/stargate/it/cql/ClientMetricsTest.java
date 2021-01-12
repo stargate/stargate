@@ -42,6 +42,12 @@ public class ClientMetricsTest extends BaseOsgiIntegrationTest {
       Pattern.compile(
           "(cql_org_apache_cassandra_metrics_Client_CqlOperations_total\\s*)(\\d+.\\d+)");
 
+  private static final Pattern MEMORY_HEAP_USAGE_REGEXP =
+      Pattern.compile("(jvm_memory_heap_used\\s*)(\\d+.\\d+)");
+
+  private static final Pattern MEMORY_NON_HEAP_USAGE_REGEXP =
+      Pattern.compile("(jvm_memory_non_heap_used\\s*)(\\d+.\\d+)");
+
   private static final String KEY = "test";
 
   private static String host;
@@ -72,14 +78,44 @@ public class ClientMetricsTest extends BaseOsgiIntegrationTest {
     assertThat(cqlOperationsMetricValue).isGreaterThan(0);
   }
 
+  @Test
+  public void shouldReportOnAndNonHeapMemoryUsed(CqlSession session) throws IOException {
+    // given
+    SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
+    ResultSet resultSet = session.execute(statement);
+    assertThat(resultSet).hasSize(1);
+
+    // when
+    String body = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+    // then
+    double heapMemoryUsed = getOnHeapMemoryUsed(body);
+    assertThat(heapMemoryUsed).isGreaterThan(0);
+    double nonHeapMemoryUsed = getNonHeapMemoryUsed(body);
+    assertThat(nonHeapMemoryUsed).isGreaterThan(0);
+  }
+
   private double getCqlOperationsMetricValue(String body) {
+    return getMetricValue(body, "CqlOperations", CQL_OPERATIONS_METRIC_REGEXP);
+  }
+
+  private double getOnHeapMemoryUsed(String body) {
+    return getMetricValue(body, "jvm_memory_heap_used", MEMORY_HEAP_USAGE_REGEXP);
+  }
+
+  private double getNonHeapMemoryUsed(String body) {
+    return getMetricValue(body, "jvm_memory_non_heap_used", MEMORY_NON_HEAP_USAGE_REGEXP);
+  }
+
+  private double getMetricValue(String body, String metricName, Pattern regexpPattern) {
     return Arrays.stream(body.split("\n"))
-        .filter(v -> v.contains("CqlOperations"))
-        .filter(v -> CQL_OPERATIONS_METRIC_REGEXP.matcher(v).matches())
+        .filter(v -> v.contains(metricName))
+        .peek(v -> System.out.println("value:" + v))
+        .filter(v -> regexpPattern.matcher(v).find())
         .map(
             v -> {
-              Matcher matcher = CQL_OPERATIONS_METRIC_REGEXP.matcher(v);
-              if (matcher.matches()) {
+              Matcher matcher = regexpPattern.matcher(v);
+              if (matcher.find()) {
                 return matcher.group(2);
               }
               throw new IllegalArgumentException(
