@@ -28,7 +28,6 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.GraphqlActivator;
-import io.stargate.graphql.metrics.GraphMetrics;
 import io.stargate.graphql.web.resources.GraphqlDdlResource;
 import io.stargate.graphql.web.resources.GraphqlDmlResource;
 import io.stargate.graphql.web.resources.PlaygroundResource;
@@ -120,7 +119,6 @@ public class DropwizardServer extends Application<Configuration> {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
     bootstrap.setMetricRegistry(metrics.getRegistry("graphqlapi"));
-    GraphMetrics.instance.init(metrics.getRegistry("graphqlapi"));
   }
 
   private void enableCors(Environment environment) {

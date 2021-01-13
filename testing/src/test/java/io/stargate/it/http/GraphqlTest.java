@@ -155,7 +155,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
   private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
       Pattern.compile(
-          "(graphqlapi_org_apache_cassandra_metrics_Graph_GraphQlOperations_total\\s*)(\\d+.\\d+)");
+          "(graphqlapi_io_dropwizard_jetty_MutableServletContextHandler_dispatches_count\\s*)(\\d+.\\d+)");
 
   private static CqlSession session;
   private static String authToken;
@@ -1401,7 +1401,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   }
 
   private double getGraphQlOperations(String body) {
-    return getMetricValue(body, "GraphQlOperations", GRAPHQL_OPERATIONS_METRIC_REGEXP);
+    return getMetricValue(body, "graphqlapi", GRAPHQL_OPERATIONS_METRIC_REGEXP);
   }
 
   private static Optional<Products> getProducts(
