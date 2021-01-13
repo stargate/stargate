@@ -76,6 +76,7 @@ public final class ClientMetrics {
   }
 
   public void markCQLOperation() {
+    System.out.println("markCQLOperation");
     cqlOperations.mark();
   }
 

@@ -1,5 +1,6 @@
 package io.stargate.it.http;
 
+import static io.stargate.it.MetricsTestsHelper.getMetricValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
@@ -113,6 +114,7 @@ import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import net.jcip.annotations.NotThreadSafe;
@@ -151,16 +153,21 @@ import org.slf4j.LoggerFactory;
 @NotThreadSafe
 public class GraphqlTest extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
+  private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
+      Pattern.compile(
+          "(graphqlapi_org_apache_cassandra_metrics_Graph_GraphQlOperations_total\\s*)(\\d+.\\d+)");
 
   private static CqlSession session;
   private static String authToken;
   private static StargateConnectionInfo stargate;
   private static final String keyspace = "betterbotz";
   private static final ObjectMapper objectMapper = new ObjectMapper();
+  private static String host;
 
   @BeforeAll
   public static void setup(StargateConnectionInfo stargateInfo) throws Exception {
     stargate = stargateInfo;
+    host = "http://" + stargateInfo.seedAddress();
 
     createSessionAndSchema();
     initAuth();
@@ -1364,6 +1371,37 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         .orElse(false)); // Continue if there are still values
 
     assertThat(names).containsExactlyInAnyOrder("a", "b", "c");
+  }
+
+  @Test
+  public void shouldIncrementMetricWhenExecutingGraphQlQuery() throws IOException {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+
+    String productId = UUID.randomUUID().toString();
+    ProductsInput input =
+        ProductsInput.builder()
+            .id(productId)
+            .name("Shiny Legs")
+            .price("3199.99")
+            .created(now())
+            .description("Normal legs but shiny.")
+            .build();
+
+    insertProduct(client, input);
+
+    GetProductsWithFilterQuery.Value product = getProduct(client, productId);
+    assertThat(product.getId()).hasValue(productId);
+
+    // when
+    String body = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+    // then
+    double numberOfGraphQlOperations = getGraphQlOperations(body);
+    assertThat(numberOfGraphQlOperations).isGreaterThan(0);
+  }
+
+  private double getGraphQlOperations(String body) {
+    return getMetricValue(body, "GraphQlOperations", GRAPHQL_OPERATIONS_METRIC_REGEXP);
   }
 
   private static Optional<Products> getProducts(

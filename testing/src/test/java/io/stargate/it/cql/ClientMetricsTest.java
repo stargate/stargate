@@ -15,6 +15,7 @@
  */
 package io.stargate.it.cql;
 
+import static io.stargate.it.MetricsTestsHelper.getMetricValue;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -26,8 +27,6 @@ import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
@@ -105,24 +104,5 @@ public class ClientMetricsTest extends BaseOsgiIntegrationTest {
 
   private double getNonHeapMemoryUsed(String body) {
     return getMetricValue(body, "jvm_memory_non_heap_used", MEMORY_NON_HEAP_USAGE_REGEXP);
-  }
-
-  private double getMetricValue(String body, String metricName, Pattern regexpPattern) {
-    return Arrays.stream(body.split("\n"))
-        .filter(v -> v.contains(metricName))
-        .peek(v -> System.out.println("value:" + v))
-        .filter(v -> regexpPattern.matcher(v).find())
-        .map(
-            v -> {
-              Matcher matcher = regexpPattern.matcher(v);
-              if (matcher.find()) {
-                return matcher.group(2);
-              }
-              throw new IllegalArgumentException(
-                  String.format("Value: %s does not contain the numeric value for metric", v));
-            })
-        .map(Double::parseDouble)
-        .findAny()
-        .get();
   }
 }

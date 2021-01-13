@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import graphql.ExecutionInput;
 import graphql.GraphQL;
+import io.stargate.graphql.metrics.GraphMetrics;
 import io.stargate.graphql.web.HttpAwareContext;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
 import java.io.IOException;
@@ -162,6 +163,7 @@ public class GraphqlResourceBase {
 
   protected static void executeAsync(
       ExecutionInput input, GraphQL graphql, @Suspended AsyncResponse asyncResponse) {
+    GraphMetrics.instance.markGraphQlOperation();
     graphql
         .executeAsync(input)
         .thenApply(result -> asyncResponse.resume(result.toSpecification()))
