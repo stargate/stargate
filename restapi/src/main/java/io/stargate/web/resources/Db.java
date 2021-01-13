@@ -29,18 +29,17 @@ import io.stargate.web.docsapi.dao.DocumentDB;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Optional;
-import java.util.concurrent.CompletionException;
 
 public class Db {
 
   private final DataStore dataStore;
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
-  private final LoadingCache<String, AuthenticationSubject> docsTokensToRoles =
+  private final LoadingCache<String, DocumentDB> docsTokensToDataStore =
       Caffeine.newBuilder()
           .maximumSize(10_000)
-          .expireAfterWrite(Duration.ofMinutes(1))
-          .build(this::getAuthenticationSubjectForToken);
+          .expireAfterWrite(Duration.ofMinutes(10))
+          .build(this::getDocDataStoreForTokenInternal);
   private final DataStoreFactory dataStoreFactory;
 
   public Db(
@@ -77,17 +76,11 @@ public class Db {
     return new AuthenticatedDB(dataStore, authenticationSubject);
   }
 
-<<<<<<< HEAD
   public AuthenticatedDB getDataStoreForToken(String token, int pageSize, ByteBuffer pagingState)
       throws UnauthorizedException {
     AuthenticationSubject authenticationSubject = authenticationService.validateToken(token);
     return new AuthenticatedDB(
         getDataStoreInternal(authenticationSubject, pageSize, pagingState), authenticationSubject);
-=======
-  private DataStore getDataStoreInternal(String role) {
-    DataStoreOptions options = DataStoreOptions.builder().alwaysPrepareQueries(true).build();
-    return dataStoreFactory.create(role, options);
->>>>>>> Remove validation of columns, we'll see if that's faster
   }
 
   private DataStore getDataStoreInternal(
@@ -104,12 +97,7 @@ public class Db {
         authenticationSubject.roleName(), authenticationSubject.isFromExternalAuth(), options);
   }
 
-  public AuthenticationSubject getAuthenticationSubjectForToken(String token)
-      throws UnauthorizedException {
-    return authenticationService.validateToken(token);
-  }
-
-  public DocumentDB getDocDataStoreForToken(String token) throws UnauthorizedException {
+  private DocumentDB getDocDataStoreForTokenInternal(String token) throws UnauthorizedException {
     AuthenticatedDB authenticatedDB = getDataStoreForToken(token);
     return new DocumentDB(
         authenticatedDB.getDataStore(),
@@ -117,29 +105,12 @@ public class Db {
         getAuthorizationService());
   }
 
-  public DocumentDB getDocDataStoreForToken(String token, int pageSize, ByteBuffer pageState)
+  public AuthenticationSubject getAuthenticationSubjectForToken(String token)
       throws UnauthorizedException {
-    if (token == null) {
-      throw new UnauthorizedException("Missing token");
-    }
+    return authenticationService.validateToken(token);
+  }
 
-    AuthenticationSubject authenticationSubject;
-    try {
-      authenticationSubject = docsTokensToRoles.get(token);
-    } catch (CompletionException e) {
-      if (e.getCause() instanceof UnauthorizedException) {
-        throw (UnauthorizedException) e.getCause();
-      }
-      throw e;
-    }
-
-    if (authenticationSubject == null) {
-      throw new UnauthorizedException("Missing authenticationSubject");
-    }
-
-    return new DocumentDB(
-        getDataStoreInternal(authenticationSubject, pageSize, pageState),
-        authenticationSubject,
-        getAuthorizationService());
+  public DocumentDB getDocDataStoreForToken(String token) throws UnauthorizedException {
+    return docsTokensToDataStore.get(token);
   }
 }

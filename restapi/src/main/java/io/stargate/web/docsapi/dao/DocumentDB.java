@@ -417,7 +417,7 @@ public class DocumentDB {
       throws UnauthorizedException {
     // Run generic authorizeDataRead for now
     getAuthorizationService()
-        .authorizeDataRead(getAuthToken(), keyspace, collection, SourceAPI.REST);
+        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
     UnaryOperator<Parameters> parametersModifier =
         p -> {
           if (pageState != null) {
