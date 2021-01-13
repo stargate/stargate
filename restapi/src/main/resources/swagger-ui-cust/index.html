@@ -34,12 +34,9 @@
 <script src="./swagger-ui-standalone-preset.js" charset="UTF-8"></script>
 <script>
     window.onload = function() {
-      const swaggerUri = window.location.href
-      const baseUri = swaggerUri.substring(0, swaggerUri.lastIndexOf('/swagger-ui'))
 
-      // Begin Swagger UI call region
-      const ui = SwaggerUIBundle({
-        url: baseUri + "/swagger.json",
+      const swaggerOptions = {
+        url: "/swagger.json",
         dom_id: '#swagger-ui',
         deepLinking: true,
         presets: [
@@ -56,7 +53,26 @@
             return tokenValue == null ? "" : tokenValue.trim();
           }
         }
-      })
+      };
+
+      const pathname = window.location.pathname;
+      if (pathname !== '/swagger-ui') {
+        const pathPrefix = pathname.substring(0, pathname.lastIndexOf('/swagger-ui'));
+        const urlStart = window.location.origin;
+        const proxiedUrlStart = urlStart + pathPrefix;
+        swaggerOptions.requestInterceptor = function(request) {
+          const url = request.url;
+          if (url.startsWith("/")) {
+            request.url = pathPrefix + url;
+          } else {
+            request.url = request.url.replace(urlStart, proxiedUrlStart);
+          }
+          return request;
+        }
+      }
+
+      // Begin Swagger UI call region
+      const ui = SwaggerUIBundle(swaggerOptions)
       // End Swagger UI call region
 
       window.ui = ui
