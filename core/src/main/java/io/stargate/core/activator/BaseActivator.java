@@ -120,16 +120,21 @@ public abstract class BaseActivator implements BundleActivator {
       return;
     }
     started = true;
-    List<ServiceAndProperties> services = createServices();
-    for (ServiceAndProperties service : services) {
-      if (service != null) {
-        logger.info("Registering {} as {}", activatorName, service.targetServiceClass.getName());
-        targetServiceRegistrations.add(
-            context.registerService(
-                service.targetServiceClass.getName(), service.service, service.properties));
+
+    try {
+      List<ServiceAndProperties> services = createServices();
+      for (ServiceAndProperties service : services) {
+        if (service != null) {
+          logger.info("Registering {} as {}", activatorName, service.targetServiceClass.getName());
+          targetServiceRegistrations.add(
+              context.registerService(
+                  service.targetServiceClass.getName(), service.service, service.properties));
+        }
       }
+      logger.info("Started {}", activatorName);
+    } catch (Exception e) {
+      throw new ServiceStartException("Unable to start " + activatorName, e);
     }
-    logger.info("Started {}", activatorName);
   }
 
   public class Tracker extends ServiceTracker<Object, Object> {
