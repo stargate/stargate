@@ -37,10 +37,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(initQueries = {"CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k))"})
 public class ClientMetricsTest extends BaseOsgiIntegrationTest {
-  private static final Pattern CQL_OPERATIONS_METRIC_REGEXP =
-      Pattern.compile(
-          "(cql_org_apache_cassandra_metrics_Client_CqlOperations_total\\s*)(\\d+.\\d+)");
-
   private static final Pattern MEMORY_HEAP_USAGE_REGEXP =
       Pattern.compile("(jvm_memory_heap_used\\s*)(\\d+.\\d+)");
 
@@ -63,21 +59,6 @@ public class ClientMetricsTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void shouldIncrementCqlOperationsMetric(CqlSession session) throws IOException {
-    // given
-    SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
-    ResultSet resultSet = session.execute(statement);
-    assertThat(resultSet).hasSize(1);
-
-    // when
-    String body = RestUtils.get("", String.format("%s:8084/metrics/cql", host), HttpStatus.SC_OK);
-
-    // then
-    double cqlOperationsMetricValue = getCqlOperationsMetricValue(body);
-    assertThat(cqlOperationsMetricValue).isGreaterThan(0);
-  }
-
-  @Test
   public void shouldReportOnAndNonHeapMemoryUsed(CqlSession session) throws IOException {
     // given
     SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
@@ -92,10 +73,6 @@ public class ClientMetricsTest extends BaseOsgiIntegrationTest {
     assertThat(heapMemoryUsed).isGreaterThan(0);
     double nonHeapMemoryUsed = getNonHeapMemoryUsed(body);
     assertThat(nonHeapMemoryUsed).isGreaterThan(0);
-  }
-
-  private double getCqlOperationsMetricValue(String body) {
-    return getMetricValue(body, "CqlOperations", CQL_OPERATIONS_METRIC_REGEXP);
   }
 
   private double getOnHeapMemoryUsed(String body) {

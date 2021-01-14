@@ -51,8 +51,6 @@ public final class ClientMetrics {
   private AtomicInteger pausedConnections;
   private Meter requestDiscarded;
 
-  private Meter cqlOperations;
-
   private ClientMetrics() {}
 
   public void markAuthSuccess() {
@@ -73,11 +71,6 @@ public final class ClientMetrics {
 
   public void markRequestDiscarded() {
     requestDiscarded.mark();
-  }
-
-  public void markCQLOperation() {
-    System.out.println("markCQLOperation");
-    cqlOperations.mark();
   }
 
   public List<ConnectedClient> allConnectedClients() {
@@ -105,8 +98,6 @@ public final class ClientMetrics {
     pausedConnections = new AtomicInteger();
     registerGauge("PausedConnections", pausedConnections::get);
     requestDiscarded = registerMeter("RequestDiscarded");
-
-    cqlOperations = registerMeter("CqlOperations");
 
     initialized = true;
   }
