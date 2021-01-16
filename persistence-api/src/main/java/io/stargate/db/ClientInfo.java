@@ -54,22 +54,25 @@ public class ClientInfo {
     this.token =
         authenticatedUser.token() != null
             ? ByteBuffer.wrap(authenticatedUser.token().getBytes(StandardCharsets.UTF_8))
+                .asReadOnlyBuffer()
             : null;
-    this.roleName = ByteBuffer.wrap(authenticatedUser.name().getBytes(StandardCharsets.UTF_8));
+    this.roleName =
+        ByteBuffer.wrap(authenticatedUser.name().getBytes(StandardCharsets.UTF_8))
+            .asReadOnlyBuffer();
     this.isFromExternalAuth =
-        authenticatedUser.isFromExternalAuth() ? ByteBuffer.allocate(1) : null;
+        authenticatedUser.isFromExternalAuth() ? ByteBuffer.allocate(1).asReadOnlyBuffer() : null;
   }
 
   public ByteBuffer getToken() {
-    return token;
+    return token == null ? null : token.duplicate();
   }
 
   public ByteBuffer getRoleName() {
-    return roleName;
+    return roleName == null ? null : roleName.duplicate();
   }
 
   public ByteBuffer getIsFromExternalAuth() {
-    return isFromExternalAuth;
+    return isFromExternalAuth == null ? null : isFromExternalAuth.duplicate();
   }
 
   @Override
