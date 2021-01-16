@@ -39,8 +39,20 @@ steps:
         name: 'm2_cache'
     env:
       - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
-  - id: 'cassandra-3.11'
+  - id: 'dse-6.8'
     waitFor: [ 'build' ]
+    name: 'gcr.io/stargateio/stargate-builder:v1.0.3'
+    entrypoint: 'bash'
+    args: [ 'ci/test.sh' ]
+    volumes:
+      - path: '/cache/.m2'
+        name: 'm2_cache'
+    env:
+      - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
+      - 'PERSISTENCE_BACKEND=dse-6.8'
+      - 'COMMIT_ID=$COMMIT_SHA'
+  - id: 'cassandra-3.11'
+    waitFor: [ 'dse-6.8' ]
     name: 'gcr.io/stargateio/stargate-builder:v1.0.3'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]
@@ -63,20 +75,8 @@ steps:
       - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
       - 'PERSISTENCE_BACKEND=cassandra-4.0'
       - 'COMMIT_ID=$COMMIT_SHA'
-  - id: 'dse-6.8'
-    waitFor: [ 'cassandra-4.0' ]
-    name: 'gcr.io/stargateio/stargate-builder:v1.0.3'
-    entrypoint: 'bash'
-    args: [ 'ci/test.sh' ]
-    volumes:
-      - path: '/cache/.m2'
-        name: 'm2_cache'
-    env:
-      - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
-      - 'PERSISTENCE_BACKEND=dse-6.8'
-      - 'COMMIT_ID=$COMMIT_SHA'
   - name: 'gcr.io/cloud-builders/gsutil'
-    waitFor: [ 'dse-6.8' ]
+    waitFor: [ 'cassandra-4.0' ]
     args:
       - '-m'
       - 'rsync'
