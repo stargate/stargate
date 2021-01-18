@@ -27,6 +27,7 @@ import org.apache.cassandra.config.ParameterizedClass;
 import org.apache.cassandra.dht.Murmur3Partitioner;
 import org.apache.cassandra.locator.SimpleSnitch;
 import org.apache.cassandra.metrics.CassandraMetricsRegistry;
+import org.apache.cassandra.utils.FBUtilities;
 import org.apache.commons.io.FileUtils;
 
 public class DsePersistenceActivator extends BaseActivator {
@@ -112,6 +113,7 @@ public class DsePersistenceActivator extends BaseActivator {
     c.storage_port = listenPort;
     c.listen_address = listenAddress;
     c.broadcast_address = listenAddress;
+    c.tpc_cores = FBUtilities.getAvailableProcessors();
     c.seed_provider =
         new ParameterizedClass(
             StargateSeedProvider.class.getName(), Collections.singletonMap("seeds", seedList));
