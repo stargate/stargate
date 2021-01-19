@@ -348,11 +348,23 @@ public abstract class Message {
               message
                   .getCustomPayload()
                   .put("isFromExternalAuth", clientInfo.getIsFromExternalAuth());
+              clientInfo
+                  .publicAddress()
+                  .ifPresent(
+                      v ->
+                          customPayload.put(
+                              "publicAddress", ByteBuffer.wrap(v.getAddress().getAddress())));
             } else {
               Map<String, ByteBuffer> payload = new HashMap<>();
               payload.put("token", clientInfo.getToken());
               payload.put("roleName", clientInfo.getRoleName());
               payload.put("isFromExternalAuth", clientInfo.getIsFromExternalAuth());
+              clientInfo
+                  .publicAddress()
+                  .ifPresent(
+                      v ->
+                          payload.put(
+                              "publicAddress", ByteBuffer.wrap(v.getAddress().getAddress())));
 
               message.setCustomPayload(payload);
             }
