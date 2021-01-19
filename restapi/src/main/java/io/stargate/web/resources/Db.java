@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
 
 public class Db {
 
@@ -127,7 +128,7 @@ public class Db {
 
     AuthenticationSubject authenticationSubject;
     try {
-      authenticationSubject = docsTokensToRoles.get(new TokenAndHeaders(token, headers));
+      authenticationSubject = docsTokensToRoles.get(TokenAndHeaders.create(token, headers));
     } catch (CompletionException e) {
       if (e.getCause() instanceof UnauthorizedException) {
         throw (UnauthorizedException) e.getCause();
@@ -146,10 +147,25 @@ public class Db {
   }
 
   static class TokenAndHeaders {
+    private static final String TENANT_ID_HEADER = "tenant_id";
+    private static final String HOST_HEADER = "Host";
     private final String token;
     private final Map<String, String> headers;
 
-    TokenAndHeaders(String token, Map<String, String> headers) {
+    static TokenAndHeaders create(String token, Map<String, String> headers) {
+      return new TokenAndHeaders(token, filterHeaders(headers));
+    }
+
+    private static Map<String, String> filterHeaders(Map<String, String> headers) {
+      return headers.entrySet().stream()
+          .filter(
+              e ->
+                  e.getKey().equalsIgnoreCase(TENANT_ID_HEADER)
+                      || e.getKey().equalsIgnoreCase(HOST_HEADER))
+          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    private TokenAndHeaders(String token, Map<String, String> headers) {
       this.token = token;
       this.headers = headers;
     }
