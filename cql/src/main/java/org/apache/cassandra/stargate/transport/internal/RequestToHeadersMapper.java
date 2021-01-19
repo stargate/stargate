@@ -16,6 +16,7 @@
 package org.apache.cassandra.stargate.transport.internal;
 
 import io.stargate.db.ClientInfo;
+import java.nio.ByteBuffer;
 import java.util.*;
 
 public class RequestToHeadersMapper {
@@ -26,9 +27,14 @@ public class RequestToHeadersMapper {
     Map<String, String> tenantIdHeaders = new HashMap<>();
     clientInfo
         .publicAddress()
-        .map(tenantIdAddress -> UUID.nameUUIDFromBytes(tenantIdAddress.getAddress().getAddress()))
+        .map(tenantIdAddress -> toUUID(tenantIdAddress.getAddress().getAddress()))
         .ifPresent(
             tenantIdUUID -> tenantIdHeaders.put(TENANT_ID_HEADER_NAME, tenantIdUUID.toString()));
     return tenantIdHeaders;
+  }
+
+  private static UUID toUUID(byte[] addressBytes) {
+    ByteBuffer bytes = ByteBuffer.wrap(addressBytes);
+    return new UUID(bytes.getLong(bytes.position()), bytes.getLong(bytes.position() + 8));
   }
 }

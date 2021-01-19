@@ -30,7 +30,9 @@ class RequestToHeadersMapperTest {
   public void shouldMapInetSocketAddressToHeader() throws UnknownHostException {
     // given
     ClientInfo clientInfo =
-        new ClientInfo(null, new InetSocketAddress(Inet6Address.getByName("::1"), 1000));
+        new ClientInfo(
+            null,
+            new InetSocketAddress(Inet6Address.getByName("3ffe:0:0:1:200:f8ff:fe75:50df"), 1000));
 
     // when
     Map<String, String> allHeaders = RequestToHeadersMapper.toHeaders(clientInfo);
@@ -40,7 +42,7 @@ class RequestToHeadersMapperTest {
         .containsExactly(
             new AbstractMap.SimpleEntry<>(
                 RequestToHeadersMapper.TENANT_ID_HEADER_NAME,
-                "cf404dc8-0617-3c24-9b5b-4fe2531e6d8c"));
+                "3ffe0000-0000-0001-0200-f8fffe7550df"));
   }
 
   @Test
@@ -48,9 +50,13 @@ class RequestToHeadersMapperTest {
       throws UnknownHostException {
     // given
     ClientInfo clientInfo =
-        new ClientInfo(null, new InetSocketAddress(Inet6Address.getByName("::1"), 1000));
+        new ClientInfo(
+            null,
+            new InetSocketAddress(Inet6Address.getByName("3ffe:0:0:1:200:f8ff:fe75:50df"), 1000));
     ClientInfo clientInfoDifferentPort =
-        new ClientInfo(null, new InetSocketAddress(Inet6Address.getByName("::1"), 1234));
+        new ClientInfo(
+            null,
+            new InetSocketAddress(Inet6Address.getByName("3ffe:0:0:1:200:f8ff:fe75:50df"), 1234));
 
     // when
     Map<String, String> allHeaders = RequestToHeadersMapper.toHeaders(clientInfo);
