@@ -34,6 +34,7 @@ public class RequestToHeadersMapper {
   }
 
   private static UUID toUUID(byte[] addressBytes) {
+    // the raw bytes of the IPv6 address are the UUID
     ByteBuffer bytes = ByteBuffer.wrap(addressBytes);
     return new UUID(bytes.getLong(), bytes.getLong());
   }
