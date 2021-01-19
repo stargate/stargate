@@ -44,6 +44,24 @@ class RequestToHeadersMapperTest {
   }
 
   @Test
+  public void shouldDoesUseThePortFromInetSocketAddressWhenCreatingTenantIdUUID()
+      throws UnknownHostException {
+    // given
+    ClientInfo clientInfo =
+        new ClientInfo(null, new InetSocketAddress(Inet6Address.getByName("::1"), 1000));
+    ClientInfo clientInfoDifferentPort =
+        new ClientInfo(null, new InetSocketAddress(Inet6Address.getByName("::1"), 1234));
+
+    // when
+    Map<String, String> allHeaders = RequestToHeadersMapper.toHeaders(clientInfo);
+    Map<String, String> allHeadersDifferentPort =
+        RequestToHeadersMapper.toHeaders(clientInfoDifferentPort);
+
+    //
+    assertThat(allHeaders).isEqualTo(allHeadersDifferentPort);
+  }
+
+  @Test
   public void shouldNotMapInetSocketAddressIfItsNotPresent() {
     // when
     Map<String, String> allHeaders = RequestToHeadersMapper.toHeaders(new ClientInfo(null, null));
