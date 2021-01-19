@@ -59,8 +59,8 @@ public interface AuthorizationService {
    * @param table The table within the provided keyspace containing the data to be read.
    * @param sourceAPI The source api which calls this method.
    * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...) or
-   *     properties propagated from CQL.* @throws UnauthorizedException An exception relating to the
-   *     failure to authorize.
+   *     properties propagated from CQL.
+   * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeDataRead(
       AuthenticationSubject authenticationSubject,
@@ -82,8 +82,8 @@ public interface AuthorizationService {
    * @param scope The table within the provided keyspace that is being modified.
    * @param sourceAPI The source api which calls this method.
    * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...) or
-   *     properties propagated from CQL.* @throws UnauthorizedException An exception relating to the
-   *     failure to authorize.
+   *     properties propagated from CQL.
+   * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeDataWrite(
       AuthenticationSubject authenticationSubject,
@@ -103,8 +103,8 @@ public interface AuthorizationService {
    * @param scope The {@link Scope} of the action to be performed.
    * @param sourceAPI The source api which calls this method.
    * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...) or
-   *     properties propagated from CQL.* @throws UnauthorizedException An exception relating to the
-   *     failure to authorize.
+   *     properties propagated from CQL.
+   * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeDataWrite(
       AuthenticationSubject authenticationSubject,
@@ -125,8 +125,8 @@ public interface AuthorizationService {
    * @param tableNames The table(s) within the provided keyspace(s) that is being read.
    * @param sourceAPI The source api which calls this method.
    * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...) or
-   *     properties propagated from CQL.* @throws UnauthorizedException An exception relating to the
-   *     failure to authorize.
+   *     properties propagated from CQL
+   * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeSchemaRead(
       AuthenticationSubject authenticationSubject,
@@ -147,8 +147,8 @@ public interface AuthorizationService {
    * @param scope The {@link Scope} of the action to be performed.
    * @param sourceAPI The source api which calls this method.
    * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...) or
-   *     properties propagated from CQL.* @throws UnauthorizedException An exception relating to the
-   *     failure to authorize.
+   *     properties propagated from CQL
+   * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeSchemaWrite(
       AuthenticationSubject authenticationSubject,
@@ -167,8 +167,8 @@ public interface AuthorizationService {
    * @param scope The {@link Scope} of the action to be performed.
    * @param sourceAPI The source api which calls this method.
    * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...) or
-   *     properties propagated from CQL.* @throws UnauthorizedException An exception relating to the
-   *     failure to authorize.
+   *     properties propagated from CQL
+   * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeRoleManagement(
       AuthenticationSubject authenticationSubject,
@@ -187,8 +187,8 @@ public interface AuthorizationService {
    * @param scope The {@link Scope} of the action to be performed.
    * @param sourceAPI The source api which calls this method.
    * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...) or
-   *     properties propagated from CQL.* @throws UnauthorizedException An exception relating to the
-   *     failure to authorize.
+   *     properties propagated from CQL
+   * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeRoleManagement(
       AuthenticationSubject authenticationSubject,
@@ -206,8 +206,8 @@ public interface AuthorizationService {
    * @param role The role that is being accessed.
    * @param sourceAPI The source api which calls this method.
    * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...) or
-   *     properties propagated from CQL.* @throws UnauthorizedException An exception relating to the
-   *     failure to authorize.
+   *     properties propagated from CQL
+   * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeRoleRead(
       AuthenticationSubject authenticationSubject,
@@ -225,8 +225,8 @@ public interface AuthorizationService {
    * @param scope The {@link Scope} of the action to be performed.
    * @param sourceAPI The source api which calls this method.
    * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...) or
-   *     properties propagated from CQL.* @throws UnauthorizedException An exception relating to the
-   *     failure to authorize.
+   *     properties propagated from CQL
+   * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizePermissionManagement(
       AuthenticationSubject authenticationSubject,
@@ -244,8 +244,8 @@ public interface AuthorizationService {
    * @param role The role for which the permissions are being accessed.
    * @param sourceAPI The source api which calls this method.
    * @param headers The map of headers propagated from the request (HTTP, GraphQl, ...) or
-   *     properties propagated from CQL.* @throws UnauthorizedException An exception relating to the
-   *     failure to authorize.
+   *     properties propagated from CQL
+   * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizePermissionRead(
       AuthenticationSubject authenticationSubject,
