@@ -71,10 +71,10 @@ public interface AuthenticatedUser extends Serializable {
   class Serializer {
     private static final ByteBuffer FROM_EXTERNAL_VALUE = ByteBuffer.wrap(new byte[] {1});
 
-    private static final String CUSTOM_PAYLOAD_NAME_PREFIX = "stargate.auth.subject.";
-    private static final String TOKEN = CUSTOM_PAYLOAD_NAME_PREFIX + "token";
-    private static final String ROLE = CUSTOM_PAYLOAD_NAME_PREFIX + "role";
-    private static final String EXTERNAL = CUSTOM_PAYLOAD_NAME_PREFIX + "fromExternalAuth";
+    private static final String CUSTOM_PAYLOAD_NAME_PREFIX = "stargate.auth.subject.custom.";
+    private static final String TOKEN = "stargate.auth.subject.token";
+    private static final String ROLE = "stargate.auth.subject.role";
+    private static final String EXTERNAL = "stargate.auth.subject.fromExternalAuth";
 
     private static ByteBuffer encode(String value) {
       return StandardCharsets.UTF_8.encode(value).asReadOnlyBuffer();
@@ -99,9 +99,9 @@ public interface AuthenticatedUser extends Serializable {
     }
 
     public static AuthenticatedUser load(Map<String, ByteBuffer> customPayload) {
-      ByteBuffer token = customPayload.get("token");
-      ByteBuffer roleName = customPayload.get("roleName");
-      ByteBuffer isFromExternalAuth = customPayload.get("isFromExternalAuth");
+      ByteBuffer token = customPayload.get(TOKEN);
+      ByteBuffer roleName = customPayload.get(ROLE);
+      ByteBuffer isFromExternalAuth = customPayload.get(EXTERNAL);
 
       if (token == null || roleName == null) {
         throw new IllegalStateException("token and roleName must be provided");
@@ -112,14 +112,14 @@ public interface AuthenticatedUser extends Serializable {
         String key = e.getKey();
         if (key.startsWith(CUSTOM_PAYLOAD_NAME_PREFIX)) {
           String name = key.substring(CUSTOM_PAYLOAD_NAME_PREFIX.length());
-          String value = StandardCharsets.UTF_8.decode(token).toString();
+          String value = StandardCharsets.UTF_8.decode(e.getValue()).toString();
           map.put(name, value);
         }
       }
 
       return AuthenticatedUser.of(
-          StandardCharsets.UTF_8.decode(token).toString(),
           StandardCharsets.UTF_8.decode(roleName).toString(),
+          StandardCharsets.UTF_8.decode(token).toString(),
           (isFromExternalAuth != null),
           map.build());
     }
