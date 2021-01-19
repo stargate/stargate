@@ -11,8 +11,6 @@ import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.graphql.web.HttpAwareContext;
-import java.util.Collections;
-import java.util.Map;
 
 public abstract class TableFetcher extends DdlQueryFetcher {
   protected TableFetcher(
