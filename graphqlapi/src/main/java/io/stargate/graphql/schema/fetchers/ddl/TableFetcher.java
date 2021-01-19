@@ -10,6 +10,7 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
+import io.stargate.graphql.web.HttpAwareContext;
 import java.util.Collections;
 import java.util.Map;
 
@@ -41,8 +42,15 @@ public abstract class TableFetcher extends DdlQueryFetcher {
       scope = Scope.DROP;
     }
 
+    HttpAwareContext httpAwareContext = dataFetchingEnvironment.getContext();
+
     authorizationService.authorizeSchemaWrite(
-        authenticationSubject, keyspaceName, tableName, scope, SourceAPI.GRAPHQL, EMPTY_HEADERS);
+        authenticationSubject,
+        keyspaceName,
+        tableName,
+        scope,
+        SourceAPI.GRAPHQL,
+        httpAwareContext.getAllHeaders());
 
     return buildQuery(dataFetchingEnvironment, builder, keyspaceName, tableName);
   }
