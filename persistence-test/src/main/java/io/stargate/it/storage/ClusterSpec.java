@@ -34,5 +34,5 @@ public @interface ClusterSpec {
   boolean shared() default false;
 
   /** Defines the number of storage nodes required by the test. */
-  int nodes() default 1;
+  int nodes() default 3;
 }
