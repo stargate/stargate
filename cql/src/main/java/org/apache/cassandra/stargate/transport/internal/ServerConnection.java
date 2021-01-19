@@ -136,7 +136,7 @@ public class ServerConnection extends Connection {
       saslNegotiator =
           authentication == null
               ? negotiator
-              : authentication.getSaslNegotiator(negotiator, toHeaders(clientInfo.publicAddress()));
+              : authentication.getSaslNegotiator(negotiator, toHeaders(clientInfo));
     }
     return saslNegotiator;
   }

@@ -17,23 +17,23 @@ package org.apache.cassandra.stargate.transport.internal;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
+import io.stargate.db.ClientInfo;
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.AbstractMap;
 import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class RequestToHeadersMapperTest {
   @Test
   public void shouldMapInetSocketAddressToHeader() throws UnknownHostException {
     // given
-    Optional<InetSocketAddress> inetSocketAddress =
-        Optional.of(new InetSocketAddress(Inet6Address.getByName("::1"), 1000));
+    ClientInfo clientInfo =
+        new ClientInfo(null, new InetSocketAddress(Inet6Address.getByName("::1"), 1000));
 
     // when
-    Map<String, String> allHeaders = RequestToHeadersMapper.toHeaders(inetSocketAddress);
+    Map<String, String> allHeaders = RequestToHeadersMapper.toHeaders(clientInfo);
 
     //
     assertThat(allHeaders)
@@ -45,11 +45,8 @@ class RequestToHeadersMapperTest {
 
   @Test
   public void shouldNotMapInetSocketAddressIfItsNotPresent() {
-    // given
-    Optional<InetSocketAddress> inetSocketAddress = Optional.empty();
-
     // when
-    Map<String, String> allHeaders = RequestToHeadersMapper.toHeaders(inetSocketAddress);
+    Map<String, String> allHeaders = RequestToHeadersMapper.toHeaders(new ClientInfo(null, null));
 
     //
     assertThat(allHeaders).isEmpty();

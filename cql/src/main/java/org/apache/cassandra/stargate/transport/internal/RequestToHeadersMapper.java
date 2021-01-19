@@ -15,17 +15,17 @@
  */
 package org.apache.cassandra.stargate.transport.internal;
 
-import java.net.InetSocketAddress;
+import io.stargate.db.ClientInfo;
 import java.util.*;
 
 public class RequestToHeadersMapper {
   public static final String TENANT_ID_HEADER_NAME = "tenant_id";
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  public static Map<String, String> toHeaders(
-      Optional<InetSocketAddress> sourceAddressWithEncodedTenantId) {
+  public static Map<String, String> toHeaders(ClientInfo clientInfo) {
     Map<String, String> tenantIdHeaders = new HashMap<>();
-    sourceAddressWithEncodedTenantId
+    clientInfo
+        .publicAddress()
         .map(tenantIdAddress -> UUID.nameUUIDFromBytes(tenantIdAddress.getAddress().getAddress()))
         .ifPresent(
             tenantIdUUID -> tenantIdHeaders.put(TENANT_ID_HEADER_NAME, tenantIdUUID.toString()));
