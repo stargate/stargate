@@ -175,7 +175,6 @@ public class StargateQueryHandler implements QueryHandler {
   @VisibleForTesting
   protected void authorizeByToken(Map<String, ByteBuffer> customPayload, CQLStatement statement) {
     AuthenticationSubject authenticationSubject = loadAuthenticationSubject(customPayload);
-    loadHeaders(customPayload);
 
     if (!getAuthorizationService().isPresent()) {
       throw new RuntimeException(
