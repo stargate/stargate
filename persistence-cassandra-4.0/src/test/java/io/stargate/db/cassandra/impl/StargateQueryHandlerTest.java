@@ -1,5 +1,6 @@
 package io.stargate.db.cassandra.impl;
 
+import static io.stargate.db.cassandra.impl.RequestToHeadersMapper.TENANT_ID_HEADER_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
@@ -22,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.ColumnIdentifier;
@@ -129,6 +131,27 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("local"),
             eq(SourceAPI.CQL),
             eq(EMPTY_HEADERS));
+  }
+
+  @Test
+  void authorizeByTokenSelectStatementWithPublicAddress()
+      throws IOException, UnauthorizedException {
+    SelectStatement.RawStatement rawStatement =
+        (SelectStatement.RawStatement) QueryProcessor.parseStatement("select * from system.local");
+
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+
+    UUID publicAddress = UUID.randomUUID();
+    queryHandler.authorizeByToken(createTokenAndPublicAddress(publicAddress), statement);
+    Map<String, String> expectedHeaders = new HashMap<>();
+    expectedHeaders.put(TENANT_ID_HEADER_NAME, publicAddress.toString());
+    verify(authorizationService, times(1))
+        .authorizeDataRead(
+            refEq(authenticationSubject),
+            eq("system"),
+            eq("local"),
+            eq(SourceAPI.CQL),
+            eq(expectedHeaders));
   }
 
   @Test
@@ -897,6 +920,20 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq(Scope.MODIFY),
             eq(SourceAPI.CQL),
             eq(EMPTY_HEADERS));
+  }
+
+  private Map<String, ByteBuffer> createTokenAndPublicAddress(UUID publicAddress) {
+    Map<String, ByteBuffer> token = createToken();
+    token.put("publicAddress", ByteBuffer.wrap(getUUIDBytes(publicAddress)));
+    return token;
+  }
+
+  private byte[] getUUIDBytes(UUID uuid) {
+    byte[] uuidBytes = new byte[16];
+    ByteBuffer bb = ByteBuffer.wrap(uuidBytes);
+    bb.putLong(uuid.getMostSignificantBits());
+    bb.putLong(uuid.getLeastSignificantBits());
+    return uuidBytes;
   }
 
   private Map<String, ByteBuffer> createToken() {
