@@ -25,7 +25,6 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
-import io.stargate.graphql.web.HttpAwareContext;
 
 public class DropKeyspaceFetcher extends DdlQueryFetcher {
 
@@ -43,14 +42,9 @@ public class DropKeyspaceFetcher extends DdlQueryFetcher {
       AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
     String keyspaceName = dataFetchingEnvironment.getArgument("name");
-    HttpAwareContext httpAwareContext = dataFetchingEnvironment.getContext();
+
     authorizationService.authorizeSchemaWrite(
-        authenticationSubject,
-        keyspaceName,
-        null,
-        Scope.DROP,
-        SourceAPI.GRAPHQL,
-        httpAwareContext.getAllHeaders());
+        authenticationSubject, keyspaceName, null, Scope.DROP, SourceAPI.GRAPHQL);
 
     boolean ifExists = dataFetchingEnvironment.getArgumentOrDefault("ifExists", Boolean.FALSE);
 

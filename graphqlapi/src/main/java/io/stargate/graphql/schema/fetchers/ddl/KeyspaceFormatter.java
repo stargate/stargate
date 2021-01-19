@@ -27,7 +27,6 @@ import io.stargate.db.schema.ImmutableTable;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
-import io.stargate.graphql.web.HttpAwareContext;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -60,15 +59,13 @@ class KeyspaceFormatter {
       DataFetchingEnvironment environment,
       AuthorizationService authorizationService,
       AuthenticationSubject authenticationSubject) {
-    HttpAwareContext httpAwareContext = environment.getContext();
     ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
     try {
       authorizationService.authorizeSchemaRead(
           authenticationSubject,
           Collections.singletonList(keyspace.name()),
           null,
-          SourceAPI.GRAPHQL,
-          httpAwareContext.getAllHeaders());
+          SourceAPI.GRAPHQL);
     } catch (UnauthorizedException e) {
       LOG.debug("Not returning keyspace {} due to not being authorized", keyspace.name());
       return builder.build();
@@ -110,7 +107,6 @@ class KeyspaceFormatter {
       AuthorizationService authorizationService,
       AuthenticationSubject authenticationSubject) {
 
-    HttpAwareContext httpAwareContext = environment.getContext();
     // All children query, for example `keyspace(name: "ks") { tables }`
     String allChildrenName = childFieldName + "s";
     if (environment.getSelectionSet().getField(allChildrenName) != null) {
@@ -122,8 +118,7 @@ class KeyspaceFormatter {
                 authenticationSubject,
                 Collections.singletonList(keyspaceName),
                 Collections.singletonList(((ImmutableTable) child).name()),
-                SourceAPI.GRAPHQL,
-                httpAwareContext.getAllHeaders());
+                SourceAPI.GRAPHQL);
           } catch (UnauthorizedException e) {
             LOG.debug(
                 "Not returning table {}.{} due to not being authorized",
@@ -147,8 +142,7 @@ class KeyspaceFormatter {
               authenticationSubject,
               Collections.singletonList(keyspaceName),
               Collections.singletonList(name),
-              SourceAPI.GRAPHQL,
-              httpAwareContext.getAllHeaders());
+              SourceAPI.GRAPHQL);
         } catch (UnauthorizedException e) {
           LOG.debug("Not returning table {}.{} due to not being authorized", keyspaceName, name);
           return; // Not authorized so return and don't add this table to the list

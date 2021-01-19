@@ -87,8 +87,7 @@ public class CollectionsResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(namespace),
                   tables.stream().map(SchemaEntity::name).collect(Collectors.toList()),
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           List<DocCollection> result =
               tables.stream()
@@ -144,8 +143,7 @@ public class CollectionsResource {
                   namespace,
                   info.getName(),
                   Scope.CREATE,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           boolean res = collectionService.createCollection(namespace, info.getName(), docDB);
           if (res) {
@@ -195,8 +193,7 @@ public class CollectionsResource {
                   namespace,
                   collection,
                   Scope.DROP,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           Table toDelete =
               authenticatedDB.getDataStore().schema().keyspace(namespace).table(collection);
@@ -263,8 +260,7 @@ public class CollectionsResource {
                   namespace,
                   collection,
                   Scope.ALTER,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           Table table = authenticatedDB.getTable(namespace, collection);
           if (table == null) {

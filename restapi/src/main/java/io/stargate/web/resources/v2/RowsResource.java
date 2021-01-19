@@ -331,8 +331,7 @@ public class RowsResource {
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.MODIFY,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
@@ -455,8 +454,7 @@ public class RowsResource {
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.DELETE,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
           return Response.status(Response.Status.NO_CONTENT).build();
@@ -553,8 +551,7 @@ public class RowsResource {
             tableName,
             TypedKeyValue.forDML((BoundDMLQuery) query),
             Scope.MODIFY,
-            SourceAPI.REST,
-            headers);
+            SourceAPI.REST);
 
     authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
     Object response = raw ? requestBody : new ResponseWrapper(requestBody);
@@ -602,8 +599,7 @@ public class RowsResource {
                 tableMetadata.keyspace(),
                 tableMetadata.name(),
                 TypedKeyValue.forSelect((BoundSelect) query),
-                SourceAPI.REST,
-                headers);
+                SourceAPI.REST);
 
     List<Map<String, Object>> rows =
         r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());

@@ -18,7 +18,6 @@ import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
-import io.stargate.graphql.web.HttpAwareContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +39,6 @@ public class UpdateMutationFetcher extends MutationFetcher {
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
-    HttpAwareContext httpAwareContext = environment.getContext();
     boolean ifExists =
         environment.containsArgument("ifExists")
             && environment.getArgument("ifExists") != null
@@ -64,8 +62,7 @@ public class UpdateMutationFetcher extends MutationFetcher {
         table.name(),
         TypedKeyValue.forDML((BoundDMLQuery) query),
         Scope.MODIFY,
-        SourceAPI.GRAPHQL,
-        httpAwareContext.getAllHeaders());
+        SourceAPI.GRAPHQL);
 
     return query;
   }

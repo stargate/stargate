@@ -26,7 +26,6 @@ import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.UserDefinedType;
-import io.stargate.graphql.web.HttpAwareContext;
 
 public class DropTypeFetcher extends DdlQueryFetcher {
 
@@ -46,15 +45,10 @@ public class DropTypeFetcher extends DdlQueryFetcher {
 
     String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
     String typeName = dataFetchingEnvironment.getArgument("typeName");
-    HttpAwareContext httpAwareContext = dataFetchingEnvironment.getContext();
+
     // Permissions on a type are the same as keyspace
     authorizationService.authorizeSchemaWrite(
-        authenticationSubject,
-        keyspaceName,
-        null,
-        Scope.DROP,
-        SourceAPI.GRAPHQL,
-        httpAwareContext.getAllHeaders());
+        authenticationSubject, keyspaceName, null, Scope.DROP, SourceAPI.GRAPHQL);
 
     Boolean ifExists = dataFetchingEnvironment.getArgument("ifExists");
     return builder

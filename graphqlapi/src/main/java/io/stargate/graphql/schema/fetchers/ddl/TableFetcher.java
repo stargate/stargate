@@ -10,9 +10,9 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
-import io.stargate.graphql.web.HttpAwareContext;
 
 public abstract class TableFetcher extends DdlQueryFetcher {
+
   protected TableFetcher(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
@@ -38,15 +38,8 @@ public abstract class TableFetcher extends DdlQueryFetcher {
       scope = Scope.DROP;
     }
 
-    HttpAwareContext httpAwareContext = dataFetchingEnvironment.getContext();
-
     authorizationService.authorizeSchemaWrite(
-        authenticationSubject,
-        keyspaceName,
-        tableName,
-        scope,
-        SourceAPI.GRAPHQL,
-        httpAwareContext.getAllHeaders());
+        authenticationSubject, keyspaceName, tableName, scope, SourceAPI.GRAPHQL);
 
     return buildQuery(dataFetchingEnvironment, builder, keyspaceName, tableName);
   }

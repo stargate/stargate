@@ -106,8 +106,7 @@ public class ColumnsResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           final Table tableMetadata;
           try {
@@ -205,8 +204,7 @@ public class ColumnsResource {
                   keyspaceName,
                   tableName,
                   Scope.ALTER,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           authenticatedDB
               .getDataStore()
@@ -267,8 +265,7 @@ public class ColumnsResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           final Table tableMetadata;
           try {
@@ -345,8 +342,7 @@ public class ColumnsResource {
                   keyspaceName,
                   tableName,
                   Scope.ALTER,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           authenticatedDB
               .getDataStore()
@@ -402,8 +398,7 @@ public class ColumnsResource {
                   keyspaceName,
                   tableName,
                   Scope.ALTER,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           authenticatedDB
               .getDataStore()

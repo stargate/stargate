@@ -104,8 +104,7 @@ public class KeyspacesResource {
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
                   null,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           Object response = raw ? keyspaces : new ResponseWrapper(keyspaces);
           return Response.status(Response.Status.OK)
@@ -151,8 +150,7 @@ public class KeyspacesResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   null,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           io.stargate.db.schema.Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
@@ -228,8 +226,7 @@ public class KeyspacesResource {
                   keyspaceName,
                   null,
                   Scope.CREATE,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           Replication replication;
           if (requestBody.containsKey("datacenters")) {
@@ -297,8 +294,7 @@ public class KeyspacesResource {
                   keyspaceName,
                   null,
                   Scope.DROP,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           authenticatedDB
               .getDataStore()

@@ -34,7 +34,6 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.NameMapping;
-import io.stargate.graphql.web.HttpAwareContext;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,7 +59,7 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
       AuthenticationSubject authenticationSubject)
       throws Exception {
     BoundQuery query = buildQuery(environment, dataStore);
-    HttpAwareContext httpAwareContext = environment.getContext();
+
     ResultSet resultSet =
         authorizationService.authorizedDataRead(
             () -> dataStore.execute(query).get(),
@@ -68,8 +67,7 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
             table.keyspace(),
             table.name(),
             TypedKeyValue.forSelect((BoundSelect) query),
-            SourceAPI.GRAPHQL,
-            httpAwareContext.getAllHeaders());
+            SourceAPI.GRAPHQL);
 
     Map<String, Object> result = new HashMap<>();
     result.put(

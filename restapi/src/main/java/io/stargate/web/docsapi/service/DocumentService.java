@@ -440,20 +440,14 @@ public class DocumentService {
     long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
     if (patching) {
       db.deletePatchedPathsThenInsertBatch(
-          keyspace, collection, id, bindVariableList, convertedPath, firstLevelKeys, now, headers);
+          keyspace, collection, id, bindVariableList, convertedPath, firstLevelKeys, now);
     } else {
-      db.deleteThenInsertBatch(
-          keyspace, collection, id, bindVariableList, convertedPath, now, headers);
+      db.deleteThenInsertBatch(keyspace, collection, id, bindVariableList, convertedPath, now);
     }
   }
 
   public JsonNode getJsonAtPath(
-      DocumentDB db,
-      String keyspace,
-      String collection,
-      String id,
-      List<PathSegment> path,
-      Map<String, String> headers)
+      DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path)
       throws ExecutionException, InterruptedException, UnauthorizedException {
     List<BuiltCondition> predicates = new ArrayList<>();
     predicates.add(BuiltCondition.of("key", Predicate.EQ, id));
@@ -482,7 +476,7 @@ public class DocumentService {
         convertToJsonDoc(rows, false, db.treatBooleansAsNumeric());
     if (!result.right.isEmpty()) {
       logger.info(String.format("Deleting %d dead leaves", result.right.size()));
-      db.deleteDeadLeaves(keyspace, collection, id, result.right, headers);
+      db.deleteDeadLeaves(keyspace, collection, id, result.right);
     }
     JsonNode node = result.left.at(pathStr.toString());
     if (node.isMissingNode()) {
@@ -623,12 +617,7 @@ public class DocumentService {
   }
 
   public void deleteAtPath(
-      DocumentDB db,
-      String keyspace,
-      String collection,
-      String id,
-      List<PathSegment> path,
-      Map<String, String> headers)
+      DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path)
       throws UnauthorizedException {
     List<String> convertedPath = new ArrayList<>(path.size());
     for (PathSegment pathSegment : path) {
@@ -637,7 +626,7 @@ public class DocumentService {
     }
     Long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
 
-    db.delete(keyspace, collection, id, convertedPath, now, headers);
+    db.delete(keyspace, collection, id, convertedPath, now);
   }
 
   public JsonNode searchDocuments(
@@ -678,7 +667,7 @@ public class DocumentService {
           convertToJsonDoc(entry.getValue(), true, db.treatBooleansAsNumeric());
       if (!result.right.isEmpty()) {
         logger.info(String.format("Deleting %d dead leaves", result.right.size()));
-        db.deleteDeadLeaves(keyspace, collection, entry.getKey(), result.right, headers);
+        db.deleteDeadLeaves(keyspace, collection, entry.getKey(), result.right);
       }
       JsonNode node = result.left.requiredAt(pathStr.toString());
       docsResult.set(entry.getKey(), node);
@@ -1086,9 +1075,9 @@ public class DocumentService {
     ResultSet r;
 
     if (predicates.size() > 0) {
-      r = db.executeSelect(keyspace, collection, predicates, true, headers);
+      r = db.executeSelect(keyspace, collection, predicates, true);
     } else {
-      r = db.executeSelectAll(keyspace, collection, headers);
+      r = db.executeSelectAll(keyspace, collection);
     }
 
     List<Row> rows = r.currentPageRows();

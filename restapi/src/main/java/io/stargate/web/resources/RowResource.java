@@ -156,8 +156,7 @@ public class RowResource {
                       keyspaceName,
                       tableName,
                       TypedKeyValue.forSelect((BoundSelect) query),
-                      SourceAPI.REST,
-                      allHeaders);
+                      SourceAPI.REST);
 
           final List<Map<String, Object>> rows =
               r.rows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
@@ -239,8 +238,7 @@ public class RowResource {
                       keyspaceName,
                       tableName,
                       Collections.emptyList(),
-                      SourceAPI.REST,
-                      allHeaders);
+                      SourceAPI.REST);
 
           final List<Map<String, Object>> rows =
               r.currentPageRows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
@@ -372,8 +370,7 @@ public class RowResource {
                       keyspaceName,
                       tableName,
                       TypedKeyValue.forSelect((BoundSelect) query),
-                      SourceAPI.REST,
-                      allHeaders);
+                      SourceAPI.REST);
 
           final List<Map<String, Object>> rows =
               r.currentPageRows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
@@ -451,8 +448,7 @@ public class RowResource {
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.MODIFY,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
@@ -516,8 +512,7 @@ public class RowResource {
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.DELETE,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
@@ -590,8 +585,7 @@ public class RowResource {
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.MODIFY,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 

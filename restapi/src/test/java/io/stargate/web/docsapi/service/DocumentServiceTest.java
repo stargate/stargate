@@ -50,7 +50,12 @@ import io.stargate.web.resources.Db;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.PathSegment;
@@ -164,8 +169,7 @@ public class DocumentServiceTest {
             List.class,
             List.class,
             Boolean.class,
-            String.class,
-            Map.class);
+            String.class);
     searchRows.setAccessible(true);
   }
 
@@ -929,11 +933,10 @@ public class DocumentServiceTest {
         EMPTY_HEADERS);
 
     verify(dbMock, times(1))
-        .deleteThenInsertBatch(
-            anyString(), anyString(), anyString(), any(), any(), anyLong(), any());
+        .deleteThenInsertBatch(anyString(), anyString(), anyString(), any(), any(), anyLong());
     verify(dbMock, times(0))
         .deletePatchedPathsThenInsertBatch(
-            anyString(), anyString(), anyString(), any(), any(), any(), anyLong(), any());
+            anyString(), anyString(), anyString(), any(), any(), any(), anyLong());
   }
 
   @Test
@@ -956,11 +959,10 @@ public class DocumentServiceTest {
         EMPTY_HEADERS);
 
     verify(dbMock, times(0))
-        .deleteThenInsertBatch(
-            anyString(), anyString(), anyString(), any(), any(), anyLong(), any());
+        .deleteThenInsertBatch(anyString(), anyString(), anyString(), any(), any(), anyLong());
     verify(dbMock, times(1))
         .deletePatchedPathsThenInsertBatch(
-            anyString(), anyString(), anyString(), any(), any(), any(), anyLong(), any());
+            anyString(), anyString(), anyString(), any(), any(), any(), anyLong());
   }
 
   @Test
@@ -1004,14 +1006,10 @@ public class DocumentServiceTest {
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationSubject.class),
-            anyString(),
-            anyString(),
-            eq(SourceAPI.REST),
-            eq(EMPTY_HEADERS));
+            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
 
     List<PathSegment> path = smallPath();
-    JsonNode result = service.getJsonAtPath(dbMock, "ks", "collection", "id", path, EMPTY_HEADERS);
+    JsonNode result = service.getJsonAtPath(dbMock, "ks", "collection", "id", path);
 
     assertThat(result).isNull();
   }
@@ -1029,11 +1027,7 @@ public class DocumentServiceTest {
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationSubject.class),
-            anyString(),
-            anyString(),
-            eq(SourceAPI.REST),
-            eq(EMPTY_HEADERS));
+            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
 
     List<Row> rows = makeInitialRowData();
     when(rsMock.rows()).thenReturn(rows);
@@ -1043,8 +1037,7 @@ public class DocumentServiceTest {
     when(serviceMock.convertToJsonDoc(anyListOf(Row.class), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.createObjectNode(), new HashMap<>()));
 
-    JsonNode result =
-        serviceMock.getJsonAtPath(dbMock, "ks", "collection", "id", path, EMPTY_HEADERS);
+    JsonNode result = serviceMock.getJsonAtPath(dbMock, "ks", "collection", "id", path);
 
     assertThat(result).isNull();
   }
@@ -1063,11 +1056,7 @@ public class DocumentServiceTest {
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationSubject.class),
-            anyString(),
-            anyString(),
-            eq(SourceAPI.REST),
-            eq(EMPTY_HEADERS));
+            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
 
     List<Row> rows = makeInitialRowData();
     when(rsMock.rows()).thenReturn(rows);
@@ -1080,8 +1069,7 @@ public class DocumentServiceTest {
     when(serviceMock.convertToJsonDoc(anyListOf(Row.class), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(jsonObj, new HashMap<>()));
 
-    JsonNode result =
-        serviceMock.getJsonAtPath(dbMock, "ks", "collection", "id", path, EMPTY_HEADERS);
+    JsonNode result = serviceMock.getJsonAtPath(dbMock, "ks", "collection", "id", path);
 
     assertThat(result).isEqualTo(IntNode.valueOf(1));
   }
@@ -1100,11 +1088,7 @@ public class DocumentServiceTest {
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationSubject.class),
-            anyString(),
-            anyString(),
-            eq(SourceAPI.REST),
-            eq(EMPTY_HEADERS));
+            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
 
     List<Row> rows = makeInitialRowData();
     when(rsMock.rows()).thenReturn(rows);
@@ -1119,11 +1103,10 @@ public class DocumentServiceTest {
     when(serviceMock.convertToJsonDoc(anyListOf(Row.class), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(jsonObj, deadLeaves));
 
-    JsonNode result =
-        serviceMock.getJsonAtPath(dbMock, "ks", "collection", "id", path, EMPTY_HEADERS);
+    JsonNode result = serviceMock.getJsonAtPath(dbMock, "ks", "collection", "id", path);
 
     assertThat(result).isEqualTo(IntNode.valueOf(1));
-    verify(dbMock, times(1)).deleteDeadLeaves("ks", "collection", "id", deadLeaves, EMPTY_HEADERS);
+    verify(dbMock, times(1)).deleteDeadLeaves("ks", "collection", "id", deadLeaves);
   }
 
   @Test
@@ -1232,21 +1215,11 @@ public class DocumentServiceTest {
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationSubject.class),
-            anyString(),
-            anyString(),
-            eq(SourceAPI.REST),
-            eq(EMPTY_HEADERS));
+            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
 
-    service.deleteAtPath(dbMock, "keyspace", "collection", "id", smallPath(), EMPTY_HEADERS);
+    service.deleteAtPath(dbMock, "keyspace", "collection", "id", smallPath());
     verify(dbMock, times(1))
-        .delete(
-            anyString(),
-            anyString(),
-            anyString(),
-            anyListOf(String.class),
-            anyLong(),
-            eq(EMPTY_HEADERS));
+        .delete(anyString(), anyString(), anyString(), anyListOf(String.class), anyLong());
   }
 
   // searchDocuments unit tests excluded here, it is in deprecated v1
@@ -1435,15 +1408,14 @@ public class DocumentServiceTest {
 
     ResultSet rsMock = mock(ResultSet.class);
     List<Row> rows = makeInitialRowData();
-    when(dbMock.executeSelectAll(anyString(), anyString(), any())).thenReturn(rsMock);
-    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), any()))
-        .thenReturn(rsMock);
+    when(dbMock.executeSelectAll(anyString(), anyString())).thenReturn(rsMock);
+    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean())).thenReturn(rsMock);
     when(rsMock.currentPageRows()).thenReturn(rows);
     when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST), any());
+            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
 
     List<FilterCondition> filters =
         ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$eq", true));
@@ -1459,8 +1431,7 @@ public class DocumentServiceTest {
                 new ArrayList<>(),
                 ImmutableList.of("a,b", "*", "c"),
                 null,
-                null,
-                EMPTY_HEADERS);
+                null);
 
     assertThat(result.right).isNull();
     assertThat(result.left).isEqualTo(rows);
@@ -1476,8 +1447,7 @@ public class DocumentServiceTest {
                 new ArrayList<>(),
                 new ArrayList<>(),
                 null,
-                null,
-                EMPTY_HEADERS);
+                null);
 
     assertThat(result.right).isNull();
     assertThat(result.left).isEqualTo(rows);
@@ -1489,14 +1459,13 @@ public class DocumentServiceTest {
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
     List<Row> rows = makeInitialRowData();
-    when(dbMock.executeSelectAll(anyString(), anyString(), any())).thenReturn(rsMock);
-    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), any()))
-        .thenReturn(rsMock);
+    when(dbMock.executeSelectAll(anyString(), anyString())).thenReturn(rsMock);
+    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean())).thenReturn(rsMock);
     when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
     doNothing()
         .when(authorizationService)
         .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST), any());
+            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
     when(rsMock.rows()).thenReturn(rows);
     when(rsMock.getPagingState()).thenReturn(ByteBuffer.wrap(new byte[0]));
 
@@ -1515,8 +1484,7 @@ public class DocumentServiceTest {
                     new ArrayList<>(),
                     ImmutableList.of("a,b", "*", "c"),
                     null,
-                    null,
-                    EMPTY_HEADERS));
+                    null));
 
     assertThat(thrown.getCause())
         .isInstanceOf(DocumentAPIRequestException.class)

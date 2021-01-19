@@ -118,8 +118,7 @@ public class TablesResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   tableResponses.stream().map(TableResponse::getName).collect(Collectors.toList()),
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           Object response = raw ? tableResponses : new ResponseWrapper(tableResponses);
           return Response.status(Response.Status.OK)
@@ -167,8 +166,7 @@ public class TablesResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -234,8 +232,7 @@ public class TablesResource {
                   keyspaceName,
                   tableName,
                   Scope.CREATE,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           PrimaryKey primaryKey = tableAdd.getPrimaryKey();
           if (primaryKey == null) {
@@ -341,8 +338,7 @@ public class TablesResource {
                   keyspaceName,
                   tableName,
                   Scope.ALTER,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           TableOptions options = tableUpdate.getTableOptions();
           List<ClusteringExpression> clusteringExpressions = options.getClusteringExpression();
@@ -417,8 +413,7 @@ public class TablesResource {
                   keyspaceName,
                   tableName,
                   Scope.DROP,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           authenticatedDB
               .getDataStore()

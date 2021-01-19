@@ -40,7 +40,11 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
@@ -113,8 +117,7 @@ public class TableResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   tableNames,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           return Response.status(Response.Status.OK).entity(tableNames).build();
         });
@@ -211,8 +214,7 @@ public class TableResource {
                   keyspaceName,
                   tableName,
                   Scope.CREATE,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           int ttl = 0;
           if (options != null && options.getDefaultTimeToLive() != null) {
@@ -273,8 +275,7 @@ public class TableResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -361,8 +362,7 @@ public class TableResource {
                   keyspaceName,
                   tableName,
                   Scope.DROP,
-                  SourceAPI.REST,
-                  allHeaders);
+                  SourceAPI.REST);
 
           authenticatedDB
               .getDataStore()

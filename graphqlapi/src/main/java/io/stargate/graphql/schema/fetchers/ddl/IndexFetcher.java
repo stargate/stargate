@@ -12,9 +12,9 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
-import io.stargate.graphql.web.HttpAwareContext;
 
 public abstract class IndexFetcher extends DdlQueryFetcher {
+
   protected final Scope scope;
 
   protected IndexFetcher(
@@ -36,15 +36,9 @@ public abstract class IndexFetcher extends DdlQueryFetcher {
       throws UnauthorizedException {
     String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
     String tableName = dataFetchingEnvironment.getArgument("tableName");
-    HttpAwareContext httpAwareContext = dataFetchingEnvironment.getContext();
 
     authorizationService.authorizeSchemaWrite(
-        authenticationSubject,
-        keyspaceName,
-        tableName,
-        scope,
-        SourceAPI.GRAPHQL,
-        httpAwareContext.getAllHeaders());
+        authenticationSubject, keyspaceName, tableName, scope, SourceAPI.GRAPHQL);
 
     return buildQuery(dataFetchingEnvironment, builder, keyspaceName, tableName);
   }

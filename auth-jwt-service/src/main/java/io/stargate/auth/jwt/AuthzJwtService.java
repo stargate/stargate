@@ -32,7 +32,6 @@ import io.stargate.db.schema.Column.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
 import org.json.JSONException;
@@ -59,9 +58,8 @@ public class AuthzJwtService implements AuthorizationService {
       String table,
       List<TypedKeyValue> typedKeyValues,
       SourceAPI
-          sourceAPI, // this isn’t supported but if you want to use it you’ll need something other
+          sourceAPI) // this isn’t supported but if you want to use it you’ll need something other
       // than a JWT
-      Map<String, String> headers)
       throws Exception {
     JSONObject stargateClaims = extractClaimsFromJWT(authenticationSubject.token());
 
@@ -113,8 +111,7 @@ public class AuthzJwtService implements AuthorizationService {
       AuthenticationSubject authenticationSubject,
       String keyspace,
       String table,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -132,8 +129,7 @@ public class AuthzJwtService implements AuthorizationService {
       String keyspace,
       String table,
       Scope scope,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -146,8 +142,7 @@ public class AuthzJwtService implements AuthorizationService {
       String table,
       List<TypedKeyValue> typedKeyValues,
       Scope scope,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     JSONObject stargateClaims = extractClaimsFromJWT(authenticationSubject.token());
 
@@ -167,8 +162,7 @@ public class AuthzJwtService implements AuthorizationService {
       AuthenticationSubject authenticationSubject,
       List<String> keyspaceNames,
       List<String> tableNames,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -185,8 +179,7 @@ public class AuthzJwtService implements AuthorizationService {
       String keyspace,
       String table,
       Scope scope,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -199,11 +192,7 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public void authorizeRoleManagement(
-      AuthenticationSubject authenticationSubject,
-      String role,
-      Scope scope,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      AuthenticationSubject authenticationSubject, String role, Scope scope, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -220,8 +209,7 @@ public class AuthzJwtService implements AuthorizationService {
       String role,
       String grantee,
       Scope scope,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -234,10 +222,7 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public void authorizeRoleRead(
-      AuthenticationSubject authenticationSubject,
-      String role,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      AuthenticationSubject authenticationSubject, String role, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -254,8 +239,7 @@ public class AuthzJwtService implements AuthorizationService {
       String resource,
       String grantee,
       Scope scope,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -268,10 +252,7 @@ public class AuthzJwtService implements AuthorizationService {
    */
   @Override
   public void authorizePermissionRead(
-      AuthenticationSubject authenticationSubject,
-      String role,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      AuthenticationSubject authenticationSubject, String role, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }

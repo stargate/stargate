@@ -23,7 +23,6 @@ import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ResultSet;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 
 public class AuthzTableBasedService implements AuthorizationService {
@@ -41,8 +40,7 @@ public class AuthzTableBasedService implements AuthorizationService {
       String keyspace,
       String table,
       List<TypedKeyValue> typedKeyValues,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      SourceAPI sourceAPI)
       throws Exception {
     // Cannot perform authorization with a table based token so just return
     return action.call();
@@ -59,8 +57,7 @@ public class AuthzTableBasedService implements AuthorizationService {
       AuthenticationSubject authenticationSubject,
       String keyspaceNames,
       String tableNames,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -77,8 +74,7 @@ public class AuthzTableBasedService implements AuthorizationService {
       String keyspaceNames,
       String tableNames,
       Scope scope,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -96,8 +92,7 @@ public class AuthzTableBasedService implements AuthorizationService {
       String table,
       List<TypedKeyValue> typedKeyValues,
       Scope scope,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -114,8 +109,7 @@ public class AuthzTableBasedService implements AuthorizationService {
       AuthenticationSubject authenticationSubject,
       List<String> keyspaceNames,
       List<String> tableNames,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -133,8 +127,7 @@ public class AuthzTableBasedService implements AuthorizationService {
       String keyspace,
       String table,
       Scope scope,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -147,11 +140,7 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public void authorizeRoleManagement(
-      AuthenticationSubject authenticationSubject,
-      String role,
-      Scope scope,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      AuthenticationSubject authenticationSubject, String role, Scope scope, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -168,8 +157,7 @@ public class AuthzTableBasedService implements AuthorizationService {
       String role,
       String grantee,
       Scope scope,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -182,10 +170,7 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public void authorizeRoleRead(
-      AuthenticationSubject authenticationSubject,
-      String role,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      AuthenticationSubject authenticationSubject, String role, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -203,8 +188,7 @@ public class AuthzTableBasedService implements AuthorizationService {
       String resource,
       String grantee,
       Scope scope,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -218,10 +202,7 @@ public class AuthzTableBasedService implements AuthorizationService {
    */
   @Override
   public void authorizePermissionRead(
-      AuthenticationSubject authenticationSubject,
-      String role,
-      SourceAPI sourceAPI,
-      Map<String, String> headers)
+      AuthenticationSubject authenticationSubject, String role, SourceAPI sourceAPI)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }

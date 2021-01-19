@@ -80,11 +80,7 @@ public class KeyspaceResource {
           List<String> keyspaceNames = authenticatedDB.getDataStore().schema().keyspaceNames();
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationSubject(),
-                  keyspaceNames,
-                  null,
-                  SourceAPI.REST,
-                  allHeaders);
+                  authenticatedDB.getAuthenticationSubject(), keyspaceNames, null, SourceAPI.REST);
           return Response.status(Response.Status.OK).entity(keyspaceNames).build();
         });
   }

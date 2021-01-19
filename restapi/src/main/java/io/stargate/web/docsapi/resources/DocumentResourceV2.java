@@ -417,8 +417,7 @@ public class DocumentResourceV2 {
         () -> {
           Map<String, String> allHeaders = getAllHeaders(request);
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, allHeaders);
-          documentService.deleteAtPath(
-              db, namespace, collection, id, new ArrayList<>(), allHeaders);
+          documentService.deleteAtPath(db, namespace, collection, id, new ArrayList<>());
           return Response.noContent().build();
         });
   }
@@ -461,7 +460,7 @@ public class DocumentResourceV2 {
         () -> {
           Map<String, String> allHeaders = getAllHeaders(request);
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, allHeaders);
-          documentService.deleteAtPath(db, namespace, collection, id, path, allHeaders);
+          documentService.deleteAtPath(db, namespace, collection, id, path);
           return Response.noContent().build();
         });
   }
@@ -637,7 +636,7 @@ public class DocumentResourceV2 {
           if (filters.isEmpty()) {
 
             DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, allHeaders);
-            node = documentService.getJsonAtPath(db, namespace, collection, id, path, allHeaders);
+            node = documentService.getJsonAtPath(db, namespace, collection, id, path);
             if (node == null) {
               return Response.noContent().build();
             }
