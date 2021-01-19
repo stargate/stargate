@@ -20,6 +20,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Authenticator.SaslNegotiator;
+import io.stargate.db.ClientInfo;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
@@ -215,8 +216,7 @@ public class AuthnTableBasedService implements AuthenticationService {
   }
 
   @Override
-  public AuthenticationSubject validateToken(String token, Map<String, String> headers)
-      throws UnauthorizedException {
+  public AuthenticationSubject validateToken(String token) throws UnauthorizedException {
     if (Strings.isNullOrEmpty(token)) {
       throw new UnauthorizedException("authorization failed - missing token");
     }
@@ -272,12 +272,12 @@ public class AuthnTableBasedService implements AuthenticationService {
   }
 
   @Override
-  public SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped, Map<String, String> headers) {
+  public SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped, ClientInfo clientInfo) {
     return new PlainTextTableBasedTokenSaslNegotiator(
         this,
         wrapped,
         System.getProperty("stargate.cql_token_username", "token"),
         Integer.parseInt(System.getProperty("stargate.cql_token_max_length", "36")),
-        headers);
+        clientInfo);
   }
 }

@@ -13,11 +13,11 @@ import io.stargate.auth.PlainTextTokenSaslNegotiator;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.Authenticator.SaslNegotiator;
+import io.stargate.db.ClientInfo;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.Map;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
@@ -28,7 +28,10 @@ class PlainTextTableBasedTokenSaslNegotiatorTest {
   private final String ROLE = "someRole";
   private final int TOKEN_MAX_LENGTH = 36;
   private final String TOKEN_USERNAME = "token";
-  private final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
+  private final ClientInfo clientInfo =
+      new ClientInfo(
+          InetSocketAddress.createUnresolved("localhost", 1234),
+          InetSocketAddress.createUnresolved("localhost", 4321));
 
   @Test
   public void decodeCredentials() {
@@ -91,12 +94,12 @@ class PlainTextTableBasedTokenSaslNegotiatorTest {
     final byte[] clientResponse = createClientResponse(TOKEN_USERNAME, TOKEN);
 
     AuthenticationService authentication = mock(AuthenticationService.class);
-    when(authentication.validateToken(TOKEN, EMPTY_HEADERS))
+    when(authentication.validateToken(TOKEN, clientInfo))
         .thenReturn(AuthenticationSubject.of(TOKEN, ROLE));
 
     PlainTextTokenSaslNegotiator negotiator =
         new PlainTextTableBasedTokenSaslNegotiator(
-            authentication, null, TOKEN_USERNAME, TOKEN_MAX_LENGTH, EMPTY_HEADERS);
+            authentication, null, TOKEN_USERNAME, TOKEN_MAX_LENGTH, clientInfo);
     assertThat(negotiator.evaluateResponse(clientResponse)).isNull();
     assertThat(negotiator.isComplete()).isTrue();
     assertThat(negotiator.getAuthenticatedUser().name()).isEqualTo(ROLE);
@@ -113,7 +116,7 @@ class PlainTextTableBasedTokenSaslNegotiatorTest {
 
     PlainTextTokenSaslNegotiator negotiator =
         new PlainTextTableBasedTokenSaslNegotiator(
-            null, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH, EMPTY_HEADERS);
+            null, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH, clientInfo);
     assertThat(negotiator.evaluateResponse(clientResponse)).isNull();
     assertThat(negotiator.isComplete()).isTrue();
     assertThat(negotiator.getAuthenticatedUser().name()).isEqualTo(ROLE);
@@ -128,7 +131,7 @@ class PlainTextTableBasedTokenSaslNegotiatorTest {
 
     PlainTextTokenSaslNegotiator negotiator =
         new PlainTextTableBasedTokenSaslNegotiator(
-            null, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH, EMPTY_HEADERS);
+            null, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH, clientInfo);
     assertThat(
             negotiator.attemptTokenAuthentication(
                 createClientResponse(TOKEN_USERNAME, tooLongToken)))
@@ -139,14 +142,14 @@ class PlainTextTableBasedTokenSaslNegotiatorTest {
   @Test
   public void authServiceReturnsNullCredentials() throws UnauthorizedException, IOException {
     AuthenticationService authentication = mock(AuthenticationService.class);
-    when(authentication.validateToken(TOKEN, EMPTY_HEADERS)).thenReturn(null);
+    when(authentication.validateToken(TOKEN, clientInfo)).thenReturn(null);
 
     SaslNegotiator wrappedNegotiator = mock(SaslNegotiator.class);
     when(wrappedNegotiator.isComplete()).thenReturn(false);
 
     PlainTextTokenSaslNegotiator negotiator =
         new PlainTextTableBasedTokenSaslNegotiator(
-            authentication, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH, EMPTY_HEADERS);
+            authentication, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH, clientInfo);
     assertThat(negotiator.attemptTokenAuthentication(createClientResponse(TOKEN_USERNAME, TOKEN)))
         .isFalse();
     assertThat(negotiator.isComplete()).isFalse();
@@ -155,7 +158,7 @@ class PlainTextTableBasedTokenSaslNegotiatorTest {
   @Test
   public void authServiceThrowsUnauthorized() throws UnauthorizedException, IOException {
     AuthenticationService authentication = mock(AuthenticationService.class);
-    when(authentication.validateToken(TOKEN, EMPTY_HEADERS))
+    when(authentication.validateToken(TOKEN, clientInfo))
         .thenThrow(new UnauthorizedException("Not authorized"));
 
     SaslNegotiator wrappedNegotiator = mock(SaslNegotiator.class);
@@ -163,7 +166,7 @@ class PlainTextTableBasedTokenSaslNegotiatorTest {
 
     PlainTextTokenSaslNegotiator negotiator =
         new PlainTextTableBasedTokenSaslNegotiator(
-            authentication, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH, EMPTY_HEADERS);
+            authentication, wrappedNegotiator, TOKEN_USERNAME, TOKEN_MAX_LENGTH, clientInfo);
     assertThat(negotiator.attemptTokenAuthentication(createClientResponse(TOKEN_USERNAME, TOKEN)))
         .isFalse();
     assertThat(negotiator.isComplete()).isFalse();

@@ -17,8 +17,6 @@
  */
 package org.apache.cassandra.stargate.transport.internal;
 
-import static org.apache.cassandra.stargate.transport.internal.RequestToHeadersMapper.toHeaders;
-
 import com.codahale.metrics.Counter;
 import io.netty.channel.Channel;
 import io.netty.handler.ssl.SslHandler;
@@ -136,7 +134,7 @@ public class ServerConnection extends Connection {
       saslNegotiator =
           authentication == null
               ? negotiator
-              : authentication.getSaslNegotiator(negotiator, toHeaders(clientInfo));
+              : authentication.getSaslNegotiator(negotiator, clientInfo);
     }
     return saslNegotiator;
   }

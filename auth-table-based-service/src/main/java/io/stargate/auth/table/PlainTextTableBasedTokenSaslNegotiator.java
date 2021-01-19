@@ -22,7 +22,7 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.Credentials;
 import io.stargate.auth.PlainTextTokenSaslNegotiator;
 import io.stargate.db.Authenticator.SaslNegotiator;
-import java.util.Map;
+import io.stargate.db.ClientInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,16 +30,16 @@ public class PlainTextTableBasedTokenSaslNegotiator extends PlainTextTokenSaslNe
 
   private static final Logger logger =
       LoggerFactory.getLogger(PlainTextTableBasedTokenSaslNegotiator.class);
-  private final Map<String, String> headers;
+  private final ClientInfo clientInfo;
 
   public PlainTextTableBasedTokenSaslNegotiator(
       AuthenticationService authentication,
       SaslNegotiator wrapped,
       String tokenUsername,
       int tokenMaxLength,
-      Map<String, String> headers) {
+      ClientInfo clientInfo) {
     super(authentication, wrapped, tokenUsername, tokenMaxLength);
-    this.headers = headers;
+    this.clientInfo = clientInfo;
   }
 
   @Override
@@ -63,7 +63,7 @@ public class PlainTextTableBasedTokenSaslNegotiator extends PlainTextTokenSaslNe
       String password = String.valueOf(tmpPassword);
       credentials.clearPassword();
 
-      authenticationSubject = authentication.validateToken(password, headers);
+      authenticationSubject = authentication.validateToken(password, clientInfo);
       if (authenticationSubject == null) {
         logger.error("Null credentials returned from authentication service");
         return false;

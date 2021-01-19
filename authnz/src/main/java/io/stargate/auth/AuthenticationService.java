@@ -16,6 +16,7 @@
 package io.stargate.auth;
 
 import io.stargate.db.Authenticator.SaslNegotiator;
+import io.stargate.db.ClientInfo;
 import java.util.Map;
 
 public interface AuthenticationService {
@@ -25,8 +26,17 @@ public interface AuthenticationService {
 
   String createToken(String key, Map<String, String> headers) throws UnauthorizedException;
 
-  AuthenticationSubject validateToken(String token, Map<String, String> headers)
-      throws UnauthorizedException;
+  AuthenticationSubject validateToken(String token) throws UnauthorizedException;
 
-  SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped, Map<String, String> headers);
+  default AuthenticationSubject validateToken(String token, Map<String, String> headers)
+      throws UnauthorizedException {
+    return validateToken(token);
+  }
+
+  default AuthenticationSubject validateToken(String token, ClientInfo clientInfo)
+      throws UnauthorizedException {
+    return validateToken(token);
+  }
+
+  SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped, ClientInfo clientInfo);
 }
