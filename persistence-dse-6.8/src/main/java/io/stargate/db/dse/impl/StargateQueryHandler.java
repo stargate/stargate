@@ -23,10 +23,11 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
+import io.stargate.db.AuthenticatedUser;
+import io.stargate.db.AuthenticatedUser.Serializer;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -276,18 +277,8 @@ public class StargateQueryHandler implements QueryHandler {
 
   @NotNull
   private AuthenticationSubject loadAuthenticationSubject(Map<String, ByteBuffer> customPayload) {
-    ByteBuffer token = customPayload.get("token");
-    ByteBuffer roleName = customPayload.get("roleName");
-    ByteBuffer isFromExternalAuth = customPayload.get("isFromExternalAuth");
-
-    if (token == null || roleName == null) {
-      throw new IllegalStateException("token and roleName must be provided");
-    }
-
-    return AuthenticationSubject.of(
-        StandardCharsets.UTF_8.decode(token).toString(),
-        StandardCharsets.UTF_8.decode(roleName).toString(),
-        (isFromExternalAuth != null));
+    AuthenticatedUser user = Serializer.load(customPayload);
+    return AuthenticationSubject.of(user);
   }
 
   private void authorizeModificationStatement(

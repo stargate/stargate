@@ -15,22 +15,31 @@
  */
 package io.stargate.auth;
 
+import io.stargate.db.AuthenticatedUser;
+import java.util.Collections;
+import java.util.Map;
+import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface AuthenticationSubject {
 
+  @Nullable
   String token();
 
   String roleName();
 
   boolean isFromExternalAuth();
 
-  static AuthenticationSubject of(String token, String roleName, boolean fromExternalAuth) {
+  Map<String, String> customProperties();
+
+  static AuthenticationSubject of(
+      String token, String roleName, boolean fromExternalAuth, Map<String, String> properties) {
     return ImmutableAuthenticationSubject.builder()
         .token(token)
         .roleName(roleName)
-        .isFromExternalAuth(fromExternalAuth)
+        .isFromExternalAuth(true)
+        .customProperties(properties)
         .build();
   }
 
@@ -39,6 +48,16 @@ public interface AuthenticationSubject {
         .token(token)
         .roleName(roleName)
         .isFromExternalAuth(false)
+        .customProperties(Collections.emptyMap())
+        .build();
+  }
+
+  static AuthenticationSubject of(AuthenticatedUser user) {
+    return ImmutableAuthenticationSubject.builder()
+        .token(user.token())
+        .roleName(user.name())
+        .isFromExternalAuth(user.isFromExternalAuth())
+        .customProperties(user.customProperties())
         .build();
   }
 }

@@ -4,7 +4,8 @@ import static java.lang.String.format;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
@@ -16,9 +17,7 @@ public class ClientInfo {
   private volatile DriverInfo driverInfo;
 
   private AuthenticatedUser authenticatedUser;
-  private ByteBuffer token;
-  private ByteBuffer roleName;
-  private ByteBuffer isFromExternalAuth;
+  private Map<String, ByteBuffer> serializedAuthData;
 
   public ClientInfo(InetSocketAddress remoteAddress, @Nullable InetSocketAddress publicAddress) {
     this.remoteAddress = remoteAddress;
@@ -51,25 +50,15 @@ public class ClientInfo {
 
   public void setAuthenticatedUser(AuthenticatedUser authenticatedUser) {
     this.authenticatedUser = authenticatedUser;
-    this.token =
-        authenticatedUser.token() != null
-            ? ByteBuffer.wrap(authenticatedUser.token().getBytes(StandardCharsets.UTF_8))
-            : null;
-    this.roleName = ByteBuffer.wrap(authenticatedUser.name().getBytes(StandardCharsets.UTF_8));
-    this.isFromExternalAuth =
-        authenticatedUser.isFromExternalAuth() ? ByteBuffer.allocate(1) : null;
+    this.serializedAuthData = AuthenticatedUser.Serializer.serialize(authenticatedUser);
   }
 
-  public ByteBuffer getToken() {
-    return token;
-  }
-
-  public ByteBuffer getRoleName() {
-    return roleName;
-  }
-
-  public ByteBuffer getIsFromExternalAuth() {
-    return isFromExternalAuth;
+  public void storeAuthenticationData(Map<String, ByteBuffer> payload) {
+    if (serializedAuthData != null) {
+      for (Entry<String, ByteBuffer> e : serializedAuthData.entrySet()) {
+        payload.put(e.getKey(), e.getValue().duplicate());
+      }
+    }
   }
 
   @Override
