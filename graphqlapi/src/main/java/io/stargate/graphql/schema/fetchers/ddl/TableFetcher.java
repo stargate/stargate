@@ -15,8 +15,6 @@ import java.util.Collections;
 import java.util.Map;
 
 public abstract class TableFetcher extends DdlQueryFetcher {
-  private static final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
-
   protected TableFetcher(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
