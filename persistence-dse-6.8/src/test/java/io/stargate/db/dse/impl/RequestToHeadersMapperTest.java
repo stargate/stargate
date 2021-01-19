@@ -15,10 +15,10 @@
  */
 package io.stargate.db.dse.impl;
 
-import io.stargate.db.ClientInfo;
-import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
+import io.stargate.db.ClientInfo;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -26,36 +26,37 @@ import java.nio.ByteBuffer;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.UUID;
-
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.Test;
 
 class RequestToHeadersMapperTest {
-    @Test
-    public void shouldMapInetSocketAddressToHeader() throws UnknownHostException {
-        // given
-        UUID uuid = UUID.randomUUID();
+  @Test
+  public void shouldMapInetSocketAddressToHeader() throws UnknownHostException {
+    // given
+    UUID uuid = UUID.randomUUID();
 
-        ClientInfo clientInfo =
-                new ClientInfo(
-                        null, new InetSocketAddress(InetAddress.getByAddress(getUUIDBytes(uuid)), 1000));
+    ClientInfo clientInfo =
+        new ClientInfo(
+            null, new InetSocketAddress(InetAddress.getByAddress(getUUIDBytes(uuid)), 1000));
 
-        // when
-        Map<String, String> allHeaders = RequestToHeadersMapper.toHeaders(ByteBuffer.wrap(clientInfo.publicAddress().get().getAddress().getAddress()));
+    // when
+    Map<String, String> allHeaders =
+        RequestToHeadersMapper.toHeaders(
+            ByteBuffer.wrap(clientInfo.publicAddress().get().getAddress().getAddress()));
 
-        //
-        assertThat(allHeaders)
-                .containsExactly(
-                        new AbstractMap.SimpleEntry<>(
-                                RequestToHeadersMapper.TENANT_ID_HEADER_NAME, uuid.toString()));
-    }
+    //
+    assertThat(allHeaders)
+        .containsExactly(
+            new AbstractMap.SimpleEntry<>(
+                RequestToHeadersMapper.TENANT_ID_HEADER_NAME, uuid.toString()));
+  }
 
-    @NotNull
-    private byte[] getUUIDBytes(UUID uuid) {
-        byte[] uuidBytes = new byte[16];
-        ByteBuffer bb = ByteBuffer.wrap(uuidBytes);
-        bb.putLong(uuid.getMostSignificantBits());
-        bb.putLong(uuid.getLeastSignificantBits());
-        return uuidBytes;
-    }
+  @NotNull
+  private byte[] getUUIDBytes(UUID uuid) {
+    byte[] uuidBytes = new byte[16];
+    ByteBuffer bb = ByteBuffer.wrap(uuidBytes);
+    bb.putLong(uuid.getMostSignificantBits());
+    bb.putLong(uuid.getLeastSignificantBits());
+    return uuidBytes;
+  }
 }

@@ -119,9 +119,10 @@ class StargateQueryHandlerTest extends BaseDseTest {
   }
 
   @Test
-  void authorizeByTokenSelectStatementWithPublicAddress() throws IOException, UnauthorizedException {
+  void authorizeByTokenSelectStatementWithPublicAddress()
+      throws IOException, UnauthorizedException {
     SelectStatement.Raw rawStatement =
-            (SelectStatement.Raw) QueryProcessor.parseStatement("select * from system.local");
+        (SelectStatement.Raw) QueryProcessor.parseStatement("select * from system.local");
 
     CQLStatement statement = rawStatement.prepare(false);
 
@@ -130,12 +131,12 @@ class StargateQueryHandlerTest extends BaseDseTest {
     Map<String, String> expectedHeaders = new HashMap<>();
     expectedHeaders.put(TENANT_ID_HEADER_NAME, publicAddress.toString());
     verify(authorizationService, times(1))
-            .authorizeDataRead(
-                    refEq(authenticationSubject),
-                    eq("system_views"),
-                    eq("local_node"),
-                    eq(SourceAPI.CQL),
-                    eq(expectedHeaders));
+        .authorizeDataRead(
+            refEq(authenticationSubject),
+            eq("system_views"),
+            eq("local_node"),
+            eq(SourceAPI.CQL),
+            eq(expectedHeaders));
   }
 
   @Test
