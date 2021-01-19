@@ -46,11 +46,13 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.cql.impl.CqlImpl;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.EventListener;
+import io.stargate.db.EventListenerWithChannelFilter;
 import io.stargate.db.Persistence;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -61,6 +63,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import org.apache.cassandra.config.EncryptionOptions;
 import org.apache.cassandra.net.ResourceLimits;
 import org.apache.cassandra.security.SSLFactory;
@@ -283,7 +286,19 @@ public class Server implements CassandraDaemon.Server {
     }
 
     public void send(Event event) {
-      groups.get(event.type).writeAndFlush(new EventMessage(event));
+      groups
+          .get(event.type)
+          .writeAndFlush(
+              new EventMessage(event),
+              channel -> {
+                if (channel == null || event.headerFilter == null) return true;
+
+                ProxyInfo proxyInfo = channel.attr(ProxyInfo.attributeKey).get();
+                Map<String, String> headers =
+                    proxyInfo != null ? proxyInfo.toHeaders() : Collections.emptyMap();
+
+                return event.headerFilter.test(headers);
+              });
     }
 
     void closeAll() {
@@ -569,7 +584,7 @@ public class Server implements CassandraDaemon.Server {
     }
   }
 
-  private static class EventNotifier implements EventListener {
+  private static class EventNotifier implements EventListenerWithChannelFilter {
     private final Server server;
 
     // We keep track of the latest status change events we have sent to avoid sending duplicates
@@ -610,33 +625,40 @@ public class Server implements CassandraDaemon.Server {
     }
 
     @Override
-    public void onJoinCluster(InetAddress endpoint, int port) {
+    public void onJoinCluster(
+        InetAddress endpoint, int port, Predicate<Map<String, String>> headerFilter) {
       InetAddressAndPort endpointWithPort = addPort(endpoint, port);
-      onTopologyChange(endpointWithPort, Event.TopologyChange.newNode(endpointWithPort));
+      onTopologyChange(
+          endpointWithPort, Event.TopologyChange.newNode(endpointWithPort, headerFilter));
     }
 
     @Override
-    public void onLeaveCluster(InetAddress endpoint, int port) {
+    public void onLeaveCluster(
+        InetAddress endpoint, int port, Predicate<Map<String, String>> headerFilter) {
       InetAddressAndPort endpointWithPort = addPort(endpoint, port);
-      onTopologyChange(endpointWithPort, Event.TopologyChange.removedNode(endpointWithPort));
+      onTopologyChange(
+          endpointWithPort, Event.TopologyChange.removedNode(endpointWithPort, headerFilter));
     }
 
     @Override
-    public void onMove(InetAddress endpoint, int port) {
+    public void onMove(
+        InetAddress endpoint, int port, Predicate<Map<String, String>> headerFilter) {
       InetAddressAndPort endpointWithPort = addPort(endpoint, port);
-      onTopologyChange(endpointWithPort, Event.TopologyChange.movedNode(endpointWithPort));
+      onTopologyChange(
+          endpointWithPort, Event.TopologyChange.movedNode(endpointWithPort, headerFilter));
     }
 
     @Override
-    public void onDown(InetAddress endpoint, int port) {
+    public void onDown(
+        InetAddress endpoint, int port, Predicate<Map<String, String>> headerFilter) {
       InetAddressAndPort endpointWithPort = addPort(endpoint, port);
-      onStatusChange(endpointWithPort, Event.StatusChange.nodeDown(endpointWithPort));
+      onStatusChange(endpointWithPort, Event.StatusChange.nodeDown(endpointWithPort, headerFilter));
     }
 
     @Override
-    public void onUp(InetAddress endpoint, int port) {
+    public void onUp(InetAddress endpoint, int port, Predicate<Map<String, String>> headerFilter) {
       InetAddressAndPort endpointWithPort = addPort(endpoint, port);
-      onStatusChange(endpointWithPort, Event.StatusChange.nodeUp(endpointWithPort));
+      onStatusChange(endpointWithPort, Event.StatusChange.nodeUp(endpointWithPort, headerFilter));
     }
 
     private InetAddressAndPort addPort(InetAddress endpoint, int port) {
@@ -680,126 +702,186 @@ public class Server implements CassandraDaemon.Server {
     }
 
     @Override
-    public void onCreateKeyspace(String ksName) {
-      send(new Event.SchemaChange(Event.SchemaChange.Change.CREATED, ksName));
+    public void onCreateKeyspace(String ksName, Predicate<Map<String, String>> headerFilter) {
+      send(new Event.SchemaChange(Event.SchemaChange.Change.CREATED, ksName, headerFilter));
     }
 
     @Override
-    public void onCreateTable(String ksName, String cfName) {
+    public void onCreateTable(
+        String ksName, String cfName, Predicate<Map<String, String>> headerFilter) {
       send(
           new Event.SchemaChange(
-              Event.SchemaChange.Change.CREATED, Event.SchemaChange.Target.TABLE, ksName, cfName));
+              Event.SchemaChange.Change.CREATED,
+              Event.SchemaChange.Target.TABLE,
+              ksName,
+              cfName,
+              headerFilter));
     }
 
     @Override
-    public void onCreateType(String ksName, String typeName) {
+    public void onCreateType(
+        String ksName, String typeName, Predicate<Map<String, String>> headerFilter) {
       send(
           new Event.SchemaChange(
-              Event.SchemaChange.Change.CREATED, Event.SchemaChange.Target.TYPE, ksName, typeName));
+              Event.SchemaChange.Change.CREATED,
+              Event.SchemaChange.Target.TYPE,
+              ksName,
+              typeName,
+              headerFilter));
     }
 
     @Override
-    public void onCreateFunction(String ksName, String functionName, List<String> argTypes) {
+    public void onCreateFunction(
+        String ksName,
+        String functionName,
+        List<String> argTypes,
+        Predicate<Map<String, String>> headerFilter) {
       send(
           new Event.SchemaChange(
               Event.SchemaChange.Change.CREATED,
               Event.SchemaChange.Target.FUNCTION,
               ksName,
               functionName,
-              argTypes));
+              argTypes,
+              headerFilter));
     }
 
     @Override
-    public void onCreateAggregate(String ksName, String aggregateName, List<String> argTypes) {
+    public void onCreateAggregate(
+        String ksName,
+        String aggregateName,
+        List<String> argTypes,
+        Predicate<Map<String, String>> headerFilter) {
       send(
           new Event.SchemaChange(
               Event.SchemaChange.Change.CREATED,
               Event.SchemaChange.Target.AGGREGATE,
               ksName,
               aggregateName,
-              argTypes));
+              argTypes,
+              headerFilter));
     }
 
     @Override
-    public void onAlterKeyspace(String ksName) {
-      send(new Event.SchemaChange(Event.SchemaChange.Change.UPDATED, ksName));
+    public void onAlterKeyspace(String ksName, Predicate<Map<String, String>> headerFilter) {
+      send(new Event.SchemaChange(Event.SchemaChange.Change.UPDATED, ksName, headerFilter));
     }
 
     @Override
-    public void onAlterTable(String ksName, String cfName) {
+    public void onAlterTable(
+        String ksName, String cfName, Predicate<Map<String, String>> headerFilter) {
       send(
           new Event.SchemaChange(
-              Event.SchemaChange.Change.UPDATED, Event.SchemaChange.Target.TABLE, ksName, cfName));
+              Event.SchemaChange.Change.UPDATED,
+              Event.SchemaChange.Target.TABLE,
+              ksName,
+              cfName,
+              headerFilter));
     }
 
     @Override
-    public void onAlterType(String ksName, String typeName) {
+    public void onAlterType(
+        String ksName, String typeName, Predicate<Map<String, String>> headerFilter) {
       send(
           new Event.SchemaChange(
-              Event.SchemaChange.Change.UPDATED, Event.SchemaChange.Target.TYPE, ksName, typeName));
+              Event.SchemaChange.Change.UPDATED,
+              Event.SchemaChange.Target.TYPE,
+              ksName,
+              typeName,
+              headerFilter));
     }
 
     @Override
-    public void onAlterFunction(String ksName, String functionName, List<String> argTypes) {
+    public void onAlterFunction(
+        String ksName,
+        String functionName,
+        List<String> argTypes,
+        Predicate<Map<String, String>> headerFilter) {
       send(
           new Event.SchemaChange(
               Event.SchemaChange.Change.UPDATED,
               Event.SchemaChange.Target.FUNCTION,
               ksName,
               functionName,
-              argTypes));
+              argTypes,
+              headerFilter));
     }
 
     @Override
-    public void onAlterAggregate(String ksName, String aggregateName, List<String> argTypes) {
+    public void onAlterAggregate(
+        String ksName,
+        String aggregateName,
+        List<String> argTypes,
+        Predicate<Map<String, String>> headerFilter) {
       send(
           new Event.SchemaChange(
               Event.SchemaChange.Change.UPDATED,
               Event.SchemaChange.Target.AGGREGATE,
               ksName,
               aggregateName,
-              argTypes));
+              argTypes,
+              headerFilter));
     }
 
     @Override
-    public void onDropKeyspace(String ksName) {
-      send(new Event.SchemaChange(Event.SchemaChange.Change.DROPPED, ksName));
+    public void onDropKeyspace(String ksName, Predicate<Map<String, String>> headerFilter) {
+      send(new Event.SchemaChange(Event.SchemaChange.Change.DROPPED, ksName, headerFilter));
     }
 
     @Override
-    public void onDropTable(String ksName, String cfName) {
+    public void onDropTable(
+        String ksName, String cfName, Predicate<Map<String, String>> headerFilter) {
       send(
           new Event.SchemaChange(
-              Event.SchemaChange.Change.DROPPED, Event.SchemaChange.Target.TABLE, ksName, cfName));
+              Event.SchemaChange.Change.DROPPED,
+              Event.SchemaChange.Target.TABLE,
+              ksName,
+              cfName,
+              headerFilter));
     }
 
     @Override
-    public void onDropType(String ksName, String typeName) {
+    public void onDropType(
+        String ksName, String typeName, Predicate<Map<String, String>> headerFilter) {
       send(
           new Event.SchemaChange(
-              Event.SchemaChange.Change.DROPPED, Event.SchemaChange.Target.TYPE, ksName, typeName));
+              Event.SchemaChange.Change.DROPPED,
+              Event.SchemaChange.Target.TYPE,
+              ksName,
+              typeName,
+              headerFilter));
     }
 
     @Override
-    public void onDropFunction(String ksName, String functionName, List<String> argTypes) {
+    public void onDropFunction(
+        String ksName,
+        String functionName,
+        List<String> argTypes,
+        Predicate<Map<String, String>> headerFilter) {
       send(
           new Event.SchemaChange(
               Event.SchemaChange.Change.DROPPED,
               Event.SchemaChange.Target.FUNCTION,
               ksName,
               functionName,
-              argTypes));
+              argTypes,
+              headerFilter));
     }
 
     @Override
-    public void onDropAggregate(String ksName, String aggregateName, List<String> argTypes) {
+    public void onDropAggregate(
+        String ksName,
+        String aggregateName,
+        List<String> argTypes,
+        Predicate<Map<String, String>> headerFilter) {
       send(
           new Event.SchemaChange(
               Event.SchemaChange.Change.DROPPED,
               Event.SchemaChange.Target.AGGREGATE,
               ksName,
               aggregateName,
-              argTypes));
+              argTypes,
+              headerFilter));
     }
   }
 }

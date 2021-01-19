@@ -23,6 +23,8 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
@@ -45,9 +47,11 @@ public abstract class Event {
   }
 
   public final Type type;
+  public final Predicate<Map<String, String>> headerFilter;
 
-  private Event(Type type) {
+  private Event(Type type, Predicate<Map<String, String>> headerFilter) {
     this.type = type;
+    this.headerFilter = headerFilter;
   }
 
   public static Event deserialize(ByteBuf cb, ProtocolVersion version) {
@@ -91,8 +95,9 @@ public abstract class Event {
       return node.getAddress();
     }
 
-    private NodeEvent(Type type, InetSocketAddress node) {
-      super(type);
+    private NodeEvent(
+        Type type, InetSocketAddress node, Predicate<Map<String, String>> headerFilter) {
+      super(type, headerFilter);
       this.node = node;
     }
   }
@@ -106,31 +111,35 @@ public abstract class Event {
 
     public final Change change;
 
-    private TopologyChange(Change change, InetSocketAddress node) {
-      super(Type.TOPOLOGY_CHANGE, node);
+    private TopologyChange(
+        Change change, InetSocketAddress node, Predicate<Map<String, String>> headerFilter) {
+      super(Type.TOPOLOGY_CHANGE, node, headerFilter);
       this.change = change;
     }
 
-    public static TopologyChange newNode(InetAddressAndPort address) {
+    public static TopologyChange newNode(
+        InetAddressAndPort address, Predicate<Map<String, String>> headerFilter) {
       return new TopologyChange(
-          Change.NEW_NODE, new InetSocketAddress(address.address, address.port));
+          Change.NEW_NODE, new InetSocketAddress(address.address, address.port), headerFilter);
     }
 
-    public static TopologyChange removedNode(InetAddressAndPort address) {
+    public static TopologyChange removedNode(
+        InetAddressAndPort address, Predicate<Map<String, String>> headerFilter) {
       return new TopologyChange(
-          Change.REMOVED_NODE, new InetSocketAddress(address.address, address.port));
+          Change.REMOVED_NODE, new InetSocketAddress(address.address, address.port), headerFilter);
     }
 
-    public static TopologyChange movedNode(InetAddressAndPort address) {
+    public static TopologyChange movedNode(
+        InetAddressAndPort address, Predicate<Map<String, String>> headerFilter) {
       return new TopologyChange(
-          Change.MOVED_NODE, new InetSocketAddress(address.address, address.port));
+          Change.MOVED_NODE, new InetSocketAddress(address.address, address.port), headerFilter);
     }
 
     // Assumes the type has already been deserialized
     private static TopologyChange deserializeEvent(ByteBuf cb) {
       Change change = CBUtil.readEnumValue(Change.class, cb);
       InetSocketAddress node = CBUtil.readInet(cb);
-      return new TopologyChange(change, node);
+      return new TopologyChange(change, node, c -> true);
     }
 
     @Override
@@ -171,24 +180,29 @@ public abstract class Event {
 
     public final Status status;
 
-    private StatusChange(Status status, InetSocketAddress node) {
-      super(Type.STATUS_CHANGE, node);
+    private StatusChange(
+        Status status, InetSocketAddress node, Predicate<Map<String, String>> headerFilter) {
+      super(Type.STATUS_CHANGE, node, headerFilter);
       this.status = status;
     }
 
-    public static StatusChange nodeUp(InetAddressAndPort address) {
-      return new StatusChange(Status.UP, new InetSocketAddress(address.address, address.port));
+    public static StatusChange nodeUp(
+        InetAddressAndPort address, Predicate<Map<String, String>> headerFilter) {
+      return new StatusChange(
+          Status.UP, new InetSocketAddress(address.address, address.port), headerFilter);
     }
 
-    public static StatusChange nodeDown(InetAddressAndPort address) {
-      return new StatusChange(Status.DOWN, new InetSocketAddress(address.address, address.port));
+    public static StatusChange nodeDown(
+        InetAddressAndPort address, Predicate<Map<String, String>> headerFilter) {
+      return new StatusChange(
+          Status.DOWN, new InetSocketAddress(address.address, address.port), headerFilter);
     }
 
     // Assumes the type has already been deserialized
     private static StatusChange deserializeEvent(ByteBuf cb) {
       Status status = CBUtil.readEnumValue(Status.class, cb);
       InetSocketAddress node = CBUtil.readInet(cb);
-      return new StatusChange(status, node);
+      return new StatusChange(status, node, c -> true);
     }
 
     @Override
@@ -243,8 +257,13 @@ public abstract class Event {
     public final List<String> argTypes;
 
     public SchemaChange(
-        Change change, Target target, String keyspace, String name, List<String> argTypes) {
-      super(Type.SCHEMA_CHANGE);
+        Change change,
+        Target target,
+        String keyspace,
+        String name,
+        List<String> argTypes,
+        Predicate<Map<String, String>> headerFilter) {
+      super(Type.SCHEMA_CHANGE, headerFilter);
       this.change = change;
       this.target = target;
       this.keyspace = keyspace;
@@ -255,12 +274,18 @@ public abstract class Event {
       this.argTypes = argTypes;
     }
 
-    public SchemaChange(Change change, Target target, String keyspace, String name) {
-      this(change, target, keyspace, name, null);
+    public SchemaChange(
+        Change change,
+        Target target,
+        String keyspace,
+        String name,
+        Predicate<Map<String, String>> headerFilter) {
+      this(change, target, keyspace, name, null, headerFilter);
     }
 
-    public SchemaChange(Change change, String keyspace) {
-      this(change, Target.KEYSPACE, keyspace, null);
+    public SchemaChange(
+        Change change, String keyspace, Predicate<Map<String, String>> headerFilter) {
+      this(change, Target.KEYSPACE, keyspace, null, headerFilter);
     }
 
     // Assumes the type has already been deserialized
@@ -274,7 +299,7 @@ public abstract class Event {
         if (target == Target.FUNCTION || target == Target.AGGREGATE)
           argTypes = CBUtil.readStringList(cb);
 
-        return new SchemaChange(change, target, keyspace, tableOrType, argTypes);
+        return new SchemaChange(change, target, keyspace, tableOrType, argTypes, c -> true);
       } else {
         String keyspace = CBUtil.readString(cb);
         String table = CBUtil.readString(cb);
@@ -282,7 +307,8 @@ public abstract class Event {
             change,
             table.isEmpty() ? Target.KEYSPACE : Target.TABLE,
             keyspace,
-            table.isEmpty() ? null : table);
+            table.isEmpty() ? null : table,
+            c -> true);
       }
     }
 
