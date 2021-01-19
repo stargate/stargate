@@ -19,20 +19,25 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
 import io.stargate.db.ClientInfo;
 import java.net.Inet6Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.AbstractMap;
 import java.util.Map;
+import java.util.UUID;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 class RequestToHeadersMapperTest {
   @Test
   public void shouldMapInetSocketAddressToHeader() throws UnknownHostException {
     // given
+    UUID uuid = UUID.randomUUID();
+
     ClientInfo clientInfo =
         new ClientInfo(
-            null,
-            new InetSocketAddress(Inet6Address.getByName("3ffe:0:0:1:200:f8ff:fe75:50df"), 1000));
+            null, new InetSocketAddress(InetAddress.getByAddress(getUUIDBytes(uuid)), 1000));
 
     // when
     Map<String, String> allHeaders = RequestToHeadersMapper.toHeaders(clientInfo);
@@ -41,22 +46,21 @@ class RequestToHeadersMapperTest {
     assertThat(allHeaders)
         .containsExactly(
             new AbstractMap.SimpleEntry<>(
-                RequestToHeadersMapper.TENANT_ID_HEADER_NAME,
-                "3ffe0000-0000-0001-0200-f8fffe7550df"));
+                RequestToHeadersMapper.TENANT_ID_HEADER_NAME, uuid.toString()));
   }
 
   @Test
   public void shouldDoesUseThePortFromInetSocketAddressWhenCreatingTenantIdUUID()
       throws UnknownHostException {
+    UUID uuid = UUID.randomUUID();
+
     // given
     ClientInfo clientInfo =
         new ClientInfo(
-            null,
-            new InetSocketAddress(Inet6Address.getByName("3ffe:0:0:1:200:f8ff:fe75:50df"), 1000));
+            null, new InetSocketAddress(Inet6Address.getByAddress(getUUIDBytes(uuid)), 1000));
     ClientInfo clientInfoDifferentPort =
         new ClientInfo(
-            null,
-            new InetSocketAddress(Inet6Address.getByName("3ffe:0:0:1:200:f8ff:fe75:50df"), 1234));
+            null, new InetSocketAddress(Inet6Address.getByAddress(getUUIDBytes(uuid)), 1234));
 
     // when
     Map<String, String> allHeaders = RequestToHeadersMapper.toHeaders(clientInfo);
@@ -74,5 +78,14 @@ class RequestToHeadersMapperTest {
 
     //
     assertThat(allHeaders).isEmpty();
+  }
+
+  @NotNull
+  private byte[] getUUIDBytes(UUID uuid) {
+    byte[] uuidBytes = new byte[16];
+    ByteBuffer bb = ByteBuffer.wrap(uuidBytes);
+    bb.putLong(uuid.getMostSignificantBits());
+    bb.putLong(uuid.getLeastSignificantBits());
+    return uuidBytes;
   }
 }

@@ -35,6 +35,6 @@ public class RequestToHeadersMapper {
 
   private static UUID toUUID(byte[] addressBytes) {
     ByteBuffer bytes = ByteBuffer.wrap(addressBytes);
-    return new UUID(bytes.getLong(bytes.position()), bytes.getLong(bytes.position() + 8));
+    return new UUID(bytes.getLong(), bytes.getLong());
   }
 }
