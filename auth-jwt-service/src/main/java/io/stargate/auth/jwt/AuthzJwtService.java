@@ -60,8 +60,8 @@ public class AuthzJwtService implements AuthorizationService {
       List<TypedKeyValue> typedKeyValues,
       SourceAPI
           sourceAPI, // this isn’t supported but if you want to use it you’ll need something other
-      Map<String, String> headers)
       // than a JWT
+      Map<String, String> headers)
       throws Exception {
     JSONObject stargateClaims = extractClaimsFromJWT(authenticationSubject.token());
 
