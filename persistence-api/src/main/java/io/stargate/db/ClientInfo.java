@@ -11,6 +11,9 @@ import javax.annotation.Nullable;
 
 public class ClientInfo {
 
+  public static final String PROXY_SOURCE_ADDRESS_HEADER = "proxy_source_address_header";
+  public static final String PROXY_PUBLIC_ADDRESS_HEADER = "proxy_public_address_header";
+
   private final InetSocketAddress remoteAddress;
   private final @Nullable InetSocketAddress publicAddress;
 
