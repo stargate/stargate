@@ -35,7 +35,6 @@ import java.io.IOError;
 import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -55,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
 import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -66,6 +66,8 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
+import org.osgi.framework.FrameworkEvent;
+import org.osgi.framework.FrameworkListener;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 
@@ -250,6 +252,7 @@ public class Starter {
   private Felix framework;
   private List<Bundle> bundleList;
   private boolean watchBundles = true;
+  private AtomicBoolean startError = new AtomicBoolean();
 
   public Starter() {}
 
@@ -391,6 +394,7 @@ public class Starter {
 
     // Install bundles
     context = framework.getBundleContext();
+    context.addFrameworkListener(new BundleFailureListener());
     File[] files = new File(JAR_DIRECTORY).listFiles();
     List<File> jars = pickBundles(files);
     framework.start();
@@ -416,10 +420,8 @@ public class Starter {
 
         // exit just in case, NodeTool is expected to call System.exit() when done.
         System.exit(5);
-      } catch (ClassNotFoundException e) {
-        // ignore and continue
-      } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-        throw new IllegalStateException(e);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
       }
     }
 
@@ -427,6 +429,11 @@ public class Starter {
     for (Bundle bundle : bundleList) {
       System.out.println("Starting bundle " + bundle.getSymbolicName());
       bundle.start();
+    }
+
+    if (startError.get()) {
+      System.out.println("Terminating due to previous service startup errors.");
+      System.exit(1);
     }
 
     System.out.println(STARTED_MESSAGE);
@@ -639,6 +646,29 @@ public class Starter {
 
   public static void main(String[] args) {
     cli(args, Starter.class);
+  }
+
+  private class BundleFailureListener implements FrameworkListener {
+
+    @Override
+    public void frameworkEvent(FrameworkEvent event) {
+      Throwable throwable = event.getThrowable();
+      if (throwable != null) {
+        // We rely on the exception class name here because there is no easy way to share
+        // classes between the Starter and bundles, and this use case does not seem worth
+        // adding a new OSGi artifact.
+        if (throwable.getClass().getSimpleName().equals("ServiceStartException")) {
+          startError.set(true);
+
+          System.out.printf(
+              "Detected service startup failure in bundle %s: %s%n",
+              event.getBundle().getSymbolicName(), throwable);
+
+          // This should be logged by OSGi, but just in case dump it to STDERR too
+          throwable.printStackTrace(System.err);
+        }
+      }
+    }
   }
 
   public static class NodeToolOptionParser<T> extends AbstractOptionParser<T> {

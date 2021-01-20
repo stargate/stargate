@@ -479,7 +479,7 @@ public class StargateQueryHandler implements QueryHandler {
             authenticationSubject, role, grantee, scope, SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
-            String.format("Missing correct permission on role %s", role), e);
+            String.format("Missing correct permission on role %s: %s", role, e.getMessage()), e);
       }
 
       logger.debug(
@@ -508,7 +508,7 @@ public class StargateQueryHandler implements QueryHandler {
       authorization.authorizeRoleManagement(authenticationSubject, role, scope, SourceAPI.CQL);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
-          String.format("Missing correct permission on role %s", role), e);
+          String.format("Missing correct permission on role %s: %s", role, e.getMessage()), e);
     }
 
     logger.debug(
@@ -537,7 +537,8 @@ public class StargateQueryHandler implements QueryHandler {
             authenticationSubject, resource, grantee, scope, SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
-            String.format("Missing correct permission on role %s", resource), e);
+            String.format("Missing correct permission on role %s: %s", resource, e.getMessage()),
+            e);
       }
 
       logger.debug(
@@ -554,7 +555,7 @@ public class StargateQueryHandler implements QueryHandler {
         authorization.authorizeRoleRead(authenticationSubject, role, SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
-            String.format("Missing correct permission on role %s", role), e);
+            String.format("Missing correct permission on role %s: %s", role, e.getMessage()), e);
       }
 
       logger.debug(
@@ -571,7 +572,7 @@ public class StargateQueryHandler implements QueryHandler {
         authorization.authorizePermissionRead(authenticationSubject, role, SourceAPI.CQL);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
-            String.format("Missing correct permission on role %s", role), e);
+            String.format("Missing correct permission on role %s: %s", role, e.getMessage()), e);
       }
 
       logger.debug(

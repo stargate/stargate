@@ -1,7 +1,9 @@
 package io.stargate.db.dse.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.Mockito.mock;
@@ -69,6 +71,7 @@ import org.apache.cassandra.schema.Tables;
 import org.apache.cassandra.service.ClientState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 class StargateQueryHandlerTest extends BaseDseTest {
 
@@ -587,6 +590,21 @@ class StargateQueryHandlerTest extends BaseDseTest {
   }
 
   @Test
+  void authorizeListPermissionsException() throws IOException, UnauthorizedException {
+    ListPermissionsStatement.Raw rawStatement =
+        QueryProcessor.parseStatement("LIST ALL PERMISSIONS OF sam;");
+
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+
+    Mockito.doThrow(new io.stargate.auth.UnauthorizedException("test-message"))
+        .when(authorizationService)
+        .authorizePermissionRead(any(), any(), any());
+
+    assertThatThrownBy(() -> queryHandler.authorizeByToken(createToken(), statement))
+        .hasMessageContaining("test-message");
+  }
+
+  @Test
   void authorizeByTokenAuthorizationStatementListRolesStatement()
       throws IOException, UnauthorizedException {
     ListRolesStatement.Raw rawStatement = QueryProcessor.parseStatement("LIST ROLES;");
@@ -636,6 +654,21 @@ class StargateQueryHandlerTest extends BaseDseTest {
   }
 
   @Test
+  void authorizeAuthorizationStatementException() throws IOException, UnauthorizedException {
+    GrantRoleStatement.Raw rawStatement =
+        QueryProcessor.parseStatement("GRANT ALTER\n" + "ON KEYSPACE cycling\n" + "TO coach;");
+
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+
+    Mockito.doThrow(new io.stargate.auth.UnauthorizedException("test-message"))
+        .when(authorizationService)
+        .authorizePermissionManagement(any(), any(), any(), any(), any());
+
+    assertThatThrownBy(() -> queryHandler.authorizeByToken(createToken(), statement))
+        .hasMessageContaining("test-message");
+  }
+
+  @Test
   void authorizeByTokenAuthorizationStatementListRolesStatementWithRole()
       throws IOException, UnauthorizedException {
     ListRolesStatement.Raw rawStatement = QueryProcessor.parseStatement("LIST ROLES OF coach;");
@@ -645,6 +678,20 @@ class StargateQueryHandlerTest extends BaseDseTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeRoleRead(refEq(authenticationSubject), eq("roles/coach"), eq(SourceAPI.CQL));
+  }
+
+  @Test
+  void authorizeRoleReadException() throws Exception {
+    ListRolesStatement.Raw rawStatement = QueryProcessor.parseStatement("LIST ROLES OF coach;");
+
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+
+    Mockito.doThrow(new io.stargate.auth.UnauthorizedException("test-message"))
+        .when(authorizationService)
+        .authorizeRoleRead(any(), any(), any());
+
+    assertThatThrownBy(() -> queryHandler.authorizeByToken(createToken(), statement))
+        .hasMessageContaining("test-message");
   }
 
   @Test
@@ -663,6 +710,21 @@ class StargateQueryHandlerTest extends BaseDseTest {
             eq("roles/coach"),
             eq(Scope.AUTHORIZE),
             eq(SourceAPI.CQL));
+  }
+
+  @Test
+  void authorizeRevokeRoleException() throws IOException, UnauthorizedException {
+    RevokeRoleStatement.Raw rawStatement =
+        QueryProcessor.parseStatement("REVOKE cycling_admin\n" + "FROM coach;");
+
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+
+    Mockito.doThrow(new io.stargate.auth.UnauthorizedException("test-message"))
+        .when(authorizationService)
+        .authorizeRoleManagement(any(), any(), any(), any(), any());
+
+    assertThatThrownBy(() -> queryHandler.authorizeByToken(createToken(), statement))
+        .hasMessageContaining("test-message");
   }
 
   @Test
@@ -748,6 +810,21 @@ class StargateQueryHandlerTest extends BaseDseTest {
     verify(authorizationService, times(1))
         .authorizeRoleManagement(
             refEq(authenticationSubject), eq("roles/sandy"), eq(Scope.ALTER), eq(SourceAPI.CQL));
+  }
+
+  @Test
+  void authorizeAuthenticationStatementException() throws Exception {
+    AlterRoleStatement.Raw rawStatement =
+        QueryProcessor.parseStatement("ALTER ROLE sandy WITH PASSWORD = 'bestTeam';");
+
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+
+    Mockito.doThrow(new io.stargate.auth.UnauthorizedException("test-message"))
+        .when(authorizationService)
+        .authorizeRoleManagement(any(), any(), any(), any());
+
+    assertThatThrownBy(() -> queryHandler.authorizeByToken(createToken(), statement))
+        .hasMessageContaining("test-message");
   }
 
   @Test

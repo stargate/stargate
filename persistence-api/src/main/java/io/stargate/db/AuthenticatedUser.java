@@ -69,7 +69,8 @@ public interface AuthenticatedUser extends Serializable {
   }
 
   class Serializer {
-    private static final ByteBuffer FROM_EXTERNAL_VALUE = ByteBuffer.wrap(new byte[] {1});
+    private static final ByteBuffer FROM_EXTERNAL_VALUE =
+        ByteBuffer.wrap(new byte[] {1}).asReadOnlyBuffer();
 
     private static final String CUSTOM_PAYLOAD_NAME_PREFIX = "stargate.auth.subject.custom.";
     private static final String TOKEN = "stargate.auth.subject.token";
