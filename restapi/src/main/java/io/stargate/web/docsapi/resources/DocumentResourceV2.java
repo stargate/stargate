@@ -664,7 +664,7 @@ public class DocumentResourceV2 {
                     getAllHeaders(request));
             ImmutablePair<JsonNode, ByteBuffer> result =
                 documentService.searchDocumentsV2(
-                    db, namespace, collection, filters, selectionList, id, allHeaders);
+                    db, namespace, collection, filters, selectionList, id);
 
             if (result == null) {
               return Response.noContent().build();

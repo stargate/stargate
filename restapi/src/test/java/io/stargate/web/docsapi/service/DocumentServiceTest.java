@@ -1228,10 +1228,9 @@ public class DocumentServiceTest {
   public void searchDocumentsV2_emptyResult() throws Exception {
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any(), any()))
+    Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any()))
         .thenCallRealMethod();
-    Mockito.when(
-            serviceMock.searchRows(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+    Mockito.when(serviceMock.searchRows(any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(ImmutablePair.of(new ArrayList<>(), null));
 
     List<FilterCondition> filters =
@@ -1239,7 +1238,7 @@ public class DocumentServiceTest {
             new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$eq", "value"));
     ImmutablePair<JsonNode, ByteBuffer> result =
         serviceMock.searchDocumentsV2(
-            dbMock, "keyspace", "collection", filters, new ArrayList<>(), null, EMPTY_HEADERS);
+            dbMock, "keyspace", "collection", filters, new ArrayList<>(), null);
     assertThat(result).isNull();
   }
 
@@ -1247,10 +1246,9 @@ public class DocumentServiceTest {
   public void searchDocumentsV2_existingResult() throws Exception {
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any(), any()))
+    Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any()))
         .thenCallRealMethod();
-    Mockito.when(
-            serviceMock.searchRows(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+    Mockito.when(serviceMock.searchRows(any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
@@ -1260,7 +1258,7 @@ public class DocumentServiceTest {
             new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$eq", "value"));
     ImmutablePair<JsonNode, ByteBuffer> result =
         serviceMock.searchDocumentsV2(
-            dbMock, "keyspace", "collection", filters, new ArrayList<>(), null, EMPTY_HEADERS);
+            dbMock, "keyspace", "collection", filters, new ArrayList<>(), null);
     assertThat(result.right).isNull();
     assertThat(result.left).isEqualTo(mapper.readTree("{\"1\":[{\"a\":1},{\"a\":1},{\"a\":1}]}"));
   }
@@ -1269,10 +1267,9 @@ public class DocumentServiceTest {
   public void searchDocumentsV2_existingResultWithFields() throws Exception {
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any(), any()))
+    Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any()))
         .thenCallRealMethod();
-    Mockito.when(
-            serviceMock.searchRows(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+    Mockito.when(serviceMock.searchRows(any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
@@ -1282,13 +1279,7 @@ public class DocumentServiceTest {
             new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$exists", true));
     ImmutablePair<JsonNode, ByteBuffer> result =
         serviceMock.searchDocumentsV2(
-            dbMock,
-            "keyspace",
-            "collection",
-            filters,
-            ImmutableList.of("field"),
-            null,
-            EMPTY_HEADERS);
+            dbMock, "keyspace", "collection", filters, ImmutableList.of("field"), null);
     assertThat(result.right).isNull();
     assertThat(result.left).isEqualTo(mapper.readTree("{\"1\":[{\"a\":1},{\"a\":1},{\"a\":1}]}"));
   }
@@ -1319,8 +1310,7 @@ public class DocumentServiceTest {
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
     Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), anyInt(), any(), any()))
         .thenReturn(dbMock);
-    Mockito.when(
-            serviceMock.searchRows(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+    Mockito.when(serviceMock.searchRows(any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
     Mockito.when(
             serviceMock.getFullDocuments(
@@ -1364,8 +1354,7 @@ public class DocumentServiceTest {
     twoDocsRows.addAll(makeRowDataForSecondDoc());
     Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), anyInt(), any(), any()))
         .thenReturn(dbMock);
-    Mockito.when(
-            serviceMock.searchRows(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+    Mockito.when(serviceMock.searchRows(any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(ImmutablePair.of(twoDocsRows, null));
     Mockito.when(
             serviceMock.getFullDocuments(

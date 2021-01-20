@@ -636,8 +636,7 @@ public class DocumentService {
       String documentKey,
       List<FilterCondition> filters,
       List<PathSegment> path,
-      Boolean recurse,
-      Map<String, String> headers)
+      Boolean recurse)
       throws ExecutionException, InterruptedException, UnauthorizedException {
     StringBuilder pathStr = new StringBuilder();
 
@@ -652,8 +651,7 @@ public class DocumentService {
                 new ArrayList<>(),
                 pathSegmentValues,
                 recurse,
-                documentKey,
-                headers)
+                documentKey)
             .left;
 
     if (rows.size() == 0) return null;
@@ -686,14 +684,13 @@ public class DocumentService {
       String collection,
       List<FilterCondition> filters,
       List<String> fields,
-      String documentId,
-      Map<String, String> headers)
+      String documentId)
       throws ExecutionException, InterruptedException, UnauthorizedException {
     FilterCondition first = filters.get(0);
     List<String> path = first.getPath();
 
     ImmutablePair<List<Row>, ByteBuffer> searchResult =
-        searchRows(keyspace, collection, db, filters, fields, path, false, documentId, headers);
+        searchRows(keyspace, collection, db, filters, fields, path, false, documentId);
     List<Row> rows = searchResult.left;
     ByteBuffer pageState = searchResult.right;
     if (rows.size() == 0) {
@@ -816,8 +813,7 @@ public class DocumentService {
               new ArrayList<>(),
               new ArrayList<>(),
               false,
-              null,
-              headers);
+              null);
       addRowsToMap(rowsByDoc, page.left);
       db = dbFactory.getDocDataStoreForToken(authToken, pageSize, page.right, headers);
     } while (rowsByDoc.keySet().size() <= limit && page.right != null);
@@ -847,8 +843,7 @@ public class DocumentService {
                   new ArrayList<>(),
                   new ArrayList<>(),
                   false,
-                  null,
-                  headers)
+                  null)
               .right;
       return ImmutablePair.of(docsResult, finalPagingState);
     } else {
@@ -899,8 +894,7 @@ public class DocumentService {
               new ArrayList<>(),
               new ArrayList<>(),
               false,
-              null,
-              headers);
+              null);
       updateExistenceForMap(
           existsByDoc, countsByDoc, page.left, filters, db.treatBooleansAsNumeric());
       db = dbFactory.getDocDataStoreForToken(authToken, pageSize, page.right, headers);
@@ -933,8 +927,7 @@ public class DocumentService {
                   new ArrayList<>(),
                   new ArrayList<>(),
                   false,
-                  null,
-                  headers)
+                  null)
               .right;
     } else {
       finalPagingState = null;
@@ -995,8 +988,7 @@ public class DocumentService {
       List<String> fields,
       List<String> path,
       Boolean recurse,
-      String documentKey,
-      Map<String, String> headers)
+      String documentKey)
       throws UnauthorizedException {
     StringBuilder pathStr = new StringBuilder();
     List<BuiltCondition> predicates = new ArrayList<>();
