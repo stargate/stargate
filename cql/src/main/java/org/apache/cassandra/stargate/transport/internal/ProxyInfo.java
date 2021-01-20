@@ -13,17 +13,20 @@ public class ProxyInfo {
 
   public final InetSocketAddress publicAddress;
   public final InetSocketAddress sourceAddress;
+  private final Map<String, String> headers;
 
   public ProxyInfo(InetSocketAddress publicAddress, InetSocketAddress sourceAddress) {
     this.publicAddress = publicAddress;
     this.sourceAddress = sourceAddress;
+    this.headers =
+        ImmutableMap.of(
+            PROXY_SOURCE_ADDRESS_HEADER,
+            sourceAddress.getAddress().getHostAddress(),
+            PROXY_PUBLIC_ADDRESS_HEADER,
+            publicAddress.getAddress().getHostAddress());
   }
 
   public Map<String, String> toHeaders() {
-    return ImmutableMap.of(
-        PROXY_SOURCE_ADDRESS_HEADER,
-        sourceAddress.getAddress().getHostAddress(),
-        PROXY_PUBLIC_ADDRESS_HEADER,
-        publicAddress.getAddress().getHostAddress());
+    return headers;
   }
 }

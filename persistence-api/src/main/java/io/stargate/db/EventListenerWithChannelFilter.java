@@ -29,14 +29,14 @@ public interface EventListenerWithChannelFilter extends EventListener {
 
   @Override
   default void onCreateKeyspace(String keyspace) {
-    onCreateKeyspace(keyspace, c -> true);
+    onCreateKeyspace(keyspace, null);
   }
 
   void onCreateTable(String keyspace, String table, Predicate<Map<String, String>> headerFilter);
 
   @Override
   default void onCreateTable(String keyspace, String table) {
-    onCreateTable(keyspace, table, c -> true);
+    onCreateTable(keyspace, table, null);
   }
 
   default void onCreateView(
@@ -53,7 +53,7 @@ public interface EventListenerWithChannelFilter extends EventListener {
 
   @Override
   default void onCreateType(String keyspace, String type) {
-    onCreateType(keyspace, type, c -> true);
+    onCreateType(keyspace, type, null);
   }
 
   void onCreateFunction(
@@ -64,7 +64,7 @@ public interface EventListenerWithChannelFilter extends EventListener {
 
   @Override
   default void onCreateFunction(String keyspace, String function, List<String> argumentTypes) {
-    onCreateFunction(keyspace, function, argumentTypes, c -> true);
+    onCreateFunction(keyspace, function, argumentTypes, null);
   }
 
   void onCreateAggregate(
@@ -75,21 +75,21 @@ public interface EventListenerWithChannelFilter extends EventListener {
 
   @Override
   default void onCreateAggregate(String keyspace, String aggregate, List<String> argumentTypes) {
-    onCreateAggregate(keyspace, aggregate, argumentTypes, c -> true);
+    onCreateAggregate(keyspace, aggregate, argumentTypes, null);
   }
 
   void onAlterKeyspace(String keyspace, Predicate<Map<String, String>> headerFilter);
 
   @Override
   default void onAlterKeyspace(String keyspace) {
-    onAlterKeyspace(keyspace, c -> true);
+    onAlterKeyspace(keyspace, null);
   }
 
   void onAlterTable(String keyspace, String table, Predicate<Map<String, String>> headerFilter);
 
   @Override
   default void onAlterTable(String keyspace, String table) {
-    onAlterTable(keyspace, table, c -> true);
+    onAlterTable(keyspace, table, null);
   }
 
   default void onAlterView(
@@ -106,7 +106,7 @@ public interface EventListenerWithChannelFilter extends EventListener {
 
   @Override
   default void onAlterType(String keyspace, String type) {
-    onAlterType(keyspace, type, c -> true);
+    onAlterType(keyspace, type, null);
   }
 
   void onAlterFunction(
@@ -117,7 +117,7 @@ public interface EventListenerWithChannelFilter extends EventListener {
 
   @Override
   default void onAlterFunction(String keyspace, String function, List<String> argumentTypes) {
-    onAlterFunction(keyspace, function, argumentTypes, c -> true);
+    onAlterFunction(keyspace, function, argumentTypes, null);
   }
 
   void onAlterAggregate(
@@ -128,21 +128,21 @@ public interface EventListenerWithChannelFilter extends EventListener {
 
   @Override
   default void onAlterAggregate(String keyspace, String aggregate, List<String> argumentTypes) {
-    onAlterAggregate(keyspace, aggregate, argumentTypes, c -> true);
+    onAlterAggregate(keyspace, aggregate, argumentTypes, null);
   }
 
   void onDropKeyspace(String keyspace, Predicate<Map<String, String>> headerFilter);
 
   @Override
   default void onDropKeyspace(String keyspace) {
-    onDropKeyspace(keyspace, c -> true);
+    onDropKeyspace(keyspace, null);
   }
 
   void onDropTable(String keyspace, String table, Predicate<Map<String, String>> headerFilter);
 
   @Override
   default void onDropTable(String keyspace, String table) {
-    onDropTable(keyspace, table, c -> true);
+    onDropTable(keyspace, table, null);
   }
 
   default void onDropView(
@@ -159,7 +159,7 @@ public interface EventListenerWithChannelFilter extends EventListener {
 
   @Override
   default void onDropType(String keyspace, String type) {
-    onDropType(keyspace, type, c -> true);
+    onDropType(keyspace, type, null);
   }
 
   void onDropFunction(
@@ -170,7 +170,7 @@ public interface EventListenerWithChannelFilter extends EventListener {
 
   @Override
   default void onDropFunction(String keyspace, String function, List<String> argumentTypes) {
-    onDropFunction(keyspace, function, argumentTypes, c -> true);
+    onDropFunction(keyspace, function, argumentTypes, null);
   }
 
   void onDropAggregate(
@@ -181,41 +181,41 @@ public interface EventListenerWithChannelFilter extends EventListener {
 
   @Override
   default void onDropAggregate(String keyspace, String aggregate, List<String> argumentTypes) {
-    onDropAggregate(keyspace, aggregate, argumentTypes, c -> true);
+    onDropAggregate(keyspace, aggregate, argumentTypes, null);
   }
 
   void onJoinCluster(InetAddress endpoint, int port, Predicate<Map<String, String>> headerFilter);
 
   @Override
   default void onJoinCluster(InetAddress endpoint, int port) {
-    onJoinCluster(endpoint, port, c -> true);
+    onJoinCluster(endpoint, port, null);
   }
 
   void onLeaveCluster(InetAddress endpoint, int port, Predicate<Map<String, String>> headerFilter);
 
   @Override
   default void onLeaveCluster(InetAddress endpoint, int port) {
-    onLeaveCluster(endpoint, port, c -> true);
+    onLeaveCluster(endpoint, port, null);
   }
 
   void onUp(InetAddress endpoint, int port, Predicate<Map<String, String>> headerFilter);
 
   @Override
   default void onUp(InetAddress endpoint, int port) {
-    onUp(endpoint, port, c -> true);
+    onUp(endpoint, port, null);
   }
 
   void onDown(InetAddress endpoint, int port, Predicate<Map<String, String>> headerFilter);
 
   @Override
   default void onDown(InetAddress endpoint, int port) {
-    onDown(endpoint, port, c -> true);
+    onDown(endpoint, port, null);
   }
 
   void onMove(InetAddress endpoint, int port, Predicate<Map<String, String>> headerFilter);
 
   @Override
   default void onMove(InetAddress endpoint, int port) {
-    onMove(endpoint, port, c -> true);
+    onMove(endpoint, port, null);
   }
 }

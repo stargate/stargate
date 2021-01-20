@@ -139,7 +139,7 @@ public abstract class Event {
     private static TopologyChange deserializeEvent(ByteBuf cb) {
       Change change = CBUtil.readEnumValue(Change.class, cb);
       InetSocketAddress node = CBUtil.readInet(cb);
-      return new TopologyChange(change, node, c -> true);
+      return new TopologyChange(change, node, null);
     }
 
     @Override
@@ -202,7 +202,7 @@ public abstract class Event {
     private static StatusChange deserializeEvent(ByteBuf cb) {
       Status status = CBUtil.readEnumValue(Status.class, cb);
       InetSocketAddress node = CBUtil.readInet(cb);
-      return new StatusChange(status, node, c -> true);
+      return new StatusChange(status, node, null);
     }
 
     @Override
@@ -299,7 +299,7 @@ public abstract class Event {
         if (target == Target.FUNCTION || target == Target.AGGREGATE)
           argTypes = CBUtil.readStringList(cb);
 
-        return new SchemaChange(change, target, keyspace, tableOrType, argTypes, c -> true);
+        return new SchemaChange(change, target, keyspace, tableOrType, argTypes, null);
       } else {
         String keyspace = CBUtil.readString(cb);
         String table = CBUtil.readString(cb);
@@ -308,7 +308,7 @@ public abstract class Event {
             table.isEmpty() ? Target.KEYSPACE : Target.TABLE,
             keyspace,
             table.isEmpty() ? null : table,
-            c -> true);
+            null);
       }
     }
 
