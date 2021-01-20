@@ -29,6 +29,7 @@ import io.stargate.web.docsapi.dao.DocumentDB;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 
 public class Db {
 
@@ -38,7 +39,7 @@ public class Db {
   private final LoadingCache<String, DocumentDB> docsTokensToDataStore =
       Caffeine.newBuilder()
           .maximumSize(10_000)
-          .expireAfterWrite(Duration.ofMinutes(10))
+          .expireAfterWrite(Duration.ofMinutes(1))
           .build(this::getDocDataStoreForTokenInternal);
   private final DataStoreFactory dataStoreFactory;
 
@@ -55,10 +56,6 @@ public class Db {
 
   public DataStore getDataStore() {
     return this.dataStore;
-  }
-
-  public AuthenticationService getAuthenticationService() {
-    return authenticationService;
   }
 
   public AuthorizationService getAuthorizationService() {
@@ -105,12 +102,18 @@ public class Db {
         getAuthorizationService());
   }
 
-  public AuthenticationSubject getAuthenticationSubjectForToken(String token)
-      throws UnauthorizedException {
-    return authenticationService.validateToken(token);
-  }
-
   public DocumentDB getDocDataStoreForToken(String token) throws UnauthorizedException {
-    return docsTokensToDataStore.get(token);
+    if (token == null) {
+      throw new UnauthorizedException("Missing token");
+    }
+
+    try {
+      return docsTokensToDataStore.get(token);
+    } catch (CompletionException e) {
+      if (e.getCause() instanceof UnauthorizedException) {
+        throw (UnauthorizedException) e.getCause();
+      }
+      throw e;
+    }
   }
 }

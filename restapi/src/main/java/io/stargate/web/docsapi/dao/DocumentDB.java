@@ -318,7 +318,10 @@ public class DocumentDB {
 
   public ResultSet executeSelect(
       String keyspace, String collection, List<BuiltCondition> predicates)
-      throws ExecutionException, InterruptedException {
+      throws UnauthorizedException {
+    // Run generic authorizeDataRead for now
+    getAuthorizationService()
+        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
     return this.builder()
         .select()
         .column(DocumentDB.allColumns())
@@ -336,7 +339,10 @@ public class DocumentDB {
       List<BuiltCondition> predicates,
       int pageSize,
       ByteBuffer pageState)
-      throws ExecutionException, InterruptedException {
+      throws UnauthorizedException {
+    // Run generic authorizeDataRead for now
+    getAuthorizationService()
+        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
     UnaryOperator<Parameters> parametersModifier =
         p -> ImmutableParameters.builder().pageSize(pageSize).pagingState(pageState).build();
     return this.builder()
@@ -375,7 +381,11 @@ public class DocumentDB {
       List<BuiltCondition> predicates,
       boolean allowFiltering,
       int pageSize,
-      ByteBuffer pageState) {
+      ByteBuffer pageState)
+      throws UnauthorizedException {
+    // Run generic authorizeDataRead for now
+    getAuthorizationService()
+        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
     UnaryOperator<Parameters> parametersModifier =
         p -> {
           if (pageState != null) {
