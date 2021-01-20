@@ -173,8 +173,7 @@ public class RowsResource {
                   sort,
                   authenticatedDB,
                   tableMetadata,
-                  WhereParser.parseWhere(where, tableMetadata),
-                  allHeaders);
+                  WhereParser.parseWhere(where, tableMetadata));
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();
@@ -257,7 +256,7 @@ public class RowsResource {
           }
 
           Object response =
-              getRows(fields, raw, sort, authenticatedDB, tableMetadata, where, allHeaders);
+              getRows(fields, raw, sort, authenticatedDB, tableMetadata, where);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();
@@ -564,8 +563,7 @@ public class RowsResource {
       String sort,
       AuthenticatedDB authenticatedDB,
       Table tableMetadata,
-      List<BuiltCondition> where,
-      Map<String, String> headers)
+      List<BuiltCondition> where)
       throws Exception {
     List<Column> columns;
     if (Strings.isNullOrEmpty(fields)) {
