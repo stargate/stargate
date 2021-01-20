@@ -255,8 +255,7 @@ public class RowsResource {
                 .build();
           }
 
-          Object response =
-              getRows(fields, raw, sort, authenticatedDB, tableMetadata, where);
+          Object response = getRows(fields, raw, sort, authenticatedDB, tableMetadata, where);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();
