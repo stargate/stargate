@@ -15,6 +15,7 @@
  */
 package io.stargate.it.http;
 
+import static io.stargate.it.MetricsTestsHelper.getMetricValue;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -50,6 +51,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
@@ -59,6 +61,10 @@ import org.junit.jupiter.api.Test;
 
 @NotThreadSafe
 public class RestApiTest extends BaseOsgiIntegrationTest {
+
+  private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
+      Pattern.compile(
+          "(restapi_io_dropwizard_jetty_MutableServletContextHandler_dispatches_count\\s*)(\\d+.\\d+)");
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static String authToken;
@@ -1351,6 +1357,62 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     SuccessResponse successResponse =
         objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
     assertThat(successResponse.getSuccess()).isTrue();
+  }
+
+  @Test
+  public void shouldUpdateMetricWhenInsertingRow() throws IOException {
+    String tableName = "tbl_updaterow_" + System.currentTimeMillis();
+    createTable(tableName);
+
+    List<ColumnModel> columns = new ArrayList<>();
+
+    String rowIdentifier = UUID.randomUUID().toString();
+    ColumnModel idColumn = new ColumnModel();
+    idColumn.setName("id");
+    idColumn.setValue(rowIdentifier);
+    columns.add(idColumn);
+
+    ColumnModel firstNameColumn = new ColumnModel();
+    firstNameColumn.setName("firstName");
+    firstNameColumn.setValue("John");
+    columns.add(firstNameColumn);
+    addRow(tableName, columns);
+
+    String row = getRow(tableName, rowIdentifier);
+
+    RowResponse rowResponse = objectMapper.readValue(row, new TypeReference<RowResponse>() {});
+    assertThat(rowResponse.getCount()).isEqualTo(1);
+    assertThat(rowResponse.getRows().get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(rowResponse.getRows().get(0).get("firstName")).isEqualTo("John");
+
+    RowUpdate rowUpdate = new RowUpdate();
+    Changeset firstNameChange = new Changeset();
+    firstNameChange.setColumn("firstName");
+    firstNameChange.setValue("Fred");
+    rowUpdate.setChangeset(Collections.singletonList(firstNameChange));
+
+    String body =
+        RestUtils.put(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s",
+                host, keyspace, tableName, rowIdentifier),
+            objectMapper.writeValueAsString(rowUpdate),
+            HttpStatus.SC_OK);
+
+    SuccessResponse successResponse = objectMapper.readValue(body, SuccessResponse.class);
+    assertThat(successResponse.getSuccess()).isTrue();
+
+    // when
+    body = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+    // then
+    double numberOfRestOperations = getRestOperations(body);
+    assertThat(numberOfRestOperations).isGreaterThan(0);
+  }
+
+  private double getRestOperations(String body) {
+    return getMetricValue(body, "restapi", GRAPHQL_OPERATIONS_METRIC_REGEXP);
   }
 
   private void createTestTable(
