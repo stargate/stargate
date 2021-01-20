@@ -43,6 +43,15 @@ public interface AuthenticationSubject {
         .build();
   }
 
+  static AuthenticationSubject of(String token, String roleName, boolean fromExternalAuth) {
+    return ImmutableAuthenticationSubject.builder()
+        .token(token)
+        .roleName(roleName)
+        .isFromExternalAuth(fromExternalAuth)
+        .customProperties(Collections.emptyMap())
+        .build();
+  }
+
   static AuthenticationSubject of(String token, String roleName) {
     return ImmutableAuthenticationSubject.builder()
         .token(token)

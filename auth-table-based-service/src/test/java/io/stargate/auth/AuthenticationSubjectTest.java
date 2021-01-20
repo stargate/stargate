@@ -84,4 +84,13 @@ class AuthenticationSubjectTest {
     assertThat(subject.isFromExternalAuth()).isEqualTo(true);
     assertThat(subject.customProperties()).isEmpty();
   }
+
+  @Test
+  public void fullInputsExternalWithNoCustomProperties() {
+    AuthenticationSubject subject = AuthenticationSubject.of("token1", "user2", true);
+    assertThat(subject.token()).isEqualTo("token1");
+    assertThat(subject.roleName()).isEqualTo("user2");
+    assertThat(subject.isFromExternalAuth()).isEqualTo(true);
+    assertThat(subject.customProperties()).isEmpty();
+  }
 }
