@@ -77,14 +77,19 @@ public interface AuthenticatedUser extends Serializable {
     private static final String ROLE = "stargate.auth.subject.role";
     private static final String EXTERNAL = "stargate.auth.subject.fromExternalAuth";
 
-    private static ByteBuffer encode(String value) {
-      return StandardCharsets.UTF_8.encode(value).asReadOnlyBuffer();
+    private static void encode(Builder<String, ByteBuffer> map, String key, String value) {
+      if (value == null) {
+        return;
+      }
+
+      ByteBuffer buffer = StandardCharsets.UTF_8.encode(value).asReadOnlyBuffer();
+      map.put(key, buffer);
     }
 
     public static Map<String, ByteBuffer> serialize(AuthenticatedUser user) {
       Builder<String, ByteBuffer> map = ImmutableMap.builder();
-      map.put(TOKEN, encode(user.token()));
-      map.put(ROLE, encode(user.name()));
+      encode(map, TOKEN, user.token());
+      encode(map, ROLE, user.name());
 
       if (user.isFromExternalAuth()) {
         map.put(EXTERNAL, FROM_EXTERNAL_VALUE);
@@ -92,8 +97,7 @@ public interface AuthenticatedUser extends Serializable {
 
       for (Entry<String, String> e : user.customProperties().entrySet()) {
         String key = CUSTOM_PAYLOAD_NAME_PREFIX + e.getKey();
-        ByteBuffer value = encode(e.getValue());
-        map.put(key, value);
+        encode(map, key, e.getValue());
       }
 
       return map.build();

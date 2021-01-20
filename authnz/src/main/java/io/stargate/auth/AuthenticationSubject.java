@@ -38,7 +38,7 @@ public interface AuthenticationSubject {
     return ImmutableAuthenticationSubject.builder()
         .token(token)
         .roleName(roleName)
-        .isFromExternalAuth(true)
+        .isFromExternalAuth(fromExternalAuth)
         .customProperties(properties)
         .build();
   }
