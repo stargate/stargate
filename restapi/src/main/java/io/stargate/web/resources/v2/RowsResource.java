@@ -15,6 +15,8 @@
  */
 package io.stargate.web.resources.v2;
 
+import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
+
 import com.codahale.metrics.annotation.Timed;
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -53,6 +55,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
@@ -63,6 +66,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
@@ -134,7 +138,8 @@ public class RowsResource {
           final String pageStateParam,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
-      @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort) {
+      @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
           if (Strings.isNullOrEmpty(where)) {
@@ -156,7 +161,9 @@ public class RowsResource {
             pageSize = pageSizeParam;
           }
 
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, pageSize, pageState);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB =
+              db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
           Object response =
@@ -216,7 +223,8 @@ public class RowsResource {
           final String pageStateParam,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
-      @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort) {
+      @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
           ByteBuffer pageState = null;
@@ -230,7 +238,9 @@ public class RowsResource {
             pageSize = pageSizeParam;
           }
 
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, pageSize, pageState);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB =
+              db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
           List<BuiltCondition> where;
@@ -286,10 +296,12 @@ public class RowsResource {
       @ApiParam(value = "Name of the table to use for the request.", required = true)
           @PathParam("tableName")
           final String tableName,
-      @ApiParam(value = "", required = true) String payload) {
+      @ApiParam(value = "", required = true) String payload,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           @SuppressWarnings("unchecked")
           Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
@@ -367,9 +379,11 @@ public class RowsResource {
           List<PathSegment> path,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
-      @ApiParam(value = "", required = true) String payload) {
+      @ApiParam(value = "", required = true) String payload,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
-        () -> modifyRow(token, keyspaceName, tableName, path, raw, payload));
+        () ->
+            modifyRow(token, keyspaceName, tableName, path, raw, payload, getAllHeaders(request)));
   }
 
   @Timed
@@ -400,10 +414,12 @@ public class RowsResource {
                   "Value from the primary key column for the table. Define composite keys by separating values with slashes (`val1/val2...`) in the order they were defined. </br> For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)` then the primary key in the path would be `race_year/race_name` ",
               required = true)
           @PathParam("primaryKey")
-          List<PathSegment> path) {
+          List<PathSegment> path,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -477,9 +493,11 @@ public class RowsResource {
           @PathParam("primaryKey")
           List<PathSegment> path,
       @QueryParam("raw") final boolean raw,
-      @ApiParam(value = "document", required = true) String payload) {
+      @ApiParam(value = "document", required = true) String payload,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
-        () -> modifyRow(token, keyspaceName, tableName, path, raw, payload));
+        () ->
+            modifyRow(token, keyspaceName, tableName, path, raw, payload, getAllHeaders(request)));
   }
 
   private Response modifyRow(
@@ -488,9 +506,10 @@ public class RowsResource {
       String tableName,
       List<PathSegment> path,
       boolean raw,
-      String payload)
+      String payload,
+      Map<String, String> headers)
       throws Exception {
-    AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+    AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, headers);
 
     final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 

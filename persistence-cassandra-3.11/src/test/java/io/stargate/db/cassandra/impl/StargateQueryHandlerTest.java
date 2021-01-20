@@ -20,9 +20,7 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.AuthenticatedUser;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.cassandra.config.CFMetaData;
@@ -901,20 +899,6 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   private Map<String, ByteBuffer> createToken() {
-    ByteBuffer token =
-        authenticatedUser.token() != null
-            ? ByteBuffer.wrap(authenticatedUser.token().getBytes(StandardCharsets.UTF_8))
-            : null;
-    ByteBuffer roleName =
-        ByteBuffer.wrap(authenticatedUser.name().getBytes(StandardCharsets.UTF_8));
-    ByteBuffer isFromExternalAuth =
-        authenticatedUser.isFromExternalAuth() ? ByteBuffer.allocate(1) : null;
-
-    Map<String, ByteBuffer> payload = new HashMap<>();
-    payload.put("token", token);
-    payload.put("roleName", roleName);
-    payload.put("isFromExternalAuth", isFromExternalAuth);
-
-    return payload;
+    return AuthenticatedUser.Serializer.serialize(authenticatedUser);
   }
 }

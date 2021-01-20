@@ -343,17 +343,10 @@ public abstract class Message {
             ClientInfo clientInfo = ((ServerConnection) connection).clientInfo();
 
             if (customPayload != null) {
-              message.getCustomPayload().put("token", clientInfo.getToken());
-              message.getCustomPayload().put("roleName", clientInfo.getRoleName());
-              message
-                  .getCustomPayload()
-                  .put("isFromExternalAuth", clientInfo.getIsFromExternalAuth());
+              clientInfo.storeAuthenticationData(customPayload);
             } else {
               Map<String, ByteBuffer> payload = new HashMap<>();
-              payload.put("token", clientInfo.getToken());
-              payload.put("roleName", clientInfo.getRoleName());
-              payload.put("isFromExternalAuth", clientInfo.getIsFromExternalAuth());
-
+              clientInfo.storeAuthenticationData(payload);
               message.setCustomPayload(payload);
             }
           }

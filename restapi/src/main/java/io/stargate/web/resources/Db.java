@@ -28,15 +28,19 @@ import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
 
 public class Db {
 
   private final DataStore dataStore;
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
-  private final LoadingCache<String, DocumentDB> docsTokensToDataStore =
+
+  private final LoadingCache<TokenAndHeaders, DocumentDB> docsTokensToDataStore =
       Caffeine.newBuilder()
           .maximumSize(10_000)
           .expireAfterWrite(Duration.ofMinutes(1))
@@ -62,8 +66,10 @@ public class Db {
     return authorizationService;
   }
 
-  public AuthenticatedDB getDataStoreForToken(String token) throws UnauthorizedException {
-    AuthenticationSubject authenticationSubject = authenticationService.validateToken(token);
+  public AuthenticatedDB getDataStoreForToken(String token, Map<String, String> headers)
+      throws UnauthorizedException {
+    AuthenticationSubject authenticationSubject =
+        authenticationService.validateToken(token, headers);
     DataStore dataStore =
         dataStoreFactory.create(
             authenticationSubject.roleName(),
@@ -73,9 +79,11 @@ public class Db {
     return new AuthenticatedDB(dataStore, authenticationSubject);
   }
 
-  public AuthenticatedDB getDataStoreForToken(String token, int pageSize, ByteBuffer pagingState)
+  public AuthenticatedDB getDataStoreForToken(
+      String token, int pageSize, ByteBuffer pagingState, Map<String, String> headers)
       throws UnauthorizedException {
-    AuthenticationSubject authenticationSubject = authenticationService.validateToken(token);
+    AuthenticationSubject authenticationSubject =
+        authenticationService.validateToken(token, headers);
     return new AuthenticatedDB(
         getDataStoreInternal(authenticationSubject, pageSize, pagingState), authenticationSubject);
   }
@@ -94,26 +102,68 @@ public class Db {
         authenticationSubject.roleName(), authenticationSubject.isFromExternalAuth(), options);
   }
 
-  private DocumentDB getDocDataStoreForTokenInternal(String token) throws UnauthorizedException {
-    AuthenticatedDB authenticatedDB = getDataStoreForToken(token);
+  private DocumentDB getDocDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)
+      throws UnauthorizedException {
+    AuthenticatedDB authenticatedDB =
+        getDataStoreForToken(tokenAndHeaders.token, tokenAndHeaders.headers);
     return new DocumentDB(
         authenticatedDB.getDataStore(),
         authenticatedDB.getAuthenticationSubject(),
         getAuthorizationService());
   }
 
-  public DocumentDB getDocDataStoreForToken(String token) throws UnauthorizedException {
+  public AuthenticationSubject getAuthenticationSubjectForToken(TokenAndHeaders tokenAndHeaders)
+      throws UnauthorizedException {
+    return authenticationService.validateToken(tokenAndHeaders.token, tokenAndHeaders.headers);
+  }
+
+  public DocumentDB getDocDataStoreForToken(String token, Map<String, String> headers)
+      throws UnauthorizedException {
     if (token == null) {
       throw new UnauthorizedException("Missing token");
     }
 
     try {
-      return docsTokensToDataStore.get(token);
+      return docsTokensToDataStore.get(TokenAndHeaders.create(token, headers));
     } catch (CompletionException e) {
       if (e.getCause() instanceof UnauthorizedException) {
         throw (UnauthorizedException) e.getCause();
       }
       throw e;
+    }
+  }
+
+  static class TokenAndHeaders {
+    private static final String HOST_HEADER = "Host";
+    private final String token;
+    private final Map<String, String> headers;
+
+    static TokenAndHeaders create(String token, Map<String, String> headers) {
+      return new TokenAndHeaders(token, filterHeaders(headers));
+    }
+
+    private static Map<String, String> filterHeaders(Map<String, String> headers) {
+      return headers.entrySet().stream()
+          .filter(e -> e.getKey().equalsIgnoreCase(HOST_HEADER))
+          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    private TokenAndHeaders(String token, Map<String, String> headers) {
+      this.token = token;
+      this.headers = headers;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      TokenAndHeaders that = (TokenAndHeaders) o;
+      return Objects.equals(token, that.token) && Objects.equals(headers, that.headers);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(token, headers);
     }
   }
 }

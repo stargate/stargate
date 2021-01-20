@@ -23,15 +23,17 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
+import io.stargate.db.AuthenticatedUser;
+import io.stargate.db.AuthenticatedUser.Serializer;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.validation.constraints.NotNull;
 import org.apache.cassandra.auth.IResource;
 import org.apache.cassandra.auth.RoleResource;
 import org.apache.cassandra.cql3.BatchQueryOptions;
@@ -84,7 +86,6 @@ import org.apache.cassandra.exceptions.UnauthorizedException;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.utils.MD5Digest;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -258,18 +259,8 @@ public class StargateQueryHandler implements QueryHandler {
 
   @NotNull
   private AuthenticationSubject loadAuthenticationSubject(Map<String, ByteBuffer> customPayload) {
-    ByteBuffer token = customPayload.get("token");
-    ByteBuffer roleName = customPayload.get("roleName");
-    ByteBuffer isFromExternalAuth = customPayload.get("isFromExternalAuth");
-
-    if (token == null || roleName == null) {
-      throw new IllegalStateException("token and roleName must be provided");
-    }
-
-    return AuthenticationSubject.of(
-        StandardCharsets.UTF_8.decode(token).toString(),
-        StandardCharsets.UTF_8.decode(roleName).toString(),
-        (isFromExternalAuth != null));
+    AuthenticatedUser user = Serializer.load(customPayload);
+    return AuthenticationSubject.of(user);
   }
 
   private void authorizeModificationStatement(

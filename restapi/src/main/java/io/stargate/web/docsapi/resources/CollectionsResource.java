@@ -1,5 +1,7 @@
 package io.stargate.web.docsapi.resources;
 
+import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
@@ -21,9 +23,11 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -33,6 +37,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -69,10 +74,12 @@ public class CollectionsResource {
           @PathParam("namespace-id")
           String namespace,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
-          final boolean raw) {
+          final boolean raw,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
           Set<Table> tables = (Set<Table>) authenticatedDB.getTables(namespace);
 
           db.getAuthorizationService()
@@ -120,10 +127,12 @@ public class CollectionsResource {
               value = "JSON with the name of the collection",
               required = true,
               example = "{\"name\": \"example\"}")
-          String payload) {
+          String payload,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          DocumentDB docDB = db.getDocDataStoreForToken(token);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          DocumentDB docDB = db.getDocDataStoreForToken(token, allHeaders);
           DocCollection info = mapper.readValue(payload, DocCollection.class);
           if (info.getName() == null) {
             throw new IllegalArgumentException("`name` is required to create a collection");
@@ -171,10 +180,12 @@ public class CollectionsResource {
           @PathParam("namespace-id")
           String namespace,
       @ApiParam(value = "the collection to delete", required = true) @PathParam("collection-id")
-          String collection) {
+          String collection,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
@@ -236,10 +247,12 @@ public class CollectionsResource {
               value = "JSON with the upgrade type",
               required = true,
               example = "{\"upgradeType\": \"SAI_INDEX_UPGRADE\"}")
-          String payload) {
+          String payload,
+      @Context HttpServletRequest servletRequest) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Map<String, String> allHeaders = getAllHeaders(servletRequest);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(

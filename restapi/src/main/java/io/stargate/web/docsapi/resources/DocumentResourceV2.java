@@ -1,5 +1,7 @@
 package io.stargate.web.docsapi.resources;
 
+import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
+
 import com.datastax.oss.driver.api.core.NoNodeAvailableException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,14 +22,11 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.ResponseHeader;
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -108,7 +107,8 @@ public class DocumentResourceV2 {
           String namespace,
       @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
           String collection,
-      @ApiParam(value = "The JSON document", required = true) String payload) {
+      @ApiParam(value = "The JSON document", required = true) String payload,
+      @Context HttpServletRequest request) {
     // This route does nearly the same thing as PUT, except that it assigns an ID for the requester
     // And returns it as a Location header/in JSON body
     logger.debug("Post: Collection = {}", collection);
@@ -129,7 +129,8 @@ public class DocumentResourceV2 {
               new ArrayList<>(),
               false,
               dbFactory,
-              isJson);
+              isJson,
+              getAllHeaders(request));
 
           return Response.created(
                   URI.create(
@@ -170,7 +171,8 @@ public class DocumentResourceV2 {
           String collection,
       @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
           String id,
-      @ApiParam(value = "The JSON document", required = true) String payload) {
+      @ApiParam(value = "The JSON document", required = true) String payload,
+      @Context HttpServletRequest request) {
     logger.debug("Put: Collection = {}, id = {}", collection, id);
     return handle(
         () -> {
@@ -188,7 +190,8 @@ public class DocumentResourceV2 {
               new ArrayList<>(),
               false,
               dbFactory,
-              isJson);
+              isJson,
+              getAllHeaders(request));
           return Response.ok()
               .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
               .build();
@@ -230,7 +233,8 @@ public class DocumentResourceV2 {
       @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
           @PathParam("document-path")
           List<PathSegment> path,
-      @ApiParam(value = "The JSON document", required = true) String payload) {
+      @ApiParam(value = "The JSON document", required = true) String payload,
+      @Context HttpServletRequest request) {
     logger.debug("Put: Collection = {}, id = {}, path = {}", collection, id, path);
     return handle(
         () -> {
@@ -240,7 +244,16 @@ public class DocumentResourceV2 {
                   .toLowerCase()
                   .contains("application/json");
           documentService.putAtPath(
-              authToken, namespace, collection, id, payload, path, false, dbFactory, isJson);
+              authToken,
+              namespace,
+              collection,
+              id,
+              payload,
+              path,
+              false,
+              dbFactory,
+              isJson,
+              getAllHeaders(request));
           return Response.ok()
               .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
               .build();
@@ -279,7 +292,8 @@ public class DocumentResourceV2 {
           String collection,
       @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
           String id,
-      @ApiParam(value = "The JSON document", required = true) String payload) {
+      @ApiParam(value = "The JSON document", required = true) String payload,
+      @Context HttpServletRequest request) {
     logger.debug("Patch: Collection = {}, id = {}", collection, id);
     return handle(
         () -> {
@@ -297,7 +311,8 @@ public class DocumentResourceV2 {
               new ArrayList<>(),
               true,
               dbFactory,
-              isJson);
+              isJson,
+              getAllHeaders(request));
           return Response.ok()
               .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
               .build();
@@ -340,7 +355,8 @@ public class DocumentResourceV2 {
       @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
           @PathParam("document-path")
           List<PathSegment> path,
-      @ApiParam(value = "The JSON document", required = true) String payload) {
+      @ApiParam(value = "The JSON document", required = true) String payload,
+      @Context HttpServletRequest request) {
     logger.debug("Patch: Collection = {}, id = {}, path = {}", collection, id, path);
     return handle(
         () -> {
@@ -350,7 +366,16 @@ public class DocumentResourceV2 {
                   .toLowerCase()
                   .contains("application/json");
           documentService.putAtPath(
-              authToken, namespace, collection, id, payload, path, true, dbFactory, isJson);
+              authToken,
+              namespace,
+              collection,
+              id,
+              payload,
+              path,
+              true,
+              dbFactory,
+              isJson,
+              getAllHeaders(request));
           return Response.ok()
               .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
               .build();
@@ -385,11 +410,13 @@ public class DocumentResourceV2 {
       @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
           String collection,
       @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
-          String id) {
+          String id,
+      @Context HttpServletRequest request) {
     logger.debug("Delete: Collection = {}, id = {}, path = {}", collection, id, new ArrayList<>());
     return handle(
         () -> {
-          DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, allHeaders);
           documentService.deleteAtPath(db, namespace, collection, id, new ArrayList<>());
           return Response.noContent().build();
         });
@@ -426,11 +453,13 @@ public class DocumentResourceV2 {
           String id,
       @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
           @PathParam("document-path")
-          List<PathSegment> path) {
+          List<PathSegment> path,
+      @Context HttpServletRequest request) {
     logger.debug("Delete: Collection = {}, id = {}, path = {}", collection, id, path);
     return handle(
         () -> {
-          DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, allHeaders);
           documentService.deleteAtPath(db, namespace, collection, id, path);
           return Response.noContent().build();
         });
@@ -490,7 +519,8 @@ public class DocumentResourceV2 {
               required = false)
           @QueryParam("page-state")
           String pageStateParam,
-      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw) {
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
+      @Context HttpServletRequest request) {
     return getDocPath(
         headers,
         ui,
@@ -503,7 +533,8 @@ public class DocumentResourceV2 {
         fields,
         pageSizeParam,
         pageStateParam,
-        raw);
+        raw,
+        request);
   }
 
   @GET
@@ -565,11 +596,14 @@ public class DocumentResourceV2 {
               required = false)
           @QueryParam("page-state")
           String pageStateParam,
-      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw) {
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
+      @Context HttpServletRequest request) {
     return handle(
         () -> {
+          Map<String, String> allHeaders = getAllHeaders(request);
           List<FilterCondition> filters = new ArrayList<>();
           List<String> selectionList = new ArrayList<>();
+
           if (where != null) {
             JsonNode filterJson = mapper.readTree(where);
             filters = documentService.convertToFilterOps(path, filterJson);
@@ -600,7 +634,8 @@ public class DocumentResourceV2 {
 
           JsonNode node;
           if (filters.isEmpty()) {
-            DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
+
+            DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, allHeaders);
             node = documentService.getJsonAtPath(db, namespace, collection, id, path);
             if (node == null) {
               return Response.noContent().build();
@@ -621,7 +656,7 @@ public class DocumentResourceV2 {
               byte[] decodedBytes = Base64.getDecoder().decode(pageStateParam);
               pageState = ByteBuffer.wrap(decodedBytes);
             }
-            DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
+            DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
             int pageSize = pageSizeParam > 0 ? pageSizeParam : DEFAULT_PAGE_SIZE;
             ImmutablePair<JsonNode, ByteBuffer> result =
                 documentService.searchDocumentsV2(
@@ -703,7 +738,8 @@ public class DocumentResourceV2 {
           String pageStateParam,
       // TODO: Someday, support this in a non-restrictive way
       // @QueryParam("sort") String sort,
-      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw) {
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
+      @Context HttpServletRequest request) {
     return handle(
         () -> {
           List<FilterCondition> filters = new ArrayList<>();
@@ -738,7 +774,7 @@ public class DocumentResourceV2 {
           int pageSize = DEFAULT_PAGE_SIZE;
 
           ByteBuffer cloneState = pageState != null ? pageState.duplicate() : null;
-          DocumentDB db = dbFactory.getDocDataStoreForToken(authToken);
+          DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
 
           ImmutablePair<JsonNode, ByteBuffer> results;
 
@@ -756,7 +792,8 @@ public class DocumentResourceV2 {
                     selectionList,
                     cloneState,
                     pageSize,
-                    Math.max(1, pageSizeParam));
+                    Math.max(1, pageSizeParam),
+                    getAllHeaders(request));
           } else {
             results =
                 documentService.getFullDocumentsFiltered(
@@ -769,7 +806,8 @@ public class DocumentResourceV2 {
                     selectionList,
                     cloneState,
                     pageSize,
-                    Math.max(1, pageSizeParam));
+                    Math.max(1, pageSizeParam),
+                    getAllHeaders(request));
           }
 
           if (results == null) {

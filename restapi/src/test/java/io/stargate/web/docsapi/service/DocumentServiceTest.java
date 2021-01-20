@@ -51,6 +51,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +87,7 @@ public class DocumentServiceTest {
   private Method checkLtOp;
   private Method searchRows;
   private static final ObjectMapper mapper = new ObjectMapper();
+  private static final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
 
   @BeforeEach
   public void setup() throws NoSuchMethodException {
@@ -917,7 +919,7 @@ public class DocumentServiceTest {
   public void putAtPath() throws UnauthorizedException {
     DocumentDB dbMock = mock(DocumentDB.class);
     Db dbFactoryMock = mock(Db.class);
-    when(dbFactoryMock.getDocDataStoreForToken(anyString())).thenReturn(dbMock);
+    when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
     when(dbMock.newBindMap(any())).thenCallRealMethod();
 
     service.putAtPath(
@@ -929,7 +931,8 @@ public class DocumentServiceTest {
         new ArrayList<>(),
         false,
         dbFactoryMock,
-        true);
+        true,
+        EMPTY_HEADERS);
 
     verify(dbMock, times(1))
         .deleteThenInsertBatch(anyString(), anyString(), anyString(), any(), any(), anyLong());
@@ -942,7 +945,7 @@ public class DocumentServiceTest {
   public void putAtPath_patching() throws UnauthorizedException {
     DocumentDB dbMock = mock(DocumentDB.class);
     Db dbFactoryMock = mock(Db.class);
-    when(dbFactoryMock.getDocDataStoreForToken(anyString())).thenReturn(dbMock);
+    when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
     when(dbMock.newBindMap(any())).thenCallRealMethod();
 
     service.putAtPath(
@@ -954,7 +957,8 @@ public class DocumentServiceTest {
         new ArrayList<>(),
         true,
         dbFactoryMock,
-        true);
+        true,
+        EMPTY_HEADERS);
 
     verify(dbMock, times(0))
         .deleteThenInsertBatch(anyString(), anyString(), anyString(), any(), any(), anyLong());
@@ -967,7 +971,7 @@ public class DocumentServiceTest {
   public void putAtPath_noData() throws UnauthorizedException {
     DocumentDB dbMock = mock(DocumentDB.class);
     Db dbFactoryMock = mock(Db.class);
-    when(dbFactoryMock.getDocDataStoreForToken(anyString())).thenReturn(dbMock);
+    when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
     when(dbMock.newBindMap(any())).thenCallRealMethod();
 
     Throwable thrown =
@@ -982,7 +986,8 @@ public class DocumentServiceTest {
                     new ArrayList<>(),
                     true,
                     dbFactoryMock,
-                    true));
+                    true,
+                    EMPTY_HEADERS));
 
     assertThat(thrown)
         .isInstanceOf(DocumentAPIRequestException.class)
@@ -1316,7 +1321,7 @@ public class DocumentServiceTest {
     Db dbFactoryMock = Mockito.mock(Db.class);
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString())).thenReturn(dbMock);
+    Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
     Mockito.when(
             serviceMock.searchRows(
                 any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
@@ -1331,7 +1336,8 @@ public class DocumentServiceTest {
                 anyListOf(String.class),
                 any(),
                 anyInt(),
-                anyInt()))
+                anyInt(),
+                any()))
         .thenCallRealMethod();
     Mockito.doCallRealMethod().when(serviceMock).addRowsToMap(anyMap(), anyList());
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
@@ -1347,7 +1353,8 @@ public class DocumentServiceTest {
             new ArrayList<>(),
             null,
             100,
-            1);
+            1,
+            EMPTY_HEADERS);
     assertThat(result.right).isNull();
     assertThat(result.left).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
   }
@@ -1359,7 +1366,7 @@ public class DocumentServiceTest {
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
     List<Row> twoDocsRows = makeInitialRowData();
     twoDocsRows.addAll(makeRowDataForSecondDoc());
-    Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString())).thenReturn(dbMock);
+    Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
     Mockito.when(
             serviceMock.searchRows(
                 any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
@@ -1374,7 +1381,8 @@ public class DocumentServiceTest {
                 anyListOf(String.class),
                 any(),
                 anyInt(),
-                anyInt()))
+                anyInt(),
+                any()))
         .thenCallRealMethod();
     Mockito.doCallRealMethod().when(serviceMock).addRowsToMap(anyMap(), anyList());
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
@@ -1390,7 +1398,8 @@ public class DocumentServiceTest {
             new ArrayList<>(),
             null,
             100,
-            1);
+            1,
+            EMPTY_HEADERS);
     assertThat(result.right).isNull();
     assertThat(result.left).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
   }

@@ -1,6 +1,7 @@
 package io.stargate.web.docsapi.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyObject;
@@ -21,8 +22,10 @@ import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.resources.Db;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
@@ -37,10 +40,13 @@ public class DocumentResourceV2Test {
   private final DocumentService documentServiceMock = mock(DocumentService.class);
   private final Db dbFactoryMock = mock(Db.class);
   private DocumentResourceV2 documentResourceV2;
+  private HttpServletRequest httpServletRequest;
 
   @BeforeEach
   public void setup() {
     documentResourceV2 = new DocumentResourceV2(dbFactoryMock, documentServiceMock);
+    httpServletRequest = mock(HttpServletRequest.class);
+    when(httpServletRequest.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
   }
 
   @Test
@@ -53,7 +59,9 @@ public class DocumentResourceV2Test {
     String collection = "collection";
     String payload = "{}";
 
-    Response r = documentResourceV2.postDoc(headers, ui, authToken, keyspace, collection, payload);
+    Response r =
+        documentResourceV2.postDoc(
+            headers, ui, authToken, keyspace, collection, payload, httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(201);
     mapper.readTree((String) r.getEntity()).requiredAt("/documentId");
@@ -71,7 +79,8 @@ public class DocumentResourceV2Test {
     String payload = "{}";
 
     Response r =
-        documentResourceV2.putDoc(headers, ui, authToken, keyspace, collection, id, payload);
+        documentResourceV2.putDoc(
+            headers, ui, authToken, keyspace, collection, id, payload, httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     mapper.readTree((String) r.getEntity()).requiredAt("/documentId");
@@ -91,7 +100,7 @@ public class DocumentResourceV2Test {
 
     Response r =
         documentResourceV2.putDocPath(
-            headers, ui, authToken, keyspace, collection, id, path, payload);
+            headers, ui, authToken, keyspace, collection, id, path, payload, httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity()).requiredAt("/documentId").asText())
@@ -110,7 +119,8 @@ public class DocumentResourceV2Test {
     String payload = "{}";
 
     Response r =
-        documentResourceV2.patchDoc(headers, ui, authToken, keyspace, collection, id, payload);
+        documentResourceV2.patchDoc(
+            headers, ui, authToken, keyspace, collection, id, payload, httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity()).requiredAt("/documentId").asText())
@@ -131,7 +141,7 @@ public class DocumentResourceV2Test {
 
     Response r =
         documentResourceV2.patchDocPath(
-            headers, ui, authToken, keyspace, collection, id, path, payload);
+            headers, ui, authToken, keyspace, collection, id, path, payload, httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity()).requiredAt("/documentId").asText())
@@ -147,7 +157,9 @@ public class DocumentResourceV2Test {
     String collection = "collection";
     String id = "id";
 
-    Response r = documentResourceV2.deleteDoc(headers, ui, authToken, keyspace, collection, id);
+    Response r =
+        documentResourceV2.deleteDoc(
+            headers, ui, authToken, keyspace, collection, id, httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(204);
   }
@@ -163,7 +175,8 @@ public class DocumentResourceV2Test {
     List<PathSegment> path = new ArrayList<>();
 
     Response r =
-        documentResourceV2.deleteDocPath(headers, ui, authToken, keyspace, collection, id, path);
+        documentResourceV2.deleteDocPath(
+            headers, ui, authToken, keyspace, collection, id, path, httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(204);
   }
@@ -203,7 +216,8 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
-            true);
+            true,
+            httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity())).isEqualTo(mockedReturn);
@@ -246,7 +260,8 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
-            true);
+            true,
+            httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity())).isEqualTo(mockedReturn);
@@ -301,7 +316,8 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
-            true);
+            true,
+            httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity())).isEqualTo(mockedReturn);
@@ -344,7 +360,8 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
-            false);
+            false,
+            httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     ObjectNode expected = mapper.createObjectNode();
@@ -386,7 +403,8 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
-            false);
+            false,
+            httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(204);
     r =
         documentResourceV2.getDocPath(
@@ -401,7 +419,8 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
-            true);
+            true,
+            httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(204);
   }
 
@@ -442,7 +461,8 @@ public class DocumentResourceV2Test {
                 anyList(),
                 anyObject(),
                 anyInt(),
-                anyInt()))
+                anyInt(),
+                any()))
         .thenReturn(ImmutablePair.of(searchResult, null));
 
     Response r =
@@ -456,7 +476,8 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
-            raw);
+            raw,
+            httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(200);
     JsonNode resp = mapper.readTree((String) r.getEntity());
     ObjectNode expected = mapper.createObjectNode();
@@ -501,7 +522,8 @@ public class DocumentResourceV2Test {
                 anyList(),
                 anyObject(),
                 anyInt(),
-                anyInt()))
+                anyInt(),
+                any()))
         .thenReturn(ImmutablePair.of(searchResult, null));
 
     Response r =
@@ -515,7 +537,8 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
-            raw);
+            raw,
+            httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity())).isEqualTo(searchResult);
   }
@@ -560,7 +583,8 @@ public class DocumentResourceV2Test {
                 anyList(),
                 anyObject(),
                 anyInt(),
-                anyInt()))
+                anyInt(),
+                any()))
         .thenReturn(ImmutablePair.of(searchResult, null));
 
     Response r =
@@ -574,7 +598,8 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
-            raw);
+            raw,
+            httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity())).isEqualTo(searchResult);
   }
@@ -612,7 +637,8 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
-            raw);
+            raw,
+            httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(204);
   }
 
@@ -649,7 +675,8 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
-            raw);
+            raw,
+            httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(400);
     assertThat((String) r.getEntity())
         .startsWith("Conditions across multiple fields are not yet supported (found: ");
@@ -689,7 +716,8 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
-            raw);
+            raw,
+            httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(400);
     assertThat((String) r.getEntity()).isEqualTo("The parameter `page-size` is limited to 20.");
   }
@@ -723,7 +751,8 @@ public class DocumentResourceV2Test {
                 anyList(),
                 anyObject(),
                 anyInt(),
-                anyInt()))
+                anyInt(),
+                any()))
         .thenReturn(ImmutablePair.of(searchResult, null));
 
     Response r =
@@ -737,7 +766,8 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
-            raw);
+            raw,
+            httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity())).isEqualTo(searchResult);
   }
@@ -766,7 +796,8 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
-            raw);
+            raw,
+            httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(400);
     assertThat((String) r.getEntity()).isEqualTo("The parameter `page-size` is limited to 20.");
   }

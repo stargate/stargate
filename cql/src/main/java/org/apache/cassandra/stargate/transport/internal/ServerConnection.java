@@ -132,7 +132,9 @@ public class ServerConnection extends Connection {
               .newSaslNegotiator(clientInfo.remoteAddress().getAddress(), certificates());
 
       saslNegotiator =
-          authentication == null ? negotiator : authentication.getSaslNegotiator(negotiator);
+          authentication == null
+              ? negotiator
+              : authentication.getSaslNegotiator(negotiator, clientInfo);
     }
     return saslNegotiator;
   }
