@@ -18,13 +18,15 @@ package io.stargate.db;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import org.assertj.core.api.AbstractComparableAssert;
+import org.assertj.core.api.AbstractStringAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 
 class ClientInfoTest {
 
@@ -37,37 +39,65 @@ class ClientInfoTest {
   public void setup() {
     emptyInfo = new ClientInfo(localhost, localhost);
     userInfo = new ClientInfo(localhost, localhost);
-    userInfo.setAuthenticatedUser(AuthenticatedUser.of("user123", "token123", true));
+    userInfo.setAuthenticatedUser(
+        AuthenticatedUser.of(
+            "user123", "token123", true, Collections.singletonMap("customProp1", "customValue1")));
+  }
+
+  private AbstractStringAssert<?> assertStringValue(ClientInfo clientInfo, String key) {
+    Map<String, ByteBuffer> payload = new HashMap<>();
+    clientInfo.storeAuthenticationData(payload);
+    return assertThat(UTF_8.decode(payload.get(key)).toString());
+  }
+
+  private AbstractComparableAssert<?, ByteBuffer> assertBufferValue(
+      ClientInfo clientInfo, String key) {
+    Map<String, ByteBuffer> payload = new HashMap<>();
+    clientInfo.storeAuthenticationData(payload);
+    return assertThat(payload.get(key));
   }
 
   @Test
   public void getToken() {
-    assertThat(UTF_8.decode(userInfo.getToken()).toString()).isEqualTo("token123");
-    assertThat(emptyInfo.getToken()).isNull();
+    assertStringValue(userInfo, "stargate.auth.subject.token").isEqualTo("token123");
   }
 
   @Test
   public void getRoleName() {
-    assertThat(UTF_8.decode(userInfo.getRoleName()).toString()).isEqualTo("user123");
-    assertThat(emptyInfo.getRoleName()).isNull();
+    assertStringValue(userInfo, "stargate.auth.subject.role").isEqualTo("user123");
   }
 
   @Test
   public void getIsFromExternalAuth() {
-    assertThat(userInfo.getIsFromExternalAuth()).isNotNull();
-    assertThat(emptyInfo.getIsFromExternalAuth()).isNull();
+    assertBufferValue(userInfo, "stargate.auth.subject.fromExternalAuth").isNotNull();
   }
 
-  @ParameterizedTest
-  @CsvSource({"getToken", "getRoleName", "getIsFromExternalAuth"})
-  public void testUserInfoBufferReusable(String methodName) throws Exception {
-    Method method = userInfo.getClass().getMethod(methodName);
+  @Test
+  public void getCustom() {
+    assertStringValue(userInfo, "stargate.auth.subject.custom.customProp1")
+        .isEqualTo("customValue1");
+  }
 
+  @Test
+  public void emptyUser() {
+    assertBufferValue(emptyInfo, "stargate.auth.subject.token").isNull();
+    assertBufferValue(emptyInfo, "stargate.auth.subject.role").isNull();
+    assertBufferValue(emptyInfo, "stargate.auth.subject.external").isNull();
+  }
+
+  @Test
+  public void testUserInfoBufferReusable() throws Exception {
     // decode twice to ensure the stored buffer is reusable
-    assertThat(UTF_8.decode((ByteBuffer) method.invoke(userInfo)).remaining()).isGreaterThan(0);
-    assertThat(UTF_8.decode((ByteBuffer) method.invoke(userInfo)).remaining()).isGreaterThan(0);
+    for (int i = 0; i < 2; i++) {
+      Map<String, ByteBuffer> payload = new HashMap<>();
+      userInfo.storeAuthenticationData(payload);
 
-    // ensure the buffer is read-only
-    assertThat(((ByteBuffer) method.invoke(userInfo)).isReadOnly()).isTrue();
+      for (ByteBuffer buffer : payload.values()) {
+        assertThat(UTF_8.decode(buffer).remaining()).isGreaterThan(0);
+
+        // ensure the buffer is read-only
+        assertThat(buffer.isReadOnly()).isTrue();
+      }
+    }
   }
 }

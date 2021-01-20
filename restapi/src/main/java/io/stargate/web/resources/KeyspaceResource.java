@@ -15,6 +15,8 @@
  */
 package io.stargate.web.resources;
 
+import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
+
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.SourceAPI;
 import io.swagger.annotations.Api;
@@ -23,11 +25,14 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.List;
+import java.util.Map;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -65,10 +70,12 @@ public class KeyspaceResource {
                   "The token returned from the authorization endpoint. Use this token in each request.",
               required = true)
           @HeaderParam("X-Cassandra-Token")
-          String token) {
+          String token,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           List<String> keyspaceNames = authenticatedDB.getDataStore().schema().keyspaceNames();
           db.getAuthorizationService()

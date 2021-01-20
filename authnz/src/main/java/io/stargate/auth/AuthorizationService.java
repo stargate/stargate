@@ -25,7 +25,7 @@ public interface AuthorizationService {
    * Using the provided token will perform pre-authorization where possible, executes the query
    * provided, and then authorizes the response of the query.
    *
-   * @param action A {@link QueryBuilder} object to be executed and authorized against a token.
+   * @param action The action to be executed and authorized against a token.
    * @param authenticationSubject The authenticated user to use for authorization.
    * @param keyspace The keyspace containing the table with data to be read.
    * @param table The table within the provided keyspace containing the data to be read.

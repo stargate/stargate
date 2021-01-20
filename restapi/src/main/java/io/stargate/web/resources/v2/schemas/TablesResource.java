@@ -15,6 +15,8 @@
  */
 package io.stargate.web.resources.v2.schemas;
 
+import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
+
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
@@ -49,6 +51,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -59,6 +62,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -97,10 +101,12 @@ public class TablesResource {
           @PathParam("keyspaceName")
           final String keyspaceName,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
-          final boolean raw) {
+          final boolean raw,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           List<TableResponse> tableResponses =
               authenticatedDB.getTables(keyspaceName).stream()
@@ -149,10 +155,12 @@ public class TablesResource {
           @PathParam("tableName")
           final String tableName,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
-          final boolean raw) {
+          final boolean raw,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
           db.getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
@@ -193,10 +201,12 @@ public class TablesResource {
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @ApiParam(value = "", required = true) @NotNull final TableAdd tableAdd) {
+      @ApiParam(value = "", required = true) @NotNull final TableAdd tableAdd,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
           if (keyspace == null) {
@@ -315,10 +325,12 @@ public class TablesResource {
       @ApiParam(value = "Name of the table to use for the request.", required = true)
           @PathParam("tableName")
           final String tableName,
-      @ApiParam(value = "table name", required = true) @NotNull final TableAdd tableUpdate) {
+      @ApiParam(value = "table name", required = true) @NotNull final TableAdd tableUpdate,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
@@ -388,10 +400,12 @@ public class TablesResource {
           final String keyspaceName,
       @ApiParam(value = "Name of the table to use for the request.", required = true)
           @PathParam("tableName")
-          final String tableName) {
+          final String tableName,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(

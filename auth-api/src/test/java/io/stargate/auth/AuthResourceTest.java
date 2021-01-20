@@ -13,6 +13,8 @@ import io.stargate.auth.model.Credentials;
 import io.stargate.auth.model.Error;
 import io.stargate.auth.model.Secret;
 import io.stargate.auth.model.UsernameCredentials;
+import java.util.Collections;
+import java.util.Map;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -31,6 +33,8 @@ class AuthResourceTest {
   private static final ResourceExtension resourceWithUsernameTokenEnabled =
       ResourceExtension.builder().addResource(new AuthResource(authService, true)).build();
 
+  private static final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
+
   @AfterEach
   void tearDown() {
     reset(authService);
@@ -39,7 +43,7 @@ class AuthResourceTest {
   @Test
   void createTokenFromSecretSuccess() throws UnauthorizedException {
     Secret secret = new Secret("key", "secret");
-    when(authService.createToken("key", "secret")).thenReturn("token");
+    when(authService.createToken("key", "secret", EMPTY_HEADERS)).thenReturn("token");
 
     AuthTokenResponse token =
         resourceWithUsernameTokenDisabled
@@ -53,7 +57,7 @@ class AuthResourceTest {
   @Test
   void createTokenFromSecretUnauthorized() throws UnauthorizedException {
     Secret secret = new Secret("key", "secret");
-    when(authService.createToken("key", "secret"))
+    when(authService.createToken("key", "secret", EMPTY_HEADERS))
         .thenThrow(new UnauthorizedException("unauthorized"));
 
     Response response =
@@ -70,7 +74,8 @@ class AuthResourceTest {
   @Test
   void createTokenFromSecretInternalServerError() throws UnauthorizedException {
     Secret secret = new Secret("key", "secret");
-    when(authService.createToken("key", "secret")).thenThrow(new RuntimeException("error"));
+    when(authService.createToken("key", "secret", EMPTY_HEADERS))
+        .thenThrow(new RuntimeException("error"));
 
     Response response =
         resourceWithUsernameTokenDisabled
@@ -126,7 +131,7 @@ class AuthResourceTest {
   @Test
   void createTokenFromCredentialsSuccess() throws UnauthorizedException {
     Credentials credentials = new Credentials("username", "password");
-    when(authService.createToken("username", "password")).thenReturn("token");
+    when(authService.createToken("username", "password", EMPTY_HEADERS)).thenReturn("token");
 
     AuthTokenResponse token =
         resourceWithUsernameTokenDisabled
@@ -140,7 +145,7 @@ class AuthResourceTest {
   @Test
   void createTokenFromCredentialsUnauthorized() throws UnauthorizedException {
     Credentials credentials = new Credentials("username", "password");
-    when(authService.createToken("username", "password"))
+    when(authService.createToken("username", "password", EMPTY_HEADERS))
         .thenThrow(new UnauthorizedException("unauthorized"));
 
     Response response =
@@ -157,7 +162,8 @@ class AuthResourceTest {
   @Test
   void createTokenFromCredentialsInternalServerError() throws UnauthorizedException {
     Credentials credentials = new Credentials("username", "password");
-    when(authService.createToken("username", "password")).thenThrow(new RuntimeException("error"));
+    when(authService.createToken("username", "password", EMPTY_HEADERS))
+        .thenThrow(new RuntimeException("error"));
 
     Response response =
         resourceWithUsernameTokenDisabled
@@ -212,7 +218,7 @@ class AuthResourceTest {
   @Test
   void createTokenFromUsernameSuccess() throws UnauthorizedException {
     UsernameCredentials username = new UsernameCredentials("username");
-    when(authService.createToken("username")).thenReturn("token");
+    when(authService.createToken("username", EMPTY_HEADERS)).thenReturn("token");
 
     AuthTokenResponse token =
         resourceWithUsernameTokenEnabled
@@ -226,7 +232,7 @@ class AuthResourceTest {
   @Test
   void createTokenFromUsernameDisabled() throws UnauthorizedException {
     UsernameCredentials username = new UsernameCredentials("username");
-    when(authService.createToken("username")).thenReturn("token");
+    when(authService.createToken("username", EMPTY_HEADERS)).thenReturn("token");
 
     Response response =
         resourceWithUsernameTokenDisabled
@@ -242,7 +248,8 @@ class AuthResourceTest {
   @Test
   void createTokenFromUsernameUnauthorized() throws UnauthorizedException {
     UsernameCredentials username = new UsernameCredentials("username");
-    when(authService.createToken("username")).thenThrow(new UnauthorizedException("unauthorized"));
+    when(authService.createToken("username", EMPTY_HEADERS))
+        .thenThrow(new UnauthorizedException("unauthorized"));
 
     Response response =
         resourceWithUsernameTokenEnabled
@@ -258,7 +265,8 @@ class AuthResourceTest {
   @Test
   void createTokenFromUsernameInternalServerError() throws UnauthorizedException {
     UsernameCredentials username = new UsernameCredentials("username");
-    when(authService.createToken("username")).thenThrow(new RuntimeException("error"));
+    when(authService.createToken("username", EMPTY_HEADERS))
+        .thenThrow(new RuntimeException("error"));
 
     Response response =
         resourceWithUsernameTokenEnabled

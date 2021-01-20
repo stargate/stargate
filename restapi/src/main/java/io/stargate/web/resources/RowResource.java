@@ -15,6 +15,8 @@
  */
 package io.stargate.web.resources;
 
+import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
+
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
@@ -127,7 +129,8 @@ public class RowResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           BoundQuery query =
               authenticatedDB
@@ -195,7 +198,8 @@ public class RowResource {
       @ApiParam(value = "Restrict the number of returned items") @QueryParam("pageSize")
           final int pageSizeParam,
       @ApiParam(value = "Move the cursor to a particular result") @QueryParam("pageState")
-          final String pageStateParam) {
+          final String pageStateParam,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
           ByteBuffer pageState = null;
@@ -209,7 +213,9 @@ public class RowResource {
             pageSize = pageSizeParam;
           }
 
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, pageSize, pageState);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB =
+              db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
 
           BoundQuery query =
               authenticatedDB
@@ -276,7 +282,8 @@ public class RowResource {
           @PathParam("tableName")
           final String tableName,
       @ApiParam(value = "The query to be used for retrieving rows.", required = true) @NotNull
-          final Query queryModel) {
+          final Query queryModel,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
           ByteBuffer pageState = null;
@@ -290,7 +297,9 @@ public class RowResource {
             pageSize = queryModel.getPageSize();
           }
 
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, pageSize, pageState);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB =
+              db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
 
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -406,10 +415,12 @@ public class RowResource {
           @PathParam("tableName")
           final String tableName,
       @ApiParam(value = "Row object that needs to be added to the table", required = true) @NotNull
-          final RowAdd rowAdd) {
+          final RowAdd rowAdd,
+      @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           List<ValueModifier> values =
               rowAdd.getColumns().stream()
@@ -479,7 +490,8 @@ public class RowResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           BoundQuery query =
               authenticatedDB
@@ -546,7 +558,8 @@ public class RowResource {
       final RowUpdate changeSet) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token);
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 

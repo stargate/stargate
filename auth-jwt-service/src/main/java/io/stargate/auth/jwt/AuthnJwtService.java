@@ -25,6 +25,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Authenticator.SaslNegotiator;
+import io.stargate.db.ClientInfo;
 import java.text.ParseException;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -45,13 +46,13 @@ public class AuthnJwtService implements AuthenticationService {
   }
 
   @Override
-  public String createToken(String key, String secret) {
+  public String createToken(String key, String secret, Map<String, String> headers) {
     throw new UnsupportedOperationException(
         "Creating a token is not supported for AuthnJwtService. Tokens must be created out of band.");
   }
 
   @Override
-  public String createToken(String key) {
+  public String createToken(String key, Map<String, String> headers) {
     throw new UnsupportedOperationException(
         "Creating a token is not supported for AuthnJwtService. Tokens must be created out of band.");
   }
@@ -89,12 +90,13 @@ public class AuthnJwtService implements AuthenticationService {
   }
 
   @Override
-  public SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped) {
+  public SaslNegotiator getSaslNegotiator(SaslNegotiator wrapped, ClientInfo clientInfo) {
     return new PlainTextJwtTokenSaslNegotiator(
         this,
         wrapped,
         System.getProperty("stargate.cql_token_username", "token"),
-        Integer.parseInt(System.getProperty("stargate.cql_token_max_length", "4096")));
+        Integer.parseInt(System.getProperty("stargate.cql_token_max_length", "4096")),
+        clientInfo);
   }
 
   /**

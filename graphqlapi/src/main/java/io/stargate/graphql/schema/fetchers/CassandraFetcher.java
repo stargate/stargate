@@ -18,7 +18,6 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /** Base class for fetchers that access the Cassandra backend. It also handles authentication. */
 public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> {
-
   protected final AuthenticationService authenticationService;
   protected final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
@@ -48,7 +47,8 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
     HttpAwareContext httpAwareContext = environment.getContext();
 
     String token = httpAwareContext.getAuthToken();
-    AuthenticationSubject authenticationSubject = authenticationService.validateToken(token);
+    AuthenticationSubject authenticationSubject =
+        authenticationService.validateToken(token, httpAwareContext.getAllHeaders());
 
     Parameters parameters;
     Map<String, Object> options = environment.getArgument("options");

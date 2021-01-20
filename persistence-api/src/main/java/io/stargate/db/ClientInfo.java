@@ -4,7 +4,8 @@ import static java.lang.String.format;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
@@ -16,9 +17,7 @@ public class ClientInfo {
   private volatile DriverInfo driverInfo;
 
   private AuthenticatedUser authenticatedUser;
-  private ByteBuffer token;
-  private ByteBuffer roleName;
-  private ByteBuffer isFromExternalAuth;
+  private Map<String, ByteBuffer> serializedAuthData;
 
   public ClientInfo(InetSocketAddress remoteAddress, @Nullable InetSocketAddress publicAddress) {
     this.remoteAddress = remoteAddress;
@@ -51,28 +50,15 @@ public class ClientInfo {
 
   public void setAuthenticatedUser(AuthenticatedUser authenticatedUser) {
     this.authenticatedUser = authenticatedUser;
-    this.token =
-        authenticatedUser.token() != null
-            ? ByteBuffer.wrap(authenticatedUser.token().getBytes(StandardCharsets.UTF_8))
-                .asReadOnlyBuffer()
-            : null;
-    this.roleName =
-        ByteBuffer.wrap(authenticatedUser.name().getBytes(StandardCharsets.UTF_8))
-            .asReadOnlyBuffer();
-    this.isFromExternalAuth =
-        authenticatedUser.isFromExternalAuth() ? ByteBuffer.allocate(1).asReadOnlyBuffer() : null;
+    this.serializedAuthData = AuthenticatedUser.Serializer.serialize(authenticatedUser);
   }
 
-  public ByteBuffer getToken() {
-    return token == null ? null : token.duplicate();
-  }
-
-  public ByteBuffer getRoleName() {
-    return roleName == null ? null : roleName.duplicate();
-  }
-
-  public ByteBuffer getIsFromExternalAuth() {
-    return isFromExternalAuth == null ? null : isFromExternalAuth.duplicate();
+  public void storeAuthenticationData(Map<String, ByteBuffer> payload) {
+    if (serializedAuthData != null) {
+      for (Entry<String, ByteBuffer> e : serializedAuthData.entrySet()) {
+        payload.put(e.getKey(), e.getValue().duplicate());
+      }
+    }
   }
 
   @Override
