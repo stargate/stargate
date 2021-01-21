@@ -79,7 +79,8 @@ public class Db {
             authenticationSubject.isFromExternalAuth(),
             DataStoreOptions.builder()
                 .alwaysPrepareQueries(true)
-                .customProperties(headers)
+                .putAllCustomProperties(headers)
+                .putAllCustomProperties(authenticationSubject.customProperties())
                 .build());
 
     return new AuthenticatedDB(dataStore, authenticationSubject);
@@ -91,11 +92,15 @@ public class Db {
     AuthenticationSubject authenticationSubject =
         authenticationService.validateToken(token, headers);
     return new AuthenticatedDB(
-        getDataStoreInternal(authenticationSubject, pageSize, pagingState), authenticationSubject);
+        getDataStoreInternal(authenticationSubject, pageSize, pagingState, headers),
+        authenticationSubject);
   }
 
   private DataStore getDataStoreInternal(
-      AuthenticationSubject authenticationSubject, int pageSize, ByteBuffer pagingState) {
+      AuthenticationSubject authenticationSubject,
+      int pageSize,
+      ByteBuffer pagingState,
+      Map<String, String> headers) {
     Parameters parameters =
         Parameters.builder()
             .pageSize(pageSize)
@@ -106,7 +111,8 @@ public class Db {
         DataStoreOptions.builder()
             .defaultParameters(parameters)
             .alwaysPrepareQueries(true)
-            .customProperties(authenticationSubject.customProperties())
+            .putAllCustomProperties(headers)
+            .putAllCustomProperties(authenticationSubject.customProperties())
             .build();
     return dataStoreFactory.create(
         authenticationSubject.roleName(), authenticationSubject.isFromExternalAuth(), options);
@@ -148,7 +154,7 @@ public class Db {
     }
 
     return new DocumentDB(
-        getDataStoreInternal(authenticationSubject, pageSize, pageState),
+        getDataStoreInternal(authenticationSubject, pageSize, pageState, headers),
         authenticationSubject,
         getAuthorizationService());
   }
