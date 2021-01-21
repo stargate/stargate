@@ -77,7 +77,10 @@ public class Db {
         dataStoreFactory.create(
             authenticationSubject.roleName(),
             authenticationSubject.isFromExternalAuth(),
-            DataStoreOptions.defaultsWithAutoPreparedQueries());
+            DataStoreOptions.builder()
+                .alwaysPrepareQueries(true)
+                .customProperties(headers)
+                .build());
 
     return new AuthenticatedDB(dataStore, authenticationSubject);
   }
@@ -100,7 +103,11 @@ public class Db {
             .build();
 
     DataStoreOptions options =
-        DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
+        DataStoreOptions.builder()
+            .defaultParameters(parameters)
+            .alwaysPrepareQueries(true)
+            .customProperties(authenticationSubject.customProperties())
+            .build();
     return dataStoreFactory.create(
         authenticationSubject.roleName(), authenticationSubject.isFromExternalAuth(), options);
   }
