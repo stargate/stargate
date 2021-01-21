@@ -72,6 +72,11 @@ public class PersistenceDataStoreFactory implements DataStoreFactory {
     if (!isFromExternalAuth) {
       connection.login(AuthenticatedUser.of(userName));
     }
+
+    if (options.customProperties() != null) {
+      connection.setCustomProperties(options.customProperties());
+    }
+
     return create(connection, options);
   }
 

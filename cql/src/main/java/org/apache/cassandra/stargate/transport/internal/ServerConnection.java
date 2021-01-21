@@ -57,6 +57,9 @@ public class ServerConnection extends Connection {
                 : (InetSocketAddress) channel.remoteAddress(),
             proxyInfo != null ? proxyInfo.publicAddress : null);
     this.persistenceConnection = persistence.newConnection(clientInfo);
+
+    if (proxyInfo != null) this.persistenceConnection.setCustomProperties(proxyInfo.toHeaders());
+
     this.authentication = authentication;
     this.stage = ConnectionStage.ESTABLISHED;
   }
