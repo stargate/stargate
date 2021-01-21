@@ -149,7 +149,7 @@ public class StargateQueryHandler implements QueryHandler {
       }
     }
 
-    if (customPayload != null && customPayload.containsKey("token")) {
+    if (customPayload != null && customPayload.containsKey("stargate.auth.subject.token")) {
       authorizeByToken(customPayload, statement);
     }
 
@@ -164,7 +164,7 @@ public class StargateQueryHandler implements QueryHandler {
       BatchQueryOptions options,
       Map<String, ByteBuffer> customPayload,
       long queryStartNanoTime) {
-    if (customPayload != null && customPayload.containsKey("token")) {
+    if (customPayload != null && customPayload.containsKey("stargate.auth.subject.token")) {
       authorizeByToken(customPayload, batchStatement);
     }
 
