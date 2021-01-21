@@ -28,6 +28,7 @@ import io.stargate.auth.entity.ImmutableAccessPermission;
 import io.stargate.auth.entity.ImmutableActor;
 import io.stargate.auth.entity.ImmutableAuthorizedResource;
 import io.stargate.auth.entity.ResourceKind;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
@@ -50,8 +51,8 @@ import org.javatuples.Pair;
 
 public class DelegatingAuthorizer extends CassandraAuthorizer {
 
-  private static final long PROCESSING_TIMEOUT_MILLIS =
-      Long.getLong("stargate.authorization.processing.timeout.millis", 5 * 60 * 1000);
+  private static final Duration PROCESSING_TIMEOUT =
+      Duration.parse(System.getProperty("stargate.authorization.processing.timeout", "PT5M"));
 
   private AuthorizationProcessor authProcessor;
 
@@ -130,7 +131,7 @@ public class DelegatingAuthorizer extends CassandraAuthorizer {
   private static void get(CompletionStage<Void> stage) {
     try {
       // wait for completion since the calling API is synchronous
-      stage.toCompletableFuture().get(PROCESSING_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+      stage.toCompletableFuture().get(PROCESSING_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
     } catch (ExecutionException e) {
       Throwable cause = e.getCause();
       if (cause instanceof RequestValidationException) {
