@@ -137,7 +137,7 @@ public class StargateQueryHandler implements QueryHandler {
       return result;
     }
 
-    if (customPayload != null && customPayload.containsKey("token")) {
+    if (customPayload != null && customPayload.containsKey("stargate.auth.subject.token")) {
       authorizeByToken(customPayload, statement);
     }
 
@@ -172,7 +172,7 @@ public class StargateQueryHandler implements QueryHandler {
       return result;
     }
 
-    if (customPayload != null && customPayload.containsKey("token")) {
+    if (customPayload != null && customPayload.containsKey("stargate.auth.subject.token")) {
       authorizeByToken(customPayload, statement);
     }
 
@@ -188,7 +188,7 @@ public class StargateQueryHandler implements QueryHandler {
       Map<String, ByteBuffer> customPayload,
       long queryStartNanoTime)
       throws RequestExecutionException, RequestValidationException {
-    if (customPayload != null && customPayload.containsKey("token")) {
+    if (customPayload != null && customPayload.containsKey("stargate.auth.subject.token")) {
       authorizeByToken(customPayload, batchStatement);
     }
 
