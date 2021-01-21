@@ -253,10 +253,6 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
         // for DDL queries to reach agreement before returning.
         StargateSystemKeyspace.updatePeerInfo(
             endpoint, "schema_version", StargateSystemKeyspace.SCHEMA_VERSION);
-
-        // This fix schedules a schema pull for the non-member node and is required because
-        // `StorageService.onChange()` doesn't do this for non-member nodes.
-        MigrationManager.instance.scheduleSchemaPull(endpoint, epState);
         break;
       case HOST_ID:
         StargateSystemKeyspace.updatePeerInfo(endpoint, "host_id", UUID.fromString(value.value));
