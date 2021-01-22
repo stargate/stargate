@@ -123,7 +123,13 @@ public class DocumentServiceTest {
     addRowsToMap.setAccessible(true);
     updateExistenceForMap =
         DocumentService.class.getDeclaredMethod(
-            "updateExistenceForMap", Map.class, Map.class, List.class, List.class, boolean.class);
+            "updateExistenceForMap",
+            Map.class,
+            Map.class,
+            List.class,
+            List.class,
+            boolean.class,
+            boolean.class);
     updateExistenceForMap.setAccessible(true);
     getParentPathFromRow =
         DocumentService.class.getDeclaredMethod("getParentPathFromRow", Row.class);
@@ -1298,7 +1304,7 @@ public class DocumentServiceTest {
     Map<String, Integer> countsByDoc = new HashMap<>();
     List<Row> rows = makeInitialRowData();
     updateExistenceForMap.invoke(
-        service, existenceByDoc, countsByDoc, rows, new ArrayList<>(), false);
+        service, existenceByDoc, countsByDoc, rows, new ArrayList<>(), false, true);
     assertThat(existenceByDoc.get("1")).isTrue();
     assertThat(countsByDoc.get("1")).isEqualTo(3);
   }

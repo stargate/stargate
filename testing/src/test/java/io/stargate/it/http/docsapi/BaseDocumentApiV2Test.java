@@ -1965,16 +1965,6 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"a.b\": {\"$eq\": 300}, \"c.b\": {\"$lt\": 500}}",
-            400);
-    assertThat(r).contains("Conditions across multiple fields are not yet supported");
-
-    r =
-        RestUtils.get(
-            authToken,
-            hostWithPort
-                + "/v2/namespaces/"
-                + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$in\": [1]}}&fields=[\"b\"]",
             400);
     assertThat(r)
