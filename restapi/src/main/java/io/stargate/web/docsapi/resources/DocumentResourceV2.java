@@ -751,22 +751,12 @@ public class DocumentResourceV2 {
           if (where != null) {
             JsonNode filterJson = mapper.readTree(where);
             filters = documentService.convertToFilterOps(new ArrayList<>(), filterJson);
+            System.out.println("Filters: " + filters);
           }
 
           if (fields != null) {
             JsonNode fieldsJson = mapper.readTree(fields);
             selectionList = documentService.convertToSelectionList(fieldsJson);
-          }
-
-          if (!filters.isEmpty()) {
-            Set<String> distinctFields =
-                filters.stream().map(FilterCondition::getFullFieldPath).collect(Collectors.toSet());
-            if (distinctFields.size() > 1) {
-              throw new DocumentAPIRequestException(
-                  String.format(
-                      "Conditions across multiple fields are not yet supported (found: %s)",
-                      distinctFields));
-            }
           }
 
           ByteBuffer pageState = null;

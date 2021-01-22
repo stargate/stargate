@@ -35,17 +35,7 @@ import io.stargate.web.resources.Db;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -762,25 +752,41 @@ public class DocumentService {
     }
   }
 
-  private void updateExistenceForMap(
+  private List<Row> updateExistenceForMap(
       Map<String, Boolean> existsByDoc,
-      Map<String, Integer> countsByDoc,
+      Map<String, Integer> rowCountsByDoc,
       List<Row> rows,
       List<FilterCondition> filters,
-      boolean booleansStoredAsTinyint) {
-    List<Row> filteredRows = applyInMemoryFilters(rows, filters, 1, booleansStoredAsTinyint);
-    for (Row row : filteredRows) {
-      String key = row.getString("key");
-      if (!existsByDoc.getOrDefault(key, false)) {
-        existsByDoc.put(key, true);
+      boolean booleansStoredAsTinyint,
+      boolean endOfResults) {
+    List<List<Row>> documentChunks =
+        new ArrayList<>(
+            rows.stream().collect(Collectors.groupingBy(row -> row.getString("key"))).values());
+
+    for (int i = 0; i < documentChunks.size() - (endOfResults ? 0 : 1); i++) {
+      List<Row> chunk = documentChunks.get(i);
+      String key = chunk.get(0).getString("key");
+      List<Row> filteredRows =
+          applyInMemoryFilters(chunk, filters, chunk.size(), booleansStoredAsTinyint);
+      System.out.println("After filter: " + filteredRows);
+      if (!filteredRows.isEmpty()) {
+        if (!existsByDoc.getOrDefault(key, false)) {
+          System.out.println("Writing in " + key);
+          existsByDoc.put(key, true);
+        }
+      }
+
+      if (chunk.size() > 0) {
+        int value = rowCountsByDoc.getOrDefault(key, 0);
+        System.out.println("Writing in counts " + chunk.size());
+        rowCountsByDoc.put(key, value + chunk.size());
       }
     }
 
-    for (Row row : rows) {
-      String key = row.getString("key");
-      int value = countsByDoc.getOrDefault(key, 0);
-      countsByDoc.put(key, value + 1);
+    if (documentChunks.size() > 0 && !endOfResults) {
+      return documentChunks.get(documentChunks.size() - 1);
     }
+    return new ArrayList<>();
   }
 
   /**
@@ -884,6 +890,7 @@ public class DocumentService {
     LinkedHashMap<String, Integer> countsByDoc = new LinkedHashMap<>();
 
     ImmutablePair<List<Row>, ByteBuffer> page;
+    List<Row> leftoverRows = new ArrayList<>();
     do {
       page =
           searchRows(
@@ -895,8 +902,17 @@ public class DocumentService {
               new ArrayList<>(),
               false,
               null);
-      updateExistenceForMap(
-          existsByDoc, countsByDoc, page.left, filters, db.treatBooleansAsNumeric());
+      List<Row> rowsResult = new ArrayList<>();
+      rowsResult.addAll(leftoverRows);
+      rowsResult.addAll(page.left);
+      leftoverRows =
+          updateExistenceForMap(
+              existsByDoc,
+              countsByDoc,
+              rowsResult,
+              filters,
+              db.treatBooleansAsNumeric(),
+              page.right == null);
       db = dbFactory.getDocDataStoreForToken(authToken, pageSize, page.right, headers);
     } while (existsByDoc.keySet().size() <= limit && page.right != null);
 
@@ -1185,16 +1201,20 @@ public class DocumentService {
     if (inMemoryFilters.size() == 0) {
       return rows;
     }
-    String filterFieldPath = inMemoryFilters.get(0).getFullFieldPath();
+    Set<String> filterFieldPaths =
+        inMemoryFilters.stream().map(FilterCondition::getFullFieldPath).collect(Collectors.toSet());
 
     return Lists.partition(rows, fieldsPerDoc).stream()
         .filter(
             docChunk -> {
-              Optional<Row> fieldRow =
+              System.out.println("Here is a chunk of size " + docChunk.size());
+              List<Row> fieldRows =
                   docChunk.stream()
                       .filter(
                           r -> {
+                            System.out.println("Processing row " + r.getString("leaf"));
                             if (r == null || r.getString("leaf") == null) {
+                              System.out.println("Null, returning false");
                               return false;
                             }
                             List<String> parentPath =
@@ -1203,11 +1223,23 @@ public class DocumentService {
                             if (parentPath.size() == 2) {
                               rowPath = parentPath.get(1);
                             }
-                            return pathsMatch(rowPath + r.getString("leaf"), filterFieldPath);
+                            String fullRowPath = rowPath + r.getString("leaf");
+                            List<FilterCondition> matchingFilters =
+                                inMemoryFilters.stream()
+                                    .filter(f -> pathsMatch(fullRowPath, f.getFullFieldPath()))
+                                    .collect(Collectors.toList());
+                            if (matchingFilters.size() == 0) {
+                              System.out.println("No matching filters, returning false");
+                              return false;
+                            }
+                            System.out.println(
+                                "Will it match? "
+                                    + allFiltersMatch(r, matchingFilters, numericBooleans));
+                            return allFiltersMatch(r, matchingFilters, numericBooleans);
                           })
-                      .findFirst();
-              return fieldRow.isPresent()
-                  && allFiltersMatch(fieldRow.get(), inMemoryFilters, numericBooleans);
+                      .collect(Collectors.toList());
+              System.out.println(fieldRows + " Field rows");
+              return fieldRows.size() == filterFieldPaths.size();
             })
         .flatMap(x -> x.stream())
         .collect(Collectors.toList());
