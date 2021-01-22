@@ -999,8 +999,8 @@ public class DocumentService {
    * @param path the path in the document that is being searched on
    * @param recurse legacy boolean, only used for v1 of the API
    * @param documentKey filter down to only one document's results
-   * @param pageSize Cassandra page size
-   * @param pageState Cassandra page state
+   * @param pageSize number of rows to return
+   * @param pageState current state of database paging
    * @return
    * @throws ExecutionException
    * @throws InterruptedException

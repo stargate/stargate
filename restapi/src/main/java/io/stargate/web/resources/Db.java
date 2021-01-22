@@ -90,7 +90,7 @@ public class Db {
         authenticationService.validateToken(token, headers);
     if (authenticationSubject == null) {
       throw new UnauthorizedException("Missing authenticationSubject");
-    }    
+    }
     return new AuthenticatedDB(
         getDataStoreInternal(authenticationSubject, pageSize, pagingState, headers),
         authenticationSubject);

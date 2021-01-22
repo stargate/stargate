@@ -1089,11 +1089,7 @@ public class QueryBuilderImpl {
   }
 
   private static List<Column> convertToColumns(Table table, Collection<String> columnNames) {
-    List<Column> columns = new ArrayList<>(columnNames.size());
-    for (String name : columnNames) {
-      columns.add(table.column(name));
-    }
-    return columns;
+    return columnNames.stream().map(table::column).collect(toList());
   }
 
   private Set<String> names(Collection<Column> columns) {
