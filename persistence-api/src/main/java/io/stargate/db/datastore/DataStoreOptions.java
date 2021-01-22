@@ -2,6 +2,8 @@ package io.stargate.db.datastore;
 
 import io.stargate.db.Parameters;
 import io.stargate.db.query.BoundQuery;
+import java.util.Collections;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 import org.immutables.value.Value;
 
@@ -53,10 +55,15 @@ public abstract class DataStoreOptions {
     return false;
   }
 
+  @Value.Default
+  public Map<String, String> customProperties() {
+    return Collections.emptyMap();
+  }
+
   @Override
   public String toString() {
     return String.format(
-        "{defaultParameters: %s, alwaysPrepareQueries: %b}",
-        defaultParameters(), alwaysPrepareQueries());
+        "{defaultParameters: %s, alwaysPrepareQueries: %b, customProperties: %s}",
+        defaultParameters(), alwaysPrepareQueries(), customProperties());
   }
 }

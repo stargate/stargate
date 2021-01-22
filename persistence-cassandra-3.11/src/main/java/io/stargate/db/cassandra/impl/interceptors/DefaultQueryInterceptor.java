@@ -29,7 +29,6 @@ import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
 import org.apache.cassandra.gms.VersionedValue;
-import org.apache.cassandra.service.MigrationManager;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.transport.messages.ResultMessage;
@@ -240,10 +239,6 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
         // for DDL queries to reach agreement before returning.
         StargateSystemKeyspace.updatePeerInfo(
             endpoint, "schema_version", StargateSystemKeyspace.SCHEMA_VERSION, executor);
-
-        // This fix schedules a schema pull for the non-member node and is required because
-        // `StorageService.onChange()` doesn't do this for non-member nodes.
-        MigrationManager.scheduleSchemaPull(endpoint, epState);
         break;
       case HOST_ID:
         StargateSystemKeyspace.updatePeerInfo(

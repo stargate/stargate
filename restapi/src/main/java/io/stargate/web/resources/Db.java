@@ -74,7 +74,11 @@ public class Db {
         dataStoreFactory.create(
             authenticationSubject.roleName(),
             authenticationSubject.isFromExternalAuth(),
-            DataStoreOptions.defaultsWithAutoPreparedQueries());
+            DataStoreOptions.builder()
+                .alwaysPrepareQueries(true)
+                .putAllCustomProperties(headers)
+                .putAllCustomProperties(authenticationSubject.customProperties())
+                .build());
 
     return new AuthenticatedDB(dataStore, authenticationSubject);
   }
@@ -84,12 +88,19 @@ public class Db {
       throws UnauthorizedException {
     AuthenticationSubject authenticationSubject =
         authenticationService.validateToken(token, headers);
+    if (authenticationSubject == null) {
+      throw new UnauthorizedException("Missing authenticationSubject");
+    }    
     return new AuthenticatedDB(
-        getDataStoreInternal(authenticationSubject, pageSize, pagingState), authenticationSubject);
+        getDataStoreInternal(authenticationSubject, pageSize, pagingState, headers),
+        authenticationSubject);
   }
 
   private DataStore getDataStoreInternal(
-      AuthenticationSubject authenticationSubject, int pageSize, ByteBuffer pagingState) {
+      AuthenticationSubject authenticationSubject,
+      int pageSize,
+      ByteBuffer pagingState,
+      Map<String, String> headers) {
     Parameters parameters =
         Parameters.builder()
             .pageSize(pageSize)
@@ -97,7 +108,12 @@ public class Db {
             .build();
 
     DataStoreOptions options =
-        DataStoreOptions.builder().defaultParameters(parameters).alwaysPrepareQueries(true).build();
+        DataStoreOptions.builder()
+            .defaultParameters(parameters)
+            .alwaysPrepareQueries(true)
+            .putAllCustomProperties(headers)
+            .putAllCustomProperties(authenticationSubject.customProperties())
+            .build();
     return dataStoreFactory.create(
         authenticationSubject.roleName(), authenticationSubject.isFromExternalAuth(), options);
   }

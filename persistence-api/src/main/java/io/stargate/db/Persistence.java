@@ -197,5 +197,8 @@ public interface Persistence {
      *     warnings apply for this method as well.
      */
     CompletableFuture<Result> batch(Batch batch, Parameters parameters, long queryStartNanoTime);
+
+    /** Adds properties to be used by persistence backend (if supported) */
+    default void setCustomProperties(Map<String, String> customProperties) {}
   }
 }
