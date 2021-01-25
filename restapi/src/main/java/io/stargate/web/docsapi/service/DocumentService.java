@@ -768,17 +768,14 @@ public class DocumentService {
       String key = chunk.get(0).getString("key");
       List<Row> filteredRows =
           applyInMemoryFilters(chunk, filters, chunk.size(), booleansStoredAsTinyint);
-      System.out.println("After filter: " + filteredRows);
       if (!filteredRows.isEmpty()) {
         if (!existsByDoc.getOrDefault(key, false)) {
-          System.out.println("Writing in " + key);
           existsByDoc.put(key, true);
         }
       }
 
       if (chunk.size() > 0) {
         int value = rowCountsByDoc.getOrDefault(key, 0);
-        System.out.println("Writing in counts " + chunk.size());
         rowCountsByDoc.put(key, value + chunk.size());
       }
     }
@@ -1207,14 +1204,11 @@ public class DocumentService {
     return Lists.partition(rows, fieldsPerDoc).stream()
         .filter(
             docChunk -> {
-              System.out.println("Here is a chunk of size " + docChunk.size());
               List<Row> fieldRows =
                   docChunk.stream()
                       .filter(
                           r -> {
-                            System.out.println("Processing row " + r.getString("leaf"));
                             if (r == null || r.getString("leaf") == null) {
-                              System.out.println("Null, returning false");
                               return false;
                             }
                             List<String> parentPath =
@@ -1229,17 +1223,12 @@ public class DocumentService {
                                     .filter(f -> pathsMatch(fullRowPath, f.getFullFieldPath()))
                                     .collect(Collectors.toList());
                             if (matchingFilters.size() == 0) {
-                              System.out.println("No matching filters, returning false");
                               return false;
                             }
-                            System.out.println(
-                                "Will it match? "
-                                    + allFiltersMatch(r, matchingFilters, numericBooleans));
                             return allFiltersMatch(r, matchingFilters, numericBooleans);
                           })
                       .collect(Collectors.toList());
-              System.out.println(fieldRows + " Field rows");
-              return fieldRows.size() == filterFieldPaths.size();
+              return fieldRows.size() >= filterFieldPaths.size();
             })
         .flatMap(x -> x.stream())
         .collect(Collectors.toList());
