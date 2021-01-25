@@ -636,7 +636,9 @@ public class DocumentService {
       String documentKey,
       List<FilterCondition> filters,
       List<PathSegment> path,
-      Boolean recurse)
+      Boolean recurse,
+      int pageSize,
+      ByteBuffer pageState)
       throws ExecutionException, InterruptedException, UnauthorizedException {
     StringBuilder pathStr = new StringBuilder();
 
@@ -651,7 +653,9 @@ public class DocumentService {
                 new ArrayList<>(),
                 pathSegmentValues,
                 recurse,
-                documentKey)
+                documentKey,
+                pageSize,
+                pageState)
             .left;
 
     if (rows.size() == 0) return null;
@@ -684,15 +688,27 @@ public class DocumentService {
       String collection,
       List<FilterCondition> filters,
       List<String> fields,
-      String documentId)
+      String documentId,
+      int pageSize,
+      ByteBuffer pageState)
       throws ExecutionException, InterruptedException, UnauthorizedException {
     FilterCondition first = filters.get(0);
     List<String> path = first.getPath();
 
     ImmutablePair<List<Row>, ByteBuffer> searchResult =
-        searchRows(keyspace, collection, db, filters, fields, path, false, documentId);
+        searchRows(
+            keyspace,
+            collection,
+            db,
+            filters,
+            fields,
+            path,
+            false,
+            documentId,
+            pageSize,
+            pageState);
     List<Row> rows = searchResult.left;
-    ByteBuffer pageState = searchResult.right;
+    ByteBuffer newpageState = searchResult.right;
     if (rows.size() == 0) {
       return null;
     }
@@ -749,7 +765,7 @@ public class DocumentService {
       return null;
     }
 
-    return ImmutablePair.of(docsResult, pageState);
+    return ImmutablePair.of(docsResult, newpageState);
   }
 
   @VisibleForTesting
@@ -803,6 +819,7 @@ public class DocumentService {
     LinkedHashMap<String, List<Row>> rowsByDoc = new LinkedHashMap<>();
 
     ImmutablePair<List<Row>, ByteBuffer> page;
+    ByteBuffer currentPageState = initialPagingState;
     do {
       page =
           searchRows(
@@ -813,10 +830,12 @@ public class DocumentService {
               new ArrayList<>(),
               new ArrayList<>(),
               false,
-              null);
+              null,
+              pageSize,
+              currentPageState);
       addRowsToMap(rowsByDoc, page.left);
-      db = dbFactory.getDocDataStoreForToken(authToken, pageSize, page.right, headers);
-    } while (rowsByDoc.keySet().size() <= limit && page.right != null);
+      currentPageState = page.right;
+    } while (rowsByDoc.keySet().size() <= limit && currentPageState != null);
 
     // Either we've reached the end of all rows in the collection, or we have enough rows
     // in memory to build the final result.
@@ -833,7 +852,6 @@ public class DocumentService {
         }
         docsResult.set(e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
       }
-      db = dbFactory.getDocDataStoreForToken(authToken, totalSize, initialPagingState, headers);
       ByteBuffer finalPagingState =
           searchRows(
                   keyspace,
@@ -843,7 +861,9 @@ public class DocumentService {
                   new ArrayList<>(),
                   new ArrayList<>(),
                   false,
-                  null)
+                  null,
+                  totalSize,
+                  initialPagingState)
               .right;
       return ImmutablePair.of(docsResult, finalPagingState);
     } else {
@@ -884,6 +904,7 @@ public class DocumentService {
     LinkedHashMap<String, Integer> countsByDoc = new LinkedHashMap<>();
 
     ImmutablePair<List<Row>, ByteBuffer> page;
+    ByteBuffer currentPageState = initialPagingState;
     do {
       page =
           searchRows(
@@ -894,11 +915,13 @@ public class DocumentService {
               new ArrayList<>(),
               new ArrayList<>(),
               false,
-              null);
+              null,
+              pageSize,
+              currentPageState);
       updateExistenceForMap(
           existsByDoc, countsByDoc, page.left, filters, db.treatBooleansAsNumeric());
-      db = dbFactory.getDocDataStoreForToken(authToken, pageSize, page.right, headers);
-    } while (existsByDoc.keySet().size() <= limit && page.right != null);
+      currentPageState = page.right;
+    } while (existsByDoc.keySet().size() <= limit && currentPageState != null);
 
     // Either we've reached the end of all rows in the collection, or we have enough rows
     // in memory to build the final result.
@@ -917,7 +940,6 @@ public class DocumentService {
           i++;
         }
       }
-      db = dbFactory.getDocDataStoreForToken(authToken, totalSize, initialPagingState, headers);
       finalPagingState =
           searchRows(
                   keyspace,
@@ -927,7 +949,9 @@ public class DocumentService {
                   new ArrayList<>(),
                   new ArrayList<>(),
                   false,
-                  null)
+                  null,
+                  totalSize,
+                  initialPagingState)
               .right;
     } else {
       finalPagingState = null;
@@ -975,6 +999,8 @@ public class DocumentService {
    * @param path the path in the document that is being searched on
    * @param recurse legacy boolean, only used for v1 of the API
    * @param documentKey filter down to only one document's results
+   * @param pageSize number of rows to return
+   * @param pageState current state of database paging
    * @return
    * @throws ExecutionException
    * @throws InterruptedException
@@ -988,7 +1014,9 @@ public class DocumentService {
       List<String> fields,
       List<String> path,
       Boolean recurse,
-      String documentKey)
+      String documentKey,
+      int pageSize,
+      ByteBuffer pageState)
       throws UnauthorizedException {
     StringBuilder pathStr = new StringBuilder();
     List<BuiltCondition> predicates = new ArrayList<>();
@@ -1067,9 +1095,9 @@ public class DocumentService {
     ResultSet r;
 
     if (predicates.size() > 0) {
-      r = db.executeSelect(keyspace, collection, predicates, true);
+      r = db.executeSelect(keyspace, collection, predicates, true, pageSize, pageState);
     } else {
-      r = db.executeSelectAll(keyspace, collection);
+      r = db.executeSelectAll(keyspace, collection, pageSize, pageState);
     }
 
     List<Row> rows = r.currentPageRows();

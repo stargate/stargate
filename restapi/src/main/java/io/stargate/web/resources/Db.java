@@ -39,11 +39,12 @@ public class Db {
   private final DataStore dataStore;
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
-  private final LoadingCache<TokenAndHeaders, AuthenticationSubject> docsTokensToRoles =
+
+  private final LoadingCache<TokenAndHeaders, DocumentDB> docsTokensToDataStore =
       Caffeine.newBuilder()
           .maximumSize(10_000)
           .expireAfterWrite(Duration.ofMinutes(1))
-          .build(this::getAuthenticationSubjectForToken);
+          .build(this::getDocDataStoreForTokenInternal);
   private final DataStoreFactory dataStoreFactory;
 
   public Db(
@@ -59,10 +60,6 @@ public class Db {
 
   public DataStore getDataStore() {
     return this.dataStore;
-  }
-
-  public AuthenticationService getAuthenticationService() {
-    return authenticationService;
   }
 
   public AuthorizationService getAuthorizationService() {
@@ -91,6 +88,9 @@ public class Db {
       throws UnauthorizedException {
     AuthenticationSubject authenticationSubject =
         authenticationService.validateToken(token, headers);
+    if (authenticationSubject == null) {
+      throw new UnauthorizedException("Missing authenticationSubject");
+    }
     return new AuthenticatedDB(
         getDataStoreInternal(authenticationSubject, pageSize, pagingState, headers),
         authenticationSubject);
@@ -118,6 +118,16 @@ public class Db {
         authenticationSubject.roleName(), authenticationSubject.isFromExternalAuth(), options);
   }
 
+  private DocumentDB getDocDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)
+      throws UnauthorizedException {
+    AuthenticatedDB authenticatedDB =
+        getDataStoreForToken(tokenAndHeaders.token, tokenAndHeaders.headers);
+    return new DocumentDB(
+        authenticatedDB.getDataStore(),
+        authenticatedDB.getAuthenticationSubject(),
+        getAuthorizationService());
+  }
+
   public AuthenticationSubject getAuthenticationSubjectForToken(TokenAndHeaders tokenAndHeaders)
       throws UnauthorizedException {
     return authenticationService.validateToken(tokenAndHeaders.token, tokenAndHeaders.headers);
@@ -125,38 +135,18 @@ public class Db {
 
   public DocumentDB getDocDataStoreForToken(String token, Map<String, String> headers)
       throws UnauthorizedException {
-    AuthenticatedDB authenticatedDB = getDataStoreForToken(token, headers);
-    return new DocumentDB(
-        authenticatedDB.getDataStore(),
-        authenticatedDB.getAuthenticationSubject(),
-        getAuthorizationService());
-  }
-
-  public DocumentDB getDocDataStoreForToken(
-      String token, int pageSize, ByteBuffer pageState, Map<String, String> headers)
-      throws UnauthorizedException {
     if (token == null) {
       throw new UnauthorizedException("Missing token");
     }
 
-    AuthenticationSubject authenticationSubject;
     try {
-      authenticationSubject = docsTokensToRoles.get(TokenAndHeaders.create(token, headers));
+      return docsTokensToDataStore.get(TokenAndHeaders.create(token, headers));
     } catch (CompletionException e) {
       if (e.getCause() instanceof UnauthorizedException) {
         throw (UnauthorizedException) e.getCause();
       }
       throw e;
     }
-
-    if (authenticationSubject == null) {
-      throw new UnauthorizedException("Missing authenticationSubject");
-    }
-
-    return new DocumentDB(
-        getDataStoreInternal(authenticationSubject, pageSize, pageState, headers),
-        authenticationSubject,
-        getAuthorizationService());
   }
 
   static class TokenAndHeaders {

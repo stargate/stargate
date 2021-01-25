@@ -10,6 +10,8 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.ImmutableParameters;
+import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
@@ -23,6 +25,7 @@ import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -31,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
@@ -39,6 +43,7 @@ import org.slf4j.LoggerFactory;
 public class DocumentDB {
   private static final Logger logger = LoggerFactory.getLogger(DocumentDB.class);
   private static final List<Character> forbiddenCharacters;
+  private static final List<Column> allColumns;
   private static final List<String> allColumnNames;
   private static final List<Column.ColumnType> allColumnTypes;
   private static final List<String> allPathColumnNames;
@@ -64,26 +69,33 @@ public class DocumentDB {
   private final AuthenticationSubject authenticationSubject;
 
   static {
+    allColumns = new ArrayList<>();
     allColumnNames = new ArrayList<>();
     allColumnTypes = new ArrayList<>();
     allPathColumnNames = new ArrayList<>();
     allPathColumnTypes = new ArrayList<>();
     allColumnNames.add("key");
     allColumnTypes.add(Type.Text);
+    allColumns.add(Column.create("key", Type.Text));
     for (int i = 0; i < MAX_DEPTH; i++) {
       allPathColumnNames.add("p" + i);
       allPathColumnTypes.add(Type.Text);
+      allColumns.add(Column.create("p" + i, Type.Text));
     }
     allColumnNames.addAll(allPathColumnNames);
     allColumnTypes.addAll(allPathColumnTypes);
     allColumnNames.add("leaf");
     allColumnTypes.add(Type.Text);
+    allColumns.add(Column.create("leaf", Type.Text));
     allColumnNames.add("text_value");
     allColumnTypes.add(Type.Text);
+    allColumns.add(Column.create("text_value", Type.Text));
     allColumnNames.add("dbl_value");
     allColumnTypes.add(Type.Double);
+    allColumns.add(Column.create("dbl_value", Type.Double));
     allColumnNames.add("bool_value");
     allColumnTypes.add(Type.Boolean);
+    allColumns.add(Column.create("bool_value", Type.Boolean));
 
     forbiddenCharacters = ImmutableList.of('[', ']', ',', '.', '\'', '*');
 
@@ -135,10 +147,6 @@ public class DocumentDB {
   }
 
   public static List<Column> allColumns() {
-    List<Column> allColumns = new ArrayList<>(allColumnNames.size());
-    for (int i = 0; i < allColumnNames.size(); i++) {
-      allColumns.add(Column.create(allColumnNames.get(i), allColumnTypes.get(i)));
-    }
     return allColumns;
   }
 
@@ -310,7 +318,10 @@ public class DocumentDB {
 
   public ResultSet executeSelect(
       String keyspace, String collection, List<BuiltCondition> predicates)
-      throws ExecutionException, InterruptedException {
+      throws UnauthorizedException {
+    // Run generic authorizeDataRead for now
+    getAuthorizationService()
+        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
     return this.builder()
         .select()
         .column(DocumentDB.allColumns())
@@ -319,6 +330,29 @@ public class DocumentDB {
         .where(predicates)
         .build()
         .execute()
+        .join();
+  }
+
+  public ResultSet executeSelect(
+      String keyspace,
+      String collection,
+      List<BuiltCondition> predicates,
+      int pageSize,
+      ByteBuffer pageState)
+      throws UnauthorizedException {
+    // Run generic authorizeDataRead for now
+    getAuthorizationService()
+        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
+    UnaryOperator<Parameters> parametersModifier =
+        p -> ImmutableParameters.builder().pageSize(pageSize).pagingState(pageState).build();
+    return this.builder()
+        .select()
+        .column(DocumentDB.allColumns())
+        .writeTimeColumn("leaf")
+        .from(keyspace, collection)
+        .where(predicates)
+        .build()
+        .execute(parametersModifier)
         .join();
   }
 
@@ -341,6 +375,37 @@ public class DocumentDB {
         .join();
   }
 
+  public ResultSet executeSelect(
+      String keyspace,
+      String collection,
+      List<BuiltCondition> predicates,
+      boolean allowFiltering,
+      int pageSize,
+      ByteBuffer pageState)
+      throws UnauthorizedException {
+    // Run generic authorizeDataRead for now
+    getAuthorizationService()
+        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
+    UnaryOperator<Parameters> parametersModifier =
+        p -> {
+          if (pageState != null) {
+            return ImmutableParameters.builder().pageSize(pageSize).pagingState(pageState).build();
+          } else {
+            return ImmutableParameters.builder().pageSize(pageSize).build();
+          }
+        };
+    return this.builder()
+        .select()
+        .column(DocumentDB.allColumns())
+        .writeTimeColumn("leaf")
+        .from(keyspace, collection)
+        .where(predicates)
+        .allowFiltering(allowFiltering)
+        .build()
+        .execute(parametersModifier)
+        .join();
+  }
+
   public ResultSet executeSelectAll(String keyspace, String collection)
       throws UnauthorizedException {
     // Run generic authorizeDataRead for now
@@ -354,6 +419,31 @@ public class DocumentDB {
         .from(keyspace, collection)
         .build()
         .execute()
+        .join();
+  }
+
+  public ResultSet executeSelectAll(
+      String keyspace, String collection, int pageSize, ByteBuffer pageState)
+      throws UnauthorizedException {
+    // Run generic authorizeDataRead for now
+    getAuthorizationService()
+        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
+    UnaryOperator<Parameters> parametersModifier =
+        p -> {
+          if (pageState != null) {
+            return ImmutableParameters.builder().pageSize(pageSize).pagingState(pageState).build();
+          } else {
+            return ImmutableParameters.builder().pageSize(pageSize).build();
+          }
+        };
+
+    return this.builder()
+        .select()
+        .column(DocumentDB.allColumns())
+        .writeTimeColumn("leaf")
+        .from(keyspace, collection)
+        .build()
+        .execute(parametersModifier)
         .join();
   }
 

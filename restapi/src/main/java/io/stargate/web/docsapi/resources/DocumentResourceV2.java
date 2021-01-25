@@ -656,15 +656,11 @@ public class DocumentResourceV2 {
               byte[] decodedBytes = Base64.getDecoder().decode(pageStateParam);
               pageState = ByteBuffer.wrap(decodedBytes);
             }
-            DocumentDB db =
-                dbFactory.getDocDataStoreForToken(
-                    authToken,
-                    pageSizeParam > 0 ? pageSizeParam : DEFAULT_PAGE_SIZE,
-                    pageState,
-                    getAllHeaders(request));
+            DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
+            int pageSize = pageSizeParam > 0 ? pageSizeParam : DEFAULT_PAGE_SIZE;
             ImmutablePair<JsonNode, ByteBuffer> result =
                 documentService.searchDocumentsV2(
-                    db, namespace, collection, filters, selectionList, id);
+                    db, namespace, collection, filters, selectionList, id, pageSize, pageState);
 
             if (result == null) {
               return Response.noContent().build();
@@ -778,9 +774,7 @@ public class DocumentResourceV2 {
           int pageSize = DEFAULT_PAGE_SIZE;
 
           ByteBuffer cloneState = pageState != null ? pageState.duplicate() : null;
-          DocumentDB db =
-              dbFactory.getDocDataStoreForToken(
-                  authToken, pageSize, pageState, getAllHeaders(request));
+          DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
 
           ImmutablePair<JsonNode, ByteBuffer> results;
 
