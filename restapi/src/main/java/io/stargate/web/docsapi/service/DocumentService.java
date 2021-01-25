@@ -933,7 +933,7 @@ public class DocumentService {
               filters,
               db.treatBooleansAsNumeric(),
               page.right == null);
-      db = dbFactory.getDocDataStoreForToken(authToken, pageSize, page.right, headers);
+      db = dbFactory.getDocDataStoreForToken(authToken, headers);
       currentPageState = page.right;
     } while (existsByDoc.keySet().size() <= limit && currentPageState != null);
 
@@ -1257,7 +1257,17 @@ public class DocumentService {
                             return allFiltersMatch(r, matchingFilters, numericBooleans);
                           })
                       .collect(Collectors.toList());
-              return fieldRows.size() >= filterFieldPaths.size();
+              // This ensures that wildcard paths are properly counted with non-wildcard paths,
+              // by making sure that for every filter above, at least one matches a valid row.
+              return filterFieldPaths.stream()
+                  .allMatch(
+                      fieldPath ->
+                          fieldRows.stream()
+                              .anyMatch(
+                                  row -> {
+                                    String path = getParentPathFromRow(row);
+                                    return pathsMatch(path + row.getString("leaf"), fieldPath);
+                                  }));
             })
         .flatMap(x -> x.stream())
         .collect(Collectors.toList());
