@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.3...HEAD)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.4...HEAD)
+
+**Merged pull requests:**
+
+- Pass custom properties to persistence backend [\#609](https://github.com/stargate/stargate/pull/609) ([tjake](https://github.com/tjake))
+
+## [v1.0.4](https://github.com/stargate/stargate/tree/v1.0.4) (2021-01-20)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.3...v1.0.4)
 
 **Fixed bugs:**
 
@@ -10,10 +18,14 @@
 
 **Merged pull requests:**
 
+- Adds cql event filters so persistence can decide if events should be sent to a given connection [\#605](https://github.com/stargate/stargate/pull/605) ([tjake](https://github.com/tjake))
+- Encapsulate auth data extras [\#604](https://github.com/stargate/stargate/pull/604) ([dimas-b](https://github.com/dimas-b))
 - Exposed root auth failure messages [\#601](https://github.com/stargate/stargate/pull/601) ([dimas-b](https://github.com/dimas-b))
 - Run DSE tests first in CI [\#600](https://github.com/stargate/stargate/pull/600) ([dimas-b](https://github.com/dimas-b))
 - Make ClientInfo buffers reusable [\#599](https://github.com/stargate/stargate/pull/599) ([dimas-b](https://github.com/dimas-b))
 - Change default TPC core count for Stargate [\#598](https://github.com/stargate/stargate/pull/598) ([tjake](https://github.com/tjake))
+- Bumping version for next release [\#596](https://github.com/stargate/stargate/pull/596) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Additional metrics for stargate [\#589](https://github.com/stargate/stargate/pull/589) ([tomekl007](https://github.com/tomekl007))
 
 ## [v1.0.3](https://github.com/stargate/stargate/tree/v1.0.3) (2021-01-14)
 
@@ -142,6 +154,7 @@
 - Add cpu metrics [\#493](https://github.com/stargate/stargate/pull/493) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - GraphQL: Adapt DropKeyspaceFetcher to new query object API [\#456](https://github.com/stargate/stargate/pull/456) ([olim7t](https://github.com/olim7t))
 - REST: Allow non-string JSON types for incoming column data \(fixes \#49\) [\#455](https://github.com/stargate/stargate/pull/455) ([olim7t](https://github.com/olim7t))
+- Remove outdated CI badge [\#454](https://github.com/stargate/stargate/pull/454) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Add GRANT PERMISSIONS statements to CQL [\#452](https://github.com/stargate/stargate/pull/452) ([polandll](https://github.com/polandll))
 - Fix cassandra authz \(fixes \#449\) [\#451](https://github.com/stargate/stargate/pull/451) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Bumping version for next release [\#447](https://github.com/stargate/stargate/pull/447) ([github-actions[bot]](https://github.com/apps/github-actions))
@@ -248,7 +261,7 @@
 - GraphQL defaults [\#391](https://github.com/stargate/stargate/pull/391) ([jorgebay](https://github.com/jorgebay))
 - Add basic support for URL-encoded forms in Documents API [\#390](https://github.com/stargate/stargate/pull/390) ([EricBorczuk](https://github.com/EricBorczuk))
 - GraphQL: Use enum for filter operators [\#389](https://github.com/stargate/stargate/pull/389) ([jorgebay](https://github.com/jorgebay))
--  Change the `getWithOverrides\(\)` to return String type. Add the version that takes the user-provided mapper. [\#387](https://github.com/stargate/stargate/pull/387) ([tomekl007](https://github.com/tomekl007))
+- Support enabling/disabling CDC within stargate [\#383](https://github.com/stargate/stargate/pull/383) ([tomekl007](https://github.com/tomekl007))
 - CQL: Fix supported options [\#379](https://github.com/stargate/stargate/pull/379) ([mpenick](https://github.com/mpenick))
 - Bumping version for next release [\#378](https://github.com/stargate/stargate/pull/378) ([github-actions[bot]](https://github.com/apps/github-actions))
 - Include description for types, queries and mutations generated [\#375](https://github.com/stargate/stargate/pull/375) ([jorgebay](https://github.com/jorgebay))
@@ -294,6 +307,7 @@
 - Bumping version for next release [\#352](https://github.com/stargate/stargate/pull/352) ([github-actions[bot]](https://github.com/apps/github-actions))
 - Config-store overrides at a higher level. [\#350](https://github.com/stargate/stargate/pull/350) ([tomekl007](https://github.com/tomekl007))
 - GraphQL: Support more formats for custom scalars \(fixes \#326\) [\#348](https://github.com/stargate/stargate/pull/348) ([olim7t](https://github.com/olim7t))
+- Bind to 0.0.0.0 for cql unless flag set \(matching other services\) [\#347](https://github.com/stargate/stargate/pull/347) ([tjake](https://github.com/tjake))
 - Cache file read by config-store-yaml to improve performance [\#343](https://github.com/stargate/stargate/pull/343) ([tomekl007](https://github.com/tomekl007))
 - REST: Support collection operators [\#313](https://github.com/stargate/stargate/pull/313) ([olim7t](https://github.com/olim7t))
 
@@ -335,6 +349,7 @@
 - Implement Config-Store API based on the K8s config-map API [\#305](https://github.com/stargate/stargate/pull/305) ([tomekl007](https://github.com/tomekl007))
 - Add one Column Resource Unit Tests [\#265](https://github.com/stargate/stargate/pull/265) ([FRosner](https://github.com/FRosner))
 - Add JUnit 5 extension for managing Stargate nodes [\#254](https://github.com/stargate/stargate/pull/254) ([dimas-b](https://github.com/dimas-b))
+- Test out google code build [\#252](https://github.com/stargate/stargate/pull/252) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Wait until the driver sees all nodes in tests \(fixes \#232\) [\#245](https://github.com/stargate/stargate/pull/245) ([olim7t](https://github.com/olim7t))
 
 ## [v0.0.19](https://github.com/stargate/stargate/tree/v0.0.19) (2020-10-23)
@@ -405,7 +420,6 @@
 - Bumping version for next release [\#280](https://github.com/stargate/stargate/pull/280) ([github-actions[bot]](https://github.com/apps/github-actions))
 - GraphQL: Fix consistency and paging options [\#279](https://github.com/stargate/stargate/pull/279) ([mpenick](https://github.com/mpenick))
 - Add UDT support to GraphQL \(fixes \#126\) [\#271](https://github.com/stargate/stargate/pull/271) ([olim7t](https://github.com/olim7t))
-- Test out google code build [\#252](https://github.com/stargate/stargate/pull/252) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Add swagger to auth-api [\#240](https://github.com/stargate/stargate/pull/240) ([dougwettlaufer](https://github.com/dougwettlaufer))
 
 ## [v0.0.16](https://github.com/stargate/stargate/tree/v0.0.16) (2020-10-14)
@@ -555,7 +569,6 @@
 - Add missing licenses in GraphQL module [\#148](https://github.com/stargate/stargate/pull/148) ([olim7t](https://github.com/olim7t))
 - REST/v1 with compound partition key /rows/{pk} of mixed types leads to 400 [\#117](https://github.com/stargate/stargate/pull/117) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Fix handling of partition and clustering keys in REST api [\#116](https://github.com/stargate/stargate/pull/116) ([dougwettlaufer](https://github.com/dougwettlaufer))
-- Make initializing tablebased auth configurable [\#106](https://github.com/stargate/stargate/pull/106) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - /keyspaces/{ks}/tables/{t}/columns fails with 500 [\#99](https://github.com/stargate/stargate/pull/99) ([dougwettlaufer](https://github.com/dougwettlaufer))
 
 ## [v0.0.10](https://github.com/stargate/stargate/tree/v0.0.10) (2020-09-24)
@@ -598,6 +611,7 @@
 - Move timestamp binding logic over to persistence-api [\#109](https://github.com/stargate/stargate/pull/109) ([EricBorczuk](https://github.com/EricBorczuk))
 - Skip xml formatting for now since it's way to finicky [\#108](https://github.com/stargate/stargate/pull/108) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Fix pom.xml formatting so that build is not broken [\#107](https://github.com/stargate/stargate/pull/107) ([tlasica](https://github.com/tlasica))
+- Make initializing tablebased auth configurable [\#106](https://github.com/stargate/stargate/pull/106) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Run mvn fmt on release [\#105](https://github.com/stargate/stargate/pull/105) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - Bumping version for next release [\#104](https://github.com/stargate/stargate/pull/104) ([github-actions[bot]](https://github.com/apps/github-actions))
 - REST v1 /query  errors 500 when unexpected JSON data key is used [\#103](https://github.com/stargate/stargate/pull/103) ([dougwettlaufer](https://github.com/dougwettlaufer))

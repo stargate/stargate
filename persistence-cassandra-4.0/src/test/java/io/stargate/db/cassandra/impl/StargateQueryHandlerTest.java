@@ -139,7 +139,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             RuntimeException.class,
             () ->
                 queryHandler.authorizeByToken(
-                    ImmutableMap.of("token", ByteBuffer.allocate(10)), statement));
+                    ImmutableMap.of("stargate.auth.subject.token", ByteBuffer.allocate(10)),
+                    statement));
 
     assertThat(thrown.getMessage()).isEqualTo("token and roleName must be provided");
   }

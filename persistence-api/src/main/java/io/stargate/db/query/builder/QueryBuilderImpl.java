@@ -1088,6 +1088,10 @@ public class QueryBuilderImpl {
     return columnNames.stream().map(table::existingColumn).collect(toList());
   }
 
+  private static List<Column> convertToColumns(Table table, Collection<String> columnNames) {
+    return columnNames.stream().map(table::column).collect(toList());
+  }
+
   private Set<String> names(Collection<Column> columns) {
     return columns.stream().map(SchemaEntity::name).collect(toSet());
   }
@@ -1380,13 +1384,13 @@ public class QueryBuilderImpl {
   protected BuiltSelect selectQuery() {
     Table table = schemaTable();
     QueryStringBuilder builder = new QueryStringBuilder(markerIndex);
-    List<Column> selectedColumns = validateColumns(table, selection);
+    List<Column> selectedColumns = convertToColumns(table, selection);
     // Using a linked set for the minor convenience of get back the columns in the order they were
     // passed to the builder "in general".
     Set<Column> allSelected = new LinkedHashSet<>(selectedColumns);
     Column wtColumn = null;
     if (writeTimeColumn != null) {
-      wtColumn = table.existingColumn(writeTimeColumn);
+      wtColumn = table.column(writeTimeColumn);
       allSelected.add(wtColumn);
     }
     builder.append("SELECT");
