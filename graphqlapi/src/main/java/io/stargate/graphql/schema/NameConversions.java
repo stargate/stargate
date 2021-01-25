@@ -233,6 +233,7 @@ public class NameConversions {
           .put("TinyInt", "TinyInx74_")
           .put("Timestamp", "Timestamx70_")
           .put("Time", "Timx65_")
+          .put("conversionWarnings", "conversionWarningx73_")
           .build();
 
   private static ImmutableMap<String, String> RESERVED_PREFIXES =

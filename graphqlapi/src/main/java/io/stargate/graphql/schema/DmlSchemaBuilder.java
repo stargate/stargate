@@ -535,7 +535,7 @@ class DmlSchemaBuilder {
       }
     }
     return GraphQLFieldDefinition.newFieldDefinition()
-        .name("__conversionWarnings")
+        .name("conversionWarnings")
         .description(description.toString())
         .type(list(GraphQLString))
         .dataFetcher((d) -> warnings)

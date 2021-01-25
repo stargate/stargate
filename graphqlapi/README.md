@@ -115,14 +115,14 @@ CREATE TABLE library.authors (
 
 If a GraphQL API is not generated for an existing CQL table schema then there might have been a
 failure with the conversion. The failure will create a warning that can be retrieved using the
-`__conversionWarnings` operation under the table's keyspace URL:
+`conversionWarnings` operation under the table's keyspace URL:
 `http://localhost/graphql/<keyspace>`. 
 
 To query the conversion warnings use:
 
 ```graphql
 query {
-  __conversionWarnings
+  conversionWarnings
 }
 ```
 
