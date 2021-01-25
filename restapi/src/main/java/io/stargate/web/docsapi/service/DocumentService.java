@@ -1229,7 +1229,6 @@ public class DocumentService {
     }
     Set<String> filterFieldPaths =
         inMemoryFilters.stream().map(FilterCondition::getFullFieldPath).collect(Collectors.toSet());
-
     return Lists.partition(rows, fieldsPerDoc).stream()
         .filter(
             docChunk -> {
@@ -1265,7 +1264,9 @@ public class DocumentService {
                           fieldRows.stream()
                               .anyMatch(
                                   row -> {
-                                    String path = getParentPathFromRow(row);
+                                    List<String> segments =
+                                        PATH_SPLITTER.splitToList(getParentPathFromRow(row));
+                                    String path = segments.get(segments.size() - 1);
                                     return pathsMatch(path + row.getString("leaf"), fieldPath);
                                   }));
             })
