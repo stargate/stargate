@@ -6641,7 +6641,7 @@
               "deprecationReason": "No longer supported. Use root type instead."
             },
             {
-              "name": "__conversionWarnings",
+              "name": "conversionWarnings",
               "description": "Warnings encountered during the CQL to GraphQL conversion.\nThis will return:\n- Table Tuples mapped as Tuplx65_s\n- Table TuplesPk mapped as Tuplx65_sPk",
               "args": [],
               "type": {
