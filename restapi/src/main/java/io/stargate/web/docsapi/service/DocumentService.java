@@ -775,19 +775,24 @@ public class DocumentService {
       List<FilterCondition> filters,
       boolean booleansStoredAsTinyint,
       boolean endOfResults) {
-    List<List<Row>> documentChunks =
-        new ArrayList<>(
-            rows.stream().collect(Collectors.groupingBy(row -> row.getString("key"))).values());
+    LinkedHashMap<String, List<Row>> documentChunks = new LinkedHashMap<>();
+    for (int i = 0; i < rows.size(); i++) {
+      Row row = rows.get(i);
+      String key = row.getString("key");
+      List<Row> chunk = documentChunks.getOrDefault(key, new ArrayList<>());
+      chunk.add(row);
+      documentChunks.put(key, chunk);
+    }
 
-    for (int i = 0; i < documentChunks.size() - (endOfResults ? 0 : 1); i++) {
-      List<Row> chunk = documentChunks.get(i);
+    List<List<Row>> chunksList = new ArrayList<>(documentChunks.values());
+
+    for (int i = 0; i < chunksList.size() - (endOfResults ? 0 : 1); i++) {
+      List<Row> chunk = chunksList.get(i);
       String key = chunk.get(0).getString("key");
       List<Row> filteredRows =
           applyInMemoryFilters(chunk, filters, chunk.size(), booleansStoredAsTinyint);
-      if (!filteredRows.isEmpty()) {
-        if (!existsByDoc.getOrDefault(key, false)) {
-          existsByDoc.put(key, true);
-        }
+      if (!filteredRows.isEmpty() && !existsByDoc.getOrDefault(key, false)) {
+        existsByDoc.put(key, true);
       }
 
       if (chunk.size() > 0) {
@@ -796,8 +801,8 @@ public class DocumentService {
       }
     }
 
-    if (documentChunks.size() > 0 && !endOfResults) {
-      return documentChunks.get(documentChunks.size() - 1);
+    if (chunksList.size() > 0 && !endOfResults) {
+      return chunksList.get(chunksList.size() - 1);
     }
     return new ArrayList<>();
   }
