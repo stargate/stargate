@@ -2161,7 +2161,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?where={\"a\":{\"$eq\":\"b\"},\"c\":{\"lt\":3}}",
+                + "/collections/collection?where={\"a\":{\"$eq\":\"b\"},\"c\":{\"$lt\":3}}",
             200);
 
     JsonNode resp = objectMapper.readTree(r);
@@ -2178,7 +2178,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?where={\"a\":{\"$eq\":\"b\"},\"c\":{\"lt\":0}}",
+                + "/collections/collection?where={\"a\":{\"$eq\":\"b\"},\"c\":{\"$lt\":0}}",
             200);
 
     // resulting JSON should be empty
@@ -2636,6 +2636,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     resp = objectMapper.readTree(r);
     assertThat(resp.at("/pageState").isMissingNode()).isTrue();
     data = resp.requiredAt("/data");
+    System.out.println("THE PROBLEM: " + r.toString() + " " + data);
     assertThat(data.size()).isEqualTo(1);
     key = data.fieldNames().next();
     if (docsSeen.contains("3")) {
