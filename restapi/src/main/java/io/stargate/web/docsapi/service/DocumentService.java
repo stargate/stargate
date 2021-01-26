@@ -901,7 +901,7 @@ public class DocumentService {
       int pageSize,
       int limit,
       Map<String, String> headers)
-      throws ExecutionException, InterruptedException, UnauthorizedException {
+      throws UnauthorizedException {
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashMap<String, Boolean> existsByDoc = new LinkedHashMap<>();
     LinkedHashMap<String, Integer> countsByDoc = new LinkedHashMap<>();
@@ -933,7 +933,6 @@ public class DocumentService {
               filters,
               db.treatBooleansAsNumeric(),
               page.right == null);
-      db = dbFactory.getDocDataStoreForToken(authToken, headers);
       currentPageState = page.right;
     } while (existsByDoc.keySet().size() <= limit && currentPageState != null);
 

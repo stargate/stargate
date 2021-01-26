@@ -2636,7 +2636,6 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     resp = objectMapper.readTree(r);
     assertThat(resp.at("/pageState").isMissingNode()).isTrue();
     data = resp.requiredAt("/data");
-    System.out.println("THE PROBLEM: " + r.toString() + " " + data);
     assertThat(data.size()).isEqualTo(1);
     key = data.fieldNames().next();
     if (docsSeen.contains("3")) {

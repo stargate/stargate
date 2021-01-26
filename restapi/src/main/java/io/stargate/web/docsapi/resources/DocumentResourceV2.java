@@ -747,7 +747,6 @@ public class DocumentResourceV2 {
           if (where != null) {
             JsonNode filterJson = mapper.readTree(where);
             filters = documentService.convertToFilterOps(new ArrayList<>(), filterJson);
-            System.out.println("Filters: " + filters);
           }
 
           if (fields != null) {
