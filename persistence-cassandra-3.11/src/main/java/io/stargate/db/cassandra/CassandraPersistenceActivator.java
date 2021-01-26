@@ -63,7 +63,7 @@ public class CassandraPersistenceActivator extends BaseActivator {
   public static Config makeConfig(File baseDir) throws IOException {
     Config c;
 
-    String cassandraConfigPath = System.getProperty("stargate.cassandra_config_path", "");
+    String cassandraConfigPath = System.getProperty("stargate.unsafe.cassandra_config_path", "");
     if (cassandraConfigPath.isEmpty()) {
       c = new Config();
     } else {

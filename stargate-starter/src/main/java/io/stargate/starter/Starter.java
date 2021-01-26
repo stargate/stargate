@@ -361,7 +361,9 @@ public class Starter {
     System.setProperty(
         "org.apache.cassandra.disable_mbean_registration",
         String.valueOf(disableMBeanRegistration));
-    System.setProperty("stargate.cassandra_config_path", String.valueOf(cassandraConfigPath));
+    if (cassandraConfigPath != null) {
+      System.setProperty("stargate.unsafe.cassandra_config_path", cassandraConfigPath);
+    }
 
     if (bindToListenAddressOnly) {
       // Restrict the listen address for Jersey endpoints
