@@ -53,9 +53,11 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.PathSegment;
@@ -124,7 +126,7 @@ public class DocumentServiceTest {
     updateExistenceForMap =
         DocumentService.class.getDeclaredMethod(
             "updateExistenceForMap",
-            Map.class,
+            Set.class,
             Map.class,
             List.class,
             List.class,
@@ -1313,12 +1315,12 @@ public class DocumentServiceTest {
 
   @Test
   public void updateExistenceForMap() throws InvocationTargetException, IllegalAccessException {
-    Map<String, Boolean> existenceByDoc = new HashMap<>();
+    Set<String> existenceByDoc = new HashSet<>();
     Map<String, Integer> countsByDoc = new HashMap<>();
     List<Row> rows = makeInitialRowData();
     updateExistenceForMap.invoke(
         service, existenceByDoc, countsByDoc, rows, new ArrayList<>(), false, true);
-    assertThat(existenceByDoc.get("1")).isTrue();
+    assertThat(existenceByDoc.contains("1")).isTrue();
     assertThat(countsByDoc.get("1")).isEqualTo(3);
   }
 

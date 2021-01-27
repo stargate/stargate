@@ -769,7 +769,7 @@ public class DocumentService {
   }
 
   private List<Row> updateExistenceForMap(
-      Map<String, Boolean> existsByDoc,
+      Set<String> existsByDoc,
       Map<String, Integer> rowCountsByDoc,
       List<Row> rows,
       List<FilterCondition> filters,
@@ -791,11 +791,11 @@ public class DocumentService {
       String key = chunk.get(0).getString("key");
       List<Row> filteredRows =
           applyInMemoryFilters(chunk, filters, chunk.size(), booleansStoredAsTinyint);
-      if (!filteredRows.isEmpty() && !existsByDoc.getOrDefault(key, false)) {
-        existsByDoc.put(key, true);
+      if (!filteredRows.isEmpty()) {
+        existsByDoc.add(key);
       }
 
-      if (chunk.size() > 0) {
+      if (!chunk.isEmpty()) {
         int value = rowCountsByDoc.getOrDefault(key, 0);
         rowCountsByDoc.put(key, value + chunk.size());
       }
@@ -804,7 +804,7 @@ public class DocumentService {
     if (chunksList.size() > 0 && !endOfResults) {
       return chunksList.get(chunksList.size() - 1);
     }
-    return new ArrayList<>();
+    return Collections.emptyList();
   }
 
   /**
@@ -908,7 +908,7 @@ public class DocumentService {
       Map<String, String> headers)
       throws UnauthorizedException {
     ObjectNode docsResult = mapper.createObjectNode();
-    LinkedHashMap<String, Boolean> existsByDoc = new LinkedHashMap<>();
+    LinkedHashSet<String> existsByDoc = new LinkedHashSet<>();
     LinkedHashMap<String, Integer> countsByDoc = new LinkedHashMap<>();
 
     ImmutablePair<List<Row>, ByteBuffer> page;
@@ -939,13 +939,13 @@ public class DocumentService {
               db.treatBooleansAsNumeric(),
               page.right == null);
       currentPageState = page.right;
-    } while (existsByDoc.keySet().size() <= limit && currentPageState != null);
+    } while (existsByDoc.size() <= limit && currentPageState != null);
 
     // Either we've reached the end of all rows in the collection, or we have enough rows
     // in memory to build the final result.
-    Set<String> docNames = existsByDoc.keySet();
     ByteBuffer finalPagingState;
-    if (docNames.size() > limit) {
+    Set<String> docNames = existsByDoc;
+    if (existsByDoc.size() > limit) {
       int totalSize = 0;
       docNames = new HashSet<>();
       Iterator<Map.Entry<String, Integer>> iter = countsByDoc.entrySet().iterator();
@@ -953,7 +953,7 @@ public class DocumentService {
       while (i < limit) {
         Map.Entry<String, Integer> e = iter.next();
         totalSize += e.getValue();
-        if (existsByDoc.containsKey(e.getKey())) {
+        if (existsByDoc.contains(e.getKey())) {
           docNames.add(e.getKey());
           i++;
         }
@@ -1254,7 +1254,7 @@ public class DocumentService {
                                 inMemoryFilters.stream()
                                     .filter(f -> pathsMatch(fullRowPath, f.getFullFieldPath()))
                                     .collect(Collectors.toList());
-                            if (matchingFilters.size() == 0) {
+                            if (matchingFilters.isEmpty()) {
                               return false;
                             }
                             return allFiltersMatch(r, matchingFilters, numericBooleans);
