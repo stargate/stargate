@@ -30,8 +30,10 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.SchemaFactory;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,6 +50,8 @@ import org.slf4j.LoggerFactory;
 public class GraphqlCache implements EventListener {
 
   private static final Logger LOG = LoggerFactory.getLogger(GraphqlCache.class);
+  private static final boolean DISABLE_DEFAULT_KEYSPACE =
+      Boolean.getBoolean("stargate.graphql.default_keyspace.disabled");
 
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
@@ -85,17 +89,20 @@ public class GraphqlCache implements EventListener {
     return ddlGraphql;
   }
 
-  public GraphQL getDml(String keyspace) {
-    DmlGraphqlReference ref = dmlGraphqls.get(keyspace);
+  public GraphQL getDml(String keyspace, Map<String, String> headers) {
+    String decoratedName = persistence.decorateKeyspaceName(keyspace, headers);
+    DmlGraphqlReference ref = dmlGraphqls.get(decoratedName);
     return ref == null ? null : ref.get();
   }
 
   public GraphQL getDefaultDml() {
-    return defaultKeyspace == null ? null : getDml(defaultKeyspace);
+    return defaultKeyspace == null ? null : getDml(defaultKeyspace, Collections.emptyMap());
   }
 
   /** Populate a default keyspace to allow for omitting the keyspace from the path of requests. */
   private static String findDefaultKeyspace(DataStore dataStore) {
+    if (DISABLE_DEFAULT_KEYSPACE) return null;
+
     try {
       CompletableFuture<ResultSet> query =
           dataStore

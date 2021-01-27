@@ -123,6 +123,16 @@ public interface Persistence {
   void executeAuthResponse(Runnable handler);
 
   /**
+   * Allows the persistence backend to modify the keyspace name for a given set of connection
+   * properties. This can be used to provide a mapping, for example, from an external keyspace name
+   * and an internal one.
+   */
+  default String decorateKeyspaceName(
+      String keyspaceName, Map<String, String> connectionProperties) {
+    return keyspaceName;
+  }
+
+  /**
    * A connection to the persistence.
    *
    * <p>It is through this object that a user can be logged in and that the persistence can be
