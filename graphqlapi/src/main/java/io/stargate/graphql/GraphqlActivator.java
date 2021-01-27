@@ -21,6 +21,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
+import io.stargate.db.DbActivator;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.web.DropwizardServer;
@@ -38,15 +39,13 @@ public class GraphqlActivator extends BaseActivator {
 
   private static final String AUTH_IDENTIFIER =
       System.getProperty("stargate.auth_id", "AuthTableBasedService");
-  private static final String PERSISTENCE_IDENTIFIER =
-      System.getProperty("stargate.persistence_id", "CassandraPersistence");
 
   private ServicePointer<AuthenticationService> authentication =
       ServicePointer.create(AuthenticationService.class, "AuthIdentifier", AUTH_IDENTIFIER);
   private ServicePointer<AuthorizationService> authorization =
       ServicePointer.create(AuthorizationService.class, "AuthIdentifier", AUTH_IDENTIFIER);
   private ServicePointer<Persistence> persistence =
-      ServicePointer.create(Persistence.class, "Identifier", PERSISTENCE_IDENTIFIER);
+      ServicePointer.create(Persistence.class, "Identifier", DbActivator.PERSISTENCE_IDENTIFIER);
   private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private final ServicePointer<HealthCheckRegistry> healthCheckRegistry =
       ServicePointer.create(HealthCheckRegistry.class);

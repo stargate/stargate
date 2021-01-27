@@ -19,6 +19,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.cql.impl.CqlImpl;
+import io.stargate.db.DbActivator;
 import io.stargate.db.Persistence;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -36,10 +37,7 @@ public class CqlActivator extends BaseActivator {
           "AuthIdentifier",
           System.getProperty("stargate.auth_id", "AuthTableBasedService"));
   private final ServicePointer<Persistence> persistence =
-      ServicePointer.create(
-          Persistence.class,
-          "Identifier",
-          System.getProperty("stargate.persistence_id", "CassandraPersistence"));
+      ServicePointer.create(Persistence.class, "Identifier", DbActivator.PERSISTENCE_IDENTIFIER);
 
   private static final boolean USE_AUTH_SERVICE =
       Boolean.parseBoolean(System.getProperty("stargate.cql_use_auth_service", "false"));

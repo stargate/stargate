@@ -488,6 +488,17 @@ public class Starter {
         }
 
         if (name.endsWith(".jar") && !name.startsWith("stargate-starter-")) {
+          // Any rate-limiting jar needs to be installed before the persistence-api is activated
+          // (because it needs to find the RateLimitingManager service), so we put it in front.
+          // But as we except the actual persistence implementation jar to be the very first, we
+          // add it as 2nd.
+          if (name.contains("rate-limiting-")) {
+            if (jars.isEmpty()) {
+              jars.add(file);
+            } else {
+              jars.add(1, file);
+            }
+          }
           jars.add(file);
         }
       }

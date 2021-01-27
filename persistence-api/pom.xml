@@ -125,6 +125,7 @@
               io.stargate.db.query,
               io.stargate.db.query.builder,
               io.stargate.db.schema,
+              io.stargate.db.limiter,
               org.javatuples,
               org.apache.cassandra.stargate,
               org.apache.cassandra.stargate.*,
