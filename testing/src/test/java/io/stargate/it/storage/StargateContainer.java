@@ -372,6 +372,12 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
       cmd.addArgument("-Dstargate.libdir=" + LIB_DIR.getAbsolutePath());
       cmd.addArgument("-Dstargate.bundle.cache.dir=" + cacheDir.getAbsolutePath());
 
+      if (backend.isDse()) {
+        cmd.addArgument("-Dstargate.request_timeout_in_ms=60000");
+        cmd.addArgument("-Dstargate.write_request_timeout_in_ms=60000");
+        cmd.addArgument("-Dstargate.read_request_timeout_in_ms=60000");
+      }
+
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
       }
