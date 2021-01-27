@@ -17,6 +17,7 @@ package io.stargate.graphql.web.resources;
 
 import graphql.GraphQL;
 import io.stargate.graphql.web.GraphqlCache;
+import io.stargate.graphql.web.RequestToHeadersMapper;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
 import java.util.regex.Pattern;
 import javax.inject.Inject;
@@ -69,7 +70,7 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphl(keyspaceName, asyncResponse);
+    GraphQL graphql = getGraphl(keyspaceName, asyncResponse, httpRequest);
     if (graphql != null) {
       get(query, operationName, variables, graphql, httpRequest, asyncResponse);
     }
@@ -99,7 +100,7 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphl(keyspaceName, asyncResponse);
+    GraphQL graphql = getGraphl(keyspaceName, asyncResponse, httpRequest);
     if (graphql != null) {
       postJson(jsonBody, queryFromUrl, graphql, httpRequest, asyncResponse);
     }
@@ -127,7 +128,7 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphl(keyspaceName, asyncResponse);
+    GraphQL graphql = getGraphl(keyspaceName, asyncResponse, httpRequest);
     if (graphql != null) {
       postGraphql(query, graphql, httpRequest, asyncResponse);
     }
@@ -143,7 +144,8 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
     }
   }
 
-  private GraphQL getGraphl(String keyspaceName, AsyncResponse asyncResponse) {
+  private GraphQL getGraphl(
+      String keyspaceName, AsyncResponse asyncResponse, HttpServletRequest request) {
     if (!KEYSPACE_NAME_PATTERN.matcher(keyspaceName).matches()) {
       LOG.warn("Invalid keyspace in URI, this could be an XSS attack: {}", keyspaceName);
       // Do not reflect back the value
@@ -151,7 +153,8 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       return null;
     }
 
-    GraphQL graphql = graphqlCache.getDml(keyspaceName);
+    GraphQL graphql =
+        graphqlCache.getDml(keyspaceName, RequestToHeadersMapper.getAllHeaders(request));
     if (graphql == null) {
       replyWithGraphqlError(
           Status.NOT_FOUND, String.format("Unknown keyspace '%s'", keyspaceName), asyncResponse);
