@@ -125,6 +125,19 @@ public class DsePersistenceActivator extends BaseActivator {
       c.guardrails = guardrailsConfig;
     }
 
+    long timeout;
+    if ((timeout = Long.getLong("stargate.request_timeout_in_ms", -1)) > 0) {
+      c.request_timeout_in_ms = timeout;
+    }
+
+    if ((timeout = Long.getLong("stargate.write_request_timeout_in_ms", -1)) > 0) {
+      c.write_request_timeout_in_ms = timeout;
+    }
+
+    if ((timeout = Long.getLong("stargate.read_request_timeout_in_ms", -1)) > 0) {
+      c.read_request_timeout_in_ms = timeout;
+    }
+
     return c;
   }
 
