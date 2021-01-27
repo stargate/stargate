@@ -15,6 +15,8 @@
  */
 package io.stargate.web;
 
+import com.codahale.metrics.health.HealthCheck;
+import com.codahale.metrics.health.HealthCheckRegistry;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
@@ -23,6 +25,7 @@ import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.web.impl.WebImpl;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +39,8 @@ public class RestApiActivator extends BaseActivator {
           "AuthIdentifier",
           System.getProperty("stargate.auth_id", "AuthTableBasedService"));
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  private final ServicePointer<HealthCheckRegistry> healthCheckRegistry =
+      ServicePointer.create(HealthCheckRegistry.class);
   private final ServicePointer<AuthorizationService> authorizationService =
       ServicePointer.create(AuthorizationService.class);
 
@@ -48,12 +53,25 @@ public class RestApiActivator extends BaseActivator {
 
   @Override
   protected ServiceAndProperties createService() {
+    AtomicBoolean started = new AtomicBoolean();
+    healthCheckRegistry
+        .get()
+        .register(
+            "restapi",
+            new HealthCheck() {
+              @Override
+              protected Result check() {
+                return started.get() ? Result.healthy("Started") : Result.unhealthy("Not started");
+              }
+            });
+
     web.setAuthenticationService(authenticationService.get());
     web.setMetrics(metrics.get());
     web.setAuthorizationService(authorizationService.get());
     web.setDataStoreFactory(dataStoreFactory.get());
     try {
       this.web.start();
+      started.set(true);
     } catch (Exception e) {
       logger.error("Failed", e);
     }
@@ -62,6 +80,11 @@ public class RestApiActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(authenticationService, metrics, authorizationService, dataStoreFactory);
+    return Arrays.asList(
+        authenticationService,
+        metrics,
+        healthCheckRegistry,
+        authorizationService,
+        dataStoreFactory);
   }
 }

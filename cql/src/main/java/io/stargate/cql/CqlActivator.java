@@ -15,6 +15,8 @@
  */
 package io.stargate.cql;
 
+import com.codahale.metrics.health.HealthCheck;
+import com.codahale.metrics.health.HealthCheckRegistry;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
@@ -24,12 +26,18 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.cassandra.config.Config;
 import org.jetbrains.annotations.Nullable;
 
 public class CqlActivator extends BaseActivator {
+
+  public static final String HEALTH_CHECK_NAME = "cql";
+
   private CqlImpl cql;
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  private final ServicePointer<HealthCheckRegistry> healthCheckRegistry =
+      ServicePointer.create(HealthCheckRegistry.class);
   private final ServicePointer<AuthenticationService> authentication =
       ServicePointer.create(
           AuthenticationService.class,
@@ -44,6 +52,15 @@ public class CqlActivator extends BaseActivator {
   private static final boolean USE_AUTH_SERVICE =
       Boolean.parseBoolean(System.getProperty("stargate.cql_use_auth_service", "false"));
 
+  private final AtomicBoolean started = new AtomicBoolean();
+  private final HealthCheck healthCheck =
+      new HealthCheck() {
+        @Override
+        protected Result check() throws Exception {
+          return started.get() ? Result.healthy("Started") : Result.unhealthy("Not started");
+        }
+      };
+
   public CqlActivator() {
     super("CQL");
   }
@@ -54,8 +71,12 @@ public class CqlActivator extends BaseActivator {
     if (cql != null) { // Already started
       return null;
     }
+
+    healthCheckRegistry.get().register(HEALTH_CHECK_NAME, healthCheck);
+
     cql = new CqlImpl(makeConfig(), persistence.get(), metrics.get(), authentication.get());
     cql.start();
+    started.set(true);
 
     return null;
   }
@@ -65,16 +86,18 @@ public class CqlActivator extends BaseActivator {
     if (cql == null) { // Not started
       return;
     }
+    started.set(false);
     cql.stop();
+    healthCheckRegistry.get().unregister(HEALTH_CHECK_NAME);
     cql = null;
   }
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
     if (USE_AUTH_SERVICE) {
-      return Arrays.asList(metrics, persistence, authentication);
+      return Arrays.asList(metrics, healthCheckRegistry, persistence, authentication);
     } else {
-      return Arrays.asList(metrics, persistence);
+      return Arrays.asList(metrics, healthCheckRegistry, persistence);
     }
   }
 

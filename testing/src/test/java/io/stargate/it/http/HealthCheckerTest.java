@@ -12,6 +12,8 @@ import org.apache.http.HttpStatus;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 @NotThreadSafe
 public class HealthCheckerTest extends BaseOsgiIntegrationTest {
@@ -36,12 +38,26 @@ public class HealthCheckerTest extends BaseOsgiIntegrationTest {
     assertThat(body).isEqualTo("UP");
   }
 
-  @Test
-  public void readiness() throws IOException {
+  @ParameterizedTest
+  @CsvSource({",", "?check=deadlocks", "?check=graphql", "?check=deadlocks&check=graphql"})
+  public void readiness(String query) throws IOException {
+    query = query == null ? "" : query;
     String body =
-        RestUtils.get("", String.format("%s:8084/checker/readiness", host), HttpStatus.SC_OK);
+        RestUtils.get(
+            "", String.format("%s:8084/checker/readiness%s", host, query), HttpStatus.SC_OK);
 
     assertThat(body).isEqualTo("READY");
+  }
+
+  @Test
+  public void missingReadinessCheck() throws IOException {
+    String body =
+        RestUtils.get(
+            "",
+            String.format("%s:8084/checker/readiness?check=testUnknown", host),
+            HttpStatus.SC_SERVICE_UNAVAILABLE);
+
+    assertThat(body).isEqualTo("NOT READY");
   }
 
   @Test
