@@ -1,5 +1,24 @@
 # Changelog
 
+## [v1.0.6](https://github.com/stargate/stargate/tree/v1.0.6) (2021-01-27)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.5...v1.0.6)
+
+**Closed issues:**
+
+- "\_\_conversionWarnings" violates graphQL introspection naming schema [\#615](https://github.com/stargate/stargate/issues/615)
+
+**Merged pull requests:**
+
+- Add decorate keyspace method for graphql cache [\#623](https://github.com/stargate/stargate/pull/623) ([tjake](https://github.com/tjake))
+- Increase DSE requests timeouts on the Stargate side in tests [\#622](https://github.com/stargate/stargate/pull/622) ([dimas-b](https://github.com/dimas-b))
+- Update OKHttp version [\#621](https://github.com/stargate/stargate/pull/621) ([mpenick](https://github.com/mpenick))
+- GraphQL: Remove "\_\_" prefix from "conversionWarnings" query name [\#616](https://github.com/stargate/stargate/pull/616) ([olim7t](https://github.com/olim7t))
+- Bumping version for next release [\#612](https://github.com/stargate/stargate/pull/612) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Do not pull schema from non-token ring members [\#611](https://github.com/stargate/stargate/pull/611) ([mpenick](https://github.com/mpenick))
+- Update DSE persistence to 6.8.9 [\#607](https://github.com/stargate/stargate/pull/607) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Docs API changes to improve performance [\#534](https://github.com/stargate/stargate/pull/534) ([EricBorczuk](https://github.com/EricBorczuk))
+
 ## [v1.0.5](https://github.com/stargate/stargate/tree/v1.0.5) (2021-01-21)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.4...v1.0.5)
