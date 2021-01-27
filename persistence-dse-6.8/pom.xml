@@ -10,7 +10,7 @@
   <groupId>io.stargate.db.dse</groupId>
   <artifactId>persistence-dse-6.8</artifactId>
   <properties>
-    <dse.version>6.8.7</dse.version>
+    <dse.version>6.8.9</dse.version>
   </properties>
   <repositories>
     <repository>
@@ -199,7 +199,7 @@
           <forkCount>1</forkCount>
           <systemPropertyVariables>
             <ccm.dse>true</ccm.dse>
-            <ccm.version>6.8.7</ccm.version>
+            <ccm.version>6.8.9</ccm.version>
           </systemPropertyVariables>
         </configuration>
       </plugin>

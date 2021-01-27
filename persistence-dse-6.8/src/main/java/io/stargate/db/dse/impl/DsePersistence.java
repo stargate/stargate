@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.cassandra.auth.AuthenticatedUser;
+import org.apache.cassandra.auth.IAuthContext;
 import org.apache.cassandra.auth.user.UserRolesAndPermissions;
 import org.apache.cassandra.concurrent.TPCTaskType;
 import org.apache.cassandra.config.Config;
@@ -399,7 +400,7 @@ public class DsePersistence
       } else {
         return DatabaseDescriptor.getAuthManager()
             .getUserRolesAndPermissions(
-                clientState.getUser().getName(), clientState.getUser().getName())
+                clientState.getUser().getName(), clientState.getUser().getName(), IAuthContext.ANY)
             .map(u -> new QueryState(clientState, u));
       }
     }
