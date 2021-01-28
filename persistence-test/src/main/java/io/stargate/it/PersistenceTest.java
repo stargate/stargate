@@ -105,7 +105,6 @@ import java.util.stream.Stream;
 import net.jcip.annotations.NotThreadSafe;
 import org.assertj.core.api.Assertions;
 import org.javatuples.Pair;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
@@ -137,7 +136,6 @@ public abstract class PersistenceTest {
 
   protected abstract Persistence persistence();
 
-  @BeforeEach
   public void setup(TestInfo testInfo, ClusterConnectionInfo backend) {
     this.backend = backend;
 

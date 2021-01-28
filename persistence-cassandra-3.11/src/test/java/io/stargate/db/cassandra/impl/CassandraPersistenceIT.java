@@ -1,6 +1,7 @@
 package io.stargate.db.cassandra.impl;
 
 import static io.stargate.db.cassandra.CassandraPersistenceActivator.makeConfig;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.stargate.db.Persistence;
 import io.stargate.it.PersistenceTest;
@@ -9,9 +10,13 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.util.Optional;
+import org.apache.cassandra.config.Config;
 import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 /*
  * Copyright The Stargate Authors
@@ -32,15 +37,24 @@ class CassandraPersistenceIT extends PersistenceTest {
 
   private static CassandraPersistence persistence;
   private static File baseDir;
+  private static Config config;
 
-  @BeforeAll
-  public static void createPersistence(ClusterConnectionInfo backend) throws IOException {
+  @BeforeEach
+  public void createPersistence(TestInfo testInfo, ClusterConnectionInfo backend)
+      throws IOException {
     baseDir = Files.createTempDirectory("stargate-cassandra-3.11-test").toFile();
 
     System.setProperty("stargate.listen_address", "127.0.0.11");
     System.setProperty("stargate.cluster_name", backend.clusterName());
     System.setProperty("stargate.datacenter", backend.datacenter());
     System.setProperty("stargate.rack", backend.rack());
+
+    // This is the path to the default cassandra.yaml from Cassandra 3.11.6
+    // with row_cache_size_in_mb set to 1024 to test the override.
+    getCassandraConfigPath()
+        .ifPresent(
+            configPath -> System.setProperty("stargate.unsafe.cassandra_config_path", configPath));
+
     ClassLoader classLoader = CassandraPersistenceIT.class.getClassLoader();
     URL resource = classLoader.getResource("logback-test.xml");
 
@@ -50,11 +64,13 @@ class CassandraPersistenceIT extends PersistenceTest {
     }
 
     persistence = new CassandraPersistence();
-    persistence.initialize(makeConfig(baseDir));
+    config = makeConfig(baseDir);
+    persistence.initialize(config);
+    super.setup(testInfo, backend);
   }
 
-  @AfterAll
-  public static void cleanup() throws IOException {
+  @AfterEach
+  public void cleanup() throws IOException {
     // TODO: persistence.destroy() - note: it gets an NPE in NativeTransportService.destroy ATM
     //    if (persistence != null) {
     //      persistence.destroy();
@@ -66,5 +82,18 @@ class CassandraPersistenceIT extends PersistenceTest {
   @Override
   protected Persistence persistence() {
     return persistence;
+  }
+
+  protected Optional<String> getCassandraConfigPath() {
+    return Optional.empty();
+  }
+
+  protected long getExpectedRowCacheSizeInMb() {
+    return 0;
+  }
+
+  @Test
+  public void testOverriddenCassandraConfigField() {
+    assertEquals(getExpectedRowCacheSizeInMb(), config.row_cache_size_in_mb);
   }
 }
