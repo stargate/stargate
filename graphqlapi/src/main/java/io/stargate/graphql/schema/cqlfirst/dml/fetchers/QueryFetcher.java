@@ -37,8 +37,10 @@ import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
@@ -121,22 +123,31 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
   }
 
   private List<Column> buildQueryColumns(DataFetchingEnvironment environment) {
-    if (environment.getSelectionSet().contains("values")) {
-      SelectedField field = environment.getSelectionSet().getField("values");
-      List<Column> fields = new ArrayList<>();
-      for (SelectedField selectedField : field.getSelectionSet().getFields()) {
+    List<SelectedField> valuesFields = environment.getSelectionSet().getFields("values");
+    if (valuesFields.isEmpty()) {
+      return ImmutableList.of();
+    }
+
+    // While convoluted, it's technically valid to reference 'values' multiple times under
+    // different aliases, for example:
+    // {
+    //   values { id }
+    //   values2: values { first_name last_name }
+    // }
+    // We iterate all the occurrences and build the union of their subsets.
+    Set<Column> queryColumns = new LinkedHashSet<>();
+    for (SelectedField valuesField : valuesFields) {
+      for (SelectedField selectedField : valuesField.getSelectionSet().getFields()) {
         if ("__typename".equals(selectedField.getName())) {
           continue;
         }
 
         String column = getDBColumnName(table, selectedField.getName());
         if (column != null) {
-          fields.add(Column.reference(column));
+          queryColumns.add(Column.reference(column));
         }
       }
-      return fields;
     }
-
-    return ImmutableList.of();
+    return ImmutableList.copyOf(queryColumns);
   }
 }

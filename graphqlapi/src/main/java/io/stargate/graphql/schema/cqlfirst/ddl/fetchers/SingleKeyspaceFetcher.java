@@ -19,13 +19,14 @@ import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.SourceAPI;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.CassandraFetcher;
-import java.util.Map;
+import java.util.Collections;
 
-public class SingleKeyspaceFetcher extends CassandraFetcher<Map<String, Object>> {
+public class SingleKeyspaceFetcher extends CassandraFetcher<KeyspaceDto> {
 
   public SingleKeyspaceFetcher(
       AuthenticationService authenticationService,
@@ -35,10 +36,11 @@ public class SingleKeyspaceFetcher extends CassandraFetcher<Map<String, Object>>
   }
 
   @Override
-  protected Map<String, Object> get(
+  protected KeyspaceDto get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
-      AuthenticationSubject authenticationSubject) {
+      AuthenticationSubject authenticationSubject)
+      throws Exception {
     String keyspaceName = environment.getArgument("name");
 
     Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
@@ -46,7 +48,9 @@ public class SingleKeyspaceFetcher extends CassandraFetcher<Map<String, Object>>
       return null;
     }
 
-    return KeyspaceFormatter.formatResult(
-        keyspace, environment, authorizationService, authenticationSubject);
+    authorizationService.authorizeSchemaRead(
+        authenticationSubject, Collections.singletonList(keyspace.name()), null, SourceAPI.GRAPHQL);
+
+    return new KeyspaceDto(keyspace, authorizationService, authenticationSubject);
   }
 }
