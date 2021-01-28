@@ -66,7 +66,7 @@ class CassandraPersistenceIT extends PersistenceTest {
     persistence = new CassandraPersistence();
     config = makeConfig(baseDir);
     persistence.initialize(config);
-    super.setup(testInfo, backend);
+    setup(testInfo, backend);
   }
 
   @AfterEach
