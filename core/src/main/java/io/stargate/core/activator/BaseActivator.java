@@ -15,11 +15,14 @@
  */
 package io.stargate.core.activator;
 
+import com.codahale.metrics.health.HealthCheck;
+import com.codahale.metrics.health.HealthCheckRegistry;
 import java.util.*;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -34,7 +37,13 @@ import org.slf4j.LoggerFactory;
 public abstract class BaseActivator implements BundleActivator {
   private static final Logger logger = LoggerFactory.getLogger(BaseActivator.class);
 
+  private final ServicePointer<HealthCheckRegistry> healthCheckRegistry =
+      ServicePointer.create(HealthCheckRegistry.class);
+
   private final String activatorName;
+  private final AtomicBoolean available = new AtomicBoolean();
+  private final HealthCheck healthCheck;
+  private List<ServicePointer<?>> dependencies;
 
   protected BundleContext context;
 
@@ -46,7 +55,26 @@ public abstract class BaseActivator implements BundleActivator {
 
   /** @param activatorName - The name used when logging the progress of registration. */
   public BaseActivator(String activatorName) {
+    this(activatorName, false);
+  }
+
+  /**
+   * @param activatorName - The name used when logging the progress of registration and as the name
+   *     of the health checker (in lower case).
+   */
+  public BaseActivator(String activatorName, boolean registerHealthCheck) {
     this.activatorName = activatorName;
+    this.healthCheck =
+        registerHealthCheck
+            ? new HealthCheck() {
+              @Override
+              protected Result check() {
+                return available.get()
+                    ? Result.healthy("Available")
+                    : Result.unhealthy("Not Available");
+              }
+            }
+            : null;
   }
 
   /**
@@ -63,19 +91,29 @@ public abstract class BaseActivator implements BundleActivator {
   public synchronized void start(BundleContext context) throws InvalidSyntaxException {
     logger.info("Starting {} ...", activatorName);
     this.context = context;
-    if (dependencies().isEmpty() && lazyDependencies().isEmpty()) {
+
+    String filter = constructDependenciesFilter();
+
+    if (dependencies.isEmpty() && lazyDependencies().isEmpty()) {
       startServiceInternal();
     } else {
-      tracker = new Tracker(context, context.createFilter(constructDependenciesFilter()));
+      tracker = new Tracker(context, context.createFilter(filter));
       tracker.open();
     }
   }
 
   String constructDependenciesFilter() {
+    List<ServicePointer<?>> dep = dependencies();
+    if (healthCheck != null) {
+      dep = new ArrayList<>(dep);
+      dep.add(healthCheckRegistry);
+    }
+    dependencies = dep;
+
     StringBuilder builder = new StringBuilder("(|");
 
     List<Service<?>> allDependencies = new ArrayList<>();
-    allDependencies.addAll(dependencies());
+    allDependencies.addAll(dependencies);
     allDependencies.addAll(lazyDependencies());
 
     for (Service<?> servicePointer : allDependencies) {
@@ -96,6 +134,8 @@ public abstract class BaseActivator implements BundleActivator {
    */
   @Override
   public synchronized void stop(BundleContext context) throws Exception {
+    available.set(false);
+
     if (started) {
       logger.info("Stopping {}", activatorName);
       stopService();
@@ -121,6 +161,11 @@ public abstract class BaseActivator implements BundleActivator {
     }
     started = true;
 
+    if (healthCheck != null) {
+      String healthCheckName = activatorName.toLowerCase();
+      healthCheckRegistry.get().register(healthCheckName, healthCheck);
+    }
+
     try {
       List<ServiceAndProperties> services = createServices();
       for (ServiceAndProperties service : services) {
@@ -131,6 +176,7 @@ public abstract class BaseActivator implements BundleActivator {
                   service.targetServiceClass.getName(), service.service, service.properties));
         }
       }
+      available.set(true);
       logger.info("Started {}", activatorName);
     } catch (Exception e) {
       throw new ServiceStartException("Unable to start " + activatorName, e);
@@ -161,7 +207,7 @@ public abstract class BaseActivator implements BundleActivator {
       if (service == null) {
         return;
       }
-      for (ServicePointer<?> servicePointer : dependencies()) {
+      for (ServicePointer<?> servicePointer : dependencies) {
         if (servicePointer.expectedClass.isAssignableFrom(service.getClass())) {
           logger.debug("{} using service: {}", activatorName, ref.getBundle());
           servicePointer.set(service);
@@ -175,7 +221,7 @@ public abstract class BaseActivator implements BundleActivator {
         }
       }
 
-      if (dependencies().stream().map(v -> v.service).allMatch(Objects::nonNull)) {
+      if (dependencies.stream().map(v -> v.service).allMatch(Objects::nonNull)) {
         startServiceInternal();
       }
     }

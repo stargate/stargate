@@ -97,6 +97,21 @@ class BaseActivatorTest {
                 "(|(objectClass=%s)(Identifier2=Service_2))", DependentService1.class.getName())));
   }
 
+  @Test
+  public void shouldConstructDependenciesFilterWithHeathRegistry() {
+    // given
+    BaseActivator baseActivator =
+        createActivatorWithHeathCheck(Collections.singletonList(create(DependentService1.class)));
+
+    // when
+    String dependenciesFilter = baseActivator.constructDependenciesFilter();
+
+    // then
+    assertThat(dependenciesFilter)
+        .isEqualTo(
+            "(|(objectClass=io.stargate.core.activator.DependentService1)(objectClass=com.codahale.metrics.health.HealthCheckRegistry))");
+  }
+
   @ParameterizedTest
   @MethodSource("dependentServicesWithLazy")
   public void shouldConstructDependenciesFilterForNormalAndLazy(
@@ -542,6 +557,20 @@ class BaseActivatorTest {
       @Override
       protected List<LazyServicePointer<?>> lazyDependencies() {
         return lazyServiceDependencies;
+      }
+    };
+  }
+
+  private BaseActivator createActivatorWithHeathCheck(List<ServicePointer<?>> serviceDependencies) {
+    return new BaseActivator("test-with-health-check", true) {
+      @Override
+      protected ServiceAndProperties createService() {
+        return null;
+      }
+
+      @Override
+      protected List<ServicePointer<?>> dependencies() {
+        return serviceDependencies;
       }
     };
   }
