@@ -24,6 +24,7 @@ import graphql.ExecutionInput;
 import graphql.GraphQL;
 import io.stargate.graphql.web.HttpAwareContext;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
+import io.stargate.graphql.web.resources.cqlfirst.GraphqlDdlResource;
 import java.io.IOException;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
