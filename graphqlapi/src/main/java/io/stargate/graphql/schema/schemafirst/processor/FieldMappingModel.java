@@ -70,6 +70,10 @@ class FieldMappingModel {
     return partitionKey;
   }
 
+  FieldMappingModel asPartitionKey() {
+    return new FieldMappingModel(graphqlName, graphqlType, cqlName, cqlType, true, clusteringOrder);
+  }
+
   Optional<Order> getClusteringOrder() {
     return clusteringOrder;
   }
@@ -83,8 +87,7 @@ class FieldMappingModel {
     String cqlName =
         DirectiveHelper.getStringArgument(directive, "name", context).orElse(graphqlName);
     boolean partitionKey =
-        DirectiveHelper.getBooleanArgument(directive, "partitionKey", context)
-            .orElse(targetContainer == EntityMappingModel.Target.TABLE && isGraphqlId(graphqlType));
+        DirectiveHelper.getBooleanArgument(directive, "partitionKey", context).orElse(false);
     Optional<Order> clusteringOrder =
         DirectiveHelper.getEnumArgument(directive, "clusteringOrder", Order.class, context);
 
@@ -125,13 +128,6 @@ class FieldMappingModel {
         t ->
             new FieldMappingModel(
                 graphqlName, graphqlType, cqlName, t, partitionKey, clusteringOrder));
-  }
-
-  private static boolean isGraphqlId(Type<?> type) {
-    if (type instanceof NonNullType) {
-      type = ((NonNullType) type).getType();
-    }
-    return type instanceof TypeName && ((TypeName) type).getName().equals("ID");
   }
 
   private static Optional<Column.ColumnType> parseCqlType(
