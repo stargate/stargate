@@ -7,9 +7,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.google.common.collect.ImmutableSet;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mockito;
 
 /*
@@ -141,29 +146,19 @@ class CheckerResourceTest {
         .isEqualTo(OK.getStatusCode());
   }
 
-  @Test
-  public void readinessRequiredRegisteredChecks() {
+  @ParameterizedTest
+  @CsvSource({"test-unhealthy", "test-ok", "test-ok:test-unhealthy"})
+  public void readinessRequiredRegisteredChecks(String defaultChecksString) {
+    Set<String> defaultChecks =
+        Arrays.stream(defaultChecksString.split(":")).collect(Collectors.toSet());
+
     Mockito.doReturn(true).when(bundleService).checkBundleStates();
     Mockito.doReturn(true).when(bundleService).checkDataStoreAvailable();
 
     healthCheckRegistry.register("test-unhealthy", UNHEALTHY_CHECK);
     healthCheckRegistry.register("test-ok", OK_CHECK);
 
-    Mockito.when(bundleService.defaultHealthCheckNames())
-        .thenReturn(ImmutableSet.of("test-unhealthy", "test-ok"));
-
-    assertThat(checker.checkReadiness(null).getStatus())
-        .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
-    assertThat(checker.checkReadiness(Collections.emptySet()).getStatus())
-        .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
-    assertThat(checker.checkReadiness(Collections.singleton("test-unhealthy")).getStatus())
-        .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
-    assertThat(checker.checkReadiness(ImmutableSet.of("test-ok", "test-unhealthy")).getStatus())
-        .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
-    assertThat(checker.checkReadiness(Collections.singleton("test-ok")).getStatus())
-        .isEqualTo(OK.getStatusCode());
-
-    Mockito.when(bundleService.defaultHealthCheckNames()).thenReturn(ImmutableSet.of("test-ok"));
+    Mockito.when(bundleService.defaultHealthCheckNames()).thenReturn(defaultChecks);
 
     assertThat(checker.checkReadiness(null).getStatus())
         .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
