@@ -1,5 +1,8 @@
 package io.stargate.health;
 
+import static io.stargate.health.HealthCheckerActivator.BUNDLES_CHECK_NAME;
+
+import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheck.Result;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.google.common.annotations.VisibleForTesting;
@@ -47,7 +50,8 @@ public class CheckerResource {
   public Response checkLiveness() {
     // Sufficient to just return a 200 OK since liveness just means "app is up and doesn't need
     // restarted"
-    if (bundleService.checkBundleStates()) {
+    HealthCheck bundleHealthCheck = healthCheckRegistry.getHealthCheck(BUNDLES_CHECK_NAME);
+    if (bundleHealthCheck != null && bundleHealthCheck.execute().isHealthy()) {
       return Response.status(Response.Status.OK).entity("UP").build();
     }
 
@@ -66,9 +70,7 @@ public class CheckerResource {
         healthCheckRegistry.runHealthChecks(
             (name, healthCheck) -> checkAll || requiredChecks.contains(name));
 
-    boolean started = bundleService.checkBundleStates();
-    boolean dataStoreAvailable = bundleService.checkDataStoreAvailable();
-    boolean ready = started && dataStoreAvailable;
+    boolean ready = true;
 
     for (Entry<String, Result> e : status.entrySet()) {
       String name = e.getKey();

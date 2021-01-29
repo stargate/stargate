@@ -1,10 +1,12 @@
 package io.stargate.health;
 
+import static io.stargate.health.HealthCheckerActivator.BUNDLES_CHECK_NAME;
 import static javax.ws.rs.core.Response.Status.OK;
 import static javax.ws.rs.core.Response.Status.SERVICE_UNAVAILABLE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.codahale.metrics.health.HealthCheck;
+import com.codahale.metrics.health.HealthCheck.Result;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
@@ -51,51 +53,32 @@ class CheckerResourceTest {
       };
 
   private final HealthCheckRegistry healthCheckRegistry = new HealthCheckRegistry();
+  private HealthCheck bundleHealth;
   private BundleService bundleService;
   private CheckerResource checker;
 
   @BeforeEach
   public void setup() {
     bundleService = Mockito.mock(BundleService.class);
+    bundleHealth = Mockito.mock(HealthCheck.class);
     checker = new CheckerResource(bundleService, healthCheckRegistry);
   }
 
   @Test
   public void liveness() {
-    Mockito.doReturn(false).when(bundleService).checkBundleStates();
+    // bundleHealth is ok but not registered -> SERVICE_UNAVAILABLE
+    Mockito.when(bundleHealth.execute()).thenReturn(Result.healthy("test-ok"));
     assertThat(checker.checkLiveness().getStatus()).isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
 
-    Mockito.doReturn(true).when(bundleService).checkBundleStates();
+    healthCheckRegistry.register(BUNDLES_CHECK_NAME, bundleHealth);
     assertThat(checker.checkLiveness().getStatus()).isEqualTo(OK.getStatusCode());
-  }
 
-  @Test
-  public void readinessNotStarted() {
-    Mockito.doReturn(false).when(bundleService).checkBundleStates();
-    assertThat(checker.checkReadiness(null).getStatus())
-        .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
-    assertThat(checker.checkReadiness(Collections.emptySet()).getStatus())
-        .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
-    assertThat(checker.checkReadiness(Collections.singleton("testUnknown")).getStatus())
-        .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
-  }
-
-  @Test
-  public void readinessDataStoreUnavailable() {
-    Mockito.doReturn(true).when(bundleService).checkBundleStates();
-    Mockito.doReturn(false).when(bundleService).checkDataStoreAvailable();
-    assertThat(checker.checkReadiness(null).getStatus())
-        .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
-    assertThat(checker.checkReadiness(Collections.emptySet()).getStatus())
-        .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
-    assertThat(checker.checkReadiness(Collections.singleton("testUnknown")).getStatus())
-        .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
+    Mockito.when(bundleHealth.execute()).thenReturn(Result.unhealthy("test-unhealthy"));
+    assertThat(checker.checkLiveness().getStatus()).isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
   }
 
   @Test
   public void readinessEmpty() {
-    Mockito.doReturn(true).when(bundleService).checkBundleStates();
-    Mockito.doReturn(true).when(bundleService).checkDataStoreAvailable();
     assertThat(checker.checkReadiness(null).getStatus()).isEqualTo(OK.getStatusCode());
     assertThat(checker.checkReadiness(Collections.emptySet()).getStatus())
         .isEqualTo(OK.getStatusCode());
@@ -103,8 +86,6 @@ class CheckerResourceTest {
 
   @Test
   public void readinessMissingCheckExplicit() {
-    Mockito.doReturn(true).when(bundleService).checkBundleStates();
-    Mockito.doReturn(true).when(bundleService).checkDataStoreAvailable();
     assertThat(checker.checkReadiness(null).getStatus()).isEqualTo(OK.getStatusCode());
     assertThat(checker.checkReadiness(Collections.emptySet()).getStatus())
         .isEqualTo(OK.getStatusCode());
@@ -114,8 +95,6 @@ class CheckerResourceTest {
 
   @Test
   public void readinessMissingCheckImplicit() {
-    Mockito.doReturn(true).when(bundleService).checkBundleStates();
-    Mockito.doReturn(true).when(bundleService).checkDataStoreAvailable();
     Mockito.when(bundleService.defaultHealthCheckNames())
         .thenReturn(Collections.singleton("testUnknown"));
     assertThat(checker.checkReadiness(null).getStatus())
@@ -128,9 +107,6 @@ class CheckerResourceTest {
 
   @Test
   public void readinessAllRegisteredChecks() {
-    Mockito.doReturn(true).when(bundleService).checkBundleStates();
-    Mockito.doReturn(true).when(bundleService).checkDataStoreAvailable();
-
     healthCheckRegistry.register("test-unhealthy", UNHEALTHY_CHECK);
     healthCheckRegistry.register("test-ok", OK_CHECK);
 
@@ -151,9 +127,6 @@ class CheckerResourceTest {
   public void readinessRequiredRegisteredChecks(String defaultChecksString) {
     Set<String> defaultChecks =
         Arrays.stream(defaultChecksString.split(":")).collect(Collectors.toSet());
-
-    Mockito.doReturn(true).when(bundleService).checkBundleStates();
-    Mockito.doReturn(true).when(bundleService).checkDataStoreAvailable();
 
     healthCheckRegistry.register("test-unhealthy", UNHEALTHY_CHECK);
     healthCheckRegistry.register("test-ok", OK_CHECK);
