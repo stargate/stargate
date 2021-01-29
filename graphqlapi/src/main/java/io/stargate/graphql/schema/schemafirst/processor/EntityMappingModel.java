@@ -18,7 +18,10 @@ package io.stargate.graphql.schema.schemafirst.processor;
 import com.google.common.collect.ImmutableList;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
+import graphql.language.NonNullType;
 import graphql.language.ObjectTypeDefinition;
+import graphql.language.Type;
+import graphql.language.TypeName;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column;
@@ -139,12 +142,18 @@ class EntityMappingModel {
     switch (target) {
       case TABLE:
         if (partitionKey.isEmpty()) {
-          context.addError(
-              type.getSourceLocation(),
-              ProcessingMessageType.InvalidMapping,
-              "Objects that map to a table must have at least one partition key field "
-                  + "(use scalar type ID, or annotate your fields with @cqlColumn(partitionKey: true))");
-          return Optional.empty();
+          FieldMappingModel firstField = regularColumns.get(0);
+          if (isGraphqlId(firstField.getGraphqlType())) {
+            regularColumns.remove(firstField);
+            partitionKey.add(firstField);
+          } else {
+            context.addError(
+                type.getSourceLocation(),
+                ProcessingMessageType.InvalidMapping,
+                "Objects that map to a table must have at least one partition key field "
+                    + "(use scalar type ID, or annotate your fields with @cqlColumn(partitionKey: true))");
+            return Optional.empty();
+          }
         }
         break;
       case UDT:
@@ -166,6 +175,13 @@ class EntityMappingModel {
             partitionKey,
             clusteringColumns,
             regularColumns));
+  }
+
+  private static boolean isGraphqlId(Type<?> type) {
+    if (type instanceof NonNullType) {
+      type = ((NonNullType) type).getType();
+    }
+    return type instanceof TypeName && ((TypeName) type).getName().equals("ID");
   }
 
   enum Target {
