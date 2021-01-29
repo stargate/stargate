@@ -35,17 +35,7 @@ import io.stargate.web.resources.Db;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -778,25 +768,43 @@ public class DocumentService {
     }
   }
 
-  private void updateExistenceForMap(
-      Map<String, Boolean> existsByDoc,
-      Map<String, Integer> countsByDoc,
+  private List<Row> updateExistenceForMap(
+      Set<String> existsByDoc,
+      Map<String, Integer> rowCountsByDoc,
       List<Row> rows,
       List<FilterCondition> filters,
-      boolean booleansStoredAsTinyint) {
-    List<Row> filteredRows = applyInMemoryFilters(rows, filters, 1, booleansStoredAsTinyint);
-    for (Row row : filteredRows) {
+      boolean booleansStoredAsTinyint,
+      boolean endOfResults) {
+    LinkedHashMap<String, List<Row>> documentChunks = new LinkedHashMap<>();
+    for (int i = 0; i < rows.size(); i++) {
+      Row row = rows.get(i);
       String key = row.getString("key");
-      if (!existsByDoc.getOrDefault(key, false)) {
-        existsByDoc.put(key, true);
+      List<Row> chunk = documentChunks.getOrDefault(key, new ArrayList<>());
+      chunk.add(row);
+      documentChunks.put(key, chunk);
+    }
+
+    List<List<Row>> chunksList = new ArrayList<>(documentChunks.values());
+
+    for (int i = 0; i < chunksList.size() - (endOfResults ? 0 : 1); i++) {
+      List<Row> chunk = chunksList.get(i);
+      String key = chunk.get(0).getString("key");
+      List<Row> filteredRows =
+          applyInMemoryFilters(chunk, filters, chunk.size(), booleansStoredAsTinyint);
+      if (!filteredRows.isEmpty()) {
+        existsByDoc.add(key);
+      }
+
+      if (!chunk.isEmpty()) {
+        int value = rowCountsByDoc.getOrDefault(key, 0);
+        rowCountsByDoc.put(key, value + chunk.size());
       }
     }
 
-    for (Row row : rows) {
-      String key = row.getString("key");
-      int value = countsByDoc.getOrDefault(key, 0);
-      countsByDoc.put(key, value + 1);
+    if (chunksList.size() > 0 && !endOfResults) {
+      return chunksList.get(chunksList.size() - 1);
     }
+    return Collections.emptyList();
   }
 
   /**
@@ -898,12 +906,13 @@ public class DocumentService {
       int pageSize,
       int limit,
       Map<String, String> headers)
-      throws ExecutionException, InterruptedException, UnauthorizedException {
+      throws UnauthorizedException {
     ObjectNode docsResult = mapper.createObjectNode();
-    LinkedHashMap<String, Boolean> existsByDoc = new LinkedHashMap<>();
+    LinkedHashSet<String> existsByDoc = new LinkedHashSet<>();
     LinkedHashMap<String, Integer> countsByDoc = new LinkedHashMap<>();
 
     ImmutablePair<List<Row>, ByteBuffer> page;
+    List<Row> leftoverRows = new ArrayList<>();
     ByteBuffer currentPageState = initialPagingState;
     do {
       page =
@@ -918,16 +927,25 @@ public class DocumentService {
               null,
               pageSize,
               currentPageState);
-      updateExistenceForMap(
-          existsByDoc, countsByDoc, page.left, filters, db.treatBooleansAsNumeric());
+      List<Row> rowsResult = new ArrayList<>();
+      rowsResult.addAll(leftoverRows);
+      rowsResult.addAll(page.left);
+      leftoverRows =
+          updateExistenceForMap(
+              existsByDoc,
+              countsByDoc,
+              rowsResult,
+              filters,
+              db.treatBooleansAsNumeric(),
+              page.right == null);
       currentPageState = page.right;
-    } while (existsByDoc.keySet().size() <= limit && currentPageState != null);
+    } while (existsByDoc.size() <= limit && currentPageState != null);
 
     // Either we've reached the end of all rows in the collection, or we have enough rows
     // in memory to build the final result.
-    Set<String> docNames = existsByDoc.keySet();
     ByteBuffer finalPagingState;
-    if (docNames.size() > limit) {
+    Set<String> docNames = existsByDoc;
+    if (existsByDoc.size() > limit) {
       int totalSize = 0;
       docNames = new HashSet<>();
       Iterator<Map.Entry<String, Integer>> iter = countsByDoc.entrySet().iterator();
@@ -935,7 +953,7 @@ public class DocumentService {
       while (i < limit) {
         Map.Entry<String, Integer> e = iter.next();
         totalSize += e.getValue();
-        if (existsByDoc.containsKey(e.getKey())) {
+        if (existsByDoc.contains(e.getKey())) {
           docNames.add(e.getKey());
           i++;
         }
@@ -1213,12 +1231,12 @@ public class DocumentService {
     if (inMemoryFilters.size() == 0) {
       return rows;
     }
-    String filterFieldPath = inMemoryFilters.get(0).getFullFieldPath();
-
+    Set<String> filterFieldPaths =
+        inMemoryFilters.stream().map(FilterCondition::getFullFieldPath).collect(Collectors.toSet());
     return Lists.partition(rows, fieldsPerDoc).stream()
         .filter(
             docChunk -> {
-              Optional<Row> fieldRow =
+              List<Row> fieldRows =
                   docChunk.stream()
                       .filter(
                           r -> {
@@ -1231,11 +1249,30 @@ public class DocumentService {
                             if (parentPath.size() == 2) {
                               rowPath = parentPath.get(1);
                             }
-                            return pathsMatch(rowPath + r.getString("leaf"), filterFieldPath);
+                            String fullRowPath = rowPath + r.getString("leaf");
+                            List<FilterCondition> matchingFilters =
+                                inMemoryFilters.stream()
+                                    .filter(f -> pathsMatch(fullRowPath, f.getFullFieldPath()))
+                                    .collect(Collectors.toList());
+                            if (matchingFilters.isEmpty()) {
+                              return false;
+                            }
+                            return allFiltersMatch(r, matchingFilters, numericBooleans);
                           })
-                      .findFirst();
-              return fieldRow.isPresent()
-                  && allFiltersMatch(fieldRow.get(), inMemoryFilters, numericBooleans);
+                      .collect(Collectors.toList());
+              // This ensures that wildcard paths are properly counted with non-wildcard paths,
+              // by making sure that for every filter above, at least one matches a valid row.
+              return filterFieldPaths.stream()
+                  .allMatch(
+                      fieldPath ->
+                          fieldRows.stream()
+                              .anyMatch(
+                                  row -> {
+                                    List<String> segments =
+                                        PATH_SPLITTER.splitToList(getParentPathFromRow(row));
+                                    String path = segments.get(segments.size() - 1);
+                                    return pathsMatch(path + row.getString("leaf"), fieldPath);
+                                  }));
             })
         .flatMap(x -> x.stream())
         .collect(Collectors.toList());

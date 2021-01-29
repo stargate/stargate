@@ -643,46 +643,6 @@ public class DocumentResourceV2Test {
   }
 
   @Test
-  public void searchDoc_invalidMultipleWhereFields() {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String where = "";
-    String fields = null;
-    int pageSizeParam = 0;
-    String pageStateParam = null;
-    boolean raw = true;
-
-    List<FilterCondition> conditions = new ArrayList<>();
-    conditions.add(
-        new SingleFilterCondition(ImmutableList.of("a", "b", "c", "field1"), "$eq", "value"));
-    conditions.add(
-        new SingleFilterCondition(ImmutableList.of("a", "b", "c", "field2"), "$eq", "value"));
-
-    Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
-        .thenReturn(conditions);
-
-    Response r =
-        documentResourceV2.searchDoc(
-            headers,
-            ui,
-            authToken,
-            keyspace,
-            collection,
-            where,
-            fields,
-            pageSizeParam,
-            pageStateParam,
-            raw,
-            httpServletRequest);
-    assertThat(r.getStatus()).isEqualTo(400);
-    assertThat((String) r.getEntity())
-        .startsWith("Conditions across multiple fields are not yet supported (found: ");
-  }
-
-  @Test
   public void searchDoc_invalidPageSize() {
     HttpHeaders headers = mock(HttpHeaders.class);
     UriInfo ui = mock(UriInfo.class);

@@ -9,9 +9,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
+import com.fasterxml.jackson.databind.node.*;
 import com.google.common.collect.ImmutableList;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
@@ -1965,16 +1963,6 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"a.b\": {\"$eq\": 300}, \"c.b\": {\"$lt\": 500}}",
-            400);
-    assertThat(r).contains("Conditions across multiple fields are not yet supported");
-
-    r =
-        RestUtils.get(
-            authToken,
-            hostWithPort
-                + "/v2/namespaces/"
-                + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$in\": [1]}}&fields=[\"b\"]",
             400);
     assertThat(r)
@@ -2155,6 +2143,50 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
       String keyName = node.fieldNames().next();
       assertThat(responseBody1.findValue(keyName)).isNull();
     }
+  }
+
+  @Test
+  public void testGetFullDocMultiFilter() throws IOException {
+    JsonNode doc = objectMapper.readTree("{\"a\": \"b\", \"c\": 2}");
+
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        doc.toString(),
+        200);
+
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?where={\"a\":{\"$eq\":\"b\"},\"c\":{\"$lt\":3}}",
+            200);
+
+    JsonNode resp = objectMapper.readTree(r);
+    JsonNode data = resp.requiredAt("/data");
+
+    ObjectNode expected = objectMapper.createObjectNode();
+    expected.set("a", new TextNode("b"));
+    expected.set("c", new IntNode(2));
+    assertThat(data.requiredAt("/1")).isEqualTo(expected);
+
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?where={\"a\":{\"$eq\":\"b\"},\"c\":{\"$lt\":0}}",
+            200);
+
+    // resulting JSON should be empty
+    resp = objectMapper.readTree(r);
+    data = resp.requiredAt("/data");
+
+    expected = objectMapper.createObjectNode();
+    assertThat(data).isEqualTo(expected);
   }
 
   @Test

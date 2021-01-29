@@ -754,17 +754,6 @@ public class DocumentResourceV2 {
             selectionList = documentService.convertToSelectionList(fieldsJson);
           }
 
-          if (!filters.isEmpty()) {
-            Set<String> distinctFields =
-                filters.stream().map(FilterCondition::getFullFieldPath).collect(Collectors.toSet());
-            if (distinctFields.size() > 1) {
-              throw new DocumentAPIRequestException(
-                  String.format(
-                      "Conditions across multiple fields are not yet supported (found: %s)",
-                      distinctFields));
-            }
-          }
-
           ByteBuffer pageState = null;
           if (pageStateParam != null) {
             byte[] decodedBytes = Base64.getDecoder().decode(pageStateParam);
