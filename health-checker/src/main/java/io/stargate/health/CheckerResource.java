@@ -60,7 +60,7 @@ public class CheckerResource {
     boolean checkAll = checks == null || checks.isEmpty();
 
     HashSet<String> requiredChecks =
-        new HashSet<>(checkAll ? bundleService.defaultHeathCheckNames() : checks);
+        new HashSet<>(checkAll ? bundleService.defaultHealthCheckNames() : checks);
 
     SortedMap<String, Result> status =
         healthCheckRegistry.runHealthChecks(

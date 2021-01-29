@@ -74,7 +74,7 @@ public class BundleService {
     return false;
   }
 
-  public Set<String> defaultHeathCheckNames() {
+  public Set<String> defaultHealthCheckNames() {
     Set<String> result = new HashSet<>();
     for (Bundle bundle : context.getBundles()) {
       String header = bundle.getHeaders().get(HEALTH_NAME_HEADER);

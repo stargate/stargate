@@ -111,7 +111,7 @@ class CheckerResourceTest {
   public void readinessMissingCheckImplicit() {
     Mockito.doReturn(true).when(bundleService).checkBundleStates();
     Mockito.doReturn(true).when(bundleService).checkDataStoreAvailable();
-    Mockito.when(bundleService.defaultHeathCheckNames())
+    Mockito.when(bundleService.defaultHealthCheckNames())
         .thenReturn(Collections.singleton("testUnknown"));
     assertThat(checker.checkReadiness(null).getStatus())
         .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
@@ -149,7 +149,7 @@ class CheckerResourceTest {
     healthCheckRegistry.register("test-unhealthy", UNHEALTHY_CHECK);
     healthCheckRegistry.register("test-ok", OK_CHECK);
 
-    Mockito.when(bundleService.defaultHeathCheckNames())
+    Mockito.when(bundleService.defaultHealthCheckNames())
         .thenReturn(ImmutableSet.of("test-unhealthy", "test-ok"));
 
     assertThat(checker.checkReadiness(null).getStatus())
@@ -163,7 +163,7 @@ class CheckerResourceTest {
     assertThat(checker.checkReadiness(Collections.singleton("test-ok")).getStatus())
         .isEqualTo(OK.getStatusCode());
 
-    Mockito.when(bundleService.defaultHeathCheckNames()).thenReturn(ImmutableSet.of("test-ok"));
+    Mockito.when(bundleService.defaultHealthCheckNames()).thenReturn(ImmutableSet.of("test-ok"));
 
     assertThat(checker.checkReadiness(null).getStatus())
         .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
