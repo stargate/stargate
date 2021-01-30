@@ -15,8 +15,6 @@
  */
 package io.stargate.graphql.schema.schemafirst.processor;
 
-import java.util.List;
-
 import com.google.common.collect.ImmutableMap;
 import graphql.GraphQL;
 import graphql.GraphQLError;
@@ -41,6 +39,9 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public class SchemaProcessor {
 
@@ -154,30 +155,11 @@ public class SchemaProcessor {
             });
   }
 
-  // TODO make private (+ move to a file?)
+  // TODO make private
   public static final TypeDefinitionRegistry CQL_DIRECTIVES =
       new SchemaParser()
           .parse(
-              "\"The type of schema element a GraphQL object maps to\" "
-                  + "enum EntityTarget { TABLE UDT } "
-                  + "\"Customizes the mapping of a GraphQL object to a CQL table or UDT\""
-                  + "directive @cql_entity( "
-                  + "  \"A custom table or UDT name (otherwise it uses the same name as the object)\" "
-                  + "  name: String "
-                  + "  \"Whether the object maps to a CQL table (the default) or UDT\" "
-                  + "  target: EntityTarget "
-                  + ") on OBJECT "
-                  + "\"The sorting order for clustering columns\" "
-                  + "enum ClusteringOrder { ASC DESC } "
-                  + "\"Customizes the mapping of a GraphQL field to a CQL column (or UDT field)\""
-                  + "directive @cql_column( "
-                  + "  \"A custom column name (otherwise it uses the same name as the field)\" "
-                  + "  name: String "
-                  + "  \"Whether the column forms part of the partition key\" "
-                  + "  partitionKey: Boolean "
-                  + "  \"Whether the column is a clustering column, and if so in which order.\""
-                  + "  clusteringOrder: ClusteringOrder "
-                  + "  \"The CQL type to map to (e.g. frozen<list<varchar>>)\" "
-                  + "  type: String "
-                  + ") on FIELD_DEFINITION");
+              new InputStreamReader(
+                  SchemaProcessor.class.getResourceAsStream("/schemafirst/cql_directives.graphql"),
+                  StandardCharsets.UTF_8));
 }
