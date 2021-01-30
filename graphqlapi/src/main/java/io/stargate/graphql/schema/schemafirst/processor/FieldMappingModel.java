@@ -83,7 +83,7 @@ class FieldMappingModel {
     String graphqlName = field.getName();
     Type<?> graphqlType = field.getType();
 
-    Optional<Directive> directive = DirectiveHelper.getDirective("cqlColumn", field);
+    Optional<Directive> directive = DirectiveHelper.getDirective("cql_column", field);
     String cqlName =
         DirectiveHelper.getStringArgument(directive, "name", context).orElse(graphqlName);
     boolean partitionKey =
