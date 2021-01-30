@@ -15,22 +15,32 @@
  */
 package io.stargate.graphql.schema.schemafirst.processor;
 
+import java.util.List;
+
 import com.google.common.collect.ImmutableMap;
 import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorException;
+import graphql.language.EnumTypeDefinition;
 import graphql.schema.GraphQLCodeRegistry;
+import graphql.schema.GraphQLDirective;
+import graphql.schema.GraphQLEnumType;
 import graphql.schema.GraphQLSchema;
+import graphql.schema.GraphQLSchemaElement;
+import graphql.schema.GraphQLTypeVisitorStub;
+import graphql.schema.SchemaTransformer;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.schema.idl.errors.SchemaProblem;
+import graphql.util.TraversalControl;
+import graphql.util.TraverserContext;
+import graphql.util.TreeTransformerUtil;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
-import java.util.List;
 
 public class SchemaProcessor {
 
@@ -69,25 +79,24 @@ public class SchemaProcessor {
   }
 
   private GraphQL buildGraphql(TypeDefinitionRegistry registry, MappingModel mappingModel) {
-    registry.merge(CQL_DIRECTIVES);
-    SchemaGenerator schemaGenerator = new SchemaGenerator();
-    GraphQLSchema schema =
-        schemaGenerator.makeExecutableSchema(
-            SchemaGenerator.Options.defaultOptions(),
-            registry,
-            RuntimeWiring.newRuntimeWiring().codeRegistry(buildCodeRegistry(mappingModel)).build());
-    return GraphQL.newGraphQL(schema).build();
-  }
 
-  private GraphQLCodeRegistry buildCodeRegistry(MappingModel mappingModel) {
-    GraphQLCodeRegistry.Builder builder = GraphQLCodeRegistry.newCodeRegistry();
-    for (QueryMappingModel query : mappingModel.getQueries()) {
-      builder.dataFetcher(
-          query.getCoordinates(),
-          query.buildDataFetcher(authenticationService, authorizationService, dataStoreFactory));
-    }
-    // TODO also handle mutations
-    return builder.build();
+    // Our directives must be present when we invoke SchemaGenerator, otherwise it fails
+    registry = registry.merge(CQL_DIRECTIVES);
+
+    GraphQLSchema schema =
+        new SchemaGenerator()
+            .makeExecutableSchema(
+                SchemaGenerator.Options.defaultOptions(),
+                registry,
+                RuntimeWiring.newRuntimeWiring()
+                    .codeRegistry(buildCodeRegistry(mappingModel))
+                    .build());
+
+    // However once we have the schema we don't need the directives anymore: they only impact the
+    // queries we generate, they're not useful for users of the schema.
+    schema = removeCqlDirectives(schema);
+
+    return GraphQL.newGraphQL(schema).build();
   }
 
   private TypeDefinitionRegistry parse(String source) throws GraphqlErrorException {
@@ -105,6 +114,46 @@ public class SchemaProcessor {
     }
   }
 
+  private GraphQLCodeRegistry buildCodeRegistry(MappingModel mappingModel) {
+    GraphQLCodeRegistry.Builder builder = GraphQLCodeRegistry.newCodeRegistry();
+    for (QueryMappingModel query : mappingModel.getQueries()) {
+      builder.dataFetcher(
+          query.getCoordinates(),
+          query.buildDataFetcher(authenticationService, authorizationService, dataStoreFactory));
+    }
+    // TODO also handle mutations
+    return builder.build();
+  }
+
+  private static GraphQLSchema removeCqlDirectives(GraphQLSchema schema) {
+    return new SchemaTransformer()
+        .transform(
+            schema,
+            new GraphQLTypeVisitorStub() {
+
+              @Override
+              public TraversalControl visitGraphQLEnumType(
+                  GraphQLEnumType node, TraverserContext<GraphQLSchemaElement> context) {
+                if (CQL_DIRECTIVES
+                    .getType(node.getName())
+                    .filter(t -> t instanceof EnumTypeDefinition)
+                    .isPresent()) {
+                  TreeTransformerUtil.deleteNode(context);
+                }
+                return TraversalControl.CONTINUE;
+              }
+
+              @Override
+              public TraversalControl visitGraphQLDirective(
+                  GraphQLDirective node, TraverserContext<GraphQLSchemaElement> context) {
+                if (CQL_DIRECTIVES.getDirectiveDefinition(node.getName()).isPresent()) {
+                  TreeTransformerUtil.deleteNode(context);
+                }
+                return TraversalControl.CONTINUE;
+              }
+            });
+  }
+
   // TODO make private (+ move to a file?)
   public static final TypeDefinitionRegistry CQL_DIRECTIVES =
       new SchemaParser()
@@ -112,7 +161,7 @@ public class SchemaProcessor {
               "\"The type of schema element a GraphQL object maps to\" "
                   + "enum EntityTarget { TABLE UDT } "
                   + "\"Customizes the mapping of a GraphQL object to a CQL table or UDT\""
-                  + "directive @cqlEntity( "
+                  + "directive @cql_entity( "
                   + "  \"A custom table or UDT name (otherwise it uses the same name as the object)\" "
                   + "  name: String "
                   + "  \"Whether the object maps to a CQL table (the default) or UDT\" "
@@ -121,7 +170,7 @@ public class SchemaProcessor {
                   + "\"The sorting order for clustering columns\" "
                   + "enum ClusteringOrder { ASC DESC } "
                   + "\"Customizes the mapping of a GraphQL field to a CQL column (or UDT field)\""
-                  + "directive @cqlColumn( "
+                  + "directive @cql_column( "
                   + "  \"A custom column name (otherwise it uses the same name as the field)\" "
                   + "  name: String "
                   + "  \"Whether the column forms part of the partition key\" "

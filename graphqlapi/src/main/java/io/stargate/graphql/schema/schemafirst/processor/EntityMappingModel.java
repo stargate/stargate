@@ -113,7 +113,7 @@ class EntityMappingModel {
   static Optional<EntityMappingModel> build(ObjectTypeDefinition type, ProcessingContext context) {
 
     String graphqlName = type.getName();
-    Optional<Directive> directive = DirectiveHelper.getDirective("cqlEntity", type);
+    Optional<Directive> directive = DirectiveHelper.getDirective("cql_entity", type);
     String cqlName =
         DirectiveHelper.getStringArgument(directive, "name", context).orElse(graphqlName);
 
@@ -151,7 +151,7 @@ class EntityMappingModel {
                 type.getSourceLocation(),
                 ProcessingMessageType.InvalidMapping,
                 "Objects that map to a table must have at least one partition key field "
-                    + "(use scalar type ID, or annotate your fields with @cqlColumn(partitionKey: true))");
+                    + "(use scalar type ID, or annotate your fields with @cql_column(partitionKey: true))");
             return Optional.empty();
           }
         }
