@@ -43,7 +43,7 @@ public class RestApiActivator extends BaseActivator {
       ServicePointer.create(DataStoreFactory.class);
 
   public RestApiActivator() {
-    super("restapi");
+    super("restapi", true);
   }
 
   @Override

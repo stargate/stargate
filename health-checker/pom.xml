@@ -198,6 +198,9 @@
         <configuration>
           <archive>
             <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+            <manifestEntries>
+              <x-Stargate-Health-Checkers>deadlocks,bundles,datastore</x-Stargate-Health-Checkers>
+            </manifestEntries>
           </archive>
           <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
         </configuration>

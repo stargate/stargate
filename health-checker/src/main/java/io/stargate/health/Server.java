@@ -65,6 +65,7 @@ public class Server extends Application<ApplicationConfiguration> {
               @Override
               protected void configure() {
                 bind(bundleService).to(BundleService.class);
+                bind(healthCheckRegistry).to(HealthCheckRegistry.class);
               }
             });
     environment.jersey().register(CheckerResource.class);

@@ -45,7 +45,7 @@ public class CqlActivator extends BaseActivator {
       Boolean.parseBoolean(System.getProperty("stargate.cql_use_auth_service", "false"));
 
   public CqlActivator() {
-    super("CQL");
+    super("CQL", true);
   }
 
   @Nullable
