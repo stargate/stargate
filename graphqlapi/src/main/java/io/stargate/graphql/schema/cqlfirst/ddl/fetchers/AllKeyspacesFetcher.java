@@ -19,13 +19,20 @@ import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.SourceAPI;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.schema.CassandraFetcher;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class AllKeyspacesFetcher extends CassandraFetcher<List<Map<String, Object>>> {
+public class AllKeyspacesFetcher extends CassandraFetcher<List<KeyspaceDto>> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(AllKeyspacesFetcher.class);
 
   public AllKeyspacesFetcher(
       AuthenticationService authenticationService,
@@ -35,12 +42,27 @@ public class AllKeyspacesFetcher extends CassandraFetcher<List<Map<String, Objec
   }
 
   @Override
-  protected List<Map<String, Object>> get(
+  protected List<KeyspaceDto> get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
       AuthenticationSubject authenticationSubject) {
 
-    return KeyspaceFormatter.formatResult(
-        dataStore.schema().keyspaces(), environment, authorizationService, authenticationSubject);
+    return dataStore.schema().keyspaces().stream()
+        .filter(
+            keyspace -> {
+              try {
+                authorizationService.authorizeSchemaRead(
+                    authenticationSubject,
+                    Collections.singletonList(keyspace.name()),
+                    null,
+                    SourceAPI.GRAPHQL);
+                return true;
+              } catch (UnauthorizedException e) {
+                LOG.debug("Not returning keyspace {} due to not being authorized", keyspace.name());
+                return false;
+              }
+            })
+        .map(keyspace -> new KeyspaceDto(keyspace, authorizationService, authenticationSubject))
+        .collect(Collectors.toList());
   }
 }

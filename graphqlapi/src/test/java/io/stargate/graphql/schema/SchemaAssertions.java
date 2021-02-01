@@ -11,6 +11,7 @@ import graphql.schema.GraphQLInputObjectType;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLType;
+import graphql.schema.GraphQLTypeUtil;
 
 /** Helper class for tests that introspect a {@link GraphQLSchema}. */
 public class SchemaAssertions {
@@ -29,7 +30,7 @@ public class SchemaAssertions {
       GraphQLInputObjectType actualFilterType, GraphQLType expectedElementType) {
     assertThat(actualFilterType.getFieldDefinitions()).hasSize(8);
     assertBasicComparisons(actualFilterType, list(expectedElementType));
-    assertThat(actualFilterType.getField("contains").getType()).isEqualTo(expectedElementType);
+    assertSameTypes(actualFilterType.getField("contains").getType(), expectedElementType);
   }
 
   /** Checks that the given type is a "FilterInput" for a map of the given entry type. */
@@ -47,20 +48,20 @@ public class SchemaAssertions {
     assertThat(actualFilterType.getFieldDefinitions()).hasSize(10);
     assertBasicComparisons(actualFilterType, list(entryInputType));
 
-    assertThat(actualFilterType.getField("containsEntry").getType()).isEqualTo(entryInputType);
-    assertThat(actualFilterType.getField("containsKey").getType()).isEqualTo(expectedKeyType);
-    assertThat(actualFilterType.getField("contains").getType()).isEqualTo(expectedValueType);
+    assertSameTypes(actualFilterType.getField("containsEntry").getType(), entryInputType);
+    assertSameTypes(actualFilterType.getField("containsKey").getType(), expectedKeyType);
+    assertSameTypes(actualFilterType.getField("contains").getType(), expectedValueType);
   }
 
   private static void assertBasicComparisons(
       GraphQLInputObjectType actualFilterType, GraphQLType expectedValueType) {
-    assertThat(actualFilterType.getField("eq").getType()).isEqualTo(expectedValueType);
-    assertThat(actualFilterType.getField("gt").getType()).isEqualTo(expectedValueType);
-    assertThat(actualFilterType.getField("gte").getType()).isEqualTo(expectedValueType);
-    assertThat(actualFilterType.getField("in").getType()).isEqualTo(list(expectedValueType));
-    assertThat(actualFilterType.getField("lt").getType()).isEqualTo(expectedValueType);
-    assertThat(actualFilterType.getField("lte").getType()).isEqualTo(expectedValueType);
-    assertThat(actualFilterType.getField("notEq").getType()).isEqualTo(expectedValueType);
+    assertSameTypes(actualFilterType.getField("eq").getType(), expectedValueType);
+    assertSameTypes(actualFilterType.getField("gt").getType(), expectedValueType);
+    assertSameTypes(actualFilterType.getField("gte").getType(), expectedValueType);
+    assertSameTypes(actualFilterType.getField("in").getType(), list(expectedValueType));
+    assertSameTypes(actualFilterType.getField("lt").getType(), expectedValueType);
+    assertSameTypes(actualFilterType.getField("lte").getType(), expectedValueType);
+    assertSameTypes(actualFilterType.getField("notEq").getType(), expectedValueType);
   }
 
   /** Checks that a type contains a field with a given sub-type. */
@@ -76,9 +77,15 @@ public class SchemaAssertions {
       GraphQLInputObjectType objectType = (GraphQLInputObjectType) parentType;
       GraphQLInputObjectField field = objectType.getFieldDefinition(fieldName);
       assertThat(field).as("No '%s' field found in %s", fieldName, objectType).isNotNull();
-      assertThat(field.getType()).isEqualTo(expectedFieldType);
+      assertSameTypes(field.getType(), expectedFieldType);
     } else {
       fail("Unexpected type " + parentType);
     }
+  }
+
+  public static void assertSameTypes(GraphQLType type1, GraphQLType type2) {
+    // Can't use equals() because GraphQL types only implement strict reference equality. This is
+    // good enough for our purpose:
+    assertThat(GraphQLTypeUtil.simplePrint(type1)).isEqualTo(GraphQLTypeUtil.simplePrint(type2));
   }
 }

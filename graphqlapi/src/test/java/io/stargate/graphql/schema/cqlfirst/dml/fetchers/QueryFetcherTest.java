@@ -45,6 +45,12 @@ public class QueryFetcherTest extends DmlTestBase {
       arguments(
           "books(filter: { title: { eq: \"The Road\" } }) { values { title, author } }",
           "SELECT title, author FROM library.books WHERE title = 'The Road'"),
+      arguments(
+          "books(filter: { title: { eq: \"The Road\" } }) { "
+              + "  values { title } "
+              + "  values2: values { author } "
+              + "}",
+          "SELECT title, author FROM library.books WHERE title = 'The Road'"),
     };
   }
 

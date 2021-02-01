@@ -4,10 +4,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import graphql.Scalars;
-import graphql.schema.*;
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLInputObjectField;
+import graphql.schema.GraphQLInputObjectType;
+import graphql.schema.GraphQLInputType;
+import graphql.schema.GraphQLList;
+import graphql.schema.GraphQLNamedInputType;
+import graphql.schema.GraphQLNamedOutputType;
+import graphql.schema.GraphQLNamedSchemaElement;
+import graphql.schema.GraphQLNamedType;
+import graphql.schema.GraphQLNonNull;
+import graphql.schema.GraphQLObjectType;
+import graphql.schema.GraphQLOutputType;
+import graphql.schema.GraphQLScalarType;
+import graphql.schema.GraphQLSchemaElement;
+import graphql.schema.GraphQLType;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
+import io.stargate.graphql.schema.SchemaAssertions;
 import io.stargate.graphql.schema.cqlfirst.dml.types.scalars.CustomScalars;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,21 +56,21 @@ public class FieldTypeCachesTest {
   public void getGraphQLTypeShouldSupportScalarTypes(
       Column.Type dbType, GraphQLScalarType gqlType) {
 
-    assertThat(getInputType(dbType)).isEqualTo(gqlType);
+    SchemaAssertions.assertSameTypes(getInputType(dbType), gqlType);
   }
 
   @ParameterizedTest
   @MethodSource("getScalarTypes")
   public void getGraphQLTypeShouldSupportList(Column.Type scalarDbType, GraphQLScalarType gqlType) {
     Column.ColumnType listType = Column.Type.List.of(scalarDbType);
-    assertThat(getInputType(listType)).isEqualTo(new GraphQLList(gqlType));
+    SchemaAssertions.assertSameTypes(getInputType(listType), new GraphQLList(gqlType));
   }
 
   @ParameterizedTest
   @MethodSource("getScalarTypes")
   public void getGraphQLTypeShouldSupportSet(Column.Type scalarDbType, GraphQLScalarType gqlType) {
     Column.ColumnType listType = Column.Type.Set.of(scalarDbType);
-    assertThat(getInputType(listType)).isEqualTo(new GraphQLList(gqlType));
+    SchemaAssertions.assertSameTypes(getInputType(listType), new GraphQLList(gqlType));
   }
 
   @ParameterizedTest
@@ -76,9 +91,10 @@ public class FieldTypeCachesTest {
             .collect(Collectors.toList());
 
     assertThat(fields.get(0).getName()).isEqualTo("key");
-    assertThat(fields.get(0).getType()).isEqualTo(GraphQLNonNull.nonNull(getInputType(keyDbType)));
+    SchemaAssertions.assertSameTypes(
+        fields.get(0).getType(), GraphQLNonNull.nonNull(getInputType(keyDbType)));
     assertThat(fields.get(1).getName()).isEqualTo("value");
-    assertThat(fields.get(1).getType()).isEqualTo(getInputType(valueDbType));
+    SchemaAssertions.assertSameTypes(fields.get(1).getType(), getInputType(valueDbType));
   }
 
   @ParameterizedTest
@@ -99,9 +115,10 @@ public class FieldTypeCachesTest {
             .collect(Collectors.toList());
 
     assertThat(fields.get(0).getName()).isEqualTo("key");
-    assertThat(fields.get(0).getType()).isEqualTo(GraphQLNonNull.nonNull(getOutputType(keyDbType)));
+    SchemaAssertions.assertSameTypes(
+        fields.get(0).getType(), GraphQLNonNull.nonNull(getOutputType(keyDbType)));
     assertThat(fields.get(1).getName()).isEqualTo("value");
-    assertThat(fields.get(1).getType()).isEqualTo(getOutputType(valueDbType));
+    SchemaAssertions.assertSameTypes(fields.get(1).getType(), getOutputType(valueDbType));
   }
 
   @ParameterizedTest
@@ -154,11 +171,7 @@ public class FieldTypeCachesTest {
       GraphQLFieldDefinition field = fields.get(i);
       assertThat(field.getName()).isEqualTo("item" + i);
       GraphQLOutputType subType = getOutputType(subTypes[i]);
-      if (field.getType() instanceof GraphQLList) {
-        assertThat(field.getType().getChildren().get(0)).isEqualTo(subType.getChildren().get(0));
-      } else {
-        assertThat(field.getType()).isEqualTo(subType);
-      }
+      SchemaAssertions.assertSameTypes(field.getType(), subType);
     }
   }
 
@@ -178,11 +191,7 @@ public class FieldTypeCachesTest {
       GraphQLInputObjectField field = fields.get(i);
       assertThat(field.getName()).isEqualTo("item" + i);
       GraphQLInputType subType = getInputType(subTypes[i]);
-      if (field.getType() instanceof GraphQLList) {
-        assertThat(field.getType().getChildren().get(0)).isEqualTo(subType.getChildren().get(0));
-      } else {
-        assertThat(field.getType()).isEqualTo(subType);
-      }
+      SchemaAssertions.assertSameTypes(field.getType(), subType);
     }
   }
 
