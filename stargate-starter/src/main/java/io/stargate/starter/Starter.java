@@ -233,10 +233,6 @@ public class Starter {
       name = {"--disable-mbean-registration", "Whether the mbean registration should be disabled"})
   protected boolean disableMBeanRegistration = false;
 
-  @Order(value = 21)
-  @Option(name = {"--cassandra-config-path", "cassandra.yaml config path"})
-  protected String cassandraConfigPath;
-
   @Order(value = 1000)
   @Option(
       name = "--nodetool",
@@ -361,9 +357,6 @@ public class Starter {
     System.setProperty(
         "org.apache.cassandra.disable_mbean_registration",
         String.valueOf(disableMBeanRegistration));
-    if (cassandraConfigPath != null) {
-      System.setProperty("stargate.unsafe.cassandra_config_path", cassandraConfigPath);
-    }
 
     if (bindToListenAddressOnly) {
       // Restrict the listen address for Jersey endpoints

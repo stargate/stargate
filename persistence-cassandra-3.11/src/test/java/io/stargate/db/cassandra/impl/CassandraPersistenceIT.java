@@ -9,9 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
-import org.apache.cassandra.config.Config;
 import org.apache.commons.io.FileUtils;
-import org.assertj.core.util.VisibleForTesting;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
@@ -34,17 +32,10 @@ class CassandraPersistenceIT extends PersistenceTest {
 
   private static CassandraPersistence persistence;
   private static File baseDir;
-  @VisibleForTesting static Config config;
 
-  @VisibleForTesting
-  static CassandraPersistence initializePersistence(Config config) {
-    CassandraPersistence cassandraPersistence = new CassandraPersistence();
-    cassandraPersistence.initialize(config);
-    return cassandraPersistence;
-  }
-
-  @VisibleForTesting
-  static Config setUpConfig(ClusterConnectionInfo backend, File baseDirectory) throws IOException {
+  @BeforeAll
+  public static void createPersistence(ClusterConnectionInfo backend) throws IOException {
+    baseDir = Files.createTempDirectory("stargate-cassandra-3.11-test").toFile();
 
     System.setProperty("stargate.listen_address", "127.0.0.11");
     System.setProperty("stargate.cluster_name", backend.clusterName());
@@ -58,14 +49,8 @@ class CassandraPersistenceIT extends PersistenceTest {
       System.setProperty("logback.configurationFile", file.getAbsolutePath());
     }
 
-    return makeConfig(baseDirectory);
-  }
-
-  @BeforeAll
-  public static void createPersistence(ClusterConnectionInfo backend) throws IOException {
-    baseDir = Files.createTempDirectory("stargate-cassandra-3.11-test").toFile();
-    config = setUpConfig(backend, baseDir);
-    persistence = initializePersistence(config);
+    persistence = new CassandraPersistence();
+    persistence.initialize(makeConfig(baseDir));
   }
 
   @AfterAll

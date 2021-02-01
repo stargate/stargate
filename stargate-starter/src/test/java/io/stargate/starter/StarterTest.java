@@ -207,21 +207,4 @@ class StarterTest {
 
     assertThat(thrown.getMessage()).isEqualTo("--listen must be a valid IPv4 or IPv6 address");
   }
-
-  @Test
-  void testSetStargatePropertiesWithCassandraConfigPath() {
-    starter.cassandraConfigPath = "cassandra.yaml";
-
-    starter.setStargateProperties();
-
-    assertThat(System.getProperty("stargate.unsafe.cassandra_config_path"))
-        .isEqualTo("cassandra.yaml");
-  }
-
-  @Test
-  void testSetStargatePropertiesMissingCassandraConfigPath() {
-    starter.setStargateProperties();
-
-    assertThat(System.getProperty("stargate.unsafe.cassandra_config_path")).isNull();
-  }
 }

@@ -155,10 +155,6 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
     if [[ ! -z "$DISABLE_MBEAN_REGISTRATION" ]]; then
         STARGATE_ARGS+=("--disable-mbean-registration")
     fi
-
-    if [[ ! -z "$CASSANDRA_CONFIG_PATH" ]]; then
-        STARGATE_ARGS+=("--cassandra-config-path" "$CASSANDRA_CONFIG_PATH")
-    fi
 fi
 
 declare -a CMD=(java -server)
