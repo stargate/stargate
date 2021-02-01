@@ -114,7 +114,7 @@ public class GlobalRateLimitingManager implements RateLimitingManager, Connectio
     //   execution).
     //   Tl;dr: we'd need Stargate to stop passing raw strings into the persistence to be able to
     //   do this properly.
-    return RATE_LIMIT_SYSTEM_TABLES && query.startsWith("SELECT") && query.contains("FROM System");
+    return !RATE_LIMIT_SYSTEM_TABLES && query.startsWith("SELECT") && query.contains("FROM System");
   }
 
   @Override
@@ -136,6 +136,6 @@ public class GlobalRateLimitingManager implements RateLimitingManager, Connectio
 
   @Override
   public RateLimitingDecision forBatch(Batch batch, Parameters parameters) {
-    return RateLimitingDecision.limit(limiter, 1);
+    return RateLimitingDecision.limit(limiter, batch.size());
   }
 }

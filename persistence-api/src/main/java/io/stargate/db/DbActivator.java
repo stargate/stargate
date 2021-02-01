@@ -4,6 +4,7 @@ import io.stargate.core.activator.BaseActivator;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.PersistenceDataStoreFactory;
 import io.stargate.db.limiter.RateLimitingManager;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
@@ -42,15 +43,19 @@ public class DbActivator extends BaseActivator {
     super("DB services");
   }
 
+  private boolean hasRateLimitingEnabled() {
+    return !RATE_LIMITING_IDENTIFIER.equalsIgnoreCase("<none>");
+  }
+
   @Override
   protected List<ServiceAndProperties> createServices() {
     Persistence persistence = this.dbPersistence.get();
-    if (!RATE_LIMITING_IDENTIFIER.equalsIgnoreCase("<none>")) {
+    if (hasRateLimitingEnabled()) {
       RateLimitingManager rateLimiter = rateLimitingManager.get();
       if (rateLimiter == null) {
         throw new RuntimeException(
             String.format(
-                "Could find rate limiter service with id '%s'", RATE_LIMITING_IDENTIFIER));
+                "Could not find rate limiter service with id '%s'", RATE_LIMITING_IDENTIFIER));
       }
       persistence = new RateLimitingPersistence(persistence, rateLimiter);
     }
@@ -68,6 +73,11 @@ public class DbActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(dbPersistence, rateLimitingManager);
+    List<ServicePointer<?>> deps = new ArrayList<>(2);
+    deps.add(dbPersistence);
+    if (hasRateLimitingEnabled()) {
+      deps.add(rateLimitingManager);
+    }
+    return deps;
   }
 }
