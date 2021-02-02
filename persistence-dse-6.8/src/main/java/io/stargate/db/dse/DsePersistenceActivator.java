@@ -24,6 +24,7 @@ import org.apache.cassandra.auth.PasswordAuthenticator;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.GuardrailsConfig;
 import org.apache.cassandra.config.ParameterizedClass;
+import org.apache.cassandra.config.YamlConfigurationLoader;
 import org.apache.cassandra.dht.Murmur3Partitioner;
 import org.apache.cassandra.locator.SimpleSnitch;
 import org.apache.cassandra.metrics.CassandraMetricsRegistry;
@@ -48,7 +49,15 @@ public class DsePersistenceActivator extends BaseActivator {
 
   @VisibleForTesting
   public static Config makeConfig(File baseDir) throws IOException {
-    Config c = new Config();
+    Config c;
+
+    String cassandraConfigPath = System.getProperty("stargate.unsafe.cassandra_config_path", "");
+    if (cassandraConfigPath.isEmpty()) {
+      c = new Config();
+    } else {
+      File configFile = new File(cassandraConfigPath);
+      c = new YamlConfigurationLoader().loadConfig(configFile.toURI().toURL());
+    }
 
     File commitLogDir = Paths.get(baseDir.getPath(), "commitlog").toFile();
     commitLogDir.mkdirs();

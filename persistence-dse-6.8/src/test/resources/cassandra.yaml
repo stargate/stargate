@@ -1,0 +1,5 @@
+# Cassandra configuration for tests
+
+cluster_name: 'Test Cluster'
+
+row_cache_size_in_mb: 1024
