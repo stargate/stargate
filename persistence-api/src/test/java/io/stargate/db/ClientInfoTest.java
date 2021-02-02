@@ -17,6 +17,7 @@ package io.stargate.db;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -99,5 +100,10 @@ class ClientInfoTest {
         assertThat(buffer.isReadOnly()).isTrue();
       }
     }
+  }
+
+  @Test
+  public void toStringIsNullSafe() {
+    assertDoesNotThrow(new ClientInfo(null, null)::toString);
   }
 }

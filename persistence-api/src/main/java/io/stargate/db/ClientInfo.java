@@ -66,11 +66,13 @@ public class ClientInfo {
 
   @Override
   public String toString() {
-    String base =
-        publicAddress == null
-            ? remoteAddress.toString()
-            : format("%s[%s]", publicAddress, remoteAddress);
-
-    return driverInfo == null ? base : format("%s (%s)", base, driverInfo);
+    return "ClientInfo{"
+        + "remoteAddress="
+        + remoteAddress
+        + ", publicAddress="
+        + publicAddress
+        + ", driverInfo="
+        + driverInfo
+        + '}';
   }
 }
