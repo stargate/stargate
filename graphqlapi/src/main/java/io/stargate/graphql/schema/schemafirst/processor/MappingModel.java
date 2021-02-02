@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-class MappingModel {
+public class MappingModel {
 
   private final Map<String, EntityMappingModel> entities;
   private final List<QueryMappingModel> queries;
@@ -38,11 +38,11 @@ class MappingModel {
     this.queries = queries;
   }
 
-  Map<String, EntityMappingModel> getEntities() {
+  public Map<String, EntityMappingModel> getEntities() {
     return entities;
   }
 
-  List<QueryMappingModel> getQueries() {
+  public List<QueryMappingModel> getQueries() {
     return queries;
   }
 

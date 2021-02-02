@@ -134,6 +134,11 @@
       <artifactId>error_prone_annotations</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.apollographql.federation</groupId>
+      <artifactId>federation-graphql-java-support</artifactId>
+      <version>0.6.1</version>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>

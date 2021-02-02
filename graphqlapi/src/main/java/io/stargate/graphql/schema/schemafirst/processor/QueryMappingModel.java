@@ -15,35 +15,18 @@
  */
 package io.stargate.graphql.schema.schemafirst.processor;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import graphql.language.NonNullType;
 import graphql.language.Type;
 import graphql.language.TypeName;
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.FieldCoordinates;
-import io.stargate.auth.AuthenticationService;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
-import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
-import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.Row;
-import io.stargate.db.query.Predicate;
-import io.stargate.db.query.builder.AbstractBound;
-import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.db.schema.Column;
-import io.stargate.graphql.schema.CassandraFetcher;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
-class QueryMappingModel {
+public class QueryMappingModel {
 
   // TODO implement more flexible rules
   // This is a basic implementation that only allows a single-entity SELECT by full primary key.
@@ -52,75 +35,25 @@ class QueryMappingModel {
 
   private final FieldCoordinates coordinates;
   private final EntityMappingModel entity;
-  private final Map<String, FieldMappingModel> inputMapping;
+  private final List<String> inputNames;
 
   QueryMappingModel(
-      FieldCoordinates coordinates,
-      EntityMappingModel entity,
-      Map<String, FieldMappingModel> inputMapping) {
+      FieldCoordinates coordinates, EntityMappingModel entity, List<String> inputNames) {
     this.coordinates = coordinates;
     this.entity = entity;
-    this.inputMapping = inputMapping;
+    this.inputNames = inputNames;
   }
 
-  FieldCoordinates getCoordinates() {
+  public FieldCoordinates getCoordinates() {
     return coordinates;
   }
 
-  DataFetcher<?> buildDataFetcher(
-      AuthenticationService authenticationService,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    return new CassandraFetcher<Map<String, Object>>(
-        authenticationService, authorizationService, dataStoreFactory) {
-      @Override
-      protected Map<String, Object> get(
-          DataFetchingEnvironment environment,
-          DataStore dataStore,
-          AuthenticationSubject authenticationSubject)
-          throws Exception {
+  public EntityMappingModel getEntity() {
+    return entity;
+  }
 
-        List<BuiltCondition> whereConditions = new ArrayList<>();
-        for (Map.Entry<String, FieldMappingModel> entry : inputMapping.entrySet()) {
-          String inputName = entry.getKey();
-          FieldMappingModel field = entry.getValue();
-
-          // TODO handle non trivial GraphQL=>CQL conversions (see DataTypeMapping)
-          Object graphqlValue = environment.getArgument(inputName);
-          Object cqlValue =
-              (field.getCqlType() == Column.Type.Uuid)
-                  ? UUID.fromString(graphqlValue.toString())
-                  : graphqlValue;
-          whereConditions.add(BuiltCondition.of(field.getCqlName(), Predicate.EQ, cqlValue));
-        }
-
-        AbstractBound<?> query =
-            dataStore
-                .queryBuilder()
-                .select()
-                .column(
-                    entity.getAllColumns().stream()
-                        .map(FieldMappingModel::getCqlName)
-                        .toArray(String[]::new))
-                .from(entity.getKeyspaceName(), entity.getCqlName())
-                .where(whereConditions)
-                .build()
-                .bind();
-
-        ResultSet resultSet = dataStore.execute(query).get();
-        if (resultSet.hasNoMoreFetchedRows()) {
-          return null;
-        }
-        Row row = resultSet.one();
-        Map<String, Object> result = new HashMap<>();
-        for (FieldMappingModel field : entity.getAllColumns()) {
-          // TODO handle non trivial CQL=>GraphQL conversions (see DataTypeMapping)
-          Object graphqlValue = row.getObject(field.getCqlName());
-          result.put(field.getGraphqlName(), graphqlValue);
-        }
-        return result;
-      }
-    };
+  public List<String> getInputNames() {
+    return inputNames;
   }
 
   static Optional<QueryMappingModel> build(
@@ -157,7 +90,7 @@ class QueryMappingModel {
     }
 
     boolean foundErrors = false;
-    ImmutableMap.Builder<String, FieldMappingModel> inputMapping = ImmutableMap.builder();
+    ImmutableList.Builder<String> inputNames = ImmutableList.builder();
     for (int i = 0; i < inputValues.size(); i++) {
       InputValueDefinition argument = inputValues.get(i);
       FieldMappingModel field = primaryKey.get(i);
@@ -178,11 +111,11 @@ class QueryMappingModel {
         foundErrors = true;
       }
 
-      inputMapping.put(argument.getName(), field);
+      inputNames.add(argument.getName());
     }
 
     return foundErrors
         ? Optional.empty()
-        : Optional.of(new QueryMappingModel(coordinates, entity, inputMapping.build()));
+        : Optional.of(new QueryMappingModel(coordinates, entity, inputNames.build()));
   }
 }
