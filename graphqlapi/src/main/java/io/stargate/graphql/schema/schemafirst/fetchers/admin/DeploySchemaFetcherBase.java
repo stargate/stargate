@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.graphql.schema.schemafirst.fetchers;
+package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
 import com.google.common.collect.ImmutableMap;
 import graphql.GraphQLError;

@@ -1,4 +1,4 @@
-package io.stargate.graphql.schema.schemafirst.fetchers;
+package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Charsets;
 import edu.umd.cs.findbugs.annotations.NonNull;
