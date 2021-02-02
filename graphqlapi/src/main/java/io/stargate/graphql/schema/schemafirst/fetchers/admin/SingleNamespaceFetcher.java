@@ -13,21 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.graphql.schema.schemafirst.fetchers;
+package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
-import com.google.common.io.CharStreams;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import io.stargate.db.schema.Keyspace;
+import java.util.Map;
 
-public class DeploySchemaFileFetcher extends DeploySchemaFetcherBase {
+public class SingleNamespaceFetcher extends NamespaceFetcher<Map<String, Object>> {
 
-  public DeploySchemaFileFetcher(
+  public SingleNamespaceFetcher(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
@@ -35,8 +34,18 @@ public class DeploySchemaFileFetcher extends DeploySchemaFetcherBase {
   }
 
   @Override
-  protected String getSchemaContents(DataFetchingEnvironment environment) throws IOException {
-    InputStream file = environment.getArgument("schemaFile");
-    return CharStreams.toString(new InputStreamReader(file, StandardCharsets.UTF_8));
+  protected Map<String, Object> get(
+      DataFetchingEnvironment environment,
+      DataStore dataStore,
+      AuthenticationSubject authenticationSubject) {
+
+    String name = environment.getArgument("name");
+    Keyspace keyspace = dataStore.schema().keyspace(name);
+
+    if (keyspace == null || !isReadAuthorized(keyspace, authenticationSubject)) {
+      throw new IllegalArgumentException(String.format("Unknown keyspace '%s'", name));
+    }
+
+    return formatNamespace(keyspace);
   }
 }
