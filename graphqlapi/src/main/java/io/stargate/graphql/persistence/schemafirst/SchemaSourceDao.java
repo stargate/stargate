@@ -25,7 +25,7 @@ import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
-import io.stargate.graphql.schema.schemafirst.fetchers.Uuids;
+import io.stargate.graphql.schema.schemafirst.fetchers.admin.Uuids;
 import java.util.List;
 import java.util.UUID;
 
