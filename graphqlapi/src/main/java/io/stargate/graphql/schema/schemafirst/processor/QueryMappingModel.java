@@ -18,7 +18,6 @@ package io.stargate.graphql.schema.schemafirst.processor;
 import com.google.common.collect.ImmutableList;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
-import graphql.language.NonNullType;
 import graphql.language.Type;
 import graphql.language.TypeName;
 import graphql.schema.FieldCoordinates;
@@ -96,10 +95,6 @@ public class QueryMappingModel {
       FieldMappingModel field = primaryKey.get(i);
 
       Type<?> argumentType = argument.getType();
-      if (argumentType instanceof NonNullType) {
-        argumentType = ((NonNullType) argumentType).getType();
-      }
-
       if (!argumentType.isEqualTo(field.getGraphqlType())) {
         context.addError(
             argument.getSourceLocation(),
