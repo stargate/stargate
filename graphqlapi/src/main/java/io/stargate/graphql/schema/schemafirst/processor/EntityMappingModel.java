@@ -15,7 +15,9 @@
  */
 package io.stargate.graphql.schema.schemafirst.processor;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.NonNullType;
@@ -30,9 +32,12 @@ import io.stargate.db.schema.UserDefinedType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-class EntityMappingModel {
+public class EntityMappingModel {
 
   private final String graphqlName;
   private final String keyspaceName;
@@ -40,7 +45,10 @@ class EntityMappingModel {
   private final Target target;
   private final List<FieldMappingModel> partitionKey;
   private final List<FieldMappingModel> clusteringColumns;
+  private final List<FieldMappingModel> primaryKey;
   private final List<FieldMappingModel> regularColumns;
+  private final List<FieldMappingModel> allColumns;
+  private final boolean isFederated;
 
   EntityMappingModel(
       String graphqlName,
@@ -49,17 +57,29 @@ class EntityMappingModel {
       Target target,
       List<FieldMappingModel> partitionKey,
       List<FieldMappingModel> clusteringColumns,
-      List<FieldMappingModel> regularColumns) {
+      List<FieldMappingModel> regularColumns,
+      boolean isFederated) {
     this.graphqlName = graphqlName;
     this.keyspaceName = keyspaceName;
     this.cqlName = cqlName;
     this.target = target;
     this.partitionKey = ImmutableList.copyOf(partitionKey);
     this.clusteringColumns = ImmutableList.copyOf(clusteringColumns);
+    this.isFederated = isFederated;
+    this.primaryKey =
+        ImmutableList.<FieldMappingModel>builder()
+            .addAll(partitionKey)
+            .addAll(clusteringColumns)
+            .build();
     this.regularColumns = ImmutableList.copyOf(regularColumns);
+    this.allColumns =
+        ImmutableList.<FieldMappingModel>builder()
+            .addAll(primaryKey)
+            .addAll(regularColumns)
+            .build();
   }
 
-  String getGraphqlName() {
+  public String getGraphqlName() {
     return graphqlName;
   }
 
@@ -67,39 +87,39 @@ class EntityMappingModel {
     return keyspaceName;
   }
 
-  String getCqlName() {
+  public String getCqlName() {
     return cqlName;
   }
 
-  Target getTarget() {
+  public Target getTarget() {
     return target;
   }
 
-  List<FieldMappingModel> getPartitionKey() {
+  public List<FieldMappingModel> getPartitionKey() {
     return partitionKey;
   }
 
-  List<FieldMappingModel> getClusteringColumns() {
+  public List<FieldMappingModel> getClusteringColumns() {
     return clusteringColumns;
   }
 
-  List<FieldMappingModel> getPrimaryKey() {
-    return ImmutableList.<FieldMappingModel>builder()
-        .addAll(partitionKey)
-        .addAll(clusteringColumns)
-        .build();
+  /**
+   * The full primary key (partition key + clustering columns), that uniquely identifies a CQL row.
+   */
+  public List<FieldMappingModel> getPrimaryKey() {
+    return primaryKey;
   }
 
-  List<FieldMappingModel> getRegularColumns() {
+  public List<FieldMappingModel> getRegularColumns() {
     return regularColumns;
   }
 
-  List<FieldMappingModel> getAllColumns() {
-    return ImmutableList.<FieldMappingModel>builder()
-        .addAll(partitionKey)
-        .addAll(clusteringColumns)
-        .addAll(regularColumns)
-        .build();
+  public List<FieldMappingModel> getAllColumns() {
+    return allColumns;
+  }
+
+  public boolean isFederated() {
+    return isFederated;
   }
 
   AbstractBound<?> buildCreateQuery(QueryBuilder builder) {
@@ -113,12 +133,12 @@ class EntityMappingModel {
   static Optional<EntityMappingModel> build(ObjectTypeDefinition type, ProcessingContext context) {
 
     String graphqlName = type.getName();
-    Optional<Directive> directive = DirectiveHelper.getDirective("cql_entity", type);
+    Optional<Directive> cqlDirective = DirectiveHelper.getDirective("cql_entity", type);
     String cqlName =
-        DirectiveHelper.getStringArgument(directive, "name", context).orElse(graphqlName);
+        DirectiveHelper.getStringArgument(cqlDirective, "name", context).orElse(graphqlName);
 
     Target target =
-        DirectiveHelper.getEnumArgument(directive, "target", Target.class, context)
+        DirectiveHelper.getEnumArgument(cqlDirective, "target", Target.class, context)
             .orElse(Target.TABLE);
 
     List<FieldMappingModel> partitionKey = new ArrayList<>();
@@ -139,13 +159,14 @@ class EntityMappingModel {
               });
     }
 
+    // Check that we have the necessary kinds of columns depending on the target:
     switch (target) {
       case TABLE:
         if (partitionKey.isEmpty()) {
           FieldMappingModel firstField = regularColumns.get(0);
           if (isGraphqlId(firstField.getGraphqlType())) {
-            regularColumns.remove(firstField);
             partitionKey.add(firstField);
+            regularColumns.remove(firstField);
           } else {
             context.addError(
                 type.getSourceLocation(),
@@ -162,8 +183,66 @@ class EntityMappingModel {
               type.getSourceLocation(),
               ProcessingMessageType.InvalidMapping,
               "Objects that map to a UDT must have at least one field");
+          return Optional.empty();
         }
         break;
+    }
+
+    // Check that if the @key directive is present, it matches the CQL primary key:
+    List<Directive> keyDirectives = type.getDirectives("key");
+    boolean isFederated;
+    if (!keyDirectives.isEmpty()) {
+      if (target == Target.UDT) {
+        context.addError(
+            type.getSourceLocation(),
+            ProcessingMessageType.InvalidMapping,
+            "@key directive can only be used on objects that map to a CQL table");
+        return Optional.empty();
+      }
+      if (keyDirectives.size() > 1) {
+        context.addError(
+            type.getSourceLocation(),
+            ProcessingMessageType.InvalidMapping,
+            "This implementation only supports a single @key directive per type");
+        return Optional.empty();
+      }
+      Directive keyDirective = keyDirectives.get(0);
+      Optional<String> fieldsArgument =
+          DirectiveHelper.getStringArgument(Optional.of(keyDirective), "fields", context);
+      if (fieldsArgument.isPresent()) {
+        String value = fieldsArgument.get();
+        if (!NON_NESTED_FIELDS.matcher(value).matches()) {
+          context.addError(
+              keyDirective.getSourceLocation(),
+              ProcessingMessageType.InvalidMapping,
+              "Could not parse list of key fields "
+                  + "(this implementation only supports top-level fields as key components)");
+          return Optional.empty();
+        }
+        Set<String> directiveFields = ImmutableSet.copyOf(ON_SPACES.split(value));
+        Set<String> primaryKeyFields =
+            Stream.concat(partitionKey.stream(), clusteringColumns.stream())
+                .map(FieldMappingModel::getGraphqlName)
+                .collect(Collectors.toSet());
+        if (!directiveFields.equals(primaryKeyFields)) {
+          context.addError(
+              keyDirective.getSourceLocation(),
+              ProcessingMessageType.InvalidMapping,
+              "The list of key fields must match the partition key and clustering columns exactly "
+                  + "(expected %s)",
+              primaryKeyFields);
+          return Optional.empty();
+        }
+        isFederated = true;
+      } else {
+        context.addError(
+            keyDirective.getSourceLocation(),
+            ProcessingMessageType.InvalidSyntax,
+            "@key directive must have a 'fields' argument");
+        return Optional.empty();
+      }
+    } else {
+      isFederated = false;
     }
 
     return Optional.of(
@@ -174,7 +253,8 @@ class EntityMappingModel {
             target,
             partitionKey,
             clusteringColumns,
-            regularColumns));
+            regularColumns,
+            isFederated));
   }
 
   private static boolean isGraphqlId(Type<?> type) {
@@ -277,4 +357,8 @@ class EntityMappingModel {
 
     abstract AbstractBound<?> buildDropQuery(QueryBuilder builder, EntityMappingModel entity);
   }
+
+  private static final Pattern NON_NESTED_FIELDS =
+      Pattern.compile("[_A-Za-z][_0-9A-Za-z]*(?:\\s+[_A-Za-z][_0-9A-Za-z]*)*");
+  private static final Splitter ON_SPACES = Splitter.onPattern("\\s+");
 }

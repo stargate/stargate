@@ -15,6 +15,8 @@
  */
 package io.stargate.graphql.schema.schemafirst.processor;
 
+import com.apollographql.federation.graphqljava.Federation;
+import com.apollographql.federation.graphqljava._FieldSet;
 import com.google.common.collect.ImmutableMap;
 import graphql.GraphQL;
 import graphql.GraphQLError;
@@ -39,6 +41,9 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
+import io.stargate.graphql.schema.schemafirst.fetchers.generated.FederatedEntity;
+import io.stargate.graphql.schema.schemafirst.fetchers.generated.FederatedEntityFetcher;
+import io.stargate.graphql.schema.schemafirst.fetchers.generated.QueryFetcher;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -81,8 +86,10 @@ public class SchemaProcessor {
 
   private GraphQL buildGraphql(TypeDefinitionRegistry registry, MappingModel mappingModel) {
 
-    // Our directives must be present when we invoke SchemaGenerator, otherwise it fails
-    registry = registry.merge(CQL_DIRECTIVES);
+    // SchemaGenerator fails if the schema uses directives that are not defined. Add everything we
+    // need:
+    registry = registry.merge(FEDERATION_DIRECTIVES); // GraphQL federation
+    registry = registry.merge(CQL_DIRECTIVES); // Stargate's own CQL directives
 
     GraphQLSchema schema =
         new SchemaGenerator()
@@ -91,17 +98,31 @@ public class SchemaProcessor {
                 registry,
                 RuntimeWiring.newRuntimeWiring()
                     .codeRegistry(buildCodeRegistry(mappingModel))
+                    .scalar(_FieldSet.type)
                     .build());
 
-    // However once we have the schema we don't need the directives anymore: they only impact the
-    // queries we generate, they're not useful for users of the schema.
+    // However once we have the schema we don't need the CQL directives anymore: they only impact
+    // the queries we generate, they're not useful for users of the schema.
     schema = removeCqlDirectives(schema);
+
+    // TODO check behavior when no entity is annotated with @key
+    schema =
+        Federation.transform(schema)
+            .fetchEntities(
+                new FederatedEntityFetcher(
+                    mappingModel, authenticationService, authorizationService, dataStoreFactory))
+            .resolveEntityType(
+                environment -> {
+                  FederatedEntity entity = environment.getObject();
+                  return environment.getSchema().getObjectType(entity.getTypeName());
+                })
+            .build();
 
     return GraphQL.newGraphQL(schema).build();
   }
 
   private TypeDefinitionRegistry parse(String source) throws GraphqlErrorException {
-    graphql.schema.idl.SchemaParser parser = new graphql.schema.idl.SchemaParser();
+    SchemaParser parser = new SchemaParser();
     try {
       return parser.parse(source);
     } catch (SchemaProblem schemaProblem) {
@@ -117,10 +138,10 @@ public class SchemaProcessor {
 
   private GraphQLCodeRegistry buildCodeRegistry(MappingModel mappingModel) {
     GraphQLCodeRegistry.Builder builder = GraphQLCodeRegistry.newCodeRegistry();
-    for (QueryMappingModel query : mappingModel.getQueries()) {
+    for (QueryMappingModel model : mappingModel.getQueries()) {
       builder.dataFetcher(
-          query.getCoordinates(),
-          query.buildDataFetcher(authenticationService, authorizationService, dataStoreFactory));
+          model.getCoordinates(),
+          new QueryFetcher(model, authenticationService, authorizationService, dataStoreFactory));
     }
     // TODO also handle mutations
     return builder.build();
@@ -161,5 +182,12 @@ public class SchemaProcessor {
           .parse(
               new InputStreamReader(
                   SchemaProcessor.class.getResourceAsStream("/schemafirst/cql_directives.graphql"),
+                  StandardCharsets.UTF_8));
+
+  private static final TypeDefinitionRegistry FEDERATION_DIRECTIVES =
+      new SchemaParser()
+          .parse(
+              new InputStreamReader(
+                  SchemaProcessor.class.getResourceAsStream("/schemafirst/federation.graphql"),
                   StandardCharsets.UTF_8));
 }
