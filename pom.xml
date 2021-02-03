@@ -134,6 +134,7 @@
         <module>health-checker</module>
         <module>config-store-api</module>
         <module>config-store-yaml</module>
+        <module>rate-limiting-global</module>
         <!-- testing last -->
         <module>testing-services</module>
         <module>testing</module>
@@ -162,6 +163,7 @@
         <module>health-checker</module>
         <module>config-store-api</module>
         <module>config-store-yaml</module>
+        <module>rate-limiting-global</module>
         <!-- testing last -->
         <module>testing</module>
       </modules>
