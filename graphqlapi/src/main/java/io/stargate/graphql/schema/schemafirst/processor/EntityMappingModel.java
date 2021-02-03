@@ -135,10 +135,13 @@ public class EntityMappingModel {
     String graphqlName = type.getName();
     Optional<Directive> cqlDirective = DirectiveHelper.getDirective("cql_entity", type);
     String cqlName =
-        DirectiveHelper.getStringArgument(cqlDirective, "name", context).orElse(graphqlName);
+        cqlDirective
+            .flatMap(d -> DirectiveHelper.getStringArgument(d, "name", context))
+            .orElse(graphqlName);
 
     Target target =
-        DirectiveHelper.getEnumArgument(cqlDirective, "target", Target.class, context)
+        cqlDirective
+            .flatMap(d -> DirectiveHelper.getEnumArgument(d, "target", Target.class, context))
             .orElse(Target.TABLE);
 
     List<FieldMappingModel> partitionKey = new ArrayList<>();
@@ -208,7 +211,7 @@ public class EntityMappingModel {
       }
       Directive keyDirective = keyDirectives.get(0);
       Optional<String> fieldsArgument =
-          DirectiveHelper.getStringArgument(Optional.of(keyDirective), "fields", context);
+          DirectiveHelper.getStringArgument(keyDirective, "fields", context);
       if (fieldsArgument.isPresent()) {
         String value = fieldsArgument.get();
         if (!NON_NESTED_FIELDS.matcher(value).matches()) {

@@ -85,11 +85,16 @@ public class FieldMappingModel {
 
     Optional<Directive> directive = DirectiveHelper.getDirective("cql_column", field);
     String cqlName =
-        DirectiveHelper.getStringArgument(directive, "name", context).orElse(graphqlName);
+        directive
+            .flatMap(d -> DirectiveHelper.getStringArgument(d, "name", context))
+            .orElse(graphqlName);
     boolean partitionKey =
-        DirectiveHelper.getBooleanArgument(directive, "partitionKey", context).orElse(false);
+        directive
+            .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "partitionKey", context))
+            .orElse(false);
     Optional<Order> clusteringOrder =
-        DirectiveHelper.getEnumArgument(directive, "clusteringOrder", Order.class, context);
+        directive.flatMap(
+            d -> DirectiveHelper.getEnumArgument(d, "clusteringOrder", Order.class, context));
 
     if (targetContainer == EntityMappingModel.Target.UDT) {
       if (partitionKey) {
@@ -110,7 +115,8 @@ public class FieldMappingModel {
     // GraphQL type.
     // TODO we should also consider the case where the table already exists
     Optional<Column.ColumnType> cqlType =
-        DirectiveHelper.getStringArgument(directive, "type", context)
+        directive
+            .flatMap(d -> DirectiveHelper.getStringArgument(d, "type", context))
             .flatMap(spec -> parseCqlType(spec, context, directive));
     if (!cqlType.isPresent()) {
       cqlType = guessCqlType(graphqlType, context);
