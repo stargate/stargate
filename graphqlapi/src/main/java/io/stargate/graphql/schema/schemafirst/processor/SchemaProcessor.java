@@ -105,18 +105,20 @@ public class SchemaProcessor {
     // the queries we generate, they're not useful for users of the schema.
     schema = removeCqlDirectives(schema);
 
-    // TODO check behavior when no entity is annotated with @key
-    schema =
-        Federation.transform(schema)
-            .fetchEntities(
-                new FederatedEntityFetcher(
-                    mappingModel, authenticationService, authorizationService, dataStoreFactory))
-            .resolveEntityType(
-                environment -> {
-                  FederatedEntity entity = environment.getObject();
-                  return environment.getSchema().getObjectType(entity.getTypeName());
-                })
-            .build();
+    com.apollographql.federation.graphqljava.SchemaTransformer federationTransformer =
+        Federation.transform(schema);
+    if (mappingModel.hasFederatedEntities()) {
+      federationTransformer
+          .fetchEntities(
+              new FederatedEntityFetcher(
+                  mappingModel, authenticationService, authorizationService, dataStoreFactory))
+          .resolveEntityType(
+              environment -> {
+                FederatedEntity entity = environment.getObject();
+                return environment.getSchema().getObjectType(entity.getTypeName());
+              });
+    }
+    schema = federationTransformer.build();
 
     return GraphQL.newGraphQL(schema).build();
   }
