@@ -2,7 +2,7 @@
 
 # Stargate
 
-An open source API framework for data.
+An open source data gateway.
 
 Stargate is a data gateway deployed between client applications and a database.
 It's built with extensibility as a first-class citizen and makes it easy to use a database for any application workload
