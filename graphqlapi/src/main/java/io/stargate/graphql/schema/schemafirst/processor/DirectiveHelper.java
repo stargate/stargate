@@ -36,22 +36,19 @@ class DirectiveHelper {
   }
 
   static Optional<String> getStringArgument(
-      Optional<Directive> directive, String argumentName, ProcessingContext context) {
+      Directive directive, String argumentName, ProcessingContext context) {
     return getArgument(
         directive, argumentName, StringValue.class, v -> Optional.of(v.getValue()), context);
   }
 
   static Optional<Boolean> getBooleanArgument(
-      Optional<Directive> directive, String argumentName, ProcessingContext context) {
+      Directive directive, String argumentName, ProcessingContext context) {
     return getArgument(
         directive, argumentName, BooleanValue.class, v -> Optional.of(v.isValue()), context);
   }
 
   static <EnumT extends Enum<EnumT>> Optional<EnumT> getEnumArgument(
-      Optional<Directive> directive,
-      String argumentName,
-      Class<EnumT> enumClass,
-      ProcessingContext context) {
+      Directive directive, String argumentName, Class<EnumT> enumClass, ProcessingContext context) {
     return getArgument(
         directive,
         argumentName,
@@ -61,7 +58,7 @@ class DirectiveHelper {
             return Optional.of(Enum.valueOf(enumClass, v.getName()));
           } catch (IllegalArgumentException e) {
             context.addError(
-                directive.map(Directive::getSourceLocation).orElse(null),
+                directive.getSourceLocation(),
                 ProcessingMessageType.InvalidSyntax,
                 "Invalid value '%s' for argument %s: not an enum constant",
                 v.getName(),
@@ -73,13 +70,12 @@ class DirectiveHelper {
   }
 
   static <ResultT, ValueT extends Value<ValueT>> Optional<ResultT> getArgument(
-      Optional<Directive> directive,
+      Directive directive,
       String argumentName,
       Class<ValueT> valueClass,
       Function<ValueT, Optional<ResultT>> extractor,
       ProcessingContext context) {
-    return directive
-        .flatMap(d -> Optional.ofNullable(d.getArgument(argumentName)))
+    return Optional.ofNullable(directive.getArgument(argumentName))
         .map(Argument::getValue)
         .filter(
             v -> {
@@ -87,7 +83,7 @@ class DirectiveHelper {
                 return true;
               } else {
                 context.addError(
-                    directive.map(Directive::getSourceLocation).orElse(null),
+                    directive.getSourceLocation(),
                     ProcessingMessageType.InvalidSyntax,
                     "Invalid value for argument %s: expected a %s",
                     argumentName,
