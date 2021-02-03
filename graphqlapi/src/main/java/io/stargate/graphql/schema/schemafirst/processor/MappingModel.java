@@ -42,6 +42,10 @@ public class MappingModel {
     return entities;
   }
 
+  public boolean hasFederatedEntities() {
+    return getEntities().values().stream().anyMatch(EntityMappingModel::isFederated);
+  }
+
   public List<QueryMappingModel> getQueries() {
     return queries;
   }
