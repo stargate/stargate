@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.cassandra;
+package io.stargate.db.dse;
 
-import static io.stargate.db.cassandra.CassandraPersistenceActivator.makeConfig;
-import static org.junit.jupiter.api.Assertions.*;
+import static io.stargate.db.dse.DsePersistenceActivator.makeConfig;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,13 +27,14 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class CassandraPersistenceActivatorTest {
-  File baseDir;
+class DsePersistenceActivatorTest {
+
+  private File baseDir;
 
   @BeforeEach
   void setUp() throws IOException {
     System.clearProperty("stargate.unsafe.cassandra_config_path");
-    baseDir = Files.createTempDirectory("stargate-cassandra-3.11-test").toFile();
+    baseDir = Files.createTempDirectory("stargate-dse-6.8-test").toFile();
   }
 
   @AfterEach
@@ -50,8 +51,6 @@ class CassandraPersistenceActivatorTest {
 
   @Test
   void testMakeConfigWithCustomConfig() throws IOException {
-    // This is the path to the default Cassandra 3.11.6 cassandra.yaml
-    // with row_cache_size_in_mb set to 1024 to test the override.
     System.setProperty(
         "stargate.unsafe.cassandra_config_path", "src/test/resources/cassandra.yaml");
     Config config = makeConfig(baseDir);
