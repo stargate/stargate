@@ -1,17 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <parent>
-    <artifactId>stargate</artifactId>
-    <groupId>io.stargate</groupId>
-    <version>1.0.7</version>
-  </parent>
   <modelVersion>4.0.0</modelVersion>
-  <groupId>io.stargate.db.limiter.global</groupId>
-  <artifactId>rate-limiting-global</artifactId>
+  <parent>
+    <groupId>io.stargate</groupId>
+    <artifactId>stargate</artifactId>
+    <version>1.0.7-SNAPSHOT</version>
+  </parent>
+  <groupId>io.stargate.it</groupId>
+  <artifactId>testing-services</artifactId>
   <dependencies>
     <dependency>
-      <groupId>io.stargate.db</groupId>
-      <artifactId>persistence-api</artifactId>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.auth</groupId>
+      <artifactId>authnz</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -30,19 +42,15 @@
         <configuration>
           <unpackBundle>true</unpackBundle>
           <instructions>
-            <Bundle-Name>Rate-Limiting-Global</Bundle-Name>
-            <Bundle-Description>Provides global rate limiting (for all queries)</Bundle-Description>
-            <Bundle-SymbolicName>io.stargate.db.limiter.global</Bundle-SymbolicName>
-            <Bundle-Activator>io.stargate.db.limiter.global.GlobalRateLimitingActivator</Bundle-Activator>
-            <Import-Package><![CDATA[
-              org.osgi.framework,
-              io.stargate.db
-            ]]></Import-Package>
-            <Export-Package>io.stargate.db.limiter.global</Export-Package>
-            <DynamicImport-Package>*</DynamicImport-Package>
-            <Bundle-ClassPath>.,{maven-dependencies}</Bundle-ClassPath>
-            <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
+            <Bundle-Name>TestingServices</Bundle-Name>
+            <Bundle-Description>Services using during Stargate integration tests</Bundle-Description>
+            <Bundle-SymbolicName>io.stargate.testing</Bundle-SymbolicName>
+            <Bundle-Activator>io.stargate.testing.TestingServicesActivator</Bundle-Activator>
             <Embed-Transitive>true</Embed-Transitive>
+            <Import-Package>io.stargate.auth.*, org.osgi.framework</Import-Package>
+            <Export-Package>!*</Export-Package>
+            <DynamicImport-Package>*</DynamicImport-Package>
+            <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
           </instructions>
         </configuration>
       </plugin>
@@ -52,7 +60,6 @@
           <archive>
             <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
           </archive>
-          <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
         </configuration>
       </plugin>
     </plugins>
