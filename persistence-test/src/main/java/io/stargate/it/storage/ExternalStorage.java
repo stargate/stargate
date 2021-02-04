@@ -22,6 +22,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList.Builder
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.stargate.it.exec.ProcessRunner;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
@@ -32,18 +33,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.exec.CommandLine;
-import org.apache.commons.exec.DefaultExecutor;
-import org.apache.commons.exec.ExecuteException;
-import org.apache.commons.exec.ExecuteResultHandler;
-import org.apache.commons.exec.ExecuteWatchdog;
-import org.apache.commons.exec.Executor;
 import org.apache.commons.exec.LogOutputStream;
-import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.extension.BeforeTestExecutionCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -64,8 +56,6 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
   public static final String STORE_KEY = "stargate-storage";
 
   private static final String CCM_VERSION = "ccm.version";
-  private static final int PROCESS_WAIT_MINUTES =
-      Integer.getInteger("stargate.test.process.wait.timeout.minutes", 10);
   private static final boolean EXTERNAL_BACKEND =
       Boolean.getBoolean("stargate.test.backend.use.external");
   private static final String DATACENTER = System.getProperty("stargate.test.backend.dc", "dc1");
@@ -266,7 +256,7 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
             dumpLogs();
 
             for (StorageNode node : nodes) {
-              node.stopNode();
+              node.stop();
             }
 
             for (StorageNode node : nodes) {
@@ -364,22 +354,18 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
     }
   }
 
-  private static class StorageNode implements ExecuteResultHandler {
+  private static class StorageNode extends ProcessRunner {
     private final CcmCluster cluster;
-    private final int nodeIndex;
     private final CommandLine cmd;
-    private final ExecuteWatchdog watchDog = new ExecuteWatchdog(ExecuteWatchdog.INFINITE_TIMEOUT);
     private final String readMessage;
-    private final CompletableFuture<Void> ready = new CompletableFuture<>();
-    private final CountDownLatch exit = new CountDownLatch(1);
     private final File cassandraConf;
     private final File nodeDir;
     private final File logDir;
     private final File binDir;
 
     private StorageNode(CcmCluster cluster, int nodeIndex) {
+      super("Storage", 0, nodeIndex);
       this.cluster = cluster;
-      this.nodeIndex = nodeIndex;
 
       Path configDir = cluster.configDirectory();
       File clusterDir = new File(configDir.toFile(), "ccm_1");
@@ -415,105 +401,32 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
       if (cluster.isDse()) {
         cmd.addArgument("-Dcassandra.migration_task_wait_in_seconds=4");
       }
+
+      addStdOutListener(
+          (node, line) -> {
+            if (line.contains(readMessage)) {
+              ready();
+            }
+          });
     }
 
     public void start() {
-      try {
-        LogOutputStream out =
-            new LogOutputStream() {
-              @Override
-              protected void processLine(String line, int logLevel) {
-                if (line.contains(readMessage)) {
-                  ready.complete(null);
-                }
+      ImmutableMap.Builder<String, String> env = ImmutableMap.builder();
+      env.put("CASSANDRA_CONF", cassandraConf.getAbsolutePath());
+      env.put("CASSANDRA_LOG_DIR", logDir.getAbsolutePath());
 
-                LOG.info("storage{}> {}", nodeIndex, line);
-              }
-            };
-        LogOutputStream err =
-            new LogOutputStream() {
-              @Override
-              protected void processLine(String line, int logLevel) {
-                LOG.error("storage{}> {}", nodeIndex, line);
-              }
-            };
-
-        Executor executor =
-            new DefaultExecutor() {
-              @Override
-              protected Thread createThread(Runnable runnable, String name) {
-                return super.createThread(runnable, "storage-runner-" + nodeIndex);
-              }
-            };
-
-        executor.setExitValues(new int[] {0, 143}); // normal exit, normal termination by SIGTERM
-        executor.setStreamHandler(new PumpStreamHandler(out, err));
-        executor.setWatchdog(watchDog);
-
-        try {
-          LOG.info("Starting Storage node {}: {}", nodeIndex, cmd);
-
-          ImmutableMap.Builder<String, String> env = ImmutableMap.builder();
-          env.put("CASSANDRA_CONF", cassandraConf.getAbsolutePath());
-          env.put("CASSANDRA_LOG_DIR", logDir.getAbsolutePath());
-
-          if (cluster.isDse()) {
-            env.put("DSE_HOME", cluster.installDir().getAbsolutePath());
-            env.put(
-                "CASSANDRA_HOME", cluster.installDir().getAbsolutePath() + "/resources/cassandra");
-            env.put("TOMCAT_HOME", new File(nodeDir, "resources/tomcat").getAbsolutePath());
-            env.put("DSE_LOG_ROOT", logDir.getAbsolutePath() + "/dse");
-            env.put("DSE_CONF", new File(nodeDir, "resources/dse/conf").getAbsolutePath());
-          } else {
-            env.put("CASSANDRA_HOME", cluster.installDir().getAbsolutePath());
-            env.put("CASSANDRA_INCLUDE", new File(binDir, "cassandra.in.sh").getAbsolutePath());
-          }
-
-          executor.execute(cmd, env.build(), this);
-
-        } catch (IOException e) {
-          LOG.info("Unable to run Stargate node {}: {}", nodeIndex, e.getMessage(), e);
-        }
-      } finally {
-        exit.countDown();
+      if (cluster.isDse()) {
+        env.put("DSE_HOME", cluster.installDir().getAbsolutePath());
+        env.put("CASSANDRA_HOME", cluster.installDir().getAbsolutePath() + "/resources/cassandra");
+        env.put("TOMCAT_HOME", new File(nodeDir, "resources/tomcat").getAbsolutePath());
+        env.put("DSE_LOG_ROOT", logDir.getAbsolutePath() + "/dse");
+        env.put("DSE_CONF", new File(nodeDir, "resources/dse/conf").getAbsolutePath());
+      } else {
+        env.put("CASSANDRA_HOME", cluster.installDir().getAbsolutePath());
+        env.put("CASSANDRA_INCLUDE", new File(binDir, "cassandra.in.sh").getAbsolutePath());
       }
-    }
 
-    public void stopNode() {
-      LOG.info("Stopping Storage node {}", nodeIndex);
-      watchDog.destroyProcess();
-    }
-
-    @Override
-    public void onProcessComplete(int exitValue) {
-      LOG.info("Storage node {} existed with return code {}", nodeIndex, exitValue);
-      ready.complete(null); // just in case
-      exit.countDown();
-    }
-
-    @Override
-    public void onProcessFailed(ExecuteException e) {
-      LOG.info("Storage node {} failed with exception: {}", nodeIndex, e.getMessage(), e);
-      ready.completeExceptionally(e);
-      exit.countDown();
-    }
-
-    public void awaitReady() {
-      try {
-        ready.get(PROCESS_WAIT_MINUTES, TimeUnit.MINUTES);
-      } catch (Exception e) {
-        throw new IllegalStateException(e);
-      }
-    }
-
-    public void awaitExit() {
-      try {
-        if (!exit.await(PROCESS_WAIT_MINUTES, TimeUnit.MINUTES)) {
-          throw new IllegalStateException("Storage node did not exit: " + nodeIndex);
-        }
-      } catch (InterruptedException e) {
-        throw new IllegalStateException(e);
-      }
+      start(cmd, env.build());
     }
   }
 }
