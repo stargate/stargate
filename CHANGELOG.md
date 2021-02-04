@@ -1,5 +1,29 @@
 # Changelog
 
+## [v1.0.7](https://github.com/stargate/stargate/tree/v1.0.7) (2021-02-03)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.6...v1.0.7)
+
+**Closed issues:**
+
+- Unable to query data from a valid json inserted using Documents API with stargate 1.0.5 and DSE 6.8.9 [\#632](https://github.com/stargate/stargate/issues/632)
+- GraphQL: fix aliased sub-selections in queries [\#627](https://github.com/stargate/stargate/issues/627)
+- Readiness check should wait for all bundles to start [\#620](https://github.com/stargate/stargate/issues/620)
+- Support multiple `where` clauses over multiple `fields` \(still using only AND\) [\#572](https://github.com/stargate/stargate/issues/572)
+
+**Merged pull requests:**
+
+- Make toString of ClientInfo nullsafe [\#635](https://github.com/stargate/stargate/pull/635) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Support stargate.unsafe.cassandra\_config\_path in DSE Persistence [\#633](https://github.com/stargate/stargate/pull/633) ([dimas-b](https://github.com/dimas-b))
+- Initial rate limiting capability proposal for Stargate [\#629](https://github.com/stargate/stargate/pull/629) ([pcmanus](https://github.com/pcmanus))
+- Upgrade graphql-java to 16.1 [\#628](https://github.com/stargate/stargate/pull/628) ([olim7t](https://github.com/olim7t))
+- Include health checks in the readiness check [\#626](https://github.com/stargate/stargate/pull/626) ([dimas-b](https://github.com/dimas-b))
+- Bumping version for next release [\#625](https://github.com/stargate/stargate/pull/625) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Add ability to search across collections with multiple `where` clauses [\#614](https://github.com/stargate/stargate/pull/614) ([EricBorczuk](https://github.com/EricBorczuk))
+- Add a startctl option for cassandra.yaml [\#602](https://github.com/stargate/stargate/pull/602) ([marksurnin](https://github.com/marksurnin))
+- GraphQL: refactor codebase in anticipation of schema-first API [\#592](https://github.com/stargate/stargate/pull/592) ([olim7t](https://github.com/olim7t))
+- API for authorization processors [\#554](https://github.com/stargate/stargate/pull/554) ([dimas-b](https://github.com/dimas-b))
+
 ## [v1.0.6](https://github.com/stargate/stargate/tree/v1.0.6) (2021-01-27)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.5...v1.0.6)
