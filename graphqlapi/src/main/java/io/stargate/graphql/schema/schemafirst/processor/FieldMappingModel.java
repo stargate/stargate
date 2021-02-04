@@ -78,6 +78,10 @@ public class FieldMappingModel {
     return clusteringOrder;
   }
 
+  public boolean isPrimaryKey() {
+    return partitionKey || clusteringOrder.isPresent();
+  }
+
   static Optional<FieldMappingModel> build(
       FieldDefinition field, ProcessingContext context, EntityMappingModel.Target targetContainer) {
     String graphqlName = field.getName();
@@ -113,6 +117,7 @@ public class FieldMappingModel {
 
     // If the CQL type is explicitly provided, use that, otherwise use the best equivalent of the
     // GraphQL type.
+    // TODO if the CQL type is provided, check that we know how to coerce to it
     // TODO we should also consider the case where the table already exists
     Optional<Column.ColumnType> cqlType =
         directive

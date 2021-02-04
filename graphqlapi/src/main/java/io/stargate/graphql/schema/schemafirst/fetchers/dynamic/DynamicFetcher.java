@@ -108,7 +108,7 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
     return result;
   }
 
-  private ResultSet executeUnchecked(AbstractBound<?> query, DataStore dataStore) {
+  protected ResultSet executeUnchecked(AbstractBound<?> query, DataStore dataStore) {
     try {
       return dataStore.execute(query).get();
     } catch (InterruptedException e) {
