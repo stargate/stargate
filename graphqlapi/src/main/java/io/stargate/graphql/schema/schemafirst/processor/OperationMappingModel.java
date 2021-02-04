@@ -21,7 +21,6 @@ import graphql.schema.FieldCoordinates;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
-import java.util.Map;
 
 /** A GraphQL operation that will be translated into a CQL query. */
 public abstract class OperationMappingModel {
@@ -36,7 +35,7 @@ public abstract class OperationMappingModel {
     return coordinates;
   }
 
-  public abstract DataFetcher<Map<String, Object>> getDataFetcher(
+  public abstract DataFetcher<?> getDataFetcher(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory);

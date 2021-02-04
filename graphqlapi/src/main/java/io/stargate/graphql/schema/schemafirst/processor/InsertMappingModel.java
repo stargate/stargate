@@ -17,7 +17,6 @@ package io.stargate.graphql.schema.schemafirst.processor;
 
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
-import graphql.language.ListType;
 import graphql.language.Type;
 import graphql.language.TypeName;
 import graphql.schema.DataFetcher;
@@ -54,7 +53,7 @@ public class InsertMappingModel extends MutationMappingModel {
   }
 
   @Override
-  public DataFetcher<Map<String, Object>> getDataFetcher(
+  public DataFetcher<?> getDataFetcher(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
@@ -63,7 +62,7 @@ public class InsertMappingModel extends MutationMappingModel {
 
   public static Optional<MutationMappingModel> build(
       FieldDefinition mutation,
-      String parentName,
+      String parentTypeName,
       Map<String, EntityMappingModel> entities,
       ProcessingContext context) {
 
@@ -72,7 +71,7 @@ public class InsertMappingModel extends MutationMappingModel {
       context.addError(
           mutation.getSourceLocation(),
           ProcessingMessageType.InvalidMapping,
-          "Insert methods must take the entity input type as the first argument");
+          "Insert mutations must take the entity input type as the first argument");
       return Optional.empty();
     }
 
@@ -81,44 +80,14 @@ public class InsertMappingModel extends MutationMappingModel {
       context.addError(
           mutation.getSourceLocation(),
           ProcessingMessageType.InvalidMapping,
-          "Insert methods can't have more than one argument");
+          "Insert mutations can't have more than one argument");
       return Optional.empty();
     }
 
     InputValueDefinition input = inputs.get(0);
-    return findEntity(input, entities, context)
+    return findEntity(input, entities, context, "insert")
         .filter(entity -> matchesReturnType(entity, mutation, context))
-        .map(entity -> new InsertMappingModel(parentName, mutation, entity, input.getName()));
-  }
-
-  private static Optional<EntityMappingModel> findEntity(
-      InputValueDefinition input,
-      Map<String, EntityMappingModel> entities,
-      ProcessingContext context) {
-
-    Type<?> type = TypeHelper.unwrapNonNull(input.getType());
-
-    if (type instanceof ListType) {
-      context.addError(
-          input.getSourceLocation(),
-          ProcessingMessageType.InvalidMapping,
-          "Unexpected list type, insert mutations expect a single entity");
-      return Optional.empty();
-    }
-
-    String inputTypeName = ((TypeName) type).getName();
-    Optional<EntityMappingModel> entity =
-        entities.values().stream()
-            .filter(e -> e.getInputTypeName().map(name -> name.equals(inputTypeName)).orElse(false))
-            .findFirst();
-    if (!entity.isPresent()) {
-      context.addError(
-          input.getSourceLocation(),
-          ProcessingMessageType.InvalidMapping,
-          "Unexpected type, "
-              + "insert mutations expect an input object that maps to a CQL entity");
-    }
-    return entity;
+        .map(entity -> new InsertMappingModel(parentTypeName, mutation, entity, input.getName()));
   }
 
   private static boolean matchesReturnType(

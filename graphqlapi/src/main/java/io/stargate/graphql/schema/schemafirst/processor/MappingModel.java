@@ -92,7 +92,7 @@ public class MappingModel {
     maybeMutationType.ifPresent(
         mutationType -> {
           for (FieldDefinition mutation : mutationType.getFieldDefinitions()) {
-            MutationMappingModel.build(mutation, mutationType.getName(), entities, context)
+            MutationMappingModelFactory.build(mutation, mutationType.getName(), entities, context)
                 .ifPresent(operationsBuilder::add);
           }
         });
