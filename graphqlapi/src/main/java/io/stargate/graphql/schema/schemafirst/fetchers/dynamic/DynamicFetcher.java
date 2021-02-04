@@ -50,6 +50,9 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
   }
 
   protected Object toCqlValue(Object graphqlValue, FieldMappingModel field) {
+    if (graphqlValue == null) {
+      return null;
+    }
     // TODO handle non trivial GraphQL=>CQL conversions (see DataTypeMapping)
     return (field.getCqlType() == Column.Type.Uuid)
         ? UUID.fromString(graphqlValue.toString())

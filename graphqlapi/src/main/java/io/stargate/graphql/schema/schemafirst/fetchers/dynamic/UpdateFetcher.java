@@ -21,26 +21,23 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
+import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.AbstractBound;
+import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.ValueModifier;
-import io.stargate.db.schema.Column;
 import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel;
 import io.stargate.graphql.schema.schemafirst.processor.FieldMappingModel;
-import io.stargate.graphql.schema.schemafirst.processor.InsertMappingModel;
-import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
-import io.stargate.graphql.schema.schemafirst.util.Uuids;
+import io.stargate.graphql.schema.schemafirst.processor.UpdateMappingModel;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
 
-public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
+public class UpdateFetcher extends DynamicFetcher<Boolean> {
 
-  private final InsertMappingModel model;
+  private final UpdateMappingModel model;
 
-  public InsertFetcher(
-      InsertMappingModel model,
+  public UpdateFetcher(
+      UpdateMappingModel model,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
@@ -49,59 +46,49 @@ public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
   }
 
   @Override
-  protected Map<String, Object> get(
+  protected Boolean get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
       AuthenticationSubject authenticationSubject) {
 
     EntityMappingModel entityModel = model.getEntity();
     Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
-    Map<String, Object> response = new LinkedHashMap<>();
-    Collection<ValueModifier> setters = new ArrayList<>();
-    for (FieldMappingModel column : entityModel.getAllColumns()) {
+
+    Collection<BuiltCondition> conditions = new ArrayList<>();
+    for (FieldMappingModel column : entityModel.getPrimaryKey()) {
       String graphqlName = column.getGraphqlName();
-      Object graphqlValue, cqlValue;
-      if (input.containsKey(graphqlName)) {
-        graphqlValue = input.get(graphqlName);
-        cqlValue = toCqlValue(graphqlValue, column);
-      } else if (column.isPrimaryKey()) {
-        if (TypeHelper.isGraphqlId(column.getGraphqlType())) {
-          cqlValue = generateUuid(column.getCqlType());
-          graphqlValue = cqlValue.toString();
-        } else {
-          throw new IllegalArgumentException("Missing value for field " + graphqlName);
-        }
+      Object graphqlValue = input.get(graphqlName);
+      if (graphqlValue == null) {
+        throw new IllegalArgumentException("Missing value for field " + graphqlName);
       } else {
-        continue;
+        conditions.add(
+            BuiltCondition.of(column.getCqlName(), Predicate.EQ, toCqlValue(graphqlValue, column)));
       }
-      setters.add(ValueModifier.set(column.getCqlName(), cqlValue));
-      if (environment.getSelectionSet().contains(graphqlName)) {
-        response.put(graphqlName, graphqlValue);
+    }
+
+    Collection<ValueModifier> modifiers = new ArrayList<>();
+    for (FieldMappingModel column : entityModel.getRegularColumns()) {
+      String graphqlName = column.getGraphqlName();
+      if (input.containsKey(graphqlName)) {
+        Object graphqlValue = input.get(graphqlName);
+        modifiers.add(ValueModifier.set(column.getCqlName(), toCqlValue(graphqlValue, column)));
       }
+    }
+    if (modifiers.isEmpty()) {
+      throw new IllegalArgumentException(
+          "Input object must have at least one non-PK field set for an update");
     }
 
     AbstractBound<?> query =
         dataStore
             .queryBuilder()
-            .insertInto(entityModel.getKeyspaceName(), entityModel.getCqlName())
-            .value(setters)
+            .update(entityModel.getKeyspaceName(), entityModel.getCqlName())
+            .value(modifiers)
+            .where(conditions)
             .build()
             .bind();
     executeUnchecked(query, dataStore);
 
-    return response;
-  }
-
-  private Object generateUuid(Column.ColumnType cqlType) {
-    Object cqlValue;
-    if (cqlType == Column.Type.Uuid) {
-      cqlValue = UUID.randomUUID();
-    } else if (cqlType == Column.Type.Timeuuid) {
-      cqlValue = Uuids.timeBased();
-    } else {
-      // TODO catch this earlier in FieldMappingModel (more broadly all bad mappings)
-      throw new IllegalArgumentException("Invalid CQL type for ID: " + cqlType);
-    }
-    return cqlValue;
+    return true;
   }
 }

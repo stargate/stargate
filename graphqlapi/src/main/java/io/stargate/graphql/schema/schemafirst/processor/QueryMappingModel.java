@@ -58,7 +58,7 @@ public class QueryMappingModel extends OperationMappingModel {
   }
 
   @Override
-  public DataFetcher<Map<String, Object>> getDataFetcher(
+  public DataFetcher<?> getDataFetcher(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
