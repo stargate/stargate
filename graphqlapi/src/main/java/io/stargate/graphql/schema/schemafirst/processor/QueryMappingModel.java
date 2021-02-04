@@ -20,31 +20,33 @@ import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import graphql.language.Type;
 import graphql.language.TypeName;
-import graphql.schema.FieldCoordinates;
+import graphql.schema.DataFetcher;
+import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.db.datastore.DataStoreFactory;
+import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.QueryFetcher;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class QueryMappingModel {
+public class QueryMappingModel extends OperationMappingModel {
 
   // TODO implement more flexible rules
   // This is a basic implementation that only allows a single-entity SELECT by full primary key.
   // There will probably be significant changes when we support more scenarios: partial primary key
   // (returning multiple entities), index lookups, etc
 
-  private final FieldCoordinates coordinates;
   private final EntityMappingModel entity;
   private final List<String> inputNames;
 
-  QueryMappingModel(
-      FieldCoordinates coordinates, EntityMappingModel entity, List<String> inputNames) {
-    this.coordinates = coordinates;
+  private QueryMappingModel(
+      String parentTypeName,
+      FieldDefinition field,
+      EntityMappingModel entity,
+      List<String> inputNames) {
+    super(parentTypeName, field);
     this.entity = entity;
     this.inputNames = inputNames;
-  }
-
-  public FieldCoordinates getCoordinates() {
-    return coordinates;
   }
 
   public EntityMappingModel getEntity() {
@@ -55,13 +57,19 @@ public class QueryMappingModel {
     return inputNames;
   }
 
+  @Override
+  public DataFetcher<Map<String, Object>> getDataFetcher(
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
+    return new QueryFetcher(this, authenticationService, authorizationService, dataStoreFactory);
+  }
+
   static Optional<QueryMappingModel> build(
       FieldDefinition query,
       String parentTypeName,
       Map<String, EntityMappingModel> entities,
       ProcessingContext context) {
-
-    FieldCoordinates coordinates = FieldCoordinates.coordinates(parentTypeName, query.getName());
 
     Type<?> returnType = query.getType();
     String entityName = (returnType instanceof TypeName) ? ((TypeName) returnType).getName() : null;
@@ -111,6 +119,6 @@ public class QueryMappingModel {
 
     return foundErrors
         ? Optional.empty()
-        : Optional.of(new QueryMappingModel(coordinates, entity, inputNames.build()));
+        : Optional.of(new QueryMappingModel(parentTypeName, query, entity, inputNames.build()));
   }
 }

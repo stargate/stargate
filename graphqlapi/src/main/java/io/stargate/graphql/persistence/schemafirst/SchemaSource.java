@@ -15,7 +15,7 @@
  */
 package io.stargate.graphql.persistence.schemafirst;
 
-import io.stargate.graphql.schema.schemafirst.fetchers.admin.Uuids;
+import io.stargate.graphql.schema.schemafirst.util.Uuids;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
