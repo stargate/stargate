@@ -28,6 +28,7 @@ import java.util.function.Function;
 /** Helper methods to read directives as we traverse the GraphQL AST. */
 class DirectiveHelper {
 
+  /** Note: this assumes that the directive is not repeatable. */
   static Optional<Directive> getDirective(String name, DirectivesContainer<?> container) {
     if (container.hasDirective(name)) {
       return Optional.of(container.getDirectives(name).get(0));

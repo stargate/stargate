@@ -20,15 +20,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
-import graphql.language.NonNullType;
 import graphql.language.ObjectTypeDefinition;
-import graphql.language.Type;
-import graphql.language.TypeName;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.UserDefinedType;
+import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -49,6 +47,7 @@ public class EntityMappingModel {
   private final List<FieldMappingModel> regularColumns;
   private final List<FieldMappingModel> allColumns;
   private final boolean isFederated;
+  private final Optional<String> inputTypeName;
 
   EntityMappingModel(
       String graphqlName,
@@ -58,7 +57,8 @@ public class EntityMappingModel {
       List<FieldMappingModel> partitionKey,
       List<FieldMappingModel> clusteringColumns,
       List<FieldMappingModel> regularColumns,
-      boolean isFederated) {
+      boolean isFederated,
+      Optional<String> inputTypeName) {
     this.graphqlName = graphqlName;
     this.keyspaceName = keyspaceName;
     this.cqlName = cqlName;
@@ -66,6 +66,7 @@ public class EntityMappingModel {
     this.partitionKey = ImmutableList.copyOf(partitionKey);
     this.clusteringColumns = ImmutableList.copyOf(clusteringColumns);
     this.isFederated = isFederated;
+    this.inputTypeName = inputTypeName;
     this.primaryKey =
         ImmutableList.<FieldMappingModel>builder()
             .addAll(partitionKey)
@@ -122,6 +123,10 @@ public class EntityMappingModel {
     return isFederated;
   }
 
+  public Optional<String> getInputTypeName() {
+    return inputTypeName;
+  }
+
   AbstractBound<?> buildCreateQuery(QueryBuilder builder) {
     return target.buildCreateQuery(builder, this);
   }
@@ -167,8 +172,8 @@ public class EntityMappingModel {
       case TABLE:
         if (partitionKey.isEmpty()) {
           FieldMappingModel firstField = regularColumns.get(0);
-          if (isGraphqlId(firstField.getGraphqlType())) {
-            partitionKey.add(firstField);
+          if (TypeHelper.isGraphqlId(firstField.getGraphqlType())) {
+            partitionKey.add(firstField.asPartitionKey());
             regularColumns.remove(firstField);
           } else {
             context.addError(
@@ -190,6 +195,13 @@ public class EntityMappingModel {
         }
         break;
     }
+
+    Optional<String> inputTypeName =
+        DirectiveHelper.getDirective("cql_input", type)
+            .map(
+                d ->
+                    DirectiveHelper.getStringArgument(d, "name", context)
+                        .orElse(graphqlName + "Input"));
 
     // Check that if the @key directive is present, it matches the CQL primary key:
     List<Directive> keyDirectives = type.getDirectives("key");
@@ -257,14 +269,8 @@ public class EntityMappingModel {
             partitionKey,
             clusteringColumns,
             regularColumns,
-            isFederated));
-  }
-
-  private static boolean isGraphqlId(Type<?> type) {
-    if (type instanceof NonNullType) {
-      type = ((NonNullType) type).getType();
-    }
-    return type instanceof TypeName && ((TypeName) type).getName().equals("ID");
+            isFederated,
+            inputTypeName));
   }
 
   enum Target {
