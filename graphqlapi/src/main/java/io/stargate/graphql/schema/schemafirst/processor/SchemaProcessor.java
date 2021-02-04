@@ -22,6 +22,10 @@ import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorException;
 import graphql.language.EnumTypeDefinition;
+import graphql.language.InputObjectTypeDefinition;
+import graphql.language.InputValueDefinition;
+import graphql.language.NonNullType;
+import graphql.language.Type;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLEnumType;
@@ -43,7 +47,7 @@ import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.FederatedEntity;
 import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.FederatedEntityFetcher;
-import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.QueryFetcher;
+import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -79,9 +83,43 @@ public class SchemaProcessor {
     ProcessingContext context = new ProcessingContext(registry, keyspace);
     MappingModel mappingModel = MappingModel.build(registry, context);
 
+    addGeneratedTypes(mappingModel, registry);
+
     GraphQL graphql = buildGraphql(registry, mappingModel);
 
     return new ProcessedSchema(graphql, mappingModel, context.getMessages());
+  }
+
+  private void addGeneratedTypes(MappingModel mappingModel, TypeDefinitionRegistry registry) {
+    mappingModel.getEntities().values().stream()
+        .filter(e -> e.getInputTypeName().isPresent())
+        // TODO maybe allow the input type to already exist
+        // The annotation would only reference it. This would allow users to write their own if for
+        // some reason the generated version doesn't work.
+        .forEach(e -> registry.add(generateInputType(e)));
+  }
+
+  private InputObjectTypeDefinition generateInputType(EntityMappingModel entity) {
+    assert entity.getInputTypeName().isPresent();
+    InputObjectTypeDefinition.Builder builder =
+        InputObjectTypeDefinition.newInputObjectDefinition().name(entity.getInputTypeName().get());
+    entity
+        .getAllColumns()
+        .forEach(
+            c -> {
+              Type<?> type = c.getGraphqlType();
+              // Our INSERT implementation generates missing PK fields if their type is ID, so make
+              // them nullable in the input type.
+              if (c.isPrimaryKey() && TypeHelper.isGraphqlId(type) && type instanceof NonNullType) {
+                type = ((NonNullType) type).getType();
+              }
+              builder.inputValueDefinition(
+                  InputValueDefinition.newInputValueDefinition()
+                      .name(c.getGraphqlName())
+                      .type(type)
+                      .build());
+            });
+    return builder.build();
   }
 
   private GraphQL buildGraphql(TypeDefinitionRegistry registry, MappingModel mappingModel) {
@@ -140,12 +178,11 @@ public class SchemaProcessor {
 
   private GraphQLCodeRegistry buildCodeRegistry(MappingModel mappingModel) {
     GraphQLCodeRegistry.Builder builder = GraphQLCodeRegistry.newCodeRegistry();
-    for (QueryMappingModel model : mappingModel.getQueries()) {
+    for (OperationMappingModel operation : mappingModel.getOperations()) {
       builder.dataFetcher(
-          model.getCoordinates(),
-          new QueryFetcher(model, authenticationService, authorizationService, dataStoreFactory));
+          operation.getCoordinates(),
+          operation.getDataFetcher(authenticationService, authorizationService, dataStoreFactory));
     }
-    // TODO also handle mutations
     return builder.build();
   }
 

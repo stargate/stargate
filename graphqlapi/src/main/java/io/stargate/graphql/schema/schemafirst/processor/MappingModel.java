@@ -31,11 +31,11 @@ import java.util.Set;
 public class MappingModel {
 
   private final Map<String, EntityMappingModel> entities;
-  private final List<QueryMappingModel> queries;
+  private final List<OperationMappingModel> operations;
 
-  MappingModel(Map<String, EntityMappingModel> entities, List<QueryMappingModel> queries) {
+  MappingModel(Map<String, EntityMappingModel> entities, List<OperationMappingModel> operations) {
     this.entities = entities;
-    this.queries = queries;
+    this.operations = operations;
   }
 
   public Map<String, EntityMappingModel> getEntities() {
@@ -46,8 +46,8 @@ public class MappingModel {
     return getEntities().values().stream().anyMatch(EntityMappingModel::isFederated);
   }
 
-  public List<QueryMappingModel> getQueries() {
-    return queries;
+  public List<OperationMappingModel> getOperations() {
+    return operations;
   }
 
   /** @throws GraphqlErrorException */
@@ -84,11 +84,18 @@ public class MappingModel {
     }
     Map<String, EntityMappingModel> entities = entitiesBuilder.build();
 
-    ImmutableList.Builder<QueryMappingModel> queriesBuilder = ImmutableList.builder();
+    ImmutableList.Builder<OperationMappingModel> operationsBuilder = ImmutableList.builder();
     for (FieldDefinition query : queryType.getFieldDefinitions()) {
       QueryMappingModel.build(query, queryType.getName(), entities, context)
-          .ifPresent(queriesBuilder::add);
+          .ifPresent(operationsBuilder::add);
     }
+    maybeMutationType.ifPresent(
+        mutationType -> {
+          for (FieldDefinition mutation : mutationType.getFieldDefinitions()) {
+            MutationMappingModel.build(mutation, mutationType.getName(), entities, context)
+                .ifPresent(operationsBuilder::add);
+          }
+        });
 
     if (!context.getErrors().isEmpty()) {
       // No point in continuing to validation if the model is broken
@@ -99,7 +106,7 @@ public class MappingModel {
           .extensions(ImmutableMap.of("mappingErrors", context.getErrors()))
           .build();
     }
-    return new MappingModel(entities, queriesBuilder.build());
+    return new MappingModel(entities, operationsBuilder.build());
   }
 
   private static Optional<ObjectTypeDefinition> getOperationType(
