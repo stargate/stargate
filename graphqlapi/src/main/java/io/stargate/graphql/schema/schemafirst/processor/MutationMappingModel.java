@@ -15,12 +15,14 @@
  */
 package io.stargate.graphql.schema.schemafirst.processor;
 
-import com.google.common.collect.ImmutableList;
 import graphql.language.FieldDefinition;
-import java.util.Arrays;
+import graphql.language.InputValueDefinition;
+import graphql.language.ListType;
+import graphql.language.Type;
+import graphql.language.TypeName;
+import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public abstract class MutationMappingModel extends OperationMappingModel {
 
@@ -28,84 +30,35 @@ public abstract class MutationMappingModel extends OperationMappingModel {
     super(parentTypeName, field);
   }
 
-  public static Optional<MutationMappingModel> build(
-      FieldDefinition mutation,
-      String parentName,
+  protected static Optional<EntityMappingModel> findEntity(
+      InputValueDefinition input,
       Map<String, EntityMappingModel> entities,
-      ProcessingContext context) {
-    return detectType(mutation, context)
-        .flatMap(type -> type.buildModel(mutation, parentName, entities, context));
-  }
+      ProcessingContext context,
+      String mutationKind) {
 
-  private static Optional<Kind> detectType(FieldDefinition mutation, ProcessingContext context) {
-    for (Kind kind : Kind.values()) {
-      if (mutation.hasDirective(kind.getDirectiveName())) {
-        return Optional.of(kind);
-      }
-    }
-    for (Kind kind : Kind.values()) {
-      for (String prefix : kind.getPrefixes()) {
-        if (mutation.getName().startsWith(prefix)) {
-          return Optional.of(kind);
-        }
-      }
-    }
-    context.addError(
-        mutation.getSourceLocation(),
-        ProcessingMessageType.InvalidMapping,
-        "Could not infer mutation kind. Either use one of the mutation directives (%s), "
-            + "or name your operation with a recognized prefix.",
-        Arrays.stream(Kind.values()).map(Kind::getDirectiveName).collect(Collectors.joining(", ")));
-    return Optional.empty();
-  }
+    Type<?> type = TypeHelper.unwrapNonNull(input.getType());
 
-  /**
-   * The type of mutation that a GraphQL operation is mapped to. It's inferred either from an
-   * explicit directive, or otherwise from a set of predefined name prefixes.
-   */
-  private enum Kind {
-    INSERT("cql_insert", "insert", "create") {
-      @Override
-      Optional<MutationMappingModel> buildModel(
-          FieldDefinition mutation,
-          String parentName,
-          Map<String, EntityMappingModel> entities,
-          ProcessingContext context) {
-        return InsertMappingModel.build(mutation, parentName, entities, context);
-      }
-    },
-    DELETE("cql_delete", "delete", "remove") {
-      @Override
-      Optional<MutationMappingModel> buildModel(
-          FieldDefinition mutation,
-          String parentName,
-          Map<String, EntityMappingModel> entities,
-          ProcessingContext context) {
-        throw new UnsupportedOperationException("TODO");
-      }
-    },
-    ;
-
-    private final String directiveName;
-    private final Iterable<String> prefixes;
-
-    Kind(String directiveName, String... prefixes) {
-      this.directiveName = directiveName;
-      this.prefixes = ImmutableList.copyOf(prefixes);
+    if (type instanceof ListType) {
+      context.addError(
+          input.getSourceLocation(),
+          ProcessingMessageType.InvalidMapping,
+          "Unexpected list type, %s mutations expect a single entity",
+          mutationKind);
+      return Optional.empty();
     }
 
-    String getDirectiveName() {
-      return directiveName;
+    String inputTypeName = ((TypeName) type).getName();
+    Optional<EntityMappingModel> entity =
+        entities.values().stream()
+            .filter(e -> e.getInputTypeName().map(name -> name.equals(inputTypeName)).orElse(false))
+            .findFirst();
+    if (!entity.isPresent()) {
+      context.addError(
+          input.getSourceLocation(),
+          ProcessingMessageType.InvalidMapping,
+          "Unexpected type, " + "%s mutations expect an input object that maps to a CQL entity",
+          mutationKind);
     }
-
-    Iterable<String> getPrefixes() {
-      return prefixes;
-    }
-
-    abstract Optional<MutationMappingModel> buildModel(
-        FieldDefinition mutation,
-        String parentName,
-        Map<String, EntityMappingModel> entities,
-        ProcessingContext context);
+    return entity;
   }
 }
