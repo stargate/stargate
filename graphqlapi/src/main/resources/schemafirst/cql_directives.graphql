@@ -52,3 +52,15 @@ directive @cql_column(
     type: String
 
 ) on FIELD_DEFINITION
+
+# Indicate that a mutation should be mapped to a CQL INSERT query.
+# Note that this is not required if the mutation name starts with `insert` or `create`.
+directive @cql_insert on FIELD_DEFINITION
+
+# Indicate that a mutation should be mapped to a CQL UPDATE query.
+# Note that this is not required if the mutation name starts with `update`.
+directive @cql_update on FIELD_DEFINITION
+
+# Indicate that a mutation should be mapped to a CQL DELETE query.
+# Note that this is not required if the mutation name starts with `delete` or `remove`.
+directive @cql_delete on FIELD_DEFINITION
