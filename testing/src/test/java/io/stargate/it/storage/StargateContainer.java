@@ -19,6 +19,8 @@ import static io.stargate.starter.Starter.STARTED_MESSAGE;
 import static java.lang.management.ManagementFactory.getRuntimeMXBean;
 
 import com.datastax.oss.driver.api.core.Version;
+import io.stargate.it.exec.OutputListener;
+import io.stargate.it.exec.ProcessRunner;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -29,6 +31,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,19 +39,9 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.exec.CommandLine;
-import org.apache.commons.exec.DefaultExecutor;
-import org.apache.commons.exec.ExecuteException;
-import org.apache.commons.exec.ExecuteResultHandler;
-import org.apache.commons.exec.ExecuteWatchdog;
-import org.apache.commons.exec.Executor;
-import org.apache.commons.exec.LogOutputStream;
-import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.FileUtils;
 import org.assertj.core.util.Strings;
 import org.junit.jupiter.api.Assertions;
@@ -79,8 +72,6 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
   private static final String ARGS_PROVIDER_CLASS_NAME =
       System.getProperty("stargate.test.args.provider.class", ArgumentProviderImpl.class.getName());
   private static final File LIB_DIR = initLibDir();
-  private static final int PROCESS_WAIT_MINUTES =
-      Integer.getInteger("stargate.test.process.wait.timeout.minutes", 10);
   private static final int MAX_NODES = 10;
 
   /**
@@ -270,7 +261,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
       ShutdownHook.remove(this);
 
       for (Node node : nodes) {
-        node.stopNode();
+        node.stop();
       }
 
       for (Node node : nodes) {
@@ -327,7 +318,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
             "Removing a node from a shared cluster is not supported");
       }
       Node internalNode = (Node) node;
-      internalNode.stopNode();
+      internalNode.stop();
       internalNode.awaitExit();
       nodes.remove(node);
     }
@@ -347,23 +338,18 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     }
   }
 
-  private static class Node implements StargateConnectionInfo, ExecuteResultHandler {
+  private static class Node extends ProcessRunner implements StargateConnectionInfo {
 
     private final UUID id = UUID.randomUUID();
     private final int nodeIndex;
-    private final int instanceNum;
     private final String listenAddress;
     private final String clusterName;
     private final CommandLine cmd;
-    private final ExecuteWatchdog watchDog = new ExecuteWatchdog(ExecuteWatchdog.INFINITE_TIMEOUT);
-    private final CompletableFuture<Void> ready = new CompletableFuture<>();
-    private final CountDownLatch exit = new CountDownLatch(1);
     private final int cqlPort;
     private final int jmxPort;
     private final String datacenter;
     private final String rack;
     private final File cacheDir;
-    private final Collection<OutputListener> stdoutListeners = new ConcurrentLinkedQueue<>();
 
     private Node(
         int nodeIndex,
@@ -372,8 +358,8 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
         Env env,
         StargateParameters params)
         throws Exception {
+      super("Stargate", instanceNum, nodeIndex);
       this.nodeIndex = nodeIndex;
-      this.instanceNum = instanceNum;
       this.listenAddress = env.listenAddress(nodeIndex);
       this.cqlPort = env.cqlPort();
       this.jmxPort = env.jmxPort(nodeIndex);
@@ -430,6 +416,13 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
       cmd.addArgument(String.valueOf(cqlPort));
       cmd.addArgument("--jmx-port");
       cmd.addArgument(String.valueOf(jmxPort));
+
+      addStdOutListener(
+          (node, line) -> {
+            if (line.contains(STARTED_MESSAGE)) {
+              ready();
+            }
+          });
     }
 
     private Collection<String> args(ClusterConnectionInfo backend) {
@@ -444,114 +437,15 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     }
 
     private void start() {
-      try {
-        LogOutputStream out =
-            new LogOutputStream() {
-              @Override
-              protected void processLine(String line, int logLevel) {
-                if (line.contains(STARTED_MESSAGE)) {
-                  ready.complete(null);
-                }
-
-                for (OutputListener listener : stdoutListeners) {
-                  listener.processLine(nodeIndex, line);
-                }
-
-                LOG.info("sg{}-{}> {}", instanceNum, nodeIndex, line);
-              }
-            };
-        LogOutputStream err =
-            new LogOutputStream() {
-              @Override
-              protected void processLine(String line, int logLevel) {
-                LOG.error("sg{}-{}> {}", instanceNum, nodeIndex, line);
-              }
-            };
-
-        Executor executor =
-            new DefaultExecutor() {
-              @Override
-              protected Thread createThread(Runnable runnable, String name) {
-                return super.createThread(
-                    runnable, "stargate-runner-" + instanceNum + "-" + nodeIndex);
-              }
-            };
-
-        executor.setExitValues(new int[] {0, 143}); // normal exit, normal termination by SIGTERM
-        executor.setStreamHandler(new PumpStreamHandler(out, err));
-        executor.setWatchdog(watchDog);
-
-        try {
-          LOG.info("Starting Stargate {}, node {}: {}", instanceNum, nodeIndex, cmd);
-
-          executor.execute(cmd, this);
-
-        } catch (IOException e) {
-          LOG.info("Unable to run Stargate node {}: {}", nodeIndex, e.getMessage(), e);
-        }
-      } finally {
-        exit.countDown();
-      }
+      start(cmd, Collections.emptyMap());
     }
 
-    private void addStdOutListener(OutputListener listener) {
-      stdoutListeners.add(listener);
-    }
-
-    private void removeStdOutListener(OutputListener listener) {
-      stdoutListeners.remove(listener);
-    }
-
-    private void cleanup() {
+    @Override
+    protected void cleanup() {
       try {
         FileUtils.deleteDirectory(cacheDir);
       } catch (IOException e) {
         LOG.info("Unable to delete cache dir for Stargate node {}", nodeIndex, e);
-      }
-    }
-
-    @Override
-    public void onProcessComplete(int exitValue) {
-      LOG.info(
-          "Stargate {}, node {} existed with return code {}", instanceNum, nodeIndex, exitValue);
-      cleanup();
-      ready.complete(null); // just in case
-      exit.countDown();
-    }
-
-    @Override
-    public void onProcessFailed(ExecuteException e) {
-      LOG.info(
-          "Stargate {}, node {} failed with exception: {}",
-          instanceNum,
-          nodeIndex,
-          e.getMessage(),
-          e);
-      cleanup();
-      ready.completeExceptionally(e);
-      exit.countDown();
-    }
-
-    private void stopNode() {
-      LOG.info("Stopping Stargate {}, node {}", instanceNum, nodeIndex);
-      watchDog.destroyProcess();
-    }
-
-    private void awaitReady() {
-      try {
-        ready.get(PROCESS_WAIT_MINUTES, TimeUnit.MINUTES);
-      } catch (Exception e) {
-        throw new IllegalStateException(e);
-      }
-    }
-
-    private void awaitExit() {
-      try {
-        if (!exit.await(PROCESS_WAIT_MINUTES, TimeUnit.MINUTES)) {
-          throw new IllegalStateException("Stargate node did not exit: " + nodeIndex);
-        }
-      } catch (InterruptedException e) {
-        throw new IllegalStateException(e);
       }
     }
 

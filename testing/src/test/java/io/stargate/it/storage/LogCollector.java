@@ -15,6 +15,7 @@
  */
 package io.stargate.it.storage;
 
+import io.stargate.it.exec.OutputListener;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
