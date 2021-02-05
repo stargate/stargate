@@ -1,6 +1,7 @@
 package io.stargate.health;
 
 import static io.stargate.health.HealthCheckerActivator.BUNDLES_CHECK_NAME;
+import static io.stargate.health.HealthCheckerActivator.SCHEMA_CHECK_NAME;
 
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheck.Result;
@@ -51,11 +52,16 @@ public class CheckerResource {
     // Sufficient to just return a 200 OK since liveness just means "app is up and doesn't need
     // restarted"
     HealthCheck bundleHealthCheck = healthCheckRegistry.getHealthCheck(BUNDLES_CHECK_NAME);
-    if (bundleHealthCheck != null && bundleHealthCheck.execute().isHealthy()) {
-      return Response.status(Response.Status.OK).entity("UP").build();
+    if (bundleHealthCheck == null || !bundleHealthCheck.execute().isHealthy()) {
+      return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity("DOWN").build();
     }
 
-    return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity("DOWN").build();
+    HealthCheck schemaHealthCheck = healthCheckRegistry.getHealthCheck(SCHEMA_CHECK_NAME);
+    if (schemaHealthCheck == null || !schemaHealthCheck.execute().isHealthy()) {
+      return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity("DOWN").build();
+    }
+
+    return Response.status(Response.Status.OK).entity("UP").build();
   }
 
   @GET

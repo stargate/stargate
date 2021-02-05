@@ -24,6 +24,8 @@ import io.stargate.db.datastore.common.AbstractCassandraPersistence;
 import io.stargate.db.dse.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,6 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -265,6 +268,59 @@ public class DsePersistence
             .collect(Collectors.toSet())
             .size()
         <= 1;
+  }
+
+  private boolean isStorageInSchemaAgreement() {
+    // See comment in isInSchemaAgreement()
+    // Here we also exclude Stargate nodes (isGossipOnlyMember)
+    return Gossiper.instance.getLiveMembers().stream()
+            .filter(
+                ep -> {
+                  EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
+                  return epState != null
+                      && !Gossiper.instance.isDeadState(epState)
+                      && !Gossiper.instance.isGossipOnlyMember(ep);
+                })
+            .map(Gossiper.instance::getSchemaVersion)
+            .collect(Collectors.toSet())
+            .size()
+        <= 1;
+  }
+
+  @Override
+  public boolean isSchemaAgreementAchievable() {
+    try {
+      if (isInSchemaAgreement()) {
+        return true;
+      }
+
+      if (!isStorageInSchemaAgreement()) {
+        // Assume storage nodes are still disseminating schema data and will agree eventually.
+        // Note: isSchemaAgreementAchievable() is used to determine if the Stargate node should
+        // be restarted. In case storage nodes do not agree among themselves, restarting Stargate
+        // will not help, so there's no point returning false in this situation even if the
+        // schema disagreement at storage level is perpetual.
+        logger.debug("Storage nodes are not in schema agreement");
+        return true;
+      }
+
+      // At this point storage nodes agree among themselves,
+      // but Stargate has a different schema version.
+      Set<?> outstandingRequests = PullRequestGetter.nonCompletedPullRequests();
+      if (!outstandingRequests.isEmpty()) {
+        // Some schema pull tasks are still in progress or scheduled for execution.
+        // Assume schema may be synchronized later.
+        return true;
+      }
+
+      // No outstanding pull tasks (including retries).
+      // Note: in practice schema pulls can be retried for a rather long period of time.
+      logger.error("Schema agreement is not achievable");
+      return false;
+
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   @Override
@@ -528,6 +584,33 @@ public class DsePersistence
         return ((SimpleStatement) statement).queryString();
       } else {
         return Conversion.toInternal(((BoundStatement) statement).preparedId());
+      }
+    }
+  }
+
+  private static class PullRequestGetter {
+    private static final Field schedulerField;
+    private static final Method nonCompletedPullRequestsMethod;
+    private static final Object scheduler; // PullRequestScheduler
+
+    static {
+      try {
+        schedulerField = MigrationManager.class.getDeclaredField("scheduler");
+        schedulerField.setAccessible(true);
+        scheduler = schedulerField.get(MigrationManager.instance);
+        nonCompletedPullRequestsMethod =
+            scheduler.getClass().getDeclaredMethod("nonCompletedPullRequest");
+        nonCompletedPullRequestsMethod.setAccessible(true);
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
+    private static Set<?> nonCompletedPullRequests() {
+      try {
+        return (Set<?>) nonCompletedPullRequestsMethod.invoke(scheduler);
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
       }
     }
   }

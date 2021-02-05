@@ -20,8 +20,10 @@ import io.stargate.db.Statement;
 import io.stargate.db.cassandra.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import io.stargate.db.datastore.common.AbstractCassandraPersistence;
+import io.stargate.db.datastore.common.util.SchemaAgreementAchievableCheck;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -73,6 +75,7 @@ import org.apache.cassandra.transport.messages.StartupMessage;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.apache.cassandra.utils.MD5Digest;
+import org.apache.cassandra.utils.SystemTimeSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,6 +98,21 @@ public class CassandraPersistence
       Integer.getInteger(
           "stargate.startup_delay_ms",
           3 * 60000); // MigrationManager.MIGRATION_DELAY_IN_MS is private
+
+  // SCHEMA_SYNC_GRACE_PERIOD should be longer than MigrationManager.MIGRATION_DELAY_IN_MS to allow
+  // the schema pull tasks to be initiated, plus some time for executing the pull requests plus
+  // some time to merge the responses. By default the pull task timeout is equal to
+  // DatabaseDescriptor.getRpcTimeout() (10 sec) and there are no retries. We assume that the merge
+  // operation should complete within the default MIGRATION_DELAY_IN_MS.
+  private static final Duration SCHEMA_SYNC_GRACE_PERIOD =
+      Duration.ofMillis(Long.getLong("stargate.schema_sync_grace_period_ms", 2 * 60_000 + 10_000));
+
+  private final SchemaAgreementAchievableCheck schemaCheck =
+      new SchemaAgreementAchievableCheck(
+          this::isInSchemaAgreement,
+          this::isStorageInSchemaAgreement,
+          SCHEMA_SYNC_GRACE_PERIOD,
+          new SystemTimeSource());
 
   private LocalAwareExecutorService executor;
 
@@ -170,6 +188,8 @@ public class CassandraPersistence
     // Use special gossip state "X10" to differentiate stargate nodes
     Gossiper.instance.addLocalApplicationState(
         ApplicationState.X10, StorageService.instance.valueFactory.releaseVersion("stargate"));
+
+    Gossiper.instance.register(schemaCheck);
 
     daemon.start();
 
@@ -272,6 +292,28 @@ public class CassandraPersistence
             .collect(Collectors.toSet())
             .size()
         <= 1;
+  }
+
+  private boolean isStorageInSchemaAgreement() {
+    // See comment in isInSchemaAgreement()
+    // Here we also exclude Stargate nodes (isGossipOnlyMember)
+    return Gossiper.instance.getLiveMembers().stream()
+            .filter(
+                ep -> {
+                  EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
+                  return epState != null
+                      && !Gossiper.instance.isDeadState(epState)
+                      && !Gossiper.instance.isGossipOnlyMember(ep);
+                })
+            .map(Gossiper.instance::getSchemaVersion)
+            .collect(Collectors.toSet())
+            .size()
+        <= 1;
+  }
+
+  @Override
+  public boolean isSchemaAgreementAchievable() {
+    return schemaCheck.check();
   }
 
   @Override
