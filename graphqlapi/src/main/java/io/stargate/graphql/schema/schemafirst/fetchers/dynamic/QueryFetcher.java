@@ -19,6 +19,7 @@ import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.schema.schemafirst.processor.QueryMappingModel;
@@ -42,11 +43,13 @@ public class QueryFetcher extends DynamicFetcher<Map<String, Object>> {
   protected Map<String, Object> get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
-      AuthenticationSubject authenticationSubject) {
+      AuthenticationSubject authenticationSubject)
+      throws UnauthorizedException {
     return querySingleEntity(
         model.getEntity(),
         environment.getArguments(),
         Optional.of(model.getInputNames()),
-        dataStore);
+        dataStore,
+        authenticationSubject);
   }
 }

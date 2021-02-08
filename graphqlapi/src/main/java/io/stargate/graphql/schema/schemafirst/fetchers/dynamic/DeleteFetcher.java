@@ -19,8 +19,13 @@ import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
+import io.stargate.auth.TypedKeyValue;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
+import io.stargate.db.query.BoundDelete;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
@@ -48,7 +53,8 @@ public class DeleteFetcher extends DynamicFetcher<Boolean> {
   protected Boolean get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
-      AuthenticationSubject authenticationSubject) {
+      AuthenticationSubject authenticationSubject)
+      throws UnauthorizedException {
 
     EntityMappingModel entityModel = model.getEntity();
     Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
@@ -72,6 +78,15 @@ public class DeleteFetcher extends DynamicFetcher<Boolean> {
             .where(conditions)
             .build()
             .bind();
+
+    authorizationService.authorizeDataWrite(
+        authenticationSubject,
+        entityModel.getKeyspaceName(),
+        entityModel.getCqlName(),
+        TypedKeyValue.forDML((BoundDelete) query),
+        Scope.DELETE,
+        SourceAPI.GRAPHQL);
+
     executeUnchecked(query, dataStore);
 
     return true;
