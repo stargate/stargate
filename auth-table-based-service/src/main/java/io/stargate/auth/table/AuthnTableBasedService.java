@@ -133,7 +133,16 @@ public class AuthnTableBasedService implements AuthenticationService {
     return token.toString();
   }
 
-  private void saveToken(String key, UUID token) {
+  /**
+   * Stores a token and key in the {@code AUTH_TABLE} with the proper TTL settings. Intended to be
+   * used as part of createToken within this class or in conjunction with another auth service where
+   * you wish to authenticate with one mechanism initially but still want the ability to hand out a
+   * time bound token for further authentication.
+   *
+   * @param key The key which is to be associated with the token.
+   * @param token The token to be stored and used in later requests.
+   */
+  public void saveToken(String key, UUID token) {
     try {
       Instant instant = Instant.now();
 
