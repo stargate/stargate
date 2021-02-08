@@ -20,14 +20,15 @@ import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Executes the {@code _entities} query of GraphQL federation.
@@ -53,12 +54,22 @@ public class FederatedEntityFetcher extends DynamicFetcher<List<FederatedEntity>
   protected List<FederatedEntity> get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
-      AuthenticationSubject authenticationSubject) {
-    List<Map<String, Object>> representations = environment.getArgument(_Entity.argumentName);
-    return representations.stream().map(r -> getEntity(r, dataStore)).collect(Collectors.toList());
+      AuthenticationSubject authenticationSubject)
+      throws UnauthorizedException {
+
+    List<FederatedEntity> result = new ArrayList<>();
+    for (Map<String, Object> representation :
+        environment.<List<Map<String, Object>>>getArgument(_Entity.argumentName)) {
+      result.add(getEntity(representation, dataStore, authenticationSubject));
+    }
+    return result;
   }
 
-  private FederatedEntity getEntity(Map<String, Object> representation, DataStore dataStore) {
+  private FederatedEntity getEntity(
+      Map<String, Object> representation,
+      DataStore dataStore,
+      AuthenticationSubject authenticationSubject)
+      throws UnauthorizedException {
     Object rawTypeName = representation.get("__typename");
     if (!(rawTypeName instanceof String)) {
       throw new IllegalArgumentException(
@@ -70,6 +81,8 @@ public class FederatedEntityFetcher extends DynamicFetcher<List<FederatedEntity>
       throw new IllegalArgumentException(String.format("Unknown entity type %s", entityName));
     }
     return FederatedEntity.wrap(
-        entity, querySingleEntity(entity, representation, Optional.empty(), dataStore));
+        entity,
+        querySingleEntity(
+            entity, representation, Optional.empty(), dataStore, authenticationSubject));
   }
 }

@@ -16,11 +16,16 @@
 package io.stargate.graphql.schema.schemafirst.fetchers.dynamic;
 
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.SourceAPI;
+import io.stargate.auth.TypedKeyValue;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
+import io.stargate.db.query.BoundSelect;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
@@ -74,7 +79,9 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
       EntityMappingModel entity,
       Map<String, Object> values,
       Optional<List<String>> valueNames,
-      DataStore dataStore) {
+      DataStore dataStore,
+      AuthenticationSubject authenticationSubject)
+      throws UnauthorizedException {
     List<BuiltCondition> whereConditions = new ArrayList<>();
     for (int i = 0; i < entity.getPrimaryKey().size(); i++) {
       FieldMappingModel field = entity.getPrimaryKey().get(i);
@@ -98,7 +105,25 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
             .build()
             .bind();
 
-    ResultSet resultSet = executeUnchecked(query, dataStore);
+    ResultSet resultSet;
+    try {
+      resultSet =
+          authorizationService.authorizedDataRead(
+              () -> executeUnchecked(query, dataStore),
+              authenticationSubject,
+              entity.getKeyspaceName(),
+              entity.getCqlName(),
+              TypedKeyValue.forSelect((BoundSelect) query),
+              SourceAPI.GRAPHQL);
+    } catch (Exception e) {
+      if (e instanceof UnauthorizedException) {
+        throw (UnauthorizedException) e;
+      } else if (e instanceof RuntimeException) {
+        throw (RuntimeException) e;
+      } else {
+        throw new RuntimeException(e);
+      }
+    }
     if (resultSet.hasNoMoreFetchedRows()) {
       return null;
     }
