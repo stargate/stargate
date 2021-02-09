@@ -27,13 +27,10 @@ import io.stargate.graphql.persistence.schemafirst.SchemaSource;
 import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
 import io.stargate.graphql.schema.CassandraFetcher;
 import java.time.ZonedDateTime;
-import java.util.Collections;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
-public class SchemaFetcher extends CassandraFetcher<Map<String, Object>> {
-
-  public SchemaFetcher(
+public class SchemasPerNamespaceFetcher extends CassandraFetcher<List<Map<String, Object>>> {
+  public SchemasPerNamespaceFetcher(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
@@ -41,12 +38,11 @@ public class SchemaFetcher extends CassandraFetcher<Map<String, Object>> {
   }
 
   @Override
-  protected Map<String, Object> get(
+  protected List<Map<String, Object>> get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)
       throws Exception {
-
     String namespace = environment.getArgument("namespace");
     if (!dataStore.schema().keyspaceNames().contains(namespace)) {
       throw new IllegalArgumentException(
@@ -58,20 +54,23 @@ public class SchemaFetcher extends CassandraFetcher<Map<String, Object>> {
         Collections.singletonList(namespace),
         Collections.singletonList(SchemaSourceDao.TABLE_NAME),
         SourceAPI.GRAPHQL);
-
-    ImmutableMap.Builder<String, Object> result = ImmutableMap.builder();
-    result.put("namespace", namespace);
-    SchemaSource source = new SchemaSourceDao(dataStore).getLatest(namespace);
-    if (source != null) {
-      UUID version = source.getVersion();
-      ZonedDateTime deployDate = source.getDeployDate();
-      String contents =
-          String.format("# Schema for '%s', version %s (%s)\n\n", namespace, version, deployDate)
-              + source.getContents();
-      result.put("version", version);
-      result.put("deployDate", deployDate);
-      result.put("contents", contents);
+    List<SchemaSource> schemas = new SchemaSourceDao(dataStore).getSchemaHistory(namespace);
+    List<Map<String, Object>> result = new ArrayList<>(schemas.size());
+    for (SchemaSource source : schemas) {
+      ImmutableMap.Builder<String, Object> singleResult = ImmutableMap.builder();
+      singleResult.put("namespace", namespace);
+      if (source != null) {
+        UUID version = source.getVersion();
+        ZonedDateTime deployDate = source.getDeployDate();
+        String contents =
+            String.format("# Schema for '%s', version %s (%s)\n\n", namespace, version, deployDate)
+                + source.getContents();
+        singleResult.put("version", version);
+        singleResult.put("deployDate", deployDate);
+        singleResult.put("contents", contents);
+      }
+      result.add(singleResult.build());
     }
-    return result.build();
+    return result;
   }
 }

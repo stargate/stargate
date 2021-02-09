@@ -26,8 +26,10 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.schemafirst.util.Uuids;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 // TODO purge old entries
 public class SchemaSourceDao {
@@ -48,6 +50,39 @@ public class SchemaSourceDao {
 
   public SchemaSourceDao(DataStore dataStore) {
     this.dataStore = dataStore;
+  }
+
+  public List<SchemaSource> getSchemaHistory(String namespace) throws Exception {
+    Keyspace keyspace;
+    Table table;
+    if ((keyspace = dataStore.schema().keyspace(namespace)) == null
+        || (table = keyspace.table(TABLE_NAME)) == null) {
+      return Collections.emptyList();
+    }
+    failIfUnexpectedSchema(namespace, table);
+
+    List<Row> row =
+        dataStore
+            .execute(
+                dataStore
+                    .queryBuilder()
+                    .select()
+                    .column(VERSION_COLUMN_NAME, CONTENTS_COLUMN_NAME)
+                    .from(namespace, TABLE_NAME)
+                    .where(KEY_CONDITION)
+                    .build()
+                    .bind())
+            .get()
+            .rows();
+    if (row == null) {
+      return Collections.emptyList();
+    }
+    return row.stream()
+        .map(
+            r ->
+                new SchemaSource(
+                    namespace, r.getUuid(VERSION_COLUMN_NAME), r.getString(CONTENTS_COLUMN_NAME)))
+        .collect(Collectors.toList());
   }
 
   public SchemaSource getLatest(String namespace) throws Exception {
