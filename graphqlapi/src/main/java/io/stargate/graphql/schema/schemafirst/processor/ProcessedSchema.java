@@ -16,20 +16,23 @@
 package io.stargate.graphql.schema.schemafirst.processor;
 
 import graphql.GraphQL;
-import io.stargate.db.datastore.DataStore;
 import java.util.List;
 
 public class ProcessedSchema {
 
-  private final GraphQL graphql;
   private final MappingModel mappingModel;
+  private final GraphQL graphql;
   private final List<ProcessingMessage> messages;
 
   public ProcessedSchema(
-      GraphQL graphql, MappingModel mappingModel, List<ProcessingMessage> messages) {
-    this.graphql = graphql;
+      MappingModel mappingModel, GraphQL graphql, List<ProcessingMessage> messages) {
     this.mappingModel = mappingModel;
+    this.graphql = graphql;
     this.messages = messages;
+  }
+
+  public MappingModel getMappingModel() {
+    return mappingModel;
   }
 
   public GraphQL getGraphql() {
@@ -38,12 +41,5 @@ public class ProcessedSchema {
 
   public List<ProcessingMessage> getMessages() {
     return messages;
-  }
-
-  public void dropAndRecreateSchema(DataStore dataStore) throws Exception {
-    for (EntityMappingModel entity : mappingModel.getEntities().values()) {
-      dataStore.execute(entity.buildDropQuery(dataStore.queryBuilder())).get();
-      dataStore.execute(entity.buildCreateQuery(dataStore.queryBuilder())).get();
-    }
   }
 }
