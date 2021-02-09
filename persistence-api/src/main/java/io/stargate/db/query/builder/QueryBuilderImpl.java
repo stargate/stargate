@@ -77,7 +77,10 @@ import org.javatuples.Pair;
           name = "table",
           definedAs =
               "(create table ifNotExists? column+ withComment? withDefaultTTL?) | (alter table (((addColumn+)? | (dropColumn+)? | (renameColumn+)?) | (withComment? withDefaultTTL?))) | (drop table ifExists?) | (truncate table)"),
-      @SubExpr(name = "type", definedAs = "(create type ifNotExists?)|(drop type ifExists?)"),
+      @SubExpr(
+          name = "type",
+          definedAs =
+              "(create type ifNotExists?) | (drop type ifExists?) | (alter type addColumn+)"),
       @SubExpr(name = "insert", definedAs = "insertInto value+ ifNotExists? ttl? timestamp?"),
       @SubExpr(name = "update", definedAs = "update ttl? timestamp? value+ where+ ifs* ifExists?"),
       @SubExpr(name = "delete", definedAs = "delete column* from timestamp? where+ ifs* ifExists?"),
@@ -755,6 +758,9 @@ public class QueryBuilderImpl {
     if (isType && isDrop) {
       return dropType();
     }
+    if (isType && isAlter) {
+      return alterType();
+    }
 
     if (isInsert) {
       return insertQuery();
@@ -1196,6 +1202,21 @@ public class QueryBuilderImpl {
       throw invalid("User type %s.%s does not exists", keyspace.cqlName(), type.cqlName());
     }
     query.append(keyspace.cqlName()).append('.').append(type.cqlName());
+    return new BuiltOther(valueCodec, executor, query.toString());
+  }
+
+  private BuiltQuery<?> alterType() {
+    StringBuilder query = new StringBuilder();
+    Keyspace keyspace = schemaKeyspace();
+    query.append("ALTER TYPE ");
+    query.append(keyspace.cqlName()).append('.').append(type.cqlName());
+    assert !addColumns.isEmpty();
+    query.append(" ADD (");
+    query.append(
+        addColumns.stream()
+            .map(c -> c.cqlName() + " " + c.type().cqlDefinition())
+            .collect(Collectors.joining(", ")));
+    query.append(")");
     return new BuiltOther(valueCodec, executor, query.toString());
   }
 
