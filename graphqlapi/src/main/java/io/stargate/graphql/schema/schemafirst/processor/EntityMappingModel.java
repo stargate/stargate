@@ -21,10 +21,11 @@ import com.google.common.collect.ImmutableSet;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.ObjectTypeDefinition;
-import io.stargate.db.query.builder.AbstractBound;
-import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.ImmutableColumn;
+import io.stargate.db.schema.ImmutableTable;
 import io.stargate.db.schema.ImmutableUserDefinedType;
+import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.util.ArrayList;
@@ -49,6 +50,8 @@ public class EntityMappingModel {
   private final List<FieldMappingModel> primaryKey;
   private final List<FieldMappingModel> regularColumns;
   private final List<FieldMappingModel> allColumns;
+  private final Table tableCqlSchema;
+  private final UserDefinedType udtCqlSchema;
   private final boolean isFederated;
   private final Optional<String> inputTypeName;
 
@@ -60,16 +63,20 @@ public class EntityMappingModel {
       List<FieldMappingModel> partitionKey,
       List<FieldMappingModel> clusteringColumns,
       List<FieldMappingModel> regularColumns,
+      Table tableCqlSchema,
+      UserDefinedType udtCqlSchema,
       boolean isFederated,
       Optional<String> inputTypeName) {
+
+    assert (target == Target.TABLE && tableCqlSchema != null && udtCqlSchema == null)
+        || (target == Target.UDT && tableCqlSchema == null && udtCqlSchema != null);
+
     this.graphqlName = graphqlName;
     this.keyspaceName = keyspaceName;
     this.cqlName = cqlName;
     this.target = target;
     this.partitionKey = ImmutableList.copyOf(partitionKey);
     this.clusteringColumns = ImmutableList.copyOf(clusteringColumns);
-    this.isFederated = isFederated;
-    this.inputTypeName = inputTypeName;
     this.primaryKey =
         ImmutableList.<FieldMappingModel>builder()
             .addAll(partitionKey)
@@ -81,6 +88,10 @@ public class EntityMappingModel {
             .addAll(primaryKey)
             .addAll(regularColumns)
             .build();
+    this.tableCqlSchema = tableCqlSchema;
+    this.udtCqlSchema = udtCqlSchema;
+    this.isFederated = isFederated;
+    this.inputTypeName = inputTypeName;
   }
 
   public String getGraphqlName() {
@@ -122,20 +133,26 @@ public class EntityMappingModel {
     return allColumns;
   }
 
+  public Table getTableCqlSchema() {
+    if (target != Target.TABLE) {
+      throw new UnsupportedOperationException("Can't call this method when target = " + target);
+    }
+    return tableCqlSchema;
+  }
+
+  public UserDefinedType getUdtCqlSchema() {
+    if (target != Target.UDT) {
+      throw new UnsupportedOperationException("Can't call this method when target = " + target);
+    }
+    return udtCqlSchema;
+  }
+
   public boolean isFederated() {
     return isFederated;
   }
 
   public Optional<String> getInputTypeName() {
     return inputTypeName;
-  }
-
-  AbstractBound<?> buildCreateQuery(QueryBuilder builder) {
-    return target.buildCreateQuery(builder, this);
-  }
-
-  AbstractBound<?> buildDropQuery(QueryBuilder builder) {
-    return target.buildDropQuery(builder, this);
   }
 
   static Optional<EntityMappingModel> build(ObjectTypeDefinition type, ProcessingContext context) {
@@ -170,6 +187,8 @@ public class EntityMappingModel {
               });
     }
 
+    Table tableCqlSchema;
+    UserDefinedType udtCqlSchema;
     // Check that we have the necessary kinds of columns depending on the target:
     switch (target) {
       case TABLE:
@@ -194,6 +213,14 @@ public class EntityMappingModel {
             return Optional.empty();
           }
         }
+        tableCqlSchema =
+            buildCqlTable(
+                context.getKeyspace().name(),
+                cqlName,
+                partitionKey,
+                clusteringColumns,
+                regularColumns);
+        udtCqlSchema = null;
         break;
       case UDT:
         if (regularColumns.isEmpty()) {
@@ -204,9 +231,11 @@ public class EntityMappingModel {
               graphqlName);
           return Optional.empty();
         }
+        tableCqlSchema = null;
+        udtCqlSchema = buildCqlUdt(context.getKeyspace().name(), cqlName, regularColumns);
         break;
       default:
-        throw new UnsupportedOperationException("Unsupported target type");
+        throw new AssertionError("Unexpected target " + target);
     }
 
     Optional<String> inputTypeName =
@@ -297,101 +326,79 @@ public class EntityMappingModel {
             partitionKey,
             clusteringColumns,
             regularColumns,
+            tableCqlSchema,
+            udtCqlSchema,
             isFederated,
             inputTypeName));
   }
 
-  enum Target {
-    TABLE {
-      @Override
-      AbstractBound<?> buildCreateQuery(QueryBuilder builder, EntityMappingModel entity) {
-
-        List<Column> partitionKeyColumns =
-            entity.getPartitionKey().stream()
+  private static Table buildCqlTable(
+      String keyspaceName,
+      String tableName,
+      List<FieldMappingModel> partitionKey,
+      List<FieldMappingModel> clusteringColumns,
+      List<FieldMappingModel> regularColumns) {
+    return ImmutableTable.builder()
+        .keyspace(keyspaceName)
+        .name(tableName)
+        .addAllColumns(
+            partitionKey.stream()
                 .map(
                     field ->
-                        Column.create(
-                            field.getCqlName(), Column.Kind.PartitionKey, field.getCqlType()))
-                .collect(Collectors.toList());
-        List<Column> clusteringColumns =
-            entity.getClusteringColumns().stream()
+                        cqlColumnBuilder(keyspaceName, tableName, field)
+                            .kind(Column.Kind.PartitionKey)
+                            .build())
+                .collect(Collectors.toList()))
+        .addAllColumns(
+            clusteringColumns.stream()
                 .map(
                     field -> {
-                      // We only put fields here if they have an order:
                       assert field.getClusteringOrder().isPresent();
-                      return Column.create(
-                          field.getCqlName(),
-                          Column.Kind.Clustering,
-                          field.getCqlType(),
-                          field.getClusteringOrder().get());
+                      return cqlColumnBuilder(keyspaceName, tableName, field)
+                          .kind(Column.Kind.Clustering)
+                          .order(field.getClusteringOrder().get())
+                          .build();
                     })
-                .collect(Collectors.toList());
-        List<Column> regularColumns =
-            entity.getRegularColumns().stream()
-                .map(field -> Column.create(field.getCqlName(), field.getCqlType()))
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()))
+        .addAllColumns(
+            regularColumns.stream()
+                .map(
+                    field ->
+                        cqlColumnBuilder(keyspaceName, tableName, field)
+                            .kind(Column.Kind.Regular)
+                            .build())
+                .collect(Collectors.toList()))
+        .build();
+  }
 
-        return builder
-            .create()
-            .table(entity.getKeyspaceName(), entity.getCqlName())
-            .column(partitionKeyColumns)
-            .column(clusteringColumns)
-            .column(regularColumns)
-            .build()
-            .bind();
-      }
+  private static UserDefinedType buildCqlUdt(
+      String keyspaceName, String tableName, List<FieldMappingModel> regularColumns) {
+    return ImmutableUserDefinedType.builder()
+        .keyspace(keyspaceName)
+        .name(tableName)
+        .columns(
+            regularColumns.stream()
+                .map(
+                    field ->
+                        cqlColumnBuilder(keyspaceName, tableName, field)
+                            .kind(Column.Kind.Regular)
+                            .build())
+                .collect(Collectors.toList()))
+        .build();
+  }
 
-      @Override
-      public AbstractBound<?> buildDropQuery(QueryBuilder builder, EntityMappingModel entity) {
-        return builder
-            .drop()
-            .table(entity.getKeyspaceName(), entity.getCqlName())
-            .ifExists()
-            .build()
-            .bind();
-      }
-    },
-    UDT {
-      @Override
-      AbstractBound<?> buildCreateQuery(QueryBuilder builder, EntityMappingModel entity) {
+  private static ImmutableColumn.Builder cqlColumnBuilder(
+      String keyspaceName, String cqlName, FieldMappingModel field) {
+    return ImmutableColumn.builder()
+        .keyspace(keyspaceName)
+        .table(cqlName)
+        .name(field.getCqlName())
+        .type(field.getCqlType());
+  }
 
-        // Processing should have errored out before we get here if this is the case
-        assert entity.getPartitionKey().isEmpty() && entity.getClusteringColumns().isEmpty();
-
-        List<Column> columns =
-            entity.getRegularColumns().stream()
-                .map(field -> Column.create(field.getCqlName(), field.getCqlType()))
-                .collect(Collectors.toList());
-
-        UserDefinedType udt =
-            ImmutableUserDefinedType.builder()
-                .keyspace(entity.getKeyspaceName())
-                .name(entity.getCqlName())
-                .columns(columns)
-                .build();
-
-        return builder.create().type(entity.getKeyspaceName(), udt).build().bind();
-      }
-
-      @Override
-      public AbstractBound<?> buildDropQuery(QueryBuilder builder, EntityMappingModel entity) {
-        return builder
-            .drop()
-            .type(
-                entity.getKeyspaceName(),
-                ImmutableUserDefinedType.builder()
-                    .keyspace(entity.getKeyspaceName())
-                    .name(entity.getCqlName())
-                    .build())
-            .ifExists()
-            .build()
-            .bind();
-      }
-    },
+  public enum Target {
+    TABLE,
+    UDT,
     ;
-
-    abstract AbstractBound<?> buildCreateQuery(QueryBuilder builder, EntityMappingModel entity);
-
-    abstract AbstractBound<?> buildDropQuery(QueryBuilder builder, EntityMappingModel entity);
   }
 }

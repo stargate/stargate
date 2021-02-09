@@ -101,7 +101,7 @@ public class SchemaProcessor {
 
     GraphQL graphql = buildGraphql(registry, mappingModel);
 
-    return new ProcessedSchema(graphql, mappingModel, context.getMessages());
+    return new ProcessedSchema(mappingModel, graphql, context.getMessages());
   }
 
   private void addGeneratedTypes(MappingModel mappingModel, TypeDefinitionRegistry registry) {
