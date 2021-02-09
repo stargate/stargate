@@ -16,27 +16,25 @@
 package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.*;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.persistence.schemafirst.SchemaSource;
 import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
-import java.util.*;
+import java.util.Map;
 import java.util.function.Function;
 
-public class SchemasPerNamespaceFetcher extends SchemaFetcher<List<Map<String, Object>>> {
+public class SingleSchemaFetcher extends SchemaFetcher<Map<String, Object>> {
   private final Function<DataStore, SchemaSourceDao> schemaSourceDaoProvider;
 
-  public SchemasPerNamespaceFetcher(
+  public SingleSchemaFetcher(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    this(authenticationService, authorizationService, dataStoreFactory, (SchemaSourceDao::new));
+    this(authenticationService, authorizationService, dataStoreFactory, SchemaSourceDao::new);
   }
 
-  public SchemasPerNamespaceFetcher(
+  public SingleSchemaFetcher(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory,
@@ -46,7 +44,7 @@ public class SchemasPerNamespaceFetcher extends SchemaFetcher<List<Map<String, O
   }
 
   @Override
-  protected List<Map<String, Object>> get(
+  protected Map<String, Object> get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)
@@ -55,14 +53,7 @@ public class SchemasPerNamespaceFetcher extends SchemaFetcher<List<Map<String, O
 
     authorize(authenticationSubject, namespace);
 
-    List<SchemaSource> schemas =
-        schemaSourceDaoProvider.apply(dataStore).getSchemaHistory(namespace);
-    List<Map<String, Object>> result = new ArrayList<>(schemas.size());
-
-    for (SchemaSource source : schemas) {
-      Map<String, Object> singleResult = mapToSource(namespace, source);
-      result.add(singleResult);
-    }
-    return result;
+    SchemaSource source = schemaSourceDaoProvider.apply(dataStore).getLatest(namespace);
+    return mapToSource(namespace, source);
   }
 }

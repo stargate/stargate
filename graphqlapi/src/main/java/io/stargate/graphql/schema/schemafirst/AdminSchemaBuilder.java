@@ -79,7 +79,7 @@ public class AdminSchemaBuilder {
                         authenticationService, authorizationService, dataStoreFactory))
                 .dataFetcher(
                     coordinates(QUERY, SCHEMA_QUERY),
-                    new SchemaFetcher(
+                    new SingleSchemaFetcher(
                         authenticationService, authorizationService, dataStoreFactory))
                 .dataFetcher(
                     coordinates(QUERY, SCHEMA_HISTORY_PER_NAMESPACE_QUERY),
