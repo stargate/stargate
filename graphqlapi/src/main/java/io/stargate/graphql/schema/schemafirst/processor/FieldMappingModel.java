@@ -125,7 +125,6 @@ public class FieldMappingModel {
     // If the CQL type is explicitly provided, use that, otherwise use the best equivalent of the
     // GraphQL type.
     // TODO if the CQL type is provided, check that we know how to coerce to it
-    // TODO we should also consider the case where the table already exists
     Optional<Column.ColumnType> cqlType =
         directive
             .flatMap(d -> DirectiveHelper.getStringArgument(d, "type", context))
