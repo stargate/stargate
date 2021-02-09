@@ -15,12 +15,14 @@
  */
 package io.stargate.graphql.persistence.schemafirst;
 
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
+import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
@@ -35,15 +37,15 @@ import java.util.stream.Collectors;
 public class SchemaSourceDao {
 
   public static final String TABLE_NAME = "graphql_schema";
-  private static final String KEY_COLUMN_NAME = "key";
-  private static final String VERSION_COLUMN_NAME = "version";
-  private static final String LATEST_VERSION_COLUMN_NAME = "latest_version";
-  private static final String CONTENTS_COLUMN_NAME = "contents";
-  private static final String APPLIED_COLUMN_NAME = "[applied]";
+  static final String KEY_COLUMN_NAME = "key";
+  static final String VERSION_COLUMN_NAME = "version";
+  static final String LATEST_VERSION_COLUMN_NAME = "latest_version";
+  static final String CONTENTS_COLUMN_NAME = "contents";
+  static final String APPLIED_COLUMN_NAME = "[applied]";
 
   // We use a single partition
   private static final String UNIQUE_KEY = "key";
-  private static final BuiltCondition KEY_CONDITION =
+  static final BuiltCondition KEY_CONDITION =
       BuiltCondition.of(KEY_COLUMN_NAME, Predicate.EQ, UNIQUE_KEY);
 
   private final DataStore dataStore;
@@ -61,19 +63,7 @@ public class SchemaSourceDao {
     }
     failIfUnexpectedSchema(namespace, table);
 
-    List<Row> row =
-        dataStore
-            .execute(
-                dataStore
-                    .queryBuilder()
-                    .select()
-                    .column(VERSION_COLUMN_NAME, CONTENTS_COLUMN_NAME)
-                    .from(namespace, TABLE_NAME)
-                    .where(KEY_CONDITION)
-                    .build()
-                    .bind())
-            .get()
-            .rows();
+    List<Row> row = dataStore.execute(schemaQuery(namespace)).get().rows();
     if (row == null) {
       return Collections.emptyList();
     }
@@ -94,24 +84,24 @@ public class SchemaSourceDao {
     }
     failIfUnexpectedSchema(namespace, table);
 
-    Row row =
-        dataStore
-            .execute(
-                dataStore
-                    .queryBuilder()
-                    .select()
-                    .column(VERSION_COLUMN_NAME, CONTENTS_COLUMN_NAME)
-                    .from(namespace, TABLE_NAME)
-                    .where(KEY_CONDITION)
-                    .build()
-                    .bind())
-            .get()
-            .one();
+    Row row = dataStore.execute(schemaQuery(namespace)).get().one();
     if (row == null) {
       return null;
     }
     return new SchemaSource(
         namespace, row.getUuid(VERSION_COLUMN_NAME), row.getString(CONTENTS_COLUMN_NAME));
+  }
+
+  @VisibleForTesting
+  AbstractBound<?> schemaQuery(String namespace) {
+    return dataStore
+        .queryBuilder()
+        .select()
+        .column(VERSION_COLUMN_NAME, CONTENTS_COLUMN_NAME)
+        .from(namespace, TABLE_NAME)
+        .where(KEY_CONDITION)
+        .build()
+        .bind();
   }
 
   /** @return the new version */
@@ -191,7 +181,7 @@ public class SchemaSourceDao {
     failIfUnexpectedSchema(namespace, dataStore.schema().keyspace(namespace).table(TABLE_NAME));
   }
 
-  private static void failIfUnexpectedSchema(String namespace, Table table) {
+  static void failIfUnexpectedSchema(String namespace, Table table) {
     if (!hasExpectedSchema(table)) {
       throw new IllegalStateException(
           String.format(
@@ -200,7 +190,8 @@ public class SchemaSourceDao {
     }
   }
 
-  private static boolean hasExpectedSchema(Table table) {
+  @VisibleForTesting
+  static boolean hasExpectedSchema(Table table) {
     List<Column> partitionKeyColumns = table.partitionKeyColumns();
     if (partitionKeyColumns.size() != 1) {
       return false;
@@ -220,7 +211,8 @@ public class SchemaSourceDao {
       return false;
     }
     Column latestVersion = table.column(LATEST_VERSION_COLUMN_NAME);
-    if (!LATEST_VERSION_COLUMN_NAME.equals(latestVersion.name())
+    if (latestVersion == null
+        || !LATEST_VERSION_COLUMN_NAME.equals(latestVersion.name())
         || latestVersion.type() != Column.Type.Timeuuid
         || latestVersion.kind() != Column.Kind.Static) {
       return false;
