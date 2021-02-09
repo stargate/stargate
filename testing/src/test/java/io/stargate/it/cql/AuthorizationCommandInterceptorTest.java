@@ -72,12 +72,12 @@ public class AuthorizationCommandInterceptorTest extends BaseOsgiIntegrationTest
 
   private List<String> addedMsgs(String cql) {
     session.execute(cql);
-    return log.filter(0, Pattern.compile(".+testing: addPermissions: (.+)"), 1);
+    return log.filter(0, Pattern.compile(".+testing: addPermissions: (.+)"), 1, 1);
   }
 
   private List<String> removedMsgs(String cql) {
     session.execute(cql);
-    return log.filter(0, Pattern.compile(".+testing: removePermissions: (.+)"), 1);
+    return log.filter(0, Pattern.compile(".+testing: removePermissions: (.+)"), 1, 1);
   }
 
   @Test
