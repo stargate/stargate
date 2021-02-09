@@ -16,6 +16,7 @@
 package io.stargate.it.storage;
 
 import io.stargate.it.exec.OutputListener;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -25,6 +26,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.extension.ExtensionContext.Store;
 
 public class LogCollector implements OutputListener, Store.CloseableResource {
@@ -69,5 +71,12 @@ public class LogCollector implements OutputListener, Store.CloseableResource {
             })
         .filter(Objects::nonNull)
         .collect(Collectors.toList());
+  }
+
+  public List<String> filter(int node, Pattern pattern, int group, int numExpectedMessages) {
+    return Awaitility.await()
+        .atMost(Duration.ofMinutes(2))
+        .pollInterval(Duration.ofMillis(100))
+        .until(() -> filter(node, pattern, group), list -> list.size() >= numExpectedMessages);
   }
 }
