@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import graphql.GraphqlErrorHelper;
 import graphql.schema.DataFetchingEnvironment;
@@ -29,6 +30,9 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.persistence.schemafirst.SchemaSource;
 import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
 import io.stargate.graphql.schema.CassandraFetcher;
+import io.stargate.graphql.schema.schemafirst.migration.CassandraMigrator;
+import io.stargate.graphql.schema.schemafirst.migration.MigrationQuery;
+import io.stargate.graphql.schema.schemafirst.migration.MigrationStrategy;
 import io.stargate.graphql.schema.schemafirst.processor.ProcessedSchema;
 import io.stargate.graphql.schema.schemafirst.processor.ProcessingMessage;
 import io.stargate.graphql.schema.schemafirst.processor.SchemaProcessor;
@@ -69,25 +73,43 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
 
     String input = getSchemaContents(environment);
     UUID expectedVersion = getExpectedVersion(environment);
+    MigrationStrategy migrationStrategy = environment.getArgument("migrationStrategy");
+    boolean dryRun = environment.getArgument("dryRun");
 
+    ImmutableMap.Builder<String, Object> response = ImmutableMap.builder();
     ProcessedSchema processedSchema =
         new SchemaProcessor(authenticationService, authorizationService, dataStoreFactory)
             .process(input, keyspace);
-
-    // TODO this is racy -- figure out a way to handle concurrency better
-    SchemaSource newSource =
-        new SchemaSourceDao(dataStore).insert(namespace, expectedVersion, input);
-    processedSchema.dropAndRecreateSchema(dataStore);
-
-    // TODO update SchemaFirstCache from here instead of letting it reload from the DB
-
-    return ImmutableMap.of(
-        "version",
-        newSource.getVersion(),
+    response.put(
         "messages",
         processedSchema.getMessages().stream()
             .map(this::formatMessage)
             .collect(Collectors.toList()));
+
+    // TODO the rest of the method is racy -- we should at least ensure that two deploy mutations
+    // can't compete with each other (maybe add a "migration in progress" column in the database and
+    // do an additional LWT on it)
+    List<MigrationQuery> queries =
+        new CassandraMigrator(dataStore, processedSchema.getMappingModel(), migrationStrategy)
+            .compute();
+
+    response.put(
+        "cqlChanges",
+        queries.isEmpty()
+            ? ImmutableList.of("No changes, the CQL schema is up to date")
+            : queries.stream().map(MigrationQuery::getDescription).collect(Collectors.toList()));
+
+    if (!dryRun) {
+      for (MigrationQuery query : queries) {
+        dataStore.execute(query.build(dataStore)).get();
+      }
+      SchemaSource newSource =
+          new SchemaSourceDao(dataStore).insert(namespace, expectedVersion, input);
+      response.put("version", newSource.getVersion());
+      // TODO update SchemaFirstCache from here instead of letting it reload from the DB
+    }
+
+    return response.build();
   }
 
   protected abstract String getSchemaContents(DataFetchingEnvironment environment)
