@@ -103,6 +103,10 @@ public class CassandraMetricsRegistry extends MetricRegistry {
     return register(name, metric);
   }
 
+  public <T extends Metric> T register(MetricName name, T metric, MetricName... aliases) {
+    return register(name, metric);
+  }
+
   public boolean remove(MetricName name) {
     return actualRegistry.remove(name.getMetricName());
   }
