@@ -67,12 +67,7 @@ public class SchemaSourceDao {
     if (row == null) {
       return Collections.emptyList();
     }
-    return row.stream()
-        .map(
-            r ->
-                new SchemaSource(
-                    namespace, r.getUuid(VERSION_COLUMN_NAME), r.getString(CONTENTS_COLUMN_NAME)))
-        .collect(Collectors.toList());
+    return row.stream().map(r -> toSchemaSource(namespace, r)).collect(Collectors.toList());
   }
 
   public SchemaSource getLatest(String namespace) throws Exception {
@@ -88,8 +83,12 @@ public class SchemaSourceDao {
     if (row == null) {
       return null;
     }
+    return toSchemaSource(namespace, row);
+  }
+
+  private SchemaSource toSchemaSource(String namespace, Row r) {
     return new SchemaSource(
-        namespace, row.getUuid(VERSION_COLUMN_NAME), row.getString(CONTENTS_COLUMN_NAME));
+        namespace, r.getUuid(VERSION_COLUMN_NAME), r.getString(CONTENTS_COLUMN_NAME));
   }
 
   @VisibleForTesting
