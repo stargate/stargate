@@ -270,9 +270,13 @@ public class DsePersistence
         <= 1;
   }
 
+  /**
+   * This method indicates whether storage nodes (i.e. excluding Stargate) agree on the
+   * schema version among themselves.
+   */
   private boolean isStorageInSchemaAgreement() {
     // See comment in isInSchemaAgreement()
-    // Here we also exclude Stargate nodes (isGossipOnlyMember)
+    // Here we also exclude Stargate nodes (by checking isGossipOnlyMember)
     return Gossiper.instance.getLiveMembers().stream()
             .filter(
                 ep -> {
@@ -589,13 +593,12 @@ public class DsePersistence
   }
 
   private static class PullRequestGetter {
-    private static final Field schedulerField;
     private static final Method nonCompletedPullRequestsMethod;
     private static final Object scheduler; // PullRequestScheduler
 
     static {
       try {
-        schedulerField = MigrationManager.class.getDeclaredField("scheduler");
+        Field schedulerField = MigrationManager.class.getDeclaredField("scheduler");
         schedulerField.setAccessible(true);
         scheduler = schedulerField.get(MigrationManager.instance);
         nonCompletedPullRequestsMethod =

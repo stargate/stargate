@@ -308,9 +308,13 @@ public class CassandraPersistence
         <= 1;
   }
 
+  /**
+   * This method indicates whether storage nodes (i.e. excluding Stargate) agree on the
+   * schema version among themselves.
+   */
   private boolean isStorageInSchemaAgreement() {
     // See comment in isInSchemaAgreement()
-    // Here we also exclude Stargate nodes (isGossipOnlyMember)
+    // Here we also exclude Stargate nodes (by checking isGossipOnlyMember)
     return Gossiper.instance.getLiveMembers().stream()
             .filter(
                 ep -> {
