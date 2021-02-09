@@ -17,11 +17,7 @@ package io.stargate.db.datastore.common.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.time.Duration;
-import java.util.concurrent.atomic.AtomicLong;
-import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.utils.SystemTimeSource;
 import org.assertj.core.api.AbstractBooleanAssert;
 import org.junit.jupiter.api.Test;
@@ -53,34 +49,5 @@ class SchemaAgreementAchievableCheckTest {
   @Test
   public void shouldNotBeHealthyWhenSchemaIsDifferentFromStorageSchema() {
     assertHealthy(false, true).isFalse();
-  }
-
-  @Test
-  public void shouldResetOnSchemaChange() throws UnknownHostException {
-    AtomicLong time = new AtomicLong(0);
-
-    SchemaAgreementAchievableCheck check =
-        new SchemaAgreementAchievableCheck(
-            () -> false,
-            () -> true,
-            Duration.ofMillis(5),
-            new SystemTimeSource() {
-              @Override
-              public long currentTimeMillis() {
-                return time.get();
-              }
-            });
-
-    assertThat(check.check()).isTrue();
-
-    check.onChange(InetAddress.getLocalHost(), ApplicationState.SCHEMA, null);
-    time.set(10);
-    assertThat(check.check()).isTrue();
-
-    time.set(20);
-    assertThat(check.check()).isFalse();
-
-    check.onChange(InetAddress.getLocalHost(), ApplicationState.SCHEMA, null);
-    assertThat(check.check()).isTrue();
   }
 }

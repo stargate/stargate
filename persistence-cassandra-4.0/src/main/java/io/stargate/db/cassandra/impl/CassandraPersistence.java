@@ -49,6 +49,9 @@ import org.apache.cassandra.exceptions.AuthenticationException;
 import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
+import org.apache.cassandra.gms.VersionedValue;
+import org.apache.cassandra.locator.InetAddressAndPort;
 import org.apache.cassandra.schema.ColumnMetadata;
 import org.apache.cassandra.schema.IndexMetadata;
 import org.apache.cassandra.schema.KeyspaceMetadata;
@@ -107,12 +110,7 @@ public class CassandraPersistence
   private static final Duration SCHEMA_SYNC_GRACE_PERIOD =
       Duration.ofMillis(Long.getLong("stargate.schema_sync_grace_period_ms", 2 * 60_000 + 10_000));
 
-  private final SchemaAgreementAchievableCheck schemaCheck =
-      new SchemaAgreementAchievableCheck(
-          this::isInSchemaAgreement,
-          this::isStorageInSchemaAgreement,
-          SCHEMA_SYNC_GRACE_PERIOD,
-          new SystemTimeSource());
+  private final SchemaCheck schemaCheck = new SchemaCheck();
 
   private LocalAwareExecutorService executor;
 
@@ -295,8 +293,8 @@ public class CassandraPersistence
   }
 
   /**
-   * This method indicates whether storage nodes (i.e. excluding Stargate) agree on the
-   * schema version among themselves.
+   * This method indicates whether storage nodes (i.e. excluding Stargate) agree on the schema
+   * version among themselves.
    */
   private boolean isStorageInSchemaAgreement() {
     // See comment in isInSchemaAgreement()
@@ -504,5 +502,49 @@ public class CassandraPersistence
         return Conversion.toInternal(((BoundStatement) statement).preparedId());
       }
     }
+  }
+
+  private class SchemaCheck extends SchemaAgreementAchievableCheck
+      implements IEndpointStateChangeSubscriber {
+
+    public SchemaCheck() {
+      super(
+          CassandraPersistence.this::isInSchemaAgreement,
+          CassandraPersistence.this::isStorageInSchemaAgreement,
+          SCHEMA_SYNC_GRACE_PERIOD,
+          new SystemTimeSource());
+    }
+
+    @Override
+    public void onChange(
+        InetAddressAndPort endpoint, ApplicationState state, VersionedValue value) {
+      // Reset the schema sync grace period timeout on any schema change notifications
+      // even if there are no actual changes.
+      if (state == ApplicationState.SCHEMA) {
+        reset();
+      }
+    }
+
+    @Override
+    public void onJoin(InetAddressAndPort endpoint, EndpointState epState) {}
+
+    @Override
+    public void beforeChange(
+        InetAddressAndPort endpoint,
+        EndpointState currentState,
+        ApplicationState newStateKey,
+        VersionedValue newValue) {}
+
+    @Override
+    public void onAlive(InetAddressAndPort endpoint, EndpointState state) {}
+
+    @Override
+    public void onDead(InetAddressAndPort endpoint, EndpointState state) {}
+
+    @Override
+    public void onRemove(InetAddressAndPort endpoint) {}
+
+    @Override
+    public void onRestart(InetAddressAndPort endpoint, EndpointState state) {}
   }
 }

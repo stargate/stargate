@@ -15,19 +15,13 @@
  */
 package io.stargate.db.datastore.common.util;
 
-import java.net.InetAddress;
 import java.time.Duration;
 import java.util.function.Supplier;
-import org.apache.cassandra.gms.ApplicationState;
-import org.apache.cassandra.gms.EndpointState;
-import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
-import org.apache.cassandra.gms.VersionedValue;
 import org.apache.cassandra.utils.TimeSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SchemaAgreementAchievableCheck extends HealthCheckWithGracePeriod
-    implements IEndpointStateChangeSubscriber {
+public class SchemaAgreementAchievableCheck extends HealthCheckWithGracePeriod {
 
   private static final Logger logger =
       LoggerFactory.getLogger(SchemaAgreementAchievableCheck.class);
@@ -76,48 +70,5 @@ public class SchemaAgreementAchievableCheck extends HealthCheckWithGracePeriod
     }
 
     return result;
-  }
-
-  @Override
-  public void onChange(InetAddress endpoint, ApplicationState state, VersionedValue value) {
-    // Reset the schema sync grace period timeout on any schema change notifications
-    // even if there are not actual changes.
-    if (state == ApplicationState.SCHEMA) {
-      reset();
-    }
-  }
-
-  @Override
-  public void onJoin(InetAddress endpoint, EndpointState epState) {
-    // nop
-  }
-
-  @Override
-  public void beforeChange(
-      InetAddress endpoint,
-      EndpointState currentState,
-      ApplicationState newStateKey,
-      VersionedValue newValue) {
-    // nop
-  }
-
-  @Override
-  public void onAlive(InetAddress endpoint, EndpointState state) {
-    // nop
-  }
-
-  @Override
-  public void onDead(InetAddress endpoint, EndpointState state) {
-    // nop
-  }
-
-  @Override
-  public void onRemove(InetAddress endpoint) {
-    // nop
-  }
-
-  @Override
-  public void onRestart(InetAddress endpoint, EndpointState state) {
-    // nop
   }
 }

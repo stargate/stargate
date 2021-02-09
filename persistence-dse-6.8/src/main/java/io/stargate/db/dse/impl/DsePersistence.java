@@ -271,8 +271,8 @@ public class DsePersistence
   }
 
   /**
-   * This method indicates whether storage nodes (i.e. excluding Stargate) agree on the
-   * schema version among themselves.
+   * This method indicates whether storage nodes (i.e. excluding Stargate) agree on the schema
+   * version among themselves.
    */
   private boolean isStorageInSchemaAgreement() {
     // See comment in isInSchemaAgreement()

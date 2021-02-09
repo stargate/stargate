@@ -30,8 +30,9 @@ public abstract class HealthCheckWithGracePeriod {
   }
 
   /**
-   * Executes the specific logic for determining whether the system is in a healthy state.
-   * This method need not deal with the grace period, which is handled by {@link #check()}.
+   * Executes the specific logic for determining whether the system is in a healthy state. This
+   * method need not deal with the grace period, which is handled by {@link #check()}.
+   *
    * @return <code>true</code> if the system is healthy, <code>false</code> otherwise.
    */
   protected abstract boolean isHealthy();
@@ -46,8 +47,10 @@ public abstract class HealthCheckWithGracePeriod {
   /**
    * Executes the logic for determining whether the system is in a healthy state and returns the
    * result.
+   *
    * <p>Actual health checks are performed by {@link #isHealthy()}, this method additionally applies
-   * the grace period (as set in the constructor) to failed checks.</p>
+   * the grace period (as set in the constructor) to failed checks.
+   *
    * @return <code>true</code> if the system is healthy, <code>false</code> otherwise.
    */
   public boolean check() {

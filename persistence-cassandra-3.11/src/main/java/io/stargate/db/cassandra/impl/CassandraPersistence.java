@@ -37,6 +37,7 @@ import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import io.stargate.db.datastore.common.AbstractCassandraPersistence;
 import io.stargate.db.datastore.common.util.SchemaAgreementAchievableCheck;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -67,6 +68,8 @@ import org.apache.cassandra.exceptions.AuthenticationException;
 import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
+import org.apache.cassandra.gms.VersionedValue;
 import org.apache.cassandra.schema.IndexMetadata;
 import org.apache.cassandra.schema.KeyspaceMetadata;
 import org.apache.cassandra.service.CassandraDaemon;
@@ -124,12 +127,7 @@ public class CassandraPersistence
               "stargate.schema_sync_grace_period_ms",
               2 * MigrationManager.MIGRATION_DELAY_IN_MS + 10_000));
 
-  private final SchemaAgreementAchievableCheck schemaCheck =
-      new SchemaAgreementAchievableCheck(
-          this::isInSchemaAgreement,
-          this::isStorageInSchemaAgreement,
-          SCHEMA_SYNC_GRACE_PERIOD,
-          new SystemTimeSource());
+  private final SchemaCheck schemaCheck = new SchemaCheck();
 
   private LocalAwareExecutorService executor;
 
@@ -309,8 +307,8 @@ public class CassandraPersistence
   }
 
   /**
-   * This method indicates whether storage nodes (i.e. excluding Stargate) agree on the
-   * schema version among themselves.
+   * This method indicates whether storage nodes (i.e. excluding Stargate) agree on the schema
+   * version among themselves.
    */
   private boolean isStorageInSchemaAgreement() {
     // See comment in isInSchemaAgreement()
@@ -514,5 +512,48 @@ public class CassandraPersistence
         return Conversion.toInternal(((BoundStatement) statement).preparedId());
       }
     }
+  }
+
+  private class SchemaCheck extends SchemaAgreementAchievableCheck
+      implements IEndpointStateChangeSubscriber {
+
+    public SchemaCheck() {
+      super(
+          CassandraPersistence.this::isInSchemaAgreement,
+          CassandraPersistence.this::isStorageInSchemaAgreement,
+          SCHEMA_SYNC_GRACE_PERIOD,
+          new SystemTimeSource());
+    }
+
+    @Override
+    public void onChange(InetAddress endpoint, ApplicationState state, VersionedValue value) {
+      // Reset the schema sync grace period timeout on any schema change notifications
+      // even if there are no actual changes.
+      if (state == ApplicationState.SCHEMA) {
+        reset();
+      }
+    }
+
+    @Override
+    public void onJoin(InetAddress endpoint, EndpointState epState) {}
+
+    @Override
+    public void beforeChange(
+        InetAddress endpoint,
+        EndpointState currentState,
+        ApplicationState newStateKey,
+        VersionedValue newValue) {}
+
+    @Override
+    public void onAlive(InetAddress endpoint, EndpointState state) {}
+
+    @Override
+    public void onDead(InetAddress endpoint, EndpointState state) {}
+
+    @Override
+    public void onRemove(InetAddress endpoint) {}
+
+    @Override
+    public void onRestart(InetAddress endpoint, EndpointState state) {}
   }
 }
