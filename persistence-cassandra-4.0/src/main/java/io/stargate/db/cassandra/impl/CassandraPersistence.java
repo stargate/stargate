@@ -163,7 +163,6 @@ public class CassandraPersistence
         SHARED.newExecutor(
             DatabaseDescriptor.getNativeTransportMaxThreads(),
             DatabaseDescriptor::setNativeTransportMaxThreads,
-            Integer.MAX_VALUE,
             "transport",
             "Native-Transport-Requests");
 
