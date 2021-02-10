@@ -90,6 +90,7 @@ public class DsePersistenceActivator extends BaseActivator {
     String clusterName = System.getProperty("stargate.cluster_name", "stargate-dse");
     String listenAddress =
         System.getProperty("stargate.listen_address", InetAddress.getLocalHost().getHostAddress());
+    String broadcastAddress = System.getProperty("stargate.broadcast_address", listenAddress);
     Integer cqlPort = Integer.getInteger("stargate.cql_port", 9042);
     Integer listenPort = Integer.getInteger("stargate.seed_port", 7000);
     String seedList = System.getProperty("stargate.seed_list", "");
@@ -131,7 +132,7 @@ public class DsePersistenceActivator extends BaseActivator {
     c.endpoint_snitch = snitchClass;
     c.storage_port = listenPort;
     c.listen_address = listenAddress;
-    c.broadcast_address = listenAddress;
+    c.broadcast_address = broadcastAddress;
     c.tpc_cores = FBUtilities.getAvailableProcessors();
     c.seed_provider =
         new ParameterizedClass(
