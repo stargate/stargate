@@ -53,6 +53,10 @@ echoinfo "Test complete"
 
 echoinfo "Uploading test results"
 
+# Determine CODACY_REPORTER_VERSION once to avoid hitting the "get latest" API too frequently
+# in the get.sh commands below. Note: the sed command was copied from get.sh
+export CODACY_REPORTER_VERSION="$(curl https://api.bintray.com/packages/codacy/Binaries/codacy-coverage-reporter/versions/_latest | sed -e 's/.*name[^0-9]*\([0-9]\{1,\}[.][0-9]\{1,\}[.][0-9]\{1,\}\).*/\1/' )"
+echoinfo "Using Codacy Reporter version \$CODACY_REPORTER_VERSION"
 export CODACY_PROJECT_TOKEN="$(cat /workspace/ci/codacy-project-token | sed -e 's/\n//g')"
 curl -Ls https://coverage.codacy.com/get.sh > get.sh
 chmod +x get.sh
