@@ -1,14 +1,19 @@
 package org.apache.cassandra.metrics;
 
 import com.codahale.metrics.Counter;
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
+import com.codahale.metrics.Metered;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import java.lang.reflect.Method;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+import org.apache.cassandra.utils.MBeanWrapper;
 
 /**
  * Patches the Cassandra metric implementation to allow injecting our own registry.
@@ -20,51 +25,75 @@ import javax.management.ObjectName;
  * <p>This class must mimic the exact public API of the original one.
  */
 public class CassandraMetricsRegistry extends MetricRegistry {
+
   public static volatile MetricRegistry actualRegistry = new MetricRegistry();
   public static final CassandraMetricsRegistry Metrics = new CassandraMetricsRegistry();
+
+  private final MBeanWrapper mBeanServer = MBeanWrapper.instance;
 
   private CassandraMetricsRegistry() {
     super();
   }
 
   public Counter counter(MetricName name) {
-    return actualRegistry.counter(name.getMetricName());
+    Counter counter = actualRegistry.counter(name.getMetricName());
+    registerMBean(counter, name.getMBeanName());
+
+    return counter;
   }
 
   public Counter counter(MetricName name, MetricName alias) {
-    return actualRegistry.counter(name.getMetricName());
+    Counter counter = counter(name);
+    registerAlias(name, alias);
+    return counter;
   }
 
   public Meter meter(MetricName name) {
-    return actualRegistry.meter(name.getMetricName());
+    Meter meter = actualRegistry.meter(name.getMetricName());
+    registerMBean(meter, name.getMBeanName());
+
+    return meter;
   }
 
   public Meter meter(MetricName name, MetricName alias) {
-    return actualRegistry.meter(name.getMetricName());
+    Meter meter = meter(name);
+    registerAlias(name, alias);
+    return meter;
   }
 
   public Histogram histogram(MetricName name, boolean considerZeroes) {
-    ClearableHistogram histogram =
-        new ClearableHistogram(new DecayingEstimatedHistogramReservoir(considerZeroes));
-    return register(name, histogram);
+    Histogram histogram =
+        register(
+            name, new ClearableHistogram(new DecayingEstimatedHistogramReservoir(considerZeroes)));
+    registerMBean(histogram, name.getMBeanName());
+
+    return histogram;
   }
 
   public Histogram histogram(MetricName name, MetricName alias, boolean considerZeroes) {
-    return histogram(name, considerZeroes);
+    Histogram histogram = histogram(name, considerZeroes);
+    registerAlias(name, alias);
+    return histogram;
   }
 
   public Timer timer(MetricName name) {
-    Timer timer = new Timer(new DecayingEstimatedHistogramReservoir());
-    return register(name, timer);
+    Timer timer = register(name, new Timer(new DecayingEstimatedHistogramReservoir()));
+    registerMBean(timer, name.getMBeanName());
+
+    return timer;
   }
 
   public Timer timer(MetricName name, MetricName alias) {
-    return timer(name);
+    Timer timer = timer(name);
+    registerAlias(name, alias);
+    return timer;
   }
 
   public <T extends Metric> T register(MetricName name, T metric) {
     try {
-      return actualRegistry.register(name.getMetricName(), metric);
+      T register = actualRegistry.register(name.getMetricName(), metric);
+      registerMBean(metric, name.getMBeanName());
+      return register;
     } catch (IllegalArgumentException e) {
       @SuppressWarnings("unchecked")
       T existing = (T) actualRegistry.getMetrics().get(name.getMetricName());
@@ -73,30 +102,108 @@ public class CassandraMetricsRegistry extends MetricRegistry {
   }
 
   public <T extends Metric> T register(MetricName name, MetricName aliasName, T metric) {
-    return register(name, metric);
+    T ret = register(name, metric);
+    registerAlias(name, aliasName);
+    return ret;
   }
 
   public boolean remove(MetricName name) {
-    return actualRegistry.remove(name.getMetricName());
+    boolean removed = actualRegistry.remove(name.getMetricName());
+
+    try {
+      mBeanServer.unregisterMBean(name.getMBeanName());
+    } catch (Exception ignore) {
+    }
+
+    return removed;
   }
 
   public boolean remove(MetricName name, MetricName alias) {
-    return remove(name);
+    if (remove(name)) {
+      removeAlias(alias);
+      return true;
+    }
+    return false;
   }
 
   public void registerMBean(Metric metric, ObjectName name) {
-    // Nothing to do, we don't register MBeans
+    AbstractBean mbean;
+
+    if (metric instanceof Gauge) {
+      mbean = new JmxGauge((Gauge<?>) metric, name);
+    } else if (metric instanceof Counter) {
+      mbean = new JmxCounter((Counter) metric, name);
+    } else if (metric instanceof Histogram) {
+      mbean = new JmxHistogram((Histogram) metric, name);
+    } else if (metric instanceof Meter) {
+      mbean = new JmxMeter((Meter) metric, name, TimeUnit.SECONDS);
+    } else if (metric instanceof Timer) {
+      mbean = new JmxTimer((Timer) metric, name, TimeUnit.SECONDS, TimeUnit.MICROSECONDS);
+    } else {
+      throw new IllegalArgumentException("Unknown metric type: " + metric.getClass());
+    }
+
+    try {
+      mBeanServer.registerMBean(mbean, name);
+    } catch (Exception ignored) {
+    }
+  }
+
+  private void registerAlias(MetricName existingName, MetricName aliasName) {
+    Metric existing = actualRegistry.getMetrics().get(existingName.getMetricName());
+    assert existing != null : existingName + " not registered";
+
+    registerMBean(existing, aliasName.getMBeanName());
+  }
+
+  private void removeAlias(MetricName name) {
+    try {
+      MBeanWrapper.instance.unregisterMBean(name.getMBeanName());
+    } catch (Exception ignored) {
+    }
   }
 
   public interface MetricMBean {
+
     ObjectName objectName();
   }
 
+  private abstract static class AbstractBean implements MetricMBean {
+
+    private final ObjectName objectName;
+
+    AbstractBean(ObjectName objectName) {
+      this.objectName = objectName;
+    }
+
+    @Override
+    public ObjectName objectName() {
+      return objectName;
+    }
+  }
+
   public interface JmxGaugeMBean extends MetricMBean {
+
     Object getValue();
   }
 
+  private static class JmxGauge extends AbstractBean implements JmxGaugeMBean {
+
+    private final Gauge<?> metric;
+
+    private JmxGauge(Gauge<?> metric, ObjectName objectName) {
+      super(objectName);
+      this.metric = metric;
+    }
+
+    @Override
+    public Object getValue() {
+      return metric.getValue();
+    }
+  }
+
   public interface JmxHistogramMBean extends MetricMBean {
+
     long getCount();
 
     long getMin();
@@ -122,11 +229,98 @@ public class CassandraMetricsRegistry extends MetricRegistry {
     long[] values();
   }
 
+  private static class JmxHistogram extends AbstractBean implements JmxHistogramMBean {
+
+    private final Histogram metric;
+
+    private JmxHistogram(Histogram metric, ObjectName objectName) {
+      super(objectName);
+      this.metric = metric;
+    }
+
+    @Override
+    public double get50thPercentile() {
+      return metric.getSnapshot().getMedian();
+    }
+
+    @Override
+    public long getCount() {
+      return metric.getCount();
+    }
+
+    @Override
+    public long getMin() {
+      return metric.getSnapshot().getMin();
+    }
+
+    @Override
+    public long getMax() {
+      return metric.getSnapshot().getMax();
+    }
+
+    @Override
+    public double getMean() {
+      return metric.getSnapshot().getMean();
+    }
+
+    @Override
+    public double getStdDev() {
+      return metric.getSnapshot().getStdDev();
+    }
+
+    @Override
+    public double get75thPercentile() {
+      return metric.getSnapshot().get75thPercentile();
+    }
+
+    @Override
+    public double get95thPercentile() {
+      return metric.getSnapshot().get95thPercentile();
+    }
+
+    @Override
+    public double get98thPercentile() {
+      return metric.getSnapshot().get98thPercentile();
+    }
+
+    @Override
+    public double get99thPercentile() {
+      return metric.getSnapshot().get99thPercentile();
+    }
+
+    @Override
+    public double get999thPercentile() {
+      return metric.getSnapshot().get999thPercentile();
+    }
+
+    @Override
+    public long[] values() {
+      return metric.getSnapshot().getValues();
+    }
+  }
+
   public interface JmxCounterMBean extends MetricMBean {
+
     long getCount();
   }
 
+  private static class JmxCounter extends AbstractBean implements JmxCounterMBean {
+
+    private final Counter metric;
+
+    private JmxCounter(Counter metric, ObjectName objectName) {
+      super(objectName);
+      this.metric = metric;
+    }
+
+    @Override
+    public long getCount() {
+      return metric.getCount();
+    }
+  }
+
   public interface JmxMeterMBean extends MetricMBean {
+
     long getCount();
 
     double getMeanRate();
@@ -140,7 +334,57 @@ public class CassandraMetricsRegistry extends MetricRegistry {
     String getRateUnit();
   }
 
+  private static class JmxMeter extends AbstractBean implements JmxMeterMBean {
+
+    private final Metered metric;
+    private final double rateFactor;
+    private final String rateUnit;
+
+    private JmxMeter(Metered metric, ObjectName objectName, TimeUnit rateUnit) {
+      super(objectName);
+      this.metric = metric;
+      this.rateFactor = rateUnit.toSeconds(1);
+      this.rateUnit = "events/" + calculateRateUnit(rateUnit);
+    }
+
+    @Override
+    public long getCount() {
+      return metric.getCount();
+    }
+
+    @Override
+    public double getMeanRate() {
+      return metric.getMeanRate() * rateFactor;
+    }
+
+    @Override
+    public double getOneMinuteRate() {
+      return metric.getOneMinuteRate() * rateFactor;
+    }
+
+    @Override
+    public double getFiveMinuteRate() {
+      return metric.getFiveMinuteRate() * rateFactor;
+    }
+
+    @Override
+    public double getFifteenMinuteRate() {
+      return metric.getFifteenMinuteRate() * rateFactor;
+    }
+
+    @Override
+    public String getRateUnit() {
+      return rateUnit;
+    }
+
+    private String calculateRateUnit(TimeUnit unit) {
+      final String s = unit.toString().toLowerCase(Locale.US);
+      return s.substring(0, s.length() - 1);
+    }
+  }
+
   public interface JmxTimerMBean extends JmxMeterMBean {
+
     double getMin();
 
     double getMax();
@@ -166,8 +410,84 @@ public class CassandraMetricsRegistry extends MetricRegistry {
     String getDurationUnit();
   }
 
+  static class JmxTimer extends JmxMeter implements JmxTimerMBean {
+
+    private final Timer metric;
+    private final double durationFactor;
+    private final String durationUnit;
+
+    private JmxTimer(
+        Timer metric, ObjectName objectName, TimeUnit rateUnit, TimeUnit durationUnit) {
+      super(metric, objectName, rateUnit);
+      this.metric = metric;
+      this.durationFactor = 1.0 / durationUnit.toNanos(1);
+      this.durationUnit = durationUnit.toString().toLowerCase(Locale.US);
+    }
+
+    @Override
+    public double get50thPercentile() {
+      return metric.getSnapshot().getMedian() * durationFactor;
+    }
+
+    @Override
+    public double getMin() {
+      return metric.getSnapshot().getMin() * durationFactor;
+    }
+
+    @Override
+    public double getMax() {
+      return metric.getSnapshot().getMax() * durationFactor;
+    }
+
+    @Override
+    public double getMean() {
+      return metric.getSnapshot().getMean() * durationFactor;
+    }
+
+    @Override
+    public double getStdDev() {
+      return metric.getSnapshot().getStdDev() * durationFactor;
+    }
+
+    @Override
+    public double get75thPercentile() {
+      return metric.getSnapshot().get75thPercentile() * durationFactor;
+    }
+
+    @Override
+    public double get95thPercentile() {
+      return metric.getSnapshot().get95thPercentile() * durationFactor;
+    }
+
+    @Override
+    public double get98thPercentile() {
+      return metric.getSnapshot().get98thPercentile() * durationFactor;
+    }
+
+    @Override
+    public double get99thPercentile() {
+      return metric.getSnapshot().get99thPercentile() * durationFactor;
+    }
+
+    @Override
+    public double get999thPercentile() {
+      return metric.getSnapshot().get999thPercentile() * durationFactor;
+    }
+
+    @Override
+    public long[] values() {
+      return metric.getSnapshot().getValues();
+    }
+
+    @Override
+    public String getDurationUnit() {
+      return durationUnit;
+    }
+  }
+
   /** A value class encapsulating a metric's owning class and name. */
   public static final class MetricName implements Comparable<MetricName> {
+
     private final String group;
     private final String type;
     private final String name;
