@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
+import com.google.common.annotations.VisibleForTesting;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
@@ -26,17 +27,18 @@ import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
 import java.util.*;
 import java.util.function.Function;
 
-public class SchemasPerNamespaceFetcher extends SchemaFetcher<List<Map<String, Object>>> {
+public class AllSchemasFetcher extends SchemaFetcher<List<Map<String, Object>>> {
   private final Function<DataStore, SchemaSourceDao> schemaSourceDaoProvider;
 
-  public SchemasPerNamespaceFetcher(
+  public AllSchemasFetcher(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
     this(authenticationService, authorizationService, dataStoreFactory, (SchemaSourceDao::new));
   }
 
-  public SchemasPerNamespaceFetcher(
+  @VisibleForTesting
+  public AllSchemasFetcher(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory,
@@ -60,7 +62,7 @@ public class SchemasPerNamespaceFetcher extends SchemaFetcher<List<Map<String, O
     List<Map<String, Object>> result = new ArrayList<>(schemas.size());
 
     for (SchemaSource source : schemas) {
-      Map<String, Object> singleResult = mapToSource(namespace, source);
+      Map<String, Object> singleResult = schemaSourceToMap(namespace, source);
       result.add(singleResult);
     }
     return result;

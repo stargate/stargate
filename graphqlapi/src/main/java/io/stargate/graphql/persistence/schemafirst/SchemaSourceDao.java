@@ -15,7 +15,7 @@
  */
 package io.stargate.graphql.persistence.schemafirst;
 
-import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
@@ -37,11 +37,11 @@ import java.util.stream.Collectors;
 public class SchemaSourceDao {
 
   public static final String TABLE_NAME = "graphql_schema";
-  static final String KEY_COLUMN_NAME = "key";
-  static final String VERSION_COLUMN_NAME = "version";
-  static final String LATEST_VERSION_COLUMN_NAME = "latest_version";
-  static final String CONTENTS_COLUMN_NAME = "contents";
-  static final String APPLIED_COLUMN_NAME = "[applied]";
+  @VisibleForTesting static final String KEY_COLUMN_NAME = "key";
+  @VisibleForTesting static final String VERSION_COLUMN_NAME = "version";
+  @VisibleForTesting static final String LATEST_VERSION_COLUMN_NAME = "latest_version";
+  @VisibleForTesting static final String CONTENTS_COLUMN_NAME = "contents";
+  @VisibleForTesting static final String APPLIED_COLUMN_NAME = "[applied]";
 
   // We use a single partition
   private static final String UNIQUE_KEY = "key";
@@ -180,7 +180,7 @@ public class SchemaSourceDao {
     failIfUnexpectedSchema(namespace, dataStore.schema().keyspace(namespace).table(TABLE_NAME));
   }
 
-  static void failIfUnexpectedSchema(String namespace, Table table) {
+  private static void failIfUnexpectedSchema(String namespace, Table table) {
     if (!hasExpectedSchema(table)) {
       throw new IllegalStateException(
           String.format(

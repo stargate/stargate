@@ -16,7 +16,6 @@
 package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import graphql.schema.DataFetchingEnvironment;
@@ -32,7 +31,7 @@ import io.stargate.graphql.schema.schemafirst.util.Uuids;
 import java.util.*;
 import org.junit.jupiter.api.Test;
 
-class SchemasPerNamespaceFetcherTest {
+class AllSchemasFetcherTest {
 
   @Test
   public void getSchemasPerNamespaces() throws Exception {
@@ -44,8 +43,8 @@ class SchemasPerNamespaceFetcherTest {
     SchemaSourceDao schemaSourceDao = mock(SchemaSourceDao.class);
     when(schemaSourceDao.getSchemaHistory(namespace))
         .thenReturn(Arrays.asList(schemaSource1, schemaSource2));
-    SchemasPerNamespaceFetcher schemasPerNamespaceFetcher =
-        new SchemasPerNamespaceFetcher(
+    AllSchemasFetcher allSchemasFetcher =
+        new AllSchemasFetcher(
             mock(AuthenticationService.class),
             mock(AuthorizationService.class),
             mock(DataStoreFactory.class),
@@ -56,7 +55,7 @@ class SchemasPerNamespaceFetcherTest {
 
     // when
     List<Map<String, Object>> result =
-        schemasPerNamespaceFetcher.get(
+        allSchemasFetcher.get(
             dataFetchingEnvironment, dataStore, mock(AuthenticationSubject.class));
 
     // then
