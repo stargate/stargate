@@ -44,13 +44,7 @@ import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
-import io.stargate.graphql.schema.schemafirst.fetchers.admin.AllNamespacesFetcher;
-import io.stargate.graphql.schema.schemafirst.fetchers.admin.CreateNamespaceFetcher;
-import io.stargate.graphql.schema.schemafirst.fetchers.admin.DeploySchemaFetcher;
-import io.stargate.graphql.schema.schemafirst.fetchers.admin.DeploySchemaFileFetcher;
-import io.stargate.graphql.schema.schemafirst.fetchers.admin.DropNamespaceFetcher;
-import io.stargate.graphql.schema.schemafirst.fetchers.admin.SchemaFetcher;
-import io.stargate.graphql.schema.schemafirst.fetchers.admin.SingleNamespaceFetcher;
+import io.stargate.graphql.schema.schemafirst.fetchers.admin.*;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import java.io.InputStream;
 
@@ -85,7 +79,11 @@ public class AdminSchemaBuilder {
                         authenticationService, authorizationService, dataStoreFactory))
                 .dataFetcher(
                     coordinates(QUERY, SCHEMA_QUERY),
-                    new SchemaFetcher(
+                    new SingleSchemaFetcher(
+                        authenticationService, authorizationService, dataStoreFactory))
+                .dataFetcher(
+                    coordinates(QUERY, SCHEMA_HISTORY_PER_NAMESPACE_QUERY),
+                    new AllSchemasFetcher(
                         authenticationService, authorizationService, dataStoreFactory))
                 .dataFetcher(
                     coordinates(MUTATION, CREATE_NAMESPACE_MUTATION),
@@ -247,12 +245,26 @@ public class AdminSchemaBuilder {
           .type(nonNull(SCHEMA_TYPE))
           .build();
 
+  private static final GraphQLFieldDefinition SCHEMA_HISTORY_PER_NAMESPACE_QUERY =
+      newFieldDefinition()
+          .name("schemas")
+          .description("Retrieves all GraphQL schemas that are deployed in a namespace")
+          .argument(
+              newArgument()
+                  .name("namespace")
+                  .description("The name of the namespace")
+                  .type(nonNull(GraphQLString))
+                  .build())
+          .type(list(SCHEMA_TYPE))
+          .build();
+
   private static final GraphQLObjectType QUERY =
       newObject()
           .name("Query")
           .field(NAMESPACES_QUERY)
           .field(NAMESPACE_QUERY)
           .field(SCHEMA_QUERY)
+          .field(SCHEMA_HISTORY_PER_NAMESPACE_QUERY)
           .build();
 
   // See https://graphql-rules.com/rules/mutation-payload-query
