@@ -122,6 +122,7 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
             .collect(Collectors.toList()));
   }
 
+  // todo why it is not used?
   private static TypeDefinitionRegistry parseSchema(String inputText) throws GraphqlErrorException {
     SchemaParser parser = new SchemaParser();
     try {
