@@ -16,7 +16,8 @@
 package io.stargate.graphql.web.resources.schemafirst;
 
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
-import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -36,7 +37,9 @@ public class FilesResource extends GraphqlResourceBase {
     return Response.ok(loadCqlDirectivesFile()).build();
   }
 
-  private InputStream loadCqlDirectivesFile() {
-    return getClass().getClassLoader().getResourceAsStream("schemafirst/cql_directives.graphql");
+  private InputStreamReader loadCqlDirectivesFile() {
+    return new InputStreamReader(
+        this.getClass().getResourceAsStream("/schemafirst/cql_directives.graphql"),
+        StandardCharsets.UTF_8);
   }
 }
