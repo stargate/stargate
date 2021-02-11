@@ -49,6 +49,8 @@ public class DocumentDB {
   private static final List<String> allPathColumnNames;
   private static final List<Column.ColumnType> allPathColumnTypes;
   public static final Integer MAX_DEPTH = Integer.getInteger("stargate.document_max_depth", 64);
+  public static final Integer SEARCH_PAGE_SIZE =
+      Integer.getInteger("stargate.document_search_page_size", 1000);
 
   // All array elements will be represented as 6 digits, so they get left-padded, such as [000010]
   // instead of [10]

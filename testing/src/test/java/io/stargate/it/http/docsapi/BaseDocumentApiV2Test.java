@@ -2068,14 +2068,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         fullObj.toString(),
         200);
 
-    // With default page size
+    // With page size of 100
     String r =
         RestUtils.get(
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 0}}",
+                + "/collections/collection/cool-search-id?page-size=100&where={\"*.value\": {\"$gt\": 0}}",
             200);
     JsonNode responseBody1 = objectMapper.readTree(r);
 
@@ -2088,7 +2088,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 0}}&page-state="
+                + "/collections/collection/cool-search-id?page-size=100&where={\"*.value\": {\"$gt\": 0}}&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     JsonNode responseBody2 = objectMapper.readTree(r);
@@ -2679,7 +2679,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/1?where={\"*.value\":{\"$nin\": [3]}}page-size=5",
+                + "/collections/collection/1?where={\"*.value\":{\"$nin\": [3]}}&page-size=5",
             400);
     assertThat(r)
         .isEqualTo(
