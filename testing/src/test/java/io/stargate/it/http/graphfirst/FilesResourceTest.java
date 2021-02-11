@@ -17,6 +17,7 @@ package io.stargate.it.http.graphfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.stargate.it.http.graphql.GraphqlITBase;
 import java.io.IOException;
 import javax.ws.rs.core.MediaType;
 import okhttp3.OkHttpClient;
@@ -24,7 +25,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 import org.junit.jupiter.api.Test;
 
-public class FilesResourceTest extends GraphqlIFirstITBase {
+public class FilesResourceTest extends GraphqlITBase {
 
   @Test
   public void shouldGetGraphQLDirectivesFile() throws IOException {

@@ -13,13 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.it.http.graphfirst;
+package io.stargate.it.http.graphql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.apollographql.apollo.ApolloClient;
 import com.apollographql.apollo.api.CustomTypeAdapter;
 import com.apollographql.apollo.api.CustomTypeValue;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.example.graphql.client.betterbotz.type.CustomType;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,6 +32,7 @@ import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -39,20 +43,47 @@ import java.util.TimeZone;
 import okhttp3.OkHttpClient;
 import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
-public class GraphqlIFirstITBase extends BaseOsgiIntegrationTest {
+public class GraphqlITBase extends BaseOsgiIntegrationTest {
   protected static String host;
   protected static StargateConnectionInfo stargate;
   protected static String authToken;
   protected static final ObjectMapper objectMapper = new ObjectMapper();
+  protected static CqlSession session;
 
   @BeforeAll
   public static void setup(StargateConnectionInfo stargateInfo) throws Exception {
     stargate = stargateInfo;
     host = "http://" + stargateInfo.seedAddress();
-
+    createSession();
     initAuth();
+  }
+
+  private static void createSession() {
+    session =
+        CqlSession.builder()
+            .withConfigLoader(
+                DriverConfigLoader.programmaticBuilder()
+                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
+                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofMinutes(3))
+                    .withDuration(
+                        DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT, Duration.ofMinutes(3))
+                    .withDuration(
+                        DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofMinutes(3))
+                    .build())
+            .withAuthCredentials("cassandra", "cassandra")
+            .addContactPoint(new InetSocketAddress(stargate.seedAddress(), 9043))
+            .withLocalDatacenter(stargate.datacenter())
+            .build();
+  }
+
+  @AfterAll
+  public static void teardown() {
+    if (session != null) {
+      session.close();
+    }
   }
 
   private static void initAuth() throws IOException {
@@ -104,7 +135,7 @@ public class GraphqlIFirstITBase extends BaseOsgiIntegrationTest {
         .build();
   }
 
-  private static Instant parseInstant(String source) {
+  protected static Instant parseInstant(String source) {
     try {
       return TIMESTAMP_FORMAT.get().parse(source).toInstant();
     } catch (ParseException e) {
@@ -112,11 +143,11 @@ public class GraphqlIFirstITBase extends BaseOsgiIntegrationTest {
     }
   }
 
-  private static String formatInstant(Instant instant) {
+  protected static String formatInstant(Instant instant) {
     return TIMESTAMP_FORMAT.get().format(Date.from(instant));
   }
 
-  private static final ThreadLocal<SimpleDateFormat> TIMESTAMP_FORMAT =
+  protected static final ThreadLocal<SimpleDateFormat> TIMESTAMP_FORMAT =
       ThreadLocal.withInitial(
           () -> {
             SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
