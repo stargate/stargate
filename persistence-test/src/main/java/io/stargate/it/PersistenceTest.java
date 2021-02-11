@@ -1406,4 +1406,9 @@ public abstract class PersistenceTest {
     assertThat(result.getWarnings()).hasSize(1);
     assertThat(result.getWarnings().get(0)).contains("exceeds maximum supported expiration");
   }
+
+  @Test
+  public void testSchemaAgreementAchievable() {
+    assertThat(persistence().isSchemaAgreementAchievable()).isTrue();
+  }
 }

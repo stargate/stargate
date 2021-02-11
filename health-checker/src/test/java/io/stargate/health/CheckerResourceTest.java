@@ -1,6 +1,7 @@
 package io.stargate.health;
 
 import static io.stargate.health.HealthCheckerActivator.BUNDLES_CHECK_NAME;
+import static io.stargate.health.HealthCheckerActivator.SCHEMA_CHECK_NAME;
 import static javax.ws.rs.core.Response.Status.OK;
 import static javax.ws.rs.core.Response.Status.SERVICE_UNAVAILABLE;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,6 +55,7 @@ class CheckerResourceTest {
 
   private final HealthCheckRegistry healthCheckRegistry = new HealthCheckRegistry();
   private HealthCheck bundleHealth;
+  private HealthCheck schemaHealth;
   private BundleService bundleService;
   private CheckerResource checker;
 
@@ -61,6 +63,7 @@ class CheckerResourceTest {
   public void setup() {
     bundleService = Mockito.mock(BundleService.class);
     bundleHealth = Mockito.mock(HealthCheck.class);
+    schemaHealth = Mockito.mock(HealthCheck.class);
     checker = new CheckerResource(bundleService, healthCheckRegistry);
   }
 
@@ -71,9 +74,19 @@ class CheckerResourceTest {
     assertThat(checker.checkLiveness().getStatus()).isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
 
     healthCheckRegistry.register(BUNDLES_CHECK_NAME, bundleHealth);
+
+    // schemaHealth is ok but not registered -> SERVICE_UNAVAILABLE
+    Mockito.when(schemaHealth.execute()).thenReturn(Result.healthy("test-ok"));
+    assertThat(checker.checkLiveness().getStatus()).isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
+
+    healthCheckRegistry.register(SCHEMA_CHECK_NAME, schemaHealth);
     assertThat(checker.checkLiveness().getStatus()).isEqualTo(OK.getStatusCode());
 
     Mockito.when(bundleHealth.execute()).thenReturn(Result.unhealthy("test-unhealthy"));
+    assertThat(checker.checkLiveness().getStatus()).isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
+
+    Mockito.when(bundleHealth.execute()).thenReturn(Result.healthy("test-ok"));
+    Mockito.when(schemaHealth.execute()).thenReturn(Result.unhealthy("test-unhealthy"));
     assertThat(checker.checkLiveness().getStatus()).isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
   }
 

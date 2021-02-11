@@ -16,6 +16,7 @@ public class HealthCheckerActivator extends BaseActivator {
 
   public static final String BUNDLES_CHECK_NAME = "bundles";
   public static final String DATASTORE_CHECK_NAME = "datastore";
+  public static final String SCHEMA_CHECK_NAME = "schema-agreement";
 
   private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private ServicePointer<HealthCheckRegistry> healthCheckRegistry =
@@ -36,11 +37,9 @@ public class HealthCheckerActivator extends BaseActivator {
   protected ServiceAndProperties createService() {
     log.info("Starting healthchecker....");
     try {
-      BundleStateChecker bundleStateChecker = new BundleStateChecker(context);
-      healthCheckRegistry.get().register(BUNDLES_CHECK_NAME, bundleStateChecker);
-
-      DataStoreHealthChecker dataStoreHealthChecker = new DataStoreHealthChecker(context);
-      healthCheckRegistry.get().register(DATASTORE_CHECK_NAME, dataStoreHealthChecker);
+      healthCheckRegistry.get().register(BUNDLES_CHECK_NAME, new BundleStateChecker(context));
+      healthCheckRegistry.get().register(DATASTORE_CHECK_NAME, new DataStoreHealthChecker(context));
+      healthCheckRegistry.get().register(SCHEMA_CHECK_NAME, new SchemaAgreementChecker(context));
 
       WebImpl web = new WebImpl(context, metrics.get(), healthCheckRegistry.get());
       web.start();

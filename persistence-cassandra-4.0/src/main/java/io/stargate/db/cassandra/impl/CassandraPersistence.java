@@ -20,8 +20,10 @@ import io.stargate.db.Statement;
 import io.stargate.db.cassandra.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import io.stargate.db.datastore.common.AbstractCassandraPersistence;
+import io.stargate.db.datastore.common.util.SchemaAgreementAchievableCheck;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -47,6 +49,9 @@ import org.apache.cassandra.exceptions.AuthenticationException;
 import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
+import org.apache.cassandra.gms.VersionedValue;
+import org.apache.cassandra.locator.InetAddressAndPort;
 import org.apache.cassandra.schema.ColumnMetadata;
 import org.apache.cassandra.schema.IndexMetadata;
 import org.apache.cassandra.schema.KeyspaceMetadata;
@@ -73,6 +78,7 @@ import org.apache.cassandra.transport.messages.StartupMessage;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.apache.cassandra.utils.MD5Digest;
+import org.apache.cassandra.utils.SystemTimeSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,6 +101,16 @@ public class CassandraPersistence
       Integer.getInteger(
           "stargate.startup_delay_ms",
           3 * 60000); // MigrationManager.MIGRATION_DELAY_IN_MS is private
+
+  // SCHEMA_SYNC_GRACE_PERIOD should be longer than MigrationManager.MIGRATION_DELAY_IN_MS to allow
+  // the schema pull tasks to be initiated, plus some time for executing the pull requests plus
+  // some time to merge the responses. By default the pull task timeout is equal to
+  // DatabaseDescriptor.getRpcTimeout() (10 sec) and there are no retries. We assume that the merge
+  // operation should complete within the default MIGRATION_DELAY_IN_MS.
+  private static final Duration SCHEMA_SYNC_GRACE_PERIOD =
+      Duration.ofMillis(Long.getLong("stargate.schema_sync_grace_period_ms", 2 * 60_000 + 10_000));
+
+  private final SchemaCheck schemaCheck = new SchemaCheck();
 
   private LocalAwareExecutorService executor;
 
@@ -169,6 +185,8 @@ public class CassandraPersistence
     // Use special gossip state "X10" to differentiate stargate nodes
     Gossiper.instance.addLocalApplicationState(
         ApplicationState.X10, StorageService.instance.valueFactory.releaseVersion("stargate"));
+
+    Gossiper.instance.register(schemaCheck);
 
     daemon.start();
 
@@ -271,6 +289,32 @@ public class CassandraPersistence
             .collect(Collectors.toSet())
             .size()
         <= 1;
+  }
+
+  /**
+   * This method indicates whether storage nodes (i.e. excluding Stargate) agree on the schema
+   * version among themselves.
+   */
+  private boolean isStorageInSchemaAgreement() {
+    // See comment in isInSchemaAgreement()
+    // Here we also exclude Stargate nodes (by checking isGossipOnlyMember)
+    return Gossiper.instance.getLiveMembers().stream()
+            .filter(
+                ep -> {
+                  EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
+                  return epState != null
+                      && !Gossiper.instance.isDeadState(epState)
+                      && !Gossiper.instance.isGossipOnlyMember(ep);
+                })
+            .map(Gossiper.instance::getSchemaVersion)
+            .collect(Collectors.toSet())
+            .size()
+        <= 1;
+  }
+
+  @Override
+  public boolean isSchemaAgreementAchievable() {
+    return schemaCheck.check();
   }
 
   @Override
@@ -457,5 +501,49 @@ public class CassandraPersistence
         return Conversion.toInternal(((BoundStatement) statement).preparedId());
       }
     }
+  }
+
+  private class SchemaCheck extends SchemaAgreementAchievableCheck
+      implements IEndpointStateChangeSubscriber {
+
+    public SchemaCheck() {
+      super(
+          CassandraPersistence.this::isInSchemaAgreement,
+          CassandraPersistence.this::isStorageInSchemaAgreement,
+          SCHEMA_SYNC_GRACE_PERIOD,
+          new SystemTimeSource());
+    }
+
+    @Override
+    public void onChange(
+        InetAddressAndPort endpoint, ApplicationState state, VersionedValue value) {
+      // Reset the schema sync grace period timeout on any schema change notifications
+      // even if there are no actual changes.
+      if (state == ApplicationState.SCHEMA) {
+        reset();
+      }
+    }
+
+    @Override
+    public void onJoin(InetAddressAndPort endpoint, EndpointState epState) {}
+
+    @Override
+    public void beforeChange(
+        InetAddressAndPort endpoint,
+        EndpointState currentState,
+        ApplicationState newStateKey,
+        VersionedValue newValue) {}
+
+    @Override
+    public void onAlive(InetAddressAndPort endpoint, EndpointState state) {}
+
+    @Override
+    public void onDead(InetAddressAndPort endpoint, EndpointState state) {}
+
+    @Override
+    public void onRemove(InetAddressAndPort endpoint) {}
+
+    @Override
+    public void onRestart(InetAddressAndPort endpoint, EndpointState state) {}
   }
 }

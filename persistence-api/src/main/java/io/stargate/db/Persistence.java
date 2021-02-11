@@ -109,6 +109,14 @@ public interface Persistence {
   }
 
   /**
+   * Returns <code>false</code>> if the persistence implementation cannot reasonably expect to reach
+   * schema agreement with storage nodes assuming no external intervention.
+   */
+  default boolean isSchemaAgreementAchievable() {
+    return true;
+  }
+
+  /**
    * Persistence-specific CQL options to be returned in SUPPORTED response messages.
    *
    * <p><b>Important:</b> At a minimum, this must return the {@code "CQL_VERSION"} option.
