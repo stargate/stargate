@@ -1,5 +1,33 @@
 # Changelog
 
+## [v1.0.8](https://github.com/stargate/stargate/tree/v1.0.8) (2021-02-11)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.7...v1.0.8)
+
+**Closed issues:**
+
+- Sporadic \(but frequent\) Codacy Coverage Reporter error in CI: SSL\_ERROR\_SYSCALL in connection to api.bintray.com [\#652](https://github.com/stargate/stargate/issues/652)
+- Sporadic test failure in AuthorizationCommandInterceptorTest: unable to capture logs in time [\#651](https://github.com/stargate/stargate/issues/651)
+- \[FEAT\] Website: Redirect to Code/Stargazers/Fork menu [\#646](https://github.com/stargate/stargate/issues/646)
+- Include schema agreement into the liveness check [\#636](https://github.com/stargate/stargate/issues/636)
+- Use Cassandra 4.0-beta4 \(requires changes in schema handling code\) [\#578](https://github.com/stargate/stargate/issues/578)
+- Fix CassandraMetricsRegistry to be compatible with 4.0-beta3 [\#577](https://github.com/stargate/stargate/issues/577)
+- Add README instructions for running test in local dev. env. [\#195](https://github.com/stargate/stargate/issues/195)
+
+**Merged pull requests:**
+
+- Support stargate.broadcast\_address for C\* 3.11 and DSE [\#666](https://github.com/stargate/stargate/pull/666) ([dimas-b](https://github.com/dimas-b))
+- Use Cassandra 4.0-beta4 [\#662](https://github.com/stargate/stargate/pull/662) ([dimas-b](https://github.com/dimas-b))
+- Make LogCollector wait for the expected number of messages. [\#657](https://github.com/stargate/stargate/pull/657) ([dimas-b](https://github.com/dimas-b))
+- Determine CODACY\_REPORTER\_VERSION once per test execution [\#654](https://github.com/stargate/stargate/pull/654) ([dimas-b](https://github.com/dimas-b))
+- Use Cassandra 4.0-beta3 [\#653](https://github.com/stargate/stargate/pull/653) ([dimas-b](https://github.com/dimas-b))
+- Test whether schema argreement is achievable during the liveness check. [\#648](https://github.com/stargate/stargate/pull/648) ([dimas-b](https://github.com/dimas-b))
+- Convenience script for updating the changelog [\#644](https://github.com/stargate/stargate/pull/644) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Make saveToken public to allow for use with other auth mechanisms [\#643](https://github.com/stargate/stargate/pull/643) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Bumping version for next release [\#641](https://github.com/stargate/stargate/pull/641) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Use custom runners for storage node processes [\#640](https://github.com/stargate/stargate/pull/640) ([dimas-b](https://github.com/dimas-b))
+- Update readme for consistency [\#638](https://github.com/stargate/stargate/pull/638) ([dougwettlaufer](https://github.com/dougwettlaufer))
+
 ## [v1.0.7](https://github.com/stargate/stargate/tree/v1.0.7) (2021-02-03)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.6...v1.0.7)
