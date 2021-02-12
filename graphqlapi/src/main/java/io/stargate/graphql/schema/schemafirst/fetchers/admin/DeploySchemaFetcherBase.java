@@ -16,13 +16,8 @@
 package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
 import com.google.common.collect.ImmutableMap;
-import graphql.GraphQLError;
-import graphql.GraphqlErrorException;
 import graphql.GraphqlErrorHelper;
 import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.idl.SchemaParser;
-import graphql.schema.idl.TypeDefinitionRegistry;
-import graphql.schema.idl.errors.SchemaProblem;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
@@ -38,7 +33,6 @@ import io.stargate.graphql.schema.schemafirst.processor.ProcessedSchema;
 import io.stargate.graphql.schema.schemafirst.processor.ProcessingMessage;
 import io.stargate.graphql.schema.schemafirst.processor.SchemaProcessor;
 import java.io.IOException;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -120,20 +114,5 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
         message.getLocations().stream()
             .map(GraphqlErrorHelper::location)
             .collect(Collectors.toList()));
-  }
-
-  private static TypeDefinitionRegistry parseSchema(String inputText) throws GraphqlErrorException {
-    SchemaParser parser = new SchemaParser();
-    try {
-      return parser.parse(inputText);
-    } catch (SchemaProblem schemaProblem) {
-      List<GraphQLError> schemaErrors = schemaProblem.getErrors();
-      throw GraphqlErrorException.newErrorException()
-          .message(
-              "Invalid GraphQL in schemaText/schemaFile. "
-                  + "See details in `extensions.schemaErrors` below.")
-          .extensions(ImmutableMap.of("schemaErrors", schemaErrors))
-          .build();
-    }
   }
 }
