@@ -66,7 +66,8 @@ public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
     Collection<ValueModifier> setters = new ArrayList<>();
     for (FieldMappingModel column : entityModel.getAllColumns()) {
       String graphqlName = column.getGraphqlName();
-      Object graphqlValue, cqlValue;
+      Object graphqlValue;
+      Object cqlValue;
       if (input.containsKey(graphqlName)) {
         graphqlValue = input.get(graphqlName);
         cqlValue = toCqlValue(graphqlValue, column);
