@@ -242,6 +242,12 @@ public class AdminSchemaBuilder {
                   .description("The name of the namespace")
                   .type(nonNull(GraphQLString))
                   .build())
+          .argument(
+              newArgument()
+                  .name("version")
+                  .description(
+                      "The version of the schema to get. If not specified, it will return the latest version.")
+                  .type(GraphQLString))
           .type(nonNull(SCHEMA_TYPE))
           .build();
 
