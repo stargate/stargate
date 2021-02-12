@@ -61,9 +61,10 @@ class DirectiveHelper {
             context.addError(
                 directive.getSourceLocation(),
                 ProcessingMessageType.InvalidSyntax,
-                "Invalid value '%s' for argument %s: not an enum constant",
-                v.getName(),
-                argumentName);
+                "%s.%s: invalid value '%s', must be an enum constant",
+                directive.getName(),
+                argumentName,
+                v.getName());
             return Optional.empty();
           }
         },
@@ -86,7 +87,8 @@ class DirectiveHelper {
                 context.addError(
                     directive.getSourceLocation(),
                     ProcessingMessageType.InvalidSyntax,
-                    "Invalid value for argument %s: expected a %s",
+                    "%s.%s: invalid value, expected a %s",
+                    directive.getName(),
                     argumentName,
                     valueClass.getSimpleName());
                 return false;
