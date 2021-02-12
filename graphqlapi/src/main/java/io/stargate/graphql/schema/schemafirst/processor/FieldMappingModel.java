@@ -83,7 +83,10 @@ public class FieldMappingModel {
   }
 
   static Optional<FieldMappingModel> build(
-      FieldDefinition field, ProcessingContext context, EntityMappingModel.Target targetContainer) {
+      FieldDefinition field,
+      ProcessingContext context,
+      String parentName,
+      EntityMappingModel.Target targetContainer) {
     String graphqlName = field.getName();
     Type<?> graphqlType = field.getType();
 
@@ -104,14 +107,18 @@ public class FieldMappingModel {
       if (partitionKey) {
         context.addWarning(
             directive.map(Directive::getSourceLocation).orElse(null),
-            "Objects that map to a UDT should not have partition key fields "
-                + "(this will be ignored)");
+            "%s.%s: this shouldn't be marked as a partition key, the object maps to a UDT "
+                + "(this will be ignored)",
+            parentName,
+            graphqlName);
       }
       if (clusteringOrder.isPresent()) {
         context.addWarning(
             directive.map(Directive::getSourceLocation).orElse(null),
-            "Objects that map to a UDT should not have clustering fields"
-                + "(this will be ignored)");
+            "%s.%s: this shouldn't be marked as a clustering key, the object maps to a UDT "
+                + "(this will be ignored)",
+            parentName,
+            graphqlName);
       }
     }
 
@@ -122,7 +129,7 @@ public class FieldMappingModel {
     Optional<Column.ColumnType> cqlType =
         directive
             .flatMap(d -> DirectiveHelper.getStringArgument(d, "type", context))
-            .flatMap(spec -> parseCqlType(spec, context, directive));
+            .flatMap(spec -> parseCqlType(spec, context, directive, parentName, graphqlName));
     if (!cqlType.isPresent()) {
       cqlType = guessCqlType(graphqlType, context);
     }
@@ -131,7 +138,9 @@ public class FieldMappingModel {
       context.addError(
           directive.map(Directive::getSourceLocation).orElse(null),
           ProcessingMessageType.InvalidMapping,
-          "A field can't be both a partition key component and a clustering column.");
+          "%s.%s: can't be both a partition key and a clustering key.",
+          parentName,
+          graphqlName);
       return Optional.empty();
     }
 
@@ -142,14 +151,20 @@ public class FieldMappingModel {
   }
 
   private static Optional<Column.ColumnType> parseCqlType(
-      String spec, ProcessingContext context, Optional<Directive> directive) {
+      String spec,
+      ProcessingContext context,
+      Optional<Directive> directive,
+      String parentName,
+      String graphqlName) {
     try {
       return Optional.of(Column.Type.fromCqlDefinitionOf(context.getKeyspace(), spec));
     } catch (IllegalArgumentException e) {
       context.addError(
           directive.map(Directive::getSourceLocation).orElse(null),
           ProcessingMessageType.InvalidSyntax,
-          "Could not parse CQL type from '%s': %s",
+          "%s.%s: could not parse CQL type '%s': %s",
+          parentName,
+          graphqlName,
           spec,
           e.getMessage());
       return Optional.empty();

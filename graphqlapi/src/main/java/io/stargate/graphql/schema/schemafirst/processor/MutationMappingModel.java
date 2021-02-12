@@ -34,6 +34,7 @@ public abstract class MutationMappingModel extends OperationMappingModel {
       InputValueDefinition input,
       Map<String, EntityMappingModel> entities,
       ProcessingContext context,
+      String mutationName,
       String mutationKind) {
 
     Type<?> type = TypeHelper.unwrapNonNull(input.getType());
@@ -42,7 +43,8 @@ public abstract class MutationMappingModel extends OperationMappingModel {
       context.addError(
           input.getSourceLocation(),
           ProcessingMessageType.InvalidMapping,
-          "Unexpected list type, %s mutations expect a single entity",
+          "Mutation %s: unexpected list type, %ss expect a single entity",
+          mutationName,
           mutationKind);
       return Optional.empty();
     }
@@ -56,7 +58,8 @@ public abstract class MutationMappingModel extends OperationMappingModel {
       context.addError(
           input.getSourceLocation(),
           ProcessingMessageType.InvalidMapping,
-          "Unexpected type, " + "%s mutations expect an input object that maps to a CQL entity",
+          "Mutation %s: unexpected type, %ss expect an input object that maps to a CQL entity",
+          mutationName,
           mutationKind);
     }
     return entity;
