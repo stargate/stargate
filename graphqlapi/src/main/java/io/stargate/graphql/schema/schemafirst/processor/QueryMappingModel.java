@@ -77,7 +77,8 @@ public class QueryMappingModel extends OperationMappingModel {
       context.addError(
           query.getSourceLocation(),
           ProcessingMessageType.InvalidMapping,
-          "Expected the query type to be an object that maps to an entity");
+          "Query %s: expected the return type to be an object that maps to an entity",
+          query.getName());
       return Optional.empty();
     }
 
@@ -89,8 +90,9 @@ public class QueryMappingModel extends OperationMappingModel {
       context.addError(
           query.getSourceLocation(),
           ProcessingMessageType.InvalidMapping,
-          "Expected number of query arguments (%d) "
+          "Query %s: expected the number of arguments (%d) "
               + "to match number of partition key + clustering column fields on the entity (%d)",
+          query.getName(),
           inputValues.size(),
           primaryKey.size());
       return Optional.empty();
@@ -107,7 +109,8 @@ public class QueryMappingModel extends OperationMappingModel {
         context.addError(
             argument.getSourceLocation(),
             ProcessingMessageType.InvalidMapping,
-            "Expected argument %s to have the same type as %s.%s",
+            "Query %s: expected argument %s to have the same type as %s.%s",
+            query.getName(),
             argument.getName(),
             entity.getGraphqlName(),
             field.getGraphqlName());

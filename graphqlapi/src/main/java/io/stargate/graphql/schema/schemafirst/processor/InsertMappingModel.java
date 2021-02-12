@@ -71,7 +71,8 @@ public class InsertMappingModel extends MutationMappingModel {
       context.addError(
           mutation.getSourceLocation(),
           ProcessingMessageType.InvalidMapping,
-          "Insert mutations must take the entity input type as the first argument");
+          "Mutation %s: inserts must take the entity input type as the first argument",
+          mutation.getName());
       return Optional.empty();
     }
 
@@ -80,12 +81,13 @@ public class InsertMappingModel extends MutationMappingModel {
       context.addError(
           mutation.getSourceLocation(),
           ProcessingMessageType.InvalidMapping,
-          "Insert mutations can't have more than one argument");
+          "Mutation %s: inserts can't have more than one argument",
+          mutation.getName());
       return Optional.empty();
     }
 
     InputValueDefinition input = inputs.get(0);
-    return findEntity(input, entities, context, "insert")
+    return findEntity(input, entities, context, mutation.getName(), "insert")
         .filter(entity -> matchesReturnType(entity, mutation, context))
         .map(entity -> new InsertMappingModel(parentTypeName, mutation, entity, input.getName()));
   }
@@ -104,7 +106,8 @@ public class InsertMappingModel extends MutationMappingModel {
       context.addError(
           returnType.getSourceLocation(),
           ProcessingMessageType.InvalidMapping,
-          "Unexpected return type for an insert mutation");
+          "Mutation %s: unexpected return type for inserts",
+          mutation.getName());
     }
     return matches;
   }
