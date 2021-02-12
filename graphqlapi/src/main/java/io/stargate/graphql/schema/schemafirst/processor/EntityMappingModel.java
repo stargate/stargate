@@ -36,6 +36,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class EntityMappingModel {
+  private static final Pattern NON_NESTED_FIELDS =
+      Pattern.compile("[_A-Za-z][_0-9A-Za-z]*(?:\\s+[_A-Za-z][_0-9A-Za-z]*)*");
+  private static final Splitter ON_SPACES = Splitter.onPattern("\\s+");
 
   private final String graphqlName;
   private final String keyspaceName;
@@ -202,6 +205,8 @@ public class EntityMappingModel {
           return Optional.empty();
         }
         break;
+      default:
+        throw new UnsupportedOperationException("Unsupported target type");
     }
 
     Optional<String> inputTypeName =
@@ -389,8 +394,4 @@ public class EntityMappingModel {
 
     abstract AbstractBound<?> buildDropQuery(QueryBuilder builder, EntityMappingModel entity);
   }
-
-  private static final Pattern NON_NESTED_FIELDS =
-      Pattern.compile("[_A-Za-z][_0-9A-Za-z]*(?:\\s+[_A-Za-z][_0-9A-Za-z]*)*");
-  private static final Splitter ON_SPACES = Splitter.onPattern("\\s+");
 }
