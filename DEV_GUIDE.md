@@ -77,7 +77,7 @@ docker pull stargateio/stargate-3_11:v0.0.2
 ```
 
 ```sh
-docker run --name stargate -d stargateio/stargate-3_11:v0.0.2 --cluster-name stargate --cluster-seed 127.0.0.1 --cluster-version 3.11 --listen 127.0.0.2 --simple-snitch
+docker run --name stargate -d stargateio/stargate-3_11:v0.0.2 --cluster-name stargate --cluster-seed 127.0.0.1 --cluster-version 3.11 --listen 127.0.0.2 --bind-to-listen-address --simple-snitch
 ```
 
 `starctl` respects the `JAVA_OPTS` environment variable.
