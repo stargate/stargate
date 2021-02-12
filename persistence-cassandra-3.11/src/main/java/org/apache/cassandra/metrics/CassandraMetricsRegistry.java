@@ -163,6 +163,17 @@ public class CassandraMetricsRegistry extends MetricRegistry {
     }
   }
 
+  /**
+   * Strips a single final '$' from input
+   *
+   * @param s String to strip
+   * @return a string with one less '$' at end
+   */
+  private static String withoutFinalDollar(String s) {
+    int l = s.length();
+    return (l != 0 && '$' == s.charAt(l - 1)) ? s.substring(0, l - 1) : s;
+  }
+
   public interface MetricMBean {
 
     ObjectName objectName();
@@ -724,16 +735,5 @@ public class CassandraMetricsRegistry extends MetricRegistry {
       }
       return name;
     }
-  }
-
-  /**
-   * Strips a single final '$' from input
-   *
-   * @param s String to strip
-   * @return a string with one less '$' at end
-   */
-  private static String withoutFinalDollar(String s) {
-    int l = s.length();
-    return (l != 0 && '$' == s.charAt(l - 1)) ? s.substring(0, l - 1) : s;
   }
 }
