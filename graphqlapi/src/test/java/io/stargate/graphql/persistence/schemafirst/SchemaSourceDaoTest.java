@@ -24,13 +24,10 @@ import static org.mockito.Mockito.when;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
-import io.stargate.db.query.builder.AbstractBound;
+import io.stargate.db.query.BoundQuery;
 import io.stargate.db.schema.*;
 import io.stargate.graphql.schema.schemafirst.util.Uuids;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -51,6 +48,26 @@ class SchemaSourceDaoTest {
 
     // when
     SchemaSource schema = schemaSourceDao.getLatest(namespace);
+
+    // then
+    assertThat(schema.getContents()).isEqualTo(schemaContent);
+    assertThat(schema.getNamespace()).isEqualTo(namespace);
+    assertThat(schema.getVersion()).isEqualTo(versionId);
+    assertThat(schema.getDeployDate()).isNotNull();
+  }
+
+  @Test
+  public void shouldGetSpecificSchema() throws Exception {
+    // given
+    String namespace = "ns_1";
+    UUID versionId = Uuids.timeBased();
+    String schemaContent = "some_schema";
+    ResultSet resultSet = mockSchemaResultSet(versionId, schemaContent);
+    DataStore dataStore = mockDataStore(namespace, resultSet);
+    SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
+
+    // when
+    SchemaSource schema = schemaSourceDao.getByVersion(namespace, Optional.of(versionId));
 
     // then
     assertThat(schema.getContents()).isEqualTo(schemaContent);
@@ -282,8 +299,13 @@ class SchemaSourceDaoTest {
     }
 
     @Override
-    AbstractBound<?> schemaQuery(String namespace) {
-      return mock(AbstractBound.class);
+    BoundQuery schemaQuery(String namespace) {
+      return mock(BoundQuery.class);
+    }
+
+    @Override
+    BoundQuery schemaQueryWithSpecificVersion(String namespace, UUID uuid) {
+      return mock(BoundQuery.class);
     }
   }
 }
