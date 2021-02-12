@@ -50,61 +50,6 @@ import java.io.InputStream;
 
 public class AdminSchemaBuilder {
 
-  private final AuthenticationService authenticationService;
-  private final AuthorizationService authorizationService;
-  private final DataStoreFactory dataStoreFactory;
-
-  public AdminSchemaBuilder(
-      AuthenticationService authenticationService,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    this.authenticationService = authenticationService;
-    this.authorizationService = authorizationService;
-    this.dataStoreFactory = dataStoreFactory;
-  }
-
-  public GraphQLSchema build() {
-    return newSchema()
-        .query(QUERY)
-        .mutation(MUTATION)
-        .codeRegistry(
-            newCodeRegistry()
-                .dataFetcher(
-                    coordinates(QUERY, NAMESPACES_QUERY),
-                    new AllNamespacesFetcher(
-                        authenticationService, authorizationService, dataStoreFactory))
-                .dataFetcher(
-                    coordinates(QUERY, NAMESPACE_QUERY),
-                    new SingleNamespaceFetcher(
-                        authenticationService, authorizationService, dataStoreFactory))
-                .dataFetcher(
-                    coordinates(QUERY, SCHEMA_QUERY),
-                    new SingleSchemaFetcher(
-                        authenticationService, authorizationService, dataStoreFactory))
-                .dataFetcher(
-                    coordinates(QUERY, SCHEMA_HISTORY_PER_NAMESPACE_QUERY),
-                    new AllSchemasFetcher(
-                        authenticationService, authorizationService, dataStoreFactory))
-                .dataFetcher(
-                    coordinates(MUTATION, CREATE_NAMESPACE_MUTATION),
-                    new CreateNamespaceFetcher(
-                        authenticationService, authorizationService, dataStoreFactory))
-                .dataFetcher(
-                    coordinates(MUTATION, DROP_NAMESPACE_MUTATION),
-                    new DropNamespaceFetcher(
-                        authenticationService, authorizationService, dataStoreFactory))
-                .dataFetcher(
-                    coordinates(MUTATION, DEPLOY_SCHEMA_MUTATION),
-                    new DeploySchemaFetcher(
-                        authenticationService, authorizationService, dataStoreFactory))
-                .dataFetcher(
-                    coordinates(MUTATION, DEPLOY_SCHEMA_FILE_MUTATION),
-                    new DeploySchemaFileFetcher(
-                        authenticationService, authorizationService, dataStoreFactory))
-                .build())
-        .build();
-  }
-
   private static final GraphQLObjectType DC_TYPE =
       newObject()
           .name("Datacenter")
@@ -479,6 +424,61 @@ public class AdminSchemaBuilder {
           .field(DEPLOY_SCHEMA_MUTATION)
           .field(DEPLOY_SCHEMA_FILE_MUTATION)
           .build();
+
+  private final AuthenticationService authenticationService;
+  private final AuthorizationService authorizationService;
+  private final DataStoreFactory dataStoreFactory;
+
+  public AdminSchemaBuilder(
+      AuthenticationService authenticationService,
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
+    this.authenticationService = authenticationService;
+    this.authorizationService = authorizationService;
+    this.dataStoreFactory = dataStoreFactory;
+  }
+
+  public GraphQLSchema build() {
+    return newSchema()
+        .query(QUERY)
+        .mutation(MUTATION)
+        .codeRegistry(
+            newCodeRegistry()
+                .dataFetcher(
+                    coordinates(QUERY, NAMESPACES_QUERY),
+                    new AllNamespacesFetcher(
+                        authenticationService, authorizationService, dataStoreFactory))
+                .dataFetcher(
+                    coordinates(QUERY, NAMESPACE_QUERY),
+                    new SingleNamespaceFetcher(
+                        authenticationService, authorizationService, dataStoreFactory))
+                .dataFetcher(
+                    coordinates(QUERY, SCHEMA_QUERY),
+                    new SingleSchemaFetcher(
+                        authenticationService, authorizationService, dataStoreFactory))
+                .dataFetcher(
+                    coordinates(QUERY, SCHEMA_HISTORY_PER_NAMESPACE_QUERY),
+                    new AllSchemasFetcher(
+                        authenticationService, authorizationService, dataStoreFactory))
+                .dataFetcher(
+                    coordinates(MUTATION, CREATE_NAMESPACE_MUTATION),
+                    new CreateNamespaceFetcher(
+                        authenticationService, authorizationService, dataStoreFactory))
+                .dataFetcher(
+                    coordinates(MUTATION, DROP_NAMESPACE_MUTATION),
+                    new DropNamespaceFetcher(
+                        authenticationService, authorizationService, dataStoreFactory))
+                .dataFetcher(
+                    coordinates(MUTATION, DEPLOY_SCHEMA_MUTATION),
+                    new DeploySchemaFetcher(
+                        authenticationService, authorizationService, dataStoreFactory))
+                .dataFetcher(
+                    coordinates(MUTATION, DEPLOY_SCHEMA_FILE_MUTATION),
+                    new DeploySchemaFileFetcher(
+                        authenticationService, authorizationService, dataStoreFactory))
+                .build())
+        .build();
+  }
 
   /** See the multipart method in {@link GraphqlResourceBase}. */
   private static class InputStreamCoercing implements Coercing<InputStream, Void> {
