@@ -42,6 +42,12 @@ public class MutationMappingModelFactory {
     for (Kind kind : Kind.values()) {
       for (String prefix : kind.getPrefixes()) {
         if (mutation.getName().startsWith(prefix)) {
+          context.addInfo(
+              mutation.getSourceLocation(),
+              "Mutation %s: mapping to a CQL %s because it starts with '%s'",
+              mutation.getName(),
+              kind,
+              prefix);
           return Optional.of(kind);
         }
       }
@@ -49,8 +55,9 @@ public class MutationMappingModelFactory {
     context.addError(
         mutation.getSourceLocation(),
         ProcessingMessageType.InvalidMapping,
-        "Could not infer mutation kind. Either use one of the mutation directives (%s), "
-            + "or name your operation with a recognized prefix.",
+        "Mutation %s: could not infer mutation kind. Either use one of the mutation "
+            + "directives (%s), or name your operation with a recognized prefix.",
+        mutation.getName(),
         Arrays.stream(Kind.values()).map(Kind::getDirectiveName).collect(Collectors.joining(", ")));
     return Optional.empty();
   }
