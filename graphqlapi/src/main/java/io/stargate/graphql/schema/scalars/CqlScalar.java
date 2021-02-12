@@ -66,9 +66,9 @@ public enum CqlScalar {
           .description(
               "Represents a CQL `date` as a string.\n"
                   + "This is a date without a time-zone in the ISO-8601 calendar system.\n"
-                  + "Example: \"2020-10-21\"."
-                  + "A date can also be input as a 32-bit, positive numeric literal, which will be\n"
-                  + "interpreted as a number of days, where the epoch is in the middle of the range\n"
+                  + "Example: \"2020-10-21\".\n"
+                  + "A date can also be input as a 32-bit, positive numeric literal, which will be "
+                  + "interpreted as a number of days, where the epoch is in the middle of the range "
                   + "(1970-01-01 = 2147483648).")
           .build()),
   DURATION(
@@ -78,7 +78,7 @@ public enum CqlScalar {
           .coercing(StringCoercing.DURATION)
           .description(
               "Represents a CQL `duration` as a string.\n"
-                  + "See https://docs.datastax.com/en/dse/6.8/cql/cql/cql_reference/upsertDates.html"
+                  + "See https://docs.datastax.com/en/dse/6.8/cql/cql/cql_reference/upsertDates.html\n"
                   + "Example: \"1h4m48s20ms\"")
           .build()),
   BIGINT(
@@ -136,7 +136,7 @@ public enum CqlScalar {
           .description(
               "Represents a CQL `float` as a floating-point literal.\n"
                   + "This is a 32-bit IEEE-754 floating point.\n"
-                  + "If the value cannot be represented as a float, it will be converted.\n"
+                  + "If the value cannot be represented as a float, it will be converted. "
                   + "This conversion can loose precision, or range (resulting in +/-Infinity).")
           .build()),
   BLOB(
@@ -154,7 +154,8 @@ public enum CqlScalar {
           .name("SmallInt")
           .coercing(IntCoercing.SMALLINT)
           .description(
-              "Represents a CQL `smallint` as an integer.\nThis is a 16-bit signed int.\n"
+              "Represents a CQL `smallint` as an integer.\n"
+                  + "This is a 16-bit signed int.\n"
                   + "An error will be thrown if the value is out of bounds.")
           .build()),
   TINYINT(
@@ -163,7 +164,8 @@ public enum CqlScalar {
           .name("TinyInt")
           .coercing(IntCoercing.TINYINT)
           .description(
-              "Represents a CQL `tinyint` as an integer\n.This is an 8-bit signed int.\n"
+              "Represents a CQL `tinyint` as an integer\n."
+                  + "This is an 8-bit signed int.\n"
                   + "An error will be thrown if the value is out of bounds.")
           .build()),
   TIMESTAMP(
@@ -174,12 +176,12 @@ public enum CqlScalar {
           .description(
               "Represents a CQL `timestamp` as a string.\n"
                   + "This is an instantaneous point on the time-line.\n"
-                  + "This type supports many different string representations, "
-                  + "see https://docs.datastax.com/en/cql-oss/3.x/cql/cql_reference/timestamp_type_r.html\n"
-                  + "A timestamp can also be input as a numeric literal, which will be interpreted\n"
+                  + "This type supports many different string representations "
+                  + "(see https://docs.datastax.com/en/cql-oss/3.x/cql/cql_reference/timestamp_type_r.html). "
+                  + "A timestamp can also be input as a numeric literal, which will be interpreted "
                   + "as a number of milliseconds since the epoch (1970-01-01 UTC at midnight).\n"
                   + "Examples: \"2011-02-03 04:05+0000\", 1296705900000\n"
-                  + "String literals that do not include any time zone information will be\n"
+                  + "String literals that do not include any time zone information will be "
                   + "interpreted using the server's default time zone.")
           .build()),
   TIME(
@@ -189,9 +191,9 @@ public enum CqlScalar {
           .coercing(TimeCoercing.INSTANCE)
           .description(
               "Represents a CQL `time` as a string.\n"
-                  + "This is a time without a time-zone in the ISO-8601 calendar system."
+                  + "This is a time without a time-zone in the ISO-8601 calendar system.\n"
                   + "Example: \"10:15:30.123456789\"\n"
-                  + "A time can also be input as a numeric literal, which will be interpreted\n"
+                  + "A time can also be input as a numeric literal, which will be interpreted "
                   + "as a number of nanoseconds since midnight.")
           .build()),
   ;

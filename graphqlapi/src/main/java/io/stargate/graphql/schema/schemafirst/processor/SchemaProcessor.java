@@ -53,8 +53,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class SchemaProcessor {
-  // TODO make private
-  public static final TypeDefinitionRegistry CQL_DIRECTIVES =
+
+  private static final TypeDefinitionRegistry CQL_DIRECTIVES =
       new SchemaParser()
           .parse(
               new InputStreamReader(
