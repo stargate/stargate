@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option java_package = "io.stargate.proto";
+
+package stargate;
+
+service Stargate {
+  rpc Query(Request) returns (ResultSet) {}
+}
+
+message Request {
+  string query = 1;
+}
+
+message ResultSet {
+}
