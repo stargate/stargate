@@ -193,16 +193,42 @@ public class GraphqlResourceBase {
       return;
     }
 
-    // Given:
-    // - a GraphQL query such as
-    //     { "query": "...", "variables": { "file1": <whatever>, "file2": <whatever> } }
-    // - a `map` part such as
-    //     { "part1": [ "variables.file1" ], "part2": [ "variables.file2" ] }
-    // - two parts `part1` and `part2` with the contents of the corresponding files.
-    //
-    // We want to read each file part as an InputStream, and inject it in `jsonBody.getVariables()`
-    // at the corresponding position (overriding whatever was there).
-    Map<String, Object> variables = jsonBody == null ? null : jsonBody.getVariables();
+    if (bindFilesToVariables(jsonBody, allParts, asyncResponse)) {
+      postJson(
+          jsonBody,
+          // We don't allow passing the query as a URL param for this variant. The spec does not
+          // preclude it explicitly, but it's unlikely that someone would try to do that.
+          null,
+          graphql,
+          httpRequest,
+          asyncResponse);
+    }
+  }
+
+  /**
+   * Given:
+   *
+   * <ul>
+   *   <li>a GraphQL query such as:
+   *       <pre>
+   *       { "query": "...", "variables": { "file1": <whatever>, "file2": <whatever> } }
+   *       </pre>
+   *   <li>a 'map' part such as
+   *       <pre>
+   *       "part1": [ "variables.file1" ], "part2": [ "variables.file2" ] }
+   *       </pre>
+   *   <li>two parts 'part1' and 'part2' with the contents of the corresponding files.
+   * </ul>
+   *
+   * <p>We want to read each file part as an {@link InputStream}, and inject it in {@link
+   * GraphqlJsonBody#getVariables()} at the corresponding position (overriding whatever was there).
+   *
+   * @return true if the process succeeded. Otherwise an error response has already been written.
+   */
+  private static boolean bindFilesToVariables(
+      GraphqlJsonBody jsonBody, FormDataMultiPart allParts, AsyncResponse asyncResponse) {
+
+    Map<String, Object> variables = jsonBody.getVariables();
     FormDataBodyPart filesMappingPart = allParts.getField("map");
     if (filesMappingPart != null) {
       if (variables == null || variables.isEmpty()) {
@@ -211,7 +237,7 @@ public class GraphqlResourceBase {
             Status.BAD_REQUEST,
             "Found a 'map' part but the GraphQL query has no variables",
             asyncResponse);
-        return;
+        return false;
       }
       Map<String, List<String>> filesMapping;
       try {
@@ -219,7 +245,7 @@ public class GraphqlResourceBase {
       } catch (JsonProcessingException e) {
         replyWithGraphqlError(
             Status.BAD_REQUEST, "Could not parse map part: " + e.getMessage(), asyncResponse);
-        return;
+        return false;
       }
       for (Map.Entry<String, List<String>> entry : filesMapping.entrySet()) {
         String partName = entry.getKey();
@@ -232,7 +258,7 @@ public class GraphqlResourceBase {
               String.format(
                   "The 'map' part references '%s', but found no part with that name", partName),
               asyncResponse);
-          return;
+          return false;
         }
 
         if (variablePaths == null || variablePaths.size() != 1) {
@@ -245,7 +271,7 @@ public class GraphqlResourceBase {
                       + "(offending part: '%s' with %d variables)",
                   partName, variablePaths == null ? 0 : variablePaths.size()),
               asyncResponse);
-          return;
+          return false;
         }
         String variablePath = variablePaths.get(0);
 
@@ -260,22 +286,14 @@ public class GraphqlResourceBase {
                       + "(offending reference: '%s')",
                   variablePath),
               asyncResponse);
-          return;
+          return false;
         }
         String variableName = pathElements.get(1);
 
         variables.put(variableName, part.getEntityAs(InputStream.class));
       }
     }
-
-    postJson(
-        jsonBody,
-        // We don't allow passing the query as a URL param for this variant. The spec does not
-        // preclude it explicitly, but it's unlikely that someone would try to do that.
-        null,
-        graphql,
-        httpRequest,
-        asyncResponse);
+    return true;
   }
 
   /**

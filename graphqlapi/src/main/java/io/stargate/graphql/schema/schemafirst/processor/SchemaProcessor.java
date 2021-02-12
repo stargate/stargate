@@ -53,6 +53,20 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class SchemaProcessor {
+  // TODO make private
+  public static final TypeDefinitionRegistry CQL_DIRECTIVES =
+      new SchemaParser()
+          .parse(
+              new InputStreamReader(
+                  SchemaProcessor.class.getResourceAsStream("/schemafirst/cql_directives.graphql"),
+                  StandardCharsets.UTF_8));
+
+  private static final TypeDefinitionRegistry FEDERATION_DIRECTIVES =
+      new SchemaParser()
+          .parse(
+              new InputStreamReader(
+                  SchemaProcessor.class.getResourceAsStream("/schemafirst/federation.graphql"),
+                  StandardCharsets.UTF_8));
 
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
@@ -214,19 +228,4 @@ public class SchemaProcessor {
               }
             });
   }
-
-  // TODO make private
-  public static final TypeDefinitionRegistry CQL_DIRECTIVES =
-      new SchemaParser()
-          .parse(
-              new InputStreamReader(
-                  SchemaProcessor.class.getResourceAsStream("/schemafirst/cql_directives.graphql"),
-                  StandardCharsets.UTF_8));
-
-  private static final TypeDefinitionRegistry FEDERATION_DIRECTIVES =
-      new SchemaParser()
-          .parse(
-              new InputStreamReader(
-                  SchemaProcessor.class.getResourceAsStream("/schemafirst/federation.graphql"),
-                  StandardCharsets.UTF_8));
 }
