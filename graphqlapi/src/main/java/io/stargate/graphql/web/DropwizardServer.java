@@ -35,6 +35,7 @@ import io.stargate.graphql.web.resources.cqlfirst.GraphqlCache;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlDdlResource;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlDmlResource;
 import io.stargate.graphql.web.resources.schemafirst.AdminResource;
+import io.stargate.graphql.web.resources.schemafirst.FilesResource;
 import io.stargate.graphql.web.resources.schemafirst.NamespaceResource;
 import io.stargate.graphql.web.resources.schemafirst.SchemaFirstCache;
 import java.util.EnumSet;
@@ -141,6 +142,7 @@ public class DropwizardServer extends Application<Configuration> {
     // GraphQL-first API:
     environment.jersey().register(AdminResource.class);
     environment.jersey().register(NamespaceResource.class);
+    environment.jersey().register(FilesResource.class);
 
     enableCors(environment);
 
