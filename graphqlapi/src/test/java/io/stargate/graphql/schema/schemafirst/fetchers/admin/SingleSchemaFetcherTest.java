@@ -16,7 +16,6 @@
 package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -35,13 +34,13 @@ import org.junit.jupiter.api.Test;
 
 class SingleSchemaFetcherTest {
   @Test
-  public void shouldGetOneSchemaEntry() throws Exception {
+  public void shouldGetLatestSchemaEntry() throws Exception {
     // given
     String namespace = "ns_1";
     SchemaSource schemaSource = new SchemaSource(namespace, Uuids.timeBased(), "content");
 
     SchemaSourceDao schemaSourceDao = mock(SchemaSourceDao.class);
-    when(schemaSourceDao.getLatest(namespace)).thenReturn(schemaSource);
+    when(schemaSourceDao.getByVersion(namespace, Optional.empty())).thenReturn(schemaSource);
     SingleSchemaFetcher singleSchemaFetcher =
         new SingleSchemaFetcher(
             mock(AuthenticationService.class),
@@ -65,9 +64,48 @@ class SingleSchemaFetcherTest {
             new AbstractMap.SimpleEntry<>("deployDate", schemaSource.getDeployDate()));
   }
 
+  @Test
+  public void shouldGetSchemaEntryForVersion() throws Exception {
+    // given
+    String namespace = "ns_1";
+    UUID version = Uuids.timeBased();
+    SchemaSource schemaSource = new SchemaSource(namespace, Uuids.timeBased(), "content");
+
+    SchemaSourceDao schemaSourceDao = mock(SchemaSourceDao.class);
+    when(schemaSourceDao.getByVersion(namespace, Optional.of(version))).thenReturn(schemaSource);
+    SingleSchemaFetcher singleSchemaFetcher =
+        new SingleSchemaFetcher(
+            mock(AuthenticationService.class),
+            mock(AuthorizationService.class),
+            mock(DataStoreFactory.class),
+            (ds) -> schemaSourceDao);
+
+    DataFetchingEnvironment dataFetchingEnvironment =
+        mockDataFetchingEnvironment(namespace, version.toString());
+    DataStore dataStore = mockDataStore(namespace);
+
+    // when
+    Map<String, Object> result =
+        singleSchemaFetcher.get(
+            dataFetchingEnvironment, dataStore, mock(AuthenticationSubject.class));
+
+    // then
+    assertThat(result)
+        .contains(
+            new AbstractMap.SimpleEntry<>("namespace", namespace),
+            new AbstractMap.SimpleEntry<>("version", schemaSource.getVersion()),
+            new AbstractMap.SimpleEntry<>("deployDate", schemaSource.getDeployDate()));
+  }
+
   private DataFetchingEnvironment mockDataFetchingEnvironment(String namespace) {
     DataFetchingEnvironment dataFetchingEnvironment = mock(DataFetchingEnvironment.class);
     when(dataFetchingEnvironment.getArgument("namespace")).thenReturn(namespace);
+    return dataFetchingEnvironment;
+  }
+
+  private DataFetchingEnvironment mockDataFetchingEnvironment(String namespace, String version) {
+    DataFetchingEnvironment dataFetchingEnvironment = mockDataFetchingEnvironment(namespace);
+    when(dataFetchingEnvironment.getArgument("version")).thenReturn(version);
     return dataFetchingEnvironment;
   }
 
