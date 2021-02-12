@@ -27,7 +27,6 @@ import javax.ws.rs.core.Response;
 
 @Singleton
 @Path(ResourcePaths.FILES)
-@Produces(MediaType.APPLICATION_JSON)
 public class FilesResource extends GraphqlResourceBase {
 
   @GET
