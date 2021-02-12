@@ -22,7 +22,6 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
-import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
@@ -30,6 +29,7 @@ import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.schemafirst.util.Uuids;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -70,7 +70,10 @@ public class SchemaSourceDao {
     return row.stream().map(r -> toSchemaSource(namespace, r)).collect(Collectors.toList());
   }
 
-  public SchemaSource getLatest(String namespace) throws Exception {
+  public SchemaSource getByVersion(
+      String namespace,
+      @SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<UUID> version)
+      throws Exception {
     Keyspace keyspace;
     Table table;
     if ((keyspace = dataStore.schema().keyspace(namespace)) == null
@@ -79,11 +82,21 @@ public class SchemaSourceDao {
     }
     failIfUnexpectedSchema(namespace, table);
 
-    Row row = dataStore.execute(schemaQuery(namespace)).get().one();
+    Row row;
+
+    if (version.isPresent()) {
+      row = dataStore.execute(schemaQueryWithSpecificVersion(namespace, version.get())).get().one();
+    } else {
+      row = dataStore.execute(schemaQuery(namespace)).get().one();
+    }
     if (row == null) {
       return null;
     }
     return toSchemaSource(namespace, row);
+  }
+
+  public SchemaSource getLatest(String namespace) throws Exception {
+    return getByVersion(namespace, Optional.empty());
   }
 
   private SchemaSource toSchemaSource(String namespace, Row r) {
@@ -92,7 +105,20 @@ public class SchemaSourceDao {
   }
 
   @VisibleForTesting
-  AbstractBound<?> schemaQuery(String namespace) {
+  BoundQuery schemaQueryWithSpecificVersion(String namespace, UUID uuid) {
+    return dataStore
+        .queryBuilder()
+        .select()
+        .column(VERSION_COLUMN_NAME, CONTENTS_COLUMN_NAME)
+        .from(namespace, TABLE_NAME)
+        .where(KEY_CONDITION)
+        .where(VERSION_COLUMN_NAME, Predicate.EQ, uuid)
+        .build()
+        .bind();
+  }
+
+  @VisibleForTesting
+  BoundQuery schemaQuery(String namespace) {
     return dataStore
         .queryBuilder()
         .select()
