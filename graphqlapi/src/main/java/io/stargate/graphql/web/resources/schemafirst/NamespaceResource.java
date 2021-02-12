@@ -16,10 +16,8 @@
 package io.stargate.graphql.web.resources.schemafirst;
 
 import graphql.GraphQL;
-import io.stargate.graphql.web.RequestToHeadersMapper;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
-import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
@@ -34,18 +32,12 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** Serves the GraphQL schema deployed on each namespace. */
 @Singleton
 @Path(ResourcePaths.NAMESPACES)
 @Produces(MediaType.APPLICATION_JSON)
 public class NamespaceResource extends GraphqlResourceBase {
-
-  private static final Logger LOG = LoggerFactory.getLogger(NamespaceResource.class);
-  private static final Pattern NAMESPACE_PATTERN = Pattern.compile("\\w+");
 
   @Inject private SchemaFirstCache graphqlCache;
 
@@ -59,7 +51,7 @@ public class NamespaceResource extends GraphqlResourceBase {
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphl(namespace, httpRequest, asyncResponse);
+    GraphQL graphql = getGraphql(namespace, httpRequest, asyncResponse, graphqlCache);
     if (graphql != null) {
       get(query, operationName, variables, graphql, httpRequest, asyncResponse);
     }
@@ -75,7 +67,7 @@ public class NamespaceResource extends GraphqlResourceBase {
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphl(namespace, httpRequest, asyncResponse);
+    GraphQL graphql = getGraphql(namespace, httpRequest, asyncResponse, graphqlCache);
     if (graphql != null) {
       postJson(jsonBody, queryFromUrl, graphql, httpRequest, asyncResponse);
     }
@@ -90,41 +82,9 @@ public class NamespaceResource extends GraphqlResourceBase {
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphl(namespace, httpRequest, asyncResponse);
+    GraphQL graphql = getGraphql(namespace, httpRequest, asyncResponse, graphqlCache);
     if (graphql != null) {
       postGraphql(query, graphql, httpRequest, asyncResponse);
-    }
-  }
-
-  private GraphQL getGraphl(
-      String namespace, HttpServletRequest request, AsyncResponse asyncResponse) {
-    if (!NAMESPACE_PATTERN.matcher(namespace).matches()) {
-      LOG.warn("Invalid namespace in URI, this could be an XSS attack: {}", namespace);
-      // Do not reflect back the value
-      replyWithGraphqlError(Response.Status.BAD_REQUEST, "Invalid namespace name", asyncResponse);
-      return null;
-    }
-
-    try {
-      GraphQL graphql =
-          graphqlCache.getGraphql(namespace, RequestToHeadersMapper.getAllHeaders(request));
-      if (graphql == null) {
-        replyWithGraphqlError(
-            Response.Status.NOT_FOUND,
-            String.format(
-                "Could not find a GraphQL schema for '%s', either the namespace does not exist, "
-                    + "or no schema was deployed to it yet.",
-                namespace),
-            asyncResponse);
-        return null;
-      } else {
-        return graphql;
-      }
-    } catch (Exception e) {
-      LOG.error("Unexpected error while accessing namespace {}", namespace, e);
-      replyWithGraphqlError(
-          Response.Status.NOT_FOUND, "Unexpected error while accessing namespace", asyncResponse);
-      return null;
     }
   }
 }

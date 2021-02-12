@@ -15,19 +15,32 @@
  */
 package io.stargate.graphql.web.resources.schemafirst;
 
+import graphql.GraphQL;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+import java.util.UUID;
+import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.container.AsyncResponse;
+import javax.ws.rs.container.Suspended;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 @Singleton
 @Path(ResourcePaths.FILES)
 public class FilesResource extends GraphqlResourceBase {
+
+  private final SchemaFirstCache schemaFirstCache;
+
+  @Inject
+  public FilesResource(SchemaFirstCache schemaFirstCache) {
+    this.schemaFirstCache = schemaFirstCache;
+  }
 
   @GET
   @Path("/cql_directives.graphql")
@@ -36,6 +49,31 @@ public class FilesResource extends GraphqlResourceBase {
     return Response.ok(loadCqlDirectivesFile())
         .header("Content-Disposition", "inline; filename=\"cql_directives.graphql\"")
         .build();
+  }
+
+  // graphqlv2/files/namespace/{namespaceName}.graphql[?version={uuid}]
+  @GET
+  @Path("/namespace/{namespaceName}.graphql")
+  @Produces(MediaType.APPLICATION_OCTET_STREAM)
+  public Response getSchema(
+      @PathParam("namespaceName") String namespace,
+      @QueryParam("version") String version,
+      @Context HttpServletRequest httpRequest,
+      @Suspended AsyncResponse asyncResponse)
+      throws Exception {
+    GraphQL graphql =
+        getGraphql(
+            namespace,
+            httpRequest,
+            asyncResponse,
+            schemaFirstCache,
+            Optional.ofNullable(version).map(UUID::fromString));
+
+    if (graphql != null) {
+      // todo what to do with missing parameters?
+      get(query, operationName, variables, graphql, httpRequest, asyncResponse);
+    }
+    return Response.ok().build();
   }
 
   private InputStreamReader loadCqlDirectivesFile() {

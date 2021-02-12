@@ -17,17 +17,27 @@ package io.stargate.it.http.graphql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.apollographql.apollo.ApolloCall;
 import com.apollographql.apollo.ApolloClient;
+import com.apollographql.apollo.ApolloMutationCall;
+import com.apollographql.apollo.ApolloQueryCall;
 import com.apollographql.apollo.api.CustomTypeAdapter;
 import com.apollographql.apollo.api.CustomTypeValue;
+import com.apollographql.apollo.api.Error;
+import com.apollographql.apollo.api.Response;
+import com.apollographql.apollo.exception.ApolloException;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.example.graphql.client.betterbotz.type.CustomType;
+import com.example.graphql.client.schema.CreateTableMutation;
+import com.example.graphql.client.schema.GetTableQuery;
+import com.example.graphql.client.schema.type.ColumnInput;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.http.GraphqlTest;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
@@ -39,14 +49,22 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 import java.util.TimeZone;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import okhttp3.OkHttpClient;
 import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GraphqlITBase extends BaseOsgiIntegrationTest {
+  private static final Logger logger = LoggerFactory.getLogger(GraphqlITBase.class);
   protected static String host;
   protected static StargateConnectionInfo stargate;
   protected static String authToken;
@@ -154,4 +172,107 @@ public class GraphqlITBase extends BaseOsgiIntegrationTest {
             parser.setTimeZone(TimeZone.getTimeZone(ZoneId.systemDefault()));
             return parser;
           });
+
+  protected GetTableQuery.Table createTable(
+      ApolloClient client,
+      String keyspaceName,
+      String tableName,
+      List<ColumnInput> partitionKeys,
+      List<ColumnInput> values)
+      throws ExecutionException, InterruptedException {
+    return createTable(
+        client,
+        tableName,
+        CreateTableMutation.builder()
+            .keyspaceName(keyspaceName)
+            .partitionKeys(partitionKeys)
+            .values(values),
+        keyspaceName);
+  }
+
+  public GetTableQuery.Table getTable(ApolloClient client, String keyspaceName, String tableName)
+      throws ExecutionException, InterruptedException {
+    GetTableQuery query =
+        GetTableQuery.builder().keyspaceName(keyspaceName).tableName(tableName).build();
+
+    CompletableFuture<GetTableQuery.Data> future = new CompletableFuture<>();
+    ApolloQueryCall<Optional<GetTableQuery.Data>> observable = client.query(query);
+    observable.enqueue(queryCallback(future));
+
+    GetTableQuery.Data result = future.get();
+    observable.cancel();
+
+    assertThat(result.getKeyspace()).isPresent();
+
+    GetTableQuery.Keyspace keyspace = result.getKeyspace().get();
+    assertThat(keyspace.getName()).isEqualTo(keyspaceName);
+    assertThat(keyspace.getTable()).isPresent();
+
+    GetTableQuery.Table table = keyspace.getTable().get();
+    assertThat(table.getName()).isEqualTo(tableName);
+
+    return table;
+  }
+
+  protected GetTableQuery.Table createTable(
+      ApolloClient client,
+      String tableName,
+      CreateTableMutation.Builder mutationBuilder,
+      String keyspace)
+      throws ExecutionException, InterruptedException {
+
+    CreateTableMutation mutation =
+        mutationBuilder.keyspaceName(keyspace).tableName(tableName).build();
+    CompletableFuture<CreateTableMutation.Data> future = new CompletableFuture<>();
+    ApolloMutationCall<Optional<CreateTableMutation.Data>> observable = client.mutate(mutation);
+    observable.enqueue(queryCallback(future));
+
+    CreateTableMutation.Data result = future.get();
+    observable.cancel();
+
+    assertThat(result.getCreateTable()).hasValue(true);
+
+    GetTableQuery.Table table = getTable(client, keyspace, tableName);
+    assertThat(table.getName()).isEqualTo(tableName);
+
+    return table;
+  }
+
+  protected static <U> ApolloCall.Callback<Optional<U>> queryCallback(CompletableFuture<U> future) {
+    return new ApolloCall.Callback<Optional<U>>() {
+      @Override
+      public void onResponse(@NotNull Response<Optional<U>> response) {
+        if (response.getErrors() != null && response.getErrors().size() > 0) {
+          logger.info(
+              "GraphQL error found in test: {}",
+              response.getErrors().stream().map(Error::getMessage).collect(Collectors.toList()));
+          future.completeExceptionally(
+              new GraphqlTest.GraphQLTestException("GraphQL error response", response.getErrors()));
+          return;
+        }
+
+        if (response.getData().isPresent()) {
+          future.complete(response.getData().get());
+          return;
+        }
+
+        future.completeExceptionally(
+            new IllegalStateException("Unexpected empty data and errors properties"));
+      }
+
+      @Override
+      public void onFailure(@NotNull ApolloException e) {
+        future.completeExceptionally(e);
+      }
+    };
+  }
+
+  public static class GraphQLTestException extends RuntimeException {
+    public final List<Error> errors;
+
+    GraphQLTestException(String message, List<Error> errors) {
+      super(message);
+      this.errors = errors;
+    }
+  }
 }

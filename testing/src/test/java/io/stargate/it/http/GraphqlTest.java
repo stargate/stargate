@@ -13,8 +13,6 @@ import com.apollographql.apollo.ApolloQueryCall;
 import com.apollographql.apollo.api.Error;
 import com.apollographql.apollo.api.Mutation;
 import com.apollographql.apollo.api.Operation;
-import com.apollographql.apollo.api.Response;
-import com.apollographql.apollo.exception.ApolloException;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
@@ -105,15 +103,12 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import org.apache.http.HttpStatus;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * To update these tests:
@@ -132,7 +127,6 @@ import org.slf4j.LoggerFactory;
  */
 @NotThreadSafe
 public class GraphqlTest extends GraphqlITBase {
-  private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
   private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
       Pattern.compile(
           "(graphqlapi_io_dropwizard_jetty_MutableServletContextHandler_dispatches_count\\s*)(\\d+.\\d+)");
@@ -316,30 +310,6 @@ public class GraphqlTest extends GraphqlITBase {
         .anySatisfy(value -> assertThat(value.getBasic()).isEqualTo(BasicType.INET));
   }
 
-  public GetTableQuery.Table getTable(ApolloClient client, String keyspaceName, String tableName)
-      throws ExecutionException, InterruptedException {
-    GetTableQuery query =
-        GetTableQuery.builder().keyspaceName(keyspaceName).tableName(tableName).build();
-
-    CompletableFuture<GetTableQuery.Data> future = new CompletableFuture<>();
-    ApolloQueryCall<Optional<GetTableQuery.Data>> observable = client.query(query);
-    observable.enqueue(queryCallback(future));
-
-    GetTableQuery.Data result = future.get();
-    observable.cancel();
-
-    assertThat(result.getKeyspace()).isPresent();
-
-    GetTableQuery.Keyspace keyspace = result.getKeyspace().get();
-    assertThat(keyspace.getName()).isEqualTo(keyspaceName);
-    assertThat(keyspace.getTable()).isPresent();
-
-    GetTableQuery.Table table = keyspace.getTable().get();
-    assertThat(table.getName()).isEqualTo(tableName);
-
-    return table;
-  }
-
   @Test
   public void createTable() throws ExecutionException, InterruptedException {
     ApolloClient client = getApolloClient("/graphql-schema");
@@ -409,7 +379,7 @@ public class GraphqlTest extends GraphqlITBase {
                         .type(DataTypeInput.builder().basic(BasicType.TEXT).build())
                         .build()));
 
-    createTable(client, tableName, builder);
+    createTable(client, tableName, builder, keyspace);
 
     GetTableQuery.Table table = getTable(client, keyspace, tableName);
     assertThat(table.getName()).isEqualTo(tableName);
@@ -420,43 +390,6 @@ public class GraphqlTest extends GraphqlITBase {
     assertThat(columns)
         .filteredOn(c -> c.getName().equals("ck1") || c.getName().equals("ck2"))
         .hasSize(2);
-  }
-
-  private GetTableQuery.Table createTable(
-      ApolloClient client,
-      String keyspaceName,
-      String tableName,
-      List<ColumnInput> partitionKeys,
-      List<ColumnInput> values)
-      throws ExecutionException, InterruptedException {
-    return createTable(
-        client,
-        tableName,
-        CreateTableMutation.builder()
-            .keyspaceName(keyspaceName)
-            .partitionKeys(partitionKeys)
-            .values(values));
-  }
-
-  private GetTableQuery.Table createTable(
-      ApolloClient client, String tableName, CreateTableMutation.Builder mutationBuilder)
-      throws ExecutionException, InterruptedException {
-
-    CreateTableMutation mutation =
-        mutationBuilder.keyspaceName(keyspace).tableName(tableName).build();
-    CompletableFuture<CreateTableMutation.Data> future = new CompletableFuture<>();
-    ApolloMutationCall<Optional<CreateTableMutation.Data>> observable = client.mutate(mutation);
-    observable.enqueue(queryCallback(future));
-
-    CreateTableMutation.Data result = future.get();
-    observable.cancel();
-
-    assertThat(result.getCreateTable()).hasValue(true);
-
-    GetTableQuery.Table table = getTable(client, keyspace, tableName);
-    assertThat(table.getName()).isEqualTo(tableName);
-
-    return table;
   }
 
   @Test
@@ -1521,43 +1454,5 @@ public class GraphqlTest extends GraphqlITBase {
   private static <D extends Operation.Data, T, V extends Operation.Variables> D mutateAndGet(
       ApolloClient client, Mutation<D, T, V> mutation) {
     return getObservable((ApolloMutationCall<Optional<D>>) client.mutate(mutation));
-  }
-
-  private static <U> ApolloCall.Callback<Optional<U>> queryCallback(CompletableFuture<U> future) {
-    return new ApolloCall.Callback<Optional<U>>() {
-      @Override
-      public void onResponse(@NotNull Response<Optional<U>> response) {
-        if (response.getErrors() != null && response.getErrors().size() > 0) {
-          logger.info(
-              "GraphQL error found in test: {}",
-              response.getErrors().stream().map(Error::getMessage).collect(Collectors.toList()));
-          future.completeExceptionally(
-              new GraphQLTestException("GraphQL error response", response.getErrors()));
-          return;
-        }
-
-        if (response.getData().isPresent()) {
-          future.complete(response.getData().get());
-          return;
-        }
-
-        future.completeExceptionally(
-            new IllegalStateException("Unexpected empty data and errors properties"));
-      }
-
-      @Override
-      public void onFailure(@NotNull ApolloException e) {
-        future.completeExceptionally(e);
-      }
-    };
-  }
-
-  private static class GraphQLTestException extends RuntimeException {
-    private final List<Error> errors;
-
-    GraphQLTestException(String message, List<Error> errors) {
-      super(message);
-      this.errors = errors;
-    }
   }
 }
