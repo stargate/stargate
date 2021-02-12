@@ -61,7 +61,8 @@ public class UpdateMappingModel extends MutationMappingModel {
       context.addError(
           returnType.getSourceLocation(),
           ProcessingMessageType.InvalidMapping,
-          "Update mutations can only return Boolean");
+          "Mutation %s: updates can only return Boolean",
+          mutation.getName());
       return Optional.empty();
     }
 
@@ -70,7 +71,8 @@ public class UpdateMappingModel extends MutationMappingModel {
       context.addError(
           mutation.getSourceLocation(),
           ProcessingMessageType.InvalidMapping,
-          "Update mutations must take the entity input type as the first argument");
+          "Mutation %s: updates must take the entity input type as the first argument",
+          mutation.getName());
       return Optional.empty();
     }
 
@@ -78,12 +80,13 @@ public class UpdateMappingModel extends MutationMappingModel {
       context.addError(
           mutation.getSourceLocation(),
           ProcessingMessageType.InvalidMapping,
-          "Update mutations can't have more than one argument");
+          "Mutation %s: updates can't have more than one argument",
+          mutation.getName());
       return Optional.empty();
     }
 
     InputValueDefinition input = inputs.get(0);
-    return findEntity(input, entities, context, "update")
+    return findEntity(input, entities, context, mutation.getName(), "update")
         .map(entity -> new UpdateMappingModel(parentTypeName, mutation, entity, input.getName()));
   }
 }
