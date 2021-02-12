@@ -67,7 +67,7 @@ class SchemaSourceDaoTest {
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
     // when
-    SchemaSource schema = schemaSourceDao.getLatest(namespace, Optional.of(versionId));
+    SchemaSource schema = schemaSourceDao.getByVersion(namespace, Optional.of(versionId));
 
     // then
     assertThat(schema.getContents()).isEqualTo(schemaContent);

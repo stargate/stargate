@@ -59,7 +59,7 @@ public class SingleSchemaFetcher extends SchemaFetcher<Map<String, Object>> {
 
     authorize(authenticationSubject, namespace);
 
-    SchemaSource source = schemaSourceDaoProvider.apply(dataStore).getLatest(namespace, version);
+    SchemaSource source = schemaSourceDaoProvider.apply(dataStore).getByVersion(namespace, version);
     return schemaSourceToMap(namespace, source);
   }
 }

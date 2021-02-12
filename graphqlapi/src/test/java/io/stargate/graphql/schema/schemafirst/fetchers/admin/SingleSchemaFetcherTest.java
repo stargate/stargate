@@ -16,7 +16,6 @@
 package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -41,7 +40,7 @@ class SingleSchemaFetcherTest {
     SchemaSource schemaSource = new SchemaSource(namespace, Uuids.timeBased(), "content");
 
     SchemaSourceDao schemaSourceDao = mock(SchemaSourceDao.class);
-    when(schemaSourceDao.getLatest(namespace, Optional.empty())).thenReturn(schemaSource);
+    when(schemaSourceDao.getByVersion(namespace, Optional.empty())).thenReturn(schemaSource);
     SingleSchemaFetcher singleSchemaFetcher =
         new SingleSchemaFetcher(
             mock(AuthenticationService.class),
@@ -73,7 +72,7 @@ class SingleSchemaFetcherTest {
     SchemaSource schemaSource = new SchemaSource(namespace, Uuids.timeBased(), "content");
 
     SchemaSourceDao schemaSourceDao = mock(SchemaSourceDao.class);
-    when(schemaSourceDao.getLatest(namespace, Optional.of(version))).thenReturn(schemaSource);
+    when(schemaSourceDao.getByVersion(namespace, Optional.of(version))).thenReturn(schemaSource);
     SingleSchemaFetcher singleSchemaFetcher =
         new SingleSchemaFetcher(
             mock(AuthenticationService.class),

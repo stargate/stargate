@@ -70,7 +70,7 @@ public class SchemaSourceDao {
     return row.stream().map(r -> toSchemaSource(namespace, r)).collect(Collectors.toList());
   }
 
-  public SchemaSource getLatest(
+  public SchemaSource getByVersion(
       String namespace,
       @SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<UUID> version)
       throws Exception {
@@ -96,7 +96,7 @@ public class SchemaSourceDao {
   }
 
   public SchemaSource getLatest(String namespace) throws Exception {
-    return getLatest(namespace, Optional.empty());
+    return getByVersion(namespace, Optional.empty());
   }
 
   private SchemaSource toSchemaSource(String namespace, Row r) {
