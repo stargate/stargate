@@ -60,7 +60,7 @@ public class DocumentResourceV2 {
   private static final Logger logger = LoggerFactory.getLogger(DocumentResourceV2.class);
   private static final ObjectMapper mapper = new ObjectMapper();
   private final DocumentService documentService;
-  private final int DEFAULT_PAGE_SIZE = 100;
+  private final int DEFAULT_PAGE_SIZE = DocumentDB.SEARCH_PAGE_SIZE;
 
   public DocumentResourceV2() {
     documentService = new DocumentService();
