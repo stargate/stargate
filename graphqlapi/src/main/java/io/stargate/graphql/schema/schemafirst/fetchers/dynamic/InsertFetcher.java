@@ -29,9 +29,11 @@ import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel;
 import io.stargate.graphql.schema.schemafirst.processor.FieldMappingModel;
 import io.stargate.graphql.schema.schemafirst.processor.InsertMappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import io.stargate.graphql.schema.schemafirst.util.Uuids;
 import java.util.ArrayList;
@@ -46,10 +48,11 @@ public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
 
   public InsertFetcher(
       InsertMappingModel model,
+      MappingModel mappingModel,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+    super(mappingModel, authenticationService, authorizationService, dataStoreFactory);
     this.model = model;
   }
 
@@ -61,6 +64,7 @@ public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
       throws UnauthorizedException {
 
     EntityMappingModel entityModel = model.getEntity();
+    Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
     Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
     Map<String, Object> response = new LinkedHashMap<>();
     Collection<ValueModifier> setters = new ArrayList<>();
@@ -70,7 +74,7 @@ public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
       Object cqlValue;
       if (input.containsKey(graphqlName)) {
         graphqlValue = input.get(graphqlName);
-        cqlValue = toCqlValue(graphqlValue, column);
+        cqlValue = toCqlValue(graphqlValue, column.getCqlType(), keyspace);
       } else if (column.isPrimaryKey()) {
         if (TypeHelper.isGraphqlId(column.getGraphqlType())) {
           cqlValue = generateUuid(column.getCqlType());

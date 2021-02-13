@@ -52,8 +52,13 @@ directive @cql_column(
     "Whether the column is a clustering column, and if so in which order"
     clusteringOrder: ClusteringOrder
 
-    "The CQL type to map to (e.g. frozen<list<varchar>>)"
-    type: String
+    """
+    The CQL type to map to (e.g. `frozen<list<varchar>>`).
+    Most of the time you don't need this, the CQL type will be inferred from the GraphQL type. It
+    is only needed if fine control over the "frozen-ness" of columns, or if you want to map a
+    GraphQL list to a CQL set (instead of a list).
+    """
+    typeHint: String
 
 ) on FIELD_DEFINITION
 

@@ -169,12 +169,32 @@ public class EntityMappingModel {
             .flatMap(d -> DirectiveHelper.getEnumArgument(d, "target", Target.class, context))
             .orElse(Target.TABLE);
 
+    Optional<String> inputTypeName =
+        DirectiveHelper.getDirective("cql_input", type)
+            .map(
+                d -> {
+                  Optional<String> maybeName =
+                      DirectiveHelper.getStringArgument(d, "name", context);
+                  if (maybeName.isPresent()) {
+                    return maybeName.get();
+                  } else {
+                    context.addInfo(
+                        d.getSourceLocation(),
+                        "%1$s: using '%1$sInput' as the input type name since @cql_input doesn't "
+                            + "have an argument",
+                        graphqlName);
+                    return graphqlName + "Input";
+                  }
+                });
+
     List<FieldMappingModel> partitionKey = new ArrayList<>();
     List<FieldMappingModel> clusteringColumns = new ArrayList<>();
     List<FieldMappingModel> regularColumns = new ArrayList<>();
 
     for (FieldDefinition fieldDefinition : type.getFieldDefinitions()) {
-      FieldMappingModel.build(fieldDefinition, context, graphqlName, target)
+      new FieldMappingModelBuilder(
+              fieldDefinition, context, graphqlName, target, inputTypeName.isPresent())
+          .build()
           .ifPresent(
               fieldMapping -> {
                 if (fieldMapping.isPartitionKey()) {
@@ -237,24 +257,6 @@ public class EntityMappingModel {
       default:
         throw new AssertionError("Unexpected target " + target);
     }
-
-    Optional<String> inputTypeName =
-        DirectiveHelper.getDirective("cql_input", type)
-            .map(
-                d -> {
-                  Optional<String> maybeName =
-                      DirectiveHelper.getStringArgument(d, "name", context);
-                  if (maybeName.isPresent()) {
-                    return maybeName.get();
-                  } else {
-                    context.addInfo(
-                        d.getSourceLocation(),
-                        "%1$s: using '%1$sInput' as the input type name since @cql_input doesn't "
-                            + "have an argument",
-                        graphqlName);
-                    return graphqlName + "Input";
-                  }
-                });
 
     // Check that if the @key directive is present, it matches the CQL primary key:
     List<Directive> keyDirectives = type.getDirectives("key");

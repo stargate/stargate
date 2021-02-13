@@ -200,6 +200,9 @@ public enum CqlScalar {
 
   private static final Map<Column.Type, CqlScalar> FROM_CQL =
       Arrays.stream(values()).collect(Collectors.toMap(CqlScalar::getCqlType, Function.identity()));
+  private static final Map<String, CqlScalar> FROM_GRAPHQL_NAME =
+      Arrays.stream(values())
+          .collect(Collectors.toMap(s -> s.getGraphqlType().getName(), Function.identity()));
 
   private final Column.Type cqlType;
   private final GraphQLScalarType graphqlType;
@@ -219,5 +222,9 @@ public enum CqlScalar {
 
   public static Optional<CqlScalar> fromCqlType(Column.Type cqlType) {
     return Optional.ofNullable(FROM_CQL.get(cqlType));
+  }
+
+  public static Optional<CqlScalar> fromGraphqlName(String graphqlName) {
+    return Optional.ofNullable(FROM_GRAPHQL_NAME.get(graphqlName));
   }
 }
