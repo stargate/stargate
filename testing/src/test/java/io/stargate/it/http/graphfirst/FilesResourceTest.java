@@ -35,7 +35,7 @@ public class FilesResourceTest extends GraphqlITBase {
     Request getRequest =
         new Request.Builder()
             .get()
-            .addHeader("content-type", MediaType.APPLICATION_OCTET_STREAM)
+            .addHeader("content-type", MediaType.TEXT_PLAIN)
             .url(url)
             .build();
 
