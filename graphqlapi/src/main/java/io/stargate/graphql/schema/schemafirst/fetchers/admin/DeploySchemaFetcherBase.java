@@ -37,6 +37,7 @@ import io.stargate.graphql.schema.schemafirst.processor.ProcessedSchema;
 import io.stargate.graphql.schema.schemafirst.processor.ProcessingMessage;
 import io.stargate.graphql.schema.schemafirst.processor.SchemaProcessor;
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
