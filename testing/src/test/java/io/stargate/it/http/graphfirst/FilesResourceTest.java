@@ -27,11 +27,23 @@ import javax.ws.rs.core.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
 public class FilesResourceTest extends GraphqlITBase {
+  private static String DEPLOYED_SCHEMA_VERSION;
+
+  @BeforeAll
+  public static void deploySchema(@TestKeyspace CqlIdentifier keyspaceId) {
+    // deploySchema
+    Map<String, Object> response =
+        executeGraphqlAdminQuery(createSchema(keyspaceId), "deploySchema");
+    assertThat(response).isNotNull();
+    DEPLOYED_SCHEMA_VERSION = getDeployedVersion(response);
+    assertThat(DEPLOYED_SCHEMA_VERSION).isNotNull();
+  }
 
   @Test
   public void shouldGetGraphQLDirectivesFile() throws IOException {
@@ -58,13 +70,6 @@ public class FilesResourceTest extends GraphqlITBase {
 
   @Test
   public void shouldGetFileWithSchema(@TestKeyspace CqlIdentifier keyspaceId) throws IOException {
-    // given deployed schema
-    Map<String, Object> response =
-        executeGraphqlAdminQuery(createSchema(keyspaceId), "deploySchema");
-    assertThat(response).isNotNull();
-    String deployedVersion = getDeployedVersion(response);
-    assertThat(deployedVersion).isNotNull();
-
     // when get schema file
     String url = String.format("%s:8080/graphqlv2/files/namespace/%s.graphql", host, keyspaceId);
     Request getRequest =
@@ -79,7 +84,7 @@ public class FilesResourceTest extends GraphqlITBase {
     // then
     assertThat(getSchemaResponse.code()).isEqualTo(200);
     assertThat(getSchemaResponse.header("Content-Disposition"))
-        .contains((String.format("%s-%s.graphql", keyspaceId.toString(), deployedVersion)));
+        .contains((String.format("%s-%s.graphql", keyspaceId.toString(), DEPLOYED_SCHEMA_VERSION)));
 
     String responseBody = getSchemaResponse.body().string();
     assertThat(responseBody).isNotEmpty();
@@ -90,18 +95,11 @@ public class FilesResourceTest extends GraphqlITBase {
   @Test
   public void shouldGetFileWithSchemaUsingVersionArgument(@TestKeyspace CqlIdentifier keyspaceId)
       throws IOException {
-    // given deployed two schemas
-    String schema = createSchema(keyspaceId);
-    Map<String, Object> response = executeGraphqlAdminQuery(schema, "deploySchema");
-    assertThat(response).isNotNull();
-    String deployedVersion = getDeployedVersion(response);
-    assertThat(deployedVersion).isNotNull();
-
     // when get schema file for the deployedVersion
     String url =
         String.format(
             "%s:8080/graphqlv2/files/namespace/%s.graphql?version=%s",
-            host, keyspaceId, deployedVersion);
+            host, keyspaceId, DEPLOYED_SCHEMA_VERSION);
     Request getRequest =
         new Request.Builder()
             .get()
@@ -114,7 +112,7 @@ public class FilesResourceTest extends GraphqlITBase {
     // then
     assertThat(getSchemaResponse.code()).isEqualTo(200);
     assertThat(getSchemaResponse.header("Content-Disposition"))
-        .contains((String.format("%s-%s.graphql", keyspaceId.toString(), deployedVersion)));
+        .contains((String.format("%s-%s.graphql", keyspaceId.toString(), DEPLOYED_SCHEMA_VERSION)));
 
     String responseBody = getSchemaResponse.body().string();
     assertThat(responseBody).isNotEmpty();
@@ -122,7 +120,7 @@ public class FilesResourceTest extends GraphqlITBase {
     assertThat(responseBody).contains("type Query");
   }
 
-  private String createSchema(CqlIdentifier keyspaceId) {
+  private static String createSchema(CqlIdentifier keyspaceId) {
     return String.format(
         "mutation {\n"
             + "  deploySchema(\n"
@@ -146,7 +144,7 @@ public class FilesResourceTest extends GraphqlITBase {
   }
 
   @SuppressWarnings("unchecked")
-  private String getDeployedVersion(Map<String, Object> response) {
+  private static String getDeployedVersion(Map<String, Object> response) {
     Map<String, Object> deployedSchemaResponse = (Map<String, Object>) response.get("deploySchema");
     return (String) deployedSchemaResponse.get("version");
   }

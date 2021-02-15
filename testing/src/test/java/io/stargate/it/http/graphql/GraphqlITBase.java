@@ -95,7 +95,7 @@ public class GraphqlITBase extends BaseOsgiIntegrationTest {
     assertThat(authToken).isNotNull();
   }
 
-  protected OkHttpClient getHttpClient() {
+  protected static OkHttpClient getHttpClient() {
     return new OkHttpClient.Builder()
         .connectTimeout(Duration.ofMinutes(3))
         .callTimeout(Duration.ofMinutes(3))
@@ -108,7 +108,8 @@ public class GraphqlITBase extends BaseOsgiIntegrationTest {
         .build();
   }
 
-  protected Map<String, Object> executeGraphqlAdminQuery(String query, String operationType) {
+  protected static Map<String, Object> executeGraphqlAdminQuery(
+      String query, String operationType) {
     Map<String, Object> response = getGraphqlResponse(query, operationType);
     assertThat(response).isNotNull();
     assertThat(response.get("errors")).isNull();
@@ -117,7 +118,7 @@ public class GraphqlITBase extends BaseOsgiIntegrationTest {
     return data;
   }
 
-  private Map<String, Object> getGraphqlResponse(String query, String operationType) {
+  private static Map<String, Object> getGraphqlResponse(String query, String operationType) {
     try {
       OkHttpClient okHttpClient = getHttpClient();
       String url = String.format("%s:8080/graphqlv2/admin", host);
