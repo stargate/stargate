@@ -22,6 +22,7 @@ import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.graphql.GraphqlITBase;
 import java.io.IOException;
+import java.util.Map;
 import javax.ws.rs.core.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -57,8 +58,35 @@ public class FilesResourceTest extends GraphqlITBase {
 
   @Test
   public void shouldGetFileWithSchema(@TestKeyspace CqlIdentifier keyspaceId) throws IOException {
-    // given
-    OkHttpClient httpClient = getHttpClient();
+    // given deployed schema
+    Map<String, Object> response =
+        executeGraphqlAdminQuery(
+            String.format(
+                "mutation {\n"
+                    + "  deploySchema(\n"
+                    + "    namespace: \"%s\"\n"
+                    + "    schema: \"\"\"\n"
+                    + "    type User {\n"
+                    + "      id: ID!\n"
+                    + "      name: String\n"
+                    + "      username: String\n"
+                    + "    }\n"
+                    + "    type Query {\n"
+                    + "      getUser(id: ID!): User\n"
+                    + "    }\n"
+                    + "    \"\"\"\n"
+                    + "  )\n"
+                    + "{\n"
+                    + "    version\n"
+                    + "  }\n"
+                    + "}\n",
+                keyspaceId),
+            "deploySchema");
+    assertThat(response).isNotNull();
+    String deployedVersion = getDeployedVersion(response);
+    assertThat(deployedVersion).isNotNull();
+
+    // when get schema file
     String url = String.format("%s:8080/graphqlv2/files/namespace/%s.graphql", host, keyspaceId);
     Request getRequest =
         new Request.Builder()
@@ -67,13 +95,22 @@ public class FilesResourceTest extends GraphqlITBase {
             .url(url)
             .build();
 
-    // when
-    Response response = httpClient.newCall(getRequest).execute();
+    Response getSchemaResponse = getHttpClient().newCall(getRequest).execute();
 
     // then
-    assertThat(response.code()).isEqualTo(200);
-    assertThat(response.body()).isNotNull();
-    String responseBody = response.body().string();
+    assertThat(getSchemaResponse.code()).isEqualTo(200);
+    assertThat(getSchemaResponse.header("Content-Disposition"))
+        .contains((String.format("%s-%s.graphql", keyspaceId.toString(), deployedVersion)));
+
+    String responseBody = getSchemaResponse.body().string();
     assertThat(responseBody).isNotEmpty();
+    assertThat(responseBody).contains("type User");
+    assertThat(responseBody).contains("type Query");
+  }
+
+  @SuppressWarnings("unchecked")
+  private String getDeployedVersion(Map<String, Object> response) {
+    Map<String, Object> deployedSchemaResponse = (Map<String, Object>) response.get("deploySchema");
+    return (String) deployedSchemaResponse.get("version");
   }
 }

@@ -16,6 +16,7 @@
 package io.stargate.it.http.graphql;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
@@ -31,7 +32,10 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.*;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -40,7 +44,7 @@ public class GraphqlITBase extends BaseOsgiIntegrationTest {
   protected static String host;
   protected static StargateConnectionInfo stargate;
   protected static String authToken;
-  protected static final ObjectMapper objectMapper = new ObjectMapper();
+  protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   protected static CqlSession session;
 
   @BeforeAll
@@ -77,16 +81,16 @@ public class GraphqlITBase extends BaseOsgiIntegrationTest {
   }
 
   private static void initAuth() throws IOException {
-    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     String body =
         RestUtils.post(
             "",
             String.format("http://%s:8081/v1/auth/token/generate", stargate.seedAddress()),
-            objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
+            OBJECT_MAPPER.writeValueAsString(new Credentials("cassandra", "cassandra")),
             HttpStatus.SC_CREATED);
 
-    AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
+    AuthTokenResponse authTokenResponse = OBJECT_MAPPER.readValue(body, AuthTokenResponse.class);
     authToken = authTokenResponse.getAuthToken();
     assertThat(authToken).isNotNull();
   }
@@ -102,5 +106,45 @@ public class GraphqlITBase extends BaseOsgiIntegrationTest {
                 chain.proceed(
                     chain.request().newBuilder().addHeader("X-Cassandra-Token", authToken).build()))
         .build();
+  }
+
+  protected Map<String, Object> executeGraphqlAdminQuery(String query, String operationType) {
+    Map<String, Object> response = getGraphqlResponse(query, operationType);
+    assertThat(response).isNotNull();
+    assertThat(response.get("errors")).isNull();
+    @SuppressWarnings("unchecked")
+    Map<String, Object> data = (Map<String, Object>) response.get("data");
+    return data;
+  }
+
+  private Map<String, Object> getGraphqlResponse(String query, String operationType) {
+    try {
+      OkHttpClient okHttpClient = getHttpClient();
+      String url = String.format("%s:8080/graphqlv2/admin", host);
+      Map<String, Object> jsonBody = new HashMap<>();
+      jsonBody.put("query", query);
+      jsonBody.put("operationType", operationType);
+
+      MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+      okhttp3.Response response =
+          okHttpClient
+              .newCall(
+                  new Request.Builder()
+                      .post(RequestBody.create(JSON, OBJECT_MAPPER.writeValueAsString(jsonBody)))
+                      .url(url)
+                      .build())
+              .execute();
+      assertThat(response.body()).isNotNull();
+      String bodyString = response.body().string();
+      assertThat(response.code())
+          .as("Unexpected error %d: %s", response.code(), bodyString)
+          .isEqualTo(HttpStatus.SC_OK);
+      @SuppressWarnings("unchecked")
+      Map<String, Object> graphqlResponse = OBJECT_MAPPER.readValue(bodyString, Map.class);
+      return graphqlResponse;
+    } catch (IOException e) {
+      fail("Unexpected error while sending POST request", e);
+      return null; // never reached
+    }
   }
 }

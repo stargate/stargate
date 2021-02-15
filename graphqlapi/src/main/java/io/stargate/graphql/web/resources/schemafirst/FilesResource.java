@@ -26,8 +26,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -58,8 +56,7 @@ public class FilesResource extends GraphqlResourceBase {
   public Response getSchema(
       @PathParam("namespaceName") String namespace,
       @QueryParam("version") String version,
-      @Context HttpServletRequest httpRequest,
-      @Suspended AsyncResponse asyncResponse)
+      @Context HttpServletRequest httpRequest)
       throws Exception {
     SchemaSource schemaSource =
         schemaSourceDao.getByVersion(namespace, Optional.ofNullable(version).map(UUID::fromString));

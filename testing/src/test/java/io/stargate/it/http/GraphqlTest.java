@@ -971,12 +971,12 @@ public class GraphqlTest extends GraphqlITBase {
         okHttpClient
             .newCall(
                 new Request.Builder()
-                    .post(RequestBody.create(JSON, objectMapper.writeValueAsBytes(formData)))
+                    .post(RequestBody.create(JSON, OBJECT_MAPPER.writeValueAsBytes(formData)))
                     .url(url)
                     .build())
             .execute();
     assertThat(response.code()).isEqualTo(HttpStatus.SC_OK);
-    Map<String, Object> result = objectMapper.readValue(response.body().string(), Map.class);
+    Map<String, Object> result = OBJECT_MAPPER.readValue(response.body().string(), Map.class);
     response.close();
     return result;
   }
