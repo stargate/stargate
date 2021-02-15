@@ -31,9 +31,11 @@ public class FilesResource extends GraphqlResourceBase {
 
   @GET
   @Path("/cql_directives.graphql")
-  @Produces(MediaType.APPLICATION_OCTET_STREAM)
+  @Produces(MediaType.TEXT_PLAIN)
   public Response getCqlDirectives() {
-    return Response.ok(loadCqlDirectivesFile()).build();
+    return Response.ok(loadCqlDirectivesFile())
+        .header("Content-Disposition", "inline; filename=\"cql_directives.graphql\"")
+        .build();
   }
 
   private InputStreamReader loadCqlDirectivesFile() {
