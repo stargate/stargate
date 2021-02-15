@@ -60,28 +60,7 @@ public class FilesResourceTest extends GraphqlITBase {
   public void shouldGetFileWithSchema(@TestKeyspace CqlIdentifier keyspaceId) throws IOException {
     // given deployed schema
     Map<String, Object> response =
-        executeGraphqlAdminQuery(
-            String.format(
-                "mutation {\n"
-                    + "  deploySchema(\n"
-                    + "    namespace: \"%s\"\n"
-                    + "    schema: \"\"\"\n"
-                    + "    type User {\n"
-                    + "      id: ID!\n"
-                    + "      name: String\n"
-                    + "      username: String\n"
-                    + "    }\n"
-                    + "    type Query {\n"
-                    + "      getUser(id: ID!): User\n"
-                    + "    }\n"
-                    + "    \"\"\"\n"
-                    + "  )\n"
-                    + "{\n"
-                    + "    version\n"
-                    + "  }\n"
-                    + "}\n",
-                keyspaceId),
-            "deploySchema");
+        executeGraphqlAdminQuery(createSchema(keyspaceId), "deploySchema");
     assertThat(response).isNotNull();
     String deployedVersion = getDeployedVersion(response);
     assertThat(deployedVersion).isNotNull();
@@ -106,6 +85,64 @@ public class FilesResourceTest extends GraphqlITBase {
     assertThat(responseBody).isNotEmpty();
     assertThat(responseBody).contains("type User");
     assertThat(responseBody).contains("type Query");
+  }
+
+  @Test
+  public void shouldGetFileWithSchemaUsingVersionArgument(@TestKeyspace CqlIdentifier keyspaceId)
+      throws IOException {
+    // given deployed two schemas
+    String schema = createSchema(keyspaceId);
+    Map<String, Object> response = executeGraphqlAdminQuery(schema, "deploySchema");
+    assertThat(response).isNotNull();
+    String deployedVersion = getDeployedVersion(response);
+    assertThat(deployedVersion).isNotNull();
+
+    // when get schema file for the deployedVersion
+    String url =
+        String.format(
+            "%s:8080/graphqlv2/files/namespace/%s.graphql?version=%s",
+            host, keyspaceId, deployedVersion);
+    Request getRequest =
+        new Request.Builder()
+            .get()
+            .addHeader("content-type", MediaType.TEXT_PLAIN)
+            .url(url)
+            .build();
+
+    Response getSchemaResponse = getHttpClient().newCall(getRequest).execute();
+
+    // then
+    assertThat(getSchemaResponse.code()).isEqualTo(200);
+    assertThat(getSchemaResponse.header("Content-Disposition"))
+        .contains((String.format("%s-%s.graphql", keyspaceId.toString(), deployedVersion)));
+
+    String responseBody = getSchemaResponse.body().string();
+    assertThat(responseBody).isNotEmpty();
+    assertThat(responseBody).contains("type User");
+    assertThat(responseBody).contains("type Query");
+  }
+
+  private String createSchema(CqlIdentifier keyspaceId) {
+    return String.format(
+        "mutation {\n"
+            + "  deploySchema(\n"
+            + "    namespace: \"%s\"\n"
+            + "    schema: \"\"\"\n"
+            + "    type User {\n"
+            + "      id: ID!\n"
+            + "      name: String\n"
+            + "      username: String\n"
+            + "    }\n"
+            + "    type Query {\n"
+            + "      getUser(id: ID!): User\n"
+            + "    }\n"
+            + "    \"\"\"\n"
+            + "  )\n"
+            + "{\n"
+            + "    version\n"
+            + "  }\n"
+            + "}\n",
+        keyspaceId);
   }
 
   @SuppressWarnings("unchecked")
