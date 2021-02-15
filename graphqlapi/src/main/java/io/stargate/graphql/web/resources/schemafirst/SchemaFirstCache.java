@@ -19,7 +19,6 @@ import graphql.GraphQL;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.persistence.schemafirst.SchemaSource;
@@ -28,8 +27,6 @@ import io.stargate.graphql.schema.schemafirst.AdminSchemaBuilder;
 import io.stargate.graphql.schema.schemafirst.processor.ProcessedSchema;
 import io.stargate.graphql.schema.schemafirst.processor.SchemaProcessor;
 import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -53,14 +50,14 @@ public class SchemaFirstCache {
       Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory)
+      DataStoreFactory dataStoreFactory,
+      SchemaSourceDao schemaSourceDao)
       throws Exception {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
-    DataStore dataStore = dataStoreFactory.createInternal();
-    this.schemaSourceDao = new SchemaSourceDao(dataStore);
+    this.schemaSourceDao = schemaSourceDao;
 
     this.adminGraphql =
         GraphQL.newGraphQL(
@@ -76,13 +73,12 @@ public class SchemaFirstCache {
     return adminGraphql;
   }
 
-  public GraphQL getGraphql(String namespace, Map<String, String> headers, Optional<UUID> version)
-      throws Exception {
-    return getGraphql(persistence.decorateKeyspaceName(namespace, headers), version);
+  public GraphQL getGraphql(String namespace, Map<String, String> headers) throws Exception {
+    return getGraphql(persistence.decorateKeyspaceName(namespace, headers));
   }
 
-  private GraphQL getGraphql(String namespace, Optional<UUID> version) throws Exception {
-    SchemaSource latestSource = schemaSourceDao.getByVersion(namespace, version);
+  private GraphQL getGraphql(String namespace) throws Exception {
+    SchemaSource latestSource = schemaSourceDao.getLatest(namespace);
     if (latestSource == null) {
       if (graphqlHolders.remove(namespace) != null) {
         LOG.debug(

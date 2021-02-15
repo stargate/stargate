@@ -17,6 +17,9 @@ package io.stargate.it.http.graphfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
+import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.graphql.GraphqlITBase;
 import java.io.IOException;
 import javax.ws.rs.core.MediaType;
@@ -24,7 +27,9 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith(CqlSessionExtension.class)
 public class FilesResourceTest extends GraphqlITBase {
 
   @Test
@@ -48,5 +53,27 @@ public class FilesResourceTest extends GraphqlITBase {
     String responseBody = response.body().string();
     assertThat(responseBody).isNotEmpty();
     assertThat(responseBody).contains("directive @cql_input");
+  }
+
+  @Test
+  public void shouldGetFileWithSchema(@TestKeyspace CqlIdentifier keyspaceId) throws IOException {
+    // given
+    OkHttpClient httpClient = getHttpClient();
+    String url = String.format("%s:8080/graphqlv2/files/namespace/%s.graphql", host, keyspaceId);
+    Request getRequest =
+        new Request.Builder()
+            .get()
+            .addHeader("content-type", MediaType.TEXT_PLAIN)
+            .url(url)
+            .build();
+
+    // when
+    Response response = httpClient.newCall(getRequest).execute();
+
+    // then
+    assertThat(response.code()).isEqualTo(200);
+    assertThat(response.body()).isNotNull();
+    String responseBody = response.body().string();
+    assertThat(responseBody).isNotEmpty();
   }
 }

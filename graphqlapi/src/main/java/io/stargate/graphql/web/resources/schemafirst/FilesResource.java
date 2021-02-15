@@ -15,7 +15,8 @@
  */
 package io.stargate.graphql.web.resources.schemafirst;
 
-import graphql.GraphQL;
+import io.stargate.graphql.persistence.schemafirst.SchemaSource;
+import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -35,11 +36,11 @@ import javax.ws.rs.core.Response;
 @Path(ResourcePaths.FILES)
 public class FilesResource extends GraphqlResourceBase {
 
-  private final SchemaFirstCache schemaFirstCache;
+  private final SchemaSourceDao schemaSourceDao;
 
   @Inject
-  public FilesResource(SchemaFirstCache schemaFirstCache) {
-    this.schemaFirstCache = schemaFirstCache;
+  public FilesResource(SchemaSourceDao schemaSourceDao) {
+    this.schemaSourceDao = schemaSourceDao;
   }
 
   @GET
@@ -51,29 +52,26 @@ public class FilesResource extends GraphqlResourceBase {
         .build();
   }
 
-  // graphqlv2/files/namespace/{namespaceName}.graphql[?version={uuid}]
   @GET
   @Path("/namespace/{namespaceName}.graphql")
-  @Produces(MediaType.APPLICATION_OCTET_STREAM)
+  @Produces(MediaType.TEXT_PLAIN)
   public Response getSchema(
       @PathParam("namespaceName") String namespace,
       @QueryParam("version") String version,
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse)
       throws Exception {
-    GraphQL graphql =
-        getGraphql(
-            namespace,
-            httpRequest,
-            asyncResponse,
-            schemaFirstCache,
-            Optional.ofNullable(version).map(UUID::fromString));
+    SchemaSource schemaSource =
+        schemaSourceDao.getByVersion(namespace, Optional.ofNullable(version).map(UUID::fromString));
 
-    if (graphql != null) {
-      // todo what to do with missing parameters?
-      get(query, operationName, variables, graphql, httpRequest, asyncResponse);
-    }
-    return Response.ok().build();
+    return Response.ok(schemaSource.getContents())
+        .header("Content-Disposition", "inline; filename=" + createFileName(schemaSource))
+        .build();
+  }
+
+  private String createFileName(SchemaSource schemaSource) {
+    return String.format(
+        "\"%s-%s.graphql\"", schemaSource.getNamespace(), schemaSource.getVersion());
   }
 
   private InputStreamReader loadCqlDirectivesFile() {

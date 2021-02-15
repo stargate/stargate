@@ -34,8 +34,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Produces;
@@ -351,15 +349,6 @@ public class GraphqlResourceBase {
       HttpServletRequest request,
       AsyncResponse asyncResponse,
       SchemaFirstCache graphqlCache) {
-    return getGraphql(namespace, request, asyncResponse, graphqlCache, Optional.empty());
-  }
-
-  protected GraphQL getGraphql(
-      String namespace,
-      HttpServletRequest request,
-      AsyncResponse asyncResponse,
-      SchemaFirstCache graphqlCache,
-      Optional<UUID> version) {
     if (!NAMESPACE_PATTERN.matcher(namespace).matches()) {
       LOG.warn("Invalid namespace in URI, this could be an XSS attack: {}", namespace);
       // Do not reflect back the value
@@ -369,8 +358,7 @@ public class GraphqlResourceBase {
 
     try {
       GraphQL graphql =
-          graphqlCache.getGraphql(
-              namespace, RequestToHeadersMapper.getAllHeaders(request), version);
+          graphqlCache.getGraphql(namespace, RequestToHeadersMapper.getAllHeaders(request));
       if (graphql == null) {
         replyWithGraphqlError(
             Response.Status.NOT_FOUND,

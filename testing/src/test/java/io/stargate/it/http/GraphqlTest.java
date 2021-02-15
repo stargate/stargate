@@ -10,9 +10,9 @@ import com.apollographql.apollo.ApolloCall;
 import com.apollographql.apollo.ApolloClient;
 import com.apollographql.apollo.ApolloMutationCall;
 import com.apollographql.apollo.ApolloQueryCall;
+import com.apollographql.apollo.api.*;
 import com.apollographql.apollo.api.Error;
-import com.apollographql.apollo.api.Mutation;
-import com.apollographql.apollo.api.Operation;
+import com.apollographql.apollo.exception.ApolloException;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
@@ -37,26 +37,7 @@ import com.example.graphql.client.betterbotz.tuples.GetTuplesQuery;
 import com.example.graphql.client.betterbotz.tuples.InsertTuplesMutation;
 import com.example.graphql.client.betterbotz.tuples.InsertTuplesPkMutation;
 import com.example.graphql.client.betterbotz.tuples.UpdateTuplesMutation;
-import com.example.graphql.client.betterbotz.type.AUdtInput;
-import com.example.graphql.client.betterbotz.type.BUdtInput;
-import com.example.graphql.client.betterbotz.type.CollectionsNestedInput;
-import com.example.graphql.client.betterbotz.type.CollectionsSimpleInput;
-import com.example.graphql.client.betterbotz.type.EntryBigIntKeyStringValueInput;
-import com.example.graphql.client.betterbotz.type.EntryIntKeyStringValueInput;
-import com.example.graphql.client.betterbotz.type.EntryUuidKeyListEntryBigIntKeyStringValueInputValueInput;
-import com.example.graphql.client.betterbotz.type.MutationConsistency;
-import com.example.graphql.client.betterbotz.type.MutationOptions;
-import com.example.graphql.client.betterbotz.type.OrdersFilterInput;
-import com.example.graphql.client.betterbotz.type.OrdersInput;
-import com.example.graphql.client.betterbotz.type.ProductsFilterInput;
-import com.example.graphql.client.betterbotz.type.ProductsInput;
-import com.example.graphql.client.betterbotz.type.QueryConsistency;
-import com.example.graphql.client.betterbotz.type.QueryOptions;
-import com.example.graphql.client.betterbotz.type.StringFilterInput;
-import com.example.graphql.client.betterbotz.type.TupleIntIntInput;
-import com.example.graphql.client.betterbotz.type.Tuplx65_sPkInput;
-import com.example.graphql.client.betterbotz.type.UdtsInput;
-import com.example.graphql.client.betterbotz.type.UuidFilterInput;
+import com.example.graphql.client.betterbotz.type.*;
 import com.example.graphql.client.betterbotz.udts.GetUdtsQuery;
 import com.example.graphql.client.betterbotz.udts.InsertUdtsMutation;
 import com.example.graphql.client.schema.AlterTableAddMutation;
@@ -83,14 +64,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
@@ -103,12 +81,15 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import org.apache.http.HttpStatus;
 import org.assertj.core.api.InstanceOfAssertFactories;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * To update these tests:
@@ -127,6 +108,7 @@ import org.junit.jupiter.params.provider.MethodSource;
  */
 @NotThreadSafe
 public class GraphqlTest extends GraphqlITBase {
+  private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
   private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
       Pattern.compile(
           "(graphqlapi_io_dropwizard_jetty_MutableServletContextHandler_dispatches_count\\s*)(\\d+.\\d+)");
@@ -310,6 +292,30 @@ public class GraphqlTest extends GraphqlITBase {
         .anySatisfy(value -> assertThat(value.getBasic()).isEqualTo(BasicType.INET));
   }
 
+  public GetTableQuery.Table getTable(ApolloClient client, String keyspaceName, String tableName)
+      throws ExecutionException, InterruptedException {
+    GetTableQuery query =
+        GetTableQuery.builder().keyspaceName(keyspaceName).tableName(tableName).build();
+
+    CompletableFuture<GetTableQuery.Data> future = new CompletableFuture<>();
+    ApolloQueryCall<Optional<GetTableQuery.Data>> observable = client.query(query);
+    observable.enqueue(queryCallback(future));
+
+    GetTableQuery.Data result = future.get();
+    observable.cancel();
+
+    assertThat(result.getKeyspace()).isPresent();
+
+    GetTableQuery.Keyspace keyspace = result.getKeyspace().get();
+    assertThat(keyspace.getName()).isEqualTo(keyspaceName);
+    assertThat(keyspace.getTable()).isPresent();
+
+    GetTableQuery.Table table = keyspace.getTable().get();
+    assertThat(table.getName()).isEqualTo(tableName);
+
+    return table;
+  }
+
   @Test
   public void createTable() throws ExecutionException, InterruptedException {
     ApolloClient client = getApolloClient("/graphql-schema");
@@ -379,7 +385,7 @@ public class GraphqlTest extends GraphqlITBase {
                         .type(DataTypeInput.builder().basic(BasicType.TEXT).build())
                         .build()));
 
-    createTable(client, tableName, builder, keyspace);
+    createTable(client, tableName, builder);
 
     GetTableQuery.Table table = getTable(client, keyspace, tableName);
     assertThat(table.getName()).isEqualTo(tableName);
@@ -390,6 +396,43 @@ public class GraphqlTest extends GraphqlITBase {
     assertThat(columns)
         .filteredOn(c -> c.getName().equals("ck1") || c.getName().equals("ck2"))
         .hasSize(2);
+  }
+
+  private GetTableQuery.Table createTable(
+      ApolloClient client,
+      String keyspaceName,
+      String tableName,
+      List<ColumnInput> partitionKeys,
+      List<ColumnInput> values)
+      throws ExecutionException, InterruptedException {
+    return createTable(
+        client,
+        tableName,
+        CreateTableMutation.builder()
+            .keyspaceName(keyspaceName)
+            .partitionKeys(partitionKeys)
+            .values(values));
+  }
+
+  private GetTableQuery.Table createTable(
+      ApolloClient client, String tableName, CreateTableMutation.Builder mutationBuilder)
+      throws ExecutionException, InterruptedException {
+
+    CreateTableMutation mutation =
+        mutationBuilder.keyspaceName(keyspace).tableName(tableName).build();
+    CompletableFuture<CreateTableMutation.Data> future = new CompletableFuture<>();
+    ApolloMutationCall<Optional<CreateTableMutation.Data>> observable = client.mutate(mutation);
+    observable.enqueue(queryCallback(future));
+
+    CreateTableMutation.Data result = future.get();
+    observable.cancel();
+
+    assertThat(result.getCreateTable()).hasValue(true);
+
+    GetTableQuery.Table table = getTable(client, keyspace, tableName);
+    assertThat(table.getName()).isEqualTo(tableName);
+
+    return table;
   }
 
   @Test
@@ -1455,4 +1498,83 @@ public class GraphqlTest extends GraphqlITBase {
       ApolloClient client, Mutation<D, T, V> mutation) {
     return getObservable((ApolloMutationCall<Optional<D>>) client.mutate(mutation));
   }
+
+  private static <U> ApolloCall.Callback<Optional<U>> queryCallback(CompletableFuture<U> future) {
+    return new ApolloCall.Callback<Optional<U>>() {
+      @Override
+      public void onResponse(@NotNull Response<Optional<U>> response) {
+        if (response.getErrors() != null && response.getErrors().size() > 0) {
+          logger.info(
+              "GraphQL error found in test: {}",
+              response.getErrors().stream().map(Error::getMessage).collect(Collectors.toList()));
+          future.completeExceptionally(
+              new GraphQLTestException("GraphQL error response", response.getErrors()));
+          return;
+        }
+
+        if (response.getData().isPresent()) {
+          future.complete(response.getData().get());
+          return;
+        }
+
+        future.completeExceptionally(
+            new IllegalStateException("Unexpected empty data and errors properties"));
+      }
+
+      @Override
+      public void onFailure(@NotNull ApolloException e) {
+        future.completeExceptionally(e);
+      }
+    };
+  }
+
+  private static class GraphQLTestException extends RuntimeException {
+    private final List<Error> errors;
+
+    GraphQLTestException(String message, List<Error> errors) {
+      super(message);
+      this.errors = errors;
+    }
+  }
+
+  private ApolloClient getApolloClient(String path) {
+    return ApolloClient.builder()
+        .serverUrl(String.format("http://%s:8080%s", stargate.seedAddress(), path))
+        .okHttpClient(getHttpClient())
+        .addCustomTypeAdapter(
+            CustomType.TIMESTAMP,
+            new CustomTypeAdapter<Instant>() {
+              @NotNull
+              @Override
+              public CustomTypeValue<?> encode(Instant instant) {
+                return new CustomTypeValue.GraphQLString(instant.toString());
+              }
+
+              @Override
+              public Instant decode(@NotNull CustomTypeValue<?> customTypeValue) {
+                return parseInstant(customTypeValue.value.toString());
+              }
+            })
+        .build();
+  }
+
+  protected static Instant parseInstant(String source) {
+    try {
+      return TIMESTAMP_FORMAT.get().parse(source).toInstant();
+    } catch (ParseException e) {
+      throw new AssertionError("Unexpected error while parsing timestamp in response", e);
+    }
+  }
+
+  protected static String formatInstant(Instant instant) {
+    return TIMESTAMP_FORMAT.get().format(Date.from(instant));
+  }
+
+  protected static final ThreadLocal<SimpleDateFormat> TIMESTAMP_FORMAT =
+      ThreadLocal.withInitial(
+          () -> {
+            SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+            parser.setTimeZone(TimeZone.getTimeZone(ZoneId.systemDefault()));
+            return parser;
+          });
 }
