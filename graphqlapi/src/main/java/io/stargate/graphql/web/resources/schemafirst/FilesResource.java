@@ -60,6 +60,14 @@ public class FilesResource extends GraphqlResourceBase {
       throws Exception {
     SchemaSource schemaSource =
         schemaSourceDao.getByVersion(namespace, Optional.ofNullable(version).map(UUID::fromString));
+    if (schemaSource == null) {
+      return Response.status(
+              Response.Status.NOT_FOUND.getStatusCode(),
+              String.format(
+                  "The schema for namespace: %s and version %s does not exists.",
+                  namespace, version))
+          .build();
+    }
 
     return Response.ok(schemaSource.getContents())
         .header("Content-Disposition", "inline; filename=" + createFileName(schemaSource))

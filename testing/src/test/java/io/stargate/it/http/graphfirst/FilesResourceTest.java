@@ -120,6 +120,23 @@ public class FilesResourceTest extends GraphqlITBase {
     assertThat(responseBody).contains("type Query");
   }
 
+  @Test
+  public void shouldReturnNotFoundIfSchemaDoesNotExists() throws IOException {
+    // when get schema file
+    String url = String.format("%s:8080/graphqlv2/files/namespace/%s.graphql", host, "unknown");
+    Request getRequest =
+        new Request.Builder()
+            .get()
+            .addHeader("content-type", MediaType.TEXT_PLAIN)
+            .url(url)
+            .build();
+
+    Response getSchemaResponse = getHttpClient().newCall(getRequest).execute();
+
+    // then
+    assertThat(getSchemaResponse.code()).isEqualTo(404);
+  }
+
   private static String createSchema(CqlIdentifier keyspaceId) {
     return String.format(
         "mutation {\n"
