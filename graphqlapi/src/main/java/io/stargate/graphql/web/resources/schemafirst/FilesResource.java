@@ -81,7 +81,7 @@ public class FilesResource {
       throws Exception {
 
     if (!isAuthorized(token, namespace, httpRequest)) {
-      return notFound(namespace, version);
+      return Response.status(Response.Status.UNAUTHORIZED).build();
     }
 
     UUID versionUuid = null;

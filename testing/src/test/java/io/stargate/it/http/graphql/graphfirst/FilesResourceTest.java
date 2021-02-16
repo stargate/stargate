@@ -82,9 +82,9 @@ public class FilesResourceTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  @DisplayName("Should return 404 if unauthorized")
+  @DisplayName("Should return 401 if unauthorized")
   public void schemaFileUnauthorized(@TestKeyspace CqlIdentifier keyspaceId) {
     UNAUTHORIZED_CLIENT.expectSchemaFileStatus(
-        keyspaceId.asInternal(), DEPLOYED_SCHEMA_VERSION.toString(), Status.NOT_FOUND);
+        keyspaceId.asInternal(), DEPLOYED_SCHEMA_VERSION.toString(), Status.UNAUTHORIZED);
   }
 }
