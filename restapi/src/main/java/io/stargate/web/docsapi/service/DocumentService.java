@@ -681,7 +681,7 @@ public class DocumentService {
       String documentId,
       int pageSize,
       ByteBuffer pageState)
-      throws ExecutionException, InterruptedException, UnauthorizedException {
+      throws UnauthorizedException {
     FilterCondition first = filters.get(0);
     List<String> path = first.getPath();
 
@@ -911,6 +911,15 @@ public class DocumentService {
     LinkedHashSet<String> existsByDoc = new LinkedHashSet<>();
     LinkedHashMap<String, Integer> countsByDoc = new LinkedHashMap<>();
 
+    List<FilterCondition> inCassandraFilters =
+        filters.stream()
+            .filter(f -> !FilterOp.LIMITED_SUPPORT_FILTERS.contains(f.getFilterOp()))
+            .collect(Collectors.toList());
+    List<FilterCondition> inMemoryFilters =
+        filters.stream()
+            .filter(f -> FilterOp.LIMITED_SUPPORT_FILTERS.contains(f.getFilterOp()))
+            .collect(Collectors.toList());
+
     ImmutablePair<List<Row>, ByteBuffer> page;
     List<Row> leftoverRows = new ArrayList<>();
     ByteBuffer currentPageState = initialPagingState;
@@ -920,7 +929,7 @@ public class DocumentService {
               keyspace,
               collection,
               db,
-              new ArrayList<>(),
+              inCassandraFilters,
               new ArrayList<>(),
               new ArrayList<>(),
               false,
@@ -935,7 +944,7 @@ public class DocumentService {
               existsByDoc,
               countsByDoc,
               rowsResult,
-              filters,
+              inMemoryFilters,
               db.treatBooleansAsNumeric(),
               page.right == null);
       currentPageState = page.right;
@@ -963,7 +972,7 @@ public class DocumentService {
                   keyspace,
                   collection,
                   db,
-                  new ArrayList<>(),
+                  inCassandraFilters,
                   new ArrayList<>(),
                   new ArrayList<>(),
                   false,
