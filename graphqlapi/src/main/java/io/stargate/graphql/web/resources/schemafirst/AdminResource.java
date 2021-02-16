@@ -2,7 +2,6 @@ package io.stargate.graphql.web.resources.schemafirst;
 
 import graphql.GraphQL;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
-import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
@@ -26,7 +25,7 @@ import org.glassfish.jersey.media.multipart.FormDataParam;
 @Singleton
 @Path(ResourcePaths.ADMIN)
 @Produces(MediaType.APPLICATION_JSON)
-public class AdminResource extends GraphqlResourceBase {
+public class AdminResource extends SchemaFirstResourceBase {
 
   private final GraphQL graphql;
 

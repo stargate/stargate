@@ -40,7 +40,7 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
-public class GraphqlITBase extends BaseOsgiIntegrationTest {
+public class GraphqlTestBase extends BaseOsgiIntegrationTest {
   protected static String host;
   protected static StargateConnectionInfo stargate;
   protected static String authToken;
@@ -95,7 +95,7 @@ public class GraphqlITBase extends BaseOsgiIntegrationTest {
     assertThat(authToken).isNotNull();
   }
 
-  protected static OkHttpClient getHttpClient() {
+  public static OkHttpClient getHttpClient() {
     return new OkHttpClient.Builder()
         .connectTimeout(Duration.ofMinutes(3))
         .callTimeout(Duration.ofMinutes(3))

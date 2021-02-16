@@ -17,7 +17,6 @@ package io.stargate.graphql.web.resources.schemafirst;
 
 import graphql.GraphQL;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
-import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
@@ -37,7 +36,7 @@ import javax.ws.rs.core.MediaType;
 @Singleton
 @Path(ResourcePaths.NAMESPACES)
 @Produces(MediaType.APPLICATION_JSON)
-public class NamespaceResource extends GraphqlResourceBase {
+public class NamespaceResource extends SchemaFirstResourceBase {
 
   @Inject private SchemaFirstCache graphqlCache;
 

@@ -17,7 +17,6 @@ package io.stargate.graphql.web.resources.schemafirst;
 
 import io.stargate.graphql.persistence.schemafirst.SchemaSource;
 import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
-import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
@@ -32,7 +31,7 @@ import javax.ws.rs.core.Response;
 
 @Singleton
 @Path(ResourcePaths.FILES)
-public class FilesResource extends GraphqlResourceBase {
+public class FilesResource {
 
   private final SchemaSourceDao schemaSourceDao;
 

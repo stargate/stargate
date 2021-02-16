@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.it.http.graphfirst;
+package io.stargate.it.http.graphql.graphfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
-import io.stargate.it.http.graphql.GraphqlITBase;
+import io.stargate.it.http.graphql.GraphqlTestBase;
 import java.io.IOException;
 import java.util.Map;
 import javax.ws.rs.core.MediaType;
@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
-public class FilesResourceTest extends GraphqlITBase {
+public class FilesResourceTest extends GraphqlTestBase {
   private static String DEPLOYED_SCHEMA_VERSION;
 
   @BeforeAll

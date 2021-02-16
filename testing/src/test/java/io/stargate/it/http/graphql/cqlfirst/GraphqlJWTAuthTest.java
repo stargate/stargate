@@ -1,5 +1,6 @@
-package io.stargate.it.http;
+package io.stargate.it.http.graphql.cqlfirst;
 
+import static io.stargate.it.http.graphql.GraphqlTestBase.getHttpClient;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.MAP;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -15,7 +16,6 @@ import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -176,18 +176,5 @@ public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
       fail("Unexpected error while sending POST request", e);
       return null; // never reached
     }
-  }
-
-  private OkHttpClient getHttpClient() {
-    return new OkHttpClient.Builder()
-        .connectTimeout(Duration.ofMinutes(3))
-        .callTimeout(Duration.ofMinutes(3))
-        .readTimeout(Duration.ofMinutes(3))
-        .writeTimeout(Duration.ofMinutes(3))
-        .addInterceptor(
-            chain ->
-                chain.proceed(
-                    chain.request().newBuilder().addHeader("X-Cassandra-Token", authToken).build()))
-        .build();
   }
 }

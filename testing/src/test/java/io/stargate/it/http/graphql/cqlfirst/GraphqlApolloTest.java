@@ -1,4 +1,4 @@
-package io.stargate.it.http;
+package io.stargate.it.http.graphql.cqlfirst;
 
 import static io.stargate.it.MetricsTestsHelper.getMetricValue;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,7 +58,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharStreams;
 import io.stargate.db.schema.Column;
-import io.stargate.it.http.graphql.GraphqlITBase;
+import io.stargate.it.http.RestUtils;
+import io.stargate.it.http.graphql.GraphqlTestBase;
 import io.stargate.it.http.graphql.TupleHelper;
 import java.io.IOException;
 import java.io.InputStream;
@@ -107,8 +108,8 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 @NotThreadSafe
-public class GraphqlTest extends GraphqlITBase {
-  private static final Logger logger = LoggerFactory.getLogger(GraphqlTest.class);
+public class GraphqlApolloTest extends GraphqlTestBase {
+  private static final Logger logger = LoggerFactory.getLogger(GraphqlApolloTest.class);
   private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
       Pattern.compile(
           "(graphqlapi_io_dropwizard_jetty_MutableServletContextHandler_dispatches_count\\s*)(\\d+.\\d+)");
@@ -123,7 +124,7 @@ public class GraphqlTest extends GraphqlITBase {
   private static void createSchema() throws Exception {
     // Create CQL schema using betterbotz.cql file
     InputStream inputStream =
-        GraphqlTest.class.getClassLoader().getResourceAsStream("betterbotz.cql");
+        GraphqlApolloTest.class.getClassLoader().getResourceAsStream("betterbotz.cql");
     assertThat(inputStream).isNotNull();
     String queries = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
     assertThat(queries).isNotNull();
