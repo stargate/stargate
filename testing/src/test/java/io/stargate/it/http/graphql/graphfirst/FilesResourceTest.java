@@ -159,7 +159,6 @@ public class FilesResourceTest extends GraphqlTestBase {
     assertThat(getSchemaResponse.code()).isEqualTo(404);
   }
 
-
   private static String createSchema(CqlIdentifier keyspaceId) {
     return String.format(
         "mutation {\n"
