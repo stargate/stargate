@@ -150,7 +150,7 @@ public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
 
   private Map<String, Object> getGraphqlResponse(CqlIdentifier keyspaceId, String query) {
     try {
-      OkHttpClient okHttpClient = getHttpClient();
+      OkHttpClient okHttpClient = getHttpClient(authToken);
       String url = String.format("%s:8080/graphql/%s", host, keyspaceId.asInternal());
       Map<String, Object> formData = new HashMap<>();
       formData.put("query", query);

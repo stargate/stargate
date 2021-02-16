@@ -95,7 +95,11 @@ public class GraphqlTestBase extends BaseOsgiIntegrationTest {
     assertThat(authToken).isNotNull();
   }
 
-  public static OkHttpClient getHttpClient() {
+  protected static OkHttpClient getHttpClient() {
+    return getHttpClient(authToken);
+  }
+
+  public static OkHttpClient getHttpClient(String token) {
     return new OkHttpClient.Builder()
         .connectTimeout(Duration.ofMinutes(3))
         .callTimeout(Duration.ofMinutes(3))
@@ -104,7 +108,7 @@ public class GraphqlTestBase extends BaseOsgiIntegrationTest {
         .addInterceptor(
             chain ->
                 chain.proceed(
-                    chain.request().newBuilder().addHeader("X-Cassandra-Token", authToken).build()))
+                    chain.request().newBuilder().addHeader("X-Cassandra-Token", token).build()))
         .build();
   }
 
