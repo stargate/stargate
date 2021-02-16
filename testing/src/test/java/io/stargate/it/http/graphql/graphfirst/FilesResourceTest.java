@@ -18,12 +18,11 @@ package io.stargate.it.http.graphql.graphfirst;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
-import io.stargate.it.http.graphql.GraphqlTestBase;
-import java.io.IOException;
-import java.util.Map;
+import io.stargate.it.storage.StargateConnectionInfo;
 import java.util.UUID;
 import javax.ws.rs.core.Response.Status;
 import org.junit.jupiter.api.BeforeAll;
@@ -32,124 +31,60 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
-public class FilesResourceTest extends GraphqlTestBase {
-  private static String DEPLOYED_SCHEMA_VERSION;
-  private static UUID WRONG_SCHEMA_VERSION = UUID.randomUUID();
+public class FilesResourceTest extends BaseOsgiIntegrationTest {
+
+  private static final String SCHEMA_CONTENTS =
+      "type User { id: ID! name: String username: String } "
+          + "type Query { getUser(id: ID!): User }";
+
+  private static final UUID WRONG_SCHEMA_VERSION = UUID.randomUUID();
+  private static UUID DEPLOYED_SCHEMA_VERSION;
+
+  private static GraphqlFirstClient CLIENT;
+  private static GraphqlFirstClient UNAUTHORIZED_CLIENT;
 
   @BeforeAll
-  public static void deploySchema(@TestKeyspace CqlIdentifier keyspaceId) {
-    // deploySchema
-    Map<String, Object> response =
-        executeGraphqlAdminQuery(createSchema(keyspaceId), "deploySchema");
-    assertThat(response).isNotNull();
-    DEPLOYED_SCHEMA_VERSION = getDeployedVersion(response);
-    assertThat(DEPLOYED_SCHEMA_VERSION).isNotNull();
+  public static void setup(StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId) {
+    String host = cluster.seedAddress();
+    CLIENT = new GraphqlFirstClient(host, RestUtils.getAuthToken(host));
+
+    DEPLOYED_SCHEMA_VERSION = CLIENT.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
     assertThat(DEPLOYED_SCHEMA_VERSION).isNotEqualTo(WRONG_SCHEMA_VERSION);
+
+    UNAUTHORIZED_CLIENT = new GraphqlFirstClient(host, "invalid auth token");
   }
 
   @Test
-  public void shouldGetGraphQLDirectivesFile() throws IOException {
-    // given
-    String url = String.format("%s:8080/graphqlv2/files/cql_directives.graphql", host);
-    String responseBody = RestUtils.get(authToken, url, Status.OK.getStatusCode());
-
-    // then
-    assertThat(responseBody).isNotEmpty();
-    assertThat(responseBody).contains("directive @cql_input");
+  @DisplayName("Should download `cql_directives.graphql` file")
+  public void cqlDirectives() {
+    assertThat(CLIENT.getCqlDirectivesFile()).contains("directive @cql_input");
   }
 
   @Test
-  public void shouldGetFileWithSchema(@TestKeyspace CqlIdentifier keyspaceId) throws IOException {
-    // given
-    String url =
-        String.format(
-            "%s:8080/graphqlv2/files/namespace/%s.graphql", host, keyspaceId.asInternal());
-    String responseBody = RestUtils.get(authToken, url, Status.OK.getStatusCode());
-
-    // then
-    assertThat(responseBody).isNotEmpty();
-    assertThat(responseBody).contains("type User");
-    assertThat(responseBody).contains("type Query");
+  @DisplayName("Should download schema file")
+  public void schemaFile(@TestKeyspace CqlIdentifier keyspaceId) {
+    assertThat(CLIENT.getSchemaFile(keyspaceId.asInternal()))
+        .contains("type User")
+        .contains("type Query");
+    assertThat(CLIENT.getSchemaFile(keyspaceId.asInternal(), DEPLOYED_SCHEMA_VERSION.toString()))
+        .contains("type User")
+        .contains("type Query");
   }
 
   @Test
-  public void shouldGetFileWithSchemaUsingVersionArgument(@TestKeyspace CqlIdentifier keyspaceId)
-      throws IOException {
-    // given
-    String url =
-        String.format(
-            "%s:8080/graphqlv2/files/namespace/%s.graphql?version=%s",
-            host, keyspaceId.asInternal(), DEPLOYED_SCHEMA_VERSION);
-    String responseBody = RestUtils.get(authToken, url, Status.OK.getStatusCode());
-
-    // then
-    assertThat(responseBody).isNotEmpty();
-    assertThat(responseBody).contains("type User");
-    assertThat(responseBody).contains("type Query");
-  }
-
-  @Test
-  public void shouldReturnNotFoundIfSchemaDoesNotExists() throws IOException {
-    String url = String.format("%s:8080/graphqlv2/files/namespace/%s.graphql", host, "unknown");
-    RestUtils.get(authToken, url, Status.NOT_FOUND.getStatusCode());
-  }
-
-  @Test
-  public void shouldReturnNotFoundIfVersionDoesNotExists(@TestKeyspace CqlIdentifier keyspaceId)
-      throws IOException {
-    String url =
-        String.format(
-            "%s:8080/graphqlv2/files/namespace/%s.graphql?version=%s",
-            host, keyspaceId.asInternal(), WRONG_SCHEMA_VERSION);
-    RestUtils.get(authToken, url, Status.NOT_FOUND.getStatusCode());
-  }
-
-  @Test
-  public void shouldReturnNotFoundIfVersionMalformed(@TestKeyspace CqlIdentifier keyspaceId)
-      throws IOException {
-    String url =
-        String.format(
-            "%s:8080/graphqlv2/files/namespace/%s.graphql?version=NOT_A_UUID",
-            host, keyspaceId.asInternal());
-    RestUtils.get(authToken, url, Status.NOT_FOUND.getStatusCode());
+  @DisplayName("Should return 404 if schema file coordinates are invalid")
+  public void schemaFileNotFound(@TestKeyspace CqlIdentifier keyspaceId) {
+    CLIENT.expectSchemaFileStatus("unknown_namespace", Status.NOT_FOUND);
+    CLIENT.expectSchemaFileStatus("malformed namespace #!?", Status.NOT_FOUND);
+    CLIENT.expectSchemaFileStatus(
+        keyspaceId.asInternal(), WRONG_SCHEMA_VERSION.toString(), Status.NOT_FOUND);
+    CLIENT.expectSchemaFileStatus(keyspaceId.asInternal(), "NOT A UUID", Status.NOT_FOUND);
   }
 
   @Test
   @DisplayName("Should return 404 if unauthorized")
-  public void unauthorizedTest(@TestKeyspace CqlIdentifier keyspaceId) throws Exception {
-    String url =
-        String.format(
-            "%s:8080/graphqlv2/files/namespace/%s.graphql?version=%s",
-            host, keyspaceId.asInternal(), DEPLOYED_SCHEMA_VERSION);
-    RestUtils.get("wrong auth token", url, Status.NOT_FOUND.getStatusCode());
-  }
-
-  private static String createSchema(CqlIdentifier keyspaceId) {
-    return String.format(
-        "mutation {\n"
-            + "  deploySchema(\n"
-            + "    namespace: \"%s\"\n"
-            + "    schema: \"\"\"\n"
-            + "    type User {\n"
-            + "      id: ID!\n"
-            + "      name: String\n"
-            + "      username: String\n"
-            + "    }\n"
-            + "    type Query {\n"
-            + "      getUser(id: ID!): User\n"
-            + "    }\n"
-            + "    \"\"\"\n"
-            + "  )\n"
-            + "{\n"
-            + "    version\n"
-            + "  }\n"
-            + "}\n",
-        keyspaceId);
-  }
-
-  @SuppressWarnings("unchecked")
-  private static String getDeployedVersion(Map<String, Object> response) {
-    Map<String, Object> deployedSchemaResponse = (Map<String, Object>) response.get("deploySchema");
-    return (String) deployedSchemaResponse.get("version");
+  public void schemaFileUnauthorized(@TestKeyspace CqlIdentifier keyspaceId) {
+    UNAUTHORIZED_CLIENT.expectSchemaFileStatus(
+        keyspaceId.asInternal(), DEPLOYED_SCHEMA_VERSION.toString(), Status.NOT_FOUND);
   }
 }

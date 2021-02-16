@@ -10,9 +10,16 @@ import com.apollographql.apollo.ApolloCall;
 import com.apollographql.apollo.ApolloClient;
 import com.apollographql.apollo.ApolloMutationCall;
 import com.apollographql.apollo.ApolloQueryCall;
-import com.apollographql.apollo.api.*;
+import com.apollographql.apollo.api.CustomTypeAdapter;
+import com.apollographql.apollo.api.CustomTypeValue;
 import com.apollographql.apollo.api.Error;
+import com.apollographql.apollo.api.Mutation;
+import com.apollographql.apollo.api.Operation;
+import com.apollographql.apollo.api.Response;
 import com.apollographql.apollo.exception.ApolloException;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
@@ -37,7 +44,27 @@ import com.example.graphql.client.betterbotz.tuples.GetTuplesQuery;
 import com.example.graphql.client.betterbotz.tuples.InsertTuplesMutation;
 import com.example.graphql.client.betterbotz.tuples.InsertTuplesPkMutation;
 import com.example.graphql.client.betterbotz.tuples.UpdateTuplesMutation;
-import com.example.graphql.client.betterbotz.type.*;
+import com.example.graphql.client.betterbotz.type.AUdtInput;
+import com.example.graphql.client.betterbotz.type.BUdtInput;
+import com.example.graphql.client.betterbotz.type.CollectionsNestedInput;
+import com.example.graphql.client.betterbotz.type.CollectionsSimpleInput;
+import com.example.graphql.client.betterbotz.type.CustomType;
+import com.example.graphql.client.betterbotz.type.EntryBigIntKeyStringValueInput;
+import com.example.graphql.client.betterbotz.type.EntryIntKeyStringValueInput;
+import com.example.graphql.client.betterbotz.type.EntryUuidKeyListEntryBigIntKeyStringValueInputValueInput;
+import com.example.graphql.client.betterbotz.type.MutationConsistency;
+import com.example.graphql.client.betterbotz.type.MutationOptions;
+import com.example.graphql.client.betterbotz.type.OrdersFilterInput;
+import com.example.graphql.client.betterbotz.type.OrdersInput;
+import com.example.graphql.client.betterbotz.type.ProductsFilterInput;
+import com.example.graphql.client.betterbotz.type.ProductsInput;
+import com.example.graphql.client.betterbotz.type.QueryConsistency;
+import com.example.graphql.client.betterbotz.type.QueryOptions;
+import com.example.graphql.client.betterbotz.type.StringFilterInput;
+import com.example.graphql.client.betterbotz.type.TupleIntIntInput;
+import com.example.graphql.client.betterbotz.type.Tuplx65_sPkInput;
+import com.example.graphql.client.betterbotz.type.UdtsInput;
+import com.example.graphql.client.betterbotz.type.UuidFilterInput;
 import com.example.graphql.client.betterbotz.udts.GetUdtsQuery;
 import com.example.graphql.client.betterbotz.udts.InsertUdtsMutation;
 import com.example.graphql.client.schema.AlterTableAddMutation;
@@ -53,23 +80,37 @@ import com.example.graphql.client.schema.type.BasicType;
 import com.example.graphql.client.schema.type.ClusteringKeyInput;
 import com.example.graphql.client.schema.type.ColumnInput;
 import com.example.graphql.client.schema.type.DataTypeInput;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharStreams;
 import io.stargate.db.schema.Column;
+import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.RestUtils;
-import io.stargate.it.http.graphql.GraphqlTestBase;
+import io.stargate.it.http.graphql.GraphqlClient;
 import io.stargate.it.http.graphql.TupleHelper;
+import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.net.InetSocketAddress;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TimeZone;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
@@ -83,6 +124,7 @@ import okhttp3.RequestBody;
 import org.apache.http.HttpStatus;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -93,7 +135,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * To update these tests:
+ * Covers the CQL-first API using the apollo-runtime client library.
+ *
+ * <p>Note that this requires a lot of boilerplate:
  *
  * <ul>
  *   <li>If the schema has changed, update the `schema.json` files in `src/main/graphql`. You can
@@ -106,22 +150,56 @@ import org.slf4j.LoggerFactory;
  *       corresponding Java types: `mvn generate-sources` (an IDE rebuild should also work). You can
  *       see generated code in `target/generated-sources/graphql-client`.
  * </ul>
+ *
+ * Other GraphQL tests generally use a more lightweight approach based on {@link GraphqlClient}.
  */
 @NotThreadSafe
-public class GraphqlApolloTest extends GraphqlTestBase {
+public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(GraphqlApolloTest.class);
   private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
       Pattern.compile(
           "(graphqlapi_io_dropwizard_jetty_MutableServletContextHandler_dispatches_count\\s*)(\\d+.\\d+)");
 
+  private static CqlSession session;
+  private static String authToken;
+  private static StargateConnectionInfo stargate;
   private static final String keyspace = "betterbotz";
+  private static final ObjectMapper objectMapper = new ObjectMapper();
+  private static String host;
 
   @BeforeAll
-  public static void setup() throws Exception {
-    createSchema();
+  public static void setup(StargateConnectionInfo stargateInfo) throws Exception {
+    stargate = stargateInfo;
+    host = "http://" + stargateInfo.seedAddress();
+
+    createSessionAndSchema();
+    authToken = RestUtils.getAuthToken(stargate.seedAddress());
   }
 
-  private static void createSchema() throws Exception {
+  @AfterAll
+  public static void teardown() {
+    if (session != null) {
+      session.close();
+    }
+  }
+
+  private static void createSessionAndSchema() throws Exception {
+    session =
+        CqlSession.builder()
+            .withConfigLoader(
+                DriverConfigLoader.programmaticBuilder()
+                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
+                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofMinutes(3))
+                    .withDuration(
+                        DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT, Duration.ofMinutes(3))
+                    .withDuration(
+                        DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofMinutes(3))
+                    .build())
+            .withAuthCredentials("cassandra", "cassandra")
+            .addContactPoint(new InetSocketAddress(stargate.seedAddress(), 9043))
+            .withLocalDatacenter(stargate.datacenter())
+            .build();
+
     // Create CQL schema using betterbotz.cql file
     InputStream inputStream =
         GraphqlApolloTest.class.getClassLoader().getResourceAsStream("betterbotz.cql");
@@ -972,12 +1050,12 @@ public class GraphqlApolloTest extends GraphqlTestBase {
         okHttpClient
             .newCall(
                 new Request.Builder()
-                    .post(RequestBody.create(JSON, OBJECT_MAPPER.writeValueAsBytes(formData)))
+                    .post(RequestBody.create(JSON, objectMapper.writeValueAsBytes(formData)))
                     .url(url)
                     .build())
             .execute();
     assertThat(response.code()).isEqualTo(HttpStatus.SC_OK);
-    Map<String, Object> result = OBJECT_MAPPER.readValue(response.body().string(), Map.class);
+    Map<String, Object> result = objectMapper.readValue(response.body().string(), Map.class);
     response.close();
     return result;
   }
@@ -1500,6 +1578,40 @@ public class GraphqlApolloTest extends GraphqlTestBase {
     return getObservable((ApolloMutationCall<Optional<D>>) client.mutate(mutation));
   }
 
+  private OkHttpClient getHttpClient() {
+    return new OkHttpClient.Builder()
+        .connectTimeout(Duration.ofMinutes(3))
+        .callTimeout(Duration.ofMinutes(3))
+        .readTimeout(Duration.ofMinutes(3))
+        .writeTimeout(Duration.ofMinutes(3))
+        .addInterceptor(
+            chain ->
+                chain.proceed(
+                    chain.request().newBuilder().addHeader("X-Cassandra-Token", authToken).build()))
+        .build();
+  }
+
+  private ApolloClient getApolloClient(String path) {
+    return ApolloClient.builder()
+        .serverUrl(String.format("http://%s:8080%s", stargate.seedAddress(), path))
+        .okHttpClient(getHttpClient())
+        .addCustomTypeAdapter(
+            CustomType.TIMESTAMP,
+            new CustomTypeAdapter<Instant>() {
+              @NotNull
+              @Override
+              public CustomTypeValue<?> encode(Instant instant) {
+                return new CustomTypeValue.GraphQLString(instant.toString());
+              }
+
+              @Override
+              public Instant decode(@NotNull CustomTypeValue<?> customTypeValue) {
+                return parseInstant(customTypeValue.value.toString());
+              }
+            })
+        .build();
+  }
+
   private static <U> ApolloCall.Callback<Optional<U>> queryCallback(CompletableFuture<U> future) {
     return new ApolloCall.Callback<Optional<U>>() {
       @Override
@@ -1538,28 +1650,7 @@ public class GraphqlApolloTest extends GraphqlTestBase {
     }
   }
 
-  private ApolloClient getApolloClient(String path) {
-    return ApolloClient.builder()
-        .serverUrl(String.format("http://%s:8080%s", stargate.seedAddress(), path))
-        .okHttpClient(getHttpClient())
-        .addCustomTypeAdapter(
-            CustomType.TIMESTAMP,
-            new CustomTypeAdapter<Instant>() {
-              @NotNull
-              @Override
-              public CustomTypeValue<?> encode(Instant instant) {
-                return new CustomTypeValue.GraphQLString(instant.toString());
-              }
-
-              @Override
-              public Instant decode(@NotNull CustomTypeValue<?> customTypeValue) {
-                return parseInstant(customTypeValue.value.toString());
-              }
-            })
-        .build();
-  }
-
-  protected static Instant parseInstant(String source) {
+  private static Instant parseInstant(String source) {
     try {
       return TIMESTAMP_FORMAT.get().parse(source).toInstant();
     } catch (ParseException e) {
@@ -1567,11 +1658,11 @@ public class GraphqlApolloTest extends GraphqlTestBase {
     }
   }
 
-  protected static String formatInstant(Instant instant) {
+  private static String formatInstant(Instant instant) {
     return TIMESTAMP_FORMAT.get().format(Date.from(instant));
   }
 
-  protected static final ThreadLocal<SimpleDateFormat> TIMESTAMP_FORMAT =
+  private static final ThreadLocal<SimpleDateFormat> TIMESTAMP_FORMAT =
       ThreadLocal.withInitial(
           () -> {
             SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
