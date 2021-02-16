@@ -15,25 +15,21 @@
  */
 package io.stargate.it.http.graphql.graphfirst;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.UUID;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.graphql.GraphqlTestBase;
-import javax.ws.rs.core.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import java.io.IOException;
+import java.util.Map;
+import java.util.UUID;
+import javax.ws.rs.core.Response.Status;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(CqlSessionExtension.class)
 public class FilesResourceTest extends GraphqlTestBase {
@@ -54,48 +50,23 @@ public class FilesResourceTest extends GraphqlTestBase {
   @Test
   public void shouldGetGraphQLDirectivesFile() throws IOException {
     // given
-    OkHttpClient httpClient = getHttpClient();
     String url = String.format("%s:8080/graphqlv2/files/cql_directives.graphql", host);
-    Request getRequest =
-        new Request.Builder()
-            .get()
-            .addHeader("content-type", MediaType.TEXT_PLAIN)
-            .url(url)
-            .build();
-
-    // when
-    Response response = httpClient.newCall(getRequest).execute();
+    String responseBody = RestUtils.get(authToken, url, Status.OK.getStatusCode());
 
     // then
-    assertThat(response.code()).isEqualTo(200);
-    assertThat(response.body()).isNotNull();
-    String responseBody = response.body().string();
     assertThat(responseBody).isNotEmpty();
     assertThat(responseBody).contains("directive @cql_input");
   }
 
   @Test
   public void shouldGetFileWithSchema(@TestKeyspace CqlIdentifier keyspaceId) throws IOException {
-    // when get schema file
+    // given
     String url =
         String.format(
             "%s:8080/graphqlv2/files/namespace/%s.graphql", host, keyspaceId.asInternal());
-    Request getRequest =
-        new Request.Builder()
-            .get()
-            .addHeader("content-type", MediaType.TEXT_PLAIN)
-            .url(url)
-            .build();
-
-    Response getSchemaResponse = getHttpClient().newCall(getRequest).execute();
+    String responseBody = RestUtils.get(authToken, url, Status.OK.getStatusCode());
 
     // then
-    assertThat(getSchemaResponse.code()).isEqualTo(200);
-    assertThat(getSchemaResponse.header("Content-Disposition"))
-        .contains(
-            (String.format("%s-%s.graphql", keyspaceId.asInternal(), DEPLOYED_SCHEMA_VERSION)));
-
-    String responseBody = getSchemaResponse.body().string();
     assertThat(responseBody).isNotEmpty();
     assertThat(responseBody).contains("type User");
     assertThat(responseBody).contains("type Query");
@@ -104,27 +75,14 @@ public class FilesResourceTest extends GraphqlTestBase {
   @Test
   public void shouldGetFileWithSchemaUsingVersionArgument(@TestKeyspace CqlIdentifier keyspaceId)
       throws IOException {
-    // when get schema file for the deployedVersion
+    // given
     String url =
         String.format(
             "%s:8080/graphqlv2/files/namespace/%s.graphql?version=%s",
             host, keyspaceId.asInternal(), DEPLOYED_SCHEMA_VERSION);
-    Request getRequest =
-        new Request.Builder()
-            .get()
-            .addHeader("content-type", MediaType.TEXT_PLAIN)
-            .url(url)
-            .build();
-
-    Response getSchemaResponse = getHttpClient().newCall(getRequest).execute();
+    String responseBody = RestUtils.get(authToken, url, Status.OK.getStatusCode());
 
     // then
-    assertThat(getSchemaResponse.code()).isEqualTo(200);
-    assertThat(getSchemaResponse.header("Content-Disposition"))
-        .contains(
-            (String.format("%s-%s.graphql", keyspaceId.asInternal(), DEPLOYED_SCHEMA_VERSION)));
-
-    String responseBody = getSchemaResponse.body().string();
     assertThat(responseBody).isNotEmpty();
     assertThat(responseBody).contains("type User");
     assertThat(responseBody).contains("type Query");
@@ -132,82 +90,38 @@ public class FilesResourceTest extends GraphqlTestBase {
 
   @Test
   public void shouldReturnNotFoundIfSchemaDoesNotExists() throws IOException {
-    // when get schema file
     String url = String.format("%s:8080/graphqlv2/files/namespace/%s.graphql", host, "unknown");
-    Request getRequest =
-        new Request.Builder()
-            .get()
-            .addHeader("content-type", MediaType.TEXT_PLAIN)
-            .url(url)
-            .build();
-
-    Response getSchemaResponse = getHttpClient().newCall(getRequest).execute();
-
-    // then
-    assertThat(getSchemaResponse.code()).isEqualTo(404);
+    RestUtils.get(authToken, url, Status.NOT_FOUND.getStatusCode());
   }
 
   @Test
   public void shouldReturnNotFoundIfVersionDoesNotExists(@TestKeyspace CqlIdentifier keyspaceId)
       throws IOException {
-    // when get schema file
     String url =
         String.format(
             "%s:8080/graphqlv2/files/namespace/%s.graphql?version=%s",
             host, keyspaceId.asInternal(), WRONG_SCHEMA_VERSION);
-    Request getRequest =
-        new Request.Builder()
-            .get()
-            .addHeader("content-type", MediaType.TEXT_PLAIN)
-            .url(url)
-            .build();
-
-    Response getSchemaResponse = getHttpClient().newCall(getRequest).execute();
-
-    // then
-    assertThat(getSchemaResponse.code()).isEqualTo(404);
+    RestUtils.get(authToken, url, Status.NOT_FOUND.getStatusCode());
   }
 
   @Test
   public void shouldReturnNotFoundIfVersionMalformed(@TestKeyspace CqlIdentifier keyspaceId)
       throws IOException {
-    // when get schema file
     String url =
         String.format(
             "%s:8080/graphqlv2/files/namespace/%s.graphql?version=NOT_A_UUID",
             host, keyspaceId.asInternal());
-    Request getRequest =
-        new Request.Builder()
-            .get()
-            .addHeader("content-type", MediaType.TEXT_PLAIN)
-            .url(url)
-            .build();
-
-    Response getSchemaResponse = getHttpClient().newCall(getRequest).execute();
-
-    // then
-    assertThat(getSchemaResponse.code()).isEqualTo(404);
+    RestUtils.get(authToken, url, Status.NOT_FOUND.getStatusCode());
   }
 
   @Test
   @DisplayName("Should return 404 if unauthorized")
   public void unauthorizedTest(@TestKeyspace CqlIdentifier keyspaceId) throws Exception {
-    // when get schema file for the deployedVersion with the wrong token
     String url =
         String.format(
             "%s:8080/graphqlv2/files/namespace/%s.graphql?version=%s",
             host, keyspaceId.asInternal(), DEPLOYED_SCHEMA_VERSION);
-    Request getRequest =
-        new Request.Builder()
-            .get()
-            .addHeader("content-type", MediaType.TEXT_PLAIN)
-            .url(url)
-            .build();
-
-    Response getSchemaResponse = getHttpClient("wrong auth token").newCall(getRequest).execute();
-
-    // then
-    assertThat(getSchemaResponse.code()).isEqualTo(404);
+    RestUtils.get("wrong auth token", url, Status.NOT_FOUND.getStatusCode());
   }
 
   private static String createSchema(CqlIdentifier keyspaceId) {
