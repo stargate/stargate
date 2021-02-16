@@ -111,6 +111,24 @@ public class DropwizardServer extends Application<Configuration> {
                 bind(schemaSourceDao).to(SchemaSourceDao.class);
               }
             });
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(authenticationService).to(AuthenticationService.class);
+              }
+            });
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(authorizationService).to(AuthorizationService.class);
+              }
+            });
 
     SchemaFirstCache schemaFirstCache =
         new SchemaFirstCache(

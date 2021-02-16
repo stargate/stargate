@@ -28,6 +28,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -136,6 +137,28 @@ public class FilesResourceTest extends GraphqlTestBase {
     // then
     assertThat(getSchemaResponse.code()).isEqualTo(404);
   }
+
+  @Test
+  @DisplayName("Should return 404 if unauthorized")
+  public void unauthorizedTest(@TestKeyspace CqlIdentifier keyspaceId) throws Exception {
+    // when get schema file for the deployedVersion with the wrong token
+    String url =
+        String.format(
+            "%s:8080/graphqlv2/files/namespace/%s.graphql?version=%s",
+            host, keyspaceId, DEPLOYED_SCHEMA_VERSION);
+    Request getRequest =
+        new Request.Builder()
+            .get()
+            .addHeader("content-type", MediaType.TEXT_PLAIN)
+            .url(url)
+            .build();
+
+    Response getSchemaResponse = getHttpClient("wrong auth token").newCall(getRequest).execute();
+
+    // then
+    assertThat(getSchemaResponse.code()).isEqualTo(404);
+  }
+
 
   private static String createSchema(CqlIdentifier keyspaceId) {
     return String.format(
