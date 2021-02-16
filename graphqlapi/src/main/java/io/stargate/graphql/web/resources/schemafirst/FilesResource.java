@@ -80,23 +80,38 @@ public class FilesResource {
       @Context HttpServletRequest httpRequest)
       throws Exception {
 
+    if (!isAuthorized(token, namespace, httpRequest)) {
+      return notFound(namespace, version);
+    }
+
+    UUID versionUuid = null;
+    if (version != null) {
+      try {
+        versionUuid = UUID.fromString(version);
+      } catch (IllegalArgumentException e) {
+        return notFound(namespace, version);
+      }
+    }
+
     SchemaSource schemaSource =
-        isAuthorized(token, namespace, httpRequest)
-            ? schemaSourceDao.getByVersion(
-                namespace, Optional.ofNullable(version).map(UUID::fromString))
-            : null;
+        schemaSourceDao.getByVersion(namespace, Optional.ofNullable(versionUuid));
     if (schemaSource == null) {
-      return Response.status(
-              Response.Status.NOT_FOUND.getStatusCode(),
-              String.format(
-                  "The schema for namespace %s and version %s does not exists, "
-                      + "or you're not authorized to read it.",
-                  namespace, version))
-          .build();
+      return notFound(namespace, version);
     }
 
     return Response.ok(schemaSource.getContents())
         .header("Content-Disposition", "inline; filename=" + createFileName(schemaSource))
+        .build();
+  }
+
+  private Response notFound(
+      @PathParam("namespaceName") String namespace, @QueryParam("version") String version) {
+    return Response.status(
+            Response.Status.NOT_FOUND.getStatusCode(),
+            String.format(
+                "The schema for namespace %s and version %s does not exists, "
+                    + "or you're not authorized to read it.",
+                namespace, version))
         .build();
   }
 

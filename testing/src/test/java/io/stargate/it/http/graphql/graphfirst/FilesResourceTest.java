@@ -15,14 +15,14 @@
  */
 package io.stargate.it.http.graphql.graphfirst;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.io.IOException;
+import java.util.Map;
+import java.util.UUID;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.graphql.GraphqlTestBase;
-import java.io.IOException;
-import java.util.Map;
 import javax.ws.rs.core.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -32,9 +32,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 @ExtendWith(CqlSessionExtension.class)
 public class FilesResourceTest extends GraphqlTestBase {
   private static String DEPLOYED_SCHEMA_VERSION;
+  private static UUID WRONG_SCHEMA_VERSION = UUID.randomUUID();
 
   @BeforeAll
   public static void deploySchema(@TestKeyspace CqlIdentifier keyspaceId) {
@@ -44,6 +48,7 @@ public class FilesResourceTest extends GraphqlTestBase {
     assertThat(response).isNotNull();
     DEPLOYED_SCHEMA_VERSION = getDeployedVersion(response);
     assertThat(DEPLOYED_SCHEMA_VERSION).isNotNull();
+    assertThat(DEPLOYED_SCHEMA_VERSION).isNotEqualTo(WRONG_SCHEMA_VERSION);
   }
 
   @Test
@@ -72,7 +77,9 @@ public class FilesResourceTest extends GraphqlTestBase {
   @Test
   public void shouldGetFileWithSchema(@TestKeyspace CqlIdentifier keyspaceId) throws IOException {
     // when get schema file
-    String url = String.format("%s:8080/graphqlv2/files/namespace/%s.graphql", host, keyspaceId);
+    String url =
+        String.format(
+            "%s:8080/graphqlv2/files/namespace/%s.graphql", host, keyspaceId.asInternal());
     Request getRequest =
         new Request.Builder()
             .get()
@@ -85,7 +92,8 @@ public class FilesResourceTest extends GraphqlTestBase {
     // then
     assertThat(getSchemaResponse.code()).isEqualTo(200);
     assertThat(getSchemaResponse.header("Content-Disposition"))
-        .contains((String.format("%s-%s.graphql", keyspaceId.toString(), DEPLOYED_SCHEMA_VERSION)));
+        .contains(
+            (String.format("%s-%s.graphql", keyspaceId.asInternal(), DEPLOYED_SCHEMA_VERSION)));
 
     String responseBody = getSchemaResponse.body().string();
     assertThat(responseBody).isNotEmpty();
@@ -100,7 +108,7 @@ public class FilesResourceTest extends GraphqlTestBase {
     String url =
         String.format(
             "%s:8080/graphqlv2/files/namespace/%s.graphql?version=%s",
-            host, keyspaceId, DEPLOYED_SCHEMA_VERSION);
+            host, keyspaceId.asInternal(), DEPLOYED_SCHEMA_VERSION);
     Request getRequest =
         new Request.Builder()
             .get()
@@ -113,7 +121,8 @@ public class FilesResourceTest extends GraphqlTestBase {
     // then
     assertThat(getSchemaResponse.code()).isEqualTo(200);
     assertThat(getSchemaResponse.header("Content-Disposition"))
-        .contains((String.format("%s-%s.graphql", keyspaceId.toString(), DEPLOYED_SCHEMA_VERSION)));
+        .contains(
+            (String.format("%s-%s.graphql", keyspaceId.asInternal(), DEPLOYED_SCHEMA_VERSION)));
 
     String responseBody = getSchemaResponse.body().string();
     assertThat(responseBody).isNotEmpty();
@@ -139,13 +148,55 @@ public class FilesResourceTest extends GraphqlTestBase {
   }
 
   @Test
+  public void shouldReturnNotFoundIfVersionDoesNotExists(@TestKeyspace CqlIdentifier keyspaceId)
+      throws IOException {
+    // when get schema file
+    String url =
+        String.format(
+            "%s:8080/graphqlv2/files/namespace/%s.graphql?version=%s",
+            host, keyspaceId.asInternal(), WRONG_SCHEMA_VERSION);
+    Request getRequest =
+        new Request.Builder()
+            .get()
+            .addHeader("content-type", MediaType.TEXT_PLAIN)
+            .url(url)
+            .build();
+
+    Response getSchemaResponse = getHttpClient().newCall(getRequest).execute();
+
+    // then
+    assertThat(getSchemaResponse.code()).isEqualTo(404);
+  }
+
+  @Test
+  public void shouldReturnNotFoundIfVersionMalformed(@TestKeyspace CqlIdentifier keyspaceId)
+      throws IOException {
+    // when get schema file
+    String url =
+        String.format(
+            "%s:8080/graphqlv2/files/namespace/%s.graphql?version=NOT_A_UUID",
+            host, keyspaceId.asInternal());
+    Request getRequest =
+        new Request.Builder()
+            .get()
+            .addHeader("content-type", MediaType.TEXT_PLAIN)
+            .url(url)
+            .build();
+
+    Response getSchemaResponse = getHttpClient().newCall(getRequest).execute();
+
+    // then
+    assertThat(getSchemaResponse.code()).isEqualTo(404);
+  }
+
+  @Test
   @DisplayName("Should return 404 if unauthorized")
   public void unauthorizedTest(@TestKeyspace CqlIdentifier keyspaceId) throws Exception {
     // when get schema file for the deployedVersion with the wrong token
     String url =
         String.format(
             "%s:8080/graphqlv2/files/namespace/%s.graphql?version=%s",
-            host, keyspaceId, DEPLOYED_SCHEMA_VERSION);
+            host, keyspaceId.asInternal(), DEPLOYED_SCHEMA_VERSION);
     Request getRequest =
         new Request.Builder()
             .get()
