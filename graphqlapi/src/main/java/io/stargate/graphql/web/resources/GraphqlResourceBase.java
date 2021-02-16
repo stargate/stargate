@@ -26,15 +26,12 @@ import com.google.common.collect.ImmutableMap;
 import graphql.ExecutionInput;
 import graphql.GraphQL;
 import io.stargate.graphql.web.HttpAwareContext;
-import io.stargate.graphql.web.RequestToHeadersMapper;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlDdlResource;
-import io.stargate.graphql.web.resources.schemafirst.SchemaFirstCache;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Produces;
 import javax.ws.rs.container.AsyncResponse;
@@ -340,42 +337,5 @@ public class GraphqlResourceBase {
         Response.status(status)
             .entity(ImmutableMap.of("errors", ImmutableList.of(message)))
             .build());
-  }
-
-  private static final Pattern NAMESPACE_PATTERN = Pattern.compile("\\w+");
-
-  protected GraphQL getGraphql(
-      String namespace,
-      HttpServletRequest request,
-      AsyncResponse asyncResponse,
-      SchemaFirstCache graphqlCache) {
-    if (!NAMESPACE_PATTERN.matcher(namespace).matches()) {
-      LOG.warn("Invalid namespace in URI, this could be an XSS attack: {}", namespace);
-      // Do not reflect back the value
-      replyWithGraphqlError(Response.Status.BAD_REQUEST, "Invalid namespace name", asyncResponse);
-      return null;
-    }
-
-    try {
-      GraphQL graphql =
-          graphqlCache.getGraphql(namespace, RequestToHeadersMapper.getAllHeaders(request));
-      if (graphql == null) {
-        replyWithGraphqlError(
-            Response.Status.NOT_FOUND,
-            String.format(
-                "Could not find a GraphQL schema for '%s', either the namespace does not exist, "
-                    + "or no schema was deployed to it yet.",
-                namespace),
-            asyncResponse);
-        return null;
-      } else {
-        return graphql;
-      }
-    } catch (Exception e) {
-      LOG.error("Unexpected error while accessing namespace {}", namespace, e);
-      replyWithGraphqlError(
-          Response.Status.NOT_FOUND, "Unexpected error while accessing namespace", asyncResponse);
-      return null;
-    }
   }
 }
