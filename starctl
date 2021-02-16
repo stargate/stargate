@@ -132,7 +132,7 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
         STARGATE_ARGS+=("--proxy-port" "$PROXY_PORT")
     fi
 
-    if [[ ! -z "$DEVELOPER_MODE" ]] && [ "$DEVELOPER_MODE" = true ]; then
+    if [[ "$DEVELOPER_MODE" = true ]] || [[ "$DEVELOPER_MODE" = 1 ]]; then
         STARGATE_ARGS+=("--developer-mode")
     fi
 
