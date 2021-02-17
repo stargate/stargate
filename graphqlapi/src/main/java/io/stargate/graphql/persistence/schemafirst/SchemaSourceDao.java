@@ -273,8 +273,6 @@ public class SchemaSourceDao {
   private boolean transitionToSchemaDeploymentInProgress(String namespace)
       throws ExecutionException, InterruptedException {
 
-    BuiltCondition schemaDeploymentInProgressFalse =
-        BuiltCondition.of(DEPLOYMENT_IN_PROGRESS, Predicate.EQ, false);
     BuiltCondition schemaDeploymentInProgressNull =
         BuiltCondition.of(DEPLOYMENT_IN_PROGRESS, Predicate.EQ, null);
 
@@ -284,7 +282,7 @@ public class SchemaSourceDao {
             .update(namespace, TABLE_NAME)
             .value(DEPLOYMENT_IN_PROGRESS, true)
             .where(KEY_CONDITION)
-            .ifs(Arrays.asList(schemaDeploymentInProgressFalse, schemaDeploymentInProgressNull))
+            .ifs(schemaDeploymentInProgressNull)
             .build()
             .bind();
 
@@ -302,7 +300,7 @@ public class SchemaSourceDao {
         dataStore
             .queryBuilder()
             .update(namespace, TABLE_NAME)
-            .value(DEPLOYMENT_IN_PROGRESS, false)
+            .value(DEPLOYMENT_IN_PROGRESS, null)
             .where(KEY_CONDITION)
             .ifs(schemaDeploymentInProgressTrue)
             .build()
