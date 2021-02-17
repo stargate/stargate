@@ -45,9 +45,17 @@ import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
-import io.stargate.graphql.schema.schemafirst.fetchers.admin.*;
+import io.stargate.graphql.schema.schemafirst.fetchers.admin.AllNamespacesFetcher;
+import io.stargate.graphql.schema.schemafirst.fetchers.admin.AllSchemasFetcher;
+import io.stargate.graphql.schema.schemafirst.fetchers.admin.CreateNamespaceFetcher;
+import io.stargate.graphql.schema.schemafirst.fetchers.admin.DeploySchemaFetcher;
+import io.stargate.graphql.schema.schemafirst.fetchers.admin.DeploySchemaFileFetcher;
+import io.stargate.graphql.schema.schemafirst.fetchers.admin.DropNamespaceFetcher;
+import io.stargate.graphql.schema.schemafirst.fetchers.admin.SingleNamespaceFetcher;
+import io.stargate.graphql.schema.schemafirst.fetchers.admin.SingleSchemaFetcher;
 import io.stargate.graphql.schema.schemafirst.migration.MigrationStrategy;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
+import io.stargate.graphql.web.resources.schemafirst.ResourcePaths;
 import java.io.InputStream;
 
 public class AdminSchemaBuilder {
@@ -176,7 +184,17 @@ public class AdminSchemaBuilder {
                           + "etc.")
                   .type(GraphQLString)
                   .build())
-          // TODO add 'uri' field to download as a file
+          .field(
+              newFieldDefinition()
+                  .name("contentsUri")
+                  .description(
+                      String.format(
+                          "A link to download `contents` as a file.%n"
+                              + "It is relative to the URI (ending in %s) that was used to "
+                              + "execute this GraphQL request.",
+                          ResourcePaths.ADMIN))
+                  .type(GraphQLString)
+                  .build())
           .build();
 
   private static final GraphQLFieldDefinition SCHEMA_QUERY =

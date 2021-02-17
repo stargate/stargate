@@ -15,6 +15,8 @@
  */
 package io.stargate.graphql.web.resources.schemafirst;
 
+import java.nio.file.Paths;
+
 public class ResourcePaths {
 
   /**
@@ -26,4 +28,6 @@ public class ResourcePaths {
   public static final String ADMIN = ROOT + "/admin";
   public static final String NAMESPACES = ROOT + "/namespace";
   public static final String FILES = ROOT + "/files";
+  public static final String FILES_RELATIVE_TO_ADMIN =
+      Paths.get(ADMIN).relativize(Paths.get(FILES)).toString();
 }

@@ -29,6 +29,7 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.GraphqlActivator;
+import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
 import io.stargate.graphql.web.resources.PlaygroundResource;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlCache;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlDdlResource;
@@ -100,9 +101,43 @@ public class DropwizardServer extends Application<Configuration> {
               }
             });
 
+    SchemaSourceDao schemaSourceDao = new SchemaSourceDao(dataStoreFactory.createInternal());
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(schemaSourceDao).to(SchemaSourceDao.class);
+              }
+            });
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(authenticationService).to(AuthenticationService.class);
+              }
+            });
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(authorizationService).to(AuthorizationService.class);
+              }
+            });
+
     SchemaFirstCache schemaFirstCache =
         new SchemaFirstCache(
-            persistence, authenticationService, authorizationService, dataStoreFactory);
+            persistence,
+            authenticationService,
+            authorizationService,
+            dataStoreFactory,
+            schemaSourceDao);
+
     environment
         .jersey()
         .register(
