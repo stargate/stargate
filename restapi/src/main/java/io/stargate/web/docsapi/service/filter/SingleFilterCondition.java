@@ -66,6 +66,7 @@ public class SingleFilterCondition implements FilterCondition {
     return path;
   }
 
+  @Override
   public String getPathString() {
     return String.join(".", path);
   }

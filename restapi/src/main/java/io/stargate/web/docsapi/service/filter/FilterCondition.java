@@ -9,6 +9,8 @@ public interface FilterCondition {
 
   String getField();
 
+  String getPathString();
+
   String getFullFieldPath();
 
   List<String> getPath();

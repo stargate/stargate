@@ -920,9 +920,21 @@ public class DocumentService {
             .filter(f -> FilterOp.LIMITED_SUPPORT_FILTERS.contains(f.getFilterOp()))
             .collect(Collectors.toList());
 
+    Set<String> inCassandraPaths =
+        inCassandraFilters.stream().map(f -> f.getPathString()).collect(Collectors.toSet());
+    if (inCassandraPaths.size() > 1) {
+      throw new DocumentAPIRequestException(
+          "No more than 1 path can be used when mixing fully supported Cassandra filters, since resolving"
+              + "this query would involve the use of `OR` which is not yet supported (Paths found: "
+              + inCassandraPaths
+              + ")");
+    }
+
     ImmutablePair<List<Row>, ByteBuffer> page;
     List<Row> leftoverRows = new ArrayList<>();
     ByteBuffer currentPageState = initialPagingState;
+    List<String> path =
+        inCassandraFilters.isEmpty() ? new ArrayList<>() : inCassandraFilters.get(0).getPath();
     do {
       page =
           searchRows(
@@ -931,7 +943,7 @@ public class DocumentService {
               db,
               inCassandraFilters,
               new ArrayList<>(),
-              new ArrayList<>(),
+              path,
               false,
               null,
               pageSize,
@@ -974,7 +986,7 @@ public class DocumentService {
                   db,
                   inCassandraFilters,
                   new ArrayList<>(),
-                  new ArrayList<>(),
+                  path,
                   false,
                   null,
                   totalSize,
