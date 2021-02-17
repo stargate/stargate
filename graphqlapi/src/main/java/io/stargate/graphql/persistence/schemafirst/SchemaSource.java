@@ -16,6 +16,7 @@
 package io.stargate.graphql.persistence.schemafirst;
 
 import io.stargate.graphql.schema.schemafirst.util.Uuids;
+import io.stargate.graphql.web.resources.schemafirst.ResourcePaths;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -53,5 +54,11 @@ public class SchemaSource {
 
   public String getContents() {
     return contents;
+  }
+
+  public String getContentsUri() {
+    return String.format(
+        "%s/namespace/%s.graphql?version=%s",
+        ResourcePaths.FILES_RELATIVE_TO_ADMIN, namespace, version);
   }
 }

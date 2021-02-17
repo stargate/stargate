@@ -15,16 +15,17 @@
  */
 package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
-import com.google.common.collect.ImmutableMap;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.*;
+import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.SourceAPI;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
-import io.stargate.graphql.persistence.schemafirst.SchemaSource;
 import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
 import io.stargate.graphql.schema.CassandraFetcher;
-import java.time.ZonedDateTime;
-import java.util.*;
+import java.util.Collections;
 
 public abstract class SchemaFetcher<ResultT> extends CassandraFetcher<ResultT> {
   public SchemaFetcher(
@@ -32,22 +33,6 @@ public abstract class SchemaFetcher<ResultT> extends CassandraFetcher<ResultT> {
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
     super(authenticationService, authorizationService, dataStoreFactory);
-  }
-
-  protected Map<String, Object> schemaSourceToMap(String namespace, SchemaSource source) {
-    ImmutableMap.Builder<String, Object> result = ImmutableMap.builder();
-    result.put("namespace", namespace);
-    if (source != null) {
-      UUID version = source.getVersion();
-      ZonedDateTime deployDate = source.getDeployDate();
-      String contents =
-          String.format("# Schema for '%s', version %s (%s)\n\n", namespace, version, deployDate)
-              + source.getContents();
-      result.put("version", version);
-      result.put("deployDate", deployDate);
-      result.put("contents", contents);
-    }
-    return result.build();
   }
 
   protected void authorize(AuthenticationSubject authenticationSubject, String namespace)
