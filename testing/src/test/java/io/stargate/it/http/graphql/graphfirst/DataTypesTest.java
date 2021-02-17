@@ -63,26 +63,25 @@ public class DataTypesTest extends BaseOsgiIntegrationTest {
 
   /**
    * @param typeName the type name, as it appears in a GraphQL schema.
-   * @param cqlTypeHint the CQL type to use when creating the table (optional).
    * @param literalValue the test value as a GraphQL literal, ready to be concatenated to a query.
    * @param expectedResponseValue the value that we should get in the JSON response.
+   * @param cqlTypeHint the CQL type to use when creating the table (optional).
    */
   @ParameterizedTest
   @MethodSource("getValues")
   @DisplayName("Should write value with insert mutation and read it back with query")
   public void insertAndRetrieveValue(
       String typeName,
-      String cqlTypeHint,
       String literalValue,
       Object expectedResponseValue,
+      String cqlTypeHint,
       @TestKeyspace CqlIdentifier keyspaceId) {
 
     CLIENT.deploySchema(
         keyspaceId.asInternal(),
         String.format(
             "type Address @cql_entity(target: UDT) @cql_input { street: String } "
-                // TODO freeze nested UDTs automatically and remove the type hint below
-                + "type Location @cql_entity(target: UDT) @cql_input { id: String, address: Address @cql_column(typeHint: \"frozen<\\\"Address\\\">\") } "
+                + "type Location @cql_entity(target: UDT) @cql_input { id: String, address: Address } "
                 + "type Holder @cql_input { id: ID!, value: %s %s } "
                 + "type Mutation { insertHolder(holder: HolderInput): Holder } "
                 + "type Query { getHolder(id: ID!): Holder } ",
@@ -114,64 +113,64 @@ public class DataTypesTest extends BaseOsgiIntegrationTest {
     return new Arguments[] {
 
       // Built-in GraphQL scalars:
-      arguments("Boolean", null, "true", true),
-      arguments("Float", null, "3.14", 3.14),
-      arguments("Int", null, "1", 1),
-      arguments("String", null, "\"test\"", "test"),
-      arguments("ID", null, String.format("\"%s\"", ID), ID.toString()),
+      arguments("Boolean", "true", true, null),
+      arguments("Float", "3.14", 3.14, null),
+      arguments("Int", "1", 1, null),
+      arguments("String", "\"test\"", "test", null),
+      arguments("ID", String.format("\"%s\"", ID), ID.toString(), null),
 
       // Custom CQL scalars:
-      arguments("Uuid", null, String.format("\"%s\"", ID), ID.toString()),
+      arguments("Uuid", String.format("\"%s\"", ID), ID.toString(), null),
       arguments(
           "TimeUuid",
-          null,
           "\"001dace0-6fe9-11eb-b738-558a72dd8356\"",
-          "001dace0-6fe9-11eb-b738-558a72dd8356"),
-      arguments("Inet", null, "\"127.0.0.1\"", "127.0.0.1"),
-      arguments("Date", null, "\"2020-10-21\"", "2020-10-21"),
-      arguments("Duration", null, "\"1h4m48s20ms\"", "1h4m48s20ms"),
+          "001dace0-6fe9-11eb-b738-558a72dd8356",
+          null),
+      arguments("Inet", "\"127.0.0.1\"", "127.0.0.1", null),
+      arguments("Date", "\"2020-10-21\"", "2020-10-21", null),
+      arguments("Duration", "\"1h4m48s20ms\"", "1h4m48s20ms", null),
       // For some scalars we allow multiple input types: for example BigInt (long) accepts either a
       // GraphQL Int or String, but always returns a string
-      arguments("BigInt", null, "123456789", "123456789"),
-      arguments("BigInt", null, "\"123456789\"", "123456789"),
-      arguments("Ascii", null, "\"abc123\"", "abc123"),
-      arguments("Decimal", null, "\"1e24\"", "1E+24"),
-      arguments("Varint", null, "9223372036854775808", "9223372036854775808"),
-      arguments("Varint", null, "\"9223372036854775808\"", "9223372036854775808"),
-      arguments("Float32", null, "1.0", 1.0),
-      arguments("Blob", null, "\"yv4=\"", "yv4="),
-      arguments("SmallInt", null, "1", 1),
-      arguments("TinyInt", null, "1", 1),
-      arguments("Timestamp", null, "1296705900000", formatToSystemTimeZone(1296705900000L)),
+      arguments("BigInt", "123456789", "123456789", null),
+      arguments("BigInt", "\"123456789\"", "123456789", null),
+      arguments("Ascii", "\"abc123\"", "abc123", null),
+      arguments("Decimal", "\"1e24\"", "1E+24", null),
+      arguments("Varint", "9223372036854775808", "9223372036854775808", null),
+      arguments("Varint", "\"9223372036854775808\"", "9223372036854775808", null),
+      arguments("Float32", "1.0", 1.0, null),
+      arguments("Blob", "\"yv4=\"", "yv4=", null),
+      arguments("SmallInt", "1", 1, null),
+      arguments("TinyInt", "1", 1, null),
+      arguments("Timestamp", "1296705900000", formatToSystemTimeZone(1296705900000L), null),
       arguments(
-          "Timestamp", null, "\"2011-02-03 04:05+0000\"", formatToSystemTimeZone(1296705900000L)),
-      arguments("Time", null, "\"10:15:30.123456789\"", "10:15:30.123456789"),
+          "Timestamp", "\"2011-02-03 04:05+0000\"", formatToSystemTimeZone(1296705900000L), null),
+      arguments("Time", "\"10:15:30.123456789\"", "10:15:30.123456789", null),
 
       // Collections:
-      arguments("[Int]", null, "[1,2,3]", ImmutableList.of(1, 2, 3)),
+      arguments("[Int]", "[1,2,3]", ImmutableList.of(1, 2, 3), null),
       // Switching to a CQL set doesn't change the in/out values, but the underlying CQL queries
       // will change so cover it
-      arguments("[Int]", "set<int>", "[1,2,3]", ImmutableList.of(1, 2, 3)),
+      arguments("[Int]", "[1,2,3]", ImmutableList.of(1, 2, 3), "set<int>"),
       arguments(
           "[[Int]]",
-          null,
           "[[1,2,3],[4,5,6]]",
-          ImmutableList.of(ImmutableList.of(1, 2, 3), ImmutableList.of(4, 5, 6))),
+          ImmutableList.of(ImmutableList.of(1, 2, 3), ImmutableList.of(4, 5, 6)),
+          null),
 
       // UDTs:
       arguments(
-          "Address", null, "{ street: \"1 Main St\" }", ImmutableMap.of("street", "1 Main St")),
+          "Address", "{ street: \"1 Main St\" }", ImmutableMap.of("street", "1 Main St"), null),
       arguments(
           "[Address]",
-          null,
           "[ { street: \"1 Main St\" }, { street: \"2 Main St\" } ]",
           ImmutableList.of(
-              ImmutableMap.of("street", "1 Main St"), ImmutableMap.of("street", "2 Main St"))),
+              ImmutableMap.of("street", "1 Main St"), ImmutableMap.of("street", "2 Main St")),
+          null),
       arguments(
           "Location",
-          null,
           "{ id: \"Home\", address: { street: \"1 Main St\" } }",
-          ImmutableMap.of("id", "Home", "address", ImmutableMap.of("street", "1 Main St"))),
+          ImmutableMap.of("id", "Home", "address", ImmutableMap.of("street", "1 Main St")),
+          null),
     };
   }
 

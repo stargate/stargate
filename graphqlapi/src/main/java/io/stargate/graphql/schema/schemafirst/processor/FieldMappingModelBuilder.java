@@ -117,7 +117,7 @@ class FieldMappingModelBuilder {
       return Optional.empty();
     }
     Column.ColumnType cqlType = maybeCqlType.get();
-    if (isPk) {
+    if (isPk || (cqlType.isUserDefined() && targetContainer == EntityMappingModel.Target.UDT)) {
       cqlType = cqlType.frozen();
     }
 
@@ -138,6 +138,13 @@ class FieldMappingModelBuilder {
         invalidMapping(
             "%s: invalid type hint '%s' -- partition or clustering columns must be frozen",
             messagePrefix, spec);
+        return Optional.empty();
+      }
+      if (cqlTypeHint.isUserDefined()
+          && targetContainer == EntityMappingModel.Target.UDT
+          && !cqlTypeHint.isFrozen()) {
+        invalidMapping(
+            "%s: invalid type hint '%s' -- nested UDTs must be frozen", messagePrefix, spec);
         return Optional.empty();
       }
       if (!isCompatible(cqlTypeHint, cqlType)) {
