@@ -109,9 +109,7 @@ public class FilesResource {
     return Response.status(
             Response.Status.NOT_FOUND.getStatusCode(),
             String.format(
-                "The schema for namespace %s and version %s does not exists, "
-                    + "or you're not authorized to read it.",
-                namespace, version))
+                "The schema for namespace %s and version %s does not exist.", namespace, version))
         .build();
   }
 
