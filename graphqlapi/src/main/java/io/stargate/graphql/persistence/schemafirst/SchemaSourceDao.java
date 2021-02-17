@@ -306,7 +306,7 @@ public class SchemaSourceDao {
             .build()
             .bind();
     dataStore.execute(updateDeploymentToNotInProgress).get();
-    // todo I think it is safe to ignore whether it was applied or not.
+    // It is safe to ignore whether it was applied or not.
     // If it was not applied, it means that the DEPLOYMENT_IN_PROGRESS was already set to false.
   }
 }
