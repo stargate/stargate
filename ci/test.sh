@@ -61,11 +61,16 @@ export CODACY_PROJECT_TOKEN="$(cat /workspace/ci/codacy-project-token | sed -e '
 curl -Ls https://coverage.codacy.com/get.sh > get.sh
 chmod +x get.sh
 for f in \$(find . -type f -name 'jacoco.xml'); do
+    echo Processing \$f
     ./get.sh report -l Java -r \$f --commit-uuid $COMMIT_ID --partial
+    # Sleep a little to avoid hitting rate limits
+    sleep 10
+    echo Uploaded \$f
 done
 
 if [[ -n \$(find . -type f -name 'jacoco.xml') ]]
 then
+    echo Finalizing Codacy reports
     ./get.sh final --commit-uuid $COMMIT_ID
 fi
 
