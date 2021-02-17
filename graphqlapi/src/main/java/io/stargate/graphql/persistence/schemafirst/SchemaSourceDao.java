@@ -256,7 +256,8 @@ public class SchemaSourceDao {
    * deploy a new schema. If it returns false, it means that there is already schema deployment in
    * progress.
    */
-  private boolean transitionToSchemaDeploymentInProgress(String namespace) {
+  private boolean transitionToSchemaDeploymentInProgress(String namespace)
+      throws ExecutionException, InterruptedException {
 
     BuiltCondition schemaDeploymentInProgressFalse =
         BuiltCondition.of(DEPLOYMENT_IN_PROGRESS, Predicate.EQ, false);
