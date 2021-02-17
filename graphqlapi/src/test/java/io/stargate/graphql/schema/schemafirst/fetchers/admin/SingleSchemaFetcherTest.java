@@ -29,7 +29,9 @@ import io.stargate.db.schema.Schema;
 import io.stargate.graphql.persistence.schemafirst.SchemaSource;
 import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
 import io.stargate.graphql.schema.schemafirst.util.Uuids;
-import java.util.*;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class SingleSchemaFetcherTest {
@@ -52,16 +54,12 @@ class SingleSchemaFetcherTest {
     DataStore dataStore = mockDataStore(namespace);
 
     // when
-    Map<String, Object> result =
+    SchemaSource result =
         singleSchemaFetcher.get(
             dataFetchingEnvironment, dataStore, mock(AuthenticationSubject.class));
 
     // then
-    assertThat(result)
-        .contains(
-            new AbstractMap.SimpleEntry<>("namespace", namespace),
-            new AbstractMap.SimpleEntry<>("version", schemaSource.getVersion()),
-            new AbstractMap.SimpleEntry<>("deployDate", schemaSource.getDeployDate()));
+    assertThat(result).isSameAs(schemaSource);
   }
 
   @Test
@@ -85,16 +83,12 @@ class SingleSchemaFetcherTest {
     DataStore dataStore = mockDataStore(namespace);
 
     // when
-    Map<String, Object> result =
+    SchemaSource result =
         singleSchemaFetcher.get(
             dataFetchingEnvironment, dataStore, mock(AuthenticationSubject.class));
 
     // then
-    assertThat(result)
-        .contains(
-            new AbstractMap.SimpleEntry<>("namespace", namespace),
-            new AbstractMap.SimpleEntry<>("version", schemaSource.getVersion()),
-            new AbstractMap.SimpleEntry<>("deployDate", schemaSource.getDeployDate()));
+    assertThat(result).isSameAs(schemaSource);
   }
 
   private DataFetchingEnvironment mockDataFetchingEnvironment(String namespace) {

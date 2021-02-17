@@ -72,7 +72,7 @@ public class SchemaSourceDao {
 
   public SchemaSource getByVersion(
       String namespace,
-      @SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<UUID> version)
+      @SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<UUID> maybeVersion)
       throws Exception {
     Keyspace keyspace;
     Table table;
@@ -84,8 +84,12 @@ public class SchemaSourceDao {
 
     Row row;
 
-    if (version.isPresent()) {
-      row = dataStore.execute(schemaQueryWithSpecificVersion(namespace, version.get())).get().one();
+    if (maybeVersion.isPresent()) {
+      UUID versionUuid = maybeVersion.get();
+      if (versionUuid.version() != 1) { // must be time-based
+        return null;
+      }
+      row = dataStore.execute(schemaQueryWithSpecificVersion(namespace, versionUuid)).get().one();
     } else {
       row = dataStore.execute(schemaQuery(namespace)).get().one();
     }
