@@ -47,6 +47,12 @@ public class AddUdtFieldQuery extends MigrationQuery {
   }
 
   @Override
+  public boolean mustRunBefore(MigrationQuery that) {
+    // No other migration queries depend on the existence of a UDT field
+    return false;
+  }
+
+  @Override
   public boolean addsReferenceTo(String udtName) {
     return references(column.type(), udtName);
   }

@@ -42,6 +42,19 @@ public class DropUdtQuery extends MigrationQuery {
   }
 
   @Override
+  public boolean mustRunBefore(MigrationQuery that) {
+    // Must keep "drop and recreate" operations in the correct order
+    if (that instanceof CreateUdtQuery) {
+      return type.name().equals(((CreateUdtQuery) that).getType().name());
+    }
+    // Must drop all references to a UDT before it gets dropped
+    if (that instanceof DropUdtQuery) {
+      return this.dropsReferenceTo(((DropUdtQuery) that).getType().name());
+    }
+    return false;
+  }
+
+  @Override
   public boolean addsReferenceTo(String udtName) {
     return false;
   }
