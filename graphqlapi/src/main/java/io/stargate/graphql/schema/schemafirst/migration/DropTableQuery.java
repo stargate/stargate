@@ -27,6 +27,10 @@ public class DropTableQuery extends MigrationQuery {
     this.table = table;
   }
 
+  public Table getTable() {
+    return table;
+  }
+
   @Override
   public AbstractBound<?> build(DataStore dataStore) {
     return dataStore
@@ -41,6 +45,19 @@ public class DropTableQuery extends MigrationQuery {
   @Override
   public String getDescription() {
     return "Drop table " + table.name();
+  }
+
+  @Override
+  public boolean mustRunBefore(MigrationQuery that) {
+    // Must keep "drop and recreate" operations in the correct order
+    if (that instanceof CreateTableQuery) {
+      return table.name().equals(((CreateTableQuery) that).getTable().name());
+    }
+    // Must drop all references to a UDT before it gets dropped
+    if (that instanceof DropUdtQuery) {
+      return this.dropsReferenceTo(((DropUdtQuery) that).getType().name());
+    }
+    return false;
   }
 
   @Override
