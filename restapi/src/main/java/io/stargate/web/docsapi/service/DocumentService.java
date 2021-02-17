@@ -923,11 +923,21 @@ public class DocumentService {
     Set<String> inCassandraPaths =
         inCassandraFilters.stream().map(f -> f.getPathString()).collect(Collectors.toSet());
     if (inCassandraPaths.size() > 1) {
-      throw new DocumentAPIRequestException(
-          "No more than 1 path can be used when mixing fully supported Cassandra filters, since resolving"
-              + "this query would involve the use of `OR` which is not yet supported (Paths found: "
-              + inCassandraPaths
-              + ")");
+      // If the request involves more than one filter that could be handled by cassandra,
+      // it would require a CQL `OR` (which doesn't yet exist) - and so we have to default to using
+      // in-memory operations
+      // except for the first path found, since that can be supported by CQL
+      String firstPath = inCassandraPaths.stream().sorted().collect(Collectors.toList()).get(0);
+      List<FilterCondition> cassandraFiltersToUse =
+          inCassandraFilters.stream()
+              .filter(f -> f.getPath().equals(firstPath))
+              .collect(Collectors.toList());
+      List<FilterCondition> theRest =
+          inCassandraFilters.stream()
+              .filter(f -> !f.getPath().equals(firstPath))
+              .collect(Collectors.toList());
+      inMemoryFilters.addAll(theRest);
+      inCassandraFilters = cassandraFiltersToUse;
     }
 
     ImmutablePair<List<Row>, ByteBuffer> page;
