@@ -27,6 +27,10 @@ public class CreateTableQuery extends MigrationQuery {
     this.table = table;
   }
 
+  public Table getTable() {
+    return table;
+  }
+
   @Override
   public AbstractBound<?> build(DataStore dataStore) {
     return dataStore
@@ -41,6 +45,12 @@ public class CreateTableQuery extends MigrationQuery {
   @Override
   public String getDescription() {
     return "Create table " + table.name();
+  }
+
+  @Override
+  public boolean mustRunBefore(MigrationQuery that) {
+    // No other migration queries depend on the existence of a table
+    return false;
   }
 
   @Override

@@ -28,23 +28,7 @@ public abstract class MigrationQuery {
 
   public abstract String getDescription();
 
-  public boolean mustRunBefore(MigrationQuery that) {
-    if (this instanceof CreateUdtQuery) {
-      // A UDT must exist before we introduce a reference to it.
-      return that.addsReferenceTo(((CreateUdtQuery) this).getType().name());
-    } else if (that instanceof DropUdtQuery) {
-      // All references to a UDT must be dropped before we drop it.
-      return this.dropsReferenceTo(((DropUdtQuery) that).getType().name());
-    } else {
-      // In addition, we move all column additions as close to the beginning as possible. This is
-      // because these queries can fail unexpectedly if the column previously existed with a
-      // different type, and we have no way to check that beforehand. If this happens, we want to
-      // execute as few queries as possible before we find out.
-      return this instanceof AddTableColumnQuery
-          && !(that instanceof AddTableColumnQuery)
-          && !that.mustRunBefore(this);
-    }
-  }
+  public abstract boolean mustRunBefore(MigrationQuery that);
 
   /** Whether the query will introduce a new column/field that uses the given UDT. */
   protected abstract boolean addsReferenceTo(String udtName);

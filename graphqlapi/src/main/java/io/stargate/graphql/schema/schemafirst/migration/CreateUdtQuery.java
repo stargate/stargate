@@ -42,6 +42,12 @@ public class CreateUdtQuery extends MigrationQuery {
   }
 
   @Override
+  public boolean mustRunBefore(MigrationQuery that) {
+    // Must create a UDT before it gets referenced
+    return that.addsReferenceTo(type.name());
+  }
+
+  @Override
   public boolean addsReferenceTo(String udtName) {
     return type.columns().stream().anyMatch(c -> references(c.type(), udtName));
   }
