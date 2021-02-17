@@ -15,6 +15,7 @@
  */
 package io.stargate.it.http.graphql.graphfirst;
 
+import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.graphql.GraphqlClient;
 import java.io.IOException;
@@ -52,9 +53,7 @@ public class GraphqlFirstClient extends GraphqlClient {
   public UUID deploySchema(String namespace, String contents) {
     Map<String, Object> response =
         getGraphqlData(authToken, adminUri, buildDeploySchemaQuery(namespace, null, contents));
-    @SuppressWarnings("unchecked")
-    Map<String, Object> deploySchema = (Map<String, Object>) response.get("deploySchema");
-    String version = (String) deploySchema.get("version");
+    String version = JsonPath.read(response, "$.deploySchema.version");
     return UUID.fromString(version);
   }
 
