@@ -113,4 +113,13 @@ public class CassandraMigratorTest {
                 ImmutableList.of(DROP_UDT_B, DROP_UDT_A, DROP_TEST_TABLE)))
         .containsExactly(DROP_TEST_TABLE, DROP_UDT_A, DROP_UDT_B);
   }
+
+  @Test
+  @DisplayName("Should sort drop and recreate operations in this order")
+  public void sortDropAndRecreate() {
+    assertThat(
+            CassandraMigrator.sortForExecution(
+                ImmutableList.of(CREATE_TEST_TABLE, CREATE_UDT_A, DROP_UDT_A, DROP_TEST_TABLE)))
+        .containsExactly(DROP_TEST_TABLE, DROP_UDT_A, CREATE_UDT_A, CREATE_TEST_TABLE);
+  }
 }
