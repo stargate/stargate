@@ -72,12 +72,10 @@ public class Db {
         authenticationService.validateToken(token, headers);
     DataStore dataStore =
         dataStoreFactory.create(
-            authenticationSubject.roleName(),
-            authenticationSubject.isFromExternalAuth(),
+            authenticationSubject.asUser(),
             DataStoreOptions.builder()
                 .alwaysPrepareQueries(true)
                 .putAllCustomProperties(headers)
-                .putAllCustomProperties(authenticationSubject.customProperties())
                 .build());
 
     return new AuthenticatedDB(dataStore, authenticationSubject);
@@ -112,10 +110,8 @@ public class Db {
             .defaultParameters(parameters)
             .alwaysPrepareQueries(true)
             .putAllCustomProperties(headers)
-            .putAllCustomProperties(authenticationSubject.customProperties())
             .build();
-    return dataStoreFactory.create(
-        authenticationSubject.roleName(), authenticationSubject.isFromExternalAuth(), options);
+    return dataStoreFactory.create(authenticationSubject.asUser(), options);
   }
 
   private DocumentDB getDocDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)

@@ -19,6 +19,7 @@ import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.Persistence;
 import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -43,23 +44,8 @@ public class PersistenceDataStoreFactory implements DataStoreFactory {
     return new PersistenceBackedDataStore(connection, options);
   }
 
-  /**
-   * Creates a new DataStore on top of the provided persistence. If a username is provided then a
-   * {@link ClientInfo} will be passed to {@link
-   * Persistence#newConnection(io.stargate.db.ClientInfo)} causing the new connection to have an
-   * external ClientState thus causing authorization to be performed if enabled.
-   *
-   * @param userName the user name to login for this store. For convenience, if it is {@code null}
-   *     or the empty string, no login attempt is performed (so no authentication must be setup).
-   * @param isFromExternalAuth Whether the request was authenticated using internal Cassandra/DSE
-   *     auth mechanisms or used an external source.
-   * @param options the options for the create data store.
-   * @param clientInfo the ClientInfo to be used for creating a connection.
-   * @return the created store.
-   */
   private DataStore create(
-      @Nullable String userName,
-      boolean isFromExternalAuth,
+      @Nonnull AuthenticatedUser user,
       @Nonnull DataStoreOptions options,
       @Nullable ClientInfo clientInfo) {
     Persistence.Connection connection;
@@ -69,8 +55,15 @@ public class PersistenceDataStoreFactory implements DataStoreFactory {
       connection = persistence.newConnection();
     }
 
-    if (!isFromExternalAuth) {
-      connection.login(AuthenticatedUser.of(userName));
+    connection.login(user);
+
+    // Note: the user's custom properties (if provided) override any matching properties previously
+    // set in DataStoreOptions. This is intentional to give the AuthenticatedUser data more
+    // authority.
+    Map<String, String> customProperties = user.customProperties();
+    if (customProperties != null && !customProperties.isEmpty()) {
+      options =
+          DataStoreOptions.builder().from(options).putAllCustomProperties(customProperties).build();
     }
 
     if (options.customProperties() != null) {
@@ -80,32 +73,15 @@ public class PersistenceDataStoreFactory implements DataStoreFactory {
     return create(connection, options);
   }
 
-  /**
-   * Creates a new DataStore on top of the provided persistence. If a username is provided then a
-   * {@link ClientInfo} will be passed to {@link
-   * Persistence#newConnection(io.stargate.db.ClientInfo)} causing the new connection to have an
-   * external ClientState thus causing authorization to be performed if enabled.
-   *
-   * @param userName the user name to login for this store. For convenience, if it is {@code null}
-   *     or the empty string, no login attempt is performed (so no authentication must be setup).
-   * @param options the options for the create data store.
-   * @return the created store.
-   */
   @Override
-  public DataStore create(@Nullable String userName, @Nonnull DataStoreOptions options) {
-    return create(userName, false, options);
-  }
-
-  @Override
-  public DataStore create(
-      @Nullable String userName, boolean isFromExternalAuth, @Nonnull DataStoreOptions options) {
+  public DataStore create(@Nonnull AuthenticatedUser user, @Nonnull DataStoreOptions options) {
     ClientInfo clientInfo = null;
-    if (!isFromExternalAuth) {
+    if (!user.isFromExternalAuth()) {
       // Must have a clientInfo so that an external ClientState is used in order for authorization
       // to be performed
       clientInfo = new ClientInfo(new InetSocketAddress("127.0.0.1", 0), null);
     }
-    return create(userName, isFromExternalAuth, options, clientInfo);
+    return create(user, options, clientInfo);
   }
 
   /** @inheritdoc */

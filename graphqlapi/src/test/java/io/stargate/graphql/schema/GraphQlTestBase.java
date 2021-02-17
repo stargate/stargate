@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -76,6 +77,7 @@ public abstract class GraphQlTestBase {
       when(authenticationService.validateToken(token, Collections.emptyMap()))
           .thenReturn(authenticationSubject);
       when(authenticationSubject.roleName()).thenReturn(roleName);
+      when(authenticationSubject.asUser()).thenCallRealMethod();
       when(authorizationService.authorizedDataRead(
               actionCaptor.capture(),
               eq(authenticationSubject),
@@ -87,7 +89,8 @@ public abstract class GraphQlTestBase {
               i -> {
                 return actionCaptor.getValue().call();
               });
-      when(dataStoreFactory.create(eq(roleName), eq(false), dataStoreOptionsCaptor.capture()))
+      when(dataStoreFactory.create(
+              argThat(u -> u.name().equals(roleName)), dataStoreOptionsCaptor.capture()))
           .then(
               i -> {
                 DataStore dataStore = mock(DataStore.class);
@@ -98,7 +101,7 @@ public abstract class GraphQlTestBase {
 
                 // Batches use multiple data store instances, one per each mutation
                 // We need to capture the parameters provided at dataStore creation
-                DataStoreOptions dataStoreOptions = i.getArgument(2, DataStoreOptions.class);
+                DataStoreOptions dataStoreOptions = i.getArgument(1, DataStoreOptions.class);
                 when(dataStore.batch(batchCaptor.capture()))
                     .then(
                         batchInvoke -> {

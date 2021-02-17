@@ -93,4 +93,14 @@ class AuthenticationSubjectTest {
     assertThat(subject.isFromExternalAuth()).isEqualTo(true);
     assertThat(subject.customProperties()).isEmpty();
   }
+
+  @Test
+  public void convertToAuthenticatedUser() {
+    AuthenticatedUser user =
+        AuthenticationSubject.of("token1", "user2", true, ImmutableMap.of("p1", "v1")).asUser();
+    assertThat(user.token()).isEqualTo("token1");
+    assertThat(user.name()).isEqualTo("user2");
+    assertThat(user.isFromExternalAuth()).isEqualTo(true);
+    assertThat(user.customProperties()).isEqualTo(ImmutableMap.of("p1", "v1"));
+  }
 }
