@@ -555,7 +555,8 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
                   baseTypeName));
         }
         String paramsString = dataTypeName.substring(paramsIdx + 1, lastCharIdx);
-        List<ColumnType> parameters = splitAndParseParameters(dataTypeName, keyspace, paramsString);
+        List<ColumnType> parameters =
+            splitAndParseParameters(dataTypeName, keyspace, paramsString, strict);
         if (isFrozen) {
           if (parameters.size() != 1) {
             throw new IllegalArgumentException(
@@ -577,7 +578,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
     }
 
     private static List<ColumnType> splitAndParseParameters(
-        String fullTypeName, Keyspace keyspace, String parameters) {
+        String fullTypeName, Keyspace keyspace, String parameters, boolean strict) {
       int openParam = 0;
       int currentStart = 0;
       int idx = currentStart;
@@ -588,7 +589,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
             // Ignore if we're within a sub-parameter.
             if (openParam == 0) {
               parsedParameters.add(
-                  extractParameter(fullTypeName, keyspace, parameters, currentStart, idx));
+                  extractParameter(fullTypeName, keyspace, parameters, currentStart, idx, strict));
               currentStart = idx + 1;
             }
             break;
@@ -606,19 +607,25 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
         }
         ++idx;
       }
-      parsedParameters.add(extractParameter(fullTypeName, keyspace, parameters, currentStart, idx));
+      parsedParameters.add(
+          extractParameter(fullTypeName, keyspace, parameters, currentStart, idx, strict));
       return parsedParameters;
     }
 
     private static ColumnType extractParameter(
-        String fullTypeName, Keyspace keyspace, String parameters, int start, int end) {
+        String fullTypeName,
+        Keyspace keyspace,
+        String parameters,
+        int start,
+        int end,
+        boolean strict) {
       String parameterStr = parameters.substring(start, end);
       if (parameterStr.isEmpty()) {
         // Recursion actually handle this case, but the error thrown is a bit more cryptic in this
         // context
         throw new IllegalArgumentException("Malformed type name: " + fullTypeName);
       }
-      return fromCqlDefinitionOf(keyspace, parameterStr);
+      return fromCqlDefinitionOf(keyspace, parameterStr, strict);
     }
 
     // Returns the index "just after the double quote", so possibly str.length.

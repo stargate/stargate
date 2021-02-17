@@ -113,11 +113,19 @@ public class GraphqlFirstClient extends GraphqlClient {
     }
   }
 
+  public Object executeNamespaceQuery(String namespace, String graphqlQuery) {
+    return getGraphqlData(authToken, buildNamespaceUri(namespace), graphqlQuery);
+  }
+
   private String buildSchemaFileUri(String namespace, String version) {
     String url = String.format("http://%s:8080%s/namespace/%s.graphql", host, FILES, namespace);
     if (version != null) {
       url = url + "?version=" + version;
     }
     return url;
+  }
+
+  private String buildNamespaceUri(String namespace) {
+    return String.format("http://%s:8080%s/%s", host, NAMESPACES, namespace);
   }
 }
