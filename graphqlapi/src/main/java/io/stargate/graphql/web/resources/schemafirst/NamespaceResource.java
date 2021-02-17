@@ -59,7 +59,7 @@ public class NamespaceResource extends GraphqlResourceBase {
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphl(namespace, httpRequest, asyncResponse);
+    GraphQL graphql = getGraphql(namespace, httpRequest, asyncResponse);
     if (graphql != null) {
       get(query, operationName, variables, graphql, httpRequest, asyncResponse);
     }
@@ -75,7 +75,7 @@ public class NamespaceResource extends GraphqlResourceBase {
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphl(namespace, httpRequest, asyncResponse);
+    GraphQL graphql = getGraphql(namespace, httpRequest, asyncResponse);
     if (graphql != null) {
       postJson(jsonBody, queryFromUrl, graphql, httpRequest, asyncResponse);
     }
@@ -90,13 +90,13 @@ public class NamespaceResource extends GraphqlResourceBase {
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphl(namespace, httpRequest, asyncResponse);
+    GraphQL graphql = getGraphql(namespace, httpRequest, asyncResponse);
     if (graphql != null) {
       postGraphql(query, graphql, httpRequest, asyncResponse);
     }
   }
 
-  private GraphQL getGraphl(
+  private GraphQL getGraphql(
       String namespace, HttpServletRequest request, AsyncResponse asyncResponse) {
     if (!NAMESPACE_PATTERN.matcher(namespace).matches()) {
       LOG.warn("Invalid namespace in URI, this could be an XSS attack: {}", namespace);
