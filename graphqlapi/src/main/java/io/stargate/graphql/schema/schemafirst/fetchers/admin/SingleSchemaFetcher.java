@@ -22,12 +22,11 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.persistence.schemafirst.SchemaSource;
 import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 
-public class SingleSchemaFetcher extends SchemaFetcher<Map<String, Object>> {
+public class SingleSchemaFetcher extends SchemaFetcher<SchemaSource> {
   private final Function<DataStore, SchemaSourceDao> schemaSourceDaoProvider;
 
   public SingleSchemaFetcher(
@@ -48,7 +47,7 @@ public class SingleSchemaFetcher extends SchemaFetcher<Map<String, Object>> {
   }
 
   @Override
-  protected Map<String, Object> get(
+  protected SchemaSource get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)
@@ -59,7 +58,6 @@ public class SingleSchemaFetcher extends SchemaFetcher<Map<String, Object>> {
 
     authorize(authenticationSubject, namespace);
 
-    SchemaSource source = schemaSourceDaoProvider.apply(dataStore).getByVersion(namespace, version);
-    return schemaSourceToMap(namespace, source);
+    return schemaSourceDaoProvider.apply(dataStore).getByVersion(namespace, version);
   }
 }

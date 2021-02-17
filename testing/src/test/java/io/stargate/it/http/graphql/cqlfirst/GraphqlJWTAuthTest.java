@@ -1,11 +1,9 @@
-package io.stargate.it.http;
+package io.stargate.it.http.graphql.cqlfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.MAP;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.KeycloakContainer;
 import io.stargate.it.driver.CqlSessionExtension;
@@ -15,15 +13,7 @@ import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
 import java.io.IOException;
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -41,11 +31,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
     })
 public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
 
-  private static String authToken;
   private static KeycloakContainer keycloakContainer;
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  private String host;
+  private CqlFirstClient client;
 
   @SuppressWarnings("unused") // referenced in @StargateSpec
   public static void buildParameters(StargateParameters.Builder builder) throws IOException {
@@ -67,16 +55,14 @@ public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
 
   @BeforeEach
   public void setup(StargateConnectionInfo cluster) throws IOException {
-    host = "http://" + cluster.seedAddress();
-
-    authToken = keycloakContainer.generateJWT();
+    client = new CqlFirstClient(cluster.seedAddress(), keycloakContainer.generateJWT());
   }
 
   @Test
   @DisplayName("Should execute GraphQL mutation when authorized")
   public void mutationTest(@TestKeyspace CqlIdentifier keyspaceId) {
     Map<String, Object> response =
-        getGraphqlData(
+        client.getGraphqlData(
             keyspaceId,
             "mutation {\n"
                 + "  insertBooks(value: {title:\"Moby Dick\", author:\"Herman Melville\"}) {\n"
@@ -96,7 +82,7 @@ public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
   @DisplayName("Should execute batch of GraphQL mutations when authorized")
   public void batchTest(@TestKeyspace CqlIdentifier keyspaceId) {
     Map<String, Object> response =
-        getGraphqlData(
+        client.getGraphqlData(
             keyspaceId,
             "mutation {\n"
                 + "  moby: insertBooks(value: {title:\"Moby Dick\", author:\"Herman Melville\"}) {\n"
@@ -125,69 +111,9 @@ public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
   @DisplayName("Should fail to execute GraphQL when not authorized")
   public void unauthorizedTest(@TestKeyspace CqlIdentifier keyspaceId) {
     String error =
-        getGraphqlError(keyspaceId, "mutation { insertSecret(value: {k:1}) { value { k } } }");
+        client.getGraphqlError(
+            keyspaceId, "mutation { insertSecret(value: {k:1}) { value { k } } }");
     // Don't rely on the full message because it's not standardized across Cassandra/DSE versions
     assertThat(error).contains("UnauthorizedException");
-  }
-
-  private Map<String, Object> getGraphqlData(CqlIdentifier keyspaceId, String query) {
-    Map<String, Object> response = getGraphqlResponse(keyspaceId, query);
-    assertThat(response).isNotNull();
-    assertThat(response.get("errors")).isNull();
-    @SuppressWarnings("unchecked")
-    Map<String, Object> data = (Map<String, Object>) response.get("data");
-    return data;
-  }
-
-  private String getGraphqlError(CqlIdentifier keyspaceId, String query) {
-    Map<String, Object> response = getGraphqlResponse(keyspaceId, query);
-    assertThat(response).isNotNull();
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> errors = (List<Map<String, Object>>) response.get("errors");
-    assertThat(errors).hasSize(1);
-    return (String) errors.get(0).get("message");
-  }
-
-  private Map<String, Object> getGraphqlResponse(CqlIdentifier keyspaceId, String query) {
-    try {
-      OkHttpClient okHttpClient = getHttpClient();
-      String url = String.format("%s:8080/graphql/%s", host, keyspaceId.asInternal());
-      Map<String, Object> formData = new HashMap<>();
-      formData.put("query", query);
-
-      MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-      okhttp3.Response response =
-          okHttpClient
-              .newCall(
-                  new Request.Builder()
-                      .post(RequestBody.create(JSON, OBJECT_MAPPER.writeValueAsBytes(formData)))
-                      .url(url)
-                      .build())
-              .execute();
-      assertThat(response.body()).isNotNull();
-      String bodyString = response.body().string();
-      assertThat(response.code())
-          .as("Unexpected error %d: %s", response.code(), bodyString)
-          .isEqualTo(HttpStatus.SC_OK);
-      @SuppressWarnings("unchecked")
-      Map<String, Object> graphqlResponse = OBJECT_MAPPER.readValue(bodyString, Map.class);
-      return graphqlResponse;
-    } catch (IOException e) {
-      fail("Unexpected error while sending POST request", e);
-      return null; // never reached
-    }
-  }
-
-  private OkHttpClient getHttpClient() {
-    return new OkHttpClient.Builder()
-        .connectTimeout(Duration.ofMinutes(3))
-        .callTimeout(Duration.ofMinutes(3))
-        .readTimeout(Duration.ofMinutes(3))
-        .writeTimeout(Duration.ofMinutes(3))
-        .addInterceptor(
-            chain ->
-                chain.proceed(
-                    chain.request().newBuilder().addHeader("X-Cassandra-Token", authToken).build()))
-        .build();
   }
 }

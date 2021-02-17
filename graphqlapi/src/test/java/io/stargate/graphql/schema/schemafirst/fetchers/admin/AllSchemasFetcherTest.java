@@ -54,24 +54,12 @@ class AllSchemasFetcherTest {
     DataStore dataStore = mockDataStore(namespace);
 
     // when
-    List<Map<String, Object>> result =
+    List<SchemaSource> result =
         allSchemasFetcher.get(
             dataFetchingEnvironment, dataStore, mock(AuthenticationSubject.class));
 
     // then
-    assertThat(result).hasSize(2);
-    Map<String, Object> firstSchema = result.get(0);
-    assertThat(firstSchema)
-        .contains(
-            new AbstractMap.SimpleEntry<>("namespace", namespace),
-            new AbstractMap.SimpleEntry<>("version", schemaSource1.getVersion()),
-            new AbstractMap.SimpleEntry<>("deployDate", schemaSource1.getDeployDate()));
-    Map<String, Object> secondSchema = result.get(1);
-    assertThat(secondSchema)
-        .contains(
-            new AbstractMap.SimpleEntry<>("namespace", namespace),
-            new AbstractMap.SimpleEntry<>("version", schemaSource2.getVersion()),
-            new AbstractMap.SimpleEntry<>("deployDate", schemaSource2.getDeployDate()));
+    assertThat(result).containsExactly(schemaSource1, schemaSource2);
   }
 
   private DataFetchingEnvironment mockDataFetchingEnvironment(String namespace) {

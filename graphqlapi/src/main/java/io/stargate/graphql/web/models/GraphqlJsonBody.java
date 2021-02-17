@@ -32,4 +32,18 @@ public class GraphqlJsonBody {
   public void setVariables(Map<String, Object> variables) {
     this.variables = variables;
   }
+
+  @Override
+  public String toString() {
+    return "GraphqlJsonBody{"
+        + "query='"
+        + query
+        + '\''
+        + ", operationName='"
+        + operationName
+        + '\''
+        + ", variables="
+        + variables
+        + '}';
+  }
 }
