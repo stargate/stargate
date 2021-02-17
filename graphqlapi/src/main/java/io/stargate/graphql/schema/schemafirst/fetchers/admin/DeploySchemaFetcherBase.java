@@ -91,11 +91,6 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
                   .map(this::formatMessage)
                   .collect(Collectors.toList()));
 
-          // TODO the rest of the method is racy -- we should at least ensure that two deploy
-          // mutations
-          // can't compete with each other (maybe add a "migration in progress" column in the
-          // database and
-          // do an additional LWT on it)
           List<MigrationQuery> queries =
               new CassandraMigrator(dataStore, processedSchema.getMappingModel(), migrationStrategy)
                   .compute();

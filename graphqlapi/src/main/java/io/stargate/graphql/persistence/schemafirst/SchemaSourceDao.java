@@ -201,7 +201,7 @@ public class SchemaSourceDao {
                     Column.Order.DESC)
                 .column(LATEST_VERSION_COLUMN_NAME, Column.Type.Timeuuid, Column.Kind.Static)
                 .column(CONTENTS_COLUMN_NAME, Column.Type.Varchar)
-                .column(DEPLOYMENT_IN_PROGRESS, Column.Type.Boolean)
+                .column(DEPLOYMENT_IN_PROGRESS, Column.Type.Boolean, Column.Kind.Static)
                 .build()
                 .bind())
         .get();
@@ -251,6 +251,20 @@ public class SchemaSourceDao {
     return contents != null && contents.type() == Column.Type.Varchar;
   }
 
+  public Map<String, Object> tryDeployNewSchema(
+      String namespace, Callable<Map<String, Object>> newSchemaCreator) throws Exception {
+    ensureTableExists(namespace);
+    if (transitionToSchemaDeploymentInProgress(namespace)) {
+      try {
+        return newSchemaCreator.call();
+      } finally {
+        transitionToNoSchemaDeploymentInProgress(namespace);
+      }
+    } else {
+      throw new IllegalStateException(
+          "There is a pending schema deployment process. Please retry later.");
+    }
+  }
   /**
    * Returns true if there was no schema deployment in progress. It means that that is safe to
    * deploy a new schema. If it returns false, it means that there is already schema deployment in
@@ -296,19 +310,5 @@ public class SchemaSourceDao {
     dataStore.execute(updateDeploymentToNotInProgress).get();
     // todo I think it is safe to ignore whether it was applied or not.
     // If it was not applied, it means that the DEPLOYMENT_IN_PROGRESS was already set to false.
-  }
-
-  public Map<String, Object> tryDeployNewSchema(
-      String namespace, Callable<Map<String, Object>> newSchemaCreator) throws Exception {
-    if (transitionToSchemaDeploymentInProgress(namespace)) {
-      try {
-        return newSchemaCreator.call();
-      } finally {
-        transitionToNoSchemaDeploymentInProgress(namespace);
-      }
-    } else {
-      throw new IllegalStateException(
-          "There is a pending schema deployment process. Please retry later.");
-    }
   }
 }
