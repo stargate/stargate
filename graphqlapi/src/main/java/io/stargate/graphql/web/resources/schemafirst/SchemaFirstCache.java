@@ -19,7 +19,6 @@ import graphql.GraphQL;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.persistence.schemafirst.SchemaSource;
@@ -51,14 +50,14 @@ public class SchemaFirstCache {
       Persistence persistence,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory)
+      DataStoreFactory dataStoreFactory,
+      SchemaSourceDao schemaSourceDao)
       throws Exception {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
-    DataStore dataStore = dataStoreFactory.createInternal();
-    this.schemaSourceDao = new SchemaSourceDao(dataStore);
+    this.schemaSourceDao = schemaSourceDao;
 
     this.adminGraphql =
         GraphQL.newGraphQL(

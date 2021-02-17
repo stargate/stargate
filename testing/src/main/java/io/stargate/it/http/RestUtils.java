@@ -17,7 +17,12 @@ package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.stargate.auth.model.AuthTokenResponse;
+import io.stargate.it.http.models.Credentials;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.time.Duration;
 import okhttp3.Headers;
 import okhttp3.MediaType;
@@ -26,15 +31,17 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RestUtils {
   private static final Logger logger = LoggerFactory.getLogger(RestUtils.class);
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   @NotNull
-  private static OkHttpClient client() {
+  public static OkHttpClient client() {
     return new OkHttpClient()
         .newBuilder()
         .readTimeout(Duration.ofMinutes(3))
@@ -278,6 +285,27 @@ public class RestUtils {
         logger.error(response.body().string());
       }
       throw e;
+    }
+  }
+
+  /** Gets the Stargate auth token using the given host's Auth API. */
+  public static String getAuthToken(String host) {
+    try {
+      OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+      String body =
+          RestUtils.post(
+              "",
+              String.format("http://%s:8081/v1/auth/token/generate", host),
+              OBJECT_MAPPER.writeValueAsString(new Credentials("cassandra", "cassandra")),
+              HttpStatus.SC_CREATED);
+
+      AuthTokenResponse authTokenResponse = OBJECT_MAPPER.readValue(body, AuthTokenResponse.class);
+      String authToken = authTokenResponse.getAuthToken();
+      assertThat(authToken).isNotNull();
+      return authToken;
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
   }
 }
