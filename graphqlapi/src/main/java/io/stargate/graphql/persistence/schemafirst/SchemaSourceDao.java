@@ -27,10 +27,9 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.schemafirst.util.Uuids;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 // TODO purge old entries
@@ -42,6 +41,7 @@ public class SchemaSourceDao {
   @VisibleForTesting static final String LATEST_VERSION_COLUMN_NAME = "latest_version";
   @VisibleForTesting static final String CONTENTS_COLUMN_NAME = "contents";
   @VisibleForTesting static final String APPLIED_COLUMN_NAME = "[applied]";
+  private static final String DEPLOYMENT_IN_PROGRESS = "deployment_in_progress";
 
   // We use a single partition
   private static final String UNIQUE_KEY = "key";
@@ -201,6 +201,7 @@ public class SchemaSourceDao {
                     Column.Order.DESC)
                 .column(LATEST_VERSION_COLUMN_NAME, Column.Type.Timeuuid, Column.Kind.Static)
                 .column(CONTENTS_COLUMN_NAME, Column.Type.Varchar)
+                .column(DEPLOYMENT_IN_PROGRESS, Column.Type.Boolean)
                 .build()
                 .bind())
         .get();
@@ -248,5 +249,65 @@ public class SchemaSourceDao {
     }
     Column contents = table.column(CONTENTS_COLUMN_NAME);
     return contents != null && contents.type() == Column.Type.Varchar;
+  }
+
+  /**
+   * Returns true if there was no schema deployment in progress. It means that that is safe to
+   * deploy a new schema. If it returns false, it means that there is already schema deployment in
+   * progress.
+   */
+  private boolean transitionToSchemaDeploymentInProgress(String namespace) {
+
+    BuiltCondition schemaDeploymentInProgressFalse =
+        BuiltCondition.of(DEPLOYMENT_IN_PROGRESS, Predicate.EQ, false);
+    BuiltCondition schemaDeploymentInProgressNull =
+        BuiltCondition.of(DEPLOYMENT_IN_PROGRESS, Predicate.EQ, null);
+
+    BoundQuery updateDeploymentToInProgress =
+        dataStore
+            .queryBuilder()
+            .update(namespace, TABLE_NAME)
+            .value(DEPLOYMENT_IN_PROGRESS, true)
+            .where(KEY_CONDITION)
+            .ifs(Arrays.asList(schemaDeploymentInProgressFalse, schemaDeploymentInProgressNull))
+            .build()
+            .bind();
+
+    ResultSet resultSet = dataStore.execute(updateDeploymentToInProgress).get();
+    Row row = resultSet.one();
+    return row.getBoolean(APPLIED_COLUMN_NAME);
+  }
+
+  private void transitionToNoSchemaDeploymentInProgress(String namespace)
+      throws ExecutionException, InterruptedException {
+    BuiltCondition schemaDeploymentInProgressTrue =
+        BuiltCondition.of(DEPLOYMENT_IN_PROGRESS, Predicate.EQ, true);
+
+    BoundQuery updateDeploymentToNotInProgress =
+        dataStore
+            .queryBuilder()
+            .update(namespace, TABLE_NAME)
+            .value(DEPLOYMENT_IN_PROGRESS, false)
+            .where(KEY_CONDITION)
+            .ifs(schemaDeploymentInProgressTrue)
+            .build()
+            .bind();
+    dataStore.execute(updateDeploymentToNotInProgress).get();
+    // todo I think it is safe to ignore whether it was applied or not.
+    // If it was not applied, it means that the DEPLOYMENT_IN_PROGRESS was already set to false.
+  }
+
+  public Map<String, Object> tryDeployNewSchema(
+      String namespace, Callable<Map<String, Object>> newSchemaCreator) throws Exception {
+    if (transitionToSchemaDeploymentInProgress(namespace)) {
+      try {
+        return newSchemaCreator.call();
+      } finally {
+        transitionToNoSchemaDeploymentInProgress(namespace);
+      }
+    } else {
+      throw new IllegalStateException(
+          "There is a pending schema deployment process. Please retry later.");
+    }
   }
 }

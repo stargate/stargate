@@ -58,6 +58,7 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)
       throws Exception {
+    SchemaSourceDao schemaSourceDao = new SchemaSourceDao(dataStore);
 
     String namespace = environment.getArgument("namespace");
     Keyspace keyspace = dataStore.schema().keyspace(namespace);
@@ -77,40 +78,47 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
     MigrationStrategy migrationStrategy = environment.getArgument("migrationStrategy");
     boolean dryRun = environment.getArgument("dryRun");
 
-    ImmutableMap.Builder<String, Object> response = ImmutableMap.builder();
-    ProcessedSchema processedSchema =
-        new SchemaProcessor(authenticationService, authorizationService, dataStoreFactory)
-            .process(input, keyspace);
-    response.put(
-        "messages",
-        processedSchema.getMessages().stream()
-            .map(this::formatMessage)
-            .collect(Collectors.toList()));
+    return schemaSourceDao.tryDeployNewSchema(
+        namespace,
+        () -> {
+          ImmutableMap.Builder<String, Object> response = ImmutableMap.builder();
+          ProcessedSchema processedSchema =
+              new SchemaProcessor(authenticationService, authorizationService, dataStoreFactory)
+                  .process(input, keyspace);
+          response.put(
+              "messages",
+              processedSchema.getMessages().stream()
+                  .map(this::formatMessage)
+                  .collect(Collectors.toList()));
 
-    // TODO the rest of the method is racy -- we should at least ensure that two deploy mutations
-    // can't compete with each other (maybe add a "migration in progress" column in the database and
-    // do an additional LWT on it)
-    List<MigrationQuery> queries =
-        new CassandraMigrator(dataStore, processedSchema.getMappingModel(), migrationStrategy)
-            .compute();
+          // TODO the rest of the method is racy -- we should at least ensure that two deploy
+          // mutations
+          // can't compete with each other (maybe add a "migration in progress" column in the
+          // database and
+          // do an additional LWT on it)
+          List<MigrationQuery> queries =
+              new CassandraMigrator(dataStore, processedSchema.getMappingModel(), migrationStrategy)
+                  .compute();
 
-    response.put(
-        "cqlChanges",
-        queries.isEmpty()
-            ? ImmutableList.of("No changes, the CQL schema is up to date")
-            : queries.stream().map(MigrationQuery::getDescription).collect(Collectors.toList()));
+          response.put(
+              "cqlChanges",
+              queries.isEmpty()
+                  ? ImmutableList.of("No changes, the CQL schema is up to date")
+                  : queries.stream()
+                      .map(MigrationQuery::getDescription)
+                      .collect(Collectors.toList()));
 
-    if (!dryRun) {
-      for (MigrationQuery query : queries) {
-        dataStore.execute(query.build(dataStore)).get();
-      }
-      SchemaSource newSource =
-          new SchemaSourceDao(dataStore).insert(namespace, expectedVersion, input);
-      response.put("version", newSource.getVersion());
-      // TODO update SchemaFirstCache from here instead of letting it reload from the DB
-    }
+          if (!dryRun) {
+            for (MigrationQuery query : queries) {
+              dataStore.execute(query.build(dataStore)).get();
+            }
+            SchemaSource newSource = schemaSourceDao.insert(namespace, expectedVersion, input);
+            response.put("version", newSource.getVersion());
+            // TODO update SchemaFirstCache from here instead of letting it reload from the DB
+          }
 
-    return response.build();
+          return response.build();
+        });
   }
 
   protected abstract String getSchemaContents(DataFetchingEnvironment environment)
