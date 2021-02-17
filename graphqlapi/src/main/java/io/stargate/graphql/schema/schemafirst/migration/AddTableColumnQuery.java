@@ -47,6 +47,22 @@ public class AddTableColumnQuery extends MigrationQuery {
   }
 
   @Override
+  public boolean mustRunBefore(MigrationQuery that) {
+    // We want all column additions as early as possible. This is because these queries can fail
+    // unexpectedly if the column previously existed with a different type, and we have no way to
+    // check that beforehand. If this happens, we want to execute as few queries as possible before
+    // we find out.
+
+    // Avoid an infinite loop
+    if (that instanceof AddTableColumnQuery) {
+      return false;
+    }
+
+    // Otherwise, unless there is already an ordering, move this one first
+    return !that.mustRunBefore(this);
+  }
+
+  @Override
   public boolean addsReferenceTo(String udtName) {
     return references(column.type(), udtName);
   }
