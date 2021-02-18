@@ -29,9 +29,11 @@ import io.stargate.db.query.BoundDelete;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
+import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.schemafirst.processor.DeleteMappingModel;
 import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel;
 import io.stargate.graphql.schema.schemafirst.processor.FieldMappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -42,10 +44,11 @@ public class DeleteFetcher extends DynamicFetcher<Boolean> {
 
   public DeleteFetcher(
       DeleteMappingModel model,
+      MappingModel mappingModel,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+    super(mappingModel, authenticationService, authorizationService, dataStoreFactory);
     this.model = model;
   }
 
@@ -57,6 +60,7 @@ public class DeleteFetcher extends DynamicFetcher<Boolean> {
       throws UnauthorizedException {
 
     EntityMappingModel entityModel = model.getEntity();
+    Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
     Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
     Collection<BuiltCondition> conditions = new ArrayList<>();
     for (FieldMappingModel column : entityModel.getPrimaryKey()) {
@@ -66,7 +70,10 @@ public class DeleteFetcher extends DynamicFetcher<Boolean> {
         throw new IllegalArgumentException("Missing value for field " + graphqlName);
       } else {
         conditions.add(
-            BuiltCondition.of(column.getCqlName(), Predicate.EQ, toCqlValue(graphqlValue, column)));
+            BuiltCondition.of(
+                column.getCqlName(),
+                Predicate.EQ,
+                toCqlValue(graphqlValue, column.getCqlType(), keyspace)));
       }
     }
 

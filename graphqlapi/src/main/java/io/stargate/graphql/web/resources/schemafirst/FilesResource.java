@@ -15,6 +15,9 @@
  */
 package io.stargate.graphql.web.resources.schemafirst;
 
+import com.datastax.oss.driver.shaded.guava.common.base.Charsets;
+import com.google.common.io.Resources;
+import graphql.schema.idl.SchemaPrinter;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
@@ -22,9 +25,10 @@ import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.graphql.persistence.schemafirst.SchemaSource;
 import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
+import io.stargate.graphql.schema.scalars.CqlScalar;
 import io.stargate.graphql.web.RequestToHeadersMapper;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -62,11 +66,13 @@ public class FilesResource {
     this.authorizationService = authorizationService;
   }
 
+  private static final String DIRECTIVES_RESPONSE = buildDirectivesResponse();
+
   @GET
   @Path("/cql_directives.graphql")
   @Produces(MediaType.TEXT_PLAIN)
   public Response getCqlDirectives() {
-    return Response.ok(loadCqlDirectivesFile())
+    return Response.ok(DIRECTIVES_RESPONSE)
         .header("Content-Disposition", "inline; filename=\"cql_directives.graphql\"")
         .build();
   }
@@ -119,10 +125,23 @@ public class FilesResource {
         "\"%s-%s.graphql\"", schemaSource.getNamespace(), schemaSource.getVersion());
   }
 
-  private InputStreamReader loadCqlDirectivesFile() {
-    return new InputStreamReader(
-        this.getClass().getResourceAsStream("/schemafirst/cql_directives.graphql"),
-        StandardCharsets.UTF_8);
+  private static String buildDirectivesResponse() {
+    try {
+      StringBuilder result =
+          new StringBuilder(
+              Resources.toString(
+                  Resources.getResource(FilesResource.class, "/schemafirst/cql_directives.graphql"),
+                  Charsets.UTF_8));
+
+      result.append('\n');
+      SchemaPrinter schemaPrinter = new SchemaPrinter();
+      for (CqlScalar cqlScalar : CqlScalar.values()) {
+        result.append(schemaPrinter.print(cqlScalar.getGraphqlType()));
+      }
+      return result.toString();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
   private boolean isAuthorized(String token, String namespace, HttpServletRequest httpRequest) {
