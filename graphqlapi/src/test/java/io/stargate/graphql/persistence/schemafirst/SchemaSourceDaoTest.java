@@ -266,7 +266,10 @@ class SchemaSourceDaoTest {
 
   private ResultSet mockNullResultSet() {
     ResultSet resultSet = mock(ResultSet.class);
-    when(resultSet.one()).thenReturn(null);
+    @SuppressWarnings("unchecked")
+    Iterator<Row> iterator = mock(Iterator.class);
+    when(iterator.hasNext()).thenReturn(false);
+    when(resultSet.iterator()).thenReturn(iterator);
     return resultSet;
   }
 
@@ -275,6 +278,10 @@ class SchemaSourceDaoTest {
     when(row.getUuid(VERSION_COLUMN_NAME)).thenReturn(versionId);
     when(row.getString(CONTENTS_COLUMN_NAME)).thenReturn(schemaContent);
     ResultSet resultSet = mock(ResultSet.class);
+    @SuppressWarnings("unchecked")
+    Iterator<Row> iterator = mock(Iterator.class);
+    when(iterator.hasNext()).thenReturn(true);
+    when(resultSet.iterator()).thenReturn(iterator);
     when(resultSet.one()).thenReturn(row);
     return resultSet;
   }
