@@ -78,13 +78,7 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
     MigrationStrategy migrationStrategy = environment.getArgument("migrationStrategy");
     boolean dryRun = environment.getArgument("dryRun");
     if (!dryRun) {
-      if (!schemaSourceDao.startDeployment(namespace, expectedVersion)) {
-        throw new IllegalStateException(
-            String.format(
-                "It looks like someone else is deploying a new schema for namespace: %s and version: %s. "
-                    + "Please retry later.",
-                namespace, expectedVersion));
-      }
+      schemaSourceDao.startDeployment(namespace, expectedVersion);
     }
 
     ImmutableMap.Builder<String, Object> response = ImmutableMap.builder();
