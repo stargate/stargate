@@ -20,12 +20,15 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.uuid.Uuids;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +48,12 @@ public class SchemaDeploymentTest extends BaseOsgiIntegrationTest {
     CLIENT = new GraphqlFirstClient(host, RestUtils.getAuthToken(host));
   }
 
+  @BeforeEach
+  public void cleanupDb(CqlSession session) {
+    session.execute("DROP TABLE IF EXISTS graphql_schema");
+    session.execute("DROP TABLE IF EXISTS  \"User\"");
+  }
+
   @Test
   @DisplayName("Should deploy schema and set the deployment_in_progress column to null")
   public void deploySchemaAndSetDeploymentInProgressToNull(
@@ -57,5 +66,58 @@ public class SchemaDeploymentTest extends BaseOsgiIntegrationTest {
     assertThat(row).isNotNull();
     assertThat(row.isNull("deployment_in_progress")).isFalse();
     assertThat(row.getBoolean("deployment_in_progress")).isFalse();
+  }
+
+  @Test
+  @DisplayName("Should fail to deploy schema when already in progress")
+  public void deploySchemaWhenInProgress(
+      @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+    // given
+    UUID currentVersion = CLIENT.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
+    session.execute("UPDATE graphql_schema SET deployment_in_progress = true WHERE key = 'key'");
+
+    // when
+    String error =
+        CLIENT.getDeploySchemaError(
+            keyspaceId.asInternal(), currentVersion.toString(), SCHEMA_CONTENTS);
+
+    // then
+    assertThat(error)
+        .contains("It looks like someone else is deploying a new schema. Please try again later.");
+  }
+
+  @Test
+  @DisplayName("Should fail to deploy schema when version doesn't match")
+  public void deploySchemaWhenVersionMismatch(@TestKeyspace CqlIdentifier keyspaceId) {
+    // given
+    UUID currentVersion = CLIENT.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
+    UUID wrongExpectedVersion = Uuids.timeBased();
+    assertThat(wrongExpectedVersion).isNotEqualTo(currentVersion);
+
+    // when
+    String error =
+        CLIENT.getDeploySchemaError(
+            keyspaceId.asInternal(), wrongExpectedVersion.toString(), "mock contents 2");
+
+    // then
+    assertThat(error)
+        .contains(
+            String.format(
+                "You specified expectedVersion %s, but there is a more recent version %s",
+                wrongExpectedVersion, currentVersion));
+  }
+
+  @Test
+  @DisplayName("Should fail to deploy schema when previous version expected but table is empty")
+  public void deploySchemaWhenPreviousVersionExpectedButTableEmpty(
+      @TestKeyspace CqlIdentifier keyspaceId) {
+    // when
+    UUID wrongExpectedVersion = Uuids.timeBased();
+    String error =
+        CLIENT.getDeploySchemaError(
+            keyspaceId.asInternal(), wrongExpectedVersion.toString(), "mock contents");
+
+    // then
+    assertThat(error).contains("You specified expectedVersion but no previous version was found");
   }
 }

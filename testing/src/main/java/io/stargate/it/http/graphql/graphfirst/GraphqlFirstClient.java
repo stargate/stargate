@@ -50,15 +50,32 @@ public class GraphqlFirstClient extends GraphqlClient {
    * @return the resulting version.
    */
   public UUID deploySchema(String namespace, String contents) {
-    String graphqlQuery =
-        String.format(
-            "mutation { deploySchema( namespace: \"%s\" schema: \"\"\"%s\"\"\") { version } }",
-            namespace, contents);
-    Map<String, Object> response = getGraphqlData(authToken, adminUri, graphqlQuery);
+    Map<String, Object> response =
+        getGraphqlData(authToken, adminUri, buildDeploySchemaQuery(namespace, null, contents));
     @SuppressWarnings("unchecked")
     Map<String, Object> deploySchema = (Map<String, Object>) response.get("deploySchema");
     String version = (String) deploySchema.get("version");
     return UUID.fromString(version);
+  }
+
+  /**
+   * Deploys new contents to a namespace, assuming this will produce a single GraphQL error.
+   *
+   * @return the message of that error.
+   */
+  public String getDeploySchemaError(String namespace, String expectedVersion, String contents) {
+    return getGraphqlError(
+        authToken, adminUri, buildDeploySchemaQuery(namespace, expectedVersion, contents));
+  }
+
+  private String buildDeploySchemaQuery(String namespace, String expectedVersion, String contents) {
+    StringBuilder query = new StringBuilder("mutation { deploySchema( ");
+    query.append(String.format("namespace: \"%s\" ", namespace));
+    if (expectedVersion != null) {
+      query.append(String.format("expectedVersion: \"%s\" ", expectedVersion));
+    }
+    query.append(String.format("schema: \"\"\"%s\"\"\" ", contents));
+    return query.append(") { version } }").toString();
   }
 
   /** Returns the contents of the static cql_directives.graphql file. */
