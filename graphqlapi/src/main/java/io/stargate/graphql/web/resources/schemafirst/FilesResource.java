@@ -22,6 +22,7 @@ import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.graphql.persistence.schemafirst.SchemaSource;
 import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
+import io.stargate.graphql.web.RequestToHeadersMapper;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -126,7 +127,7 @@ public class FilesResource {
 
   private boolean isAuthorized(String token, String namespace, HttpServletRequest httpRequest) {
     try {
-      Map<String, String> headers = getAllHeaders(httpRequest);
+      Map<String, String> headers = RequestToHeadersMapper.getAllHeaders(httpRequest);
       AuthenticationSubject authenticationSubject =
           authenticationService.validateToken(token, headers);
       authorizationService.authorizeSchemaRead(
