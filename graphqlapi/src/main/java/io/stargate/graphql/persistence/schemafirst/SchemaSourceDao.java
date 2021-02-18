@@ -262,7 +262,7 @@ public class SchemaSourceDao {
       }
     } else {
       throw new IllegalStateException(
-          "There is a pending schema deployment process. Please retry later.");
+          "It looks like someone else is deploying a new schema. Please retry later.");
     }
   }
   /**
