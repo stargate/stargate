@@ -26,7 +26,11 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.schemafirst.util.Uuids;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -80,21 +84,20 @@ public class SchemaSourceDao {
     }
     failIfUnexpectedSchema(namespace, table);
 
-    Row row;
-
+    ResultSet resultSet;
     if (maybeVersion.isPresent()) {
       UUID versionUuid = maybeVersion.get();
       if (versionUuid.version() != 1) { // must be time-based
         return null;
       }
-      row = dataStore.execute(schemaQueryWithSpecificVersion(namespace, versionUuid)).get().one();
+      resultSet = dataStore.execute(schemaQueryWithSpecificVersion(namespace, versionUuid)).get();
     } else {
-      row = dataStore.execute(schemaQuery(namespace)).get().one();
+      resultSet = dataStore.execute(schemaQuery(namespace)).get();
     }
-    if (row == null) {
+    if (!resultSet.iterator().hasNext()) {
       return null;
     }
-    return toSchemaSource(namespace, row);
+    return toSchemaSource(namespace, resultSet.one());
   }
 
   public SchemaSource getLatest(String namespace) throws Exception {
@@ -228,11 +231,12 @@ public class SchemaSourceDao {
   }
 
   /**
-   * Returns true if there was no schema deployment in progress. It means that that is safe to
-   * deploy a new schema. If it returns false, it means that there is already schema deployment in
-   * progress.
+   * "Locks" the table to start a new deployment. Concurrent calls to this method will fail until
+   * either {@link #abortDeployment(String)} or {@link #insert(String, String)} have been called.
+   *
+   * @throws IllegalStateException if the deployment could not be started.
    */
-  public boolean startDeployment(String namespace, UUID expectedLatestVersion) throws Exception {
+  public void startDeployment(String namespace, UUID expectedLatestVersion) throws Exception {
     ensureTableExists(namespace);
     BoundQuery updateDeploymentToInProgress =
         dataStore
@@ -247,7 +251,24 @@ public class SchemaSourceDao {
 
     ResultSet resultSet = dataStore.execute(updateDeploymentToInProgress).get();
     Row row = resultSet.one();
-    return row.getBoolean(APPLIED_COLUMN_NAME);
+    if (!row.getBoolean(APPLIED_COLUMN_NAME)) {
+      boolean hasVersion =
+          row.columns().stream().anyMatch(c -> LATEST_VERSION_COLUMN_NAME.equals(c.name()));
+      if (!hasVersion) {
+        throw new IllegalStateException(
+            "You specified expectedVersion but no previous version was found");
+      }
+      UUID actualLatestVersion = row.getUuid(LATEST_VERSION_COLUMN_NAME);
+      if (Objects.equals(actualLatestVersion, expectedLatestVersion)) {
+        assert row.getBoolean(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME);
+        throw new IllegalStateException(
+            "It looks like someone else is deploying a new schema. Please try again later.");
+      }
+      throw new IllegalStateException(
+          String.format(
+              "You specified expectedVersion %s, but there is a more recent version %s",
+              expectedLatestVersion, actualLatestVersion));
+    }
   }
 
   public void abortDeployment(String namespace) throws ExecutionException, InterruptedException {
