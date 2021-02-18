@@ -15,31 +15,10 @@
  */
 package io.stargate.graphql.schema.schemafirst.processor;
 
-import graphql.GraphQL;
-import java.util.List;
+import graphql.ErrorClassification;
 
-public class ProcessedSchema {
-
-  private final MappingModel mappingModel;
-  private final GraphQL graphql;
-  private final List<ProcessingMessage<ProcessingLogType>> logs;
-
-  public ProcessedSchema(
-      MappingModel mappingModel, GraphQL graphql, List<ProcessingMessage<ProcessingLogType>> logs) {
-    this.mappingModel = mappingModel;
-    this.graphql = graphql;
-    this.logs = logs;
-  }
-
-  public MappingModel getMappingModel() {
-    return mappingModel;
-  }
-
-  public GraphQL getGraphql() {
-    return graphql;
-  }
-
-  public List<ProcessingMessage<ProcessingLogType>> getLogs() {
-    return logs;
-  }
+public enum ProcessingErrorType implements ErrorClassification {
+  InvalidSyntax,
+  InvalidMapping,
+  ;
 }

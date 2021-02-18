@@ -15,8 +15,6 @@
  */
 package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
-import com.google.common.collect.ImmutableMap;
-import graphql.GraphqlErrorHelper;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
@@ -33,14 +31,10 @@ import io.stargate.graphql.schema.schemafirst.migration.CassandraMigrator;
 import io.stargate.graphql.schema.schemafirst.migration.MigrationQuery;
 import io.stargate.graphql.schema.schemafirst.migration.MigrationStrategy;
 import io.stargate.graphql.schema.schemafirst.processor.ProcessedSchema;
-import io.stargate.graphql.schema.schemafirst.processor.ProcessingMessage;
 import io.stargate.graphql.schema.schemafirst.processor.SchemaProcessor;
 import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResponseDto> {
 
@@ -86,7 +80,7 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
       ProcessedSchema processedSchema =
           new SchemaProcessor(authenticationService, authorizationService, dataStoreFactory, false)
               .process(input, keyspace);
-      response.setMessages(processedSchema.getMessages());
+      response.setLogs(processedSchema.getLogs());
 
       queries =
           CassandraMigrator.forDeployment(migrationStrategy)
@@ -122,17 +116,5 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
       throw new IllegalArgumentException("Invalid 'expectedVersion' value.");
     }
     return expectedVersion;
-  }
-
-  private Map<String, Object> formatMessage(ProcessingMessage message) {
-    return ImmutableMap.of(
-        "contents",
-        message.getMessage(),
-        "category",
-        message.getErrorType().toString().toUpperCase(Locale.ENGLISH),
-        "locations",
-        message.getLocations().stream()
-            .map(GraphqlErrorHelper::location)
-            .collect(Collectors.toList()));
   }
 }

@@ -17,11 +17,8 @@ package io.stargate.graphql.schema.schemafirst.processor;
 
 import graphql.ErrorClassification;
 
-public enum ProcessingMessageType implements ErrorClassification {
+public enum ProcessingLogType implements ErrorClassification {
   Info,
   Warning,
-  // Errors:
-  InvalidSyntax,
-  InvalidMapping,
   ;
 }

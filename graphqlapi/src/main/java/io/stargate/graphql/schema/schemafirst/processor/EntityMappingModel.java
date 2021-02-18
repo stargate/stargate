@@ -227,7 +227,7 @@ public class EntityMappingModel {
           } else {
             context.addError(
                 type.getSourceLocation(),
-                ProcessingMessageType.InvalidMapping,
+                ProcessingErrorType.InvalidMapping,
                 "%s must have at least one partition key field "
                     + "(use scalar type ID, Uuid or TimeUuid, "
                     + "or annotate your fields with @cql_column(partitionKey: true))",
@@ -248,7 +248,7 @@ public class EntityMappingModel {
         if (regularColumns.isEmpty()) {
           context.addError(
               type.getSourceLocation(),
-              ProcessingMessageType.InvalidMapping,
+              ProcessingErrorType.InvalidMapping,
               "%s must have at least one field",
               graphqlName);
           return Optional.empty();
@@ -267,7 +267,7 @@ public class EntityMappingModel {
       if (target == Target.UDT) {
         context.addError(
             type.getSourceLocation(),
-            ProcessingMessageType.InvalidMapping,
+            ProcessingErrorType.InvalidMapping,
             "%s: can't use @key directive because this type maps to a UDT",
             graphqlName);
         return Optional.empty();
@@ -275,7 +275,7 @@ public class EntityMappingModel {
       if (keyDirectives.size() > 1) {
         context.addError(
             type.getSourceLocation(),
-            ProcessingMessageType.InvalidMapping,
+            ProcessingErrorType.InvalidMapping,
             "%s: this implementation only supports a single @key directive",
             graphqlName);
         return Optional.empty();
@@ -288,7 +288,7 @@ public class EntityMappingModel {
         if (!NON_NESTED_FIELDS.matcher(value).matches()) {
           context.addError(
               keyDirective.getSourceLocation(),
-              ProcessingMessageType.InvalidMapping,
+              ProcessingErrorType.InvalidMapping,
               "%s: could not parse @key.fields "
                   + "(this implementation only supports top-level fields as key components)",
               graphqlName);
@@ -302,7 +302,7 @@ public class EntityMappingModel {
         if (!directiveFields.equals(primaryKeyFields)) {
           context.addError(
               keyDirective.getSourceLocation(),
-              ProcessingMessageType.InvalidMapping,
+              ProcessingErrorType.InvalidMapping,
               "%s: @key.fields doesn't match the partition and clustering keys (expected %s)",
               graphqlName,
               primaryKeyFields);
@@ -312,7 +312,7 @@ public class EntityMappingModel {
       } else {
         context.addError(
             keyDirective.getSourceLocation(),
-            ProcessingMessageType.InvalidSyntax,
+            ProcessingErrorType.InvalidSyntax,
             "%s: @key directive must have a 'fields' argument",
             graphqlName);
         return Optional.empty();

@@ -5,9 +5,9 @@ import com.google.common.collect.ImmutableMap;
 import graphql.GraphqlErrorHelper;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.graphql.schema.schemafirst.migration.MigrationQuery;
+import io.stargate.graphql.schema.schemafirst.processor.ProcessingLogType;
 import io.stargate.graphql.schema.schemafirst.processor.ProcessingMessage;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -16,7 +16,7 @@ import java.util.stream.Stream;
 public class DeploySchemaResponseDto {
 
   private UUID version;
-  private List<ProcessingMessage> messages;
+  private List<ProcessingMessage<ProcessingLogType>> logs;
   private List<MigrationQuery> cqlChanges;
 
   public void setVersion(UUID version) {
@@ -27,15 +27,15 @@ public class DeploySchemaResponseDto {
     return version;
   }
 
-  public void setMessages(List<ProcessingMessage> messages) {
-    this.messages = messages;
+  public void setLogs(List<ProcessingMessage<ProcessingLogType>> logs) {
+    this.logs = logs;
   }
 
-  public List<Map<String, Object>> getMessages(DataFetchingEnvironment environment) {
-    Stream<ProcessingMessage> stream = messages.stream();
-    String category = environment.getArgument("category");
+  public List<Map<String, Object>> getLogs(DataFetchingEnvironment environment) {
+    Stream<ProcessingMessage<ProcessingLogType>> stream = logs.stream();
+    ProcessingLogType category = environment.getArgument("category");
     if (category != null) {
-      stream = stream.filter(m -> m.getErrorType().toString().equalsIgnoreCase(category));
+      stream = stream.filter(m -> m.getErrorType() == category);
     }
     return stream.map(this::formatMessage).collect(Collectors.toList());
   }
@@ -50,12 +50,12 @@ public class DeploySchemaResponseDto {
         : cqlChanges.stream().map(MigrationQuery::getDescription).collect(Collectors.toList());
   }
 
-  private Map<String, Object> formatMessage(ProcessingMessage message) {
+  private Map<String, Object> formatMessage(ProcessingMessage<ProcessingLogType> message) {
     return ImmutableMap.of(
-        "contents",
+        "message",
         message.getMessage(),
         "category",
-        message.getErrorType().toString().toUpperCase(Locale.ENGLISH),
+        message.getErrorType(),
         "locations",
         message.getLocations().stream()
             .map(GraphqlErrorHelper::location)
