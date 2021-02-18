@@ -23,6 +23,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
+import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
 import java.util.ArrayList;
@@ -46,7 +47,7 @@ public class FederatedEntityFetcher extends DynamicFetcher<List<FederatedEntity>
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+    super(mappingModel, authenticationService, authorizationService, dataStoreFactory);
     this.mappingModel = mappingModel;
   }
 
@@ -77,12 +78,14 @@ public class FederatedEntityFetcher extends DynamicFetcher<List<FederatedEntity>
     }
     String entityName = (String) rawTypeName;
     EntityMappingModel entity = mappingModel.getEntities().get(entityName);
+
     if (entity == null) {
       throw new IllegalArgumentException(String.format("Unknown entity type %s", entityName));
     }
+    Keyspace keyspace = dataStore.schema().keyspace(entity.getKeyspaceName());
     return FederatedEntity.wrap(
         entity,
         querySingleEntity(
-            entity, representation, Optional.empty(), dataStore, authenticationSubject));
+            entity, representation, Optional.empty(), dataStore, keyspace, authenticationSubject));
   }
 }

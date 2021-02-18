@@ -36,6 +36,7 @@ public abstract class OperationMappingModel {
   }
 
   public abstract DataFetcher<?> getDataFetcher(
+      MappingModel mappingModel,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory);
