@@ -16,7 +16,6 @@
 package io.stargate.graphql.persistence.schemafirst;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
@@ -27,10 +26,8 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.schemafirst.util.Uuids;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 // TODO purge old entries
@@ -42,6 +39,7 @@ public class SchemaSourceDao {
   @VisibleForTesting static final String LATEST_VERSION_COLUMN_NAME = "latest_version";
   @VisibleForTesting static final String CONTENTS_COLUMN_NAME = "contents";
   @VisibleForTesting static final String APPLIED_COLUMN_NAME = "[applied]";
+  private static final String DEPLOYMENT_IN_PROGRESS_COLUMN_NAME = "deployment_in_progress";
 
   // We use a single partition
   private static final String UNIQUE_KEY = "key";
@@ -134,53 +132,31 @@ public class SchemaSourceDao {
   }
 
   /** @return the new version */
-  public SchemaSource insert(String namespace, UUID expectedLatestVersion, String newContents)
-      throws Exception {
+  public SchemaSource insert(String namespace, String newContents) throws Exception {
 
     ensureTableExists(namespace);
 
     UUID newVersion = Uuids.timeBased();
 
-    BoundQuery latestVersionCas =
-        dataStore
-            .queryBuilder()
-            .update(namespace, TABLE_NAME)
-            .value(LATEST_VERSION_COLUMN_NAME, newVersion)
-            .where(KEY_CONDITION)
-            .ifs(LATEST_VERSION_COLUMN_NAME, Predicate.EQ, expectedLatestVersion)
-            .build()
-            .bind();
-
-    BoundQuery insertNewVersion =
+    BoundQuery insertNewSchema =
         dataStore
             .queryBuilder()
             .insertInto(namespace, TABLE_NAME)
             .value(KEY_COLUMN_NAME, UNIQUE_KEY)
             .value(VERSION_COLUMN_NAME, newVersion)
+            .value(LATEST_VERSION_COLUMN_NAME, newVersion)
             .value(CONTENTS_COLUMN_NAME, newContents)
+            .value(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, false)
             .build()
             .bind();
 
-    ResultSet resultSet =
-        dataStore.batch(ImmutableList.of(latestVersionCas, insertNewVersion)).get();
-    Row row = resultSet.one();
-    if (!row.getBoolean(APPLIED_COLUMN_NAME)) {
-      UUID actualLatestVersion = row.getUuid(LATEST_VERSION_COLUMN_NAME);
-      String message;
-      if (expectedLatestVersion == null) {
-        message =
-            String.format(
-                "Could not deploy schema: you indicated your changes were the first version,"
-                    + " but there is an existing version '%s'.",
-                actualLatestVersion);
-      } else {
-        message =
-            String.format(
-                "Could not deploy schema: you indicated your changes applied to version '%s',"
-                    + " but there is a more recent version '%s'.",
-                expectedLatestVersion, actualLatestVersion);
-      }
-      throw new IllegalStateException(message);
+    try {
+      dataStore.execute(insertNewSchema).get();
+    } catch (Exception e) {
+      throw new RuntimeException(
+          String.format(
+              "Schema deployment for namespace: %s and version: %s failed.",
+              namespace, newVersion));
     }
     return new SchemaSource(namespace, newVersion, newContents);
   }
@@ -201,6 +177,7 @@ public class SchemaSourceDao {
                     Column.Order.DESC)
                 .column(LATEST_VERSION_COLUMN_NAME, Column.Type.Timeuuid, Column.Kind.Static)
                 .column(CONTENTS_COLUMN_NAME, Column.Type.Varchar)
+                .column(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Column.Type.Boolean, Column.Kind.Static)
                 .build()
                 .bind())
         .get();
@@ -248,5 +225,40 @@ public class SchemaSourceDao {
     }
     Column contents = table.column(CONTENTS_COLUMN_NAME);
     return contents != null && contents.type() == Column.Type.Varchar;
+  }
+
+  /**
+   * Returns true if there was no schema deployment in progress. It means that that is safe to
+   * deploy a new schema. If it returns false, it means that there is already schema deployment in
+   * progress.
+   */
+  public boolean startDeployment(String namespace, UUID expectedLatestVersion) throws Exception {
+    ensureTableExists(namespace);
+    BoundQuery updateDeploymentToInProgress =
+        dataStore
+            .queryBuilder()
+            .update(namespace, TABLE_NAME)
+            .value(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, true)
+            .where(KEY_CONDITION)
+            .ifs(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Predicate.NEQ, true)
+            .ifs(LATEST_VERSION_COLUMN_NAME, Predicate.EQ, expectedLatestVersion)
+            .build()
+            .bind();
+
+    ResultSet resultSet = dataStore.execute(updateDeploymentToInProgress).get();
+    Row row = resultSet.one();
+    return row.getBoolean(APPLIED_COLUMN_NAME);
+  }
+
+  public void abortDeployment(String namespace) throws ExecutionException, InterruptedException {
+    BoundQuery updateDeploymentToNotInProgress =
+        dataStore
+            .queryBuilder()
+            .update(namespace, TABLE_NAME)
+            .value(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, false)
+            .where(KEY_CONDITION)
+            .build()
+            .bind();
+    dataStore.execute(updateDeploymentToNotInProgress).get();
   }
 }
