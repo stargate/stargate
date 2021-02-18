@@ -16,6 +16,7 @@
 package io.stargate.graphql.web.resources.schemafirst;
 
 import graphql.GraphQL;
+import graphql.GraphqlErrorException;
 import io.stargate.graphql.web.RequestToHeadersMapper;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
@@ -120,10 +121,15 @@ public class NamespaceResource extends GraphqlResourceBase {
       } else {
         return graphql;
       }
+    } catch (GraphqlErrorException e) {
+      replyWithGraphqlError(Response.Status.INTERNAL_SERVER_ERROR, e, asyncResponse);
+      return null;
     } catch (Exception e) {
       LOG.error("Unexpected error while accessing namespace {}", namespace, e);
       replyWithGraphqlError(
-          Response.Status.NOT_FOUND, "Unexpected error while accessing namespace", asyncResponse);
+          Response.Status.INTERNAL_SERVER_ERROR,
+          "Unexpected error while accessing namespace: " + e.getMessage(),
+          asyncResponse);
       return null;
     }
   }
