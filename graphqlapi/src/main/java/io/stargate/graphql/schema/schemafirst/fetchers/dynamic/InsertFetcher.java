@@ -29,9 +29,11 @@ import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel;
 import io.stargate.graphql.schema.schemafirst.processor.FieldMappingModel;
 import io.stargate.graphql.schema.schemafirst.processor.InsertMappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import io.stargate.graphql.schema.schemafirst.util.Uuids;
 import java.util.ArrayList;
@@ -46,10 +48,11 @@ public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
 
   public InsertFetcher(
       InsertMappingModel model,
+      MappingModel mappingModel,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+    super(mappingModel, authenticationService, authorizationService, dataStoreFactory);
     this.model = model;
   }
 
@@ -61,6 +64,7 @@ public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
       throws UnauthorizedException {
 
     EntityMappingModel entityModel = model.getEntity();
+    Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
     Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
     Map<String, Object> response = new LinkedHashMap<>();
     Collection<ValueModifier> setters = new ArrayList<>();
@@ -70,9 +74,9 @@ public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
       Object cqlValue;
       if (input.containsKey(graphqlName)) {
         graphqlValue = input.get(graphqlName);
-        cqlValue = toCqlValue(graphqlValue, column);
+        cqlValue = toCqlValue(graphqlValue, column.getCqlType(), keyspace);
       } else if (column.isPrimaryKey()) {
-        if (TypeHelper.isGraphqlId(column.getGraphqlType())) {
+        if (TypeHelper.mapsToUuid(column.getGraphqlType())) {
           cqlValue = generateUuid(column.getCqlType());
           graphqlValue = cqlValue.toString();
         } else {
@@ -109,15 +113,12 @@ public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
   }
 
   private Object generateUuid(Column.ColumnType cqlType) {
-    Object cqlValue;
     if (cqlType == Column.Type.Uuid) {
-      cqlValue = UUID.randomUUID();
-    } else if (cqlType == Column.Type.Timeuuid) {
-      cqlValue = Uuids.timeBased();
-    } else {
-      // TODO catch this earlier in FieldMappingModel (more broadly all bad mappings)
-      throw new IllegalArgumentException("Invalid CQL type for ID: " + cqlType);
+      return UUID.randomUUID();
     }
-    return cqlValue;
+    if (cqlType == Column.Type.Timeuuid) {
+      return Uuids.timeBased();
+    }
+    throw new AssertionError("This shouldn't get called for CQL type " + cqlType);
   }
 }

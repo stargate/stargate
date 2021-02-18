@@ -39,10 +39,12 @@ public class DeleteMappingModel extends MutationMappingModel {
 
   @Override
   public DataFetcher<?> getDataFetcher(
+      MappingModel mappingModel,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    return new DeleteFetcher(this, authenticationService, authorizationService, dataStoreFactory);
+    return new DeleteFetcher(
+        this, mappingModel, authenticationService, authorizationService, dataStoreFactory);
   }
 
   public static Optional<MutationMappingModel> build(

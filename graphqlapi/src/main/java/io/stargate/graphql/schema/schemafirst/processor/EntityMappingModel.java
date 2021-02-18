@@ -169,12 +169,32 @@ public class EntityMappingModel {
             .flatMap(d -> DirectiveHelper.getEnumArgument(d, "target", Target.class, context))
             .orElse(Target.TABLE);
 
+    Optional<String> inputTypeName =
+        DirectiveHelper.getDirective("cql_input", type)
+            .map(
+                d -> {
+                  Optional<String> maybeName =
+                      DirectiveHelper.getStringArgument(d, "name", context);
+                  if (maybeName.isPresent()) {
+                    return maybeName.get();
+                  } else {
+                    context.addInfo(
+                        d.getSourceLocation(),
+                        "%1$s: using '%1$sInput' as the input type name since @cql_input doesn't "
+                            + "have an argument",
+                        graphqlName);
+                    return graphqlName + "Input";
+                  }
+                });
+
     List<FieldMappingModel> partitionKey = new ArrayList<>();
     List<FieldMappingModel> clusteringColumns = new ArrayList<>();
     List<FieldMappingModel> regularColumns = new ArrayList<>();
 
     for (FieldDefinition fieldDefinition : type.getFieldDefinitions()) {
-      FieldMappingModel.build(fieldDefinition, context, graphqlName, target)
+      new FieldMappingModelBuilder(
+              fieldDefinition, context, graphqlName, target, inputTypeName.isPresent())
+          .build()
           .ifPresent(
               fieldMapping -> {
                 if (fieldMapping.isPartitionKey()) {
@@ -194,13 +214,14 @@ public class EntityMappingModel {
       case TABLE:
         if (partitionKey.isEmpty()) {
           FieldMappingModel firstField = regularColumns.get(0);
-          if (TypeHelper.isGraphqlId(firstField.getGraphqlType())) {
+          if (TypeHelper.mapsToUuid(firstField.getGraphqlType())) {
             context.addInfo(
                 type.getSourceLocation(),
                 "%s: using %s as the partition key, "
-                    + "because it has type ID and no other fields are annotated",
+                    + "because it has type %s and no other fields are annotated",
                 graphqlName,
-                firstField.getGraphqlName());
+                firstField.getGraphqlName(),
+                firstField.getGraphqlType());
             partitionKey.add(firstField.asPartitionKey());
             regularColumns.remove(firstField);
           } else {
@@ -208,7 +229,8 @@ public class EntityMappingModel {
                 type.getSourceLocation(),
                 ProcessingMessageType.InvalidMapping,
                 "%s must have at least one partition key field "
-                    + "(use scalar type ID, or annotate your fields with @cql_column(partitionKey: true))",
+                    + "(use scalar type ID, Uuid or TimeUuid, "
+                    + "or annotate your fields with @cql_column(partitionKey: true))",
                 graphqlName);
             return Optional.empty();
           }
@@ -237,24 +259,6 @@ public class EntityMappingModel {
       default:
         throw new AssertionError("Unexpected target " + target);
     }
-
-    Optional<String> inputTypeName =
-        DirectiveHelper.getDirective("cql_input", type)
-            .map(
-                d -> {
-                  Optional<String> maybeName =
-                      DirectiveHelper.getStringArgument(d, "name", context);
-                  if (maybeName.isPresent()) {
-                    return maybeName.get();
-                  } else {
-                    context.addInfo(
-                        d.getSourceLocation(),
-                        "%1$s: using '%1$sInput' as the input type name since @cql_input doesn't "
-                            + "have an argument",
-                        graphqlName);
-                    return graphqlName + "Input";
-                  }
-                });
 
     // Check that if the @key directive is present, it matches the CQL primary key:
     List<Directive> keyDirectives = type.getDirectives("key");

@@ -1,9 +1,9 @@
 package io.stargate.it.http.graphql.cqlfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.InstanceOfAssertFactories.MAP;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.KeycloakContainer;
 import io.stargate.it.driver.CqlSessionExtension;
@@ -69,13 +69,7 @@ public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
                 + "    value { title }\n"
                 + "  }\n"
                 + "}");
-    assertThat(response).isNotNull();
-    assertThat(response.get("insertBooks"))
-        .asInstanceOf(MAP)
-        .extractingByKey("value")
-        .asInstanceOf(MAP)
-        .extractingByKey("title")
-        .isEqualTo("Moby Dick");
+    assertThat(JsonPath.<String>read(response, "$.insertBooks.value.title")).isEqualTo("Moby Dick");
   }
 
   @Test
@@ -92,19 +86,8 @@ public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
                 + "    value { title }\n"
                 + "  }\n"
                 + "}\n");
-    assertThat(response).isNotNull();
-    assertThat(response.get("moby"))
-        .asInstanceOf(MAP)
-        .extractingByKey("value")
-        .asInstanceOf(MAP)
-        .extractingByKey("title")
-        .isEqualTo("Moby Dick");
-    assertThat(response.get("catch22"))
-        .asInstanceOf(MAP)
-        .extractingByKey("value")
-        .asInstanceOf(MAP)
-        .extractingByKey("title")
-        .isEqualTo("Catch-22");
+    assertThat(JsonPath.<String>read(response, "$.moby.value.title")).isEqualTo("Moby Dick");
+    assertThat(JsonPath.<String>read(response, "$.catch22.value.title")).isEqualTo("Catch-22");
   }
 
   @Test

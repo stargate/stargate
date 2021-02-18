@@ -24,8 +24,10 @@ import graphql.GraphqlErrorException;
 import graphql.language.EnumTypeDefinition;
 import graphql.language.InputObjectTypeDefinition;
 import graphql.language.InputValueDefinition;
+import graphql.language.ListType;
 import graphql.language.NonNullType;
 import graphql.language.Type;
+import graphql.language.TypeName;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLEnumType;
@@ -45,16 +47,18 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
+import io.stargate.graphql.schema.scalars.CqlScalar;
 import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.FederatedEntity;
 import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.FederatedEntityFetcher;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.EnumSet;
 import java.util.List;
 
 public class SchemaProcessor {
-  // TODO make private
-  public static final TypeDefinitionRegistry CQL_DIRECTIVES =
+
+  private static final TypeDefinitionRegistry CQL_DIRECTIVES =
       new SchemaParser()
           .parse(
               new InputStreamReader(
@@ -99,7 +103,7 @@ public class SchemaProcessor {
 
     addGeneratedTypes(mappingModel, registry);
 
-    GraphQL graphql = buildGraphql(registry, mappingModel);
+    GraphQL graphql = buildGraphql(registry, mappingModel, context.getUsedCqlScalars());
 
     return new ProcessedSchema(mappingModel, graphql, context.getMessages());
   }
@@ -110,10 +114,11 @@ public class SchemaProcessor {
         // TODO maybe allow the input type to already exist
         // The annotation would only reference it. This would allow users to write their own if for
         // some reason the generated version doesn't work.
-        .forEach(e -> registry.add(generateInputType(e)));
+        .forEach(e -> registry.add(generateInputType(e, mappingModel)));
   }
 
-  private InputObjectTypeDefinition generateInputType(EntityMappingModel entity) {
+  private InputObjectTypeDefinition generateInputType(
+      EntityMappingModel entity, MappingModel mappingModel) {
     assert entity.getInputTypeName().isPresent();
     InputObjectTypeDefinition.Builder builder =
         InputObjectTypeDefinition.newInputObjectDefinition().name(entity.getInputTypeName().get());
@@ -124,9 +129,10 @@ public class SchemaProcessor {
               Type<?> type = c.getGraphqlType();
               // Our INSERT implementation generates missing PK fields if their type is ID, so make
               // them nullable in the input type.
-              if (c.isPrimaryKey() && TypeHelper.isGraphqlId(type) && type instanceof NonNullType) {
+              if (c.isPrimaryKey() && TypeHelper.mapsToUuid(type) && type instanceof NonNullType) {
                 type = ((NonNullType) type).getType();
               }
+              type = substituteUdtInputTypes(type, mappingModel);
               builder.inputValueDefinition(
                   InputValueDefinition.newInputValueDefinition()
                       .name(c.getGraphqlName())
@@ -136,22 +142,44 @@ public class SchemaProcessor {
     return builder.build();
   }
 
-  private GraphQL buildGraphql(TypeDefinitionRegistry registry, MappingModel mappingModel) {
+  private Type<?> substituteUdtInputTypes(Type<?> type, MappingModel mappingModel) {
+    if (type instanceof ListType) {
+      Type<?> elementType = ((ListType) type).getType();
+      return ListType.newListType(substituteUdtInputTypes(elementType, mappingModel)).build();
+    }
+    if (type instanceof NonNullType) {
+      Type<?> elementType = ((NonNullType) type).getType();
+      return NonNullType.newNonNullType(substituteUdtInputTypes(elementType, mappingModel)).build();
+    }
+    assert type instanceof TypeName;
+    EntityMappingModel entity = mappingModel.getEntities().get(((TypeName) type).getName());
+    if (entity != null) {
+      // We've already checked this while building the mapping model
+      assert entity.getInputTypeName().isPresent();
+      return TypeName.newTypeName(entity.getInputTypeName().get()).build();
+    }
+    return type;
+  }
+
+  private GraphQL buildGraphql(
+      TypeDefinitionRegistry registry, MappingModel mappingModel, EnumSet<CqlScalar> cqlScalars) {
 
     // SchemaGenerator fails if the schema uses directives that are not defined. Add everything we
     // need:
     registry = registry.merge(FEDERATION_DIRECTIVES); // GraphQL federation
     registry = registry.merge(CQL_DIRECTIVES); // Stargate's own CQL directives
 
+    RuntimeWiring.Builder runtimeWiring =
+        RuntimeWiring.newRuntimeWiring()
+            .codeRegistry(buildCodeRegistry(mappingModel))
+            .scalar(_FieldSet.type);
+    for (CqlScalar cqlScalar : cqlScalars) {
+      runtimeWiring.scalar(cqlScalar.getGraphqlType());
+    }
     GraphQLSchema schema =
         new SchemaGenerator()
             .makeExecutableSchema(
-                SchemaGenerator.Options.defaultOptions(),
-                registry,
-                RuntimeWiring.newRuntimeWiring()
-                    .codeRegistry(buildCodeRegistry(mappingModel))
-                    .scalar(_FieldSet.type)
-                    .build());
+                SchemaGenerator.Options.defaultOptions(), registry, runtimeWiring.build());
 
     // However once we have the schema we don't need the CQL directives anymore: they only impact
     // the queries we generate, they're not useful for users of the schema.
@@ -195,7 +223,8 @@ public class SchemaProcessor {
     for (OperationMappingModel operation : mappingModel.getOperations()) {
       builder.dataFetcher(
           operation.getCoordinates(),
-          operation.getDataFetcher(authenticationService, authorizationService, dataStoreFactory));
+          operation.getDataFetcher(
+              mappingModel, authenticationService, authorizationService, dataStoreFactory));
     }
     return builder.build();
   }

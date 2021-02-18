@@ -30,8 +30,10 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.ValueModifier;
+import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel;
 import io.stargate.graphql.schema.schemafirst.processor.FieldMappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
 import io.stargate.graphql.schema.schemafirst.processor.UpdateMappingModel;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,10 +45,11 @@ public class UpdateFetcher extends DynamicFetcher<Boolean> {
 
   public UpdateFetcher(
       UpdateMappingModel model,
+      MappingModel mappingModel,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+    super(mappingModel, authenticationService, authorizationService, dataStoreFactory);
     this.model = model;
   }
 
@@ -58,6 +61,7 @@ public class UpdateFetcher extends DynamicFetcher<Boolean> {
       throws UnauthorizedException {
 
     EntityMappingModel entityModel = model.getEntity();
+    Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
     Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
 
     Collection<BuiltCondition> conditions = new ArrayList<>();
@@ -68,7 +72,10 @@ public class UpdateFetcher extends DynamicFetcher<Boolean> {
         throw new IllegalArgumentException("Missing value for field " + graphqlName);
       } else {
         conditions.add(
-            BuiltCondition.of(column.getCqlName(), Predicate.EQ, toCqlValue(graphqlValue, column)));
+            BuiltCondition.of(
+                column.getCqlName(),
+                Predicate.EQ,
+                toCqlValue(graphqlValue, column.getCqlType(), keyspace)));
       }
     }
 
@@ -77,7 +84,9 @@ public class UpdateFetcher extends DynamicFetcher<Boolean> {
       String graphqlName = column.getGraphqlName();
       if (input.containsKey(graphqlName)) {
         Object graphqlValue = input.get(graphqlName);
-        modifiers.add(ValueModifier.set(column.getCqlName(), toCqlValue(graphqlValue, column)));
+        modifiers.add(
+            ValueModifier.set(
+                column.getCqlName(), toCqlValue(graphqlValue, column.getCqlType(), keyspace)));
       }
     }
     if (modifiers.isEmpty()) {
