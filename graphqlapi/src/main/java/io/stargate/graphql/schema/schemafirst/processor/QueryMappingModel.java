@@ -59,10 +59,12 @@ public class QueryMappingModel extends OperationMappingModel {
 
   @Override
   public DataFetcher<?> getDataFetcher(
+      MappingModel mappingModel,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    return new QueryFetcher(this, authenticationService, authorizationService, dataStoreFactory);
+    return new QueryFetcher(
+        this, mappingModel, authenticationService, authorizationService, dataStoreFactory);
   }
 
   static Optional<QueryMappingModel> build(

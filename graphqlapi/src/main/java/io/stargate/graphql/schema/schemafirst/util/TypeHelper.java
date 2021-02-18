@@ -15,15 +15,35 @@
  */
 package io.stargate.graphql.schema.schemafirst.util;
 
+import com.google.common.collect.ImmutableSet;
+import graphql.Scalars;
 import graphql.language.NonNullType;
 import graphql.language.Type;
 import graphql.language.TypeName;
+import io.stargate.graphql.schema.scalars.CqlScalar;
+import java.util.Set;
 
 public class TypeHelper {
 
+  private static final Set<String> UUID_TYPE_NAMES =
+      ImmutableSet.of(
+          Scalars.GraphQLID.getName(),
+          CqlScalar.UUID.getGraphqlType().getName(),
+          CqlScalar.TIMEUUID.getGraphqlType().getName());
+
+  public static boolean mapsToUuid(Type<?> type) {
+    type = unwrapNonNull(type);
+    if (type instanceof TypeName) {
+      TypeName typeName = (TypeName) type;
+      return UUID_TYPE_NAMES.contains(typeName.getName());
+    }
+    return false;
+  }
+
   public static boolean isGraphqlId(Type<?> type) {
     type = unwrapNonNull(type);
-    return type instanceof TypeName && ((TypeName) type).getName().equals("ID");
+    return type instanceof TypeName
+        && Scalars.GraphQLID.getName().equals(((TypeName) type).getName());
   }
 
   /** If the type is {@code !T}, return {@code T}, otherwise the type unchanged. */
