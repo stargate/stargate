@@ -125,8 +125,12 @@ public class SchemaFirstCache {
         source = schemaSourceDao.getLatest(namespace);
       } catch (Exception e) {
         // The only way this can happen is if the graphql_schema table exists but with the wrong
-        // schema. Skip for now, we'll surface the error from getGraphql() if the user actually
-        // tries to use the namespace.
+        // schema.
+        LOG.debug(
+            "Error while loading persisted schema for {} ({}).  Skipping for now, this will be "
+                + "surfaced again if someone tries to execute a GraphQL query in that namespace.",
+            namespace,
+            e.getMessage());
         continue;
       }
       if (source != null) {
