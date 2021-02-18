@@ -15,6 +15,12 @@
  */
 package io.stargate.graphql.schema.schemafirst.fetchers.dynamic;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.data.UdtValue;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import graphql.language.ListType;
+import graphql.language.Type;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
@@ -30,16 +36,23 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel;
 import io.stargate.graphql.schema.schemafirst.processor.FieldMappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
+import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.function.IntFunction;
+import java.util.stream.Collectors;
 
 /**
  * Base class for fetchers that are generated at runtime for a user's deployed schema (i.e. the
@@ -47,26 +60,161 @@ import java.util.concurrent.ExecutionException;
  */
 abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
+  protected final MappingModel mappingModel;
+
   public DynamicFetcher(
+      MappingModel mappingModel,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
     super(authenticationService, authorizationService, dataStoreFactory);
+    this.mappingModel = mappingModel;
   }
 
-  protected Object toCqlValue(Object graphqlValue, FieldMappingModel field) {
+  protected Object toCqlValue(Object graphqlValue, Column.ColumnType cqlType, Keyspace keyspace) {
     if (graphqlValue == null) {
       return null;
     }
-    // TODO handle non trivial GraphQL=>CQL conversions (see DataTypeMapping)
-    return (field.getCqlType() == Column.Type.Uuid)
-        ? UUID.fromString(graphqlValue.toString())
-        : graphqlValue;
+
+    if (cqlType.isParameterized()) {
+      if (cqlType.rawType() == Column.Type.List) {
+        return toCqlCollection(graphqlValue, cqlType, keyspace, ArrayList::new);
+      }
+      if (cqlType.rawType() == Column.Type.Set) {
+        return toCqlCollection(
+            graphqlValue, cqlType, keyspace, Sets::newLinkedHashSetWithExpectedSize);
+      }
+      // Map, tuple
+      throw new AssertionError(
+          String.format(
+              "Unsupported CQL type %s, this mapping should have failed at deployment time",
+              cqlType));
+    }
+
+    if (cqlType.isUserDefined()) {
+      return toCqlUdtValue(graphqlValue, cqlType, keyspace);
+    }
+
+    // 'ID' built-in scalar
+    if (cqlType == Column.Type.Uuid && graphqlValue instanceof String) {
+      return UUID.fromString(((String) graphqlValue));
+    }
+
+    // Otherwise it's either:
+    // - a built-in scalar that has a natural mapping
+    // - one of our custom CQL scalars, and the value has already been coerced
+    return graphqlValue;
   }
 
-  protected Object toGraphqlValue(Object cqlValue, FieldMappingModel field) {
-    // TODO handle non trivial CQL=>GraphQL conversions (see DataTypeMapping)
+  private Collection<Object> toCqlCollection(
+      Object graphqlValue,
+      Column.ColumnType cqlType,
+      Keyspace keyspace,
+      IntFunction<Collection<Object>> constructor) {
+    Column.ColumnType elementType = cqlType.parameters().get(0);
+    Collection<?> graphqlCollection = (Collection<?>) graphqlValue;
+    return graphqlCollection.stream()
+        .map(element -> toCqlValue(element, elementType, keyspace))
+        .collect(Collectors.toCollection(() -> constructor.apply(graphqlCollection.size())));
+  }
+
+  @SuppressWarnings("unchecked")
+  private UdtValue toCqlUdtValue(
+      Object graphqlValue, Column.ColumnType cqlType, Keyspace keyspace) {
+
+    String udtName = cqlType.name();
+    EntityMappingModel udtModel = mappingModel.getEntities().get(udtName);
+    if (udtModel == null) {
+      throw new IllegalStateException(
+          String.format("UDT '%s' is not mapped to a GraphQL type", udtName));
+    }
+
+    // Look up the full definition from the schema. We can't use model.getUdtCqlSchema() because it
+    // might contain shallow UDT references.
+    UserDefinedType udt = keyspace.userDefinedType(udtName);
+    if (udt == null) {
+      throw new IllegalStateException(
+          String.format(
+              "Unknown UDT %s. It looks like it was dropped manually after the deployment.",
+              udtName));
+    }
+    UdtValue udtValue = udt.create();
+
+    Map<String, Object> graphqlObject = (Map<String, Object>) graphqlValue;
+    for (FieldMappingModel field : udtModel.getRegularColumns()) {
+      if (graphqlObject.containsKey(field.getGraphqlName())) {
+        Column.ColumnType fieldCqlType = udt.fieldType(field.getCqlName());
+        if (fieldCqlType == null) {
+          throw new IllegalStateException(
+              String.format(
+                  "Unknown field %s in UDT %s. "
+                      + "It looks like it was altered manually after the deployment.",
+                  field.getCqlName(), udtName));
+        }
+        Object fieldGraphqlValue = graphqlObject.get(field.getGraphqlName());
+        Object fieldCqlValue = toCqlValue(fieldGraphqlValue, fieldCqlType, keyspace);
+        udtValue = udtValue.set(field.getCqlName(), fieldCqlValue, fieldCqlType.codec());
+      }
+    }
+    return udtValue;
+  }
+
+  protected Object toGraphqlValue(Object cqlValue, Column.ColumnType cqlType, Type<?> graphqlType) {
+    if (cqlValue == null) {
+      return null;
+    }
+    if (cqlType.isParameterized()) {
+      if (cqlType.rawType() == Column.Type.List) {
+        return toGraphqlList(cqlValue, cqlType, graphqlType);
+      }
+      if (cqlType.rawType() == Column.Type.Set) {
+        return toGraphqlList(cqlValue, cqlType, graphqlType);
+      }
+      // Map, tuple
+      throw new AssertionError(
+          String.format(
+              "Unsupported CQL type %s, this mapping should have failed at deployment time",
+              cqlType));
+    }
+
+    if (cqlType.isUserDefined()) {
+      return toGraphqlUdtValue((UdtValue) cqlValue);
+    }
+
+    if (cqlType == Column.Type.Uuid && TypeHelper.isGraphqlId(graphqlType)) {
+      return cqlValue.toString();
+    }
+
     return cqlValue;
+  }
+
+  private Object toGraphqlList(Object cqlValue, Column.ColumnType cqlType, Type<?> graphqlType) {
+    Collection<?> cqlCollection = (Collection<?>) cqlValue;
+    assert graphqlType instanceof ListType;
+    Type<?> graphqlElementType = ((ListType) graphqlType).getType();
+    Column.ColumnType cqlElementType = cqlType.parameters().get(0);
+    return cqlCollection.stream()
+        .map(e -> toGraphqlValue(e, cqlElementType, graphqlElementType))
+        .collect(Collectors.toList());
+  }
+
+  private Object toGraphqlUdtValue(UdtValue udtValue) {
+    String udtName = udtValue.getType().getName().asInternal();
+    EntityMappingModel udtModel = mappingModel.getEntities().get(udtName);
+    if (udtModel == null) {
+      throw new IllegalStateException(
+          String.format("UDT '%s' is not mapped to a GraphQL type", udtName));
+    }
+
+    Map<String, Object> result =
+        Maps.newLinkedHashMapWithExpectedSize(udtModel.getRegularColumns().size());
+    for (FieldMappingModel field : udtModel.getRegularColumns()) {
+      Object cqlValue = udtValue.getObject(CqlIdentifier.fromInternal(field.getCqlName()));
+      result.put(
+          field.getGraphqlName(),
+          toGraphqlValue(cqlValue, field.getCqlType(), field.getGraphqlType()));
+    }
+    return result;
   }
 
   /**
@@ -80,6 +228,7 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
       Map<String, Object> values,
       Optional<List<String>> valueNames,
       DataStore dataStore,
+      Keyspace keyspace,
       AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
     List<BuiltCondition> whereConditions = new ArrayList<>();
@@ -89,7 +238,10 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
       String inputName = valueNames.map(l -> l.get(finalI)).orElse(field.getGraphqlName());
       Object graphqlValue = values.get(inputName);
       whereConditions.add(
-          BuiltCondition.of(field.getCqlName(), Predicate.EQ, toCqlValue(graphqlValue, field)));
+          BuiltCondition.of(
+              field.getCqlName(),
+              Predicate.EQ,
+              toCqlValue(graphqlValue, field.getCqlType(), keyspace)));
     }
 
     AbstractBound<?> query =
@@ -131,7 +283,9 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
     Map<String, Object> result = new HashMap<>();
     for (FieldMappingModel field : entity.getAllColumns()) {
       Object cqlValue = row.getObject(field.getCqlName());
-      result.put(field.getGraphqlName(), toGraphqlValue(cqlValue, field));
+      result.put(
+          field.getGraphqlName(),
+          toGraphqlValue(cqlValue, field.getCqlType(), field.getGraphqlType()));
     }
     return result;
   }

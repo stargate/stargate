@@ -23,8 +23,9 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.graphql.schema.SchemaAssertions;
-import io.stargate.graphql.schema.cqlfirst.dml.types.scalars.CustomScalars;
+import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -212,26 +213,16 @@ public class FieldTypeCachesTest {
   }
 
   public static Stream<Arguments> getScalarTypes() {
-    return Stream.of(
-        arguments(Column.Type.Ascii, CustomScalars.ASCII),
-        arguments(Column.Type.Bigint, CustomScalars.BIGINT),
-        arguments(Column.Type.Blob, CustomScalars.BLOB),
-        arguments(Column.Type.Boolean, Scalars.GraphQLBoolean),
-        arguments(Column.Type.Counter, CustomScalars.COUNTER),
-        arguments(Column.Type.Decimal, CustomScalars.DECIMAL),
-        arguments(Column.Type.Double, Scalars.GraphQLFloat),
-        arguments(Column.Type.Int, Scalars.GraphQLInt),
-        arguments(Column.Type.Text, Scalars.GraphQLString),
-        arguments(Column.Type.Varchar, Scalars.GraphQLString),
-        arguments(Column.Type.Timestamp, CustomScalars.TIMESTAMP),
-        arguments(Column.Type.Uuid, CustomScalars.UUID),
-        arguments(Column.Type.Varint, CustomScalars.VARINT),
-        arguments(Column.Type.Timeuuid, CustomScalars.TIMEUUID),
-        arguments(Column.Type.Inet, CustomScalars.INET),
-        arguments(Column.Type.Date, CustomScalars.DATE),
-        arguments(Column.Type.Time, CustomScalars.TIME),
-        arguments(Column.Type.Smallint, CustomScalars.SMALLINT),
-        arguments(Column.Type.Tinyint, CustomScalars.TINYINT));
+    Stream<Arguments> builtinScalars =
+        Stream.of(
+            arguments(Type.Boolean, Scalars.GraphQLBoolean),
+            arguments(Type.Double, Scalars.GraphQLFloat),
+            arguments(Type.Int, Scalars.GraphQLInt),
+            arguments(Type.Text, Scalars.GraphQLString),
+            arguments(Type.Varchar, Scalars.GraphQLString));
+    Stream<Arguments> cqlScalars =
+        Arrays.stream(CqlScalar.values()).map(s -> arguments(s.getCqlType(), s.getGraphqlType()));
+    return Stream.concat(builtinScalars, cqlScalars);
   }
 
   public static Stream<Arguments> getMapArgs() {

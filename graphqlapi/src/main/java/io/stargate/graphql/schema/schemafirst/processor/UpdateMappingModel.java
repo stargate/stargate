@@ -39,10 +39,12 @@ public class UpdateMappingModel extends MutationMappingModel {
 
   @Override
   public DataFetcher<?> getDataFetcher(
+      MappingModel mappingModel,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    return new UpdateFetcher(this, authenticationService, authorizationService, dataStoreFactory);
+    return new UpdateFetcher(
+        this, mappingModel, authenticationService, authorizationService, dataStoreFactory);
   }
 
   public static Optional<MutationMappingModel> build(

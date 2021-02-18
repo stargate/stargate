@@ -15,6 +15,7 @@
  */
 package io.stargate.it.http.graphql.graphfirst;
 
+import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.graphql.GraphqlClient;
 import java.io.IOException;
@@ -52,9 +53,7 @@ public class GraphqlFirstClient extends GraphqlClient {
   public UUID deploySchema(String namespace, String contents) {
     Map<String, Object> response =
         getGraphqlData(authToken, adminUri, buildDeploySchemaQuery(namespace, null, contents));
-    @SuppressWarnings("unchecked")
-    Map<String, Object> deploySchema = (Map<String, Object>) response.get("deploySchema");
-    String version = (String) deploySchema.get("version");
+    String version = JsonPath.read(response, "$.deploySchema.version");
     return UUID.fromString(version);
   }
 
@@ -114,11 +113,19 @@ public class GraphqlFirstClient extends GraphqlClient {
     }
   }
 
+  public Object executeNamespaceQuery(String namespace, String graphqlQuery) {
+    return getGraphqlData(authToken, buildNamespaceUri(namespace), graphqlQuery);
+  }
+
   private String buildSchemaFileUri(String namespace, String version) {
     String url = String.format("http://%s:8080%s/namespace/%s.graphql", host, FILES, namespace);
     if (version != null) {
       url = url + "?version=" + version;
     }
     return url;
+  }
+
+  private String buildNamespaceUri(String namespace) {
+    return String.format("http://%s:8080%s/%s", host, NAMESPACES, namespace);
   }
 }

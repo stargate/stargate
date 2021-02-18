@@ -1,4 +1,4 @@
-package io.stargate.graphql.schema.cqlfirst.dml.types.scalars;
+package io.stargate.graphql.schema.scalars;
 
 import graphql.language.IntValue;
 import graphql.language.StringValue;

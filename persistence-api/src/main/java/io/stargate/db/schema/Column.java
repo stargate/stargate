@@ -500,6 +500,18 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
      *     (meaning, as CQL string) as those are not supported by this class yet.
      */
     public static ColumnType fromCqlDefinitionOf(Keyspace keyspace, String dataTypeName) {
+      return fromCqlDefinitionOf(keyspace, dataTypeName, true);
+    }
+
+    /**
+     * Same as {@link #fromCqlDefinitionOf(Keyspace, String)}, but this version doesn't check that
+     * UDTs exist in the keyspace. Any type that can be interpreted as a UDT will be returned as a
+     * "shallow" {@link UserDefinedType}, that just has its keyspace and name properties set, but no
+     * fields. Clients of this method must be prepared to the fact that they might have to
+     * "re-resolve" UDTs at a later time.
+     */
+    public static ColumnType fromCqlDefinitionOf(
+        Keyspace keyspace, String dataTypeName, boolean strict) {
       // Parsing CQL types is a tad involved. We "brute-force" it here, but it's neither very
       // efficient, nor very elegant.
 
@@ -519,7 +531,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
           throw new IllegalArgumentException("Malformed type name: " + dataTypeName);
         }
         String udtName = dataTypeName.substring(1, lastCharIdx).replaceAll("\"\"", "\"");
-        return findUDTType(keyspace, udtName);
+        return findUDTType(keyspace, udtName, strict);
       }
 
       int paramsIdx = dataTypeName.indexOf('<');
@@ -543,7 +555,8 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
                   baseTypeName));
         }
         String paramsString = dataTypeName.substring(paramsIdx + 1, lastCharIdx);
-        List<ColumnType> parameters = splitAndParseParameters(dataTypeName, keyspace, paramsString);
+        List<ColumnType> parameters =
+            splitAndParseParameters(dataTypeName, keyspace, paramsString, strict);
         if (isFrozen) {
           if (parameters.size() != 1) {
             throw new IllegalArgumentException(
@@ -560,12 +573,12 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
           throw new IllegalArgumentException(
               format("Malformed type name: type %s cannot have parameters", baseTypeName));
         }
-        return baseType == null ? findUDTType(keyspace, baseTypeName) : baseType;
+        return baseType == null ? findUDTType(keyspace, baseTypeName, strict) : baseType;
       }
     }
 
     private static List<ColumnType> splitAndParseParameters(
-        String fullTypeName, Keyspace keyspace, String parameters) {
+        String fullTypeName, Keyspace keyspace, String parameters, boolean strict) {
       int openParam = 0;
       int currentStart = 0;
       int idx = currentStart;
@@ -576,7 +589,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
             // Ignore if we're within a sub-parameter.
             if (openParam == 0) {
               parsedParameters.add(
-                  extractParameter(fullTypeName, keyspace, parameters, currentStart, idx));
+                  extractParameter(fullTypeName, keyspace, parameters, currentStart, idx, strict));
               currentStart = idx + 1;
             }
             break;
@@ -594,19 +607,25 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
         }
         ++idx;
       }
-      parsedParameters.add(extractParameter(fullTypeName, keyspace, parameters, currentStart, idx));
+      parsedParameters.add(
+          extractParameter(fullTypeName, keyspace, parameters, currentStart, idx, strict));
       return parsedParameters;
     }
 
     private static ColumnType extractParameter(
-        String fullTypeName, Keyspace keyspace, String parameters, int start, int end) {
+        String fullTypeName,
+        Keyspace keyspace,
+        String parameters,
+        int start,
+        int end,
+        boolean strict) {
       String parameterStr = parameters.substring(start, end);
       if (parameterStr.isEmpty()) {
         // Recursion actually handle this case, but the error thrown is a bit more cryptic in this
         // context
         throw new IllegalArgumentException("Malformed type name: " + fullTypeName);
       }
-      return fromCqlDefinitionOf(keyspace, parameterStr);
+      return fromCqlDefinitionOf(keyspace, parameterStr, strict);
     }
 
     // Returns the index "just after the double quote", so possibly str.length.
@@ -626,13 +645,17 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       throw new IllegalArgumentException("Malformed type name: " + fullTypeName);
     }
 
-    private static UserDefinedType findUDTType(Keyspace keyspace, String udtName) {
+    private static UserDefinedType findUDTType(Keyspace keyspace, String udtName, boolean strict) {
       UserDefinedType udt = keyspace.userDefinedType(udtName);
       if (udt == null) {
-        throw new IllegalArgumentException(
-            format(
-                "Cannot find user type %s int keyspace %s",
-                ColumnUtils.maybeQuote(udtName), keyspace.cqlName()));
+        if (strict) {
+          throw new IllegalArgumentException(
+              format(
+                  "Cannot find user type %s int keyspace %s",
+                  ColumnUtils.maybeQuote(udtName), keyspace.cqlName()));
+        } else {
+          udt = ImmutableUserDefinedType.builder().keyspace(keyspace.name()).name(udtName).build();
+        }
       }
       return udt;
     }
