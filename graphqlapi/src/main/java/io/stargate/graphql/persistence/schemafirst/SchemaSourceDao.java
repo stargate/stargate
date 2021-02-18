@@ -153,12 +153,11 @@ public class SchemaSourceDao {
     try {
       dataStore.execute(insertNewSchema).get();
     } catch (Exception e) {
-      throw new IllegalStateException(
+      throw new RuntimeException(
           String.format(
               "Schema deployment for namespace: %s and version: %s failed.",
               namespace, newVersion));
     }
-
     return new SchemaSource(namespace, newVersion, newContents);
   }
 
