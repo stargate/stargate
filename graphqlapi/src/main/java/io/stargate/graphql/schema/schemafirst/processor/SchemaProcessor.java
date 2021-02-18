@@ -129,7 +129,7 @@ public class SchemaProcessor {
               Type<?> type = c.getGraphqlType();
               // Our INSERT implementation generates missing PK fields if their type is ID, so make
               // them nullable in the input type.
-              if (c.isPrimaryKey() && TypeHelper.isGraphqlId(type) && type instanceof NonNullType) {
+              if (c.isPrimaryKey() && TypeHelper.mapsToUuid(type) && type instanceof NonNullType) {
                 type = ((NonNullType) type).getType();
               }
               type = substituteUdtInputTypes(type, mappingModel);

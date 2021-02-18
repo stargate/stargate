@@ -214,13 +214,14 @@ public class EntityMappingModel {
       case TABLE:
         if (partitionKey.isEmpty()) {
           FieldMappingModel firstField = regularColumns.get(0);
-          if (TypeHelper.isGraphqlId(firstField.getGraphqlType())) {
+          if (TypeHelper.mapsToUuid(firstField.getGraphqlType())) {
             context.addInfo(
                 type.getSourceLocation(),
                 "%s: using %s as the partition key, "
-                    + "because it has type ID and no other fields are annotated",
+                    + "because it has type %s and no other fields are annotated",
                 graphqlName,
-                firstField.getGraphqlName());
+                firstField.getGraphqlName(),
+                firstField.getGraphqlType());
             partitionKey.add(firstField.asPartitionKey());
             regularColumns.remove(firstField);
           } else {
@@ -228,7 +229,8 @@ public class EntityMappingModel {
                 type.getSourceLocation(),
                 ProcessingMessageType.InvalidMapping,
                 "%s must have at least one partition key field "
-                    + "(use scalar type ID, or annotate your fields with @cql_column(partitionKey: true))",
+                    + "(use scalar type ID, Uuid or TimeUuid, "
+                    + "or annotate your fields with @cql_column(partitionKey: true))",
                 graphqlName);
             return Optional.empty();
           }
