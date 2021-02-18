@@ -17,16 +17,20 @@ package io.stargate.graphql.schema.schemafirst.processor;
 
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
+import graphql.GraphQL;
 import graphql.language.SourceLocation;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import io.stargate.db.schema.Keyspace;
+import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 class ProcessingContext {
 
   private final TypeDefinitionRegistry typeRegistry;
   private final Keyspace keyspace;
+  private final EnumSet<CqlScalar> usedCqlScalars = EnumSet.noneOf(CqlScalar.class);
   private final List<ProcessingMessage> messages;
   private final List<ProcessingMessage> errors;
 
@@ -45,6 +49,16 @@ class ProcessingContext {
   /** The keyspace that the schema will be deployed to. */
   Keyspace getKeyspace() {
     return keyspace;
+  }
+
+  /**
+   * The CQL scalars that are referenced by the schema.
+   *
+   * <p>We discover them while building the {@link MappingModel}. The final {@link GraphQL} only
+   * contains the CQL scalars that are actually used (if any).
+   */
+  EnumSet<CqlScalar> getUsedCqlScalars() {
+    return usedCqlScalars;
   }
 
   @FormatMethod

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.graphql.schema.cqlfirst.dml.types.scalars;
+package io.stargate.graphql.schema.scalars;
 
 import graphql.language.FloatValue;
 import graphql.language.IntValue;

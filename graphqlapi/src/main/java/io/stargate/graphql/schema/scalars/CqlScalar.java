@@ -13,31 +13,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.graphql.schema.cqlfirst.dml.types.scalars;
+package io.stargate.graphql.schema.scalars;
 
 import graphql.schema.GraphQLScalarType;
+import io.stargate.db.schema.Column;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-public class CustomScalars {
-
-  public static final GraphQLScalarType UUID =
+/**
+ * A custom GraphQL scalar that mirror a CQL primitive type.
+ *
+ * <p>This is used in both the CQL-first and GraphQL-first APIs.
+ */
+public enum CqlScalar {
+  UUID(
+      Column.Type.Uuid,
       GraphQLScalarType.newScalar()
           .name("Uuid")
           .coercing(StringCoercing.UUID)
           .description(
               "Represents a CQL `uuid` as a string.\n"
                   + "Example: \"fe86cad0-1965-11eb-84e6-ab660d2e8c9e\"")
-          .build();
-
-  public static final GraphQLScalarType TIMEUUID =
+          .build()),
+  TIMEUUID(
+      Column.Type.Timeuuid,
       GraphQLScalarType.newScalar()
           .name("TimeUuid")
           .coercing(StringCoercing.TIMEUUID)
           .description(
               "Represents a CQL `timeuuid` as a string.\n"
                   + "Example: \"fe86cad0-1965-11eb-84e6-ab660d2e8c9e\"")
-          .build();
-
-  public static final GraphQLScalarType INET =
+          .build()),
+  INET(
+      Column.Type.Inet,
       GraphQLScalarType.newScalar()
           .name("Inet")
           .coercing(StringCoercing.INET)
@@ -46,59 +57,59 @@ public class CustomScalars {
                   + "This is an IP address in IPv4 or IPv6 format.\n"
                   + "Examples: \"127.0.0.1\", \"::1\"\n"
                   + "If you don't provide a numerical address, it will be resolved on the server.")
-          .build();
-
-  public static final GraphQLScalarType DATE =
+          .build()),
+  DATE(
+      Column.Type.Date,
       GraphQLScalarType.newScalar()
           .name("Date")
           .coercing(DateCoercing.INSTANCE)
           .description(
               "Represents a CQL `date` as a string.\n"
                   + "This is a date without a time-zone in the ISO-8601 calendar system.\n"
-                  + "Example: \"2020-10-21\"."
-                  + "A date can also be input as a 32-bit, positive numeric literal, which will be\n"
-                  + "interpreted as a number of days, where the epoch is in the middle of the range\n"
+                  + "Example: \"2020-10-21\".\n"
+                  + "A date can also be input as a 32-bit, positive numeric literal, which will be "
+                  + "interpreted as a number of days, where the epoch is in the middle of the range "
                   + "(1970-01-01 = 2147483648).")
-          .build();
-
-  public static final GraphQLScalarType DURATION =
+          .build()),
+  DURATION(
+      Column.Type.Duration,
       GraphQLScalarType.newScalar()
           .name("Duration")
           .coercing(StringCoercing.DURATION)
           .description(
               "Represents a CQL `duration` as a string.\n"
-                  + "See https://docs.datastax.com/en/dse/6.8/cql/cql/cql_reference/upsertDates.html"
+                  + "See https://docs.datastax.com/en/dse/6.8/cql/cql/cql_reference/upsertDates.html\n"
                   + "Example: \"1h4m48s20ms\"")
-          .build();
-
-  public static final GraphQLScalarType BIGINT =
+          .build()),
+  BIGINT(
+      Column.Type.Bigint,
       GraphQLScalarType.newScalar()
           .name("BigInt")
           .coercing(BigIntCoercing.INSTANCE)
           .description(
               "Represents a CQL `bigint` as an integer literal.\n"
                   + "This is a 64-bit signed integer.")
-          .build();
-
-  public static final GraphQLScalarType COUNTER =
+          .build()),
+  COUNTER(
+      Column.Type.Counter,
       GraphQLScalarType.newScalar()
           .name("Counter")
           .coercing(BigIntCoercing.INSTANCE)
           .description(
               "Represents a CQL `counter` as an integer literal.\n"
                   + "This is a 64-bit signed integer.")
-          .build();
-
-  public static final GraphQLScalarType ASCII =
+          .build()),
+  ASCII(
+      Column.Type.Ascii,
       GraphQLScalarType.newScalar()
           .name("Ascii")
           .coercing(StringCoercing.ASCII)
           .description(
               "Represents a CQL `ascii` as a string.\n"
                   + "An error will be thrown if the string contains non-ASCII characters.")
-          .build();
-
-  public static final GraphQLScalarType DECIMAL =
+          .build()),
+  DECIMAL(
+      Column.Type.Decimal,
       GraphQLScalarType.newScalar()
           .name("Decimal")
           .coercing(StringCoercing.DECIMAL)
@@ -106,9 +117,9 @@ public class CustomScalars {
               "Represents a CQL `decimal` as a string.\n"
                   + "This is a variable-precision decimal.\n"
                   + "Examples: \"1.5\", \"1e-3\"")
-          .build();
-
-  public static final GraphQLScalarType VARINT =
+          .build()),
+  VARINT(
+      Column.Type.Varint,
       GraphQLScalarType.newScalar()
           .name("Varint")
           .coercing(VarintCoercing.INSTANCE)
@@ -116,71 +127,104 @@ public class CustomScalars {
               "Represents a CQL `varint` as an integer.\n"
                   + "This is an arbitrary-precision integer.\n"
                   + "Examples: 1, 9223372036854775808")
-          .build();
-
-  public static final GraphQLScalarType FLOAT =
+          .build()),
+  FLOAT(
+      Column.Type.Float,
       GraphQLScalarType.newScalar()
           .name("Float32")
           .coercing(FloatCoercing.INSTANCE)
           .description(
               "Represents a CQL `float` as a floating-point literal.\n"
                   + "This is a 32-bit IEEE-754 floating point.\n"
-                  + "If the value cannot be represented as a float, it will be converted.\n"
+                  + "If the value cannot be represented as a float, it will be converted. "
                   + "This conversion can loose precision, or range (resulting in +/-Infinity).")
-          .build();
-
-  public static final GraphQLScalarType BLOB =
+          .build()),
+  BLOB(
+      Column.Type.Blob,
       GraphQLScalarType.newScalar()
           .name("Blob")
           .coercing(StringCoercing.BLOB)
           .description(
               "Represents a CQL `blob` as a base64 encoded string.\n"
                   + "Example: \"yv4=\" (for the hex value 0xCAFE)")
-          .build();
-
-  public static final GraphQLScalarType SMALLINT =
+          .build()),
+  SMALLINT(
+      Column.Type.Smallint,
       GraphQLScalarType.newScalar()
           .name("SmallInt")
           .coercing(IntCoercing.SMALLINT)
           .description(
-              "Represents a CQL `smallint` as an integer.\nThis is a 16-bit signed int.\n"
+              "Represents a CQL `smallint` as an integer.\n"
+                  + "This is a 16-bit signed int.\n"
                   + "An error will be thrown if the value is out of bounds.")
-          .build();
-
-  public static final GraphQLScalarType TINYINT =
+          .build()),
+  TINYINT(
+      Column.Type.Tinyint,
       GraphQLScalarType.newScalar()
           .name("TinyInt")
           .coercing(IntCoercing.TINYINT)
           .description(
-              "Represents a CQL `tinyint` as an integer\n.This is an 8-bit signed int.\n"
+              "Represents a CQL `tinyint` as an integer\n."
+                  + "This is an 8-bit signed int.\n"
                   + "An error will be thrown if the value is out of bounds.")
-          .build();
-
-  public static final GraphQLScalarType TIMESTAMP =
+          .build()),
+  TIMESTAMP(
+      Column.Type.Timestamp,
       GraphQLScalarType.newScalar()
           .name("Timestamp")
           .coercing(TimestampCoercing.INSTANCE)
           .description(
               "Represents a CQL `timestamp` as a string.\n"
                   + "This is an instantaneous point on the time-line.\n"
-                  + "This type supports many different string representations, "
-                  + "see https://docs.datastax.com/en/cql-oss/3.x/cql/cql_reference/timestamp_type_r.html\n"
-                  + "A timestamp can also be input as a numeric literal, which will be interpreted\n"
+                  + "This type supports many different string representations "
+                  + "(see https://docs.datastax.com/en/cql-oss/3.x/cql/cql_reference/timestamp_type_r.html). "
+                  + "A timestamp can also be input as a numeric literal, which will be interpreted "
                   + "as a number of milliseconds since the epoch (1970-01-01 UTC at midnight).\n"
                   + "Examples: \"2011-02-03 04:05+0000\", 1296705900000\n"
-                  + "String literals that do not include any time zone information will be\n"
+                  + "String literals that do not include any time zone information will be "
                   + "interpreted using the server's default time zone.")
-          .build();
-
-  public static final GraphQLScalarType TIME =
+          .build()),
+  TIME(
+      Column.Type.Time,
       GraphQLScalarType.newScalar()
           .name("Time")
           .coercing(TimeCoercing.INSTANCE)
           .description(
               "Represents a CQL `time` as a string.\n"
-                  + "This is a time without a time-zone in the ISO-8601 calendar system."
+                  + "This is a time without a time-zone in the ISO-8601 calendar system.\n"
                   + "Example: \"10:15:30.123456789\"\n"
-                  + "A time can also be input as a numeric literal, which will be interpreted\n"
+                  + "A time can also be input as a numeric literal, which will be interpreted "
                   + "as a number of nanoseconds since midnight.")
-          .build();
+          .build()),
+  ;
+
+  private static final Map<Column.Type, CqlScalar> FROM_CQL =
+      Arrays.stream(values()).collect(Collectors.toMap(CqlScalar::getCqlType, Function.identity()));
+  private static final Map<String, CqlScalar> FROM_GRAPHQL_NAME =
+      Arrays.stream(values())
+          .collect(Collectors.toMap(s -> s.getGraphqlType().getName(), Function.identity()));
+
+  private final Column.Type cqlType;
+  private final GraphQLScalarType graphqlType;
+
+  CqlScalar(Column.Type cqlType, graphql.schema.GraphQLScalarType graphqlType) {
+    this.cqlType = cqlType;
+    this.graphqlType = graphqlType;
+  }
+
+  public Column.Type getCqlType() {
+    return cqlType;
+  }
+
+  public GraphQLScalarType getGraphqlType() {
+    return graphqlType;
+  }
+
+  public static Optional<CqlScalar> fromCqlType(Column.Type cqlType) {
+    return Optional.ofNullable(FROM_CQL.get(cqlType));
+  }
+
+  public static Optional<CqlScalar> fromGraphqlName(String graphqlName) {
+    return Optional.ofNullable(FROM_GRAPHQL_NAME.get(graphqlName));
+  }
 }

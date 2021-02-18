@@ -54,10 +54,12 @@ public class InsertMappingModel extends MutationMappingModel {
 
   @Override
   public DataFetcher<?> getDataFetcher(
+      MappingModel mappingModel,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    return new InsertFetcher(this, authenticationService, authorizationService, dataStoreFactory);
+    return new InsertFetcher(
+        this, mappingModel, authenticationService, authorizationService, dataStoreFactory);
   }
 
   public static Optional<MutationMappingModel> build(

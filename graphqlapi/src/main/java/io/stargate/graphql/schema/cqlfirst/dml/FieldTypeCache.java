@@ -20,7 +20,7 @@ import graphql.schema.GraphQLScalarType;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.ImmutableListType;
-import io.stargate.graphql.schema.cqlfirst.dml.types.scalars.CustomScalars;
+import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.HashMap;
 import java.util.Map;
 import net.jcip.annotations.NotThreadSafe;
@@ -91,51 +91,20 @@ abstract class FieldTypeCache<GraphqlT> {
 
   protected GraphQLScalarType getScalar(Type type) {
     switch (type) {
-      case Ascii:
-        return CustomScalars.ASCII;
-      case Bigint:
-        return CustomScalars.BIGINT;
-      case Blob:
-        return CustomScalars.BLOB;
       case Boolean:
         return Scalars.GraphQLBoolean;
-      case Counter:
-        return CustomScalars.COUNTER;
-      case Decimal:
-        return CustomScalars.DECIMAL;
       case Double:
         // GraphQL's Float is a signed double‐precision fractional value
         return Scalars.GraphQLFloat;
-      case Duration:
-        return CustomScalars.DURATION;
-      case Float:
-        // Use a custom scalar named "Float32"
-        return CustomScalars.FLOAT;
       case Int:
         return Scalars.GraphQLInt;
-      case Smallint:
-        return CustomScalars.SMALLINT;
-      case Tinyint:
-        return CustomScalars.TINYINT;
       case Text:
       case Varchar:
         return Scalars.GraphQLString;
-      case Timestamp:
-        return CustomScalars.TIMESTAMP;
-      case Uuid:
-        return CustomScalars.UUID;
-      case Varint:
-        return CustomScalars.VARINT;
-      case Timeuuid:
-        return CustomScalars.TIMEUUID;
-      case Inet:
-        return CustomScalars.INET;
-      case Date:
-        return CustomScalars.DATE;
-      case Time:
-        return CustomScalars.TIME;
       default:
-        throw new IllegalArgumentException("Unsupported primitive type " + type);
+        return CqlScalar.fromCqlType(type)
+            .orElseThrow(() -> new IllegalArgumentException("Unsupported CQL type " + type))
+            .getGraphqlType();
     }
   }
 }
