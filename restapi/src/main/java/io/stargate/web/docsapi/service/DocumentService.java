@@ -921,23 +921,14 @@ public class DocumentService {
             .collect(Collectors.toList());
 
     Set<String> inCassandraPaths =
-        inCassandraFilters.stream().map(f -> f.getPathString()).collect(Collectors.toSet());
-    if (inCassandraPaths.size() > 1) {
-      // If the request involves more than one filter that could be handled by cassandra,
-      // it would require a CQL `OR` (which doesn't yet exist) - and so we have to default to using
-      // in-memory operations
-      // except for the first path found, since that can be supported by CQL
-      String firstPath = inCassandraPaths.stream().sorted().collect(Collectors.toList()).get(0);
-      List<FilterCondition> cassandraFiltersToUse =
-          inCassandraFilters.stream()
-              .filter(f -> f.getPath().equals(firstPath))
-              .collect(Collectors.toList());
-      List<FilterCondition> theRest =
-          inCassandraFilters.stream()
-              .filter(f -> !f.getPath().equals(firstPath))
-              .collect(Collectors.toList());
-      inMemoryFilters.addAll(theRest);
-      inCassandraFilters = cassandraFiltersToUse;
+        inCassandraFilters.stream().map(f -> f.getFullFieldPath()).collect(Collectors.toSet());
+    if (inCassandraPaths.size() > 1 || inMemoryFilters.size() > 0) {
+      // If the request involves more than one filter that could be handled by cassandra, or if
+      // there is a combination of supported and unsupported filters, then we have to default to the
+      // I/O intensive
+      // in-memory filter.
+      inCassandraFilters = new ArrayList<>();
+      inMemoryFilters = filters;
     }
 
     ImmutablePair<List<Row>, ByteBuffer> page;
@@ -1163,6 +1154,7 @@ public class DocumentService {
       throw new DocumentAPIRequestException(
           "The results as requested must fit in one page, try increasing the `page-size` parameter.");
     }
+
     rows = filterToSelectionSet(rows, fields, path);
     rows =
         applyInMemoryFilters(
