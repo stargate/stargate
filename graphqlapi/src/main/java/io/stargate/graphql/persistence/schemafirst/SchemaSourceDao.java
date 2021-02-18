@@ -41,7 +41,7 @@ public class SchemaSourceDao {
   @VisibleForTesting static final String LATEST_VERSION_COLUMN_NAME = "latest_version";
   @VisibleForTesting static final String CONTENTS_COLUMN_NAME = "contents";
   @VisibleForTesting static final String APPLIED_COLUMN_NAME = "[applied]";
-  private static final String DEPLOYMENT_IN_PROGRESS = "deployment_in_progress";
+  private static final String DEPLOYMENT_IN_PROGRESS_COLUMN_NAME = "deployment_in_progress";
 
   // We use a single partition
   private static final String UNIQUE_KEY = "key";
@@ -201,7 +201,7 @@ public class SchemaSourceDao {
                     Column.Order.DESC)
                 .column(LATEST_VERSION_COLUMN_NAME, Column.Type.Timeuuid, Column.Kind.Static)
                 .column(CONTENTS_COLUMN_NAME, Column.Type.Varchar)
-                .column(DEPLOYMENT_IN_PROGRESS, Column.Type.Boolean, Column.Kind.Static)
+                .column(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Column.Type.Boolean, Column.Kind.Static)
                 .build()
                 .bind())
         .get();
@@ -274,13 +274,13 @@ public class SchemaSourceDao {
       throws ExecutionException, InterruptedException {
 
     BuiltCondition schemaDeploymentInProgressNull =
-        BuiltCondition.of(DEPLOYMENT_IN_PROGRESS, Predicate.EQ, null);
+        BuiltCondition.of(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Predicate.EQ, null);
 
     BoundQuery updateDeploymentToInProgress =
         dataStore
             .queryBuilder()
             .update(namespace, TABLE_NAME)
-            .value(DEPLOYMENT_IN_PROGRESS, true)
+            .value(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, true)
             .where(KEY_CONDITION)
             .ifs(schemaDeploymentInProgressNull)
             .build()
@@ -294,13 +294,13 @@ public class SchemaSourceDao {
   private void transitionToNoSchemaDeploymentInProgress(String namespace)
       throws ExecutionException, InterruptedException {
     BuiltCondition schemaDeploymentInProgressTrue =
-        BuiltCondition.of(DEPLOYMENT_IN_PROGRESS, Predicate.EQ, true);
+        BuiltCondition.of(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Predicate.EQ, true);
 
     BoundQuery updateDeploymentToNotInProgress =
         dataStore
             .queryBuilder()
             .update(namespace, TABLE_NAME)
-            .value(DEPLOYMENT_IN_PROGRESS, null)
+            .value(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, null)
             .where(KEY_CONDITION)
             .ifs(schemaDeploymentInProgressTrue)
             .build()
