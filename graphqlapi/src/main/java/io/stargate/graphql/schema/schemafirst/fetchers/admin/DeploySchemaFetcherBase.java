@@ -77,43 +77,53 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
     UUID expectedVersion = getExpectedVersion(environment);
     MigrationStrategy migrationStrategy = environment.getArgument("migrationStrategy");
     boolean dryRun = environment.getArgument("dryRun");
+    if (!dryRun) {
+      if (!schemaSourceDao.startDeployment(namespace, expectedVersion)) {
+        throw new IllegalStateException(
+            String.format(
+                "It looks like someone else is deploying a new schema for namespace: %s and version: %s. "
+                    + "Please retry later.",
+                namespace, expectedVersion));
+      }
+    }
 
-    return schemaSourceDao.tryDeployNewSchema(
-        namespace,
-        () -> {
-          ImmutableMap.Builder<String, Object> response = ImmutableMap.builder();
-          ProcessedSchema processedSchema =
-              new SchemaProcessor(authenticationService, authorizationService, dataStoreFactory)
-                  .process(input, keyspace);
-          response.put(
-              "messages",
-              processedSchema.getMessages().stream()
-                  .map(this::formatMessage)
-                  .collect(Collectors.toList()));
+    ImmutableMap.Builder<String, Object> response = ImmutableMap.builder();
+    List<MigrationQuery> queries;
+    try {
+      ProcessedSchema processedSchema =
+          new SchemaProcessor(authenticationService, authorizationService, dataStoreFactory)
+              .process(input, keyspace);
+      response.put(
+          "messages",
+          processedSchema.getMessages().stream()
+              .map(this::formatMessage)
+              .collect(Collectors.toList()));
 
-          List<MigrationQuery> queries =
-              new CassandraMigrator(dataStore, processedSchema.getMappingModel(), migrationStrategy)
-                  .compute();
+      queries =
+          new CassandraMigrator(dataStore, processedSchema.getMappingModel(), migrationStrategy)
+              .compute();
 
-          response.put(
-              "cqlChanges",
-              queries.isEmpty()
-                  ? ImmutableList.of("No changes, the CQL schema is up to date")
-                  : queries.stream()
-                      .map(MigrationQuery::getDescription)
-                      .collect(Collectors.toList()));
+      response.put(
+          "cqlChanges",
+          queries.isEmpty()
+              ? ImmutableList.of("No changes, the CQL schema is up to date")
+              : queries.stream().map(MigrationQuery::getDescription).collect(Collectors.toList()));
+    } catch (Exception e) {
+      if (!dryRun) {
+        schemaSourceDao.abortDeployment(namespace); // unsets the flag (no need for LWT)
+      }
+      throw e;
+    }
 
-          if (!dryRun) {
-            for (MigrationQuery query : queries) {
-              dataStore.execute(query.build(dataStore)).get();
-            }
-            SchemaSource newSource = schemaSourceDao.insert(namespace, expectedVersion, input);
-            response.put("version", newSource.getVersion());
-            // TODO update SchemaFirstCache from here instead of letting it reload from the DB
-          }
-
-          return response.build();
-        });
+    if (!dryRun) {
+      for (MigrationQuery query : queries) {
+        dataStore.execute(query.build(dataStore)).get();
+      }
+      SchemaSource newSource = schemaSourceDao.insert(namespace, input);
+      response.put("version", newSource.getVersion());
+      // TODO update SchemaFirstCache from here instead of letting it reload from the DB
+    }
+    return response.build();
   }
 
   protected abstract String getSchemaContents(DataFetchingEnvironment environment)

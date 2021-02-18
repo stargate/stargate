@@ -55,6 +55,7 @@ public class SchemaDeploymentTest extends BaseOsgiIntegrationTest {
     // then
     Row row = session.execute("select * from graphql_schema").one();
     assertThat(row).isNotNull();
-    assertThat(row.isNull("deployment_in_progress")).isTrue();
+    assertThat(row.isNull("deployment_in_progress")).isFalse();
+    assertThat(row.getBoolean("deployment_in_progress")).isFalse();
   }
 }
