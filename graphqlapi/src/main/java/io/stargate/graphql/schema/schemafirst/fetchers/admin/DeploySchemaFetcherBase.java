@@ -58,6 +58,7 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)
       throws Exception {
+    SchemaSourceDao schemaSourceDao = new SchemaSourceDao(dataStore);
 
     String namespace = environment.getArgument("namespace");
     Keyspace keyspace = dataStore.schema().keyspace(namespace);
@@ -76,40 +77,52 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
     UUID expectedVersion = getExpectedVersion(environment);
     MigrationStrategy migrationStrategy = environment.getArgument("migrationStrategy");
     boolean dryRun = environment.getArgument("dryRun");
+    if (!dryRun) {
+      if (!schemaSourceDao.startDeployment(namespace, expectedVersion)) {
+        throw new IllegalStateException(
+            String.format(
+                "It looks like someone else is deploying a new schema for namespace: %s and version: %s. "
+                    + "Please retry later.",
+                namespace, expectedVersion));
+      }
+    }
 
     ImmutableMap.Builder<String, Object> response = ImmutableMap.builder();
-    ProcessedSchema processedSchema =
-        new SchemaProcessor(authenticationService, authorizationService, dataStoreFactory)
-            .process(input, keyspace);
-    response.put(
-        "messages",
-        processedSchema.getMessages().stream()
-            .map(this::formatMessage)
-            .collect(Collectors.toList()));
+    List<MigrationQuery> queries;
+    try {
+      ProcessedSchema processedSchema =
+          new SchemaProcessor(authenticationService, authorizationService, dataStoreFactory)
+              .process(input, keyspace);
+      response.put(
+          "messages",
+          processedSchema.getMessages().stream()
+              .map(this::formatMessage)
+              .collect(Collectors.toList()));
 
-    // TODO the rest of the method is racy -- we should at least ensure that two deploy mutations
-    // can't compete with each other (maybe add a "migration in progress" column in the database and
-    // do an additional LWT on it)
-    List<MigrationQuery> queries =
-        new CassandraMigrator(dataStore, processedSchema.getMappingModel(), migrationStrategy)
-            .compute();
+      queries =
+          new CassandraMigrator(dataStore, processedSchema.getMappingModel(), migrationStrategy)
+              .compute();
 
-    response.put(
-        "cqlChanges",
-        queries.isEmpty()
-            ? ImmutableList.of("No changes, the CQL schema is up to date")
-            : queries.stream().map(MigrationQuery::getDescription).collect(Collectors.toList()));
+      response.put(
+          "cqlChanges",
+          queries.isEmpty()
+              ? ImmutableList.of("No changes, the CQL schema is up to date")
+              : queries.stream().map(MigrationQuery::getDescription).collect(Collectors.toList()));
+    } catch (Exception e) {
+      if (!dryRun) {
+        schemaSourceDao.abortDeployment(namespace); // unsets the flag (no need for LWT)
+      }
+      throw e;
+    }
 
     if (!dryRun) {
       for (MigrationQuery query : queries) {
         dataStore.execute(query.build(dataStore)).get();
       }
-      SchemaSource newSource =
-          new SchemaSourceDao(dataStore).insert(namespace, expectedVersion, input);
+      SchemaSource newSource = schemaSourceDao.insert(namespace, input);
       response.put("version", newSource.getVersion());
       // TODO update SchemaFirstCache from here instead of letting it reload from the DB
     }
-
     return response.build();
   }
 
