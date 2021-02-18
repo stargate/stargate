@@ -33,6 +33,10 @@ public interface AuthenticationSubject {
 
   Map<String, String> customProperties();
 
+  default AuthenticatedUser asUser() {
+    return AuthenticatedUser.of(roleName(), token(), isFromExternalAuth(), customProperties());
+  }
+
   static AuthenticationSubject of(
       String token, String roleName, boolean fromExternalAuth, Map<String, String> properties) {
     return ImmutableAuthenticationSubject.builder()
