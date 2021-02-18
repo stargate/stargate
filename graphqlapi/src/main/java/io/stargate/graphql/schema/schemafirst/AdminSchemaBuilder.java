@@ -433,8 +433,12 @@ public class AdminSchemaBuilder {
                   .description(
                       "Warnings or other notices reported during deployment.\n"
                           + "Note that errors are reported as a GraphQL error, not here.")
-                  // TODO add an argument to filter by category
-                  // currently blocked by https://github.com/graphql-java/graphql-java/pull/2126
+                  .argument(
+                      newArgument()
+                          .name("category")
+                          .description("Filter the result to a particular category")
+                          .type(MESSAGE_CATEGORY_ENUM)
+                          .build())
                   .type(list(MESSAGE_TYPE))
                   .build())
           .field(
