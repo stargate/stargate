@@ -22,6 +22,7 @@ package org.apache.cassandra.stargate.metrics;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import io.netty.buffer.ByteBufAllocatorMetricProvider;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,6 +33,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.cassandra.metrics.DefaultNameFactory;
 import org.apache.cassandra.metrics.MetricNameFactory;
+import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.stargate.transport.internal.ClientStat;
 import org.apache.cassandra.stargate.transport.internal.ConnectedClient;
 import org.apache.cassandra.stargate.transport.internal.Server;
@@ -87,6 +89,9 @@ public final class ClientMetrics {
     this.servers = servers;
     this.metricRegistry = metricRegistry;
 
+    registerGauge("NettyDirectMemory", this::nettyDirectMemory);
+    registerGauge("NettyHeapMemory", this::nettyHeapMemory);
+
     registerGauge("connectedNativeClients", this::countConnectedClients);
     registerGauge("connectedNativeClientsByUser", this::countConnectedClientsByUser);
     registerGauge("connections", this::connectedClients);
@@ -100,6 +105,20 @@ public final class ClientMetrics {
     requestDiscarded = registerMeter("RequestDiscarded");
 
     initialized = true;
+  }
+
+  private long nettyDirectMemory() {
+    if (CBUtil.allocator instanceof ByteBufAllocatorMetricProvider) {
+      return ((ByteBufAllocatorMetricProvider) CBUtil.allocator).metric().usedDirectMemory();
+    }
+    return -1;
+  }
+
+  private long nettyHeapMemory() {
+    if (CBUtil.allocator instanceof ByteBufAllocatorMetricProvider) {
+      return ((ByteBufAllocatorMetricProvider) CBUtil.allocator).metric().usedHeapMemory();
+    }
+    return -1;
   }
 
   private int countConnectedClients() {
