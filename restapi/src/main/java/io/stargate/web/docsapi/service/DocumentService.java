@@ -85,11 +85,7 @@ public class DocumentService {
   }
 
   private String leftPadTo6(String value) {
-    String padded = "";
-    for (int pad = 0; pad < 6 - value.length(); pad++) {
-      padded += "0";
-    }
-    return padded + value;
+    return StringUtils.leftPad(value, 6, '0');
   }
 
   private String convertArrayPath(String path) {
@@ -418,7 +414,7 @@ public class DocumentService {
     List<Object[]> bindVariableList = shreddingResults.left;
     List<String> firstLevelKeys = shreddingResults.right;
 
-    if (bindVariableList.size() == 0 && isJson) {
+    if (bindVariableList.isEmpty() && isJson) {
       throw new DocumentAPIRequestException(
           "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: "
               + payload
@@ -459,7 +455,7 @@ public class DocumentService {
     ResultSet r = db.executeSelect(keyspace, collection, predicates);
     List<Row> rows = r.rows();
 
-    if (rows.size() == 0) {
+    if (rows.isEmpty()) {
       return null;
     }
     ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result =
@@ -648,7 +644,7 @@ public class DocumentService {
                 pageState)
             .left;
 
-    if (rows.size() == 0) return null;
+    if (rows.isEmpty()) return null;
 
     ObjectNode docsResult = mapper.createObjectNode();
     Map<String, List<Row>> rowsByDoc = new HashMap<>();
@@ -699,7 +695,7 @@ public class DocumentService {
             pageState);
     List<Row> rows = searchResult.left;
     ByteBuffer newpageState = searchResult.right;
-    if (rows.size() == 0) {
+    if (rows.isEmpty()) {
       return null;
     }
 
@@ -801,7 +797,7 @@ public class DocumentService {
       }
     }
 
-    if (chunksList.size() > 0 && !endOfResults) {
+    if (!chunksList.isEmpty() && !endOfResults) {
       return chunksList.get(chunksList.size() - 1);
     }
     return Collections.emptyList();
@@ -1112,7 +1108,7 @@ public class DocumentService {
 
     ResultSet r;
 
-    if (predicates.size() > 0) {
+    if (!predicates.isEmpty()) {
       r = db.executeSelect(keyspace, collection, predicates, true, pageSize, pageState);
     } else {
       r = db.executeSelectAll(keyspace, collection, pageSize, pageState);
@@ -1228,7 +1224,7 @@ public class DocumentService {
       List<FilterCondition> inMemoryFilters,
       int fieldsPerDoc,
       boolean numericBooleans) {
-    if (inMemoryFilters.size() == 0) {
+    if (inMemoryFilters.isEmpty()) {
       return rows;
     }
     Set<String> filterFieldPaths =
