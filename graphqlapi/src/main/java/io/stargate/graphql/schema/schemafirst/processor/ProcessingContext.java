@@ -35,14 +35,14 @@ class ProcessingContext {
   private final Keyspace keyspace;
   private final boolean isPersisted;
   private final EnumSet<CqlScalar> usedCqlScalars = EnumSet.noneOf(CqlScalar.class);
-  private final List<ProcessingMessage> messages;
-  private final List<ProcessingMessage> errors;
+  private final List<ProcessingMessage<ProcessingLogType>> logs;
+  private final List<ProcessingMessage<ProcessingErrorType>> errors;
 
   ProcessingContext(TypeDefinitionRegistry typeRegistry, Keyspace keyspace, boolean isPersisted) {
     this.typeRegistry = typeRegistry;
     this.keyspace = keyspace;
     this.isPersisted = isPersisted;
-    this.messages = new ArrayList<>();
+    this.logs = new ArrayList<>();
     this.errors = new ArrayList<>();
   }
 
@@ -76,33 +76,33 @@ class ProcessingContext {
 
   @FormatMethod
   void addInfo(SourceLocation location, @FormatString String format, Object... arguments) {
-    messages.add(new ProcessingMessage(location, ProcessingMessageType.Info, format, arguments));
+    logs.add(ProcessingMessage.log(location, ProcessingLogType.Info, format, arguments));
   }
 
   @FormatMethod
   void addWarning(SourceLocation location, @FormatString String format, Object... arguments) {
-    messages.add(new ProcessingMessage(location, ProcessingMessageType.Warning, format, arguments));
+    logs.add(ProcessingMessage.log(location, ProcessingLogType.Warning, format, arguments));
   }
 
   @FormatMethod
   void addError(
       SourceLocation location,
-      ProcessingMessageType messageType,
+      ProcessingErrorType messageType,
       @FormatString String format,
       Object... arguments) {
-    errors.add(new ProcessingMessage(location, messageType, format, arguments));
+    errors.add(ProcessingMessage.error(location, messageType, format, arguments));
   }
 
   /** Info or warning messages that will be included in the response to the deploy operation. */
-  List<ProcessingMessage> getMessages() {
-    return messages;
+  List<ProcessingMessage<ProcessingLogType>> getLogs() {
+    return logs;
   }
 
   /**
    * Any errors encountered during processing. We'll eventually throw an exception, but we want to
    * detect as many errors as possible.
    */
-  List<ProcessingMessage> getErrors() {
+  List<ProcessingMessage<ProcessingErrorType>> getErrors() {
     return errors;
   }
 }
