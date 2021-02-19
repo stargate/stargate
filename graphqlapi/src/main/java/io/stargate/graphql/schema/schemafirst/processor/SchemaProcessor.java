@@ -75,14 +75,22 @@ public class SchemaProcessor {
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
+  private final boolean isPersisted;
 
+  /**
+   * @param isPersisted whether we are processing a schema already stored in the database, or a
+   *     schema that a user is attempting to deploy. This is just used to customize a couple of
+   *     error messages.
+   */
   public SchemaProcessor(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
+      DataStoreFactory dataStoreFactory,
+      boolean isPersisted) {
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
+    this.isPersisted = isPersisted;
   }
 
   /**
@@ -98,7 +106,7 @@ public class SchemaProcessor {
    */
   public ProcessedSchema process(String source, Keyspace keyspace) {
     TypeDefinitionRegistry registry = parse(source);
-    ProcessingContext context = new ProcessingContext(registry, keyspace);
+    ProcessingContext context = new ProcessingContext(registry, keyspace, isPersisted);
     MappingModel mappingModel = MappingModel.build(registry, context);
 
     addGeneratedTypes(mappingModel, registry);
@@ -209,10 +217,12 @@ public class SchemaProcessor {
       return parser.parse(source);
     } catch (SchemaProblem schemaProblem) {
       List<GraphQLError> schemaErrors = schemaProblem.getErrors();
+      String schemaOrigin = isPersisted ? "stored for this namespace" : "that you provided";
       throw GraphqlErrorException.newErrorException()
           .message(
-              "The schema you provided is not valid GraphQL. "
-                  + "See details in `extensions.schemaErrors` below.")
+              String.format(
+                  "The schema %s is not valid GraphQL. See details in `extensions.schemaErrors` below.",
+                  schemaOrigin))
           .extensions(ImmutableMap.of("schemaErrors", schemaErrors))
           .build();
     }

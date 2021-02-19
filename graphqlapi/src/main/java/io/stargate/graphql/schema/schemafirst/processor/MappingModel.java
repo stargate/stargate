@@ -50,7 +50,7 @@ public class MappingModel {
     return operations;
   }
 
-  /** @throws GraphqlErrorException */
+  /** @throws GraphqlErrorException if the model contains mapping errors */
   static MappingModel build(TypeDefinitionRegistry registry, ProcessingContext context) {
 
     ImmutableMap.Builder<String, EntityMappingModel> entitiesBuilder = ImmutableMap.builder();
@@ -99,10 +99,13 @@ public class MappingModel {
 
     if (!context.getErrors().isEmpty()) {
       // No point in continuing to validation if the model is broken
+      String schemaOrigin =
+          context.isPersisted() ? "stored for this namespace" : "that you provided";
       throw GraphqlErrorException.newErrorException()
           .message(
-              "The schema you provided contains CQL mapping errors. "
-                  + "See details in `extensions.mappingErrors` below.")
+              String.format(
+                  "The GraphQL schema %s contains CQL mapping errors. See details in `extensions.mappingErrors` below.",
+                  schemaOrigin))
           .extensions(ImmutableMap.of("mappingErrors", context.getErrors()))
           .build();
     }

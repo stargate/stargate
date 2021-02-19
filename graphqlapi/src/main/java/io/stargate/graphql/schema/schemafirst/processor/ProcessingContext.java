@@ -20,6 +20,9 @@ import com.google.errorprone.annotations.FormatString;
 import graphql.GraphQL;
 import graphql.language.SourceLocation;
 import graphql.schema.idl.TypeDefinitionRegistry;
+import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.ArrayList;
@@ -30,13 +33,15 @@ class ProcessingContext {
 
   private final TypeDefinitionRegistry typeRegistry;
   private final Keyspace keyspace;
+  private final boolean isPersisted;
   private final EnumSet<CqlScalar> usedCqlScalars = EnumSet.noneOf(CqlScalar.class);
   private final List<ProcessingMessage> messages;
   private final List<ProcessingMessage> errors;
 
-  ProcessingContext(TypeDefinitionRegistry typeRegistry, Keyspace keyspace) {
+  ProcessingContext(TypeDefinitionRegistry typeRegistry, Keyspace keyspace, boolean isPersisted) {
     this.typeRegistry = typeRegistry;
     this.keyspace = keyspace;
+    this.isPersisted = isPersisted;
     this.messages = new ArrayList<>();
     this.errors = new ArrayList<>();
   }
@@ -49,6 +54,14 @@ class ProcessingContext {
   /** The keyspace that the schema will be deployed to. */
   Keyspace getKeyspace() {
     return keyspace;
+  }
+
+  /**
+   * @see SchemaProcessor#SchemaProcessor(AuthenticationService, AuthorizationService,
+   *     DataStoreFactory, boolean)
+   */
+  public boolean isPersisted() {
+    return isPersisted;
   }
 
   /**
