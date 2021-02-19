@@ -108,6 +108,9 @@ public class CassandraPersistence
         ViewDefinition> {
   private static final Logger logger = LoggerFactory.getLogger(CassandraPersistence.class);
 
+  private static final boolean USE_TRANSITIONAL_AUTH =
+      Boolean.getBoolean("stargate.cql_use_transitional_auth");
+
   /*
    * Initial schema migration can take greater than 2 * MigrationManager.MIGRATION_DELAY_IN_MS if a
    * live token owner doesn't become live within MigrationManager.MIGRATION_DELAY_IN_MS. Because it's
@@ -408,7 +411,7 @@ public class CassandraPersistence
     @Override
     protected void loginInternally(io.stargate.db.AuthenticatedUser user) {
       try {
-        if (user.isFromExternalAuth() && Boolean.getBoolean("stargate.cql_use_transitional_auth")) {
+        if (user.isFromExternalAuth() && USE_TRANSITIONAL_AUTH) {
           clientState.login(AuthenticatedUser.ANONYMOUS_USER);
         } else {
           clientState.login(new AuthenticatedUser(user.name()));
