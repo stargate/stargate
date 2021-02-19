@@ -60,7 +60,7 @@ class DirectiveHelper {
           } catch (IllegalArgumentException e) {
             context.addError(
                 directive.getSourceLocation(),
-                ProcessingMessageType.InvalidSyntax,
+                ProcessingErrorType.InvalidSyntax,
                 "%s.%s: invalid value '%s', must be an enum constant",
                 directive.getName(),
                 argumentName,
@@ -86,7 +86,7 @@ class DirectiveHelper {
               } else {
                 context.addError(
                     directive.getSourceLocation(),
-                    ProcessingMessageType.InvalidSyntax,
+                    ProcessingErrorType.InvalidSyntax,
                     "%s.%s: invalid value, expected a %s",
                     directive.getName(),
                     argumentName,
