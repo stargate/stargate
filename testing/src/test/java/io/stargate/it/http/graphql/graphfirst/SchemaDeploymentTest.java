@@ -97,7 +97,7 @@ public class SchemaDeploymentTest extends BaseOsgiIntegrationTest {
     // when
     String error =
         CLIENT.getDeploySchemaError(
-            keyspaceId.asInternal(), wrongExpectedVersion.toString(), "mock contents 2");
+            keyspaceId.asInternal(), wrongExpectedVersion.toString(), SCHEMA_CONTENTS);
 
     // then
     assertThat(error)
@@ -115,9 +115,27 @@ public class SchemaDeploymentTest extends BaseOsgiIntegrationTest {
     UUID wrongExpectedVersion = Uuids.timeBased();
     String error =
         CLIENT.getDeploySchemaError(
-            keyspaceId.asInternal(), wrongExpectedVersion.toString(), "mock contents");
+            keyspaceId.asInternal(), wrongExpectedVersion.toString(), SCHEMA_CONTENTS);
 
     // then
     assertThat(error).contains("You specified expectedVersion but no previous version was found");
+  }
+
+  @Test
+  @DisplayName("Should fail to deploy schema when table has the wrong structure")
+  public void deploySchemaWhenWrongTableStructure(
+      @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+    // given
+    session.execute("CREATE TABLE graphql_schema(k int PRIMARY KEY)");
+
+    // when
+    String error = CLIENT.getDeploySchemaError(keyspaceId.asInternal(), null, SCHEMA_CONTENTS);
+
+    // then
+    assertThat(error)
+        .contains(
+            String.format(
+                "Table '%s.graphql_schema' already exists, but it doesn't have the expected structure",
+                keyspaceId.asInternal()));
   }
 }

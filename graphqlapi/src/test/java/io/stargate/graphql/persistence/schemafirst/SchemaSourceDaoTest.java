@@ -29,10 +29,7 @@ import io.stargate.db.schema.*;
 import io.stargate.graphql.schema.schemafirst.util.Uuids;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 
 class SchemaSourceDaoTest {
 
@@ -89,107 +86,6 @@ class SchemaSourceDaoTest {
 
     // then
     assertThat(schema).isNull();
-  }
-
-  private static Stream<Table> notExpectedSchemaProvider() {
-    ImmutableTable tableWithoutPartitionKey =
-        ImmutableTable.builder()
-            .name(TABLE_NAME)
-            .keyspace("ns")
-            .addColumns(
-                ImmutableColumn.create(
-                    VERSION_COLUMN_NAME,
-                    Column.Kind.Clustering,
-                    Column.Type.Timeuuid,
-                    Column.Order.DESC))
-            .addColumns(
-                ImmutableColumn.create(
-                    LATEST_VERSION_COLUMN_NAME, Column.Kind.Static, Column.Type.Timeuuid))
-            .addColumns(ImmutableColumn.create(CONTENTS_COLUMN_NAME, Column.Type.Varchar))
-            .build();
-
-    ImmutableTable tableWithoutClusteringKey =
-        ImmutableTable.builder()
-            .name(TABLE_NAME)
-            .keyspace("ns")
-            .addColumns(
-                ImmutableColumn.create(
-                    KEY_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Varchar))
-            .addColumns(
-                ImmutableColumn.create(
-                    LATEST_VERSION_COLUMN_NAME, Column.Kind.Static, Column.Type.Timeuuid))
-            .addColumns(ImmutableColumn.create(CONTENTS_COLUMN_NAME, Column.Type.Varchar))
-            .build();
-
-    ImmutableTable tableWithoutLatestVersion =
-        ImmutableTable.builder()
-            .name(TABLE_NAME)
-            .keyspace("ns")
-            .addColumns(
-                ImmutableColumn.create(
-                    KEY_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Varchar))
-            .addColumns(
-                ImmutableColumn.create(
-                    VERSION_COLUMN_NAME,
-                    Column.Kind.Clustering,
-                    Column.Type.Timeuuid,
-                    Column.Order.DESC))
-            .addColumns(ImmutableColumn.create(CONTENTS_COLUMN_NAME, Column.Type.Varchar))
-            .build();
-
-    ImmutableTable tableWithoutContents =
-        ImmutableTable.builder()
-            .name(TABLE_NAME)
-            .keyspace("ns")
-            .addColumns(
-                ImmutableColumn.create(
-                    KEY_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Varchar))
-            .addColumns(
-                ImmutableColumn.create(
-                    VERSION_COLUMN_NAME,
-                    Column.Kind.Clustering,
-                    Column.Type.Timeuuid,
-                    Column.Order.DESC))
-            .addColumns(
-                ImmutableColumn.create(
-                    LATEST_VERSION_COLUMN_NAME, Column.Kind.Static, Column.Type.Timeuuid))
-            .build();
-    return Stream.of(
-        tableWithoutPartitionKey,
-        tableWithoutClusteringKey,
-        tableWithoutLatestVersion,
-        tableWithoutContents);
-  }
-
-  @ParameterizedTest
-  @MethodSource("notExpectedSchemaProvider")
-  public void shouldFailIfTableDoesNotHaveExpectedSchema(Table table) {
-    assertThat(SchemaSourceDao.hasExpectedSchema(table)).isFalse();
-  }
-
-  @Test
-  public void shouldPassIfTableHasExpectedSchema() {
-    // given
-    ImmutableTable table =
-        ImmutableTable.builder()
-            .name(TABLE_NAME)
-            .keyspace("ns")
-            .addColumns(
-                ImmutableColumn.create(
-                    KEY_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Varchar))
-            .addColumns(
-                ImmutableColumn.create(
-                    VERSION_COLUMN_NAME,
-                    Column.Kind.Clustering,
-                    Column.Type.Timeuuid,
-                    Column.Order.DESC))
-            .addColumns(
-                ImmutableColumn.create(
-                    LATEST_VERSION_COLUMN_NAME, Column.Kind.Static, Column.Type.Timeuuid))
-            .addColumns(ImmutableColumn.create(CONTENTS_COLUMN_NAME, Column.Type.Varchar))
-            .build();
-    // when, then
-    assertThat(SchemaSourceDao.hasExpectedSchema(table)).isTrue();
   }
 
   @Test
