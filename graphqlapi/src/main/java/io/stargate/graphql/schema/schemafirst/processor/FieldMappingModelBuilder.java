@@ -16,7 +16,6 @@
 package io.stargate.graphql.schema.schemafirst.processor;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.errorprone.annotations.FormatMethod;
 import graphql.Scalars;
 import graphql.language.Directive;
 import graphql.language.EnumTypeDefinition;
@@ -38,7 +37,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-class FieldMappingModelBuilder {
+class FieldMappingModelBuilder extends ModelBuilderBase {
 
   private static final Map<String, Column.ColumnType> GRAPHQL_SCALAR_MAPPINGS =
       ImmutableMap.<String, Column.ColumnType>builder()
@@ -50,7 +49,6 @@ class FieldMappingModelBuilder {
           .build();
 
   private final FieldDefinition field;
-  private final ProcessingContext context;
   private final String parentName;
   private final EntityMappingModel.Target targetContainer;
   private final boolean checkForInputType;
@@ -66,8 +64,9 @@ class FieldMappingModelBuilder {
       EntityMappingModel.Target targetContainer,
       boolean checkForInputType) {
 
+    super(context, field.getSourceLocation());
+
     this.field = field;
-    this.context = context;
     this.parentName = parentName;
     this.targetContainer = targetContainer;
     this.checkForInputType = checkForInputType;
@@ -286,22 +285,5 @@ class FieldMappingModelBuilder {
 
   private static Column.Type turnSetIntoList(Column.Type type) {
     return (type == Column.Type.Set) ? Column.Type.List : type;
-  }
-
-  @FormatMethod
-  private void warn(String format, Object... arguments) {
-    context.addWarning(field.getSourceLocation(), format, arguments);
-  }
-
-  @FormatMethod
-  private void invalidMapping(String format, Object... arguments) {
-    context.addError(
-        field.getSourceLocation(), ProcessingErrorType.InvalidMapping, format, arguments);
-  }
-
-  @FormatMethod
-  private void invalidSyntax(String format, Object... arguments) {
-    context.addError(
-        field.getSourceLocation(), ProcessingErrorType.InvalidSyntax, format, arguments);
   }
 }
