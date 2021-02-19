@@ -288,12 +288,12 @@ class FieldMappingModelBuilder {
   @FormatMethod
   private void invalidMapping(String format, Object... arguments) {
     context.addError(
-        field.getSourceLocation(), ProcessingMessageType.InvalidMapping, format, arguments);
+        field.getSourceLocation(), ProcessingErrorType.InvalidMapping, format, arguments);
   }
 
   @FormatMethod
   private void invalidSyntax(String format, Object... arguments) {
     context.addError(
-        field.getSourceLocation(), ProcessingMessageType.InvalidSyntax, format, arguments);
+        field.getSourceLocation(), ProcessingErrorType.InvalidSyntax, format, arguments);
   }
 }

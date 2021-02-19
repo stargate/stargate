@@ -54,6 +54,7 @@ import io.stargate.graphql.schema.schemafirst.fetchers.admin.DropNamespaceFetche
 import io.stargate.graphql.schema.schemafirst.fetchers.admin.SingleNamespaceFetcher;
 import io.stargate.graphql.schema.schemafirst.fetchers.admin.SingleSchemaFetcher;
 import io.stargate.graphql.schema.schemafirst.migration.MigrationStrategy;
+import io.stargate.graphql.schema.schemafirst.processor.ProcessingLogType;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import io.stargate.graphql.web.resources.schemafirst.ResourcePaths;
 import java.io.InputStream;
@@ -392,12 +393,20 @@ public class AdminSchemaBuilder {
                   .build())
           .build();
 
-  private static final GraphQLEnumType MESSAGE_CATEGORY_ENUM =
+  private static final GraphQLEnumType LOG_CATEGORY_ENUM =
       newEnum()
-          .name("MessageCategory")
-          .description("The categories of messages returned by deploy mutations.")
-          .value("INFO")
-          .value("WARNING")
+          .name("LogCategory")
+          .description("The categories of logs emitted by deploy mutations.")
+          .value(
+              newEnumValueDefinition()
+                  .name(ProcessingLogType.Info.name().toUpperCase())
+                  .value(ProcessingLogType.Info)
+                  .build())
+          .value(
+              newEnumValueDefinition()
+                  .name(ProcessingLogType.Warning.name().toUpperCase())
+                  .value(ProcessingLogType.Warning)
+                  .build())
           .build();
 
   private static final GraphQLObjectType LOCATION_TYPE =
@@ -408,12 +417,12 @@ public class AdminSchemaBuilder {
           .field(newFieldDefinition().name("column").type(GraphQLInt).build())
           .build();
 
-  private static final GraphQLObjectType MESSAGE_TYPE =
+  private static final GraphQLObjectType LOG_TYPE =
       newObject()
-          .name("Message")
-          .description("A message returned by a deploy mutation.")
-          .field(newFieldDefinition().name("contents").type(nonNull(GraphQLString)).build())
-          .field(newFieldDefinition().name("category").type(nonNull(MESSAGE_CATEGORY_ENUM)).build())
+          .name("Log")
+          .description("A log emitted by a deploy mutation.")
+          .field(newFieldDefinition().name("message").type(nonNull(GraphQLString)).build())
+          .field(newFieldDefinition().name("category").type(nonNull(LOG_CATEGORY_ENUM)).build())
           .field(newFieldDefinition().name("locations").type(list(LOCATION_TYPE)).build())
           .build();
 
@@ -429,13 +438,17 @@ public class AdminSchemaBuilder {
                   .build())
           .field(
               newFieldDefinition()
-                  .name("messages")
+                  .name("logs")
                   .description(
-                      "Warnings or other notices reported during deployment.\n"
+                      "Warnings or info logs emitted during the deployment.\n"
                           + "Note that errors are reported as a GraphQL error, not here.")
-                  // TODO add an argument to filter by category
-                  // currently blocked by https://github.com/graphql-java/graphql-java/pull/2126
-                  .type(list(MESSAGE_TYPE))
+                  .argument(
+                      newArgument()
+                          .name("category")
+                          .description("Filter the logs to a particular category")
+                          .type(LOG_CATEGORY_ENUM)
+                          .build())
+                  .type(list(LOG_TYPE))
                   .build())
           .field(
               newFieldDefinition()

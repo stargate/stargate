@@ -15,9 +15,6 @@
  */
 package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import graphql.GraphqlErrorHelper;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
@@ -34,16 +31,12 @@ import io.stargate.graphql.schema.schemafirst.migration.CassandraMigrator;
 import io.stargate.graphql.schema.schemafirst.migration.MigrationQuery;
 import io.stargate.graphql.schema.schemafirst.migration.MigrationStrategy;
 import io.stargate.graphql.schema.schemafirst.processor.ProcessedSchema;
-import io.stargate.graphql.schema.schemafirst.processor.ProcessingMessage;
 import io.stargate.graphql.schema.schemafirst.processor.SchemaProcessor;
 import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Object>> {
+abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResponseDto> {
 
   DeploySchemaFetcherBase(
       AuthenticationService authenticationService,
@@ -53,7 +46,7 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
   }
 
   @Override
-  protected Map<String, Object> get(
+  protected DeploySchemaResponseDto get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)
@@ -81,27 +74,18 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
       schemaSourceDao.startDeployment(namespace, expectedVersion);
     }
 
-    ImmutableMap.Builder<String, Object> response = ImmutableMap.builder();
+    DeploySchemaResponseDto response = new DeploySchemaResponseDto();
     List<MigrationQuery> queries;
     try {
       ProcessedSchema processedSchema =
           new SchemaProcessor(authenticationService, authorizationService, dataStoreFactory, false)
               .process(input, keyspace);
-      response.put(
-          "messages",
-          processedSchema.getMessages().stream()
-              .map(this::formatMessage)
-              .collect(Collectors.toList()));
+      response.setLogs(processedSchema.getLogs());
 
       queries =
           CassandraMigrator.forDeployment(migrationStrategy)
               .compute(processedSchema.getMappingModel(), keyspace);
-
-      response.put(
-          "cqlChanges",
-          queries.isEmpty()
-              ? ImmutableList.of("No changes, the CQL schema is up to date")
-              : queries.stream().map(MigrationQuery::getDescription).collect(Collectors.toList()));
+      response.setCqlChanges(queries);
     } catch (Exception e) {
       if (!dryRun) {
         schemaSourceDao.abortDeployment(namespace); // unsets the flag (no need for LWT)
@@ -114,10 +98,10 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
         dataStore.execute(query.build(dataStore)).get();
       }
       SchemaSource newSource = schemaSourceDao.insert(namespace, input);
-      response.put("version", newSource.getVersion());
+      response.setVersion(newSource.getVersion());
       // TODO update SchemaFirstCache from here instead of letting it reload from the DB
     }
-    return response.build();
+    return response;
   }
 
   protected abstract String getSchemaContents(DataFetchingEnvironment environment)
@@ -132,17 +116,5 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
       throw new IllegalArgumentException("Invalid 'expectedVersion' value.");
     }
     return expectedVersion;
-  }
-
-  private Map<String, Object> formatMessage(ProcessingMessage message) {
-    return ImmutableMap.of(
-        "contents",
-        message.getMessage(),
-        "category",
-        message.getErrorType().toString().toUpperCase(Locale.ENGLISH),
-        "locations",
-        message.getLocations().stream()
-            .map(GraphqlErrorHelper::location)
-            .collect(Collectors.toList()));
   }
 }

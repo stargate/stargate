@@ -78,7 +78,7 @@ public class QueryMappingModel extends OperationMappingModel {
     if (entityName == null || !entities.containsKey(entityName)) {
       context.addError(
           query.getSourceLocation(),
-          ProcessingMessageType.InvalidMapping,
+          ProcessingErrorType.InvalidMapping,
           "Query %s: expected the return type to be an object that maps to an entity",
           query.getName());
       return Optional.empty();
@@ -91,7 +91,7 @@ public class QueryMappingModel extends OperationMappingModel {
     if (inputValues.size() != primaryKey.size()) {
       context.addError(
           query.getSourceLocation(),
-          ProcessingMessageType.InvalidMapping,
+          ProcessingErrorType.InvalidMapping,
           "Query %s: expected the number of arguments (%d) "
               + "to match number of partition key + clustering column fields on the entity (%d)",
           query.getName(),
@@ -110,7 +110,7 @@ public class QueryMappingModel extends OperationMappingModel {
       if (!argumentType.isEqualTo(field.getGraphqlType())) {
         context.addError(
             argument.getSourceLocation(),
-            ProcessingMessageType.InvalidMapping,
+            ProcessingErrorType.InvalidMapping,
             "Query %s: expected argument %s to have the same type as %s.%s",
             query.getName(),
             argument.getName(),
