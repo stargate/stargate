@@ -85,7 +85,7 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
     List<MigrationQuery> queries;
     try {
       ProcessedSchema processedSchema =
-          new SchemaProcessor(authenticationService, authorizationService, dataStoreFactory)
+          new SchemaProcessor(authenticationService, authorizationService, dataStoreFactory, false)
               .process(input, keyspace);
       response.put(
           "messages",
@@ -94,8 +94,8 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
               .collect(Collectors.toList()));
 
       queries =
-          new CassandraMigrator(dataStore, processedSchema.getMappingModel(), migrationStrategy)
-              .compute();
+          CassandraMigrator.forDeployment(migrationStrategy)
+              .compute(processedSchema.getMappingModel(), keyspace);
 
       response.put(
           "cqlChanges",

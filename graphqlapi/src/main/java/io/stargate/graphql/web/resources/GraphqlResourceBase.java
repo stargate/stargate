@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import graphql.ExecutionInput;
 import graphql.GraphQL;
+import graphql.GraphqlErrorException;
 import io.stargate.graphql.web.HttpAwareContext;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlDdlResource;
@@ -335,7 +336,16 @@ public class GraphqlResourceBase {
       Status status, String message, @Suspended AsyncResponse asyncResponse) {
     asyncResponse.resume(
         Response.status(status)
-            .entity(ImmutableMap.of("errors", ImmutableList.of(message)))
+            .entity(
+                ImmutableMap.of("errors", ImmutableList.of(ImmutableMap.of("message", message))))
+            .build());
+  }
+
+  protected static void replyWithGraphqlError(
+      Status status, GraphqlErrorException error, @Suspended AsyncResponse asyncResponse) {
+    asyncResponse.resume(
+        Response.status(status)
+            .entity(ImmutableMap.of("errors", ImmutableList.of(error.toSpecification())))
             .build());
   }
 }
