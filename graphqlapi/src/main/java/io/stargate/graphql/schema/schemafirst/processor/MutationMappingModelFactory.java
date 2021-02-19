@@ -54,7 +54,7 @@ public class MutationMappingModelFactory {
     }
     context.addError(
         mutation.getSourceLocation(),
-        ProcessingMessageType.InvalidMapping,
+        ProcessingErrorType.InvalidMapping,
         "Mutation %s: could not infer mutation kind. Either use one of the mutation "
             + "directives (%s), or name your operation with a recognized prefix.",
         mutation.getName(),
