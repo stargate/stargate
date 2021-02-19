@@ -114,6 +114,7 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<Map<String, Obje
         dataStore.execute(query.build(dataStore)).get();
       }
       SchemaSource newSource = schemaSourceDao.insert(namespace, input);
+      schemaSourceDao.purgeOldSchemaEntries(namespace);
       response.put("version", newSource.getVersion());
       // TODO update SchemaFirstCache from here instead of letting it reload from the DB
     }

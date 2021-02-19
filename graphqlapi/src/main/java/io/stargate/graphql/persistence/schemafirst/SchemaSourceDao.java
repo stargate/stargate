@@ -33,10 +33,12 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // TODO purge old entries
 public class SchemaSourceDao {
-
+  private static final Logger logger = LoggerFactory.getLogger(SchemaSourceDao.class);
   public static final String TABLE_NAME = "graphql_schema";
   @VisibleForTesting static final String KEY_COLUMN_NAME = "key";
   @VisibleForTesting static final String VERSION_COLUMN_NAME = "version";
@@ -44,6 +46,7 @@ public class SchemaSourceDao {
   @VisibleForTesting static final String CONTENTS_COLUMN_NAME = "contents";
   @VisibleForTesting static final String APPLIED_COLUMN_NAME = "[applied]";
   private static final String DEPLOYMENT_IN_PROGRESS_COLUMN_NAME = "deployment_in_progress";
+  private static final int NUMBER_OF_RETAINED_SCHEMA_VERSIONS = 10;
 
   // We use a single partition
   private static final String UNIQUE_KEY = "key";
@@ -130,6 +133,7 @@ public class SchemaSourceDao {
         .column(VERSION_COLUMN_NAME, CONTENTS_COLUMN_NAME)
         .from(namespace, TABLE_NAME)
         .where(KEY_CONDITION)
+        .orderBy(VERSION_COLUMN_NAME, Column.Order.DESC)
         .build()
         .bind();
   }
@@ -281,5 +285,34 @@ public class SchemaSourceDao {
             .build()
             .bind();
     dataStore.execute(updateDeploymentToNotInProgress).get();
+  }
+
+  public void purgeOldSchemaEntries(String namespace) throws Exception {
+    List<SchemaSource> allSchemasForNamespace = getSchemaHistory(namespace);
+
+    int numberOfEntriesToRemove =
+        allSchemasForNamespace.size() - NUMBER_OF_RETAINED_SCHEMA_VERSIONS;
+    if (numberOfEntriesToRemove > 0) {
+      logger.info("Removing {} old schema entries.", numberOfEntriesToRemove);
+
+      // remove N oldest entries
+      List<SchemaSource> schemasToRemove =
+          allSchemasForNamespace.subList(
+              NUMBER_OF_RETAINED_SCHEMA_VERSIONS, allSchemasForNamespace.size());
+
+      for (SchemaSource schemaSource : schemasToRemove) {
+        BoundQuery deleteSchemaQuery =
+            dataStore
+                .queryBuilder()
+                .delete()
+                .from(namespace, TABLE_NAME)
+                .where(KEY_CONDITION)
+                .where(VERSION_COLUMN_NAME, Predicate.EQ, schemaSource.getVersion())
+                .build()
+                .bind();
+
+        dataStore.execute(deleteSchemaQuery).get();
+      }
+    }
   }
 }
