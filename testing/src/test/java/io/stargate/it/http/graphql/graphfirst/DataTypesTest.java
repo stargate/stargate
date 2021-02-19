@@ -23,7 +23,6 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.jayway.jsonpath.JsonPath;
-import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
@@ -42,7 +41,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 @ExtendWith(CqlSessionExtension.class)
-public class DataTypesTest extends BaseOsgiIntegrationTest {
+public class DataTypesTest extends GraphqlFirstTestBase {
 
   private static final UUID ID = UUID.randomUUID();
   private static GraphqlFirstClient CLIENT;
@@ -54,8 +53,8 @@ public class DataTypesTest extends BaseOsgiIntegrationTest {
   }
 
   @BeforeEach
-  public void resetKeyspace(CqlSession session) {
-    session.execute("DROP TABLE IF EXISTS graphql_schema");
+  public void cleanupDb(@TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+    deleteAllGraphqlSchemas(keyspaceId.asInternal(), session);
     session.execute("DROP TABLE IF EXISTS \"Holder\"");
     session.execute("DROP TYPE IF EXISTS \"Location\"");
     session.execute("DROP TYPE IF EXISTS \"Address\"");
