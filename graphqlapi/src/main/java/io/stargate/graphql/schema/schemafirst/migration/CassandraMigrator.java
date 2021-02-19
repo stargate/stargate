@@ -18,9 +18,8 @@ package io.stargate.graphql.schema.schemafirst.migration;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import graphql.GraphqlErrorException;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Column;
-import io.stargate.db.schema.Schema;
+import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.SchemaEntity;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
@@ -36,22 +35,29 @@ import java.util.stream.Collectors;
 
 public class CassandraMigrator {
 
-  private final DataStore dataStore;
-  private final MappingModel mappingModel;
-  private final MigrationStrategy strategy;
+  /** Creates a new instance for a deployment initiated by the user. */
+  public static CassandraMigrator forDeployment(MigrationStrategy strategy) {
+    return new CassandraMigrator(strategy, false);
+  }
 
-  public CassandraMigrator(
-      DataStore dataStore, MappingModel mappingModel, MigrationStrategy strategy) {
-    this.dataStore = dataStore;
-    this.mappingModel = mappingModel;
+  /**
+   * Creates a new instance for a GraphQL schema already stored in the database (from a previous
+   * deployment).
+   */
+  public static CassandraMigrator forPersisted() {
+    return new CassandraMigrator(MigrationStrategy.USE_EXISTING, true);
+  }
+
+  private final MigrationStrategy strategy;
+  private final boolean isPersisted;
+
+  private CassandraMigrator(MigrationStrategy strategy, boolean isPersisted) {
     this.strategy = strategy;
+    this.isPersisted = isPersisted;
   }
 
   /** @throws GraphqlErrorException if the CQL data model can't be migrated */
-  public List<MigrationQuery> compute() {
-
-    Schema schema = dataStore.schema();
-
+  public List<MigrationQuery> compute(MappingModel mappingModel, Keyspace keyspace) {
     List<MigrationQuery> queries = new ArrayList<>();
     List<String> errors = new ArrayList<>();
 
@@ -59,7 +65,7 @@ public class CassandraMigrator {
       switch (entity.getTarget()) {
         case TABLE:
           Table expectedTable = entity.getTableCqlSchema();
-          Table actualTable = schema.keyspace(entity.getKeyspaceName()).table(entity.getCqlName());
+          Table actualTable = keyspace.table(entity.getCqlName());
           compute(
               expectedTable,
               actualTable,
@@ -73,8 +79,7 @@ public class CassandraMigrator {
           break;
         case UDT:
           UserDefinedType expectedType = entity.getUdtCqlSchema();
-          UserDefinedType actualType =
-              schema.keyspace(entity.getKeyspaceName()).userDefinedType(entity.getCqlName());
+          UserDefinedType actualType = keyspace.userDefinedType(entity.getCqlName());
           compute(
               expectedType,
               actualType,
@@ -91,13 +96,16 @@ public class CassandraMigrator {
       }
     }
     if (!errors.isEmpty()) {
+      String message =
+          isPersisted
+              ? "The GraphQL schema stored for this namespace doesn't match the CQL data model "
+                  + "anymore. It looks like the database was altered manually."
+              : String.format(
+                  "The GraphQL schema that you provided can't be mapped to the current CQL data "
+                      + "model. Consider using a different migration strategy (current: %s).",
+                  strategy);
       throw GraphqlErrorException.newErrorException()
-          .message(
-              String.format(
-                  "The schema you provided can't be mapped to the current CQL data model."
-                      + "Consider using a different migration strategy (current: %s). "
-                      + "See details in `extensions.migrationErrors` below.",
-                  strategy))
+          .message(message + " See details in `extensions.migrationErrors` below.")
           .extensions(ImmutableMap.of("migrationErrors", errors))
           .build();
     }
