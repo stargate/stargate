@@ -21,10 +21,12 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
-import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.ImmutableColumn;
+import io.stargate.db.schema.ImmutableTable;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
+import io.stargate.graphql.schema.schemafirst.migration.CassandraSchemaHelper;
 import io.stargate.graphql.schema.schemafirst.util.Uuids;
 import java.util.Collections;
 import java.util.List;
@@ -45,10 +47,28 @@ public class SchemaSourceDao {
   @VisibleForTesting static final String APPLIED_COLUMN_NAME = "[applied]";
   private static final String DEPLOYMENT_IN_PROGRESS_COLUMN_NAME = "deployment_in_progress";
 
+  private static final Table EXPECTED_TABLE =
+      ImmutableTable.builder()
+          .keyspace("ks") // mock keyspace name, it won't be used
+          .name(TABLE_NAME)
+          .addColumns(
+              ImmutableColumn.create(
+                  KEY_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Varchar),
+              ImmutableColumn.create(
+                  VERSION_COLUMN_NAME,
+                  Column.Kind.Clustering,
+                  Column.Type.Timeuuid,
+                  Column.Order.DESC),
+              ImmutableColumn.create(
+                  CONTENTS_COLUMN_NAME, Column.Kind.Regular, Column.Type.Varchar),
+              ImmutableColumn.create(
+                  LATEST_VERSION_COLUMN_NAME, Column.Kind.Static, Column.Type.Timeuuid),
+              ImmutableColumn.create(
+                  DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Column.Kind.Static, Column.Type.Boolean))
+          .build();
+
   // We use a single partition
   private static final String UNIQUE_KEY = "key";
-  static final BuiltCondition KEY_CONDITION =
-      BuiltCondition.of(KEY_COLUMN_NAME, Predicate.EQ, UNIQUE_KEY);
 
   private final DataStore dataStore;
 
@@ -116,7 +136,7 @@ public class SchemaSourceDao {
         .select()
         .column(VERSION_COLUMN_NAME, CONTENTS_COLUMN_NAME)
         .from(namespace, TABLE_NAME)
-        .where(KEY_CONDITION)
+        .where(KEY_COLUMN_NAME, Predicate.EQ, UNIQUE_KEY)
         .where(VERSION_COLUMN_NAME, Predicate.EQ, uuid)
         .build()
         .bind();
@@ -129,15 +149,13 @@ public class SchemaSourceDao {
         .select()
         .column(VERSION_COLUMN_NAME, CONTENTS_COLUMN_NAME)
         .from(namespace, TABLE_NAME)
-        .where(KEY_CONDITION)
+        .where(KEY_COLUMN_NAME, Predicate.EQ, UNIQUE_KEY)
         .build()
         .bind();
   }
 
   /** @return the new version */
-  public SchemaSource insert(String namespace, String newContents) throws Exception {
-
-    ensureTableExists(namespace);
+  public SchemaSource insert(String namespace, String newContents) {
 
     UUID newVersion = Uuids.timeBased();
 
@@ -172,15 +190,7 @@ public class SchemaSourceDao {
                 .create()
                 .table(namespace, TABLE_NAME)
                 .ifNotExists()
-                .column(KEY_COLUMN_NAME, Column.Type.Varchar, Column.Kind.PartitionKey)
-                .column(
-                    VERSION_COLUMN_NAME,
-                    Column.Type.Timeuuid,
-                    Column.Kind.Clustering,
-                    Column.Order.DESC)
-                .column(LATEST_VERSION_COLUMN_NAME, Column.Type.Timeuuid, Column.Kind.Static)
-                .column(CONTENTS_COLUMN_NAME, Column.Type.Varchar)
-                .column(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Column.Type.Boolean, Column.Kind.Static)
+                .column(EXPECTED_TABLE.columns())
                 .build()
                 .bind())
         .get();
@@ -191,43 +201,12 @@ public class SchemaSourceDao {
   }
 
   private static void failIfUnexpectedSchema(String namespace, Table table) {
-    if (!hasExpectedSchema(table)) {
+    if (!CassandraSchemaHelper.compare(EXPECTED_TABLE, table).isEmpty()) {
       throw new IllegalStateException(
           String.format(
               "Table '%s.%s' already exists, but it doesn't have the expected structure",
               namespace, TABLE_NAME));
     }
-  }
-
-  @VisibleForTesting
-  static boolean hasExpectedSchema(Table table) {
-    List<Column> partitionKeyColumns = table.partitionKeyColumns();
-    if (partitionKeyColumns.size() != 1) {
-      return false;
-    }
-    Column key = partitionKeyColumns.get(0);
-    if (!KEY_COLUMN_NAME.equals(key.name()) || key.type() != Column.Type.Varchar) {
-      return false;
-    }
-    List<Column> clusteringKeyColumns = table.clusteringKeyColumns();
-    if (clusteringKeyColumns.size() != 1) {
-      return false;
-    }
-    Column version = clusteringKeyColumns.get(0);
-    if (!VERSION_COLUMN_NAME.equals(version.name())
-        || version.type() != Column.Type.Timeuuid
-        || version.order() != Column.Order.DESC) {
-      return false;
-    }
-    Column latestVersion = table.column(LATEST_VERSION_COLUMN_NAME);
-    if (latestVersion == null
-        || !LATEST_VERSION_COLUMN_NAME.equals(latestVersion.name())
-        || latestVersion.type() != Column.Type.Timeuuid
-        || latestVersion.kind() != Column.Kind.Static) {
-      return false;
-    }
-    Column contents = table.column(CONTENTS_COLUMN_NAME);
-    return contents != null && contents.type() == Column.Type.Varchar;
   }
 
   /**
@@ -243,7 +222,7 @@ public class SchemaSourceDao {
             .queryBuilder()
             .update(namespace, TABLE_NAME)
             .value(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, true)
-            .where(KEY_CONDITION)
+            .where(KEY_COLUMN_NAME, Predicate.EQ, UNIQUE_KEY)
             .ifs(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Predicate.NEQ, true)
             .ifs(LATEST_VERSION_COLUMN_NAME, Predicate.EQ, expectedLatestVersion)
             .build()
@@ -277,7 +256,7 @@ public class SchemaSourceDao {
             .queryBuilder()
             .update(namespace, TABLE_NAME)
             .value(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, false)
-            .where(KEY_CONDITION)
+            .where(KEY_COLUMN_NAME, Predicate.EQ, UNIQUE_KEY)
             .build()
             .bind();
     dataStore.execute(updateDeploymentToNotInProgress).get();
