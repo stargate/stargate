@@ -48,8 +48,8 @@ public class CassandraSchemaHelper {
   private static void compareColumn(
       Column expectedColumn, Column actualColumn, List<Difference> differences) {
 
-    Column.ColumnType columnType = expectedColumn.type();
-    assert columnType != null;
+    Column.ColumnType expectedType = expectedColumn.type();
+    assert expectedType != null;
 
     if (actualColumn == null) {
       String description = null;
@@ -59,14 +59,14 @@ public class CassandraSchemaHelper {
         description = "it can't be added because it is marked as a clustering column";
       }
       differences.add(new Difference(expectedColumn, DifferenceType.MISSING_COLUMN, description));
-    } else if (!columnType.equals(actualColumn.type())) {
+    } else if (!equals(expectedType, actualColumn.type())) {
       differences.add(
           new Difference(
               expectedColumn,
               DifferenceType.WRONG_TYPE,
               String.format(
                   "expected %s, found %s",
-                  columnType.cqlDefinition(), actualColumn.type().cqlDefinition())));
+                  expectedType.cqlDefinition(), actualColumn.type().cqlDefinition())));
     } else if (expectedColumn.kind() != actualColumn.kind()) {
       differences.add(
           new Difference(
@@ -82,6 +82,31 @@ public class CassandraSchemaHelper {
               String.format(
                   "expected %s, found %s", expectedColumn.order(), actualColumn.order())));
     }
+  }
+
+  /** Compare CQL types, taking into account that UDT references might be shallow. */
+  private static boolean equals(Column.ColumnType expectedType, Column.ColumnType actualType) {
+    if (actualType.rawType() != expectedType.rawType()) {
+      return false;
+    }
+    if (actualType.isUserDefined()) {
+      return actualType.name().equals(expectedType.name());
+    }
+    if (actualType.isParameterized()) {
+      List<Column.ColumnType> actualParameters = actualType.parameters();
+      List<Column.ColumnType> expectedParameters = expectedType.parameters();
+      if (actualParameters.size() != expectedParameters.size()) {
+        return false;
+      }
+      for (int i = 0; i < actualParameters.size(); i++) {
+        if (!equals(expectedParameters.get(i), actualParameters.get(i))) {
+          return false;
+        }
+      }
+      return true;
+    }
+    // Else it's a primitive type, and we've already compared the raw type
+    return true;
   }
 
   /** @return a list of differences, or empty if the UDTs match. */
