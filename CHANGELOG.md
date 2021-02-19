@@ -1,5 +1,33 @@
 # Changelog
 
+## [v1.0.9](https://github.com/stargate/stargate/tree/v1.0.9) (2021-02-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.8...v1.0.9)
+
+**Fixed bugs:**
+
+- DEVELOPER\_MODE starctl option is enabled when value other than 'true' is used [\#673](https://github.com/stargate/stargate/issues/673)
+
+**Closed issues:**
+
+- Minimal set of projects needed for REST API [\#691](https://github.com/stargate/stargate/issues/691)
+- PersistenceDataStoreFactory does not call login for external users [\#683](https://github.com/stargate/stargate/issues/683)
+- ERROR: Bundle io.stargate.db.cassandra EventDispatcher: Error during dispatch. [\#678](https://github.com/stargate/stargate/issues/678)
+- Increase default internal page size for searching the docs API [\#656](https://github.com/stargate/stargate/issues/656)
+- Batch write endpoint for the documents API [\#655](https://github.com/stargate/stargate/issues/655)
+- Consider simpler alternative to Apollo library for GraphQL ITs [\#270](https://github.com/stargate/stargate/issues/270)
+
+**Merged pull requests:**
+
+- Add Netty memory metrics to CQL [\#692](https://github.com/stargate/stargate/pull/692) ([mpenick](https://github.com/mpenick))
+- Always login users into Persistence Connections [\#685](https://github.com/stargate/stargate/pull/685) ([dimas-b](https://github.com/dimas-b))
+- STAR-157 parent pom build fix [\#676](https://github.com/stargate/stargate/pull/676) ([jtgrabowski](https://github.com/jtgrabowski))
+- Check that env var DEVELOPER\_MODE is set and 'true' before enabling developer mode [\#674](https://github.com/stargate/stargate/pull/674) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Make update\_changelog.sh runnable on Linux [\#671](https://github.com/stargate/stargate/pull/671) ([dimas-b](https://github.com/dimas-b))
+- Increase page size default to 1000, turn it into a configurable value [\#670](https://github.com/stargate/stargate/pull/670) ([EricBorczuk](https://github.com/EricBorczuk))
+- Bumping version for next release [\#669](https://github.com/stargate/stargate/pull/669) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Expose metrics mbeans [\#665](https://github.com/stargate/stargate/pull/665) ([dougwettlaufer](https://github.com/dougwettlaufer))
+
 ## [v1.0.8](https://github.com/stargate/stargate/tree/v1.0.8) (2021-02-11)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.7...v1.0.8)
