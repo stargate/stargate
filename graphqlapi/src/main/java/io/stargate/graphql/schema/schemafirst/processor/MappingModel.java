@@ -70,7 +70,7 @@ public class MappingModel {
         t -> {
           context.addError(
               t.getSourceLocation(),
-              ProcessingMessageType.InvalidMapping,
+              ProcessingErrorType.InvalidMapping,
               "This GraphQL implementation does not support subscriptions");
           typesToIgnore.add(t);
         });

@@ -62,7 +62,7 @@ public class DeleteMappingModel extends MutationMappingModel {
     if (!(returnType instanceof TypeName) || !"Boolean".equals(((TypeName) returnType).getName())) {
       context.addError(
           returnType.getSourceLocation(),
-          ProcessingMessageType.InvalidMapping,
+          ProcessingErrorType.InvalidMapping,
           "Mutation %s: deletes can only return Boolean",
           mutation.getName());
       return Optional.empty();
@@ -72,7 +72,7 @@ public class DeleteMappingModel extends MutationMappingModel {
     if (inputs.isEmpty()) {
       context.addError(
           mutation.getSourceLocation(),
-          ProcessingMessageType.InvalidMapping,
+          ProcessingErrorType.InvalidMapping,
           "Mutation %s: deletes must take the entity input type as the first argument",
           mutation.getName());
       return Optional.empty();
@@ -81,7 +81,7 @@ public class DeleteMappingModel extends MutationMappingModel {
     if (inputs.size() > 1) {
       context.addError(
           mutation.getSourceLocation(),
-          ProcessingMessageType.InvalidMapping,
+          ProcessingErrorType.InvalidMapping,
           "Mutation %s: deletes can't have more than one argument",
           mutation.getName());
       return Optional.empty();
