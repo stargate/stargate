@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.web.resources.schemafirst;
 
+import com.google.common.base.Throwables;
 import graphql.GraphQL;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
@@ -24,12 +25,14 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.persistence.schemafirst.SchemaSource;
 import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
 import io.stargate.graphql.schema.schemafirst.AdminSchemaBuilder;
+import io.stargate.graphql.schema.schemafirst.migration.CassandraMigrator;
 import io.stargate.graphql.schema.schemafirst.processor.ProcessedSchema;
 import io.stargate.graphql.schema.schemafirst.processor.SchemaProcessor;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,8 +54,7 @@ public class SchemaFirstCache {
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory,
-      SchemaSourceDao schemaSourceDao)
-      throws Exception {
+      SchemaSourceDao schemaSourceDao) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
@@ -114,11 +116,23 @@ public class SchemaFirstCache {
     return currentHolder == null ? null : currentHolder.getGraphql();
   }
 
-  private ConcurrentMap<String, GraphqlHolder> initSchemas() throws Exception {
+  private ConcurrentMap<String, GraphqlHolder> initSchemas() {
     ConcurrentHashMap<String, GraphqlHolder> result = new ConcurrentHashMap<>();
     for (Keyspace keyspace : persistence.schema().keyspaces()) {
       String namespace = keyspace.name();
-      SchemaSource source = schemaSourceDao.getLatest(namespace);
+      SchemaSource source;
+      try {
+        source = schemaSourceDao.getLatest(namespace);
+      } catch (Exception e) {
+        // The only way this can happen is if the graphql_schema table exists but with the wrong
+        // schema.
+        LOG.debug(
+            "Error while loading persisted schema for {} ({}).  Skipping for now, this will be "
+                + "surfaced again if someone tries to execute a GraphQL query in that namespace.",
+            namespace,
+            e.getMessage());
+        continue;
+      }
       if (source != null) {
         GraphqlHolder holder = new GraphqlHolder(source, keyspace);
         holder.init();
@@ -147,11 +161,11 @@ public class SchemaFirstCache {
     }
 
     private GraphQL buildGraphql() {
-      // TODO handle errors better - things could still fail e.g. if we're loading a namespace that
-      // was not created through this Stargate instance, and the CQL schema doesn't match anymore.
       ProcessedSchema processedSchema =
-          new SchemaProcessor(authenticationService, authorizationService, dataStoreFactory)
+          new SchemaProcessor(authenticationService, authorizationService, dataStoreFactory, true)
               .process(source.getContents(), keyspace);
+      // Check that the data model still matches
+      CassandraMigrator.forPersisted().compute(processedSchema.getMappingModel(), keyspace);
 
       return processedSchema.getGraphql();
     }
@@ -161,7 +175,12 @@ public class SchemaFirstCache {
     }
 
     GraphQL getGraphql() throws Exception {
-      return graphqlFuture.get();
+      try {
+        return graphqlFuture.get();
+      } catch (ExecutionException e) {
+        Throwables.throwIfUnchecked(e.getCause());
+        throw new RuntimeException(e.getCause());
+      }
     }
   }
 }
