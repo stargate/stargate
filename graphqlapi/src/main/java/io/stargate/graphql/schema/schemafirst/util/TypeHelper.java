@@ -17,6 +17,7 @@ package io.stargate.graphql.schema.schemafirst.util;
 
 import com.google.common.collect.ImmutableSet;
 import graphql.Scalars;
+import graphql.language.ListType;
 import graphql.language.NonNullType;
 import graphql.language.Type;
 import graphql.language.TypeName;
@@ -49,6 +50,17 @@ public class TypeHelper {
   /** If the type is {@code !T}, return {@code T}, otherwise the type unchanged. */
   public static Type<?> unwrapNonNull(Type<?> type) {
     return type instanceof NonNullType ? ((NonNullType) type).getType() : type;
+  }
+
+  public static String format(Type<?> type) {
+    if (type instanceof NonNullType) {
+      return format(((NonNullType) type).getType()) + '!';
+    }
+    if (type instanceof ListType) {
+      return "[" + format(((ListType) type).getType()) + "]";
+    }
+    assert type instanceof TypeName;
+    return ((TypeName) type).getName();
   }
 
   private TypeHelper() {
