@@ -83,27 +83,37 @@ class FieldMappingModelBuilder {
         cqlColumnDirective
             .flatMap(d -> DirectiveHelper.getStringArgument(d, "name", context))
             .orElse(graphqlName);
+    boolean isUdtField = targetContainer == EntityMappingModel.Target.UDT;
     boolean partitionKey =
         cqlColumnDirective
             .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "partitionKey", context))
+            .filter(
+                __ -> {
+                  if (isUdtField) {
+                    warn(
+                        "%s: UDT fields should not be marked as partition keys (this will be ignored)",
+                        messagePrefix);
+                    return false;
+                  }
+                  return true;
+                })
             .orElse(false);
     Optional<Column.Order> clusteringOrder =
-        cqlColumnDirective.flatMap(
-            d ->
-                DirectiveHelper.getEnumArgument(d, "clusteringOrder", Column.Order.class, context));
-
-    if (targetContainer == EntityMappingModel.Target.UDT) {
-      if (partitionKey) {
-        warn(
-            "%s: UDT fields should not be marked as partition keys (this will be ignored)",
-            messagePrefix);
-      }
-      if (clusteringOrder.isPresent()) {
-        warn(
-            "%s: UDT fields should not be marked as clustering keys (this will be ignored)",
-            messagePrefix);
-      }
-    }
+        cqlColumnDirective
+            .flatMap(
+                d ->
+                    DirectiveHelper.getEnumArgument(
+                        d, "clusteringOrder", Column.Order.class, context))
+            .filter(
+                __ -> {
+                  if (isUdtField) {
+                    warn(
+                        "%s: UDT fields should not be marked as clustering keys (this will be ignored)",
+                        messagePrefix);
+                    return false;
+                  }
+                  return true;
+                });
 
     if (partitionKey && clusteringOrder.isPresent()) {
       invalidMapping("%s: can't be both a partition key and a clustering key.", messagePrefix);
@@ -117,7 +127,7 @@ class FieldMappingModelBuilder {
       return Optional.empty();
     }
     Column.ColumnType cqlType = maybeCqlType.get();
-    if (isPk || (cqlType.isUserDefined() && targetContainer == EntityMappingModel.Target.UDT)) {
+    if (isPk || (cqlType.isUserDefined() && isUdtField)) {
       cqlType = cqlType.frozen();
     }
 
@@ -140,9 +150,7 @@ class FieldMappingModelBuilder {
             messagePrefix, spec);
         return Optional.empty();
       }
-      if (cqlTypeHint.isUserDefined()
-          && targetContainer == EntityMappingModel.Target.UDT
-          && !cqlTypeHint.isFrozen()) {
+      if (cqlTypeHint.isUserDefined() && isUdtField && !cqlTypeHint.isFrozen()) {
         invalidMapping(
             "%s: invalid type hint '%s' -- nested UDTs must be frozen", messagePrefix, spec);
         return Optional.empty();
