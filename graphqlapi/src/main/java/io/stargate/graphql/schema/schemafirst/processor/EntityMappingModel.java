@@ -218,10 +218,10 @@ public class EntityMappingModel {
             context.addInfo(
                 type.getSourceLocation(),
                 "%s: using %s as the partition key, "
-                    + "because it has type %s and no other fields are annotated",
+                    + "because it uses type %s and no other fields are annotated",
                 graphqlName,
                 firstField.getGraphqlName(),
-                firstField.getGraphqlType());
+                TypeHelper.format(TypeHelper.unwrapNonNull(firstField.getGraphqlType())));
             partitionKey.add(firstField.asPartitionKey());
             regularColumns.remove(firstField);
           } else {
