@@ -71,6 +71,7 @@ import org.mockito.Mockito;
 public class DocumentServiceTest {
   private DocumentService service;
   private Method convertToBracketedPath;
+  private Method leftPadTo6;
   private Method convertArrayPath;
   private Method isEmptyObject;
   private Method isEmptyArray;
@@ -97,6 +98,8 @@ public class DocumentServiceTest {
     convertToBracketedPath =
         DocumentService.class.getDeclaredMethod("convertToBracketedPath", String.class);
     convertToBracketedPath.setAccessible(true);
+    leftPadTo6 = DocumentService.class.getDeclaredMethod("leftPadTo6", String.class);
+    leftPadTo6.setAccessible(true);
     convertArrayPath = DocumentService.class.getDeclaredMethod("convertArrayPath", String.class);
     convertArrayPath.setAccessible(true);
     isEmptyObject = DocumentService.class.getDeclaredMethod("isEmptyObject", Object.class);
@@ -214,6 +217,24 @@ public class DocumentServiceTest {
     input = "$..a";
     res = (String) convertToBracketedPath.invoke(service, input);
     assertThat(res).isEqualTo("$['']['a']");
+  }
+
+  @Test
+  public void leftPadTo6() throws InvocationTargetException, IllegalAccessException {
+    String result = (String) leftPadTo6.invoke(service, "");
+    assertThat(result).isEqualTo("000000");
+
+    result = (String) leftPadTo6.invoke(service, "00");
+    assertThat(result).isEqualTo("000000");
+
+    result = (String) leftPadTo6.invoke(service, "1");
+    assertThat(result).isEqualTo("000001");
+
+    result = (String) leftPadTo6.invoke(service, "abc");
+    assertThat(result).isEqualTo("000abc");
+
+    result = (String) leftPadTo6.invoke(service, "AbCd");
+    assertThat(result).isEqualTo("00AbCd");
   }
 
   @Test
