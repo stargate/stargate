@@ -13,6 +13,7 @@ import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
+import io.stargate.web.models.Error;
 import io.stargate.web.resources.Db;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -828,18 +829,32 @@ public class DocumentResourceV2 {
       return action.call();
     } catch (UnauthorizedException ue) {
       return Response.status(Response.Status.UNAUTHORIZED)
-          .entity("You are not permitted to perform this action. Did you authenticate?")
+          .entity(
+              new Error(
+                  "Role unauthorized for operation: " + ue.getMessage(),
+                  Response.Status.UNAUTHORIZED.getStatusCode()))
           .build();
     } catch (DocumentAPIRequestException sre) {
-      return Response.status(Response.Status.BAD_REQUEST).entity(sre.getLocalizedMessage()).build();
+      return Response.status(Response.Status.BAD_REQUEST)
+          .entity(
+              new Error(
+                  "Bad request: " + sre.getLocalizedMessage(),
+                  Response.Status.BAD_REQUEST.getStatusCode()))
+          .build();
     } catch (NoNodeAvailableException e) {
       return Response.status(Response.Status.SERVICE_UNAVAILABLE)
-          .entity("Internal connection to Cassandra closed")
+          .entity(
+              new Error(
+                  "Internal connection to Cassandra closed",
+                  Response.Status.SERVICE_UNAVAILABLE.getStatusCode()))
           .build();
     } catch (Throwable t) {
       logger.error("Error when executing request", t);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-          .entity(t.getLocalizedMessage())
+          .entity(
+              new Error(
+                  "Server error: " + t.getLocalizedMessage(),
+                  Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()))
           .build();
     }
   }

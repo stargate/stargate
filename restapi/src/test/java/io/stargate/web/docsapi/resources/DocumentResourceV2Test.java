@@ -20,6 +20,7 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
+import io.stargate.web.models.Error;
 import io.stargate.web.resources.Db;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -679,7 +680,8 @@ public class DocumentResourceV2Test {
             raw,
             httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(400);
-    assertThat((String) r.getEntity()).isEqualTo("The parameter `page-size` is limited to 20.");
+    assertThat(((Error) r.getEntity()).getDescription())
+        .isEqualTo("Bad request: The parameter `page-size` is limited to 20.");
   }
 
   @Test
@@ -759,6 +761,7 @@ public class DocumentResourceV2Test {
             raw,
             httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(400);
-    assertThat((String) r.getEntity()).isEqualTo("The parameter `page-size` is limited to 20.");
+    assertThat(((Error) r.getEntity()).getDescription())
+        .isEqualTo("Bad request: The parameter `page-size` is limited to 20.");
   }
 }
