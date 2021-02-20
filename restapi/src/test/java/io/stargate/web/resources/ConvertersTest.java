@@ -2,6 +2,7 @@ package io.stargate.web.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.datastax.oss.driver.api.core.data.CqlDuration;
@@ -11,12 +12,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.stargate.db.query.Modification.Operation;
+import io.stargate.db.query.builder.Value;
+import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
+import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.ImmutableColumn;
+import io.stargate.db.schema.ImmutableTable;
 import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.ParameterizedType.TupleType;
+import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.web.impl.Server;
 import java.math.BigDecimal;
@@ -28,6 +35,7 @@ import java.time.LocalTime;
 import java.util.Collections;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -50,6 +58,26 @@ public class ConvertersTest {
                   .name("zip")
                   .type(Type.Int)
                   .kind(Column.Kind.Regular)
+                  .build())
+          .build();
+  private static Table COUNTER_TABLE =
+      ImmutableTable.builder()
+          .keyspace("library")
+          .name("book_popular_count")
+          .addColumns(
+              ImmutableColumn.builder()
+                  .keyspace("library")
+                  .table("book_popular_count")
+                  .name("id")
+                  .type(Type.Text)
+                  .kind(Kind.PartitionKey)
+                  .build(),
+              ImmutableColumn.builder()
+                  .keyspace("library")
+                  .table("book_popular_count")
+                  .name("popularity")
+                  .type(Type.Counter)
+                  .kind(Kind.Regular)
                   .build())
           .build();
 
@@ -375,5 +403,38 @@ public class ConvertersTest {
     ObjectMapper mapper = new ObjectMapper();
     Server.configureObjectMapper(mapper);
     return mapper;
+  }
+
+  @Test
+  public void colToValuePositiveCounter() {
+    ValueModifier modifier = Converters.colToValue("popularity", "+1", COUNTER_TABLE);
+    ValueModifier expected = ValueModifier.of("popularity", Value.of(1L), Operation.INCREMENT);
+
+    assertThat(modifier).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  public void colToValueNegativeCounter() {
+    ValueModifier modifier = Converters.colToValue("popularity", "-1", COUNTER_TABLE);
+    ValueModifier expected = ValueModifier.of("popularity", Value.of(-1L), Operation.INCREMENT);
+
+    assertThat(modifier).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  public void colToValueZeroCounter() {
+    ValueModifier modifier = Converters.colToValue("popularity", "0", COUNTER_TABLE);
+    ValueModifier expected = ValueModifier.of("popularity", Value.of(0L), Operation.INCREMENT);
+
+    assertThat(modifier).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  public void colToValueBadCounter() {
+    IllegalArgumentException ex =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> Converters.colToValue("popularity", "a", COUNTER_TABLE));
+    assertThat(ex).hasMessage("Invalid Counter value 'a': cannot parse");
   }
 }

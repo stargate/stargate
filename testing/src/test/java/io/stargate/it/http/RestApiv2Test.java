@@ -808,6 +808,27 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void addRowWithCounter() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "counter counter"),
+        Collections.singletonList("id"),
+        null);
+
+    String rowIdentifier = UUID.randomUUID().toString();
+    Map<String, String> row = new HashMap<>();
+    row.put("id", rowIdentifier);
+    row.put("counter", "+1");
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
   public void addRowWithList() throws IOException {
     createKeyspace(keyspaceName);
     createTestTable(
@@ -903,9 +924,115 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(rowUpdate),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("unchecked")
     Map<String, String> data = objectMapper.readValue(body, Map.class);
-
     assertThat(data).containsAllEntriesOf(rowUpdate);
+  }
+
+  @Test
+  public void updateRowWithCounter() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "counter counter"),
+        Collections.singletonList("id"),
+        null);
+
+    String rowIdentifier = UUID.randomUUID().toString();
+    Map<String, String> row = Collections.singletonMap("counter", "+1");
+
+    String body =
+        RestUtils.put(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
+                host, keyspaceName, tableName, rowIdentifier),
+            objectMapper.writeValueAsString(row),
+            HttpStatus.SC_OK);
+
+    @SuppressWarnings("unchecked")
+    Map<String, String> data = objectMapper.readValue(body, Map.class);
+    assertThat(data).containsAllEntriesOf(row);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
+                host, keyspaceName, tableName, rowIdentifier),
+            HttpStatus.SC_OK);
+
+    List<Map<String, Object>> dataList =
+        objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(dataList.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(dataList.get(0).get("counter")).isEqualTo("1");
+
+    body =
+        RestUtils.put(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
+                host, keyspaceName, tableName, rowIdentifier),
+            objectMapper.writeValueAsString(row),
+            HttpStatus.SC_OK);
+
+    data = objectMapper.readValue(body, Map.class);
+    assertThat(data).containsAllEntriesOf(row);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
+                host, keyspaceName, tableName, rowIdentifier),
+            HttpStatus.SC_OK);
+
+    dataList = objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(dataList.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(dataList.get(0).get("counter")).isEqualTo("2");
+  }
+
+  @Test
+  public void updateRowWithMultipleCounters() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "counter1 counter", "counter2 counter"),
+        Collections.singletonList("id"),
+        null);
+
+    String rowIdentifier = UUID.randomUUID().toString();
+
+    Map<String, String> rowUpdate = new HashMap<>();
+    rowUpdate.put("counter1", "+1");
+    rowUpdate.put("counter2", "-1");
+
+    String body =
+        RestUtils.put(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
+                host, keyspaceName, tableName, rowIdentifier),
+            objectMapper.writeValueAsString(rowUpdate),
+            HttpStatus.SC_OK);
+
+    @SuppressWarnings("unchecked")
+    Map<String, String> data = objectMapper.readValue(body, Map.class);
+    assertThat(data).containsAllEntriesOf(rowUpdate);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
+                host, keyspaceName, tableName, rowIdentifier),
+            HttpStatus.SC_OK);
+
+    List<Map<String, Object>> dataList =
+        objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(dataList.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(dataList.get(0).get("counter1")).isEqualTo("1");
+    assertThat(dataList.get(0).get("counter2")).isEqualTo("-1");
   }
 
   @Test

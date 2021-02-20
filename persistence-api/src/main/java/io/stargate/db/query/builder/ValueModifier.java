@@ -32,9 +32,18 @@ public abstract class ValueModifier {
         .build();
   }
 
+  public static ValueModifier of(String columnName, Value<?> value, Operation operation) {
+    return ImmutableValueModifier.builder()
+        .target(Target.of(columnName))
+        .operation(operation)
+        .value(value)
+        .build();
+  }
+
   @Immutable
   @Style(visibility = ImplementationVisibility.PACKAGE)
   abstract static class Target {
+
     abstract String columnName();
 
     abstract @Nullable String fieldName(); // only set for UDT field access
