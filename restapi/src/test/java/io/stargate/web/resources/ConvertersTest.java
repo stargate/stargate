@@ -410,7 +410,15 @@ public class ConvertersTest {
     ValueModifier modifier = Converters.colToValue("popularity", "+1", COUNTER_TABLE);
     ValueModifier expected = ValueModifier.of("popularity", Value.of(1L), Operation.INCREMENT);
 
-    assertThat(modifier).usingRecursiveComparison().isEqualTo(expected);
+    assertThat(modifier).isEqualTo(expected);
+  }
+
+  @Test
+  public void colToValueCounterWithoutPlus() {
+    ValueModifier modifier = Converters.colToValue("popularity", "1", COUNTER_TABLE);
+    ValueModifier expected = ValueModifier.of("popularity", Value.of(1L), Operation.INCREMENT);
+
+    assertThat(modifier).isEqualTo(expected);
   }
 
   @Test
@@ -418,7 +426,7 @@ public class ConvertersTest {
     ValueModifier modifier = Converters.colToValue("popularity", "-1", COUNTER_TABLE);
     ValueModifier expected = ValueModifier.of("popularity", Value.of(-1L), Operation.INCREMENT);
 
-    assertThat(modifier).usingRecursiveComparison().isEqualTo(expected);
+    assertThat(modifier).isEqualTo(expected);
   }
 
   @Test
@@ -426,7 +434,7 @@ public class ConvertersTest {
     ValueModifier modifier = Converters.colToValue("popularity", "0", COUNTER_TABLE);
     ValueModifier expected = ValueModifier.of("popularity", Value.of(0L), Operation.INCREMENT);
 
-    assertThat(modifier).usingRecursiveComparison().isEqualTo(expected);
+    assertThat(modifier).isEqualTo(expected);
   }
 
   @Test
