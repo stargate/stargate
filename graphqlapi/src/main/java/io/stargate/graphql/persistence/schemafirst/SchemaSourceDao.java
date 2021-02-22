@@ -45,7 +45,9 @@ public class SchemaSourceDao {
   @VisibleForTesting static final String LATEST_VERSION_COLUMN_NAME = "latest_version";
   @VisibleForTesting static final String CONTENTS_COLUMN_NAME = "contents";
   @VisibleForTesting static final String APPLIED_COLUMN_NAME = "[applied]";
-  private static final String DEPLOYMENT_IN_PROGRESS_COLUMN_NAME = "deployment_in_progress";
+
+  @VisibleForTesting
+  static final String DEPLOYMENT_IN_PROGRESS_COLUMN_NAME = "deployment_in_progress";
 
   private static final Table EXPECTED_TABLE =
       ImmutableTable.builder()
