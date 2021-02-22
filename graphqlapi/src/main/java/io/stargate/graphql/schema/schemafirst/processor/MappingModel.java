@@ -79,7 +79,8 @@ public class MappingModel {
       if (typesToIgnore.contains(type)) {
         continue;
       }
-      EntityMappingModel.build(type, context)
+      new EntityMappingModelBuilder(type, context)
+          .build()
           .ifPresent(entity -> entitiesBuilder.put(type.getName(), entity));
     }
     Map<String, EntityMappingModel> entities = entitiesBuilder.build();
