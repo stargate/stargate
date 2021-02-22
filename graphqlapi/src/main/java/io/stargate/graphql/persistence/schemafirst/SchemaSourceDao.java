@@ -278,7 +278,7 @@ public class SchemaSourceDao {
       LOGGER.info("Removing {} old schema entries.", numberOfEntriesToRemove);
 
       // remove N oldest entries
-      SchemaSource oldestSchemaToRemove =
+      SchemaSource mostRecentToRemove =
           allSchemasForNamespace.get(NUMBER_OF_RETAINED_SCHEMA_VERSIONS);
 
       BoundQuery deleteSchemaQuery =
@@ -287,7 +287,7 @@ public class SchemaSourceDao {
               .delete()
               .from(namespace, TABLE_NAME)
               .where(KEY_COLUMN_NAME, Predicate.EQ, UNIQUE_KEY)
-              .where(VERSION_COLUMN_NAME, Predicate.LTE, oldestSchemaToRemove.getVersion())
+              .where(VERSION_COLUMN_NAME, Predicate.LTE, mostRecentToRemove.getVersion())
               .build()
               .bind();
       dataStore.execute(deleteSchemaQuery).get();
