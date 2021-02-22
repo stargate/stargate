@@ -26,7 +26,10 @@ import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import javax.ws.rs.core.Response;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +38,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
 public class SchemaDeploymentTest extends BaseOsgiIntegrationTest {
+
+  private static final int NUMBER_OF_RETAINED_SCHEMA_VERSIONS = 10;
 
   private static final String SCHEMA_CONTENTS =
       "type User { id: ID! name: String username: String } "
@@ -137,5 +142,40 @@ public class SchemaDeploymentTest extends BaseOsgiIntegrationTest {
             String.format(
                 "Table '%s.graphql_schema' already exists, but it doesn't have the expected structure",
                 keyspaceId.asInternal()));
+  }
+
+  @Test
+  @DisplayName(
+      "Should purge older schema entries, keeping only last SchemaSourceDao#NUMBER_OF_RETAINED_SCHEMA_VERSIONS versions")
+  public void purgeOldSchemaEntriesOnInsert(@TestKeyspace CqlIdentifier keyspaceId) {
+    // given inserted NUMBER_OF_RETAINED_SCHEMA_VERSIONS + N schemas
+    String namespace = keyspaceId.asInternal();
+    int numberOfSchemasAboveThreshold = 5;
+    int numberOfVersionsToInsert =
+        NUMBER_OF_RETAINED_SCHEMA_VERSIONS + numberOfSchemasAboveThreshold;
+
+    // when deploying schemas
+    List<UUID> schemasVersions = new ArrayList<>();
+    UUID lastVersion = null;
+    for (int i = 0; i < numberOfVersionsToInsert; i++) {
+      lastVersion =
+          CLIENT.deploySchema(
+              namespace, lastVersion == null ? null : lastVersion.toString(), SCHEMA_CONTENTS);
+      schemasVersions.add(lastVersion);
+    }
+
+    // then the last NUMBER_OF_RETAINED_SCHEMA_VERSIONS schemas should be present
+    List<UUID> removedVersions = schemasVersions.subList(0, numberOfSchemasAboveThreshold);
+    List<UUID> presentVersions =
+        schemasVersions.subList(numberOfSchemasAboveThreshold, schemasVersions.size());
+    // all removed versions should return 404
+    for (UUID version : removedVersions) {
+      CLIENT.getSchemaFile(
+          namespace, version.toString(), Response.Status.NOT_FOUND.getStatusCode());
+    }
+    // rest of the schemas should be present
+    for (UUID version : presentVersions) {
+      assertThat(CLIENT.getSchemaFile(namespace, version.toString())).isNotNull();
+    }
   }
 }
