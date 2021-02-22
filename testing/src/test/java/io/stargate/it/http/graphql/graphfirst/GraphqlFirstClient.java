@@ -51,8 +51,13 @@ public class GraphqlFirstClient extends GraphqlClient {
    * @return the resulting version.
    */
   public UUID deploySchema(String namespace, String contents) {
+    return deploySchema(namespace, null, contents);
+  }
+
+  public UUID deploySchema(String namespace, String expectedVersion, String contents) {
     Map<String, Object> response =
-        getGraphqlData(authToken, adminUri, buildDeploySchemaQuery(namespace, null, contents));
+        getGraphqlData(
+            authToken, adminUri, buildDeploySchemaQuery(namespace, expectedVersion, contents));
     String version = JsonPath.read(response, "$.deploySchema.version");
     return UUID.fromString(version);
   }
@@ -90,13 +95,16 @@ public class GraphqlFirstClient extends GraphqlClient {
     return getSchemaFile(namespace, null);
   }
 
-  public String getSchemaFile(String namespace, String version) {
+  public String getSchemaFile(String namespace, String version, int expectedStatusCode) {
     try {
-      return RestUtils.get(
-          authToken, buildSchemaFileUri(namespace, version), Response.Status.OK.getStatusCode());
+      return RestUtils.get(authToken, buildSchemaFileUri(namespace, version), expectedStatusCode);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
+  }
+
+  public String getSchemaFile(String namespace, String version) {
+    return getSchemaFile(namespace, version, Response.Status.OK.getStatusCode());
   }
 
   public void expectSchemaFileStatus(String namespace, Response.Status expectedStatus) {
