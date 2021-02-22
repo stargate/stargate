@@ -42,7 +42,7 @@ public abstract class MutationMappingModel extends OperationMappingModel {
     if (type instanceof ListType) {
       context.addError(
           input.getSourceLocation(),
-          ProcessingMessageType.InvalidMapping,
+          ProcessingErrorType.InvalidMapping,
           "Mutation %s: unexpected list type, %ss expect a single entity",
           mutationName,
           mutationKind);
@@ -57,7 +57,7 @@ public abstract class MutationMappingModel extends OperationMappingModel {
     if (!entity.isPresent()) {
       context.addError(
           input.getSourceLocation(),
-          ProcessingMessageType.InvalidMapping,
+          ProcessingErrorType.InvalidMapping,
           "Mutation %s: unexpected type, %ss expect an input object that maps to a CQL entity",
           mutationName,
           mutationKind);

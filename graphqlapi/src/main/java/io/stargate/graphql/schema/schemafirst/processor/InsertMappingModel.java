@@ -72,7 +72,7 @@ public class InsertMappingModel extends MutationMappingModel {
     if (inputs.isEmpty()) {
       context.addError(
           mutation.getSourceLocation(),
-          ProcessingMessageType.InvalidMapping,
+          ProcessingErrorType.InvalidMapping,
           "Mutation %s: inserts must take the entity input type as the first argument",
           mutation.getName());
       return Optional.empty();
@@ -82,7 +82,7 @@ public class InsertMappingModel extends MutationMappingModel {
     if (inputs.size() > 1) {
       context.addError(
           mutation.getSourceLocation(),
-          ProcessingMessageType.InvalidMapping,
+          ProcessingErrorType.InvalidMapping,
           "Mutation %s: inserts can't have more than one argument",
           mutation.getName());
       return Optional.empty();
@@ -107,7 +107,7 @@ public class InsertMappingModel extends MutationMappingModel {
     if (!matches) {
       context.addError(
           returnType.getSourceLocation(),
-          ProcessingMessageType.InvalidMapping,
+          ProcessingErrorType.InvalidMapping,
           "Mutation %s: unexpected return type for inserts",
           mutation.getName());
     }

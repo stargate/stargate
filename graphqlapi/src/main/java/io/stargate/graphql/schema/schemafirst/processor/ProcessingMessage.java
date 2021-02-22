@@ -29,21 +29,34 @@ import java.util.List;
  * <p>Note that we also reuse this for info/warning logs: they're not errors per se, but since they
  * share a similar structure it's convenient to factor the code.
  */
-public class ProcessingMessage implements GraphQLError {
-
-  private final String message;
-  private final List<SourceLocation> locations;
-  private final ErrorClassification errorType;
+public class ProcessingMessage<TypeT extends ErrorClassification> implements GraphQLError {
 
   @FormatMethod
-  public ProcessingMessage(
+  public static ProcessingMessage<ProcessingLogType> log(
       SourceLocation location,
-      ErrorClassification errorType,
+      ProcessingLogType type,
       @FormatString String format,
       Object... arguments) {
+    return new ProcessingMessage<>(location, type, String.format(format, arguments));
+  }
+
+  @FormatMethod
+  public static ProcessingMessage<ProcessingErrorType> error(
+      SourceLocation location,
+      ProcessingErrorType type,
+      @FormatString String format,
+      Object... arguments) {
+    return new ProcessingMessage<>(location, type, String.format(format, arguments));
+  }
+
+  private final String message;
+  private final SourceLocation location;
+  private final TypeT errorType;
+
+  private ProcessingMessage(SourceLocation location, TypeT errorType, String message) {
     this.errorType = errorType;
-    this.message = String.format(format, arguments);
-    this.locations = Collections.singletonList(location);
+    this.message = message;
+    this.location = location;
   }
 
   @Override
@@ -53,11 +66,11 @@ public class ProcessingMessage implements GraphQLError {
 
   @Override
   public List<SourceLocation> getLocations() {
-    return locations;
+    return Collections.singletonList(location);
   }
 
   @Override
-  public ErrorClassification getErrorType() {
+  public TypeT getErrorType() {
     return errorType;
   }
 }
