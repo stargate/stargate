@@ -152,6 +152,9 @@ class SchemaSourceDaoTest {
                 ImmutableColumn.create(
                     LATEST_VERSION_COLUMN_NAME, Column.Kind.Static, Column.Type.Timeuuid))
             .addColumns(ImmutableColumn.create(CONTENTS_COLUMN_NAME, Column.Type.Varchar))
+            .addColumns(
+                ImmutableColumn.create(
+                    DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Column.Kind.Static, Column.Type.Boolean))
             .build();
     Keyspace keyspace = ImmutableKeyspace.builder().addTables(table).name(namespace).build();
     Schema schema = ImmutableSchema.create(Collections.singletonList(keyspace));
