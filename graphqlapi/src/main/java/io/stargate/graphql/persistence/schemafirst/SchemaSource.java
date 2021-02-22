@@ -61,4 +61,18 @@ public class SchemaSource {
         "%s/namespace/%s.graphql?version=%s",
         ResourcePaths.FILES_RELATIVE_TO_ADMIN, namespace, version);
   }
+
+  @Override
+  public String toString() {
+    return "SchemaSource{"
+        + "namespace='"
+        + namespace
+        + '\''
+        + ", version="
+        + version
+        + ", contents='"
+        + contents
+        + '\''
+        + '}';
+  }
 }
