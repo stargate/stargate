@@ -140,7 +140,9 @@ public class SchemaDeploymentTest extends BaseOsgiIntegrationTest {
     List<UUID> schemasVersions = new ArrayList<>();
     UUID lastVersion = null;
     for (int i = 0; i < numberOfVersionsToInsert; i++) {
-      lastVersion = CLIENT.deploySchema(namespace, lastVersion, SCHEMA_CONTENTS);
+      lastVersion =
+          CLIENT.deploySchema(
+              namespace, lastVersion == null ? null : lastVersion.toString(), SCHEMA_CONTENTS);
       schemasVersions.add(lastVersion);
     }
 

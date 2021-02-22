@@ -54,13 +54,10 @@ public class GraphqlFirstClient extends GraphqlClient {
     return deploySchema(namespace, null, contents);
   }
 
-  public UUID deploySchema(String namespace, UUID expectedVersion, String contents) {
+  public UUID deploySchema(String namespace, String expectedVersion, String contents) {
     Map<String, Object> response =
         getGraphqlData(
-            authToken,
-            adminUri,
-            buildDeploySchemaQuery(
-                namespace, expectedVersion == null ? null : expectedVersion.toString(), contents));
+            authToken, adminUri, buildDeploySchemaQuery(namespace, expectedVersion, contents));
     String version = JsonPath.read(response, "$.deploySchema.version");
     return UUID.fromString(version);
   }

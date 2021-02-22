@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 // TODO purge old entries
 public class SchemaSourceDao {
-  private static final Logger logger = LoggerFactory.getLogger(SchemaSourceDao.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SchemaSourceDao.class);
   public static final String TABLE_NAME = "graphql_schema";
   @VisibleForTesting static final String KEY_COLUMN_NAME = "key";
   @VisibleForTesting static final String VERSION_COLUMN_NAME = "version";
@@ -293,26 +293,22 @@ public class SchemaSourceDao {
     int numberOfEntriesToRemove =
         allSchemasForNamespace.size() - NUMBER_OF_RETAINED_SCHEMA_VERSIONS;
     if (numberOfEntriesToRemove > 0) {
-      logger.info("Removing {} old schema entries.", numberOfEntriesToRemove);
+      LOGGER.info("Removing {} old schema entries.", numberOfEntriesToRemove);
 
       // remove N oldest entries
-      List<SchemaSource> schemasToRemove =
-          allSchemasForNamespace.subList(
-              NUMBER_OF_RETAINED_SCHEMA_VERSIONS, allSchemasForNamespace.size());
+      SchemaSource oldestSchemaToRemove =
+          allSchemasForNamespace.get(NUMBER_OF_RETAINED_SCHEMA_VERSIONS);
 
-      for (SchemaSource schemaSource : schemasToRemove) {
-        BoundQuery deleteSchemaQuery =
-            dataStore
-                .queryBuilder()
-                .delete()
-                .from(namespace, TABLE_NAME)
-                .where(KEY_CONDITION)
-                .where(VERSION_COLUMN_NAME, Predicate.EQ, schemaSource.getVersion())
-                .build()
-                .bind();
-
-        dataStore.execute(deleteSchemaQuery).get();
-      }
+      BoundQuery deleteSchemaQuery =
+          dataStore
+              .queryBuilder()
+              .delete()
+              .from(namespace, TABLE_NAME)
+              .where(KEY_CONDITION)
+              .where(VERSION_COLUMN_NAME, Predicate.LTE, oldestSchemaToRemove.getVersion())
+              .build()
+              .bind();
+      dataStore.execute(deleteSchemaQuery).get();
     }
   }
 }
