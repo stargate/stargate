@@ -250,7 +250,7 @@ public class RowsResource {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
                     new Error(
-                        "not enough partition keys provided",
+                        "not enough partition keys provided: " + iae.getMessage(),
                         Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
@@ -430,7 +430,7 @@ public class RowsResource {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
                     new Error(
-                        "not enough partition keys provided",
+                        "not enough partition keys provided: " + iae.getMessage(),
                         Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
@@ -520,7 +520,7 @@ public class RowsResource {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(
               new Error(
-                  "not enough partition keys provided",
+                  "not enough partition keys provided: " + iae.getMessage(),
                   Response.Status.BAD_REQUEST.getStatusCode()))
           .build();
     }

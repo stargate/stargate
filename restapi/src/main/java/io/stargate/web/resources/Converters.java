@@ -27,12 +27,15 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.stargate.db.datastore.Row;
+import io.stargate.db.query.Modification.Operation;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
+import io.stargate.db.query.builder.Value;
 import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Order;
+import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.ParameterizedType.TupleType;
 import io.stargate.db.schema.ReservedKeywords;
 import io.stargate.db.schema.Table;
@@ -185,6 +188,11 @@ public class Converters {
 
     if (type != null) {
       valueObj = toCqlValue(type, value);
+
+      if (type == Type.Counter) {
+        // only using increment to keep this simple since decrement is just adding a negative
+        return ValueModifier.of(name, Value.of(valueObj), Operation.INCREMENT);
+      }
     }
 
     return ValueModifier.set(name, valueObj);
