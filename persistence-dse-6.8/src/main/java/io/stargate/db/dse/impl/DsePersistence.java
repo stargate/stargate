@@ -42,7 +42,9 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.cassandra.auth.AuthenticatedUser;
+import org.apache.cassandra.auth.CassandraRoleManager;
 import org.apache.cassandra.auth.IAuthContext;
+import org.apache.cassandra.auth.RoleResource;
 import org.apache.cassandra.auth.user.UserRolesAndPermissions;
 import org.apache.cassandra.concurrent.TPCTaskType;
 import org.apache.cassandra.config.Config;
@@ -99,6 +101,13 @@ public class DsePersistence
 
   public static final Boolean USE_PROXY_PROTOCOL =
       Boolean.parseBoolean(System.getProperty("stargate.use_proxy_protocol", "false"));
+  private static final boolean USE_TRANSITIONAL_AUTH =
+      Boolean.getBoolean("stargate.cql_use_transitional_auth");
+  private static final String EXTERNAL_USER_ROLE_NAME =
+      System.getProperty(
+          "stargate.auth.proxy.external.users.as", CassandraRoleManager.DEFAULT_SUPERUSER_NAME);
+  private static final AuthenticatedUser EXTERNAL_AUTH_USER =
+      new ExternalAuthenticatedUser(EXTERNAL_USER_ROLE_NAME);
 
   /*
    * Initial schema migration can take greater than 2 * MigrationManager.MIGRATION_DELAY_IN_MS if a
@@ -428,15 +437,18 @@ public class DsePersistence
     @SuppressWarnings("RxReturnValueIgnored")
     protected void loginInternally(io.stargate.db.AuthenticatedUser user) {
       try {
-        if (user.isFromExternalAuth() && Boolean.getBoolean("stargate.cql_use_transitional_auth")) {
-          clientState.login(AuthenticatedUser.ANONYMOUS_USER);
+        Single<ClientState> loginSingle;
+        if (user.isFromExternalAuth() && USE_TRANSITIONAL_AUTH) {
+          loginSingle = this.clientState.login(EXTERNAL_AUTH_USER);
         } else {
-          // For now, we're blocking as the login() API is synchronous. If this is a problem, we may
-          // have to make said API asynchronous, but it makes things a tad more complex.
-          @SuppressWarnings("unused")
-          ClientState unused =
-              this.clientState.login(new AuthenticatedUser(user.name())).blockingGet();
+          loginSingle = this.clientState.login(new AuthenticatedUser(user.name()));
         }
+
+        // For now, we're blocking as the login() API is synchronous. If this is a problem, we may
+        // have to make said API asynchronous, but it makes things a tad more complex.
+        @SuppressWarnings("unused")
+        ClientState unused = loginSingle.blockingGet();
+
       } catch (AuthenticationException e) {
         throw new org.apache.cassandra.stargate.exceptions.AuthenticationException(e);
       }
@@ -615,6 +627,20 @@ public class DsePersistence
       } catch (Exception e) {
         throw new IllegalStateException(e);
       }
+    }
+  }
+
+  private static class ExternalAuthenticatedUser extends AuthenticatedUser {
+
+    public ExternalAuthenticatedUser(String roleName) {
+      // Note: this user is both system and anonymous and is expected to have a superuser role name.
+      //
+      // This is needed for properly forwarding DDL to storage nodes, which is controlled by
+      // SchemaLeaderManager.SCHEMA_CHANGE_FORWARDING_ENABLED.
+      //
+      // Access control for external users (including DDL and DML statements) is performed before
+      // the superuser role of this user object comes into play (cf. StargateQueryHandler).
+      super(RoleResource.role(roleName), true, true, null);
     }
   }
 }
