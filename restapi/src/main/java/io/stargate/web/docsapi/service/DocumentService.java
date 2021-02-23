@@ -925,17 +925,20 @@ public class DocumentService {
     if (inCassandraPaths.size() > 1 || inMemoryFilters.size() > 0) {
       // If the request involves more than one filter that could be handled by cassandra, or if
       // there is a combination of supported and unsupported filters, then we have to default to the
-      // I/O intensive
-      // in-memory filter.
-      inCassandraFilters = new ArrayList<>();
+      // I/O intensive in-memory filter because the relevant where clause wouldn't be supported in
+      // CQL (multiple C* filters would indirectly require an `OR` due to the document schema
+      // structure).
+      inCassandraFilters = Collections.emptyList();
       inMemoryFilters = filters;
     }
 
     ImmutablePair<List<Row>, ByteBuffer> page;
-    List<Row> leftoverRows = new ArrayList<>();
+    List<Row> leftoverRows = Collections.emptyList();
     ByteBuffer currentPageState = initialPagingState;
     List<String> path =
-        inCassandraFilters.isEmpty() ? new ArrayList<>() : inCassandraFilters.get(0).getPath();
+        inCassandraFilters.isEmpty()
+            ? Collections.emptyList()
+            : inCassandraFilters.get(0).getPath();
     do {
       page =
           searchRows(
@@ -943,13 +946,13 @@ public class DocumentService {
               collection,
               db,
               inCassandraFilters,
-              new ArrayList<>(),
+              Collections.emptyList(),
               path,
               false,
               null,
               pageSize,
               currentPageState);
-      List<Row> rowsResult = new ArrayList<>();
+      ArrayList<Row> rowsResult = new ArrayList<>();
       rowsResult.addAll(leftoverRows);
       rowsResult.addAll(page.left);
       leftoverRows =
@@ -986,7 +989,7 @@ public class DocumentService {
                   collection,
                   db,
                   inCassandraFilters,
-                  new ArrayList<>(),
+                  Collections.emptyList(),
                   path,
                   false,
                   null,
