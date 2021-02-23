@@ -55,7 +55,7 @@ directive @cql_column(
     """
     The CQL type to map to (e.g. `frozen<list<varchar>>`).
     Most of the time you don't need this, the CQL type will be inferred from the GraphQL type. It
-    is only needed if fine control over the "frozen-ness" of columns, or if you want to map a
+    is only needed for fine control over the "frozen-ness" of columns, or if you want to map a
     GraphQL list to a CQL set (instead of a list).
     """
     typeHint: String
@@ -75,7 +75,7 @@ Note that this is not required if the mutation name starts with `update`.
 directive @cql_update on FIELD_DEFINITION
 
 """
-Indicate that a mutation should be mapped to a CQL DELETE query.
+Indicates that a mutation should be mapped to a CQL DELETE query.
 Note that this is not required if the mutation name starts with `delete` or `remove`.
 """
 directive @cql_delete on FIELD_DEFINITION
