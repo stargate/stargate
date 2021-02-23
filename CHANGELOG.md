@@ -1,5 +1,20 @@
 # Changelog
 
+## [v1.0.10](https://github.com/stargate/stargate/tree/v1.0.10) (2021-02-22)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.9...v1.0.10)
+
+**Closed issues:**
+
+- Provide counter cql column update/write feature [\#688](https://github.com/stargate/stargate/issues/688)
+
+**Merged pull requests:**
+
+- move --bind-to-listen-address to starctl cmd [\#705](https://github.com/stargate/stargate/pull/705) ([jtgrabowski](https://github.com/jtgrabowski))
+- Add ability to update counters in restapi [\#703](https://github.com/stargate/stargate/pull/703) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Use superuser Query/Client state for external users. [\#701](https://github.com/stargate/stargate/pull/701) ([dimas-b](https://github.com/dimas-b))
+- Bumping version for next release [\#693](https://github.com/stargate/stargate/pull/693) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v1.0.9](https://github.com/stargate/stargate/tree/v1.0.9) (2021-02-19)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.8...v1.0.9)
