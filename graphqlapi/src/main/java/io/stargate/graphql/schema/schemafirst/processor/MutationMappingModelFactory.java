@@ -19,24 +19,24 @@ import com.google.common.collect.ImmutableList;
 import graphql.language.FieldDefinition;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class MutationMappingModelFactory {
 
-  public static Optional<MutationMappingModel> build(
+  public static MutationMappingModel build(
       FieldDefinition mutation,
       String parentTypeName,
       Map<String, EntityMappingModel> entities,
-      ProcessingContext context) {
-    return detectType(mutation, context)
-        .flatMap(type -> type.buildModel(mutation, parentTypeName, entities, context));
+      ProcessingContext context)
+      throws SkipException {
+    return detectType(mutation, context).buildModel(mutation, parentTypeName, entities, context);
   }
 
-  private static Optional<Kind> detectType(FieldDefinition mutation, ProcessingContext context) {
+  private static Kind detectType(FieldDefinition mutation, ProcessingContext context)
+      throws SkipException {
     for (Kind kind : Kind.values()) {
       if (mutation.hasDirective(kind.getDirectiveName())) {
-        return Optional.of(kind);
+        return kind;
       }
     }
     for (Kind kind : Kind.values()) {
@@ -48,7 +48,7 @@ public class MutationMappingModelFactory {
               mutation.getName(),
               kind,
               prefix);
-          return Optional.of(kind);
+          return kind;
         }
       }
     }
@@ -59,7 +59,7 @@ public class MutationMappingModelFactory {
             + "directives (%s), or name your operation with a recognized prefix.",
         mutation.getName(),
         Arrays.stream(Kind.values()).map(Kind::getDirectiveName).collect(Collectors.joining(", ")));
-    return Optional.empty();
+    throw SkipException.INSTANCE;
   }
 
   /**
@@ -90,21 +90,23 @@ public class MutationMappingModelFactory {
       return prefixes;
     }
 
-    Optional<MutationMappingModel> buildModel(
+    MutationMappingModel buildModel(
         FieldDefinition mutation,
         String parentTypeName,
         Map<String, EntityMappingModel> entities,
-        ProcessingContext context) {
+        ProcessingContext context)
+        throws SkipException {
       return modelBuilder.build(mutation, parentTypeName, entities, context);
     }
   }
 
   @FunctionalInterface
   interface MutationMappingModelBuilder {
-    Optional<MutationMappingModel> build(
+    MutationMappingModel build(
         FieldDefinition mutation,
         String parentTypeName,
         Map<String, EntityMappingModel> entities,
-        ProcessingContext context);
+        ProcessingContext context)
+        throws SkipException;
   }
 }
