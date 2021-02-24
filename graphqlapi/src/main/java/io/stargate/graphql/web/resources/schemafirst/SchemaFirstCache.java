@@ -124,7 +124,7 @@ public class SchemaFirstCache {
       try {
         source = schemaSourceDao.getLatest(namespace);
       } catch (Exception e) {
-        // The only way this can happen is if the graphql_schema table exists but with the wrong
+        // The only way this can happen is if the schema_source table exists but with the wrong
         // schema.
         LOG.debug(
             "Error while loading persisted schema for {} ({}).  Skipping for now, this will be "

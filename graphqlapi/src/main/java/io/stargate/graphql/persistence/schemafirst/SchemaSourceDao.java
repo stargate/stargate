@@ -21,6 +21,7 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
+import io.stargate.db.query.builder.Replication;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableTable;
@@ -40,9 +41,11 @@ import org.slf4j.LoggerFactory;
 
 // TODO purge old entries
 public class SchemaSourceDao {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(SchemaSourceDao.class);
-  public static final String TABLE_NAME = "graphql_schema";
-  @VisibleForTesting static final String KEY_COLUMN_NAME = "key";
+  public static final String KEYSPACE_NAME = "stargate_graphql";
+  public static final String TABLE_NAME = "schema_source";
+  @VisibleForTesting static final String NAMESPACE_COLUMN_NAME = "namespace";
   @VisibleForTesting static final String VERSION_COLUMN_NAME = "version";
   @VisibleForTesting static final String LATEST_VERSION_COLUMN_NAME = "latest_version";
   @VisibleForTesting static final String CONTENTS_COLUMN_NAME = "contents";
@@ -53,13 +56,14 @@ public class SchemaSourceDao {
 
   private static final int NUMBER_OF_RETAINED_SCHEMA_VERSIONS = 10;
 
-  private static final Table EXPECTED_TABLE =
+  @VisibleForTesting
+  static final Table EXPECTED_TABLE =
       ImmutableTable.builder()
-          .keyspace("ks") // mock keyspace name, it won't be used
+          .keyspace(KEYSPACE_NAME)
           .name(TABLE_NAME)
           .addColumns(
               ImmutableColumn.create(
-                  KEY_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Varchar),
+                  NAMESPACE_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Varchar),
               ImmutableColumn.create(
                   VERSION_COLUMN_NAME,
                   Column.Kind.Clustering,
@@ -73,9 +77,6 @@ public class SchemaSourceDao {
                   DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Column.Kind.Static, Column.Type.Boolean))
           .build();
 
-  // We use a single partition
-  private static final String UNIQUE_KEY = "key";
-
   private final DataStore dataStore;
 
   public SchemaSourceDao(DataStore dataStore) {
@@ -83,14 +84,9 @@ public class SchemaSourceDao {
   }
 
   public List<SchemaSource> getSchemaHistory(String namespace) throws Exception {
-    Keyspace keyspace;
-    Table table;
-    if ((keyspace = dataStore.schema().keyspace(namespace)) == null
-        || (table = keyspace.table(TABLE_NAME)) == null) {
+    if (!tableExists()) {
       return Collections.emptyList();
     }
-    failIfUnexpectedSchema(namespace, table);
-
     List<Row> row = dataStore.execute(schemaQuery(namespace)).get().rows();
     if (row == null) {
       return Collections.emptyList();
@@ -102,14 +98,9 @@ public class SchemaSourceDao {
       String namespace,
       @SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<UUID> maybeVersion)
       throws Exception {
-    Keyspace keyspace;
-    Table table;
-    if ((keyspace = dataStore.schema().keyspace(namespace)) == null
-        || (table = keyspace.table(TABLE_NAME)) == null) {
+    if (!tableExists()) {
       return null;
     }
-    failIfUnexpectedSchema(namespace, table);
-
     ResultSet resultSet;
     if (maybeVersion.isPresent()) {
       UUID versionUuid = maybeVersion.get();
@@ -130,6 +121,19 @@ public class SchemaSourceDao {
     return getByVersion(namespace, Optional.empty());
   }
 
+  private boolean tableExists() {
+    Keyspace keyspace = dataStore.schema().keyspace(KEYSPACE_NAME);
+    if (keyspace == null) {
+      return false;
+    }
+    Table table = keyspace.table(TABLE_NAME);
+    if (table == null) {
+      return false;
+    }
+    failIfUnexpectedSchema(table);
+    return true;
+  }
+
   private SchemaSource toSchemaSource(String namespace, Row r) {
     return new SchemaSource(
         namespace, r.getUuid(VERSION_COLUMN_NAME), r.getString(CONTENTS_COLUMN_NAME));
@@ -141,8 +145,8 @@ public class SchemaSourceDao {
         .queryBuilder()
         .select()
         .column(VERSION_COLUMN_NAME, CONTENTS_COLUMN_NAME)
-        .from(namespace, TABLE_NAME)
-        .where(KEY_COLUMN_NAME, Predicate.EQ, UNIQUE_KEY)
+        .from(KEYSPACE_NAME, TABLE_NAME)
+        .where(NAMESPACE_COLUMN_NAME, Predicate.EQ, namespace)
         .where(VERSION_COLUMN_NAME, Predicate.EQ, uuid)
         .build()
         .bind();
@@ -154,8 +158,8 @@ public class SchemaSourceDao {
         .queryBuilder()
         .select()
         .column(VERSION_COLUMN_NAME, CONTENTS_COLUMN_NAME)
-        .from(namespace, TABLE_NAME)
-        .where(KEY_COLUMN_NAME, Predicate.EQ, UNIQUE_KEY)
+        .from(KEYSPACE_NAME, TABLE_NAME)
+        .where(NAMESPACE_COLUMN_NAME, Predicate.EQ, namespace)
         .orderBy(VERSION_COLUMN_NAME, Column.Order.DESC)
         .build()
         .bind();
@@ -169,8 +173,8 @@ public class SchemaSourceDao {
     BoundQuery insertNewSchema =
         dataStore
             .queryBuilder()
-            .insertInto(namespace, TABLE_NAME)
-            .value(KEY_COLUMN_NAME, UNIQUE_KEY)
+            .insertInto(KEYSPACE_NAME, TABLE_NAME)
+            .value(NAMESPACE_COLUMN_NAME, namespace)
             .value(VERSION_COLUMN_NAME, newVersion)
             .value(LATEST_VERSION_COLUMN_NAME, newVersion)
             .value(CONTENTS_COLUMN_NAME, newContents)
@@ -189,13 +193,24 @@ public class SchemaSourceDao {
     return new SchemaSource(namespace, newVersion, newContents);
   }
 
-  private void ensureTableExists(String namespace) throws Exception {
+  private void ensureTableExists() throws Exception {
     dataStore
         .execute(
             dataStore
                 .queryBuilder()
                 .create()
-                .table(namespace, TABLE_NAME)
+                .keyspace(KEYSPACE_NAME)
+                .ifNotExists()
+                .withReplication(Replication.simpleStrategy(1))
+                .build()
+                .bind())
+        .get();
+    dataStore
+        .execute(
+            dataStore
+                .queryBuilder()
+                .create()
+                .table(KEYSPACE_NAME, TABLE_NAME)
                 .ifNotExists()
                 .column(EXPECTED_TABLE.columns())
                 .build()
@@ -204,15 +219,15 @@ public class SchemaSourceDao {
 
     // If the table already existed, CREATE IF NOT EXISTS does not guarantee that it matches what we
     // were trying to create.
-    failIfUnexpectedSchema(namespace, dataStore.schema().keyspace(namespace).table(TABLE_NAME));
+    failIfUnexpectedSchema(dataStore.schema().keyspace(KEYSPACE_NAME).table(TABLE_NAME));
   }
 
-  private static void failIfUnexpectedSchema(String namespace, Table table) {
+  private static void failIfUnexpectedSchema(Table table) {
     if (!CassandraSchemaHelper.compare(EXPECTED_TABLE, table).isEmpty()) {
       throw new IllegalStateException(
           String.format(
               "Table '%s.%s' already exists, but it doesn't have the expected structure",
-              namespace, TABLE_NAME));
+              KEYSPACE_NAME, TABLE_NAME));
     }
   }
 
@@ -223,13 +238,13 @@ public class SchemaSourceDao {
    * @throws IllegalStateException if the deployment could not be started.
    */
   public void startDeployment(String namespace, UUID expectedLatestVersion) throws Exception {
-    ensureTableExists(namespace);
+    ensureTableExists();
     BoundQuery updateDeploymentToInProgress =
         dataStore
             .queryBuilder()
-            .update(namespace, TABLE_NAME)
+            .update(KEYSPACE_NAME, TABLE_NAME)
             .value(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, true)
-            .where(KEY_COLUMN_NAME, Predicate.EQ, UNIQUE_KEY)
+            .where(NAMESPACE_COLUMN_NAME, Predicate.EQ, namespace)
             .ifs(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Predicate.NEQ, true)
             .ifs(LATEST_VERSION_COLUMN_NAME, Predicate.EQ, expectedLatestVersion)
             .build()
@@ -261,9 +276,9 @@ public class SchemaSourceDao {
     BoundQuery updateDeploymentToNotInProgress =
         dataStore
             .queryBuilder()
-            .update(namespace, TABLE_NAME)
+            .update(KEYSPACE_NAME, TABLE_NAME)
             .value(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, false)
-            .where(KEY_COLUMN_NAME, Predicate.EQ, UNIQUE_KEY)
+            .where(NAMESPACE_COLUMN_NAME, Predicate.EQ, namespace)
             .build()
             .bind();
     dataStore.execute(updateDeploymentToNotInProgress).get();
@@ -285,8 +300,8 @@ public class SchemaSourceDao {
           dataStore
               .queryBuilder()
               .delete()
-              .from(namespace, TABLE_NAME)
-              .where(KEY_COLUMN_NAME, Predicate.EQ, UNIQUE_KEY)
+              .from(KEYSPACE_NAME, TABLE_NAME)
+              .where(NAMESPACE_COLUMN_NAME, Predicate.EQ, namespace)
               .where(VERSION_COLUMN_NAME, Predicate.LTE, mostRecentToRemove.getVersion())
               .build()
               .bind();
