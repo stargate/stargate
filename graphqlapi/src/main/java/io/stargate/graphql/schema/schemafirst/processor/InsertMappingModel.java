@@ -27,7 +27,6 @@ import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.InsertFetcher;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class InsertMappingModel extends MutationMappingModel {
 
@@ -62,11 +61,12 @@ public class InsertMappingModel extends MutationMappingModel {
         this, mappingModel, authenticationService, authorizationService, dataStoreFactory);
   }
 
-  public static Optional<MutationMappingModel> build(
+  public static MutationMappingModel build(
       FieldDefinition mutation,
       String parentTypeName,
       Map<String, EntityMappingModel> entities,
-      ProcessingContext context) {
+      ProcessingContext context)
+      throws SkipException {
 
     List<InputValueDefinition> inputs = mutation.getInputValueDefinitions();
     if (inputs.isEmpty()) {
@@ -75,7 +75,7 @@ public class InsertMappingModel extends MutationMappingModel {
           ProcessingErrorType.InvalidMapping,
           "Mutation %s: inserts must take the entity input type as the first argument",
           mutation.getName());
-      return Optional.empty();
+      throw SkipException.INSTANCE;
     }
 
     // TODO we'll probably allow more parameters in the future, e.g. ifNotExists, etc.
@@ -85,13 +85,15 @@ public class InsertMappingModel extends MutationMappingModel {
           ProcessingErrorType.InvalidMapping,
           "Mutation %s: inserts can't have more than one argument",
           mutation.getName());
-      return Optional.empty();
+      throw SkipException.INSTANCE;
     }
 
     InputValueDefinition input = inputs.get(0);
-    return findEntity(input, entities, context, mutation.getName(), "insert")
-        .filter(entity -> matchesReturnType(entity, mutation, context))
-        .map(entity -> new InsertMappingModel(parentTypeName, mutation, entity, input.getName()));
+    EntityMappingModel entity = findEntity(input, entities, context, mutation.getName(), "insert");
+    if (!matchesReturnType(entity, mutation, context)) {
+      throw SkipException.INSTANCE;
+    }
+    return new InsertMappingModel(parentTypeName, mutation, entity, input.getName());
   }
 
   private static boolean matchesReturnType(

@@ -30,12 +30,13 @@ public abstract class MutationMappingModel extends OperationMappingModel {
     super(parentTypeName, field);
   }
 
-  protected static Optional<EntityMappingModel> findEntity(
+  protected static EntityMappingModel findEntity(
       InputValueDefinition input,
       Map<String, EntityMappingModel> entities,
       ProcessingContext context,
       String mutationName,
-      String mutationKind) {
+      String mutationKind)
+      throws SkipException {
 
     Type<?> type = TypeHelper.unwrapNonNull(input.getType());
 
@@ -46,7 +47,7 @@ public abstract class MutationMappingModel extends OperationMappingModel {
           "Mutation %s: unexpected list type, %ss expect a single entity",
           mutationName,
           mutationKind);
-      return Optional.empty();
+      throw SkipException.INSTANCE;
     }
 
     String inputTypeName = ((TypeName) type).getName();
@@ -61,7 +62,8 @@ public abstract class MutationMappingModel extends OperationMappingModel {
           "Mutation %s: unexpected type, %ss expect an input object that maps to a CQL entity",
           mutationName,
           mutationKind);
+      throw SkipException.INSTANCE;
     }
-    return entity;
+    return entity.get();
   }
 }
