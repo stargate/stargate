@@ -21,7 +21,6 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
-import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
@@ -37,7 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
-public class SchemaDeploymentTest extends BaseOsgiIntegrationTest {
+public class SchemaDeploymentTest extends GraphqlFirstTestBase {
 
   private static final int NUMBER_OF_RETAINED_SCHEMA_VERSIONS = 10;
 
@@ -54,8 +53,8 @@ public class SchemaDeploymentTest extends BaseOsgiIntegrationTest {
   }
 
   @BeforeEach
-  public void cleanupDb(CqlSession session) {
-    session.execute("DROP TABLE IF EXISTS graphql_schema");
+  public void cleanupDb(@TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+    deleteAllGraphqlSchemas(keyspaceId.asInternal(), session);
     session.execute("DROP TABLE IF EXISTS  \"User\"");
   }
 
@@ -63,28 +62,37 @@ public class SchemaDeploymentTest extends BaseOsgiIntegrationTest {
   @DisplayName("Should deploy schema and set the deployment_in_progress column to null")
   public void deploySchemaAndSetDeploymentInProgressToNull(
       @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+    // given
+    String namespace = keyspaceId.asInternal();
+
     // when
-    CLIENT.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
+    CLIENT.deploySchema(namespace, SCHEMA_CONTENTS);
 
     // then
-    Row row = session.execute("select * from graphql_schema").one();
+    Row row =
+        session
+            .execute("select * from stargate_graphql.schema_source where namespace = ?", namespace)
+            .one();
     assertThat(row).isNotNull();
     assertThat(row.isNull("deployment_in_progress")).isFalse();
     assertThat(row.getBoolean("deployment_in_progress")).isFalse();
   }
 
   @Test
-  @DisplayName("Should fail to deploy schema when already in progress")
+  @DisplayName("Should fail to deploy schema_source when already in progress")
   public void deploySchemaWhenInProgress(
       @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
     // given
-    UUID currentVersion = CLIENT.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
-    session.execute("UPDATE graphql_schema SET deployment_in_progress = true WHERE key = 'key'");
+    String namespace = keyspaceId.asInternal();
+    UUID currentVersion = CLIENT.deploySchema(namespace, SCHEMA_CONTENTS);
+    session.execute(
+        "UPDATE stargate_graphql.schema_source "
+            + "SET deployment_in_progress = true WHERE namespace = ?",
+        namespace);
 
     // when
     String error =
-        CLIENT.getDeploySchemaError(
-            keyspaceId.asInternal(), currentVersion.toString(), SCHEMA_CONTENTS);
+        CLIENT.getDeploySchemaError(namespace, currentVersion.toString(), SCHEMA_CONTENTS);
 
     // then
     assertThat(error)
@@ -131,7 +139,8 @@ public class SchemaDeploymentTest extends BaseOsgiIntegrationTest {
   public void deploySchemaWhenWrongTableStructure(
       @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
     // given
-    session.execute("CREATE TABLE graphql_schema(k int PRIMARY KEY)");
+    session.execute("DROP TABLE IF EXISTS stargate_graphql.schema_source");
+    session.execute("CREATE TABLE stargate_graphql.schema_source(k int PRIMARY KEY)");
 
     // when
     String error = CLIENT.getDeploySchemaError(keyspaceId.asInternal(), null, SCHEMA_CONTENTS);
@@ -139,9 +148,8 @@ public class SchemaDeploymentTest extends BaseOsgiIntegrationTest {
     // then
     assertThat(error)
         .contains(
-            String.format(
-                "Table '%s.graphql_schema' already exists, but it doesn't have the expected structure",
-                keyspaceId.asInternal()));
+            "Table 'stargate_graphql.schema_source' already exists, "
+                + "but it doesn't have the expected structure");
   }
 
   @Test

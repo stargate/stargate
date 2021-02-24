@@ -30,8 +30,6 @@ import io.stargate.graphql.web.RequestToHeadersMapper;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -87,7 +85,7 @@ public class FilesResource {
       @Context HttpServletRequest httpRequest)
       throws Exception {
 
-    if (!isAuthorized(token, namespace, httpRequest)) {
+    if (!isAuthorized(token, httpRequest)) {
       return Response.status(Response.Status.UNAUTHORIZED).build();
     }
 
@@ -144,32 +142,19 @@ public class FilesResource {
     }
   }
 
-  private boolean isAuthorized(String token, String namespace, HttpServletRequest httpRequest) {
+  private boolean isAuthorized(String token, HttpServletRequest httpRequest) {
     try {
       Map<String, String> headers = RequestToHeadersMapper.getAllHeaders(httpRequest);
       AuthenticationSubject authenticationSubject =
           authenticationService.validateToken(token, headers);
       authorizationService.authorizeSchemaRead(
           authenticationSubject,
-          Collections.singletonList(namespace),
+          Collections.singletonList(SchemaSourceDao.KEYSPACE_NAME),
           Collections.singletonList(SchemaSourceDao.TABLE_NAME),
           SourceAPI.GRAPHQL);
       return true;
     } catch (UnauthorizedException e) {
       return false;
     }
-  }
-
-  private static Map<String, String> getAllHeaders(HttpServletRequest request) {
-    if (request == null) {
-      return Collections.emptyMap();
-    }
-    Map<String, String> allHeaders = new HashMap<>();
-    Enumeration<String> headerNames = request.getHeaderNames();
-    while (headerNames.hasMoreElements()) {
-      String headerName = headerNames.nextElement();
-      allHeaders.put(headerName, request.getHeader(headerName));
-    }
-    return allHeaders;
   }
 }
