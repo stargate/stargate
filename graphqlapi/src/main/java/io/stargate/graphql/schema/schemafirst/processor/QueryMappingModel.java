@@ -27,7 +27,6 @@ import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.QueryFetcher;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class QueryMappingModel extends OperationMappingModel {
 
@@ -67,11 +66,12 @@ public class QueryMappingModel extends OperationMappingModel {
         this, mappingModel, authenticationService, authorizationService, dataStoreFactory);
   }
 
-  static Optional<QueryMappingModel> build(
+  static QueryMappingModel build(
       FieldDefinition query,
       String parentTypeName,
       Map<String, EntityMappingModel> entities,
-      ProcessingContext context) {
+      ProcessingContext context)
+      throws SkipException {
 
     Type<?> returnType = query.getType();
     String entityName = (returnType instanceof TypeName) ? ((TypeName) returnType).getName() : null;
@@ -81,7 +81,7 @@ public class QueryMappingModel extends OperationMappingModel {
           ProcessingErrorType.InvalidMapping,
           "Query %s: expected the return type to be an object that maps to an entity",
           query.getName());
-      return Optional.empty();
+      throw SkipException.INSTANCE;
     }
 
     EntityMappingModel entity = entities.get(entityName);
@@ -97,7 +97,7 @@ public class QueryMappingModel extends OperationMappingModel {
           query.getName(),
           inputValues.size(),
           primaryKey.size());
-      return Optional.empty();
+      throw SkipException.INSTANCE;
     }
 
     boolean foundErrors = false;
@@ -122,8 +122,9 @@ public class QueryMappingModel extends OperationMappingModel {
       inputNames.add(argument.getName());
     }
 
-    return foundErrors
-        ? Optional.empty()
-        : Optional.of(new QueryMappingModel(parentTypeName, query, entity, inputNames.build()));
+    if (foundErrors) {
+      throw SkipException.INSTANCE;
+    }
+    return new QueryMappingModel(parentTypeName, query, entity, inputNames.build());
   }
 }
