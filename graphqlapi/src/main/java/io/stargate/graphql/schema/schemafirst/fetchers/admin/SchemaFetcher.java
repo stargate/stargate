@@ -35,11 +35,11 @@ public abstract class SchemaFetcher<ResultT> extends CassandraFetcher<ResultT> {
     super(authenticationService, authorizationService, dataStoreFactory);
   }
 
-  protected void authorize(AuthenticationSubject authenticationSubject, String namespace)
+  protected void authorize(AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
     authorizationService.authorizeSchemaRead(
         authenticationSubject,
-        Collections.singletonList(namespace),
+        Collections.singletonList(SchemaSourceDao.KEYSPACE_NAME),
         Collections.singletonList(SchemaSourceDao.TABLE_NAME),
         SourceAPI.GRAPHQL);
   }

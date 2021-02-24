@@ -40,7 +40,7 @@ class SchemaSourceDaoTest {
     UUID versionId = Uuids.timeBased();
     String schemaContent = "some_schema";
     ResultSet resultSet = mockSchemaResultSet(versionId, schemaContent);
-    DataStore dataStore = mockDataStore(namespace, resultSet);
+    DataStore dataStore = mockDataStore(resultSet);
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
     // when
@@ -60,7 +60,7 @@ class SchemaSourceDaoTest {
     UUID versionId = Uuids.timeBased();
     String schemaContent = "some_schema";
     ResultSet resultSet = mockSchemaResultSet(versionId, schemaContent);
-    DataStore dataStore = mockDataStore(namespace, resultSet);
+    DataStore dataStore = mockDataStore(resultSet);
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
     // when
@@ -78,7 +78,7 @@ class SchemaSourceDaoTest {
     // given
     String namespace = "ns_1";
     ResultSet resultSet = mockNullResultSet();
-    DataStore dataStore = mockDataStore(namespace, resultSet);
+    DataStore dataStore = mockDataStore(resultSet);
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
     // when
@@ -98,7 +98,7 @@ class SchemaSourceDaoTest {
     String schemaContent2 = "some_schema_2";
     ResultSet resultSet =
         mockSchemaResultSetWithTwoRecords(versionId, schemaContent, versionId2, schemaContent2);
-    DataStore dataStore = mockDataStore(namespace, resultSet);
+    DataStore dataStore = mockDataStore(resultSet);
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
     // when
@@ -123,7 +123,7 @@ class SchemaSourceDaoTest {
     // given
     String namespace = "ns_1";
     ResultSet resultSet = mockNullResultSet();
-    DataStore dataStore = mockDataStore(namespace, resultSet);
+    DataStore dataStore = mockDataStore(resultSet);
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
     // when
@@ -133,30 +133,10 @@ class SchemaSourceDaoTest {
     assertThat(schema).isEmpty();
   }
 
-  private DataStore mockDataStore(String namespace, ResultSet resultSet) {
+  private DataStore mockDataStore(ResultSet resultSet) {
     DataStore dataStore = mock(DataStore.class);
-    ImmutableTable table =
-        ImmutableTable.builder()
-            .name(TABLE_NAME)
-            .keyspace(namespace)
-            .addColumns(
-                ImmutableColumn.create(
-                    KEY_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Varchar))
-            .addColumns(
-                ImmutableColumn.create(
-                    VERSION_COLUMN_NAME,
-                    Column.Kind.Clustering,
-                    Column.Type.Timeuuid,
-                    Column.Order.DESC))
-            .addColumns(
-                ImmutableColumn.create(
-                    LATEST_VERSION_COLUMN_NAME, Column.Kind.Static, Column.Type.Timeuuid))
-            .addColumns(ImmutableColumn.create(CONTENTS_COLUMN_NAME, Column.Type.Varchar))
-            .addColumns(
-                ImmutableColumn.create(
-                    DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Column.Kind.Static, Column.Type.Boolean))
-            .build();
-    Keyspace keyspace = ImmutableKeyspace.builder().addTables(table).name(namespace).build();
+    Keyspace keyspace =
+        ImmutableKeyspace.builder().addTables(EXPECTED_TABLE).name(KEYSPACE_NAME).build();
     Schema schema = ImmutableSchema.create(Collections.singletonList(keyspace));
     when(dataStore.schema()).thenReturn(schema);
     when(dataStore.execute(any())).thenReturn(CompletableFuture.completedFuture(resultSet));
