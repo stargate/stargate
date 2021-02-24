@@ -681,7 +681,7 @@ public class DocumentService {
       String documentId,
       int pageSize,
       ByteBuffer pageState)
-      throws ExecutionException, InterruptedException, UnauthorizedException {
+      throws UnauthorizedException {
     FilterCondition first = filters.get(0);
     List<String> path = first.getPath();
 
@@ -911,23 +911,48 @@ public class DocumentService {
     LinkedHashSet<String> existsByDoc = new LinkedHashSet<>();
     LinkedHashMap<String, Integer> countsByDoc = new LinkedHashMap<>();
 
+    List<FilterCondition> inCassandraFilters =
+        filters.stream()
+            .filter(f -> !FilterOp.LIMITED_SUPPORT_FILTERS.contains(f.getFilterOp()))
+            .collect(Collectors.toList());
+    List<FilterCondition> inMemoryFilters =
+        filters.stream()
+            .filter(f -> FilterOp.LIMITED_SUPPORT_FILTERS.contains(f.getFilterOp()))
+            .collect(Collectors.toList());
+
+    Set<String> inCassandraPaths =
+        inCassandraFilters.stream().map(f -> f.getFullFieldPath()).collect(Collectors.toSet());
+    if (inCassandraPaths.size() > 1 || inMemoryFilters.size() > 0) {
+      // If the request involves more than one filter that could be handled by cassandra, or if
+      // there is a combination of supported and unsupported filters, then we have to default to the
+      // I/O intensive in-memory filter because the relevant where clause wouldn't be supported in
+      // CQL (multiple C* filters would indirectly require an `OR` due to the document schema
+      // structure).
+      inCassandraFilters = Collections.emptyList();
+      inMemoryFilters = filters;
+    }
+
     ImmutablePair<List<Row>, ByteBuffer> page;
-    List<Row> leftoverRows = new ArrayList<>();
+    List<Row> leftoverRows = Collections.emptyList();
     ByteBuffer currentPageState = initialPagingState;
+    List<String> path =
+        inCassandraFilters.isEmpty()
+            ? Collections.emptyList()
+            : inCassandraFilters.get(0).getPath();
     do {
       page =
           searchRows(
               keyspace,
               collection,
               db,
-              new ArrayList<>(),
-              new ArrayList<>(),
-              new ArrayList<>(),
+              inCassandraFilters,
+              Collections.emptyList(),
+              path,
               false,
               null,
               pageSize,
               currentPageState);
-      List<Row> rowsResult = new ArrayList<>();
+      ArrayList<Row> rowsResult = new ArrayList<>();
       rowsResult.addAll(leftoverRows);
       rowsResult.addAll(page.left);
       leftoverRows =
@@ -935,7 +960,7 @@ public class DocumentService {
               existsByDoc,
               countsByDoc,
               rowsResult,
-              filters,
+              inMemoryFilters,
               db.treatBooleansAsNumeric(),
               page.right == null);
       currentPageState = page.right;
@@ -963,9 +988,9 @@ public class DocumentService {
                   keyspace,
                   collection,
                   db,
-                  new ArrayList<>(),
-                  new ArrayList<>(),
-                  new ArrayList<>(),
+                  inCassandraFilters,
+                  Collections.emptyList(),
+                  path,
                   false,
                   null,
                   totalSize,
@@ -1132,6 +1157,7 @@ public class DocumentService {
       throw new DocumentAPIRequestException(
           "The results as requested must fit in one page, try increasing the `page-size` parameter.");
     }
+
     rows = filterToSelectionSet(rows, fields, path);
     rows =
         applyInMemoryFilters(
