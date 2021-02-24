@@ -27,8 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MappingModel {
+
+  private static final Logger LOG = LoggerFactory.getLogger(MappingModel.class);
 
   private final Map<String, EntityMappingModel> entities;
   private final List<OperationMappingModel> operations;
@@ -79,22 +83,42 @@ public class MappingModel {
       if (typesToIgnore.contains(type)) {
         continue;
       }
-      new EntityMappingModelBuilder(type, context)
-          .build()
-          .ifPresent(entity -> entitiesBuilder.put(type.getName(), entity));
+      try {
+        entitiesBuilder.put(type.getName(), new EntityMappingModelBuilder(type, context).build());
+      } catch (SkipException e) {
+        LOG.debug(
+            "Skipping type {} because it has mapping errors, "
+                + "this will be reported after the whole schema has been processed.",
+            type.getName());
+      }
     }
     Map<String, EntityMappingModel> entities = entitiesBuilder.build();
 
     ImmutableList.Builder<OperationMappingModel> operationsBuilder = ImmutableList.builder();
     for (FieldDefinition query : queryType.getFieldDefinitions()) {
-      QueryMappingModel.build(query, queryType.getName(), entities, context)
-          .ifPresent(operationsBuilder::add);
+      try {
+        operationsBuilder.add(
+            QueryMappingModel.build(query, queryType.getName(), entities, context));
+      } catch (SkipException e) {
+        LOG.debug(
+            "Skipping query {} because it has mapping errors, "
+                + "this will be reported after the whole schema has been processed.",
+            query.getName());
+      }
     }
     maybeMutationType.ifPresent(
         mutationType -> {
           for (FieldDefinition mutation : mutationType.getFieldDefinitions()) {
-            MutationMappingModelFactory.build(mutation, mutationType.getName(), entities, context)
-                .ifPresent(operationsBuilder::add);
+            try {
+              operationsBuilder.add(
+                  MutationMappingModelFactory.build(
+                      mutation, mutationType.getName(), entities, context));
+            } catch (SkipException e) {
+              LOG.debug(
+                  "Skipping mutation {} because it has mapping errors, "
+                      + "this will be reported after the whole schema has been processed.",
+                  mutation.getName());
+            }
           }
         });
 

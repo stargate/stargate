@@ -77,7 +77,7 @@ class FieldMappingModelBuilder extends ModelBuilderBase {
     this.cqlColumnDirective = DirectiveHelper.getDirective("cql_column", field);
   }
 
-  Optional<FieldMappingModel> build() {
+  FieldMappingModel build() throws SkipException {
     String cqlName =
         cqlColumnDirective
             .flatMap(d -> DirectiveHelper.getStringArgument(d, "name", context))
@@ -116,16 +116,12 @@ class FieldMappingModelBuilder extends ModelBuilderBase {
 
     if (partitionKey && clusteringOrder.isPresent()) {
       invalidMapping("%s: can't be both a partition key and a clustering key.", messagePrefix);
-      return Optional.empty();
+      throw SkipException.INSTANCE;
     }
 
     boolean isPk = partitionKey || clusteringOrder.isPresent();
 
-    Optional<Column.ColumnType> maybeCqlType = inferCqlType(graphqlType, context);
-    if (!maybeCqlType.isPresent()) {
-      return Optional.empty();
-    }
-    Column.ColumnType cqlType = maybeCqlType.get();
+    Column.ColumnType cqlType = inferCqlType(graphqlType, context);
     if (isPk || (cqlType.isUserDefined() && isUdtField)) {
       cqlType = cqlType.frozen();
     }
@@ -139,7 +135,7 @@ class FieldMappingModelBuilder extends ModelBuilderBase {
         cqlTypeHint = Column.Type.fromCqlDefinitionOf(context.getKeyspace(), spec, false);
       } catch (IllegalArgumentException e) {
         invalidSyntax("%s: could not parse CQL type '%s': %s", messagePrefix, spec, e.getMessage());
-        return Optional.empty();
+        throw SkipException.INSTANCE;
       }
       if (isPk
           && (cqlTypeHint.isParameterized() || cqlTypeHint.isUserDefined())
@@ -147,40 +143,40 @@ class FieldMappingModelBuilder extends ModelBuilderBase {
         invalidMapping(
             "%s: invalid type hint '%s' -- partition or clustering columns must be frozen",
             messagePrefix, spec);
-        return Optional.empty();
+        throw SkipException.INSTANCE;
       }
       if (cqlTypeHint.isUserDefined() && isUdtField && !cqlTypeHint.isFrozen()) {
         invalidMapping(
             "%s: invalid type hint '%s' -- nested UDTs must be frozen", messagePrefix, spec);
-        return Optional.empty();
+        throw SkipException.INSTANCE;
       }
       if (!isCompatible(cqlTypeHint, cqlType)) {
         invalidMapping(
             "%s: invalid type hint '%s'-- the inferred type was '%s', you can only change "
                 + "frozenness or use sets instead of lists",
             messagePrefix, cqlTypeHint.cqlDefinition(), cqlType.cqlDefinition());
-        return Optional.empty();
+        throw SkipException.INSTANCE;
       }
       cqlType = cqlTypeHint;
     }
 
-    return Optional.of(
-        new FieldMappingModel(
-            graphqlName, graphqlType, cqlName, cqlType, partitionKey, clusteringOrder));
+    return new FieldMappingModel(
+        graphqlName, graphqlType, cqlName, cqlType, partitionKey, clusteringOrder);
   }
 
-  private Optional<Column.ColumnType> inferCqlType(Type<?> graphqlType, ProcessingContext context) {
+  private Column.ColumnType inferCqlType(Type<?> graphqlType, ProcessingContext context)
+      throws SkipException {
     if (graphqlType instanceof NonNullType) {
       return inferCqlType(((NonNullType) graphqlType).getType(), context);
     } else if (graphqlType instanceof ListType) {
-      return inferCqlType(((ListType) graphqlType).getType(), context).map(Column.Type.List::of);
+      return Column.Type.List.of(inferCqlType(((ListType) graphqlType).getType(), context));
     } else {
       String typeName = ((TypeName) graphqlType).getName();
       TypeDefinitionRegistry typeRegistry = context.getTypeRegistry();
 
       // Check built-in GraphQL scalars
       if (GRAPHQL_SCALAR_MAPPINGS.containsKey(typeName)) {
-        return Optional.of(GRAPHQL_SCALAR_MAPPINGS.get(typeName));
+        GRAPHQL_SCALAR_MAPPINGS.get(typeName);
       }
 
       // Otherwise, check if the type references another definition in the user's schema
@@ -188,13 +184,13 @@ class FieldMappingModelBuilder extends ModelBuilderBase {
         TypeDefinition<?> definition =
             typeRegistry.getType(typeName).orElseThrow(AssertionError::new);
         if (definition instanceof EnumTypeDefinition) {
-          return Optional.of(Column.Type.Varchar);
+          return Column.Type.Varchar;
         }
         if (definition instanceof ObjectTypeDefinition) {
           return expectUdt((ObjectTypeDefinition) definition);
         }
         invalidMapping("%s: can't map type '%s' to CQL", messagePrefix, graphqlType);
-        return Optional.empty();
+        throw SkipException.INSTANCE;
       }
 
       // Otherwise, check our own CQL scalars
@@ -213,16 +209,16 @@ class FieldMappingModelBuilder extends ModelBuilderBase {
                   .name(cqlScalar.getGraphqlType().getName())
                   .build());
         }
-        return Optional.of(cqlScalar.getCqlType());
+        return cqlScalar.getCqlType();
       }
 
       invalidMapping("%s: can't map type '%s' to CQL", messagePrefix, graphqlType);
-      return Optional.empty();
+      throw SkipException.INSTANCE;
     }
   }
 
   /** Checks that if a field is an object type, then that object maps to a UDT. */
-  private Optional<Column.ColumnType> expectUdt(ObjectTypeDefinition definition) {
+  private Column.ColumnType expectUdt(ObjectTypeDefinition definition) throws SkipException {
     boolean isUdt =
         DirectiveHelper.getDirective("cql_entity", definition)
             .flatMap(
@@ -236,20 +232,19 @@ class FieldMappingModelBuilder extends ModelBuilderBase {
         invalidMapping(
             "%s: type '%s' must also be annotated with @cql_input",
             messagePrefix, definition.getName());
-        return Optional.empty();
+        throw SkipException.INSTANCE;
       }
-      return Optional.of(
-          ImmutableUserDefinedType.builder()
-              .keyspace(context.getKeyspace().name())
-              .name(definition.getName())
-              .build());
+      return ImmutableUserDefinedType.builder()
+          .keyspace(context.getKeyspace().name())
+          .name(definition.getName())
+          .build();
     }
 
     invalidMapping(
         "%s: can't map type '%s' to CQL -- "
             + "if a field references an object type, then that object should map to a UDT",
         messagePrefix, definition.getName());
-    return Optional.empty();
+    throw SkipException.INSTANCE;
   }
 
   /** Checks if the only differences are frozen vs. not frozen, or list vs. set. */

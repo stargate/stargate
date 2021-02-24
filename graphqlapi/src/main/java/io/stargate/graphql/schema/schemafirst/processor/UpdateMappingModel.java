@@ -12,7 +12,6 @@ import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.UpdateFetcher;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class UpdateMappingModel extends MutationMappingModel {
 
@@ -47,11 +46,12 @@ public class UpdateMappingModel extends MutationMappingModel {
         this, mappingModel, authenticationService, authorizationService, dataStoreFactory);
   }
 
-  public static Optional<MutationMappingModel> build(
+  public static MutationMappingModel build(
       FieldDefinition mutation,
       String parentTypeName,
       Map<String, EntityMappingModel> entities,
-      ProcessingContext context) {
+      ProcessingContext context)
+      throws SkipException {
 
     // TODO more options for signature
     // Currently requiring exactly one argument that must be an entity input with all PK fields set.
@@ -65,7 +65,7 @@ public class UpdateMappingModel extends MutationMappingModel {
           ProcessingErrorType.InvalidMapping,
           "Mutation %s: updates can only return Boolean",
           mutation.getName());
-      return Optional.empty();
+      throw SkipException.INSTANCE;
     }
 
     List<InputValueDefinition> inputs = mutation.getInputValueDefinitions();
@@ -75,7 +75,7 @@ public class UpdateMappingModel extends MutationMappingModel {
           ProcessingErrorType.InvalidMapping,
           "Mutation %s: updates must take the entity input type as the first argument",
           mutation.getName());
-      return Optional.empty();
+      throw SkipException.INSTANCE;
     }
 
     if (inputs.size() > 1) {
@@ -84,11 +84,11 @@ public class UpdateMappingModel extends MutationMappingModel {
           ProcessingErrorType.InvalidMapping,
           "Mutation %s: updates can't have more than one argument",
           mutation.getName());
-      return Optional.empty();
+      throw SkipException.INSTANCE;
     }
 
     InputValueDefinition input = inputs.get(0);
-    return findEntity(input, entities, context, mutation.getName(), "update")
-        .map(entity -> new UpdateMappingModel(parentTypeName, mutation, entity, input.getName()));
+    EntityMappingModel entity = findEntity(input, entities, context, mutation.getName(), "update");
+    return new UpdateMappingModel(parentTypeName, mutation, entity, input.getName());
   }
 }
