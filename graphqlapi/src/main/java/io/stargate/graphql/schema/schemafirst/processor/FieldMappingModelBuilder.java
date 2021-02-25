@@ -176,7 +176,7 @@ class FieldMappingModelBuilder extends ModelBuilderBase {
 
       // Check built-in GraphQL scalars
       if (GRAPHQL_SCALAR_MAPPINGS.containsKey(typeName)) {
-        GRAPHQL_SCALAR_MAPPINGS.get(typeName);
+        return GRAPHQL_SCALAR_MAPPINGS.get(typeName);
       }
 
       // Otherwise, check if the type references another definition in the user's schema

@@ -190,7 +190,7 @@ public class EntityMappingModelBuilder extends ModelBuilderBase {
       throws SkipException {
     List<Directive> keyDirectives = type.getDirectives("key");
     if (keyDirectives.isEmpty()) {
-      throw SkipException.INSTANCE;
+      return false;
     }
 
     if (target == EntityMappingModel.Target.UDT) {
