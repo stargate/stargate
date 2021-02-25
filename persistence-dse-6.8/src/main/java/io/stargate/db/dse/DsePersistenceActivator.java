@@ -145,6 +145,10 @@ public class DsePersistenceActivator extends BaseActivator {
       c.guardrails = guardrailsConfig;
     }
 
+    if (Boolean.getBoolean("stargate.system_keyspaces_filtering")) {
+      c.system_keyspaces_filtering = true;
+    }
+
     long timeout;
     if ((timeout = Long.getLong("stargate.request_timeout_in_ms", -1)) > 0) {
       c.request_timeout_in_ms = timeout;
