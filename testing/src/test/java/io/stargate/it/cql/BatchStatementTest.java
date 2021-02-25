@@ -113,7 +113,7 @@ public class BatchStatementTest extends BaseOsgiIntegrationTest {
       if (i % 20 == 0) {
         boundStatement = boundStatement.unset(1);
       }
-      builder.addStatement(boundStatement);
+      builder2.addStatement(boundStatement);
     }
 
     session.execute(builder2.build());
