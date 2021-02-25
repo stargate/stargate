@@ -1,5 +1,21 @@
 # Changelog
 
+## [v1.0.11](https://github.com/stargate/stargate/tree/v1.0.11) (2021-02-25)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.10...v1.0.11)
+
+**Implemented enhancements:**
+
+- Replace String padding code by library call [\#536](https://github.com/stargate/stargate/issues/536)
+
+**Merged pull requests:**
+
+- Make system\_keyspaces\_filtering configurable [\#712](https://github.com/stargate/stargate/pull/712) ([dimas-b](https://github.com/dimas-b))
+- Update codacy coverage version to not use bintray [\#708](https://github.com/stargate/stargate/pull/708) ([lolgab](https://github.com/lolgab))
+- Bumping version for next release [\#707](https://github.com/stargate/stargate/pull/707) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Fix \#536 - Replace String padding by library call [\#699](https://github.com/stargate/stargate/pull/699) ([eribeiro](https://github.com/eribeiro))
+- Do what filters we can in cassandra [\#681](https://github.com/stargate/stargate/pull/681) ([EricBorczuk](https://github.com/EricBorczuk))
+
 ## [v1.0.10](https://github.com/stargate/stargate/tree/v1.0.10) (2021-02-22)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.9...v1.0.10)
