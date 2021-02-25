@@ -235,12 +235,6 @@ public class DocumentServiceTest {
 
     result = (String) leftPadTo6.invoke(service, "AbCd");
     assertThat(result).isEqualTo("00AbCd");
-
-    result = (String) leftPadTo6.invoke(service, "longer string");
-    assertThat(result).isEqualTo("longer string");
-
-    result = (String) leftPadTo6.invoke(service, "å∫ç∂´");
-    assertThat(result).isEqualTo("0å∫ç∂´");
   }
 
   @Test
