@@ -95,8 +95,7 @@ public interface Persistence {
   boolean supportsSAI();
 
   default boolean supportsLoggedBatches() {
-    return Boolean.parseBoolean(
-        System.getProperty("stargate.persistence.loggedbatches.support.default", "true"));
+    return true;
   }
 
   /** Wait for schema to agree across the cluster */

@@ -7,6 +7,6 @@ import io.stargate.it.storage.StargateSpec;
 public class DocumentApiV2TestUnloggedBatches extends BaseDocumentApiV2Test {
   @SuppressWarnings("unused") // referenced in @StargateSpec
   public static void disableLoggedBatches(StargateParameters.Builder builder) {
-    builder.putSystemProperties("stargate.persistence.loggedbatches.support.default", "false");
+    builder.putSystemProperties("stargate.document_use_logged_batches", "false");
   }
 }

@@ -49,6 +49,7 @@ public class DocumentDB {
   private static final List<String> allPathColumnNames;
   private static final List<Column.ColumnType> allPathColumnTypes;
   public static final Integer MAX_DEPTH = Integer.getInteger("stargate.document_max_depth", 64);
+  public static Boolean useLoggedBatches = true;
   public static final Integer SEARCH_PAGE_SIZE =
       Integer.getInteger("stargate.document_search_page_size", 1000);
 
@@ -114,7 +115,11 @@ public class DocumentDB {
     this.dataStore = dataStore;
     this.authenticationSubject = authenticationSubject;
     this.authorizationService = authorizationService;
-
+    useLoggedBatches =
+        Boolean.parseBoolean(
+            System.getProperty(
+                "stargate.document_use_logged_batches",
+                Boolean.toString(dataStore.supportsLoggedBatches())));
     if (!dataStore.supportsSAI() && !dataStore.supportsSecondaryIndex()) {
       throw new IllegalStateException("Backend does not support any known index types.");
     }
@@ -617,7 +622,7 @@ public class DocumentDB {
 
     getAuthorizationService()
         .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
-    if (dataStore.supportsLoggedBatches()) {
+    if (useLoggedBatches) {
       dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
     } else {
       dataStore.unloggedBatch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
@@ -673,7 +678,7 @@ public class DocumentDB {
     getAuthorizationService()
         .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
-    if (dataStore.supportsLoggedBatches()) {
+    if (useLoggedBatches) {
       dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
     } else {
       dataStore.unloggedBatch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
@@ -748,7 +753,7 @@ public class DocumentDB {
     }
 
     // Fire this off in a future
-    if (dataStore.supportsLoggedBatches()) {
+    if (useLoggedBatches) {
       dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
     } else {
       dataStore.unloggedBatch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
