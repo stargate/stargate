@@ -18,14 +18,19 @@ package io.stargate.graphql.schema.schemafirst.processor;
 import com.apollographql.federation.graphqljava.Federation;
 import com.apollographql.federation.graphqljava._FieldSet;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorException;
+import graphql.language.Argument;
+import graphql.language.Directive;
 import graphql.language.EnumTypeDefinition;
 import graphql.language.InputObjectTypeDefinition;
 import graphql.language.InputValueDefinition;
 import graphql.language.ListType;
 import graphql.language.NonNullType;
+import graphql.language.ObjectTypeDefinition;
+import graphql.language.StringValue;
 import graphql.language.Type;
 import graphql.language.TypeName;
 import graphql.schema.GraphQLCodeRegistry;
@@ -55,6 +60,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class SchemaProcessor {
 
@@ -177,6 +184,8 @@ public class SchemaProcessor {
     registry = registry.merge(FEDERATION_DIRECTIVES); // GraphQL federation
     registry = registry.merge(CQL_DIRECTIVES); // Stargate's own CQL directives
 
+    finalizeKeyDirectives(registry, mappingModel);
+
     RuntimeWiring.Builder runtimeWiring =
         RuntimeWiring.newRuntimeWiring()
             .codeRegistry(buildCodeRegistry(mappingModel))
@@ -209,6 +218,50 @@ public class SchemaProcessor {
     schema = federationTransformer.build();
 
     return GraphQL.newGraphQL(schema).build();
+  }
+
+  // For convenience we make users not fill `@key.fields`: it will always be the CQL primary key, so
+  // we can infer it. However it is a required field, so fill it now before we try to validate the
+  // schema.
+  private void finalizeKeyDirectives(TypeDefinitionRegistry registry, MappingModel mappingModel) {
+    if (!mappingModel.hasFederatedEntities()) {
+      return;
+    }
+    for (EntityMappingModel entity : mappingModel.getEntities().values()) {
+      if (!entity.isFederated()) {
+        continue;
+      }
+      Optional<ObjectTypeDefinition> maybeType =
+          registry.getType(entity.getGraphqlName(), ObjectTypeDefinition.class);
+      assert maybeType.isPresent(); // because we built an EntityMappingModel from it
+      ObjectTypeDefinition type = maybeType.get();
+
+      String primaryKeyFields =
+          entity.getPrimaryKey().stream()
+              .map(FieldMappingModel::getGraphqlName)
+              .collect(Collectors.joining(" "));
+      Directive newKeyDirective =
+          Directive.newDirective()
+              .name("key")
+              .argument(
+                  Argument.newArgument(
+                          "fields", StringValue.newStringValue(primaryKeyFields).build())
+                      .build())
+              .build();
+      List<Directive> newDirectives = Lists.newArrayListWithCapacity(type.getDirectives().size());
+      newDirectives.add(newKeyDirective);
+      // Other directives are unchanged. Note: this assumes that there is only one @key directive.
+      // This is true now, but if we allow multiple @key in the future this will have to be
+      // revisited.
+      for (Directive directive : type.getDirectives()) {
+        if (!directive.getName().equals("key")) {
+          newDirectives.add(directive);
+        }
+      }
+      ObjectTypeDefinition newType = type.transform(builder -> builder.directives(newDirectives));
+      registry.remove(type);
+      registry.add(newType);
+    }
   }
 
   private TypeDefinitionRegistry parse(String source) throws GraphqlErrorException {
