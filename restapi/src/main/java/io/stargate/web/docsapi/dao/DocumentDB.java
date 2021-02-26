@@ -617,7 +617,11 @@ public class DocumentDB {
 
     getAuthorizationService()
         .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
-    dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
+    if (dataStore.useLoggedBatches()) {
+      dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
+    } else {
+      dataStore.unloggedBatch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
+    }
   }
 
   /**
@@ -669,7 +673,11 @@ public class DocumentDB {
     getAuthorizationService()
         .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
-    dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
+    if (dataStore.useLoggedBatches()) {
+      dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
+    } else {
+      dataStore.unloggedBatch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
+    }
   }
 
   public void delete(
@@ -740,7 +748,11 @@ public class DocumentDB {
     }
 
     // Fire this off in a future
-    dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM);
+    if (dataStore.useLoggedBatches()) {
+      dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
+    } else {
+      dataStore.unloggedBatch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
+    }
   }
 
   public Map<String, Object> newBindMap(List<String> path) {

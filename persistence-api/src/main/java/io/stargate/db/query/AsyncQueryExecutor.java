@@ -75,6 +75,17 @@ public interface AsyncQueryExecutor {
   }
 
   /**
+   * Executes the provided queries as an unlogged batch against this executor.
+   *
+   * <p>This is a shortcut for {@link #batch(Collection, UnaryOperator)} where executor default
+   * parameters are only modified to use the provided consistency level.
+   */
+  default CompletableFuture<ResultSet> unloggedBatch(
+      Collection<BoundQuery> queries, ConsistencyLevel consistencyLevel) {
+    return batch(queries, BatchType.UNLOGGED, p -> p.withConsistencyLevel(consistencyLevel));
+  }
+
+  /**
    * Executes the provided queries as a batch against this executor.
    *
    * <p>This is a shortcut for {@link #batch(Collection, BatchType, UnaryOperator)} where batch type
