@@ -17,7 +17,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.OptionalLong;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -31,7 +31,7 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
   private final List<Value<?>> internalWhereValues;
   private final List<BindMarker> internalBindMarkers;
   private final List<BuiltCondition> whereClause;
-  private final @Nullable Value<Long> limit;
+  private final @Nullable Value<Integer> limit;
 
   protected BuiltSelect(
       Table table,
@@ -42,7 +42,7 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
       List<Value<?>> internalWhereValues,
       List<BindMarker> internalBindMarkers,
       List<BuiltCondition> whereClause,
-      @Nullable Value<Long> limit) {
+      @Nullable Value<Integer> limit) {
     this(
         table,
         codec,
@@ -76,7 +76,7 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
       List<Value<?>> internalWhereValues,
       List<BindMarker> internalBindMarkers,
       List<BuiltCondition> whereClause,
-      @Nullable Value<Long> limit) {
+      @Nullable Value<Integer> limit) {
     super(QueryType.SELECT, codec, preparedId, executor, unboundMarkers);
     this.table = table;
     this.internalQueryString = internalQueryString;
@@ -122,19 +122,19 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
           }
         };
 
-    OptionalLong optLimit = OptionalLong.empty();
+    OptionalInt optLimit = OptionalInt.empty();
     if (limit != null) {
-      TypedValue v = convertValue(limit, "[limit]", Type.Bigint, values);
+      TypedValue v = convertValue(limit, "[limit]", Type.Int, values);
       int internalIndex = limit.internalIndex();
       if (internalIndex >= 0) {
         internalBoundValues[internalIndex] = v;
       }
       if (!v.isUnset()) {
-        Long lvalue = (Long) v.javaValue();
+        Integer lvalue = (Integer) v.javaValue();
         if (lvalue == null) {
           throw new IllegalArgumentException("Cannot pass null as bound value for the LIMIT");
         }
-        optLimit = OptionalLong.of(lvalue);
+        optLimit = OptionalInt.of(lvalue);
       }
     }
     return new Bound(
@@ -169,14 +169,14 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
 
   public static class Bound extends AbstractBound<BuiltSelect> implements BoundSelect {
     private final @Nullable RowsImpacted selectedRows;
-    private final OptionalLong limit;
+    private final OptionalInt limit;
 
     private Bound(
         BuiltSelect builtQuery,
         List<TypedValue> boundedValues,
         List<TypedValue> values,
         @Nullable RowsImpacted selectedRows,
-        OptionalLong limit) {
+        OptionalInt limit) {
       super(builtQuery, boundedValues, values);
       this.selectedRows = selectedRows;
       this.limit = limit;
@@ -244,12 +244,12 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
               oldBuilt.internalWhereValues,
               oldBuilt.internalBindMarkers,
               oldBuilt.whereClause,
-              limit.isPresent() ? Value.of(limit.getAsLong()) : null);
+              limit.isPresent() ? Value.of(limit.getAsInt()) : null);
       return new Bound(newBuilt, source().values(), values(), selectedRows, limit);
     }
 
     @Override
-    public OptionalLong limit() {
+    public OptionalInt limit() {
       return limit;
     }
   }

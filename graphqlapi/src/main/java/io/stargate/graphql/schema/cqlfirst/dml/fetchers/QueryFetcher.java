@@ -87,12 +87,12 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
   }
 
   private BoundQuery buildQuery(DataFetchingEnvironment environment, DataStore dataStore) {
-    Long limit = null;
+    Integer limit = null;
     if (environment.containsArgument("options")) {
       Map<String, Object> options = environment.getArgument("options");
       Object limitObj = options == null ? null : options.get("limit");
       if (limitObj != null) {
-        limit = (long) (int) limitObj;
+        limit = (int) limitObj;
       }
     }
     return dataStore

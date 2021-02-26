@@ -143,7 +143,7 @@ public class QueryBuilderImpl {
   /** The IFs conditions for a conditional UPDATE or DELETE. */
   private final List<BuiltCondition> ifs = new ArrayList<>();
 
-  private @Nullable Value<Long> limit;
+  private @Nullable Value<Integer> limit;
   private List<ColumnOrder> orders = new ArrayList<>();
 
   private Replication replication;
@@ -646,7 +646,7 @@ public class QueryBuilderImpl {
   }
 
   @DSLAction
-  public void limit(Long limit) {
+  public void limit(Integer limit) {
     if (limit != null) {
       this.limit = Value.of(limit);
     }

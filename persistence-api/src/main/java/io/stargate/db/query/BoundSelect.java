@@ -3,7 +3,7 @@ package io.stargate.db.query;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import java.util.Optional;
-import java.util.OptionalLong;
+import java.util.OptionalInt;
 import java.util.Set;
 
 /**
@@ -43,5 +43,5 @@ public interface BoundSelect extends BoundQuery {
 
   BoundSelect withAddedSelectedColumns(Set<Column> columns);
 
-  OptionalLong limit();
+  OptionalInt limit();
 }
