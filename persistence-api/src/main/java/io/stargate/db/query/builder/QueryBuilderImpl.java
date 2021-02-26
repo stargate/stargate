@@ -1431,7 +1431,7 @@ public class QueryBuilderImpl {
             order -> builder.append(order.column()).append(order.order().name().toUpperCase()));
 
     if (limit != null) {
-      BindMarker marker = markerFor("[limit]", Type.Bigint);
+      BindMarker marker = markerFor("[limit]", Type.Int);
       builder.append("LIMIT").append(marker, limit);
       internalBindMarkers.add(marker);
     }
