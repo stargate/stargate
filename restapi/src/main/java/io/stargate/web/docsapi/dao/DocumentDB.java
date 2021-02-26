@@ -28,11 +28,7 @@ import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -49,7 +45,7 @@ public class DocumentDB {
   private static final List<String> allPathColumnNames;
   private static final List<Column.ColumnType> allPathColumnTypes;
   public static final Integer MAX_DEPTH = Integer.getInteger("stargate.document_max_depth", 64);
-  public static Boolean useLoggedBatches = true;
+  private Boolean useLoggedBatches;
   public static final Integer SEARCH_PAGE_SIZE =
       Integer.getInteger("stargate.document_search_page_size", 1000);
 
@@ -321,6 +317,14 @@ public class DocumentDB {
   public void deleteTable(String keyspaceName, String tableName)
       throws InterruptedException, ExecutionException {
     dataStore.queryBuilder().drop().table(keyspaceName, tableName).build().execute().get();
+  }
+
+  public void executeBatch(Collection<BoundQuery> queries) {
+    if (useLoggedBatches) {
+      dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
+    } else {
+      dataStore.unloggedBatch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
+    }
   }
 
   public ResultSet executeSelect(
@@ -622,11 +626,8 @@ public class DocumentDB {
 
     getAuthorizationService()
         .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
-    if (useLoggedBatches) {
-      dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
-    } else {
-      dataStore.unloggedBatch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
-    }
+
+    executeBatch(queries);
   }
 
   /**
@@ -678,11 +679,7 @@ public class DocumentDB {
     getAuthorizationService()
         .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
-    if (useLoggedBatches) {
-      dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
-    } else {
-      dataStore.unloggedBatch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
-    }
+    executeBatch(queries);
   }
 
   public void delete(
@@ -753,11 +750,7 @@ public class DocumentDB {
     }
 
     // Fire this off in a future
-    if (useLoggedBatches) {
-      dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
-    } else {
-      dataStore.unloggedBatch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
-    }
+    executeBatch(queries);
   }
 
   public Map<String, Object> newBindMap(List<String> path) {
