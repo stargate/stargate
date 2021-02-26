@@ -109,7 +109,11 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       // All the statements were added successfully
       // Use the dataStore containing the options
       DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
-      batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
+      if (dataStore.useLoggedBatches()) {
+        batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
+      } else {
+        batchContext.setExecutionResult(batchDataStore.unloggedBatch(batchContext.getQueries()));
+      }
     }
 
     return batchContext

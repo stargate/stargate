@@ -64,6 +64,14 @@ public interface AsyncQueryExecutor {
   }
 
   /**
+   * Executes the provided queries as an unlogged batch against this executor with default
+   * parameters.
+   */
+  default CompletableFuture<ResultSet> unloggedBatch(Collection<BoundQuery> queries) {
+    return batch(queries, BatchType.UNLOGGED, p -> p);
+  }
+
+  /**
    * Executes the provided queries as a batch against this executor.
    *
    * <p>This is a shortcut for {@link #batch(Collection, UnaryOperator)} where executor default
