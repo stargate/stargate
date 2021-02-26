@@ -215,8 +215,8 @@ class PersistenceBackedDataStore implements DataStore {
   }
 
   @Override
-  public boolean useLoggedBatches() {
-    return persistence().useLoggedBatches();
+  public boolean supportsLoggedBatches() {
+    return persistence().supportsLoggedBatches();
   }
 
   @Override

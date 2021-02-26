@@ -56,7 +56,7 @@ public interface DataStore extends AsyncQueryExecutor {
   boolean supportsSAI();
 
   /** Returns true if the persistence backend allows logged batches. */
-  boolean useLoggedBatches();
+  boolean supportsLoggedBatches();
 
   /** Returns true if in schema agreement */
   boolean isInSchemaAgreement();

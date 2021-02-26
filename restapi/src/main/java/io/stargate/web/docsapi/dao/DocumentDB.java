@@ -617,7 +617,7 @@ public class DocumentDB {
 
     getAuthorizationService()
         .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
-    if (dataStore.useLoggedBatches()) {
+    if (dataStore.supportsLoggedBatches()) {
       dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
     } else {
       dataStore.unloggedBatch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
@@ -673,7 +673,7 @@ public class DocumentDB {
     getAuthorizationService()
         .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
-    if (dataStore.useLoggedBatches()) {
+    if (dataStore.supportsLoggedBatches()) {
       dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
     } else {
       dataStore.unloggedBatch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
@@ -748,7 +748,7 @@ public class DocumentDB {
     }
 
     // Fire this off in a future
-    if (dataStore.useLoggedBatches()) {
+    if (dataStore.supportsLoggedBatches()) {
       dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
     } else {
       dataStore.unloggedBatch(queries, ConsistencyLevel.LOCAL_QUORUM).join();

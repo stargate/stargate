@@ -94,7 +94,7 @@ public interface Persistence {
   /** Returns true if the persistence backend supports Storage Attached Indexes. */
   boolean supportsSAI();
 
-  default boolean useLoggedBatches() {
+  default boolean supportsLoggedBatches() {
     return Boolean.parseBoolean(
         System.getProperty("stargate.persistence.loggedbatches.support.default", "true"));
   }
