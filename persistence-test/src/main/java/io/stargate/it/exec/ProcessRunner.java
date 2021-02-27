@@ -17,6 +17,7 @@ package io.stargate.it.exec;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -30,6 +31,7 @@ import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.Executor;
 import org.apache.commons.exec.LogOutputStream;
 import org.apache.commons.exec.PumpStreamHandler;
+import org.apache.commons.exec.environment.EnvironmentUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +102,10 @@ public class ProcessRunner {
     try {
       LOG.info("Starting {} {}, node {}: {}", kind, generation, node, cmd);
 
-      executor.execute(cmd, env, new ExecutionCallback());
+      Map<String, String> fullEnv = new HashMap<>(EnvironmentUtils.getProcEnvironment());
+      fullEnv.putAll(env);
+
+      executor.execute(cmd, fullEnv, new ExecutionCallback());
 
       LOG.info("Started {} {}, node {}: {}", kind, generation, node, cmd);
     } catch (IOException e) {
