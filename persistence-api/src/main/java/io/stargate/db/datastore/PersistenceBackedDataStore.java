@@ -215,6 +215,11 @@ class PersistenceBackedDataStore implements DataStore {
   }
 
   @Override
+  public boolean supportsLoggedBatches() {
+    return persistence().supportsLoggedBatches();
+  }
+
+  @Override
   public void waitForSchemaAgreement() {
     persistence().waitForSchemaAgreement();
   }

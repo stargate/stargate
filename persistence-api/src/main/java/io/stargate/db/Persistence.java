@@ -94,6 +94,10 @@ public interface Persistence {
   /** Returns true if the persistence backend supports Storage Attached Indexes. */
   boolean supportsSAI();
 
+  default boolean supportsLoggedBatches() {
+    return true;
+  }
+
   /** Wait for schema to agree across the cluster */
   default void waitForSchemaAgreement() {
     for (int count = 0; count < SCHEMA_AGREEMENT_WAIT_RETRIES; count++) {

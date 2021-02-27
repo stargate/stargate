@@ -374,6 +374,11 @@ public class DocumentDBTest {
     }
 
     @Override
+    public boolean supportsLoggedBatches() {
+      return true;
+    }
+
+    @Override
     public CompletableFuture<ResultSet> batch(
         Collection<BoundQuery> queries,
         BatchType batchType,
