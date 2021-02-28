@@ -66,7 +66,19 @@ directive @cql_column(
 Indicates that a mutation should be mapped to a CQL INSERT query.
 Note that this is not required if the mutation name starts with `insert` or `create`.
 """
-directive @cql_insert on FIELD_DEFINITION
+directive @cql_insert(
+    """
+    What to do if the entity already exists. If `false`, the insert will overwrite any data that
+    was already present. If `true`, it won't, and the mutation will return the existing entity.
+    In the latter case, it is strongly recommended to wrap the response in a payload object that
+    also defines an `applied` field, for example:
+    `type InsertUserResponse @cql_payload { applied: Boolean!, user: User! }`
+
+    By convention, this flag will be set automatically if the mutation name ends with
+    `IfNotExists`.
+    """
+    ifNotExists: Boolean = false
+) on FIELD_DEFINITION
 
 """
 Indicates that a mutation should be mapped to a CQL UPDATE query.
@@ -79,3 +91,9 @@ Indicates that a mutation should be mapped to a CQL DELETE query.
 Note that this is not required if the mutation name starts with `delete` or `remove`.
 """
 directive @cql_delete on FIELD_DEFINITION
+
+"""
+Indicates that a type represents a "payload" object that will be used as the argument or return
+type of a GraphQL operation. Such objects  are NOT mapped to a CQL table.
+"""
+directive @cql_payload on OBJECT | INPUT_OBJECT

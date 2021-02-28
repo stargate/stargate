@@ -70,6 +70,7 @@ public class QueryMappingModel extends OperationMappingModel {
       FieldDefinition query,
       String parentTypeName,
       Map<String, EntityMappingModel> entities,
+      Map<String, ResponseMappingModel> responses,
       ProcessingContext context)
       throws SkipException {
 
