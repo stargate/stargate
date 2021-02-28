@@ -18,7 +18,7 @@ package io.stargate.graphql.schema.schemafirst.processor;
 import com.google.errorprone.annotations.FormatMethod;
 import graphql.language.SourceLocation;
 
-abstract class ModelBuilderBase {
+abstract class ModelBuilderBase<ModelT> {
 
   protected final ProcessingContext context;
   protected final SourceLocation location;
@@ -27,6 +27,8 @@ abstract class ModelBuilderBase {
     this.context = context;
     this.location = location;
   }
+
+  abstract ModelT build() throws SkipException;
 
   @FormatMethod
   protected void info(String format, Object... arguments) {
