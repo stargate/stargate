@@ -37,7 +37,7 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class EntityMappingModelBuilder extends ModelBuilderBase {
+public class EntityMappingModelBuilder extends ModelBuilderBase<EntityMappingModel> {
 
   private static final Logger LOG = LoggerFactory.getLogger(EntityMappingModelBuilder.class);
   private static final Pattern NON_NESTED_FIELDS =
@@ -47,13 +47,14 @@ public class EntityMappingModelBuilder extends ModelBuilderBase {
   private final ObjectTypeDefinition type;
   private final String graphqlName;
 
-  public EntityMappingModelBuilder(ObjectTypeDefinition type, ProcessingContext context) {
+  EntityMappingModelBuilder(ObjectTypeDefinition type, ProcessingContext context) {
     super(context, type.getSourceLocation());
     this.type = type;
     this.graphqlName = type.getName();
   }
 
-  public EntityMappingModel build() throws SkipException {
+  @Override
+  EntityMappingModel build() throws SkipException {
     Optional<Directive> cqlEntityDirective = DirectiveHelper.getDirective("cql_entity", type);
     String cqlName = providedCqlNameOrDefault(cqlEntityDirective);
     EntityMappingModel.Target target = providedTargetOrDefault(cqlEntityDirective);
