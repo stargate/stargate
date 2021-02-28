@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-class FieldMappingModelBuilder extends ModelBuilderBase {
+class FieldMappingModelBuilder extends ModelBuilderBase<FieldMappingModel> {
 
   private static final Map<String, Column.ColumnType> GRAPHQL_SCALAR_MAPPINGS =
       ImmutableMap.<String, Column.ColumnType>builder()
@@ -77,6 +77,7 @@ class FieldMappingModelBuilder extends ModelBuilderBase {
     this.cqlColumnDirective = DirectiveHelper.getDirective("cql_column", field);
   }
 
+  @Override
   FieldMappingModel build() throws SkipException {
     String cqlName =
         cqlColumnDirective
