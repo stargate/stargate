@@ -1,5 +1,20 @@
 # Changelog
 
+## [v1.0.12](https://github.com/stargate/stargate/tree/v1.0.12) (2021-02-27)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.11...v1.0.12)
+
+**Closed issues:**
+
+- Integration tests fail to run on mac [\#702](https://github.com/stargate/stargate/issues/702)
+
+**Merged pull requests:**
+
+- Preserve environment of parent process in ProcessRunner [\#721](https://github.com/stargate/stargate/pull/721) ([olim7t](https://github.com/olim7t))
+- Unlogged batches property [\#717](https://github.com/stargate/stargate/pull/717) ([EricBorczuk](https://github.com/EricBorczuk))
+- Fix boundStatementsUnsetTest [\#715](https://github.com/stargate/stargate/pull/715) ([dimas-b](https://github.com/dimas-b))
+- Bumping version for next release [\#714](https://github.com/stargate/stargate/pull/714) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v1.0.11](https://github.com/stargate/stargate/tree/v1.0.11) (2021-02-25)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.10...v1.0.11)
