@@ -95,7 +95,11 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     List<Keyspace> keyspaces =
         objectMapper.convertValue(response.getData(), new TypeReference<List<Keyspace>>() {});
     assertThat(keyspaces)
-        .anySatisfy(value -> assertThat(value).isEqualTo(new Keyspace("system", null)));
+        .anySatisfy(
+            value ->
+                assertThat(value)
+                    .usingRecursiveComparison()
+                    .isEqualTo(new Keyspace("system", null)));
   }
 
   @Test
@@ -120,7 +124,11 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     List<Keyspace> keyspaces = objectMapper.readValue(body, new TypeReference<List<Keyspace>>() {});
     assertThat(keyspaces)
-        .anySatisfy(value -> assertThat(value).isEqualTo(new Keyspace("system_schema", null)));
+        .anySatisfy(
+            value ->
+                assertThat(value)
+                    .usingRecursiveComparison()
+                    .isEqualTo(new Keyspace("system_schema", null)));
   }
 
   @Test
@@ -135,7 +143,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     Keyspace keyspace = objectMapper.convertValue(response.getData(), Keyspace.class);
 
-    assertThat(keyspace).isEqualTo(new Keyspace("system", null));
+    assertThat(keyspace).usingRecursiveComparison().isEqualTo(new Keyspace("system", null));
   }
 
   @Test
@@ -148,7 +156,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
 
-    assertThat(keyspace).isEqualTo(new Keyspace("system", null));
+    assertThat(keyspace).usingRecursiveComparison().isEqualTo(new Keyspace("system", null));
   }
 
   @Test
@@ -172,7 +180,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
 
-    assertThat(keyspace).isEqualTo(new Keyspace(keyspaceName, null));
+    assertThat(keyspace).usingRecursiveComparison().isEqualTo(new Keyspace(keyspaceName, null));
   }
 
   @Test
@@ -295,6 +303,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             .findFirst()
             .orElseThrow(() -> new AssertionError("Column not found"));
     assertThat(columnDefinition)
+        .usingRecursiveComparison()
         .isEqualTo(new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
   }
 
@@ -1368,7 +1377,10 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             response.getData(), new TypeReference<List<ColumnDefinition>>() {});
     assertThat(columns)
         .anySatisfy(
-            value -> assertThat(value).isEqualTo(new ColumnDefinition("id", "uuid", false)));
+            value ->
+                assertThat(value)
+                    .usingRecursiveComparison()
+                    .isEqualTo(new ColumnDefinition("id", "uuid", false)));
   }
 
   @Test
@@ -1387,7 +1399,10 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         objectMapper.readValue(body, new TypeReference<List<ColumnDefinition>>() {});
     assertThat(columns)
         .anySatisfy(
-            value -> assertThat(value).isEqualTo(new ColumnDefinition("id", "uuid", false)));
+            value ->
+                assertThat(value)
+                    .usingRecursiveComparison()
+                    .isEqualTo(new ColumnDefinition("id", "uuid", false)));
   }
 
   @Test
@@ -1410,6 +1425,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         .anySatisfy(
             value ->
                 assertThat(value)
+                    .usingRecursiveComparison()
                     .isEqualTo(new ColumnDefinition("col2", "frozen<set<boolean>>", false)));
   }
 
@@ -1458,7 +1474,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     @SuppressWarnings("rawtypes")
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     ColumnDefinition column = objectMapper.convertValue(response.getData(), ColumnDefinition.class);
-    assertThat(column).isEqualTo(new ColumnDefinition("age", "int", false));
+    assertThat(column)
+        .usingRecursiveComparison()
+        .isEqualTo(new ColumnDefinition("age", "int", false));
   }
 
   @Test
@@ -1492,7 +1510,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "age"),
             HttpStatus.SC_OK);
     ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column).isEqualTo(new ColumnDefinition("age", "int", false));
+    assertThat(column)
+        .usingRecursiveComparison()
+        .isEqualTo(new ColumnDefinition("age", "int", false));
   }
 
   @Test
@@ -1510,7 +1530,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     @SuppressWarnings("rawtypes")
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     ColumnDefinition column = objectMapper.convertValue(response.getData(), ColumnDefinition.class);
-    assertThat(column).isEqualTo(new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
+    assertThat(column)
+        .usingRecursiveComparison()
+        .isEqualTo(new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
   }
 
   @Test
@@ -1572,7 +1594,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "name"),
             HttpStatus.SC_OK);
     ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column).isEqualTo(columnDefinition);
+    assertThat(column).usingRecursiveComparison().isEqualTo(columnDefinition);
   }
 
   @Test
@@ -1622,7 +1644,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "balance"),
             HttpStatus.SC_OK);
     ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column).isEqualTo(columnDefinition);
+    assertThat(column).usingRecursiveComparison().isEqualTo(columnDefinition);
   }
 
   @Test
@@ -1653,7 +1675,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "identifier"),
             HttpStatus.SC_OK);
     ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column).isEqualTo(columnDefinition);
+    assertThat(column).usingRecursiveComparison().isEqualTo(columnDefinition);
   }
 
   @Test
