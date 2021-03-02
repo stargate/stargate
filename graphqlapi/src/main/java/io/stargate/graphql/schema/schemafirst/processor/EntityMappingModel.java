@@ -142,4 +142,39 @@ public class EntityMappingModel {
   public Optional<String> getInputTypeName() {
     return inputTypeName;
   }
+
+  @Override
+  public String toString() {
+    return "EntityMappingModel{"
+        + "graphqlName='"
+        + graphqlName
+        + '\''
+        + ", keyspaceName='"
+        + keyspaceName
+        + '\''
+        + ", cqlName='"
+        + cqlName
+        + '\''
+        + ", target="
+        + target
+        + ", partitionKey="
+        + partitionKey
+        + ", clusteringColumns="
+        + clusteringColumns
+        + ", primaryKey="
+        + primaryKey
+        + ", regularColumns="
+        + regularColumns
+        + ", allColumns="
+        + allColumns
+        + ", tableCqlSchema="
+        + tableCqlSchema
+        + ", udtCqlSchema="
+        + udtCqlSchema
+        + ", isFederated="
+        + isFederated
+        + ", inputTypeName="
+        + inputTypeName
+        + '}';
+  }
 }
