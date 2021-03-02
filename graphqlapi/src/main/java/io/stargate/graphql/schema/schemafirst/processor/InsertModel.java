@@ -23,19 +23,19 @@ import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.InsertFetcher;
 import java.util.Optional;
 
-public class InsertMappingModel extends MutationMappingModel {
+public class InsertModel extends MutationModel {
 
-  private final EntityMappingModel entity;
+  private final EntityModel entity;
   private final String entityArgumentName;
-  private final ResponseMappingModel responseType;
+  private final ResponseModel responseType;
   private final boolean ifNotExists;
 
-  InsertMappingModel(
+  InsertModel(
       String parentTypeName,
       FieldDefinition field,
-      EntityMappingModel entity,
+      EntityModel entity,
       String entityArgumentName,
-      ResponseMappingModel responseType,
+      ResponseModel responseType,
       boolean ifNotExists) {
     super(parentTypeName, field);
     this.entity = entity;
@@ -44,7 +44,7 @@ public class InsertMappingModel extends MutationMappingModel {
     this.ifNotExists = ifNotExists;
   }
 
-  public EntityMappingModel getEntity() {
+  public EntityModel getEntity() {
     return entity;
   }
 
@@ -52,7 +52,7 @@ public class InsertMappingModel extends MutationMappingModel {
     return entityArgumentName;
   }
 
-  public Optional<ResponseMappingModel> getResponsePayloadType() {
+  public Optional<ResponseModel> getResponsePayloadType() {
     return Optional.ofNullable(responseType);
   }
 

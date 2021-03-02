@@ -42,8 +42,8 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.scalars.CqlScalar;
-import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel;
-import io.stargate.graphql.schema.schemafirst.processor.FieldMappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.EntityModel;
+import io.stargate.graphql.schema.schemafirst.processor.FieldModel;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.util.ArrayList;
@@ -152,7 +152,7 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
       Object graphqlValue, Column.ColumnType cqlType, Keyspace keyspace) {
 
     String udtName = cqlType.name();
-    EntityMappingModel udtModel = mappingModel.getEntities().get(udtName);
+    EntityModel udtModel = mappingModel.getEntities().get(udtName);
     if (udtModel == null) {
       throw new IllegalStateException(
           String.format("UDT '%s' is not mapped to a GraphQL type", udtName));
@@ -170,7 +170,7 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
     UdtValue udtValue = udt.create();
 
     Map<String, Object> graphqlObject = (Map<String, Object>) graphqlValue;
-    for (FieldMappingModel field : udtModel.getRegularColumns()) {
+    for (FieldModel field : udtModel.getRegularColumns()) {
       if (graphqlObject.containsKey(field.getGraphqlName())) {
         Column.ColumnType fieldCqlType = udt.fieldType(field.getCqlName());
         if (fieldCqlType == null) {
@@ -229,7 +229,7 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
   private Object toGraphqlUdtValue(UdtValue udtValue) {
     String udtName = udtValue.getType().getName().asInternal();
-    EntityMappingModel udtModel = mappingModel.getEntities().get(udtName);
+    EntityModel udtModel = mappingModel.getEntities().get(udtName);
     if (udtModel == null) {
       throw new IllegalStateException(
           String.format("UDT '%s' is not mapped to a GraphQL type", udtName));
@@ -237,7 +237,7 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
     Map<String, Object> result =
         Maps.newLinkedHashMapWithExpectedSize(udtModel.getRegularColumns().size());
-    for (FieldMappingModel field : udtModel.getRegularColumns()) {
+    for (FieldModel field : udtModel.getRegularColumns()) {
       Object cqlValue = udtValue.getObject(CqlIdentifier.fromInternal(field.getCqlName()));
       result.put(
           field.getGraphqlName(),
@@ -254,7 +254,7 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
    * @param argumentNames for each key component, the name of the argument that represents it.
    */
   protected List<Map<String, Object>> queryListOfEntities(
-      EntityMappingModel entity,
+      EntityModel entity,
       Map<String, Object> arguments,
       List<String> argumentNames,
       DataStore dataStore,
@@ -286,7 +286,7 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
    * @param argumentNames for each key component, the name of the argument that represents it.
    */
   protected Map<String, Object> querySingleEntity(
-      EntityMappingModel entity,
+      EntityModel entity,
       Map<String, Object> arguments,
       List<String> argumentNames,
       DataStore dataStore,
@@ -311,7 +311,7 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
    * the primary key fields.
    */
   protected Map<String, Object> querySingleEntity(
-      EntityMappingModel entity,
+      EntityModel entity,
       Map<String, Object> arguments,
       DataStore dataStore,
       Keyspace keyspace,
@@ -329,9 +329,9 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
     return resultSet.hasNoMoreFetchedRows() ? null : mapSingleRow(entity, resultSet.one());
   }
 
-  private Map<String, Object> mapSingleRow(EntityMappingModel entity, Row row) {
+  private Map<String, Object> mapSingleRow(EntityModel entity, Row row) {
     Map<String, Object> singleResult = new HashMap<>();
-    for (FieldMappingModel field : entity.getAllColumns()) {
+    for (FieldModel field : entity.getAllColumns()) {
       Object cqlValue = row.getObject(field.getCqlName());
       singleResult.put(
           field.getGraphqlName(),
@@ -341,7 +341,7 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
   }
 
   private ResultSet getResultSet(
-      EntityMappingModel entity,
+      EntityModel entity,
       Map<String, Object> arguments,
       List<String> argumentNames,
       int argumentCount,
@@ -353,7 +353,7 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
     List<BuiltCondition> whereConditions = new ArrayList<>();
     assert argumentNames == null || argumentNames.size() == argumentCount;
     for (int i = 0; i < argumentCount; i++) {
-      FieldMappingModel field = entity.getPrimaryKey().get(i);
+      FieldModel field = entity.getPrimaryKey().get(i);
       String argumentName = argumentNames != null ? argumentNames.get(i) : field.getGraphqlName();
       Object graphqlValue = arguments.get(argumentName);
       whereConditions.add(
@@ -368,9 +368,7 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
             .queryBuilder()
             .select()
             .column(
-                entity.getAllColumns().stream()
-                    .map(FieldMappingModel::getCqlName)
-                    .toArray(String[]::new))
+                entity.getAllColumns().stream().map(FieldModel::getCqlName).toArray(String[]::new))
             .from(entity.getKeyspaceName(), entity.getCqlName())
             .where(whereConditions)
             .build()

@@ -17,27 +17,38 @@ package io.stargate.graphql.schema.schemafirst.processor;
 
 import graphql.language.FieldDefinition;
 import graphql.schema.DataFetcher;
-import graphql.schema.FieldCoordinates;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
+import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.DeleteFetcher;
 
-/** A GraphQL operation that will be translated into a CQL query. */
-public abstract class OperationMappingModel {
+public class DeleteModel extends MutationModel {
 
-  private final FieldCoordinates coordinates;
+  private final EntityModel entity;
+  private final String entityArgumentName;
 
-  protected OperationMappingModel(String parentTypeName, FieldDefinition field) {
-    this.coordinates = FieldCoordinates.coordinates(parentTypeName, field.getName());
+  DeleteModel(
+      String parentTypeName, FieldDefinition field, EntityModel entity, String entityArgumentName) {
+    super(parentTypeName, field);
+    this.entity = entity;
+    this.entityArgumentName = entityArgumentName;
   }
 
-  public FieldCoordinates getCoordinates() {
-    return coordinates;
+  public EntityModel getEntity() {
+    return entity;
   }
 
-  public abstract DataFetcher<?> getDataFetcher(
+  public String getEntityArgumentName() {
+    return entityArgumentName;
+  }
+
+  @Override
+  public DataFetcher<?> getDataFetcher(
       MappingModel mappingModel,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory);
+      DataStoreFactory dataStoreFactory) {
+    return new DeleteFetcher(
+        this, mappingModel, authenticationService, authorizationService, dataStoreFactory);
+  }
 }

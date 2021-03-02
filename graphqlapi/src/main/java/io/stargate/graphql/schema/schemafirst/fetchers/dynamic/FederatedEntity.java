@@ -15,7 +15,7 @@
  */
 package io.stargate.graphql.schema.schemafirst.fetchers.dynamic;
 
-import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.EntityModel;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Set;
@@ -51,7 +51,7 @@ public class FederatedEntity extends AbstractMap<String, Object> {
     return delegate.get(key);
   }
 
-  public static FederatedEntity wrap(EntityMappingModel mappingModel, Map<String, Object> rawData) {
+  public static FederatedEntity wrap(EntityModel mappingModel, Map<String, Object> rawData) {
     return rawData == null ? null : new FederatedEntity(mappingModel.getGraphqlName(), rawData);
   }
 }

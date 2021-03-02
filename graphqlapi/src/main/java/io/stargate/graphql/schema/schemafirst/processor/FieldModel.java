@@ -21,7 +21,7 @@ import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Order;
 import java.util.Optional;
 
-public class FieldMappingModel {
+public class FieldModel {
 
   private final String graphqlName;
   private final Type<?> graphqlType;
@@ -30,7 +30,7 @@ public class FieldMappingModel {
   private final boolean partitionKey;
   private final Optional<Order> clusteringOrder;
 
-  FieldMappingModel(
+  FieldModel(
       String graphqlName,
       Type<?> graphqlType,
       String cqlName,
@@ -70,8 +70,8 @@ public class FieldMappingModel {
     return partitionKey;
   }
 
-  public FieldMappingModel asPartitionKey() {
-    return new FieldMappingModel(graphqlName, graphqlType, cqlName, cqlType, true, clusteringOrder);
+  public FieldModel asPartitionKey() {
+    return new FieldModel(graphqlName, graphqlType, cqlName, cqlType, true, clusteringOrder);
   }
 
   public Optional<Order> getClusteringOrder() {
