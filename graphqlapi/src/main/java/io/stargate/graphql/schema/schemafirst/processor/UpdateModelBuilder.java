@@ -33,7 +33,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
       FieldDefinition mutation,
       String parentTypeName,
       Map<String, EntityModel> entities,
-      Map<String, ResponseModel> responses,
+      Map<String, ResponsePayloadModel> responsePayloads,
       ProcessingContext context) {
     super(context, mutation.getSourceLocation());
     this.mutation = mutation;
