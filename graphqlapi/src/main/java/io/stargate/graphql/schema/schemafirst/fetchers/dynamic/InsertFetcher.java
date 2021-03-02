@@ -33,12 +33,12 @@ import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
-import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel;
-import io.stargate.graphql.schema.schemafirst.processor.FieldMappingModel;
-import io.stargate.graphql.schema.schemafirst.processor.InsertMappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.EntityModel;
+import io.stargate.graphql.schema.schemafirst.processor.FieldModel;
+import io.stargate.graphql.schema.schemafirst.processor.InsertModel;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
-import io.stargate.graphql.schema.schemafirst.processor.ResponseMappingModel;
-import io.stargate.graphql.schema.schemafirst.processor.ResponseMappingModel.TechnicalField;
+import io.stargate.graphql.schema.schemafirst.processor.ResponseModel;
+import io.stargate.graphql.schema.schemafirst.processor.ResponseModel.TechnicalField;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import io.stargate.graphql.schema.schemafirst.util.Uuids;
 import java.util.ArrayList;
@@ -50,10 +50,10 @@ import java.util.UUID;
 
 public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
 
-  private final InsertMappingModel model;
+  private final InsertModel model;
 
   public InsertFetcher(
-      InsertMappingModel model,
+      InsertModel model,
       MappingModel mappingModel,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
@@ -70,13 +70,13 @@ public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
       throws UnauthorizedException {
     DataFetchingFieldSelectionSet selectionSet = environment.getSelectionSet();
 
-    EntityMappingModel entityModel = model.getEntity();
+    EntityModel entityModel = model.getEntity();
     boolean isLwt = model.ifNotExists();
     Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
     Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
     Map<String, Object> response = new LinkedHashMap<>();
     Collection<ValueModifier> setters = new ArrayList<>();
-    for (FieldMappingModel column : entityModel.getAllColumns()) {
+    for (FieldModel column : entityModel.getAllColumns()) {
       String graphqlName = column.getGraphqlName();
       Object graphqlValue;
       Object cqlValue;
@@ -124,7 +124,7 @@ public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
       applied = row.getBoolean("[applied]");
       if (!applied) {
         // The row contains the existing data, write it in the response.
-        for (FieldMappingModel field : model.getEntity().getAllColumns()) {
+        for (FieldModel field : model.getEntity().getAllColumns()) {
           if (row.columns().stream().noneMatch(c -> c.name().equals(field.getCqlName()))) {
             continue;
           }
@@ -166,7 +166,7 @@ public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
     // payload type that contains the entity.
     String rootPath = null;
     if (model.getResponsePayloadType().isPresent()) {
-      ResponseMappingModel payloadType = model.getResponsePayloadType().get();
+      ResponseModel payloadType = model.getResponsePayloadType().get();
       if (!payloadType.getEntityField().isPresent()) {
         // This can happen if the payload only contains "technical" fields, like `applied`. In that
         // case we never need to write any field.

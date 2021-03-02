@@ -24,14 +24,14 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
-import io.stargate.graphql.schema.schemafirst.processor.QueryMappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.QueryModel;
 
 public class QueryFetcher extends DynamicFetcher<Object> {
 
-  private final QueryMappingModel model;
+  private final QueryModel model;
 
   public QueryFetcher(
-      QueryMappingModel model,
+      QueryModel model,
       MappingModel mappingModel,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,

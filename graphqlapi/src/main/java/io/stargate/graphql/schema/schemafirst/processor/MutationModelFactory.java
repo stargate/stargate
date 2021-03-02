@@ -21,13 +21,13 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class MutationMappingModelFactory {
+public class MutationModelFactory {
 
-  public static MutationMappingModel build(
+  public static MutationModel build(
       FieldDefinition mutation,
       String parentTypeName,
-      Map<String, EntityMappingModel> entities,
-      Map<String, ResponseMappingModel> responses,
+      Map<String, EntityModel> entities,
+      Map<String, ResponseModel> responses,
       ProcessingContext context)
       throws SkipException {
     return detectType(mutation, context)
@@ -70,9 +70,9 @@ public class MutationMappingModelFactory {
    * explicit directive, or otherwise from a set of predefined name prefixes.
    */
   private enum Kind {
-    INSERT(InsertMappingModelBuilder::new, "cql_insert", "insert", "create"),
-    UPDATE(UpdateMappingModelBuilder::new, "cql_update", "update"),
-    DELETE(DeleteMappingModelBuilder::new, "cql_delete", "delete", "remove"),
+    INSERT(InsertModelBuilder::new, "cql_insert", "insert", "create"),
+    UPDATE(UpdateModelBuilder::new, "cql_update", "update"),
+    DELETE(DeleteModelBuilder::new, "cql_delete", "delete", "remove"),
     ;
 
     private final BuilderProvider builderProvider;
@@ -93,11 +93,11 @@ public class MutationMappingModelFactory {
       return prefixes;
     }
 
-    MutationMappingModelBuilder getBuilder(
+    MutationModelBuilder getBuilder(
         FieldDefinition mutation,
         String parentTypeName,
-        Map<String, EntityMappingModel> entities,
-        Map<String, ResponseMappingModel> responses,
+        Map<String, EntityModel> entities,
+        Map<String, ResponseModel> responses,
         ProcessingContext context) {
       return builderProvider.get(mutation, parentTypeName, entities, responses, context);
     }
@@ -105,11 +105,11 @@ public class MutationMappingModelFactory {
 
   @FunctionalInterface
   interface BuilderProvider {
-    MutationMappingModelBuilder get(
+    MutationModelBuilder get(
         FieldDefinition mutation,
         String parentTypeName,
-        Map<String, EntityMappingModel> entities,
-        Map<String, ResponseMappingModel> responses,
+        Map<String, EntityModel> entities,
+        Map<String, ResponseModel> responses,
         ProcessingContext context);
   }
 }

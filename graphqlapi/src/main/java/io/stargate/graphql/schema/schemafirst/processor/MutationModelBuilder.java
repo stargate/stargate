@@ -24,15 +24,15 @@ import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.util.Map;
 import java.util.Optional;
 
-abstract class MutationMappingModelBuilder extends ModelBuilderBase<MutationMappingModel> {
+abstract class MutationModelBuilder extends ModelBuilderBase<MutationModel> {
 
-  protected MutationMappingModelBuilder(ProcessingContext context, SourceLocation location) {
+  protected MutationModelBuilder(ProcessingContext context, SourceLocation location) {
     super(context, location);
   }
 
-  protected static EntityMappingModel findEntity(
+  protected static EntityModel findEntity(
       InputValueDefinition input,
-      Map<String, EntityMappingModel> entities,
+      Map<String, EntityModel> entities,
       ProcessingContext context,
       String mutationName,
       String mutationKind)
@@ -51,7 +51,7 @@ abstract class MutationMappingModelBuilder extends ModelBuilderBase<MutationMapp
     }
 
     String inputTypeName = ((TypeName) type).getName();
-    Optional<EntityMappingModel> entity =
+    Optional<EntityModel> entity =
         entities.values().stream()
             .filter(e -> e.getInputTypeName().map(name -> name.equals(inputTypeName)).orElse(false))
             .findFirst();

@@ -25,18 +25,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-class InsertMappingModelBuilder extends MutationMappingModelBuilder {
+class InsertModelBuilder extends MutationModelBuilder {
 
   private final FieldDefinition mutation;
   private final String parentTypeName;
-  private final Map<String, EntityMappingModel> entities;
-  private final Map<String, ResponseMappingModel> responses;
+  private final Map<String, EntityModel> entities;
+  private final Map<String, ResponseModel> responses;
 
-  InsertMappingModelBuilder(
+  InsertModelBuilder(
       FieldDefinition mutation,
       String parentTypeName,
-      Map<String, EntityMappingModel> entities,
-      Map<String, ResponseMappingModel> responses,
+      Map<String, EntityModel> entities,
+      Map<String, ResponseModel> responses,
       ProcessingContext context) {
     super(context, mutation.getSourceLocation());
     this.mutation = mutation;
@@ -46,7 +46,7 @@ class InsertMappingModelBuilder extends MutationMappingModelBuilder {
   }
 
   @Override
-  InsertMappingModel build() throws SkipException {
+  InsertModel build() throws SkipException {
 
     boolean ifNotExists = computeIfNotExists();
 
@@ -63,7 +63,7 @@ class InsertMappingModelBuilder extends MutationMappingModelBuilder {
       throw SkipException.INSTANCE;
     }
     InputValueDefinition input = inputs.get(0);
-    EntityMappingModel entity = findEntity(input, entities, context, mutation.getName(), "insert");
+    EntityModel entity = findEntity(input, entities, context, mutation.getName(), "insert");
 
     // Validate return type: must be the entity itself, or a wrapper payload
     Type<?> returnType = TypeHelper.unwrapNonNull(mutation.getType());
@@ -73,11 +73,11 @@ class InsertMappingModelBuilder extends MutationMappingModelBuilder {
     }
     assert returnType instanceof TypeName;
     String returnTypeName = ((TypeName) returnType).getName();
-    ResponseMappingModel response = responses.get(returnTypeName);
+    ResponseModel response = responses.get(returnTypeName);
 
     if (response != null) {
       if (response.getEntityField().isPresent()) {
-        ResponseMappingModel.EntityField entityField = response.getEntityField().get();
+        ResponseModel.EntityField entityField = response.getEntityField().get();
         if (entityField.isList() || returnTypeName.equals(entityField.getEntityName())) {
           invalidMapping(
               "Mutation %s: invalid return type. "
@@ -96,7 +96,7 @@ class InsertMappingModelBuilder extends MutationMappingModelBuilder {
       }
     }
 
-    return new InsertMappingModel(
+    return new InsertModel(
         parentTypeName, mutation, entity, input.getName(), response, ifNotExists);
   }
 

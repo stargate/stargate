@@ -21,26 +21,26 @@ import graphql.language.ObjectTypeDefinition;
 import graphql.language.Type;
 import graphql.language.TypeDefinition;
 import graphql.language.TypeName;
-import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel.Target;
-import io.stargate.graphql.schema.schemafirst.processor.ResponseMappingModel.EntityField;
-import io.stargate.graphql.schema.schemafirst.processor.ResponseMappingModel.TechnicalField;
+import io.stargate.graphql.schema.schemafirst.processor.EntityModel.Target;
+import io.stargate.graphql.schema.schemafirst.processor.ResponseModel.EntityField;
+import io.stargate.graphql.schema.schemafirst.processor.ResponseModel.TechnicalField;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.util.EnumSet;
 import java.util.Optional;
 
-class ResponseMappingModelBuilder extends ModelBuilderBase<ResponseMappingModel> {
+class ResponseModelBuilder extends ModelBuilderBase<ResponseModel> {
 
   private final ObjectTypeDefinition type;
   private final String graphqlName;
 
-  ResponseMappingModelBuilder(ObjectTypeDefinition type, ProcessingContext context) {
+  ResponseModelBuilder(ObjectTypeDefinition type, ProcessingContext context) {
     super(context, type.getSourceLocation());
     this.type = type;
     this.graphqlName = type.getName();
   }
 
   @Override
-  ResponseMappingModel build() {
+  ResponseModel build() {
     EntityField entityField = null;
     EnumSet<TechnicalField> technicalFields = EnumSet.noneOf(TechnicalField.class);
 
@@ -69,7 +69,7 @@ class ResponseMappingModelBuilder extends ModelBuilderBase<ResponseMappingModel>
               + "nor does it reference a mapped entity.",
           graphqlName, field.getName());
     }
-    return new ResponseMappingModel(Optional.ofNullable(entityField), technicalFields);
+    return new ResponseModel(Optional.ofNullable(entityField), technicalFields);
   }
 
   private EntityField asEntityField(FieldDefinition field) {

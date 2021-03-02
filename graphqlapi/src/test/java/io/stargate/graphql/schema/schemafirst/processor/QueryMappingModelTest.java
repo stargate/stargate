@@ -17,7 +17,6 @@ package io.stargate.graphql.schema.schemafirst.processor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
 
 import graphql.GraphqlErrorException;
 import graphql.schema.idl.SchemaParser;
@@ -45,16 +44,15 @@ class QueryMappingModelTest {
                 typeDefinitionRegistry, ImmutableKeyspace.builder().name("ks_1").build(), true));
 
     // then
-    QueryMappingModel operationMappingModel =
-        (QueryMappingModel) mappingModel.getOperations().get(0);
+    QueryModel operationMappingModel = (QueryModel) mappingModel.getOperations().get(0);
     assertThat(operationMappingModel.getCoordinates().getFieldName()).isEqualTo("getUser");
     assertThat(operationMappingModel.getCoordinates().getTypeName()).isEqualTo("Query");
     assertThat(operationMappingModel.getInputNames().get(0)).isEqualTo("id");
 
-    EntityMappingModel entityMappingModel = mappingModel.getEntities().get("User");
-    FieldMappingModel primaryKey = entityMappingModel.getPrimaryKey().get(0);
+    EntityModel entityModel = mappingModel.getEntities().get("User");
+    FieldModel primaryKey = entityModel.getPrimaryKey().get(0);
     assertThat(primaryKey.getCqlName()).isEqualTo("id");
-    assertThat(entityMappingModel.getPrimaryKey().get(0).isPartitionKey()).isTrue();
+    assertThat(entityModel.getPrimaryKey().get(0).isPartitionKey()).isTrue();
   }
 
   @Test
@@ -99,19 +97,18 @@ class QueryMappingModelTest {
             new ProcessingContext(
                 typeDefinitionRegistry, ImmutableKeyspace.builder().name("ks_1").build(), true));
     // then
-    QueryMappingModel operationMappingModel =
-        (QueryMappingModel) mappingModel.getOperations().get(0);
+    QueryModel operationMappingModel = (QueryModel) mappingModel.getOperations().get(0);
     assertThat(operationMappingModel.getCoordinates().getFieldName()).isEqualTo("foo");
     assertThat(operationMappingModel.getCoordinates().getTypeName()).isEqualTo("Query");
     assertThat(operationMappingModel.getInputNames().size()).isEqualTo(4);
 
-    EntityMappingModel entityMappingModel = mappingModel.getEntities().get("Foo");
-    assertThat(entityMappingModel.getPartitionKey().size()).isEqualTo(2);
-    assertThat(entityMappingModel.getClusteringColumns().size()).isEqualTo(2);
-    assertThat(entityMappingModel.getPrimaryKey().get(0).getCqlName()).isEqualTo("pk1");
-    assertThat(entityMappingModel.getPrimaryKey().get(1).getCqlName()).isEqualTo("pk2");
-    assertThat(entityMappingModel.getPrimaryKey().get(2).getCqlName()).isEqualTo("cc1");
-    assertThat(entityMappingModel.getPrimaryKey().get(3).getCqlName()).isEqualTo("cc2");
+    EntityModel entityModel = mappingModel.getEntities().get("Foo");
+    assertThat(entityModel.getPartitionKey().size()).isEqualTo(2);
+    assertThat(entityModel.getClusteringColumns().size()).isEqualTo(2);
+    assertThat(entityModel.getPrimaryKey().get(0).getCqlName()).isEqualTo("pk1");
+    assertThat(entityModel.getPrimaryKey().get(1).getCqlName()).isEqualTo("pk2");
+    assertThat(entityModel.getPrimaryKey().get(2).getCqlName()).isEqualTo("cc1");
+    assertThat(entityModel.getPrimaryKey().get(3).getCqlName()).isEqualTo("cc2");
   }
 
   @Test
@@ -164,19 +161,18 @@ class QueryMappingModelTest {
             new ProcessingContext(
                 typeDefinitionRegistry, ImmutableKeyspace.builder().name("ks_1").build(), true));
     // then
-    QueryMappingModel operationMappingModel =
-        (QueryMappingModel) mappingModel.getOperations().get(0);
+    QueryModel operationMappingModel = (QueryModel) mappingModel.getOperations().get(0);
     assertThat(operationMappingModel.getCoordinates().getFieldName()).isEqualTo("foo1");
     assertThat(operationMappingModel.getCoordinates().getTypeName()).isEqualTo("Query");
     assertThat(operationMappingModel.getInputNames().size()).isEqualTo(3);
 
-    EntityMappingModel entityMappingModel = mappingModel.getEntities().get("Foo");
-    assertThat(entityMappingModel.getPartitionKey().size()).isEqualTo(2);
-    assertThat(entityMappingModel.getClusteringColumns().size()).isEqualTo(2);
-    assertThat(entityMappingModel.getPrimaryKey().get(0).getCqlName()).isEqualTo("pk1");
-    assertThat(entityMappingModel.getPrimaryKey().get(1).getCqlName()).isEqualTo("pk2");
-    assertThat(entityMappingModel.getPrimaryKey().get(2).getCqlName()).isEqualTo("cc1");
-    assertThat(entityMappingModel.getPrimaryKey().get(3).getCqlName()).isEqualTo("cc2");
+    EntityModel entityModel = mappingModel.getEntities().get("Foo");
+    assertThat(entityModel.getPartitionKey().size()).isEqualTo(2);
+    assertThat(entityModel.getClusteringColumns().size()).isEqualTo(2);
+    assertThat(entityModel.getPrimaryKey().get(0).getCqlName()).isEqualTo("pk1");
+    assertThat(entityModel.getPrimaryKey().get(1).getCqlName()).isEqualTo("pk2");
+    assertThat(entityModel.getPrimaryKey().get(2).getCqlName()).isEqualTo("cc1");
+    assertThat(entityModel.getPrimaryKey().get(3).getCqlName()).isEqualTo("cc2");
   }
 
   private String extractMappingErrors(GraphqlErrorException ex) {
