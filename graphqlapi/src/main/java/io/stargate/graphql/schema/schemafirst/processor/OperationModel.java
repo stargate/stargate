@@ -15,12 +15,18 @@
  */
 package io.stargate.graphql.schema.schemafirst.processor;
 
+import graphql.Scalars;
 import graphql.language.FieldDefinition;
 import graphql.schema.DataFetcher;
 import graphql.schema.FieldCoordinates;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /** A GraphQL operation that will be translated into a CQL query. */
 public abstract class OperationModel {
@@ -40,4 +46,73 @@ public abstract class OperationModel {
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory);
+
+  public interface ReturnType {
+    Optional<EntityModel> getEntity();
+
+    boolean isEntityList();
+  }
+
+  public abstract static class EntityReturnTypeBase implements ReturnType {
+    private final EntityModel entity;
+
+    protected EntityReturnTypeBase(EntityModel entity) {
+      this.entity = entity;
+    }
+
+    @Override
+    public Optional<EntityModel> getEntity() {
+      return Optional.of(entity);
+    }
+  }
+
+  public static class EntityReturnType extends EntityReturnTypeBase {
+    protected EntityReturnType(EntityModel entityName) {
+      super(entityName);
+    }
+
+    @Override
+    public boolean isEntityList() {
+      return false;
+    }
+  }
+
+  public static class EntityListReturnType extends EntityReturnTypeBase {
+    protected EntityListReturnType(EntityModel entityName) {
+      super(entityName);
+    }
+
+    @Override
+    public boolean isEntityList() {
+      return true;
+    }
+  }
+
+  public enum SimpleReturnType implements ReturnType {
+    BOOLEAN(Scalars.GraphQLBoolean.getName()),
+    ;
+
+    private static final Map<String, SimpleReturnType> FROM_TYPE_NAME =
+        Arrays.stream(values()).collect(Collectors.toMap(v -> v.typeName, Function.identity()));
+
+    private final String typeName;
+
+    SimpleReturnType(String typeName) {
+      this.typeName = typeName;
+    }
+
+    @Override
+    public Optional<EntityModel> getEntity() {
+      return Optional.empty();
+    }
+
+    @Override
+    public boolean isEntityList() {
+      return false;
+    }
+
+    public static SimpleReturnType fromTypeName(String typeName) {
+      return FROM_TYPE_NAME.get(typeName);
+    }
+  }
 }

@@ -37,6 +37,7 @@ import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 
 public class DeleteFetcher extends DynamicFetcher<Boolean> {
 
@@ -94,7 +95,7 @@ public class DeleteFetcher extends DynamicFetcher<Boolean> {
         Scope.DELETE,
         SourceAPI.GRAPHQL);
 
-    executeUnchecked(query, dataStore);
+    executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
 
     return true;
   }

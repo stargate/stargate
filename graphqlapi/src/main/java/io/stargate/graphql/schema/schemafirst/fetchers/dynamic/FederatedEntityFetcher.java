@@ -23,6 +23,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
+import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.schemafirst.processor.EntityModel;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
@@ -76,14 +77,15 @@ public class FederatedEntityFetcher extends DynamicFetcher<List<FederatedEntity>
           "Entity representations must contain a '__typename' string field");
     }
     String entityName = (String) rawTypeName;
-    EntityModel entity = mappingModel.getEntities().get(entityName);
+    EntityModel entityModel = mappingModel.getEntities().get(entityName);
 
-    if (entity == null) {
+    if (entityModel == null) {
       throw new IllegalArgumentException(String.format("Unknown entity type %s", entityName));
     }
-    Keyspace keyspace = dataStore.schema().keyspace(entity.getKeyspaceName());
-    return FederatedEntity.wrap(
-        entity,
-        querySingleEntity(entity, representation, dataStore, keyspace, authenticationSubject));
+    Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
+    ResultSet resultSet =
+        querySingleEntity(entityModel, representation, dataStore, keyspace, authenticationSubject);
+    Map<String, Object> entity = toSingleEntity(resultSet, entityModel);
+    return FederatedEntity.wrap(entityModel, entity);
   }
 }
