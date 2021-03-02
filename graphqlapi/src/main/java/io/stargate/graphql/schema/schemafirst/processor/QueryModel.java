@@ -29,21 +29,21 @@ import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.QueryFetcher;
 import java.util.List;
 import java.util.Map;
 
-public class QueryMappingModel extends OperationMappingModel {
+public class QueryModel extends OperationModel {
 
   // TODO implement more flexible rules
   // This is a basic implementation that only allows a single-entity SELECT by full primary key.
   // There will probably be significant changes when we support more scenarios: partial primary key
   // (returning multiple entities), index lookups, etc
 
-  private final EntityMappingModel entity;
+  private final EntityModel entity;
   private final List<String> inputNames;
   private final boolean returnsList;
 
-  private QueryMappingModel(
+  private QueryModel(
       String parentTypeName,
       FieldDefinition field,
-      EntityMappingModel entity,
+      EntityModel entity,
       List<String> inputNames,
       boolean returnsList) {
     super(parentTypeName, field);
@@ -52,7 +52,7 @@ public class QueryMappingModel extends OperationMappingModel {
     this.returnsList = returnsList;
   }
 
-  public EntityMappingModel getEntity() {
+  public EntityModel getEntity() {
     return entity;
   }
 
@@ -74,11 +74,11 @@ public class QueryMappingModel extends OperationMappingModel {
         this, mappingModel, authenticationService, authorizationService, dataStoreFactory);
   }
 
-  static QueryMappingModel build(
+  static QueryModel build(
       FieldDefinition query,
       String parentTypeName,
-      Map<String, EntityMappingModel> entities,
-      Map<String, ResponseMappingModel> responses,
+      Map<String, EntityModel> entities,
+      Map<String, ResponseModel> responses,
       ProcessingContext context)
       throws SkipException {
 
@@ -103,10 +103,10 @@ public class QueryMappingModel extends OperationMappingModel {
       throw SkipException.INSTANCE;
     }
 
-    EntityMappingModel entity = entities.get(entityName);
+    EntityModel entity = entities.get(entityName);
 
     List<InputValueDefinition> inputValues = query.getInputValueDefinitions();
-    List<FieldMappingModel> partitionKey = entity.getPartitionKey();
+    List<FieldModel> partitionKey = entity.getPartitionKey();
     if (inputValues.size() < partitionKey.size()) {
       context.addError(
           query.getSourceLocation(),
@@ -118,13 +118,13 @@ public class QueryMappingModel extends OperationMappingModel {
           inputValues.size());
       throw SkipException.INSTANCE;
     }
-    List<FieldMappingModel> primaryKey = entity.getPrimaryKey();
+    List<FieldModel> primaryKey = entity.getPrimaryKey();
 
     boolean foundErrors = false;
     ImmutableList.Builder<String> inputNames = ImmutableList.builder();
     for (int i = 0; i < inputValues.size(); i++) {
       InputValueDefinition argument = inputValues.get(i);
-      FieldMappingModel field = primaryKey.get(i);
+      FieldModel field = primaryKey.get(i);
 
       Type<?> argumentType = argument.getType();
       if (!argumentType.isEqualTo(field.getGraphqlType())) {
@@ -145,6 +145,6 @@ public class QueryMappingModel extends OperationMappingModel {
     if (foundErrors) {
       throw SkipException.INSTANCE;
     }
-    return new QueryMappingModel(parentTypeName, query, entity, inputNames.build(), isListType);
+    return new QueryModel(parentTypeName, query, entity, inputNames.build(), isListType);
   }
 }

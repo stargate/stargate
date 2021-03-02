@@ -23,17 +23,17 @@ import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.util.List;
 import java.util.Map;
 
-class UpdateMappingModelBuilder extends MutationMappingModelBuilder {
+class UpdateModelBuilder extends MutationModelBuilder {
 
   private final FieldDefinition mutation;
   private final String parentTypeName;
-  private final Map<String, EntityMappingModel> entities;
+  private final Map<String, EntityModel> entities;
 
-  UpdateMappingModelBuilder(
+  UpdateModelBuilder(
       FieldDefinition mutation,
       String parentTypeName,
-      Map<String, EntityMappingModel> entities,
-      Map<String, ResponseMappingModel> responses,
+      Map<String, EntityModel> entities,
+      Map<String, ResponseModel> responses,
       ProcessingContext context) {
     super(context, mutation.getSourceLocation());
     this.mutation = mutation;
@@ -42,7 +42,7 @@ class UpdateMappingModelBuilder extends MutationMappingModelBuilder {
   }
 
   @Override
-  MutationMappingModel build() throws SkipException {
+  MutationModel build() throws SkipException {
 
     // TODO more options for signature
     // Currently requiring exactly one argument that must be an entity input with all PK fields set.
@@ -79,7 +79,7 @@ class UpdateMappingModelBuilder extends MutationMappingModelBuilder {
     }
 
     InputValueDefinition input = inputs.get(0);
-    EntityMappingModel entity = findEntity(input, entities, context, mutation.getName(), "update");
-    return new UpdateMappingModel(parentTypeName, mutation, entity, input.getName());
+    EntityModel entity = findEntity(input, entities, context, mutation.getName(), "update");
+    return new UpdateModel(parentTypeName, mutation, entity, input.getName());
   }
 }

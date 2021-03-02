@@ -17,41 +17,27 @@ package io.stargate.graphql.schema.schemafirst.processor;
 
 import graphql.language.FieldDefinition;
 import graphql.schema.DataFetcher;
+import graphql.schema.FieldCoordinates;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
-import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.UpdateFetcher;
 
-public class UpdateMappingModel extends MutationMappingModel {
+/** A GraphQL operation that will be translated into a CQL query. */
+public abstract class OperationModel {
 
-  private final EntityMappingModel entity;
-  private final String entityArgumentName;
+  private final FieldCoordinates coordinates;
 
-  UpdateMappingModel(
-      String parentTypeName,
-      FieldDefinition field,
-      EntityMappingModel entity,
-      String entityArgumentName) {
-    super(parentTypeName, field);
-    this.entity = entity;
-    this.entityArgumentName = entityArgumentName;
+  protected OperationModel(String parentTypeName, FieldDefinition field) {
+    this.coordinates = FieldCoordinates.coordinates(parentTypeName, field.getName());
   }
 
-  public EntityMappingModel getEntity() {
-    return entity;
+  public FieldCoordinates getCoordinates() {
+    return coordinates;
   }
 
-  public String getEntityArgumentName() {
-    return entityArgumentName;
-  }
-
-  @Override
-  public DataFetcher<?> getDataFetcher(
+  public abstract DataFetcher<?> getDataFetcher(
       MappingModel mappingModel,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    return new UpdateFetcher(
-        this, mappingModel, authenticationService, authorizationService, dataStoreFactory);
-  }
+      DataStoreFactory dataStoreFactory);
 }

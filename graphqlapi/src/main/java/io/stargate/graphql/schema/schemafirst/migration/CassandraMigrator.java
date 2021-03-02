@@ -24,7 +24,7 @@ import io.stargate.db.schema.SchemaEntity;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.schema.schemafirst.migration.CassandraSchemaHelper.Difference;
-import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.EntityModel;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
 import io.stargate.graphql.schema.schemafirst.util.DirectedGraph;
 import java.util.ArrayList;
@@ -61,7 +61,7 @@ public class CassandraMigrator {
     List<MigrationQuery> queries = new ArrayList<>();
     List<String> errors = new ArrayList<>();
 
-    for (EntityMappingModel entity : mappingModel.getEntities().values()) {
+    for (EntityModel entity : mappingModel.getEntities().values()) {
       switch (entity.getTarget()) {
         case TABLE:
           Table expectedTable = entity.getTableCqlSchema();

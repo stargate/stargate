@@ -133,7 +133,7 @@ public class SchemaProcessor {
   }
 
   private InputObjectTypeDefinition generateInputType(
-      EntityMappingModel entity, MappingModel mappingModel) {
+      EntityModel entity, MappingModel mappingModel) {
     assert entity.getInputTypeName().isPresent();
     InputObjectTypeDefinition.Builder builder =
         InputObjectTypeDefinition.newInputObjectDefinition().name(entity.getInputTypeName().get());
@@ -167,7 +167,7 @@ public class SchemaProcessor {
       return NonNullType.newNonNullType(substituteUdtInputTypes(elementType, mappingModel)).build();
     }
     assert type instanceof TypeName;
-    EntityMappingModel entity = mappingModel.getEntities().get(((TypeName) type).getName());
+    EntityModel entity = mappingModel.getEntities().get(((TypeName) type).getName());
     if (entity != null) {
       // We've already checked this while building the mapping model
       assert entity.getInputTypeName().isPresent();
@@ -227,7 +227,7 @@ public class SchemaProcessor {
     if (!mappingModel.hasFederatedEntities()) {
       return;
     }
-    for (EntityMappingModel entity : mappingModel.getEntities().values()) {
+    for (EntityModel entity : mappingModel.getEntities().values()) {
       if (!entity.isFederated()) {
         continue;
       }
@@ -238,7 +238,7 @@ public class SchemaProcessor {
 
       String primaryKeyFields =
           entity.getPrimaryKey().stream()
-              .map(FieldMappingModel::getGraphqlName)
+              .map(FieldModel::getGraphqlName)
               .collect(Collectors.joining(" "));
       Directive newKeyDirective =
           Directive.newDirective()
@@ -283,7 +283,7 @@ public class SchemaProcessor {
 
   private GraphQLCodeRegistry buildCodeRegistry(MappingModel mappingModel) {
     GraphQLCodeRegistry.Builder builder = GraphQLCodeRegistry.newCodeRegistry();
-    for (OperationMappingModel operation : mappingModel.getOperations()) {
+    for (OperationModel operation : mappingModel.getOperations()) {
       builder.dataFetcher(
           operation.getCoordinates(),
           operation.getDataFetcher(

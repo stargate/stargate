@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-class FieldMappingModelBuilder extends ModelBuilderBase<FieldMappingModel> {
+class FieldModelBuilder extends ModelBuilderBase<FieldModel> {
 
   private static final Map<String, Column.ColumnType> GRAPHQL_SCALAR_MAPPINGS =
       ImmutableMap.<String, Column.ColumnType>builder()
@@ -50,18 +50,18 @@ class FieldMappingModelBuilder extends ModelBuilderBase<FieldMappingModel> {
 
   private final FieldDefinition field;
   private final String parentName;
-  private final EntityMappingModel.Target targetContainer;
+  private final EntityModel.Target targetContainer;
   private final boolean checkForInputType;
   private final String graphqlName;
   private final Type<?> graphqlType;
   private final String messagePrefix;
   private final Optional<Directive> cqlColumnDirective;
 
-  FieldMappingModelBuilder(
+  FieldModelBuilder(
       FieldDefinition field,
       ProcessingContext context,
       String parentName,
-      EntityMappingModel.Target targetContainer,
+      EntityModel.Target targetContainer,
       boolean checkForInputType) {
 
     super(context, field.getSourceLocation());
@@ -78,12 +78,12 @@ class FieldMappingModelBuilder extends ModelBuilderBase<FieldMappingModel> {
   }
 
   @Override
-  FieldMappingModel build() throws SkipException {
+  FieldModel build() throws SkipException {
     String cqlName =
         cqlColumnDirective
             .flatMap(d -> DirectiveHelper.getStringArgument(d, "name", context))
             .orElse(graphqlName);
-    boolean isUdtField = targetContainer == EntityMappingModel.Target.UDT;
+    boolean isUdtField = targetContainer == EntityModel.Target.UDT;
     boolean partitionKey =
         cqlColumnDirective
             .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "partitionKey", context))
@@ -161,7 +161,7 @@ class FieldMappingModelBuilder extends ModelBuilderBase<FieldMappingModel> {
       cqlType = cqlTypeHint;
     }
 
-    return new FieldMappingModel(
+    return new FieldModel(
         graphqlName, graphqlType, cqlName, cqlType, partitionKey, clusteringOrder);
   }
 
@@ -224,9 +224,8 @@ class FieldMappingModelBuilder extends ModelBuilderBase<FieldMappingModel> {
         DirectiveHelper.getDirective("cql_entity", definition)
             .flatMap(
                 d ->
-                    DirectiveHelper.getEnumArgument(
-                        d, "target", EntityMappingModel.Target.class, context))
-            .filter(target -> target == EntityMappingModel.Target.UDT)
+                    DirectiveHelper.getEnumArgument(d, "target", EntityModel.Target.class, context))
+            .filter(target -> target == EntityModel.Target.UDT)
             .isPresent();
     if (isUdt) {
       if (checkForInputType && !DirectiveHelper.getDirective("cql_input", definition).isPresent()) {
