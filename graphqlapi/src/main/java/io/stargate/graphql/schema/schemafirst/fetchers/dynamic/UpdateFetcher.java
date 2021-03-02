@@ -38,6 +38,7 @@ import io.stargate.graphql.schema.schemafirst.processor.UpdateModel;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 
 public class UpdateFetcher extends DynamicFetcher<Boolean> {
 
@@ -111,7 +112,7 @@ public class UpdateFetcher extends DynamicFetcher<Boolean> {
         Scope.MODIFY,
         SourceAPI.GRAPHQL);
 
-    executeUnchecked(query, dataStore);
+    executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
 
     return true;
   }

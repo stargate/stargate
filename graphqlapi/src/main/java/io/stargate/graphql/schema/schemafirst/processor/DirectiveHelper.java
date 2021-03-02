@@ -20,6 +20,7 @@ import graphql.language.BooleanValue;
 import graphql.language.Directive;
 import graphql.language.DirectivesContainer;
 import graphql.language.EnumValue;
+import graphql.language.IntValue;
 import graphql.language.StringValue;
 import graphql.language.Value;
 import java.util.Optional;
@@ -46,6 +47,29 @@ class DirectiveHelper {
       Directive directive, String argumentName, ProcessingContext context) {
     return getArgument(
         directive, argumentName, BooleanValue.class, v -> Optional.of(v.isValue()), context);
+  }
+
+  static Optional<Integer> getIntArgument(
+      Directive directive, String argumentName, ProcessingContext context) {
+    return getArgument(
+        directive,
+        argumentName,
+        IntValue.class,
+        v -> {
+          try {
+            return Optional.of(v.getValue().intValueExact());
+          } catch (ArithmeticException e) {
+            context.addError(
+                directive.getSourceLocation(),
+                ProcessingErrorType.InvalidSyntax,
+                "%s.%s: value '%s' out of range, expected a 32-bit signed integer",
+                directive.getName(),
+                argumentName,
+                v.getValue());
+            return Optional.empty();
+          }
+        },
+        context);
   }
 
   static <EnumT extends Enum<EnumT>> Optional<EnumT> getEnumArgument(

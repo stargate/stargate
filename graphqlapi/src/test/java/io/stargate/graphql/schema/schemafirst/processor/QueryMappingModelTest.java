@@ -47,7 +47,7 @@ class QueryMappingModelTest {
     QueryModel operationMappingModel = (QueryModel) mappingModel.getOperations().get(0);
     assertThat(operationMappingModel.getCoordinates().getFieldName()).isEqualTo("getUser");
     assertThat(operationMappingModel.getCoordinates().getTypeName()).isEqualTo("Query");
-    assertThat(operationMappingModel.getInputNames().get(0)).isEqualTo("id");
+    assertThat(operationMappingModel.getPkArgumentNames().get(0)).isEqualTo("id");
 
     EntityModel entityModel = mappingModel.getEntities().get("User");
     FieldModel primaryKey = entityModel.getPrimaryKey().get(0);
@@ -100,7 +100,7 @@ class QueryMappingModelTest {
     QueryModel operationMappingModel = (QueryModel) mappingModel.getOperations().get(0);
     assertThat(operationMappingModel.getCoordinates().getFieldName()).isEqualTo("foo");
     assertThat(operationMappingModel.getCoordinates().getTypeName()).isEqualTo("Query");
-    assertThat(operationMappingModel.getInputNames().size()).isEqualTo(4);
+    assertThat(operationMappingModel.getPkArgumentNames().size()).isEqualTo(4);
 
     EntityModel entityModel = mappingModel.getEntities().get("Foo");
     assertThat(entityModel.getPartitionKey().size()).isEqualTo(2);
@@ -164,7 +164,7 @@ class QueryMappingModelTest {
     QueryModel operationMappingModel = (QueryModel) mappingModel.getOperations().get(0);
     assertThat(operationMappingModel.getCoordinates().getFieldName()).isEqualTo("foo1");
     assertThat(operationMappingModel.getCoordinates().getTypeName()).isEqualTo("Query");
-    assertThat(operationMappingModel.getInputNames().size()).isEqualTo(3);
+    assertThat(operationMappingModel.getPkArgumentNames().size()).isEqualTo(3);
 
     EntityModel entityModel = mappingModel.getEntities().get("Foo");
     assertThat(entityModel.getPartitionKey().size()).isEqualTo(2);
