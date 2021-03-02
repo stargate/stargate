@@ -34,35 +34,35 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class EntityMappingModelBuilder extends ModelBuilderBase<EntityMappingModel> {
+public class EntityModelBuilder extends ModelBuilderBase<EntityModel> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(EntityMappingModelBuilder.class);
+  private static final Logger LOG = LoggerFactory.getLogger(EntityModelBuilder.class);
 
   private final ObjectTypeDefinition type;
   private final String graphqlName;
 
-  EntityMappingModelBuilder(ObjectTypeDefinition type, ProcessingContext context) {
+  EntityModelBuilder(ObjectTypeDefinition type, ProcessingContext context) {
     super(context, type.getSourceLocation());
     this.type = type;
     this.graphqlName = type.getName();
   }
 
   @Override
-  EntityMappingModel build() throws SkipException {
+  EntityModel build() throws SkipException {
     Optional<Directive> cqlEntityDirective = DirectiveHelper.getDirective("cql_entity", type);
     String cqlName = providedCqlNameOrDefault(cqlEntityDirective);
-    EntityMappingModel.Target target = providedTargetOrDefault(cqlEntityDirective);
+    EntityModel.Target target = providedTargetOrDefault(cqlEntityDirective);
     Optional<String> inputTypeName =
         DirectiveHelper.getDirective("cql_input", type).map(this::providedInputNameOrDefault);
 
-    List<FieldMappingModel> partitionKey = new ArrayList<>();
-    List<FieldMappingModel> clusteringColumns = new ArrayList<>();
-    List<FieldMappingModel> regularColumns = new ArrayList<>();
+    List<FieldModel> partitionKey = new ArrayList<>();
+    List<FieldModel> clusteringColumns = new ArrayList<>();
+    List<FieldModel> regularColumns = new ArrayList<>();
 
     for (FieldDefinition fieldDefinition : type.getFieldDefinitions()) {
       try {
-        FieldMappingModel fieldMapping =
-            new FieldMappingModelBuilder(
+        FieldModel fieldMapping =
+            new FieldModelBuilder(
                     fieldDefinition, context, graphqlName, target, inputTypeName.isPresent())
                 .build();
         if (fieldMapping.isPartitionKey()) {
@@ -114,7 +114,7 @@ public class EntityMappingModelBuilder extends ModelBuilderBase<EntityMappingMod
         throw new AssertionError("Unexpected target " + target);
     }
 
-    return new EntityMappingModel(
+    return new EntityModel(
         graphqlName,
         context.getKeyspace().name(),
         cqlName,
@@ -134,14 +134,11 @@ public class EntityMappingModelBuilder extends ModelBuilderBase<EntityMappingMod
         .orElse(graphqlName);
   }
 
-  private EntityMappingModel.Target providedTargetOrDefault(
-      Optional<Directive> cqlEntityDirective) {
+  private EntityModel.Target providedTargetOrDefault(Optional<Directive> cqlEntityDirective) {
     return cqlEntityDirective
         .flatMap(
-            d ->
-                DirectiveHelper.getEnumArgument(
-                    d, "target", EntityMappingModel.Target.class, context))
-        .orElse(EntityMappingModel.Target.TABLE);
+            d -> DirectiveHelper.getEnumArgument(d, "target", EntityModel.Target.class, context))
+        .orElse(EntityModel.Target.TABLE);
   }
 
   private String providedInputNameOrDefault(Directive cqlInputDirective) {
@@ -158,12 +155,11 @@ public class EntityMappingModelBuilder extends ModelBuilderBase<EntityMappingMod
     }
   }
 
-  private boolean hasPartitionKey(
-      List<FieldMappingModel> partitionKey, List<FieldMappingModel> regularColumns) {
+  private boolean hasPartitionKey(List<FieldModel> partitionKey, List<FieldModel> regularColumns) {
     if (!partitionKey.isEmpty()) {
       return true;
     }
-    FieldMappingModel firstField = regularColumns.get(0);
+    FieldModel firstField = regularColumns.get(0);
     if (TypeHelper.mapsToUuid(firstField.getGraphqlType())) {
       info(
           "%s: using %s as the partition key, "
@@ -179,16 +175,14 @@ public class EntityMappingModelBuilder extends ModelBuilderBase<EntityMappingMod
   }
 
   private boolean isFederated(
-      List<FieldMappingModel> partitionKey,
-      List<FieldMappingModel> clusteringColumns,
-      EntityMappingModel.Target target)
+      List<FieldModel> partitionKey, List<FieldModel> clusteringColumns, EntityModel.Target target)
       throws SkipException {
     List<Directive> keyDirectives = type.getDirectives("key");
     if (keyDirectives.isEmpty()) {
       return false;
     }
 
-    if (target == EntityMappingModel.Target.UDT) {
+    if (target == EntityModel.Target.UDT) {
       invalidMapping("%s: can't use @key directive because this type maps to a UDT", graphqlName);
       throw SkipException.INSTANCE;
     }
@@ -204,7 +198,7 @@ public class EntityMappingModelBuilder extends ModelBuilderBase<EntityMappingMod
     if (fieldsArgument.isPresent()) {
       Set<String> primaryKeyFields =
           Stream.concat(partitionKey.stream(), clusteringColumns.stream())
-              .map(FieldMappingModel::getGraphqlName)
+              .map(FieldModel::getGraphqlName)
               .collect(Collectors.toSet());
       invalidSyntax(
           "%s: argument '@key.fields' is not supported. Stargate only supports the natural "
@@ -219,9 +213,9 @@ public class EntityMappingModelBuilder extends ModelBuilderBase<EntityMappingMod
   private static Table buildCqlTable(
       String keyspaceName,
       String tableName,
-      List<FieldMappingModel> partitionKey,
-      List<FieldMappingModel> clusteringColumns,
-      List<FieldMappingModel> regularColumns) {
+      List<FieldModel> partitionKey,
+      List<FieldModel> clusteringColumns,
+      List<FieldModel> regularColumns) {
     return ImmutableTable.builder()
         .keyspace(keyspaceName)
         .name(tableName)
@@ -256,7 +250,7 @@ public class EntityMappingModelBuilder extends ModelBuilderBase<EntityMappingMod
   }
 
   private static UserDefinedType buildCqlUdt(
-      String keyspaceName, String tableName, List<FieldMappingModel> regularColumns) {
+      String keyspaceName, String tableName, List<FieldModel> regularColumns) {
     return ImmutableUserDefinedType.builder()
         .keyspace(keyspaceName)
         .name(tableName)
@@ -272,7 +266,7 @@ public class EntityMappingModelBuilder extends ModelBuilderBase<EntityMappingMod
   }
 
   private static ImmutableColumn.Builder cqlColumnBuilder(
-      String keyspaceName, String cqlName, FieldMappingModel field) {
+      String keyspaceName, String cqlName, FieldModel field) {
     return ImmutableColumn.builder()
         .keyspace(keyspaceName)
         .table(cqlName)

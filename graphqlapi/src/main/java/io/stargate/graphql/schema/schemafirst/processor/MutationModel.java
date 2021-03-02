@@ -17,9 +17,9 @@ package io.stargate.graphql.schema.schemafirst.processor;
 
 import graphql.language.FieldDefinition;
 
-public abstract class MutationMappingModel extends OperationMappingModel {
+public abstract class MutationModel extends OperationModel {
 
-  public MutationMappingModel(String parentTypeName, FieldDefinition field) {
+  public MutationModel(String parentTypeName, FieldDefinition field) {
     super(parentTypeName, field);
   }
 }

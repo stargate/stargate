@@ -34,40 +34,40 @@ public class MappingModel {
 
   private static final Logger LOG = LoggerFactory.getLogger(MappingModel.class);
 
-  private final Map<String, EntityMappingModel> entities;
-  private final Map<String, ResponseMappingModel> responses;
-  private final List<OperationMappingModel> operations;
+  private final Map<String, EntityModel> entities;
+  private final Map<String, ResponseModel> responses;
+  private final List<OperationModel> operations;
 
   MappingModel(
-      Map<String, EntityMappingModel> entities,
-      Map<String, ResponseMappingModel> responses,
-      List<OperationMappingModel> operations) {
+      Map<String, EntityModel> entities,
+      Map<String, ResponseModel> responses,
+      List<OperationModel> operations) {
     this.entities = entities;
     this.responses = responses;
     this.operations = operations;
   }
 
-  public Map<String, EntityMappingModel> getEntities() {
+  public Map<String, EntityModel> getEntities() {
     return entities;
   }
 
-  public Map<String, ResponseMappingModel> getResponses() {
+  public Map<String, ResponseModel> getResponses() {
     return responses;
   }
 
   public boolean hasFederatedEntities() {
-    return getEntities().values().stream().anyMatch(EntityMappingModel::isFederated);
+    return getEntities().values().stream().anyMatch(EntityModel::isFederated);
   }
 
-  public List<OperationMappingModel> getOperations() {
+  public List<OperationModel> getOperations() {
     return operations;
   }
 
   /** @throws GraphqlErrorException if the model contains mapping errors */
   static MappingModel build(TypeDefinitionRegistry registry, ProcessingContext context) {
 
-    ImmutableMap.Builder<String, EntityMappingModel> entitiesBuilder = ImmutableMap.builder();
-    ImmutableMap.Builder<String, ResponseMappingModel> responsesBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<String, EntityModel> entitiesBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<String, ResponseModel> responsesBuilder = ImmutableMap.builder();
 
     // The Query type is always present (otherwise the GraphQL parser would have failed)
     @SuppressWarnings("OptionalGetWithoutIsPresent")
@@ -95,10 +95,9 @@ public class MappingModel {
       }
       try {
         if (isPayload(type)) {
-          responsesBuilder.put(
-              type.getName(), new ResponseMappingModelBuilder(type, context).build());
+          responsesBuilder.put(type.getName(), new ResponseModelBuilder(type, context).build());
         } else {
-          entitiesBuilder.put(type.getName(), new EntityMappingModelBuilder(type, context).build());
+          entitiesBuilder.put(type.getName(), new EntityModelBuilder(type, context).build());
         }
       } catch (SkipException e) {
         LOG.debug(
@@ -107,14 +106,14 @@ public class MappingModel {
             type.getName());
       }
     }
-    Map<String, EntityMappingModel> entities = entitiesBuilder.build();
-    Map<String, ResponseMappingModel> responses = responsesBuilder.build();
+    Map<String, EntityModel> entities = entitiesBuilder.build();
+    Map<String, ResponseModel> responses = responsesBuilder.build();
 
-    ImmutableList.Builder<OperationMappingModel> operationsBuilder = ImmutableList.builder();
+    ImmutableList.Builder<OperationModel> operationsBuilder = ImmutableList.builder();
     for (FieldDefinition query : queryType.getFieldDefinitions()) {
       try {
         operationsBuilder.add(
-            QueryMappingModel.build(query, queryType.getName(), entities, responses, context));
+            QueryModel.build(query, queryType.getName(), entities, responses, context));
       } catch (SkipException e) {
         LOG.debug(
             "Skipping query {} because it has mapping errors, "
@@ -127,7 +126,7 @@ public class MappingModel {
           for (FieldDefinition mutation : mutationType.getFieldDefinitions()) {
             try {
               operationsBuilder.add(
-                  MutationMappingModelFactory.build(
+                  MutationModelFactory.build(
                       mutation, mutationType.getName(), entities, responses, context));
             } catch (SkipException e) {
               LOG.debug(
