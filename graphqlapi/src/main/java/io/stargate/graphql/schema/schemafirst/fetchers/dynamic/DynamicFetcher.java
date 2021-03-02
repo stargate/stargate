@@ -19,8 +19,10 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import graphql.Scalars;
 import graphql.language.ListType;
 import graphql.language.Type;
+import graphql.schema.GraphQLScalarType;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
@@ -39,6 +41,7 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.schema.CassandraFetcher;
+import io.stargate.graphql.schema.scalars.CqlScalar;
 import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel;
 import io.stargate.graphql.schema.schemafirst.processor.FieldMappingModel;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
@@ -48,7 +51,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
@@ -94,15 +96,43 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
       return toCqlUdtValue(graphqlValue, cqlType, keyspace);
     }
 
-    // 'ID' built-in scalar
-    if (cqlType == Column.Type.Uuid && graphqlValue instanceof String) {
-      return UUID.fromString(((String) graphqlValue));
+    assert cqlType instanceof Column.Type;
+    Column.Type cqlScalarType = (Column.Type) cqlType;
+    // Most of the time the GraphQL runtime has already coerced the value. But if we come from a
+    // Federation `_entities` query, this is not possible because the representations are not
+    // strongly typed, and the type of each field can't be guessed. We have to do it manually:
+    Class<?> expectedClass;
+    GraphQLScalarType graphqlScalar;
+    switch (cqlScalarType) {
+        // Built-in GraphQL scalars:
+      case Int:
+        expectedClass = Integer.class;
+        graphqlScalar = Scalars.GraphQLInt;
+        break;
+      case Boolean:
+        expectedClass = Boolean.class;
+        graphqlScalar = Scalars.GraphQLBoolean;
+        break;
+      case Double:
+        expectedClass = Double.class;
+        graphqlScalar = Scalars.GraphQLFloat;
+        break;
+      case Varchar:
+      case Text:
+        expectedClass = String.class;
+        graphqlScalar = Scalars.GraphQLString;
+        break;
+      default:
+        // Our custom CQL scalars:
+        CqlScalar cqlScalar =
+            CqlScalar.fromCqlType(cqlScalarType)
+                .orElseThrow(() -> new IllegalArgumentException("Unsupported type " + cqlType));
+        expectedClass = cqlScalar.getCqlValueClass();
+        graphqlScalar = cqlScalar.getGraphqlType();
     }
-
-    // Otherwise it's either:
-    // - a built-in scalar that has a natural mapping
-    // - one of our custom CQL scalars, and the value has already been coerced
-    return graphqlValue;
+    return expectedClass.isInstance(graphqlValue)
+        ? graphqlValue
+        : graphqlScalar.getCoercing().parseValue(graphqlValue);
   }
 
   private Collection<Object> toCqlCollection(
