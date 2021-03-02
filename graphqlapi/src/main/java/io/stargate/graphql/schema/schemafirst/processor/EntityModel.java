@@ -21,7 +21,7 @@ import io.stargate.db.schema.UserDefinedType;
 import java.util.List;
 import java.util.Optional;
 
-public class EntityMappingModel {
+public class EntityModel {
 
   public enum Target {
     TABLE,
@@ -33,24 +33,24 @@ public class EntityMappingModel {
   private final String keyspaceName;
   private final String cqlName;
   private final Target target;
-  private final List<FieldMappingModel> partitionKey;
-  private final List<FieldMappingModel> clusteringColumns;
-  private final List<FieldMappingModel> primaryKey;
-  private final List<FieldMappingModel> regularColumns;
-  private final List<FieldMappingModel> allColumns;
+  private final List<FieldModel> partitionKey;
+  private final List<FieldModel> clusteringColumns;
+  private final List<FieldModel> primaryKey;
+  private final List<FieldModel> regularColumns;
+  private final List<FieldModel> allColumns;
   private final Table tableCqlSchema;
   private final UserDefinedType udtCqlSchema;
   private final boolean isFederated;
   private final Optional<String> inputTypeName;
 
-  EntityMappingModel(
+  EntityModel(
       String graphqlName,
       String keyspaceName,
       String cqlName,
       Target target,
-      List<FieldMappingModel> partitionKey,
-      List<FieldMappingModel> clusteringColumns,
-      List<FieldMappingModel> regularColumns,
+      List<FieldModel> partitionKey,
+      List<FieldModel> clusteringColumns,
+      List<FieldModel> regularColumns,
       Table tableCqlSchema,
       UserDefinedType udtCqlSchema,
       boolean isFederated,
@@ -66,16 +66,10 @@ public class EntityMappingModel {
     this.partitionKey = ImmutableList.copyOf(partitionKey);
     this.clusteringColumns = ImmutableList.copyOf(clusteringColumns);
     this.primaryKey =
-        ImmutableList.<FieldMappingModel>builder()
-            .addAll(partitionKey)
-            .addAll(clusteringColumns)
-            .build();
+        ImmutableList.<FieldModel>builder().addAll(partitionKey).addAll(clusteringColumns).build();
     this.regularColumns = ImmutableList.copyOf(regularColumns);
     this.allColumns =
-        ImmutableList.<FieldMappingModel>builder()
-            .addAll(primaryKey)
-            .addAll(regularColumns)
-            .build();
+        ImmutableList.<FieldModel>builder().addAll(primaryKey).addAll(regularColumns).build();
     this.tableCqlSchema = tableCqlSchema;
     this.udtCqlSchema = udtCqlSchema;
     this.isFederated = isFederated;
@@ -98,26 +92,26 @@ public class EntityMappingModel {
     return target;
   }
 
-  public List<FieldMappingModel> getPartitionKey() {
+  public List<FieldModel> getPartitionKey() {
     return partitionKey;
   }
 
-  public List<FieldMappingModel> getClusteringColumns() {
+  public List<FieldModel> getClusteringColumns() {
     return clusteringColumns;
   }
 
   /**
    * The full primary key (partition key + clustering columns), that uniquely identifies a CQL row.
    */
-  public List<FieldMappingModel> getPrimaryKey() {
+  public List<FieldModel> getPrimaryKey() {
     return primaryKey;
   }
 
-  public List<FieldMappingModel> getRegularColumns() {
+  public List<FieldModel> getRegularColumns() {
     return regularColumns;
   }
 
-  public List<FieldMappingModel> getAllColumns() {
+  public List<FieldModel> getAllColumns() {
     return allColumns;
   }
 

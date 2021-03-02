@@ -24,7 +24,7 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
-import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.EntityModel;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +76,7 @@ public class FederatedEntityFetcher extends DynamicFetcher<List<FederatedEntity>
           "Entity representations must contain a '__typename' string field");
     }
     String entityName = (String) rawTypeName;
-    EntityMappingModel entity = mappingModel.getEntities().get(entityName);
+    EntityModel entity = mappingModel.getEntities().get(entityName);
 
     if (entity == null) {
       throw new IllegalArgumentException(String.format("Unknown entity type %s", entityName));

@@ -31,20 +31,20 @@ import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Keyspace;
-import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel;
-import io.stargate.graphql.schema.schemafirst.processor.FieldMappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.EntityModel;
+import io.stargate.graphql.schema.schemafirst.processor.FieldModel;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
-import io.stargate.graphql.schema.schemafirst.processor.UpdateMappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.UpdateModel;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
 public class UpdateFetcher extends DynamicFetcher<Boolean> {
 
-  private final UpdateMappingModel model;
+  private final UpdateModel model;
 
   public UpdateFetcher(
-      UpdateMappingModel model,
+      UpdateModel model,
       MappingModel mappingModel,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
@@ -60,12 +60,12 @@ public class UpdateFetcher extends DynamicFetcher<Boolean> {
       AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
 
-    EntityMappingModel entityModel = model.getEntity();
+    EntityModel entityModel = model.getEntity();
     Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
     Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
 
     Collection<BuiltCondition> conditions = new ArrayList<>();
-    for (FieldMappingModel column : entityModel.getPrimaryKey()) {
+    for (FieldModel column : entityModel.getPrimaryKey()) {
       String graphqlName = column.getGraphqlName();
       Object graphqlValue = input.get(graphqlName);
       if (graphqlValue == null) {
@@ -80,7 +80,7 @@ public class UpdateFetcher extends DynamicFetcher<Boolean> {
     }
 
     Collection<ValueModifier> modifiers = new ArrayList<>();
-    for (FieldMappingModel column : entityModel.getRegularColumns()) {
+    for (FieldModel column : entityModel.getRegularColumns()) {
       String graphqlName = column.getGraphqlName();
       if (input.containsKey(graphqlName)) {
         Object graphqlValue = input.get(graphqlName);

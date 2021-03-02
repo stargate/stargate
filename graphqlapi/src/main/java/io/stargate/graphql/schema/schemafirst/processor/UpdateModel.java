@@ -20,24 +20,21 @@ import graphql.schema.DataFetcher;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
-import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.DeleteFetcher;
+import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.UpdateFetcher;
 
-public class DeleteMappingModel extends MutationMappingModel {
+public class UpdateModel extends MutationModel {
 
-  private final EntityMappingModel entity;
+  private final EntityModel entity;
   private final String entityArgumentName;
 
-  DeleteMappingModel(
-      String parentTypeName,
-      FieldDefinition field,
-      EntityMappingModel entity,
-      String entityArgumentName) {
+  UpdateModel(
+      String parentTypeName, FieldDefinition field, EntityModel entity, String entityArgumentName) {
     super(parentTypeName, field);
     this.entity = entity;
     this.entityArgumentName = entityArgumentName;
   }
 
-  public EntityMappingModel getEntity() {
+  public EntityModel getEntity() {
     return entity;
   }
 
@@ -51,7 +48,7 @@ public class DeleteMappingModel extends MutationMappingModel {
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    return new DeleteFetcher(
+    return new UpdateFetcher(
         this, mappingModel, authenticationService, authorizationService, dataStoreFactory);
   }
 }

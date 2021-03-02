@@ -30,9 +30,9 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Keyspace;
-import io.stargate.graphql.schema.schemafirst.processor.DeleteMappingModel;
-import io.stargate.graphql.schema.schemafirst.processor.EntityMappingModel;
-import io.stargate.graphql.schema.schemafirst.processor.FieldMappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.DeleteModel;
+import io.stargate.graphql.schema.schemafirst.processor.EntityModel;
+import io.stargate.graphql.schema.schemafirst.processor.FieldModel;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,10 +40,10 @@ import java.util.Map;
 
 public class DeleteFetcher extends DynamicFetcher<Boolean> {
 
-  private final DeleteMappingModel model;
+  private final DeleteModel model;
 
   public DeleteFetcher(
-      DeleteMappingModel model,
+      DeleteModel model,
       MappingModel mappingModel,
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
@@ -59,11 +59,11 @@ public class DeleteFetcher extends DynamicFetcher<Boolean> {
       AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
 
-    EntityMappingModel entityModel = model.getEntity();
+    EntityModel entityModel = model.getEntity();
     Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
     Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
     Collection<BuiltCondition> conditions = new ArrayList<>();
-    for (FieldMappingModel column : entityModel.getPrimaryKey()) {
+    for (FieldModel column : entityModel.getPrimaryKey()) {
       String graphqlName = column.getGraphqlName();
       Object graphqlValue = input.get(graphqlName);
       if (graphqlValue == null) {
