@@ -73,4 +73,17 @@ public class ProcessingMessage<TypeT extends ErrorClassification> implements Gra
   public TypeT getErrorType() {
     return errorType;
   }
+
+  @Override
+  public String toString() {
+    return "ProcessingMessage{"
+        + "message='"
+        + message
+        + '\''
+        + ", location="
+        + location
+        + ", errorType="
+        + errorType
+        + '}';
+  }
 }
