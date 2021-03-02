@@ -15,8 +15,6 @@
  */
 package io.stargate.graphql.schema.schemafirst.processor;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableSet;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.ObjectTypeDefinition;
@@ -31,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -40,9 +37,6 @@ import org.slf4j.LoggerFactory;
 public class EntityMappingModelBuilder extends ModelBuilderBase<EntityMappingModel> {
 
   private static final Logger LOG = LoggerFactory.getLogger(EntityMappingModelBuilder.class);
-  private static final Pattern NON_NESTED_FIELDS =
-      Pattern.compile("[_A-Za-z][_0-9A-Za-z]*(?:\\s+[_A-Za-z][_0-9A-Za-z]*)*");
-  private static final Splitter ON_SPACES = Splitter.onPattern("\\s+");
 
   private final ObjectTypeDefinition type;
   private final String graphqlName;
@@ -207,27 +201,15 @@ public class EntityMappingModelBuilder extends ModelBuilderBase<EntityMappingMod
 
     Optional<String> fieldsArgument =
         DirectiveHelper.getStringArgument(keyDirective, "fields", context);
-    if (!fieldsArgument.isPresent()) {
-      invalidSyntax("%s: @key directive must have a 'fields' argument", graphqlName);
-      throw SkipException.INSTANCE;
-    }
-    String value = fieldsArgument.get();
-    if (!NON_NESTED_FIELDS.matcher(value).matches()) {
-      // The spec allows complex fields expressions like `foo.bar`, but we don't (yet?)
-      invalidMapping(
-          "%s: could not parse @key.fields "
-              + "(this implementation only supports top-level fields as key components)",
-          graphqlName);
-      throw SkipException.INSTANCE;
-    }
-    Set<String> directiveFields = ImmutableSet.copyOf(ON_SPACES.split(value));
-    Set<String> primaryKeyFields =
-        Stream.concat(partitionKey.stream(), clusteringColumns.stream())
-            .map(FieldMappingModel::getGraphqlName)
-            .collect(Collectors.toSet());
-    if (!directiveFields.equals(primaryKeyFields)) {
-      invalidMapping(
-          "%s: @key.fields doesn't match the partition and clustering keys (expected %s)",
+    if (fieldsArgument.isPresent()) {
+      Set<String> primaryKeyFields =
+          Stream.concat(partitionKey.stream(), clusteringColumns.stream())
+              .map(FieldMappingModel::getGraphqlName)
+              .collect(Collectors.toSet());
+      invalidSyntax(
+          "%s: argument '@key.fields' is not supported. Stargate only supports the natural "
+              + "primary key (%s), so it will implicitly set those fields, you don't need to "
+              + "list them explicitly.",
           graphqlName, primaryKeyFields);
       throw SkipException.INSTANCE;
     }
