@@ -15,19 +15,13 @@
  */
 package io.stargate.graphql.schema.schemafirst.processor;
 
-import com.google.common.collect.ImmutableList;
 import graphql.language.FieldDefinition;
-import graphql.language.InputValueDefinition;
-import graphql.language.ListType;
-import graphql.language.Type;
-import graphql.language.TypeName;
 import graphql.schema.DataFetcher;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.QueryFetcher;
 import java.util.List;
-import java.util.Map;
 
 public class QueryModel extends OperationModel {
 
@@ -40,7 +34,7 @@ public class QueryModel extends OperationModel {
   private final List<String> inputNames;
   private final boolean returnsList;
 
-  private QueryModel(
+  QueryModel(
       String parentTypeName,
       FieldDefinition field,
       EntityModel entity,
@@ -72,79 +66,5 @@ public class QueryModel extends OperationModel {
       DataStoreFactory dataStoreFactory) {
     return new QueryFetcher(
         this, mappingModel, authenticationService, authorizationService, dataStoreFactory);
-  }
-
-  static QueryModel build(
-      FieldDefinition query,
-      String parentTypeName,
-      Map<String, EntityModel> entities,
-      Map<String, ResponseModel> responses,
-      ProcessingContext context)
-      throws SkipException {
-
-    Type<?> returnType = query.getType();
-    boolean isListType = returnType instanceof ListType;
-    String entityName = null;
-    if ((returnType instanceof TypeName)) {
-      entityName = ((TypeName) returnType).getName();
-    } else if (isListType) {
-      ListType listType = (ListType) returnType;
-      if (listType.getType() instanceof TypeName) {
-        entityName = ((TypeName) listType.getType()).getName();
-      }
-    }
-    if (entityName == null || !entities.containsKey(entityName)) {
-      context.addError(
-          query.getSourceLocation(),
-          ProcessingErrorType.InvalidMapping,
-          "Query %s: expected the return type to be an object (or list of objects) that maps to "
-              + "an entity",
-          query.getName());
-      throw SkipException.INSTANCE;
-    }
-
-    EntityModel entity = entities.get(entityName);
-
-    List<InputValueDefinition> inputValues = query.getInputValueDefinitions();
-    List<FieldModel> partitionKey = entity.getPartitionKey();
-    if (inputValues.size() < partitionKey.size()) {
-      context.addError(
-          query.getSourceLocation(),
-          ProcessingErrorType.InvalidMapping,
-          "Query %s: expected to have at least enough arguments to cover the partition key "
-              + "(%d needed, %d provided).",
-          query.getName(),
-          partitionKey.size(),
-          inputValues.size());
-      throw SkipException.INSTANCE;
-    }
-    List<FieldModel> primaryKey = entity.getPrimaryKey();
-
-    boolean foundErrors = false;
-    ImmutableList.Builder<String> inputNames = ImmutableList.builder();
-    for (int i = 0; i < inputValues.size(); i++) {
-      InputValueDefinition argument = inputValues.get(i);
-      FieldModel field = primaryKey.get(i);
-
-      Type<?> argumentType = argument.getType();
-      if (!argumentType.isEqualTo(field.getGraphqlType())) {
-        context.addError(
-            argument.getSourceLocation(),
-            ProcessingErrorType.InvalidMapping,
-            "Query %s: expected argument %s to have the same type as %s.%s",
-            query.getName(),
-            argument.getName(),
-            entity.getGraphqlName(),
-            field.getGraphqlName());
-        foundErrors = true;
-      }
-
-      inputNames.add(argument.getName());
-    }
-
-    if (foundErrors) {
-      throw SkipException.INSTANCE;
-    }
-    return new QueryModel(parentTypeName, query, entity, inputNames.build(), isListType);
   }
 }
