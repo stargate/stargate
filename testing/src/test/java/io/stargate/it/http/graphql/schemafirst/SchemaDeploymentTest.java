@@ -135,24 +135,6 @@ public class SchemaDeploymentTest extends GraphqlFirstTestBase {
   }
 
   @Test
-  @DisplayName("Should fail to deploy schema when table has the wrong structure")
-  public void deploySchemaWhenWrongTableStructure(
-      @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
-    // given
-    session.execute("DROP TABLE IF EXISTS stargate_graphql.schema_source");
-    session.execute("CREATE TABLE stargate_graphql.schema_source(k int PRIMARY KEY)");
-
-    // when
-    String error = CLIENT.getDeploySchemaError(keyspaceId.asInternal(), null, SCHEMA_CONTENTS);
-
-    // then
-    assertThat(error)
-        .contains(
-            "Table 'stargate_graphql.schema_source' already exists, "
-                + "but it doesn't have the expected structure");
-  }
-
-  @Test
   @DisplayName(
       "Should purge older schema entries, keeping only last SchemaSourceDao#NUMBER_OF_RETAINED_SCHEMA_VERSIONS versions")
   public void purgeOldSchemaEntriesOnInsert(@TestKeyspace CqlIdentifier keyspaceId) {
