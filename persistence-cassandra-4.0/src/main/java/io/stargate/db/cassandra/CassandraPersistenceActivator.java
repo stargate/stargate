@@ -104,7 +104,9 @@ public class CassandraPersistenceActivator extends BaseActivator {
     String enableAuth = System.getProperty("stargate.enable_auth", "false");
 
     if (enableAuth.equalsIgnoreCase("true")) {
-      c.authenticator = PasswordAuthenticator.class.getCanonicalName();
+      c.authenticator =
+          System.getProperty(
+              "stargate.authenticator_class_name", PasswordAuthenticator.class.getCanonicalName());
       c.authorizer = DelegatingAuthorizer.class.getCanonicalName();
     }
 

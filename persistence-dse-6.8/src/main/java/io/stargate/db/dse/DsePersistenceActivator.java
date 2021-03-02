@@ -108,7 +108,7 @@ public class DsePersistenceActivator extends BaseActivator {
 
     if (enableAuth.equalsIgnoreCase("true")) {
       // TODO: Use DseAuthenticator and DseAuthorizer. We need to configure them properly
-      c.authenticator = PasswordAuthenticator.class.getCanonicalName();
+      c.authenticator = System.getProperty("stargate.authenticator_class_name", PasswordAuthenticator.class.getCanonicalName());
       c.authorizer = DelegatingAuthorizer.class.getName();
     }
 
