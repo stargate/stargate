@@ -25,10 +25,8 @@ import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
 import io.stargate.graphql.schema.schemafirst.processor.QueryMappingModel;
-import java.util.Map;
-import java.util.Optional;
 
-public class QueryFetcher extends DynamicFetcher<Map<String, Object>> {
+public class QueryFetcher extends DynamicFetcher<Object> {
 
   private final QueryMappingModel model;
 
@@ -43,18 +41,29 @@ public class QueryFetcher extends DynamicFetcher<Map<String, Object>> {
   }
 
   @Override
-  protected Map<String, Object> get(
+  protected Object get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
     Keyspace keyspace = dataStore.schema().keyspace(model.getEntity().getKeyspaceName());
-    return querySingleEntity(
-        model.getEntity(),
-        environment.getArguments(),
-        Optional.of(model.getInputNames()),
-        dataStore,
-        keyspace,
-        authenticationSubject);
+
+    if (model.returnsList()) {
+      return queryListOfEntities(
+          model.getEntity(),
+          environment.getArguments(),
+          model.getInputNames(),
+          dataStore,
+          keyspace,
+          authenticationSubject);
+    } else {
+      return querySingleEntity(
+          model.getEntity(),
+          environment.getArguments(),
+          model.getInputNames(),
+          dataStore,
+          keyspace,
+          authenticationSubject);
+    }
   }
 }
