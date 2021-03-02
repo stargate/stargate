@@ -15,8 +15,16 @@
  */
 package io.stargate.graphql.schema.scalars;
 
+import com.datastax.oss.driver.api.core.data.CqlDuration;
 import graphql.schema.GraphQLScalarType;
 import io.stargate.db.schema.Column;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.InetAddress;
+import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +39,7 @@ import java.util.stream.Collectors;
 public enum CqlScalar {
   UUID(
       Column.Type.Uuid,
+      java.util.UUID.class,
       GraphQLScalarType.newScalar()
           .name("Uuid")
           .coercing(StringCoercing.UUID)
@@ -40,6 +49,7 @@ public enum CqlScalar {
           .build()),
   TIMEUUID(
       Column.Type.Timeuuid,
+      java.util.UUID.class,
       GraphQLScalarType.newScalar()
           .name("TimeUuid")
           .coercing(StringCoercing.TIMEUUID)
@@ -49,6 +59,7 @@ public enum CqlScalar {
           .build()),
   INET(
       Column.Type.Inet,
+      InetAddress.class,
       GraphQLScalarType.newScalar()
           .name("Inet")
           .coercing(StringCoercing.INET)
@@ -60,6 +71,7 @@ public enum CqlScalar {
           .build()),
   DATE(
       Column.Type.Date,
+      LocalDate.class,
       GraphQLScalarType.newScalar()
           .name("Date")
           .coercing(DateCoercing.INSTANCE)
@@ -73,6 +85,7 @@ public enum CqlScalar {
           .build()),
   DURATION(
       Column.Type.Duration,
+      CqlDuration.class,
       GraphQLScalarType.newScalar()
           .name("Duration")
           .coercing(StringCoercing.DURATION)
@@ -83,6 +96,7 @@ public enum CqlScalar {
           .build()),
   BIGINT(
       Column.Type.Bigint,
+      Long.class,
       GraphQLScalarType.newScalar()
           .name("BigInt")
           .coercing(BigIntCoercing.INSTANCE)
@@ -92,6 +106,7 @@ public enum CqlScalar {
           .build()),
   COUNTER(
       Column.Type.Counter,
+      Long.class,
       GraphQLScalarType.newScalar()
           .name("Counter")
           .coercing(BigIntCoercing.INSTANCE)
@@ -101,6 +116,7 @@ public enum CqlScalar {
           .build()),
   ASCII(
       Column.Type.Ascii,
+      String.class,
       GraphQLScalarType.newScalar()
           .name("Ascii")
           .coercing(StringCoercing.ASCII)
@@ -110,6 +126,7 @@ public enum CqlScalar {
           .build()),
   DECIMAL(
       Column.Type.Decimal,
+      BigDecimal.class,
       GraphQLScalarType.newScalar()
           .name("Decimal")
           .coercing(StringCoercing.DECIMAL)
@@ -120,6 +137,7 @@ public enum CqlScalar {
           .build()),
   VARINT(
       Column.Type.Varint,
+      BigInteger.class,
       GraphQLScalarType.newScalar()
           .name("Varint")
           .coercing(VarintCoercing.INSTANCE)
@@ -130,6 +148,7 @@ public enum CqlScalar {
           .build()),
   FLOAT(
       Column.Type.Float,
+      Float.class,
       GraphQLScalarType.newScalar()
           .name("Float32")
           .coercing(FloatCoercing.INSTANCE)
@@ -141,6 +160,7 @@ public enum CqlScalar {
           .build()),
   BLOB(
       Column.Type.Blob,
+      ByteBuffer.class,
       GraphQLScalarType.newScalar()
           .name("Blob")
           .coercing(StringCoercing.BLOB)
@@ -150,6 +170,7 @@ public enum CqlScalar {
           .build()),
   SMALLINT(
       Column.Type.Smallint,
+      Short.class,
       GraphQLScalarType.newScalar()
           .name("SmallInt")
           .coercing(IntCoercing.SMALLINT)
@@ -160,6 +181,7 @@ public enum CqlScalar {
           .build()),
   TINYINT(
       Column.Type.Tinyint,
+      Byte.class,
       GraphQLScalarType.newScalar()
           .name("TinyInt")
           .coercing(IntCoercing.TINYINT)
@@ -170,6 +192,7 @@ public enum CqlScalar {
           .build()),
   TIMESTAMP(
       Column.Type.Timestamp,
+      Instant.class,
       GraphQLScalarType.newScalar()
           .name("Timestamp")
           .coercing(TimestampCoercing.INSTANCE)
@@ -186,6 +209,7 @@ public enum CqlScalar {
           .build()),
   TIME(
       Column.Type.Time,
+      LocalTime.class,
       GraphQLScalarType.newScalar()
           .name("Time")
           .coercing(TimeCoercing.INSTANCE)
@@ -205,15 +229,23 @@ public enum CqlScalar {
           .collect(Collectors.toMap(s -> s.getGraphqlType().getName(), Function.identity()));
 
   private final Column.Type cqlType;
+  private final Class<?> cqlValueClass;
   private final GraphQLScalarType graphqlType;
 
-  CqlScalar(Column.Type cqlType, graphql.schema.GraphQLScalarType graphqlType) {
+  CqlScalar(
+      Column.Type cqlType, Class<?> cqlValueClass, graphql.schema.GraphQLScalarType graphqlType) {
     this.cqlType = cqlType;
+    this.cqlValueClass = cqlValueClass;
     this.graphqlType = graphqlType;
   }
 
   public Column.Type getCqlType() {
     return cqlType;
+  }
+
+  /** The Java type that the persistence API expects for this type. */
+  public Class<?> getCqlValueClass() {
+    return cqlValueClass;
   }
 
   public GraphQLScalarType getGraphqlType() {
