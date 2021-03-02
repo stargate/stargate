@@ -16,19 +16,21 @@
 package io.stargate.graphql.schema.schemafirst.processor;
 
 import com.google.common.collect.ImmutableList;
+import graphql.Scalars;
+import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
-import graphql.language.ListType;
 import graphql.language.Type;
 import graphql.language.TypeName;
+import io.stargate.graphql.schema.schemafirst.processor.OperationModel.ReturnType;
+import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-class QueryModelBuilder extends ModelBuilderBase<QueryModel> {
+class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
 
-  private final FieldDefinition query;
   private final String parentTypeName;
-  private final Map<String, EntityModel> entities;
 
   QueryModelBuilder(
       FieldDefinition query,
@@ -36,65 +38,101 @@ class QueryModelBuilder extends ModelBuilderBase<QueryModel> {
       Map<String, EntityModel> entities,
       Map<String, ResponsePayloadModel> responsePayloads,
       ProcessingContext context) {
-    super(context, query.getSourceLocation());
-    this.query = query;
+    super(query, entities, responsePayloads, context);
     this.parentTypeName = parentTypeName;
-    this.entities = entities;
   }
 
   QueryModel build() throws SkipException {
-    Type<?> returnType = query.getType();
-    boolean isListType = returnType instanceof ListType;
-    String entityName = null;
-    if ((returnType instanceof TypeName)) {
-      entityName = ((TypeName) returnType).getName();
-    } else if (isListType) {
-      ListType listType = (ListType) returnType;
-      if (listType.getType() instanceof TypeName) {
-        entityName = ((TypeName) listType.getType()).getName();
-      }
-    }
-    if (entityName == null || !entities.containsKey(entityName)) {
-      invalidMapping(
-          "Query %s: expected the return type to be an object (or list of objects) that maps to "
-              + "an entity",
-          query.getName());
-      throw SkipException.INSTANCE;
-    }
 
-    EntityModel entity = entities.get(entityName);
+    Optional<Directive> cqlSelectDirective = DirectiveHelper.getDirective("cql_select", operation);
+    Optional<Integer> limit =
+        cqlSelectDirective.flatMap(d -> DirectiveHelper.getIntArgument(d, "limit", context));
+    Optional<Integer> pageSize =
+        cqlSelectDirective.flatMap(d -> DirectiveHelper.getIntArgument(d, "pageSize", context));
 
-    List<InputValueDefinition> inputValues = query.getInputValueDefinitions();
-    List<FieldModel> partitionKey = entity.getPartitionKey();
-    if (inputValues.size() < partitionKey.size()) {
-      invalidMapping(
-          "Query %s: expected to have at least enough arguments to cover the partition key "
-              + "(%d needed, %d provided).",
-          query.getName(), partitionKey.size(), inputValues.size());
-      throw SkipException.INSTANCE;
-    }
+    ReturnType returnType = getReturnType("Query " + operationName);
+    EntityModel entity =
+        returnType
+            .getEntity()
+            .filter(e -> e.getTarget() == EntityModel.Target.TABLE)
+            .orElseThrow(
+                () -> {
+                  invalidMapping(
+                      "Query %s: return type must reference an entity that maps to a table",
+                      operationName);
+                  return SkipException.INSTANCE;
+                });
+
     List<FieldModel> primaryKey = entity.getPrimaryKey();
+    int pkIndex = 0;
+
+    ImmutableList.Builder<String> pkArgumentNamesBuilder = ImmutableList.builder();
+    Optional<String> pagingStateArgumentName = Optional.empty();
 
     boolean foundErrors = false;
-    ImmutableList.Builder<String> inputNames = ImmutableList.builder();
-    for (int i = 0; i < inputValues.size(); i++) {
-      InputValueDefinition argument = inputValues.get(i);
-      FieldModel field = primaryKey.get(i);
-
-      Type<?> argumentType = argument.getType();
-      if (!argumentType.isEqualTo(field.getGraphqlType())) {
-        invalidMapping(
-            "Query %s: expected argument %s to have the same type as %s.%s",
-            query.getName(), argument.getName(), entity.getGraphqlName(), field.getGraphqlName());
-        foundErrors = true;
+    for (InputValueDefinition inputValue : operation.getInputValueDefinitions()) {
+      if (isPagingState(inputValue)) {
+        if (pagingStateArgumentName.isPresent()) {
+          invalidMapping(
+              "Query %s: @cql_pagingState can be used on at most one argument (found %s and %s)",
+              operationName, pagingStateArgumentName.get(), inputValue.getName());
+          foundErrors = true;
+        }
+        pagingStateArgumentName = Optional.of(inputValue.getName());
+      } else {
+        // Assume non-annotated fields are PK components in order:
+        FieldModel pkField = primaryKey.get(pkIndex++);
+        Type<?> inputType = inputValue.getType();
+        if (!inputType.isEqualTo(pkField.getGraphqlType())) {
+          invalidMapping(
+              "Query %s: expected argument %s to have the same type as %s.%s",
+              operationName,
+              inputValue.getName(),
+              entity.getGraphqlName(),
+              pkField.getGraphqlName());
+          foundErrors = true;
+        }
+        pkArgumentNamesBuilder.add(inputValue.getName());
       }
-
-      inputNames.add(argument.getName());
     }
-
     if (foundErrors) {
       throw SkipException.INSTANCE;
     }
-    return new QueryModel(parentTypeName, query, entity, inputNames.build(), isListType);
+
+    ImmutableList<String> pkArgumentNames = pkArgumentNamesBuilder.build();
+    List<FieldModel> partitionKey = entity.getPartitionKey();
+    if (pkArgumentNames.size() < partitionKey.size()) {
+      invalidMapping(
+          "Query %s: expected to have at least enough arguments to cover the partition key "
+              + "(%d needed, %d provided).",
+          operationName, partitionKey.size(), pkArgumentNames.size());
+      throw SkipException.INSTANCE;
+    }
+
+    return new QueryModel(
+        parentTypeName,
+        operation,
+        entity,
+        pkArgumentNames,
+        pagingStateArgumentName,
+        limit,
+        pageSize,
+        returnType);
+  }
+
+  private boolean isPagingState(InputValueDefinition inputValue) throws SkipException {
+    boolean hasDirective = DirectiveHelper.getDirective("cql_pagingState", inputValue).isPresent();
+    if (!hasDirective) {
+      return false;
+    }
+    Type<?> type = TypeHelper.unwrapNonNull(inputValue.getType());
+    if (!(type instanceof TypeName)
+        || !((TypeName) type).getName().equals(Scalars.GraphQLString.getName())) {
+      invalidMapping(
+          "Query %s: argument %s annotated with @cql_pagingState must have type %s",
+          operationName, inputValue.getName(), Scalars.GraphQLString.getName());
+      throw SkipException.INSTANCE;
+    }
+    return true;
   }
 }
