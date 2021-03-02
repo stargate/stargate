@@ -90,13 +90,16 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken, String.format("%s:8082/v2/schemas/keyspaces", host), HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     List<Keyspace> keyspaces =
         objectMapper.convertValue(response.getData(), new TypeReference<List<Keyspace>>() {});
     assertThat(keyspaces)
         .anySatisfy(
             value ->
-                assertThat(value).isEqualToComparingFieldByField(new Keyspace("system", null)));
+                assertThat(value)
+                    .usingRecursiveComparison()
+                    .isEqualTo(new Keyspace("system", null)));
   }
 
   @Test
@@ -124,7 +127,8 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         .anySatisfy(
             value ->
                 assertThat(value)
-                    .isEqualToComparingFieldByField(new Keyspace("system_schema", null)));
+                    .usingRecursiveComparison()
+                    .isEqualTo(new Keyspace("system_schema", null)));
   }
 
   @Test
@@ -135,10 +139,11 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             String.format("%s:8082/v2/schemas/keyspaces/system", host),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     Keyspace keyspace = objectMapper.convertValue(response.getData(), Keyspace.class);
 
-    assertThat(keyspace).isEqualToComparingFieldByField(new Keyspace("system", null));
+    assertThat(keyspace).usingRecursiveComparison().isEqualTo(new Keyspace("system", null));
   }
 
   @Test
@@ -151,7 +156,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
 
-    assertThat(keyspace).isEqualToComparingFieldByField(new Keyspace("system", null));
+    assertThat(keyspace).usingRecursiveComparison().isEqualTo(new Keyspace("system", null));
   }
 
   @Test
@@ -175,7 +180,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
 
-    assertThat(keyspace).isEqualToComparingFieldByField(new Keyspace(keyspaceName, null));
+    assertThat(keyspace).usingRecursiveComparison().isEqualTo(new Keyspace(keyspaceName, null));
   }
 
   @Test
@@ -207,6 +212,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             String.format("%s:8082/v2/schemas/keyspaces/system/tables", host),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     List<TableResponse> tables =
         objectMapper.convertValue(response.getData(), new TypeReference<List<TableResponse>>() {});
@@ -238,10 +244,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         .anySatisfy(
             value ->
                 assertThat(value)
-                    .isEqualToComparingOnlyGivenFields(
-                        new TableResponse("local", "system", null, null, null),
-                        "name",
-                        "keyspace"));
+                    .usingRecursiveComparison()
+                    .ignoringFields("columnDefinitions", "primaryKey", "tableOptions")
+                    .isEqualTo(new TableResponse("local", "system", null, null, null)));
   }
 
   @Test
@@ -252,6 +257,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             String.format("%s:8082/v2/schemas/keyspaces/system/tables/local", host),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     TableResponse table = objectMapper.convertValue(response.getData(), TableResponse.class);
     assertThat(table.getKeyspace()).isEqualTo("system");
@@ -285,6 +291,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s", host, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     TableResponse table = objectMapper.convertValue(response.getData(), TableResponse.class);
     assertThat(table.getKeyspace()).isEqualTo(keyspaceName);
@@ -296,8 +303,8 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             .findFirst()
             .orElseThrow(() -> new AssertionError("Column not found"));
     assertThat(columnDefinition)
-        .isEqualToComparingFieldByField(
-            new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
+        .usingRecursiveComparison()
+        .isEqualTo(new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
   }
 
   @Test
@@ -413,6 +420,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/keyspaces/%s/%s?where=%s", host, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -434,6 +442,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -489,6 +498,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -544,6 +554,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/keyspaces/%s/%s?where=%s", host, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -575,6 +586,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -595,6 +607,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -617,6 +630,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -652,6 +666,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "f0014be3-b69f-4884-b9a6-49765fb40df3"),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -721,6 +736,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -743,6 +759,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/keyspaces/%s/%s/%s/2", host, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -763,6 +780,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1", host, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -889,7 +907,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(rowUpdate),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     ResponseWrapper responseWrapper = objectMapper.readValue(body, ResponseWrapper.class);
+    @SuppressWarnings("unchecked")
     Map<String, String> data = objectMapper.convertValue(responseWrapper.getData(), Map.class);
 
     assertThat(data).containsAllEntriesOf(rowUpdate);
@@ -976,8 +996,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(row),
             HttpStatus.SC_OK);
 
-    data = objectMapper.readValue(body, Map.class);
-    assertThat(data).containsAllEntriesOf(row);
+    @SuppressWarnings("unchecked")
+    Map<String, String> dataMap = objectMapper.readValue(body, Map.class);
+    assertThat(dataMap).containsAllEntriesOf(row);
 
     body =
         RestUtils.get(
@@ -1062,7 +1083,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
             objectMapper.writeValueAsString(rowUpdate),
             HttpStatus.SC_OK);
+    @SuppressWarnings("rawtypes")
     ResponseWrapper responseWrapper = objectMapper.readValue(body, ResponseWrapper.class);
+    @SuppressWarnings("unchecked")
     Map<String, String> patchData = objectMapper.convertValue(responseWrapper.getData(), Map.class);
 
     assertThat(patchData).containsAllEntriesOf(rowUpdate);
@@ -1074,6 +1097,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -1111,6 +1135,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, rowIdentifier),
             objectMapper.writeValueAsString(rowUpdate),
             HttpStatus.SC_OK);
+    @SuppressWarnings("unchecked")
     Map<String, String> patchData = objectMapper.readValue(body, Map.class);
 
     assertThat(patchData).containsAllEntriesOf(rowUpdate);
@@ -1122,6 +1147,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -1165,6 +1191,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -1208,6 +1235,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -1260,6 +1288,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1", host, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -1293,6 +1322,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1", host, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     List<Map<String, Object>> data =
         objectMapper.convertValue(
@@ -1340,6 +1370,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             String.format(
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
             HttpStatus.SC_OK);
+    @SuppressWarnings("rawtypes")
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     List<ColumnDefinition> columns =
         objectMapper.convertValue(
@@ -1348,7 +1379,8 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         .anySatisfy(
             value ->
                 assertThat(value)
-                    .isEqualToComparingFieldByField(new ColumnDefinition("id", "uuid", false)));
+                    .usingRecursiveComparison()
+                    .isEqualTo(new ColumnDefinition("id", "uuid", false)));
   }
 
   @Test
@@ -1369,7 +1401,8 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         .anySatisfy(
             value ->
                 assertThat(value)
-                    .isEqualToComparingFieldByField(new ColumnDefinition("id", "uuid", false)));
+                    .usingRecursiveComparison()
+                    .isEqualTo(new ColumnDefinition("id", "uuid", false)));
   }
 
   @Test
@@ -1383,6 +1416,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             String.format(
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
             HttpStatus.SC_OK);
+    @SuppressWarnings("rawtypes")
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     List<ColumnDefinition> columns =
         objectMapper.convertValue(
@@ -1391,10 +1425,11 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         .anySatisfy(
             value ->
                 assertThat(value)
-                    .isEqualToComparingFieldByField(
-                        new ColumnDefinition("col2", "frozen<set<boolean>>", false)));
+                    .usingRecursiveComparison()
+                    .isEqualTo(new ColumnDefinition("col2", "frozen<set<boolean>>", false)));
   }
 
+  @Test
   public void getColumnsBadTable() throws IOException {
     String body =
         RestUtils.get(
@@ -1436,9 +1471,12 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
                 host, keyspaceName, tableName, "age"),
             HttpStatus.SC_OK);
+    @SuppressWarnings("rawtypes")
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     ColumnDefinition column = objectMapper.convertValue(response.getData(), ColumnDefinition.class);
-    assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "int", false));
+    assertThat(column)
+        .usingRecursiveComparison()
+        .isEqualTo(new ColumnDefinition("age", "int", false));
   }
 
   @Test
@@ -1472,7 +1510,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "age"),
             HttpStatus.SC_OK);
     ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column).isEqualToComparingFieldByField(new ColumnDefinition("age", "int", false));
+    assertThat(column)
+        .usingRecursiveComparison()
+        .isEqualTo(new ColumnDefinition("age", "int", false));
   }
 
   @Test
@@ -1487,13 +1527,15 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
                 host, keyspaceName, tableName, "col1"),
             HttpStatus.SC_OK);
+    @SuppressWarnings("rawtypes")
     ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
     ColumnDefinition column = objectMapper.convertValue(response.getData(), ColumnDefinition.class);
     assertThat(column)
-        .isEqualToComparingFieldByField(
-            new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
+        .usingRecursiveComparison()
+        .isEqualTo(new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
   }
 
+  @Test
   public void getColumnBadTable() throws IOException {
     createKeyspace(keyspaceName);
 
@@ -1539,6 +1581,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_CREATED);
+    @SuppressWarnings("unchecked")
     Map<String, String> response = objectMapper.readValue(body, Map.class);
 
     assertThat(response.get("name")).isEqualTo("name");
@@ -1551,7 +1594,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "name"),
             HttpStatus.SC_OK);
     ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column).isEqualToComparingFieldByField(columnDefinition);
+    assertThat(column).usingRecursiveComparison().isEqualTo(columnDefinition);
   }
 
   @Test
@@ -1588,6 +1631,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_CREATED);
+    @SuppressWarnings("unchecked")
     Map<String, String> response = objectMapper.readValue(body, Map.class);
 
     assertThat(response.get("name")).isEqualTo("balance");
@@ -1600,7 +1644,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "balance"),
             HttpStatus.SC_OK);
     ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column).isEqualToComparingFieldByField(columnDefinition);
+    assertThat(column).usingRecursiveComparison().isEqualTo(columnDefinition);
   }
 
   @Test
@@ -1618,6 +1662,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "id"),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_OK);
+    @SuppressWarnings("unchecked")
     Map<String, String> response = objectMapper.readValue(body, Map.class);
 
     assertThat(response.get("name")).isEqualTo("identifier");
@@ -1630,7 +1675,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "identifier"),
             HttpStatus.SC_OK);
     ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column).isEqualToComparingFieldByField(columnDefinition);
+    assertThat(column).usingRecursiveComparison().isEqualTo(columnDefinition);
   }
 
   @Test
@@ -1820,9 +1865,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
-    SuccessResponse successResponse =
-        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
-    assertThat(successResponse.getSuccess()).isTrue();
+    TableResponse tableResponse =
+        objectMapper.readValue(body, new TypeReference<TableResponse>() {});
+    assertThat(tableResponse.getName()).isEqualTo(tableName);
   }
 
   private void createComplexTable(String keyspaceName, String tableName) throws IOException {
