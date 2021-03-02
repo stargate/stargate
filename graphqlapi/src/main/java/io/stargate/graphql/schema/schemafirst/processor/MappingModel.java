@@ -112,8 +112,10 @@ public class MappingModel {
     ImmutableList.Builder<OperationModel> operationsBuilder = ImmutableList.builder();
     for (FieldDefinition query : queryType.getFieldDefinitions()) {
       try {
+
         operationsBuilder.add(
-            QueryModel.build(query, queryType.getName(), entities, responses, context));
+            new QueryModelBuilder(query, queryType.getName(), entities, responses, context)
+                .build());
       } catch (SkipException e) {
         LOG.debug(
             "Skipping query {} because it has mapping errors, "
