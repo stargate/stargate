@@ -27,11 +27,11 @@ public class MutationModelFactory {
       FieldDefinition mutation,
       String parentTypeName,
       Map<String, EntityModel> entities,
-      Map<String, ResponseModel> responses,
+      Map<String, ResponsePayloadModel> responsePayloads,
       ProcessingContext context)
       throws SkipException {
     return detectType(mutation, context)
-        .getBuilder(mutation, parentTypeName, entities, responses, context)
+        .getBuilder(mutation, parentTypeName, entities, responsePayloads, context)
         .build();
   }
 
@@ -97,9 +97,9 @@ public class MutationModelFactory {
         FieldDefinition mutation,
         String parentTypeName,
         Map<String, EntityModel> entities,
-        Map<String, ResponseModel> responses,
+        Map<String, ResponsePayloadModel> responsePayloads,
         ProcessingContext context) {
-      return builderProvider.get(mutation, parentTypeName, entities, responses, context);
+      return builderProvider.get(mutation, parentTypeName, entities, responsePayloads, context);
     }
   }
 
@@ -109,7 +109,7 @@ public class MutationModelFactory {
         FieldDefinition mutation,
         String parentTypeName,
         Map<String, EntityModel> entities,
-        Map<String, ResponseModel> responses,
+        Map<String, ResponsePayloadModel> responsePayloads,
         ProcessingContext context);
   }
 }

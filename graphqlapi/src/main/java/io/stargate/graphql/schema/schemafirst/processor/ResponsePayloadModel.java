@@ -27,12 +27,13 @@ import java.util.Optional;
  * This is a transient object (not mapped to a CQL table), that acts as a wrapper for operation
  * responses.
  */
-public class ResponseModel {
+public class ResponsePayloadModel {
 
   private final Optional<EntityField> entityField;
   private final EnumSet<TechnicalField> technicalFields;
 
-  public ResponseModel(Optional<EntityField> entityField, EnumSet<TechnicalField> technicalFields) {
+  public ResponsePayloadModel(
+      Optional<EntityField> entityField, EnumSet<TechnicalField> technicalFields) {
     this.entityField = entityField;
     this.technicalFields = technicalFields;
   }

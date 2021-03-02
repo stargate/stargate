@@ -30,19 +30,19 @@ class InsertModelBuilder extends MutationModelBuilder {
   private final FieldDefinition mutation;
   private final String parentTypeName;
   private final Map<String, EntityModel> entities;
-  private final Map<String, ResponseModel> responses;
+  private final Map<String, ResponsePayloadModel> responsePayloads;
 
   InsertModelBuilder(
       FieldDefinition mutation,
       String parentTypeName,
       Map<String, EntityModel> entities,
-      Map<String, ResponseModel> responses,
+      Map<String, ResponsePayloadModel> responsePayloads,
       ProcessingContext context) {
     super(context, mutation.getSourceLocation());
     this.mutation = mutation;
     this.parentTypeName = parentTypeName;
     this.entities = entities;
-    this.responses = responses;
+    this.responsePayloads = responsePayloads;
   }
 
   @Override
@@ -73,11 +73,11 @@ class InsertModelBuilder extends MutationModelBuilder {
     }
     assert returnType instanceof TypeName;
     String returnTypeName = ((TypeName) returnType).getName();
-    ResponseModel response = responses.get(returnTypeName);
+    ResponsePayloadModel responsePayload = responsePayloads.get(returnTypeName);
 
-    if (response != null) {
-      if (response.getEntityField().isPresent()) {
-        ResponseModel.EntityField entityField = response.getEntityField().get();
+    if (responsePayload != null) {
+      if (responsePayload.getEntityField().isPresent()) {
+        ResponsePayloadModel.EntityField entityField = responsePayload.getEntityField().get();
         if (entityField.isList() || returnTypeName.equals(entityField.getEntityName())) {
           invalidMapping(
               "Mutation %s: invalid return type. "
@@ -97,7 +97,7 @@ class InsertModelBuilder extends MutationModelBuilder {
     }
 
     return new InsertModel(
-        parentTypeName, mutation, entity, input.getName(), response, ifNotExists);
+        parentTypeName, mutation, entity, input.getName(), responsePayload, ifNotExists);
   }
 
   private Boolean computeIfNotExists() {

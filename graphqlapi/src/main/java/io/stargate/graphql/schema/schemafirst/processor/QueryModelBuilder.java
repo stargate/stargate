@@ -34,7 +34,7 @@ class QueryModelBuilder extends ModelBuilderBase<QueryModel> {
       FieldDefinition query,
       String parentTypeName,
       Map<String, EntityModel> entities,
-      Map<String, ResponseModel> responses,
+      Map<String, ResponsePayloadModel> responsePayloads,
       ProcessingContext context) {
     super(context, query.getSourceLocation());
     this.query = query;

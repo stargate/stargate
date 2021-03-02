@@ -27,7 +27,7 @@ public class InsertModel extends MutationModel {
 
   private final EntityModel entity;
   private final String entityArgumentName;
-  private final ResponseModel responseType;
+  private final ResponsePayloadModel responsePayload;
   private final boolean ifNotExists;
 
   InsertModel(
@@ -35,12 +35,12 @@ public class InsertModel extends MutationModel {
       FieldDefinition field,
       EntityModel entity,
       String entityArgumentName,
-      ResponseModel responseType,
+      ResponsePayloadModel responsePayload,
       boolean ifNotExists) {
     super(parentTypeName, field);
     this.entity = entity;
     this.entityArgumentName = entityArgumentName;
-    this.responseType = responseType;
+    this.responsePayload = responsePayload;
     this.ifNotExists = ifNotExists;
   }
 
@@ -52,8 +52,8 @@ public class InsertModel extends MutationModel {
     return entityArgumentName;
   }
 
-  public Optional<ResponseModel> getResponsePayloadType() {
-    return Optional.ofNullable(responseType);
+  public Optional<ResponsePayloadModel> getResponsePayload() {
+    return Optional.ofNullable(responsePayload);
   }
 
   public boolean ifNotExists() {
