@@ -35,12 +35,12 @@ public class MappingModel {
   private static final Logger LOG = LoggerFactory.getLogger(MappingModel.class);
 
   private final Map<String, EntityModel> entities;
-  private final Map<String, ResponseModel> responses;
+  private final Map<String, ResponsePayloadModel> responses;
   private final List<OperationModel> operations;
 
   MappingModel(
       Map<String, EntityModel> entities,
-      Map<String, ResponseModel> responses,
+      Map<String, ResponsePayloadModel> responses,
       List<OperationModel> operations) {
     this.entities = entities;
     this.responses = responses;
@@ -51,7 +51,7 @@ public class MappingModel {
     return entities;
   }
 
-  public Map<String, ResponseModel> getResponses() {
+  public Map<String, ResponsePayloadModel> getResponses() {
     return responses;
   }
 
@@ -67,7 +67,8 @@ public class MappingModel {
   static MappingModel build(TypeDefinitionRegistry registry, ProcessingContext context) {
 
     ImmutableMap.Builder<String, EntityModel> entitiesBuilder = ImmutableMap.builder();
-    ImmutableMap.Builder<String, ResponseModel> responsesBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<String, ResponsePayloadModel> responsePayloadsBuilder =
+        ImmutableMap.builder();
 
     // The Query type is always present (otherwise the GraphQL parser would have failed)
     @SuppressWarnings("OptionalGetWithoutIsPresent")
@@ -95,7 +96,8 @@ public class MappingModel {
       }
       try {
         if (isPayload(type)) {
-          responsesBuilder.put(type.getName(), new ResponseModelBuilder(type, context).build());
+          responsePayloadsBuilder.put(
+              type.getName(), new ResponsePayloadModelBuilder(type, context).build());
         } else {
           entitiesBuilder.put(type.getName(), new EntityModelBuilder(type, context).build());
         }
@@ -107,14 +109,14 @@ public class MappingModel {
       }
     }
     Map<String, EntityModel> entities = entitiesBuilder.build();
-    Map<String, ResponseModel> responses = responsesBuilder.build();
+    Map<String, ResponsePayloadModel> responsePayloads = responsePayloadsBuilder.build();
 
     ImmutableList.Builder<OperationModel> operationsBuilder = ImmutableList.builder();
     for (FieldDefinition query : queryType.getFieldDefinitions()) {
       try {
 
         operationsBuilder.add(
-            new QueryModelBuilder(query, queryType.getName(), entities, responses, context)
+            new QueryModelBuilder(query, queryType.getName(), entities, responsePayloads, context)
                 .build());
       } catch (SkipException e) {
         LOG.debug(
@@ -129,7 +131,7 @@ public class MappingModel {
             try {
               operationsBuilder.add(
                   MutationModelFactory.build(
-                      mutation, mutationType.getName(), entities, responses, context));
+                      mutation, mutationType.getName(), entities, responsePayloads, context));
             } catch (SkipException e) {
               LOG.debug(
                   "Skipping mutation {} because it has mapping errors, "
@@ -151,7 +153,7 @@ public class MappingModel {
           .extensions(ImmutableMap.of("mappingErrors", context.getErrors()))
           .build();
     }
-    return new MappingModel(entities, responses, operationsBuilder.build());
+    return new MappingModel(entities, responsePayloads, operationsBuilder.build());
   }
 
   private static boolean isPayload(ObjectTypeDefinition type) {

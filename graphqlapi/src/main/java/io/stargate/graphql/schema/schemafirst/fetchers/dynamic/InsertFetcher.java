@@ -37,8 +37,8 @@ import io.stargate.graphql.schema.schemafirst.processor.EntityModel;
 import io.stargate.graphql.schema.schemafirst.processor.FieldModel;
 import io.stargate.graphql.schema.schemafirst.processor.InsertModel;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
-import io.stargate.graphql.schema.schemafirst.processor.ResponseModel;
-import io.stargate.graphql.schema.schemafirst.processor.ResponseModel.TechnicalField;
+import io.stargate.graphql.schema.schemafirst.processor.ResponsePayloadModel;
+import io.stargate.graphql.schema.schemafirst.processor.ResponsePayloadModel.TechnicalField;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import io.stargate.graphql.schema.schemafirst.util.Uuids;
 import java.util.ArrayList;
@@ -165,14 +165,14 @@ public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
     // Determine if we need an additional level of nesting. This happens if the mutation returns a
     // payload type that contains the entity.
     String rootPath = null;
-    if (model.getResponsePayloadType().isPresent()) {
-      ResponseModel payloadType = model.getResponsePayloadType().get();
-      if (!payloadType.getEntityField().isPresent()) {
+    if (model.getResponsePayload().isPresent()) {
+      ResponsePayloadModel responsePayload = model.getResponsePayload().get();
+      if (!responsePayload.getEntityField().isPresent()) {
         // This can happen if the payload only contains "technical" fields, like `applied`. In that
         // case we never need to write any field.
         return;
       }
-      rootPath = payloadType.getEntityField().get().getName();
+      rootPath = responsePayload.getEntityField().get().getName();
     }
 
     // Check if the GraphQL query asked for that field.
