@@ -18,6 +18,7 @@ package io.stargate.graphql.schema.schemafirst.processor;
 import com.google.common.collect.ImmutableList;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
+import graphql.language.ListType;
 import graphql.language.Type;
 import graphql.language.TypeName;
 import graphql.schema.DataFetcher;
@@ -37,15 +38,18 @@ public class QueryMappingModel extends OperationMappingModel {
 
   private final EntityMappingModel entity;
   private final List<String> inputNames;
+  private final boolean returnsList;
 
   private QueryMappingModel(
       String parentTypeName,
       FieldDefinition field,
       EntityMappingModel entity,
-      List<String> inputNames) {
+      List<String> inputNames,
+      boolean returnsList) {
     super(parentTypeName, field);
     this.entity = entity;
     this.inputNames = inputNames;
+    this.returnsList = returnsList;
   }
 
   public EntityMappingModel getEntity() {
@@ -54,6 +58,10 @@ public class QueryMappingModel extends OperationMappingModel {
 
   public List<String> getInputNames() {
     return inputNames;
+  }
+
+  public boolean returnsList() {
+    return returnsList;
   }
 
   @Override
@@ -75,12 +83,22 @@ public class QueryMappingModel extends OperationMappingModel {
       throws SkipException {
 
     Type<?> returnType = query.getType();
-    String entityName = (returnType instanceof TypeName) ? ((TypeName) returnType).getName() : null;
+    boolean isListType = returnType instanceof ListType;
+    String entityName = null;
+    if ((returnType instanceof TypeName)) {
+      entityName = ((TypeName) returnType).getName();
+    } else if (isListType) {
+      ListType listType = (ListType) returnType;
+      if (listType.getType() instanceof TypeName) {
+        entityName = ((TypeName) listType.getType()).getName();
+      }
+    }
     if (entityName == null || !entities.containsKey(entityName)) {
       context.addError(
           query.getSourceLocation(),
           ProcessingErrorType.InvalidMapping,
-          "Query %s: expected the return type to be an object that maps to an entity",
+          "Query %s: expected the return type to be an object (or list of objects) that maps to "
+              + "an entity",
           query.getName());
       throw SkipException.INSTANCE;
     }
@@ -88,18 +106,19 @@ public class QueryMappingModel extends OperationMappingModel {
     EntityMappingModel entity = entities.get(entityName);
 
     List<InputValueDefinition> inputValues = query.getInputValueDefinitions();
-    List<FieldMappingModel> primaryKey = entity.getPrimaryKey();
-    if (inputValues.size() != primaryKey.size()) {
+    List<FieldMappingModel> partitionKey = entity.getPartitionKey();
+    if (inputValues.size() < partitionKey.size()) {
       context.addError(
           query.getSourceLocation(),
           ProcessingErrorType.InvalidMapping,
-          "Query %s: expected the number of arguments (%d) "
-              + "to match number of partition key + clustering column fields on the entity (%d)",
+          "Query %s: expected to have at least enough arguments to cover the partition key "
+              + "(%d needed, %d provided).",
           query.getName(),
-          inputValues.size(),
-          primaryKey.size());
+          partitionKey.size(),
+          inputValues.size());
       throw SkipException.INSTANCE;
     }
+    List<FieldMappingModel> primaryKey = entity.getPrimaryKey();
 
     boolean foundErrors = false;
     ImmutableList.Builder<String> inputNames = ImmutableList.builder();
@@ -126,6 +145,6 @@ public class QueryMappingModel extends OperationMappingModel {
     if (foundErrors) {
       throw SkipException.INSTANCE;
     }
-    return new QueryMappingModel(parentTypeName, query, entity, inputNames.build());
+    return new QueryMappingModel(parentTypeName, query, entity, inputNames.build(), isListType);
   }
 }

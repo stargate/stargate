@@ -48,7 +48,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.function.IntFunction;
@@ -218,25 +217,115 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
   }
 
   /**
-   * Builds and executes a query to fetch a single instance of the given entity by its PK.
+   * Builds and executes a query to fetch a list of entity instances, given the full partition key
+   * and zero or more clustering columns.
    *
-   * @param valueNames if present, the keys for each PK component in {@code values}; otherwise, the
-   *     name of the field will be used.
+   * @param arguments the arguments of the GraphQL query.
+   * @param argumentNames for each key component, the name of the argument that represents it.
    */
-  protected Map<String, Object> querySingleEntity(
+  protected List<Map<String, Object>> queryListOfEntities(
       EntityMappingModel entity,
-      Map<String, Object> values,
-      Optional<List<String>> valueNames,
+      Map<String, Object> arguments,
+      List<String> argumentNames,
       DataStore dataStore,
       Keyspace keyspace,
       AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
+    ResultSet resultSet =
+        getResultSet(
+            entity,
+            arguments,
+            argumentNames,
+            argumentNames.size(),
+            dataStore,
+            keyspace,
+            authenticationSubject);
+    if (resultSet == null) {
+      return null;
+    }
+    return resultSet.currentPageRows().stream()
+        .map(row -> mapSingleRow(entity, row))
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Builds and executes a query to fetch a single entity, given the full primary key (all partition
+   * keys and clustering columns).
+   *
+   * @param arguments the arguments of the GraphQL query.
+   * @param argumentNames for each key component, the name of the argument that represents it.
+   */
+  protected Map<String, Object> querySingleEntity(
+      EntityMappingModel entity,
+      Map<String, Object> arguments,
+      List<String> argumentNames,
+      DataStore dataStore,
+      Keyspace keyspace,
+      AuthenticationSubject authenticationSubject)
+      throws UnauthorizedException {
+    ResultSet resultSet =
+        getResultSet(
+            entity,
+            arguments,
+            argumentNames,
+            argumentNames.size(),
+            dataStore,
+            keyspace,
+            authenticationSubject);
+    return resultSet.hasNoMoreFetchedRows() ? null : mapSingleRow(entity, resultSet.one());
+  }
+
+  /**
+   * Builds and executes a query to fetch a single entity, given the full primary key (all partition
+   * keys and clustering columns). This variant assumes that the arguments are named exactly like
+   * the primary key fields.
+   */
+  protected Map<String, Object> querySingleEntity(
+      EntityMappingModel entity,
+      Map<String, Object> arguments,
+      DataStore dataStore,
+      Keyspace keyspace,
+      AuthenticationSubject authenticationSubject)
+      throws UnauthorizedException {
+    ResultSet resultSet =
+        getResultSet(
+            entity,
+            arguments,
+            null,
+            entity.getPrimaryKey().size(),
+            dataStore,
+            keyspace,
+            authenticationSubject);
+    return resultSet.hasNoMoreFetchedRows() ? null : mapSingleRow(entity, resultSet.one());
+  }
+
+  private Map<String, Object> mapSingleRow(EntityMappingModel entity, Row row) {
+    Map<String, Object> singleResult = new HashMap<>();
+    for (FieldMappingModel field : entity.getAllColumns()) {
+      Object cqlValue = row.getObject(field.getCqlName());
+      singleResult.put(
+          field.getGraphqlName(),
+          toGraphqlValue(cqlValue, field.getCqlType(), field.getGraphqlType()));
+    }
+    return singleResult;
+  }
+
+  private ResultSet getResultSet(
+      EntityMappingModel entity,
+      Map<String, Object> arguments,
+      List<String> argumentNames,
+      int argumentCount,
+      DataStore dataStore,
+      Keyspace keyspace,
+      AuthenticationSubject authenticationSubject)
+      throws UnauthorizedException {
+
     List<BuiltCondition> whereConditions = new ArrayList<>();
-    for (int i = 0; i < entity.getPrimaryKey().size(); i++) {
+    assert argumentNames == null || argumentNames.size() == argumentCount;
+    for (int i = 0; i < argumentCount; i++) {
       FieldMappingModel field = entity.getPrimaryKey().get(i);
-      int finalI = i;
-      String inputName = valueNames.map(l -> l.get(finalI)).orElse(field.getGraphqlName());
-      Object graphqlValue = values.get(inputName);
+      String argumentName = argumentNames != null ? argumentNames.get(i) : field.getGraphqlName();
+      Object graphqlValue = arguments.get(argumentName);
       whereConditions.add(
           BuiltCondition.of(
               field.getCqlName(),
@@ -257,16 +346,14 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
             .build()
             .bind();
 
-    ResultSet resultSet;
     try {
-      resultSet =
-          authorizationService.authorizedDataRead(
-              () -> executeUnchecked(query, dataStore),
-              authenticationSubject,
-              entity.getKeyspaceName(),
-              entity.getCqlName(),
-              TypedKeyValue.forSelect((BoundSelect) query),
-              SourceAPI.GRAPHQL);
+      return authorizationService.authorizedDataRead(
+          () -> executeUnchecked(query, dataStore),
+          authenticationSubject,
+          entity.getKeyspaceName(),
+          entity.getCqlName(),
+          TypedKeyValue.forSelect((BoundSelect) query),
+          SourceAPI.GRAPHQL);
     } catch (Exception e) {
       if (e instanceof UnauthorizedException) {
         throw (UnauthorizedException) e;
@@ -276,18 +363,6 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
         throw new RuntimeException(e);
       }
     }
-    if (resultSet.hasNoMoreFetchedRows()) {
-      return null;
-    }
-    Row row = resultSet.one();
-    Map<String, Object> result = new HashMap<>();
-    for (FieldMappingModel field : entity.getAllColumns()) {
-      Object cqlValue = row.getObject(field.getCqlName());
-      result.put(
-          field.getGraphqlName(),
-          toGraphqlValue(cqlValue, field.getCqlType(), field.getGraphqlType()));
-    }
-    return result;
   }
 
   protected ResultSet executeUnchecked(AbstractBound<?> query, DataStore dataStore) {
