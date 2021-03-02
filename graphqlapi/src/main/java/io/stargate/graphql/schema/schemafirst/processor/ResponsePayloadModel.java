@@ -27,7 +27,7 @@ import java.util.Optional;
  * This is a transient object (not mapped to a CQL table), that acts as a wrapper for operation
  * responses.
  */
-public class ResponsePayloadModel {
+public class ResponsePayloadModel implements OperationModel.ReturnType {
 
   private final Optional<EntityField> entityField;
   private final EnumSet<TechnicalField> technicalFields;
@@ -44,6 +44,16 @@ public class ResponsePayloadModel {
    */
   public Optional<EntityField> getEntityField() {
     return entityField;
+  }
+
+  @Override
+  public Optional<EntityModel> getEntity() {
+    return getEntityField().map(EntityField::getEntity);
+  }
+
+  @Override
+  public boolean isEntityList() {
+    return getEntityField().map(EntityField::isList).orElse(false);
   }
 
   /**
@@ -84,6 +94,7 @@ public class ResponsePayloadModel {
 
   public enum TechnicalField {
     APPLIED("applied", Scalars.GraphQLBoolean.getName()),
+    PAGING_STATE("pagingState", Scalars.GraphQLString.getName()),
     ;
 
     private final String graphqlName;

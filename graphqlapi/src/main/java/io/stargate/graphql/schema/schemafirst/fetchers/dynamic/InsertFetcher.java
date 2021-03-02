@@ -46,6 +46,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
@@ -116,7 +117,7 @@ public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
         Scope.MODIFY,
         SourceAPI.GRAPHQL);
 
-    ResultSet resultSet = executeUnchecked(query, dataStore);
+    ResultSet resultSet = executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
 
     boolean applied;
     if (isLwt) {
