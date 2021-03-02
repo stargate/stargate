@@ -29,7 +29,6 @@ import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Executes the {@code _entities} query of GraphQL federation.
@@ -85,7 +84,6 @@ public class FederatedEntityFetcher extends DynamicFetcher<List<FederatedEntity>
     Keyspace keyspace = dataStore.schema().keyspace(entity.getKeyspaceName());
     return FederatedEntity.wrap(
         entity,
-        querySingleEntity(
-            entity, representation, Optional.empty(), dataStore, keyspace, authenticationSubject));
+        querySingleEntity(entity, representation, dataStore, keyspace, authenticationSubject));
   }
 }
