@@ -72,7 +72,7 @@ class BuiltSelectTest extends BuiltQueryTest {
             .from(KS_NAME, "t1")
             .where("k1", Predicate.EQ, "foo")
             .where("k2", Predicate.GTE, 3)
-            .limit(42L)
+            .limit(42)
             .build();
 
     assertBuiltQuery(
@@ -81,7 +81,7 @@ class BuiltSelectTest extends BuiltQueryTest {
     BoundSelect select = checkedCast(query.bind());
 
     assertBoundQuery(
-        select, "SELECT k2, v1 FROM ks.t1 WHERE k1 = ? AND k2 >= ? LIMIT ?", "foo", 3L, 42L);
+        select, "SELECT k2, v1 FROM ks.t1 WHERE k1 = ? AND k2 >= ? LIMIT ?", "foo", 3L, 42);
 
     assertThat(select.isStarSelect()).isFalse();
     assertThat(names(select.selectedColumns())).isEqualTo(asSet("k2", "v1"));
@@ -107,12 +107,12 @@ class BuiltSelectTest extends BuiltQueryTest {
         asList(
             markerFor("k1", Type.Text),
             markerFor("k2", Type.Bigint),
-            markerFor("[limit]", Type.Bigint)));
+            markerFor("[limit]", Type.Int)));
 
-    BoundSelect select = checkedCast(query.bind("foo", 3L, 42L));
+    BoundSelect select = checkedCast(query.bind("foo", 3L, 42));
 
     assertBoundQuery(
-        select, "SELECT k2, v1 FROM ks.t1 WHERE k1 = ? AND k2 >= ? LIMIT ?", "foo", 3L, 42L);
+        select, "SELECT k2, v1 FROM ks.t1 WHERE k1 = ? AND k2 >= ? LIMIT ?", "foo", 3L, 42);
 
     assertThat(select.isStarSelect()).isFalse();
     assertThat(names(select.selectedColumns())).isEqualTo(asSet("k2", "v1"));
