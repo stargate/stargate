@@ -29,6 +29,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
@@ -46,13 +47,16 @@ import io.stargate.graphql.schema.schemafirst.processor.EntityModel;
 import io.stargate.graphql.schema.schemafirst.processor.FieldModel;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.function.IntFunction;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 /**
@@ -252,30 +256,31 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
    *
    * @param arguments the arguments of the GraphQL query.
    * @param argumentNames for each key component, the name of the argument that represents it.
+   * @param limit
+   * @param pageSize
    */
-  protected List<Map<String, Object>> queryListOfEntities(
+  protected ResultSet queryListOfEntities(
       EntityModel entity,
       Map<String, Object> arguments,
       List<String> argumentNames,
+      Optional<ByteBuffer> pagingState,
+      Optional<Integer> limit,
+      Optional<Integer> pageSize,
       DataStore dataStore,
       Keyspace keyspace,
       AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
-    ResultSet resultSet =
-        getResultSet(
-            entity,
-            arguments,
-            argumentNames,
-            argumentNames.size(),
-            dataStore,
-            keyspace,
-            authenticationSubject);
-    if (resultSet == null) {
-      return null;
-    }
-    return resultSet.currentPageRows().stream()
-        .map(row -> mapSingleRow(entity, row))
-        .collect(Collectors.toList());
+    return query(
+        entity,
+        arguments,
+        argumentNames,
+        argumentNames.size(),
+        pagingState,
+        limit,
+        pageSize,
+        dataStore,
+        keyspace,
+        authenticationSubject);
   }
 
   /**
@@ -285,7 +290,7 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
    * @param arguments the arguments of the GraphQL query.
    * @param argumentNames for each key component, the name of the argument that represents it.
    */
-  protected Map<String, Object> querySingleEntity(
+  protected ResultSet querySingleEntity(
       EntityModel entity,
       Map<String, Object> arguments,
       List<String> argumentNames,
@@ -293,16 +298,17 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
       Keyspace keyspace,
       AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
-    ResultSet resultSet =
-        getResultSet(
-            entity,
-            arguments,
-            argumentNames,
-            argumentNames.size(),
-            dataStore,
-            keyspace,
-            authenticationSubject);
-    return resultSet.hasNoMoreFetchedRows() ? null : mapSingleRow(entity, resultSet.one());
+    return query(
+        entity,
+        arguments,
+        argumentNames,
+        argumentNames.size(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        dataStore,
+        keyspace,
+        authenticationSubject);
   }
 
   /**
@@ -310,41 +316,34 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
    * keys and clustering columns). This variant assumes that the arguments are named exactly like
    * the primary key fields.
    */
-  protected Map<String, Object> querySingleEntity(
+  protected ResultSet querySingleEntity(
       EntityModel entity,
       Map<String, Object> arguments,
       DataStore dataStore,
       Keyspace keyspace,
       AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
-    ResultSet resultSet =
-        getResultSet(
-            entity,
-            arguments,
-            null,
-            entity.getPrimaryKey().size(),
-            dataStore,
-            keyspace,
-            authenticationSubject);
-    return resultSet.hasNoMoreFetchedRows() ? null : mapSingleRow(entity, resultSet.one());
+    return query(
+        entity,
+        arguments,
+        null,
+        entity.getPrimaryKey().size(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        dataStore,
+        keyspace,
+        authenticationSubject);
   }
 
-  private Map<String, Object> mapSingleRow(EntityModel entity, Row row) {
-    Map<String, Object> singleResult = new HashMap<>();
-    for (FieldModel field : entity.getAllColumns()) {
-      Object cqlValue = row.getObject(field.getCqlName());
-      singleResult.put(
-          field.getGraphqlName(),
-          toGraphqlValue(cqlValue, field.getCqlType(), field.getGraphqlType()));
-    }
-    return singleResult;
-  }
-
-  private ResultSet getResultSet(
+  private ResultSet query(
       EntityModel entity,
       Map<String, Object> arguments,
       List<String> argumentNames,
       int argumentCount,
+      Optional<ByteBuffer> pagingState,
+      Optional<Integer> limit,
+      Optional<Integer> pageSize,
       DataStore dataStore,
       Keyspace keyspace,
       AuthenticationSubject authenticationSubject)
@@ -371,12 +370,13 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
                 entity.getAllColumns().stream().map(FieldModel::getCqlName).toArray(String[]::new))
             .from(entity.getKeyspaceName(), entity.getCqlName())
             .where(whereConditions)
+            .limit(limit.orElse(null))
             .build()
             .bind();
 
     try {
       return authorizationService.authorizedDataRead(
-          () -> executeUnchecked(query, dataStore),
+          () -> executeUnchecked(query, pagingState, pageSize, dataStore),
           authenticationSubject,
           entity.getKeyspaceName(),
           entity.getCqlName(),
@@ -393,9 +393,48 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
     }
   }
 
-  protected ResultSet executeUnchecked(AbstractBound<?> query, DataStore dataStore) {
+  protected Map<String, Object> toSingleEntity(ResultSet resultSet, EntityModel entity) {
+    return resultSet.hasNoMoreFetchedRows() ? null : toEntity(resultSet.one(), entity);
+  }
+
+  protected List<Map<String, Object>> toEntities(ResultSet resultSet, EntityModel entity) {
+    return resultSet.currentPageRows().stream()
+        .map(row -> toEntity(row, entity))
+        .collect(Collectors.toList());
+  }
+
+  private Map<String, Object> toEntity(Row row, EntityModel entity) {
+    Map<String, Object> singleResult = new HashMap<>();
+    for (FieldModel field : entity.getAllColumns()) {
+      Object cqlValue = row.getObject(field.getCqlName());
+      singleResult.put(
+          field.getGraphqlName(),
+          toGraphqlValue(cqlValue, field.getCqlType(), field.getGraphqlType()));
+    }
+    return singleResult;
+  }
+
+  protected ResultSet executeUnchecked(
+      AbstractBound<?> query,
+      Optional<ByteBuffer> pagingState,
+      Optional<Integer> pageSize,
+      DataStore dataStore) {
     try {
-      return dataStore.execute(query).get();
+      if (pagingState.isPresent() || pageSize.isPresent()) {
+        UnaryOperator<Parameters> parametersModifier =
+            parameters -> {
+              if (pagingState.isPresent()) {
+                parameters = parameters.withPagingState(pagingState.get());
+              }
+              if (pageSize.isPresent()) {
+                parameters = parameters.toBuilder().pageSize(pageSize.get()).build();
+              }
+              return parameters;
+            };
+        return dataStore.execute(query, parametersModifier).get();
+      } else {
+        return dataStore.execute(query).get();
+      }
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     } catch (ExecutionException e) {
