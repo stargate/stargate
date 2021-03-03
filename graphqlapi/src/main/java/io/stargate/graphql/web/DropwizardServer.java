@@ -103,6 +103,24 @@ public class DropwizardServer extends Application<Configuration> {
                 bind(FrameworkUtil.getBundle(GraphqlActivator.class)).to(Bundle.class);
               }
             });
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(authenticationService).to(AuthenticationService.class);
+              }
+            });
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(authorizationService).to(AuthorizationService.class);
+              }
+            });
 
     environment.jersey().register(GraphqlDmlResource.class);
     environment.jersey().register(GraphqlDdlResource.class);
