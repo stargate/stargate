@@ -57,12 +57,12 @@ public class ResponsePayloadModel {
   public static class EntityField {
 
     private final String name;
-    private final String entityName;
+    private final EntityModel entity;
     private final boolean isList;
 
-    public EntityField(String name, String entityName, boolean isList) {
+    public EntityField(String name, EntityModel entity, boolean isList) {
       this.name = name;
-      this.entityName = entityName;
+      this.entity = entity;
       this.isList = isList;
     }
 
@@ -72,8 +72,8 @@ public class ResponsePayloadModel {
     }
 
     /** The entity that this field references. */
-    public String getEntityName() {
-      return entityName;
+    public EntityModel getEntity() {
+      return entity;
     }
 
     /** Whether the field is a list of entities, or a single entity. */
@@ -108,7 +108,6 @@ public class ResponsePayloadModel {
     }
 
     private boolean matches(FieldDefinition field) {
-
       return graphqlName.equals(field.getName())
           && typeName.isEqualTo(TypeHelper.unwrapNonNull(field.getType()));
     }

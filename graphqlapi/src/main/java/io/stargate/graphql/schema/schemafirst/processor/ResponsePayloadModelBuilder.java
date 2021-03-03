@@ -19,24 +19,26 @@ import graphql.language.FieldDefinition;
 import graphql.language.ListType;
 import graphql.language.ObjectTypeDefinition;
 import graphql.language.Type;
-import graphql.language.TypeDefinition;
 import graphql.language.TypeName;
-import io.stargate.graphql.schema.schemafirst.processor.EntityModel.Target;
 import io.stargate.graphql.schema.schemafirst.processor.ResponsePayloadModel.EntityField;
 import io.stargate.graphql.schema.schemafirst.processor.ResponsePayloadModel.TechnicalField;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Optional;
 
 class ResponsePayloadModelBuilder extends ModelBuilderBase<ResponsePayloadModel> {
 
   private final ObjectTypeDefinition type;
   private final String graphqlName;
+  private final Map<String, EntityModel> entities;
 
-  ResponsePayloadModelBuilder(ObjectTypeDefinition type, ProcessingContext context) {
+  ResponsePayloadModelBuilder(
+      ObjectTypeDefinition type, Map<String, EntityModel> entities, ProcessingContext context) {
     super(context, type.getSourceLocation());
     this.type = type;
     this.graphqlName = type.getName();
+    this.entities = entities;
   }
 
   @Override
@@ -79,26 +81,7 @@ class ResponsePayloadModelBuilder extends ModelBuilderBase<ResponsePayloadModel>
       type = TypeHelper.unwrapNonNull(((ListType) type).getType());
     }
     assert type instanceof TypeName;
-    String typeName = ((TypeName) type).getName();
-    return context
-        .getTypeRegistry()
-        .getType(typeName)
-        .filter(this::isTableEntity)
-        .map(
-            entityDefinition ->
-                new EntityField(field.getName(), entityDefinition.getName(), isList))
-        .orElse(null);
-  }
-
-  private boolean isTableEntity(TypeDefinition<?> typeDefinition) {
-    if (!(typeDefinition instanceof ObjectTypeDefinition)
-        || DirectiveHelper.getDirective("cql_payload", typeDefinition).isPresent()) {
-      return false;
-    }
-    Target target =
-        DirectiveHelper.getDirective("cql_entity", typeDefinition)
-            .flatMap(d -> DirectiveHelper.getEnumArgument(d, "target", Target.class, context))
-            .orElse(Target.TABLE);
-    return target == Target.TABLE;
+    EntityModel entity = entities.get(((TypeName) type).getName());
+    return entity == null ? null : new EntityField(field.getName(), entity, isList);
   }
 }
