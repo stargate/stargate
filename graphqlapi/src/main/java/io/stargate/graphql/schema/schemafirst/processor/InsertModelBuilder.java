@@ -78,7 +78,7 @@ class InsertModelBuilder extends MutationModelBuilder {
     if (responsePayload != null) {
       if (responsePayload.getEntityField().isPresent()) {
         ResponsePayloadModel.EntityField entityField = responsePayload.getEntityField().get();
-        if (entityField.isList() || returnTypeName.equals(entityField.getEntityName())) {
+        if (entityField.isList() || !entityField.getEntity().equals(entity)) {
           invalidMapping(
               "Mutation %s: invalid return type. "
                   + "Expected a payload that wraps a single instance of %s.",
