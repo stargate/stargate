@@ -1,5 +1,24 @@
 # Changelog
 
+## [v1.0.13](https://github.com/stargate/stargate/tree/v1.0.13) (2021-03-03)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.12...v1.0.13)
+
+**Fixed bugs:**
+
+- Querying GraphQL API with `limit` fails [\#716](https://github.com/stargate/stargate/issues/716)
+- Require authorization to read DML schemas [\#731](https://github.com/stargate/stargate/pull/731) ([olim7t](https://github.com/olim7t))
+
+**Closed issues:**
+
+- REST API select \* from table [\#727](https://github.com/stargate/stargate/issues/727)
+
+**Merged pull requests:**
+
+- Bumping version for next release [\#724](https://github.com/stargate/stargate/pull/724) ([github-actions[bot]](https://github.com/apps/github-actions))
+- General cleanup of  RestApiv2Test [\#723](https://github.com/stargate/stargate/pull/723) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Fix handling of LIMIT in query builder \(fixes \#716\) [\#719](https://github.com/stargate/stargate/pull/719) ([olim7t](https://github.com/olim7t))
+
 ## [v1.0.12](https://github.com/stargate/stargate/tree/v1.0.12) (2021-02-27)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.11...v1.0.12)
