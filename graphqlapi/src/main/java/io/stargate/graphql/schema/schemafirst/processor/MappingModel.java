@@ -27,12 +27,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MappingModel {
 
   private static final Logger LOG = LoggerFactory.getLogger(MappingModel.class);
+  private static final Predicate<ObjectTypeDefinition> IS_RESPONSE_PAYLOAD =
+      t -> DirectiveHelper.getDirective("cql_payload", t).isPresent();
 
   private final Map<String, EntityModel> entities;
   private final Map<String, ResponsePayloadModel> responses;
@@ -66,10 +69,6 @@ public class MappingModel {
   /** @throws GraphqlErrorException if the model contains mapping errors */
   static MappingModel build(TypeDefinitionRegistry registry, ProcessingContext context) {
 
-    ImmutableMap.Builder<String, EntityModel> entitiesBuilder = ImmutableMap.builder();
-    ImmutableMap.Builder<String, ResponsePayloadModel> responsePayloadsBuilder =
-        ImmutableMap.builder();
-
     // The Query type is always present (otherwise the GraphQL parser would have failed)
     @SuppressWarnings("OptionalGetWithoutIsPresent")
     ObjectTypeDefinition queryType = getOperationType(registry, "query", "Query").get();
@@ -90,25 +89,35 @@ public class MappingModel {
           typesToIgnore.add(t);
         });
 
-    for (ObjectTypeDefinition type : registry.getTypes(ObjectTypeDefinition.class)) {
-      if (typesToIgnore.contains(type)) {
-        continue;
-      }
-      try {
-        if (isPayload(type)) {
-          responsePayloadsBuilder.put(
-              type.getName(), new ResponsePayloadModelBuilder(type, context).build());
-        } else {
-          entitiesBuilder.put(type.getName(), new EntityModelBuilder(type, context).build());
-        }
-      } catch (SkipException e) {
-        LOG.debug(
-            "Skipping type {} because it has mapping errors, "
-                + "this will be reported after the whole schema has been processed.",
-            type.getName());
-      }
-    }
+    // Parse objects in two passes: all entities first, then all payloads (because the latter
+    // reference the former).
+    ImmutableMap.Builder<String, EntityModel> entitiesBuilder = ImmutableMap.builder();
+    registry.getTypes(ObjectTypeDefinition.class).stream()
+        .filter(t -> !typesToIgnore.contains(t))
+        .filter(IS_RESPONSE_PAYLOAD.negate())
+        .forEach(
+            type -> {
+              try {
+                entitiesBuilder.put(type.getName(), new EntityModelBuilder(type, context).build());
+              } catch (SkipException e) {
+                LOG.debug(
+                    "Skipping type {} because it has mapping errors, "
+                        + "this will be reported after the whole schema has been processed.",
+                    type.getName());
+              }
+            });
     Map<String, EntityModel> entities = entitiesBuilder.build();
+
+    ImmutableMap.Builder<String, ResponsePayloadModel> responsePayloadsBuilder =
+        ImmutableMap.builder();
+    registry.getTypes(ObjectTypeDefinition.class).stream()
+        .filter(t -> !typesToIgnore.contains(t))
+        .filter(IS_RESPONSE_PAYLOAD)
+        .forEach(
+            type -> {
+              responsePayloadsBuilder.put(
+                  type.getName(), new ResponsePayloadModelBuilder(type, entities, context).build());
+            });
     Map<String, ResponsePayloadModel> responsePayloads = responsePayloadsBuilder.build();
 
     ImmutableList.Builder<OperationModel> operationsBuilder = ImmutableList.builder();
@@ -154,10 +163,6 @@ public class MappingModel {
           .build();
     }
     return new MappingModel(entities, responsePayloads, operationsBuilder.build());
-  }
-
-  private static boolean isPayload(ObjectTypeDefinition type) {
-    return DirectiveHelper.getDirective("cql_payload", type).isPresent();
   }
 
   private static Optional<ObjectTypeDefinition> getOperationType(
