@@ -99,6 +99,10 @@ public class GraphqlCache implements EventListener {
     return defaultKeyspace == null ? null : getDml(defaultKeyspace, Collections.emptyMap());
   }
 
+  public String getDefaultKeyspaceName() {
+    return defaultKeyspace;
+  }
+
   /** Populate a default keyspace to allow for omitting the keyspace from the path of requests. */
   private static String findDefaultKeyspace(DataStore dataStore) {
     if (DISABLE_DEFAULT_KEYSPACE) return null;
