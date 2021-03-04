@@ -234,7 +234,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             data,
             400);
     assertThat(resp)
-        .isEqualTo("Unknown namespace unknown_keyspace_1337, you must create it first.");
+        .isEqualTo(
+            "{\"description\":\"Bad request: Unknown namespace unknown_keyspace_1337, you must create it first.\",\"code\":400}");
 
     resp =
         RestUtils.put(
@@ -244,7 +245,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(resp)
         .isEqualTo(
-            "Could not create collection invalid-character, it has invalid characters. Valid characters are alphanumeric and underscores.");
+            "{\"description\":\"Bad request: Could not create collection invalid-character, it has invalid characters. Valid characters are alphanumeric and underscores..\",\"code\":400}");
   }
 
   @Test
@@ -259,7 +260,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(resp)
         .isEqualTo(
-            "The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field square[]braces");
+            "{\"description\":\"Bad request: The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field square[]braces\",\"code\":400}");
 
     obj = objectMapper.readTree("{ \"commas,\": \"are not allowed\" }");
     resp =
@@ -270,7 +271,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(resp)
         .isEqualTo(
-            "The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field commas,");
+            "{\"description\":\"Bad request: The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field commas,\",\"code\":400}");
 
     obj = objectMapper.readTree("{ \"periods.\": \"are not allowed\" }");
     resp =
@@ -281,7 +282,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(resp)
         .isEqualTo(
-            "The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field periods.");
+            "{\"description\":\"Bad request: The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field periods.\",\"code\":400}");
 
     obj = objectMapper.readTree("{ \"'quotes'\": \"are not allowed\" }");
     resp =
@@ -292,7 +293,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(resp)
         .isEqualTo(
-            "The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field 'quotes'");
+            "{\"description\":\"Bad request: The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field 'quotes'\",\"code\":400}");
 
     obj = objectMapper.readTree("{ \"*asterisks*\": \"are not allowed\" }");
     resp =
@@ -303,7 +304,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(resp)
         .isEqualTo(
-            "The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field *asterisks*");
+            "{\"description\":\"Bad request: The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field *asterisks*\",\"code\":400}");
   }
 
   @Test
@@ -461,7 +462,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
             obj.toString(),
             400);
-    assertThat(resp).isEqualTo("Max depth of 64 exceeded");
+    assertThat(resp)
+        .isEqualTo("{\"description\":\"Bad request: Max depth of 64 exceeded\",\"code\":400}");
 
     obj = objectMapper.readTree("{ \"some\": \"json\" }");
     resp =
@@ -470,7 +472,9 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/[1000000]",
             obj.toString(),
             400);
-    assertThat(resp).isEqualTo("Max array length of 1000000 exceeded.");
+    assertThat(resp)
+        .isEqualTo(
+            "{\"description\":\"Bad request: Max array length of 1000000 exceeded.\",\"code\":400}");
   }
 
   @Test
@@ -855,7 +859,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3\nHint: update the parent path with a defined object instead.");
+            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3\\nHint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = objectMapper.readTree("true");
     r =
@@ -1277,7 +1281,9 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
             obj.toString(),
             400);
-    assertThat(r).isEqualTo("A patch operation must be done with a JSON object, not an array.");
+    assertThat(r)
+        .isEqualTo(
+            "{\"description\":\"Bad request: A patch operation must be done with a JSON object, not an array.\",\"code\":400}");
 
     // For patching, you must use an object, so arrays even patched to sub-paths are not allowed.
     r =
@@ -1872,7 +1878,9 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + keyspace
                 + "/collections/collection/cool-search-id?where=[\"a\"]}",
             400);
-    assertThat(r).isEqualTo("Search was expecting a JSON object as input.");
+    assertThat(r)
+        .isEqualTo(
+            "{\"description\":\"Bad request: Search was expecting a JSON object as input.\",\"code\":400}");
 
     r =
         RestUtils.get(
@@ -2660,7 +2668,9 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection?page-size=21",
             400);
-    assertThat(r).isEqualTo("The parameter `page-size` is limited to 20.");
+    assertThat(r)
+        .isEqualTo(
+            "{\"description\":\"Bad request: The parameter `page-size` is limited to 20.\",\"code\":400}");
   }
 
   @Test
@@ -2683,7 +2693,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "The results as requested must fit in one page, try increasing the `page-size` parameter.");
+            "{\"description\":\"Bad request: The results as requested must fit in one page, try increasing the `page-size` parameter.\",\"code\":400}");
   }
 
   // Below are "namespace" tests that should match the REST Api's keyspace tests
