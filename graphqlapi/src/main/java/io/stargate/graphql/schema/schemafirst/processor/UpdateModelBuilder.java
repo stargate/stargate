@@ -17,17 +17,14 @@ package io.stargate.graphql.schema.schemafirst.processor;
 
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
-import graphql.language.Type;
-import graphql.language.TypeName;
-import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
+import io.stargate.graphql.schema.schemafirst.processor.OperationModel.ReturnType;
+import io.stargate.graphql.schema.schemafirst.processor.OperationModel.SimpleReturnType;
 import java.util.List;
 import java.util.Map;
 
 class UpdateModelBuilder extends MutationModelBuilder {
 
-  private final FieldDefinition mutation;
   private final String parentTypeName;
-  private final Map<String, EntityModel> entities;
 
   UpdateModelBuilder(
       FieldDefinition mutation,
@@ -35,10 +32,8 @@ class UpdateModelBuilder extends MutationModelBuilder {
       Map<String, EntityModel> entities,
       Map<String, ResponsePayloadModel> responsePayloads,
       ProcessingContext context) {
-    super(context, mutation.getSourceLocation());
-    this.mutation = mutation;
+    super(mutation, entities, responsePayloads, context);
     this.parentTypeName = parentTypeName;
-    this.entities = entities;
   }
 
   @Override
@@ -49,37 +44,27 @@ class UpdateModelBuilder extends MutationModelBuilder {
     // We could also take the PK fields directly (need a way to specify the entity), partial PKs for
     // multi-row deletions, additional IF conditions, etc.
 
-    Type<?> returnType = TypeHelper.unwrapNonNull(mutation.getType());
-    if (!(returnType instanceof TypeName) || !"Boolean".equals(((TypeName) returnType).getName())) {
-      context.addError(
-          returnType.getSourceLocation(),
-          ProcessingErrorType.InvalidMapping,
-          "Mutation %s: updates can only return Boolean",
-          mutation.getName());
+    ReturnType returnType = getReturnType("Mutation " + operationName);
+    if (returnType != SimpleReturnType.BOOLEAN) {
+      invalidMapping("Mutation %s: updates can only return Boolean", operationName);
       throw SkipException.INSTANCE;
     }
 
-    List<InputValueDefinition> inputs = mutation.getInputValueDefinitions();
+    List<InputValueDefinition> inputs = operation.getInputValueDefinitions();
     if (inputs.isEmpty()) {
-      context.addError(
-          mutation.getSourceLocation(),
-          ProcessingErrorType.InvalidMapping,
+      invalidMapping(
           "Mutation %s: updates must take the entity input type as the first argument",
-          mutation.getName());
+          operationName);
       throw SkipException.INSTANCE;
     }
 
     if (inputs.size() > 1) {
-      context.addError(
-          mutation.getSourceLocation(),
-          ProcessingErrorType.InvalidMapping,
-          "Mutation %s: updates can't have more than one argument",
-          mutation.getName());
+      invalidMapping("Mutation %s: updates can't have more than one argument", operationName);
       throw SkipException.INSTANCE;
     }
 
     InputValueDefinition input = inputs.get(0);
-    EntityModel entity = findEntity(input, entities, context, mutation.getName(), "update");
-    return new UpdateModel(parentTypeName, mutation, entity, input.getName());
+    EntityModel entity = findEntity(input, "update");
+    return new UpdateModel(parentTypeName, operation, entity, input.getName());
   }
 }
