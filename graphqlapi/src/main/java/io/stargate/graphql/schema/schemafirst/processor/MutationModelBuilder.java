@@ -15,38 +15,34 @@
  */
 package io.stargate.graphql.schema.schemafirst.processor;
 
+import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import graphql.language.ListType;
-import graphql.language.SourceLocation;
 import graphql.language.Type;
 import graphql.language.TypeName;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.util.Map;
 import java.util.Optional;
 
-abstract class MutationModelBuilder extends ModelBuilderBase<MutationModel> {
+abstract class MutationModelBuilder extends OperationModelBuilderBase<MutationModel> {
 
-  protected MutationModelBuilder(ProcessingContext context, SourceLocation location) {
-    super(context, location);
+  protected MutationModelBuilder(
+      FieldDefinition operation,
+      Map<String, EntityModel> entities,
+      Map<String, ResponsePayloadModel> responsePayloads,
+      ProcessingContext context) {
+    super(operation, entities, responsePayloads, context);
   }
 
-  protected static EntityModel findEntity(
-      InputValueDefinition input,
-      Map<String, EntityModel> entities,
-      ProcessingContext context,
-      String mutationName,
-      String mutationKind)
+  protected EntityModel findEntity(InputValueDefinition input, String mutationKind)
       throws SkipException {
 
     Type<?> type = TypeHelper.unwrapNonNull(input.getType());
 
     if (type instanceof ListType) {
-      context.addError(
-          input.getSourceLocation(),
-          ProcessingErrorType.InvalidMapping,
+      invalidMapping(
           "Mutation %s: unexpected list type, %ss expect a single entity",
-          mutationName,
-          mutationKind);
+          operationName, mutationKind);
       throw SkipException.INSTANCE;
     }
 
@@ -56,12 +52,9 @@ abstract class MutationModelBuilder extends ModelBuilderBase<MutationModel> {
             .filter(e -> e.getInputTypeName().map(name -> name.equals(inputTypeName)).orElse(false))
             .findFirst();
     if (!entity.isPresent()) {
-      context.addError(
-          input.getSourceLocation(),
-          ProcessingErrorType.InvalidMapping,
+      invalidMapping(
           "Mutation %s: unexpected type, %ss expect an input object that maps to a CQL entity",
-          mutationName,
-          mutationKind);
+          operationName, mutationKind);
       throw SkipException.INSTANCE;
     }
     return entity.get();

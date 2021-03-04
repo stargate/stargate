@@ -72,8 +72,7 @@ class QueryMappingModelTest {
                         true)))
         .isInstanceOf(GraphqlErrorException.class)
         .extracting(ex -> extractMappingErrors((GraphqlErrorException) ex))
-        .isEqualTo(
-            "Query getUser: expected the return type to be an object (or list of objects) that maps to an entity");
+        .isEqualTo("Query getUser: unsupported return type UserUnknown");
   }
 
   @Test
