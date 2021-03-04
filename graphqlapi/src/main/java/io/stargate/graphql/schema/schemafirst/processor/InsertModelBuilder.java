@@ -17,20 +17,14 @@ package io.stargate.graphql.schema.schemafirst.processor;
 
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
-import graphql.language.ListType;
-import graphql.language.Type;
-import graphql.language.TypeName;
-import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
+import io.stargate.graphql.schema.schemafirst.processor.OperationModel.ReturnType;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 class InsertModelBuilder extends MutationModelBuilder {
 
-  private final FieldDefinition mutation;
   private final String parentTypeName;
-  private final Map<String, EntityModel> entities;
-  private final Map<String, ResponsePayloadModel> responsePayloads;
 
   InsertModelBuilder(
       FieldDefinition mutation,
@@ -38,11 +32,8 @@ class InsertModelBuilder extends MutationModelBuilder {
       Map<String, EntityModel> entities,
       Map<String, ResponsePayloadModel> responsePayloads,
       ProcessingContext context) {
-    super(context, mutation.getSourceLocation());
-    this.mutation = mutation;
+    super(mutation, entities, responsePayloads, context);
     this.parentTypeName = parentTypeName;
-    this.entities = entities;
-    this.responsePayloads = responsePayloads;
   }
 
   @Override
@@ -51,69 +42,53 @@ class InsertModelBuilder extends MutationModelBuilder {
     boolean ifNotExists = computeIfNotExists();
 
     // Validate inputs: must be a single entity argument
-    List<InputValueDefinition> inputs = mutation.getInputValueDefinitions();
+    List<InputValueDefinition> inputs = operation.getInputValueDefinitions();
     if (inputs.isEmpty()) {
       invalidMapping(
           "Mutation %s: inserts must take the entity input type as the first argument",
-          mutation.getName());
+          operationName);
       throw SkipException.INSTANCE;
     }
     if (inputs.size() > 1) {
-      invalidMapping("Mutation %s: inserts can't have more than one argument", mutation.getName());
+      invalidMapping("Mutation %s: inserts can't have more than one argument", operationName);
       throw SkipException.INSTANCE;
     }
     InputValueDefinition input = inputs.get(0);
-    EntityModel entity = findEntity(input, entities, context, mutation.getName(), "insert");
+    EntityModel entity = findEntity(input, "insert");
 
     // Validate return type: must be the entity itself, or a wrapper payload
-    Type<?> returnType = TypeHelper.unwrapNonNull(mutation.getType());
-    if (returnType instanceof ListType) {
-      invalidMapping("Mutation %s: unexpected list type", mutation.getName());
-      throw SkipException.INSTANCE;
+    ReturnType returnType = getReturnType("Mutation " + operationName);
+    if (returnType.isEntityList()
+        || !returnType.getEntity().filter(e -> e.equals(entity)).isPresent()) {
+      invalidMapping(
+          "Mutation %s: invalid return type. Expected %s, or a response payload that wraps a "
+              + "single instance of it.",
+          operationName, entity.getGraphqlName());
     }
-    assert returnType instanceof TypeName;
-    String returnTypeName = ((TypeName) returnType).getName();
-    ResponsePayloadModel responsePayload = responsePayloads.get(returnTypeName);
 
-    if (responsePayload != null) {
-      if (responsePayload.getEntityField().isPresent()) {
-        ResponsePayloadModel.EntityField entityField = responsePayload.getEntityField().get();
-        if (entityField.isList() || !entityField.getEntity().equals(entity)) {
-          invalidMapping(
-              "Mutation %s: invalid return type. "
-                  + "Expected a payload that wraps a single instance of %s.",
-              mutation.getName(), entity.getGraphqlName());
-          throw SkipException.INSTANCE;
-        }
-      }
-    } else {
-      if (!returnTypeName.equals(entity.getGraphqlName())) {
-        invalidMapping(
-            "Mutation %s: invalid return type. Expected the same entity as the argument (%s), "
-                + "or a wrapper object.",
-            mutation.getName(), entity.getGraphqlName());
-        throw SkipException.INSTANCE;
-      }
-    }
+    Optional<ResponsePayloadModel> responsePayload =
+        Optional.of(returnType)
+            .filter(ResponsePayloadModel.class::isInstance)
+            .map(ResponsePayloadModel.class::cast);
 
     return new InsertModel(
-        parentTypeName, mutation, entity, input.getName(), responsePayload, ifNotExists);
+        parentTypeName, operation, entity, input.getName(), responsePayload, ifNotExists);
   }
 
   private Boolean computeIfNotExists() {
     // If the directive is set, it always takes precedence
     Optional<Boolean> fromDirective =
-        DirectiveHelper.getDirective("cql_insert", mutation)
+        DirectiveHelper.getDirective("cql_insert", operation)
             .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "ifNotExists", context));
     if (fromDirective.isPresent()) {
       return fromDirective.get();
     }
     // Otherwise, try the naming convention
-    if (mutation.getName().endsWith("IfNotExists")) {
+    if (operation.getName().endsWith("IfNotExists")) {
       info(
           "Mutation %s: setting the 'ifNotExists' flag implicitly "
               + "because the name follows the naming convention.",
-          mutation.getName());
+          operationName);
       return true;
     }
     return false;
