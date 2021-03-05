@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableMap;
 import graphql.GraphQLException;
 import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStore;
@@ -37,10 +36,9 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
   protected MutationFetcher(
       Table table,
       NameMapping nameMapping,
-      AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(table, nameMapping, authenticationService, authorizationService, dataStoreFactory);
+    super(table, nameMapping, authorizationService, dataStoreFactory);
   }
 
   @Override
