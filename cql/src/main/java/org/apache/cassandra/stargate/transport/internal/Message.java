@@ -465,13 +465,13 @@ public abstract class Message {
     private static class FlushItem {
       final ChannelHandlerContext ctx;
       final Object response;
-      final Frame sourceFrame;
+      final long bodySizeInBytes;
       final Dispatcher dispatcher;
 
       private FlushItem(
-          ChannelHandlerContext ctx, Object response, Frame sourceFrame, Dispatcher dispatcher) {
+          ChannelHandlerContext ctx, Object response, long bodySizeInBytes, Dispatcher dispatcher) {
         this.ctx = ctx;
-        this.sourceFrame = sourceFrame;
+        this.bodySizeInBytes = bodySizeInBytes;
         this.response = response;
         this.dispatcher = dispatcher;
       }
@@ -624,7 +624,7 @@ public abstract class Message {
           throw ErrorMessage.wrap(
               new OverloadedException(
                   "Server is in overloaded state. Cannot accept more requests at this point"),
-              request.getSourceFrame().header.streamId);
+              request.getStreamId());
         } else {
           // set backpressure on the channel, and handle the request
           endpointAndGlobalPayloadsInFlight.allocate(frameSize);
@@ -644,8 +644,7 @@ public abstract class Message {
      * of variables of being on the event loop.
      */
     private void releaseItem(FlushItem item) {
-      long itemSize = item.sourceFrame.header.bodySizeInBytes;
-      item.sourceFrame.release();
+      long itemSize = item.bodySizeInBytes;
 
       // since the request has been processed, decrement inflight payload at channel, endpoint and
       // global levels
@@ -695,17 +694,18 @@ public abstract class Message {
                   connection.applyStateTransition(request.type, response.type);
 
                   logger.trace("Responding: {}, v={}", response, connection.getVersion());
-                  flush(new FlushItem(ctx, response, request.getSourceFrame(), this));
+                  flush(
+                      new FlushItem(
+                          ctx, response, request.getSourceFrame().header.bodySizeInBytes, this));
                 } catch (Throwable t) {
-                  request
-                      .getSourceFrame()
-                      .release(); // ok to release since flush was the last call and does not throw
                   // after adding the item to the queue
                   // JVMStabilityInspector.inspectThrowable(t); // TODO
                   logger.error(
                       "Failed to reply, got another error whilst writing reply: {}",
                       t.getMessage(),
                       t);
+                } finally {
+                  request.getSourceFrame().release();
                 }
               }
             });
@@ -732,7 +732,7 @@ public abstract class Message {
             new Message.Dispatcher.FlushItem(
                 ctx,
                 ErrorMessage.fromException(error, handler).setStreamId(request.getStreamId()),
-                request.getSourceFrame(),
+                request.getSourceFrame().header.bodySizeInBytes,
                 this));
       } catch (Throwable t) {
         request
@@ -746,6 +746,7 @@ public abstract class Message {
             t.getMessage(),
             t);
       } finally {
+        request.getSourceFrame().release();
         ClientWarn.instance.resetWarnings();
       }
     }

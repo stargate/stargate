@@ -28,8 +28,8 @@ import io.netty.util.Attribute;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
-import org.apache.cassandra.metrics.ClientRequestSizeMetrics;
 import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
+import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.frame.FrameBodyTransformer;
@@ -207,8 +207,8 @@ public class Frame {
 
       if (buffer.readableBytes() < frameLength) return null;
 
-      ClientRequestSizeMetrics.totalBytesRead.inc(frameLength);
-      ClientRequestSizeMetrics.bytesRecievedPerFrame.update(frameLength);
+      ClientMetrics.instance.getTotalBytesRead().inc(frameLength);
+      ClientMetrics.instance.getBytesReceivedPerFrame().update(frameLength);
 
       // extract body
       ByteBuf body = buffer.slice(idx, bodyLength);
@@ -287,8 +287,8 @@ public class Frame {
       header.writeInt(frame.body.readableBytes());
 
       int messageSize = header.readableBytes() + frame.body.readableBytes();
-      ClientRequestSizeMetrics.totalBytesWritten.inc(messageSize);
-      ClientRequestSizeMetrics.bytesTransmittedPerFrame.update(messageSize);
+      ClientMetrics.instance.getTotalBytesWritten().inc(messageSize);
+      ClientMetrics.instance.getBytesTransmittedPerFrame().update(messageSize);
 
       results.add(header);
       results.add(frame.body);
