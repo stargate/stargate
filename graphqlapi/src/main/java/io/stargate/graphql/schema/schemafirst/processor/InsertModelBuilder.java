@@ -75,7 +75,7 @@ class InsertModelBuilder extends MutationModelBuilder {
         parentTypeName, operation, entity, input.getName(), responsePayload, ifNotExists);
   }
 
-  private Boolean computeIfNotExists() {
+  private boolean computeIfNotExists() {
     // If the directive is set, it always takes precedence
     Optional<Boolean> fromDirective =
         DirectiveHelper.getDirective("cql_insert", operation)
