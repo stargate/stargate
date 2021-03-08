@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.schemafirst.fetchers.dynamic;
 
+import com.google.common.collect.ImmutableMap;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
@@ -24,6 +25,7 @@ import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
+import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundDelete;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.AbstractBound;
@@ -33,12 +35,17 @@ import io.stargate.graphql.schema.schemafirst.processor.DeleteModel;
 import io.stargate.graphql.schema.schemafirst.processor.EntityModel;
 import io.stargate.graphql.schema.schemafirst.processor.FieldModel;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.OperationModel.ReturnType;
+import io.stargate.graphql.schema.schemafirst.processor.OperationModel.SimpleReturnType;
+import io.stargate.graphql.schema.schemafirst.processor.ResponsePayloadModel;
+import io.stargate.graphql.schema.schemafirst.processor.ResponsePayloadModel.TechnicalField;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
-public class DeleteFetcher extends DynamicFetcher<Boolean> {
+public class DeleteFetcher extends DynamicFetcher<Object> {
 
   private final DeleteModel model;
 
@@ -52,7 +59,7 @@ public class DeleteFetcher extends DynamicFetcher<Boolean> {
   }
 
   @Override
-  protected Boolean get(
+  protected Object get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)
@@ -82,6 +89,7 @@ public class DeleteFetcher extends DynamicFetcher<Boolean> {
             .delete()
             .from(entityModel.getKeyspaceName(), entityModel.getCqlName())
             .where(conditions)
+            .ifExists(model.ifExists())
             .build()
             .bind();
 
@@ -93,8 +101,19 @@ public class DeleteFetcher extends DynamicFetcher<Boolean> {
         Scope.DELETE,
         SourceAPI.GRAPHQL);
 
-    executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
+    ResultSet resultSet = executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
+    boolean applied = !model.ifExists() || resultSet.one().getBoolean("[applied]");
 
-    return true;
+    ReturnType returnType = model.getReturnType();
+    if (returnType == SimpleReturnType.BOOLEAN) {
+      return applied;
+    } else {
+      ResponsePayloadModel payload = (ResponsePayloadModel) returnType;
+      if (payload.getTechnicalFields().contains(TechnicalField.APPLIED)) {
+        return ImmutableMap.of(TechnicalField.APPLIED.getGraphqlName(), applied);
+      } else {
+        return Collections.emptyMap();
+      }
+    }
   }
 }
