@@ -29,8 +29,10 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -177,14 +179,32 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
     private final AtomicBoolean removed = new AtomicBoolean();
 
     public CcmCluster(ClusterSpec spec, ExtensionContext context) {
+      this(spec, Collections.emptyMap(), Collections.emptyMap(), context);
+    }
+
+    public CcmCluster(
+        ClusterSpec spec,
+        Map<String, Object> cassandraConfig,
+        Map<String, Object> dseConfig,
+        ExtensionContext context) {
       super(spec);
       this.initSite = context.getUniqueId();
       int numNodes = spec.nodes();
-      this.ccm =
+
+      CcmBridge.Builder builder =
           CcmBridge.builder()
               .withCassandraConfiguration("cluster_name", CLUSTER_NAME)
-              .withNodes(numNodes)
-              .build();
+              .withNodes(numNodes);
+
+      for (Entry<String, Object> e : cassandraConfig.entrySet()) {
+        builder = builder.withCassandraConfiguration(e.getKey(), e.getValue());
+      }
+
+      for (Entry<String, Object> e : dseConfig.entrySet()) {
+        builder = builder.withDseConfiguration(e.getKey(), e.getValue());
+      }
+
+      this.ccm = builder.build();
 
       Builder<StorageNode> nodes = ImmutableList.builder();
       for (int i = 0; i < numNodes; i++) {
