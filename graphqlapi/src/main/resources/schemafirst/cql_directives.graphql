@@ -99,11 +99,15 @@ Note that this is not required if the mutation name starts with `insert` or `cre
 """
 directive @cql_insert(
     """
-    What to do if the entity already exists. If `false`, the insert will overwrite any data that
-    was already present. If `true`, it won't, and the mutation will return the existing entity.
-    In the latter case, it is strongly recommended to wrap the response in a payload object that
-    also defines an `applied` field, for example:
-    `type InsertUserResponse @cql_payload { applied: Boolean!, user: User! }`
+    What to do if the entity already exists.
+
+    * If `false`, the insert will overwrite any data that was already present.
+    * If `true`, it won't, and the mutation will return the existing entity. In this case, it is
+      strongly recommended to wrap the response in a payload object that also defines an `applied`
+      field, for example: `type InsertUserResponse @cql_payload { applied: Boolean!, user: User! }`
+
+    Note that setting this flag to `true` might increase the latency of the operation. It should
+    not be used casually.
 
     By convention, this flag will be set automatically if the mutation name ends with
     `IfNotExists`.
@@ -121,7 +125,25 @@ directive @cql_update on FIELD_DEFINITION
 Indicates that a mutation should be mapped to a CQL DELETE query.
 Note that this is not required if the mutation name starts with `delete` or `remove`.
 """
-directive @cql_delete on FIELD_DEFINITION
+directive @cql_delete(
+    """
+    Whether to check if the entity exists before deleting.
+
+    Delete mutations return the outcome of the deletion, either directly if the mutation returns
+    `Boolean`, or via the `applied` field if the mutation returns a response payload object.
+
+    * If `ifExists` is `false`, the mutation will always return `true`, whether it actually deleted
+      something or not.
+    * If `ifExists` is `true`, the mutation will return `true` if it deleted something, and `false`
+      otherwise.
+
+    Note that setting this flag to `true` might increase the latency of the operation. It should
+    not be used casually.
+
+    By convention, this flag will be set automatically if the mutation name ends with `IfExists`.
+    """
+    ifExists: Boolean = false
+) on FIELD_DEFINITION
 
 """
 Indicates that a type represents a "payload" object that will be used as the argument or return

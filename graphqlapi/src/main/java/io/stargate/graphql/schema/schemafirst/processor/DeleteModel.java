@@ -25,12 +25,21 @@ public class DeleteModel extends MutationModel {
 
   private final EntityModel entity;
   private final String entityArgumentName;
+  private final ReturnType returnType;
+  private final boolean ifExists;
 
   DeleteModel(
-      String parentTypeName, FieldDefinition field, EntityModel entity, String entityArgumentName) {
+      String parentTypeName,
+      FieldDefinition field,
+      EntityModel entity,
+      String entityArgumentName,
+      ReturnType returnType,
+      boolean ifExists) {
     super(parentTypeName, field);
     this.entity = entity;
     this.entityArgumentName = entityArgumentName;
+    this.returnType = returnType;
+    this.ifExists = ifExists;
   }
 
   public EntityModel getEntity() {
@@ -39,6 +48,14 @@ public class DeleteModel extends MutationModel {
 
   public String getEntityArgumentName() {
     return entityArgumentName;
+  }
+
+  public ReturnType getReturnType() {
+    return returnType;
+  }
+
+  public boolean ifExists() {
+    return ifExists;
   }
 
   @Override
