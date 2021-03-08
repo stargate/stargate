@@ -245,7 +245,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"Bad request: Could not create collection invalid-character, it has invalid characters. Valid characters are alphanumeric and underscores..\",\"code\":400}");
+            "{\"description\":\"Bad request: Could not create collection invalid-character, it has invalid characters. Valid characters are alphanumeric and underscores.\",\"code\":400}");
   }
 
   @Test
@@ -859,7 +859,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3\\nHint: update the parent path with a defined object instead.\",\"code\":400}");
+            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3\nHint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = objectMapper.readTree("true");
     r =
@@ -870,7 +870,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: true\nHint: update the parent path with a defined object instead.");
+            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: true\nHint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = objectMapper.readTree("null");
     r =
@@ -881,7 +881,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: null\nHint: update the parent path with a defined object instead.");
+            "{\"description\":\"Bad Request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: null\nHint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = objectMapper.readTree("\"Eric\"");
     r =
@@ -892,7 +892,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: \"Eric\"\nHint: update the parent path with a defined object instead.");
+            "{\"description\":\"Bad Request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: \"Eric\"\nHint: update the parent path with a defined object instead.\",\"code\":400}");
   }
 
   @Test
@@ -1292,7 +1292,9 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport/q1",
             obj.toString(),
             400);
-    assertThat(r).isEqualTo("A patch operation must be done with a JSON object, not an array.");
+    assertThat(r)
+        .isEqualTo(
+            "{\"description\":\"Bad request: A patch operation must be done with a JSON object, not an array.\",\"code\":400}");
 
     obj = objectMapper.readTree("3");
     r =
@@ -1303,7 +1305,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3\nHint: update the parent path with a defined object instead.");
+            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3\nHint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = objectMapper.readTree("true");
     r =
@@ -1314,7 +1316,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: true\nHint: update the parent path with a defined object instead.");
+            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: true\nHint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = objectMapper.readTree("null");
     r =
@@ -1325,7 +1327,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: null\nHint: update the parent path with a defined object instead.");
+            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: null\nHint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = objectMapper.readTree("\"Eric\"");
     r =
@@ -1336,7 +1338,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: \"Eric\"\nHint: update the parent path with a defined object instead.");
+            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: \"Eric\"\nHint: update the parent path with a defined object instead.\",\"code\":400}");
   }
 
   @Test
@@ -1890,7 +1892,9 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": true}}",
             400);
-    assertThat(r).isEqualTo("Search entry for field a was expecting a JSON object as input.");
+    assertThat(r)
+        .isEqualTo(
+            "{\"description\":\"Bad request: Search entry for field a was expecting a JSON object as input.\",\"code\":400}");
 
     r =
         RestUtils.get(
@@ -1900,7 +1904,9 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$exists\": false}}}",
             400);
-    assertThat(r).isEqualTo("$exists only supports the value `true`");
+    assertThat(r)
+        .isEqualTo(
+            "{\"description\":\"Bad request: $exists only supports the value `true`\",\"code\":400}");
 
     r =
         RestUtils.get(
@@ -1910,7 +1916,9 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": {\"exists\": true}}}",
             400);
-    assertThat(r).startsWith("Invalid operator: exists, valid operators are:");
+    assertThat(r)
+        .startsWith(
+            "{\"description\":\"Bad request: Invalid operator: exists, valid operators are:");
 
     r =
         RestUtils.get(
@@ -1921,7 +1929,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": null}}}",
             400);
     assertThat(r)
-        .isEqualTo("Value entry for field a, operation $eq was expecting a non-null value");
+        .isEqualTo(
+            "{\"description\":\"Bad request: Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
 
     r =
         RestUtils.get(
@@ -1932,7 +1941,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": {}}}}",
             400);
     assertThat(r)
-        .isEqualTo("Value entry for field a, operation $eq was expecting a non-null value");
+        .isEqualTo(
+            "{\"description\":\"Bad request: Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
 
     r =
         RestUtils.get(
@@ -1943,7 +1953,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": []}}}",
             400);
     assertThat(r)
-        .isEqualTo("Value entry for field a, operation $eq was expecting a non-null value");
+        .isEqualTo(
+            "{\"description\":\"Bad request: Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
 
     r =
         RestUtils.get(
@@ -1953,7 +1964,9 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$in\": 2}}}",
             400);
-    assertThat(r).isEqualTo("Value entry for field a, operation $in was expecting an array");
+    assertThat(r)
+        .isEqualTo(
+            "{\"description\":\"Bad request: Value entry for field a, operation $in was expecting an array\",\"code\":400}");
 
     r =
         RestUtils.get(
@@ -1963,7 +1976,9 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": 300}, \"b\": {\"$lt\": 500}}",
             400);
-    assertThat(r).contains("Conditions across multiple fields are not yet supported");
+    assertThat(r)
+        .contains(
+            "{\"description\":\"Bad request: Conditions across multiple fields are not yet supported");
 
     r =
         RestUtils.get(
@@ -1975,7 +1990,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .contains(
-            "When selecting `fields`, the field referenced by `where` must be in the selection.");
+            "{\"description\":\"Bad request: When selecting `fields`, the field referenced by `where` must be in the selection.\",\"code\":400}");
 
     r =
         RestUtils.get(
@@ -1985,7 +2000,9 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + keyspace
                 + "/collections/collection/cool-search-id?fields=[\"b\"]",
             400);
-    assertThat(r).contains("Selecting fields is not allowed without `where`");
+    assertThat(r)
+        .contains(
+            "{\"description\":\"Bad request: Selecting fields is not allowed without `where`\",\"code\":400}");
   }
 
   @Test
