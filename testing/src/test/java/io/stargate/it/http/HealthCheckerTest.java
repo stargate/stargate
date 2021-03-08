@@ -39,7 +39,13 @@ public class HealthCheckerTest extends BaseOsgiIntegrationTest {
   }
 
   @ParameterizedTest
-  @CsvSource({",", "?check=deadlocks", "?check=graphql", "?check=deadlocks&check=graphql"})
+  @CsvSource({
+    ",",
+    "?check=deadlocks",
+    "?check=graphql",
+    "?check=deadlocks&check=graphql",
+    "?check=datastore"
+  })
   public void readiness(String query) throws IOException {
     query = query == null ? "" : query;
     String body =
