@@ -16,16 +16,16 @@
 package io.stargate.graphql.web.resources.cqlfirst;
 
 import graphql.GraphQL;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.graphql.web.RequestToHeadersMapper;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
+import io.stargate.graphql.web.resources.Authenticated;
+import io.stargate.graphql.web.resources.AuthenticationFilter;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import java.util.Collections;
-import java.util.Map;
 import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -47,13 +47,13 @@ import org.slf4j.LoggerFactory;
 
 @Path("/graphql")
 @Singleton
+@Authenticated
 public class GraphqlDmlResource extends GraphqlResourceBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(GraphqlDmlResource.class);
   private static final Pattern KEYSPACE_NAME_PATTERN = Pattern.compile("\\w+");
 
   @Inject private GraphqlCache graphqlCache;
-  @Inject private AuthenticationService authenticationService;
   @Inject private AuthorizationService authorizationService;
 
   @GET
@@ -62,10 +62,9 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       @QueryParam("operationName") String operationName,
       @QueryParam("variables") String variables,
       @Context HttpServletRequest httpRequest,
-      @HeaderParam("X-Cassandra-Token") String token,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getDefaultGraphql(asyncResponse, httpRequest, token);
+    GraphQL graphql = getDefaultGraphql(httpRequest, asyncResponse);
     if (graphql != null) {
       get(query, operationName, variables, graphql, httpRequest, asyncResponse);
     }
@@ -79,10 +78,9 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       @QueryParam("operationName") String operationName,
       @QueryParam("variables") String variables,
       @Context HttpServletRequest httpRequest,
-      @HeaderParam("X-Cassandra-Token") String token,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphl(keyspaceName, asyncResponse, httpRequest, token);
+    GraphQL graphql = getGraphl(keyspaceName, httpRequest, asyncResponse);
     if (graphql != null) {
       get(query, operationName, variables, graphql, httpRequest, asyncResponse);
     }
@@ -94,10 +92,9 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       GraphqlJsonBody jsonBody,
       @QueryParam("query") String queryFromUrl,
       @Context HttpServletRequest httpRequest,
-      @HeaderParam("X-Cassandra-Token") String token,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getDefaultGraphql(asyncResponse, httpRequest, token);
+    GraphQL graphql = getDefaultGraphql(httpRequest, asyncResponse);
     if (graphql != null) {
       postJson(jsonBody, queryFromUrl, graphql, httpRequest, asyncResponse);
     }
@@ -111,10 +108,9 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       GraphqlJsonBody jsonBody,
       @QueryParam("query") String queryFromUrl,
       @Context HttpServletRequest httpRequest,
-      @HeaderParam("X-Cassandra-Token") String token,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphl(keyspaceName, asyncResponse, httpRequest, token);
+    GraphQL graphql = getGraphl(keyspaceName, httpRequest, asyncResponse);
     if (graphql != null) {
       postJson(jsonBody, queryFromUrl, graphql, httpRequest, asyncResponse);
     }
@@ -128,7 +124,7 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       @HeaderParam("X-Cassandra-Token") String token,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getDefaultGraphql(asyncResponse, httpRequest, token);
+    GraphQL graphql = getDefaultGraphql(httpRequest, asyncResponse);
     if (graphql != null) {
       postGraphql(query, graphql, httpRequest, asyncResponse);
     }
@@ -144,29 +140,28 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       @HeaderParam("X-Cassandra-Token") String token,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphl(keyspaceName, asyncResponse, httpRequest, token);
+    GraphQL graphql = getGraphl(keyspaceName, httpRequest, asyncResponse);
     if (graphql != null) {
       postGraphql(query, graphql, httpRequest, asyncResponse);
     }
   }
 
-  private GraphQL getDefaultGraphql(
-      AsyncResponse asyncResponse, HttpServletRequest request, String token) {
+  private GraphQL getDefaultGraphql(HttpServletRequest httpRequest, AsyncResponse asyncResponse) {
     GraphQL graphql = graphqlCache.getDefaultDml();
     if (graphql == null) {
       replyWithGraphqlError(Status.NOT_FOUND, "No default keyspace defined", asyncResponse);
       return null;
     } else {
-      Map<String, String> headers = RequestToHeadersMapper.getAllHeaders(request);
-      if (!isAuthorized(token, graphqlCache.getDefaultKeyspaceName(), headers)) {
+      if (!isAuthorized(httpRequest, graphqlCache.getDefaultKeyspaceName())) {
         replyWithGraphqlError(Status.UNAUTHORIZED, "Not authorized", asyncResponse);
+        return null;
       }
       return graphql;
     }
   }
 
   private GraphQL getGraphl(
-      String keyspaceName, AsyncResponse asyncResponse, HttpServletRequest request, String token) {
+      String keyspaceName, HttpServletRequest httpRequest, AsyncResponse asyncResponse) {
     if (!KEYSPACE_NAME_PATTERN.matcher(keyspaceName).matches()) {
       LOG.warn("Invalid keyspace in URI, this could be an XSS attack: {}", keyspaceName);
       // Do not reflect back the value
@@ -174,12 +169,13 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       return null;
     }
 
-    Map<String, String> headers = RequestToHeadersMapper.getAllHeaders(request);
-    if (!isAuthorized(token, keyspaceName, headers)) {
+    if (!isAuthorized(httpRequest, keyspaceName)) {
       replyWithGraphqlError(Status.UNAUTHORIZED, "Not authorized", asyncResponse);
+      return null;
     }
 
-    GraphQL graphql = graphqlCache.getDml(keyspaceName, headers);
+    GraphQL graphql =
+        graphqlCache.getDml(keyspaceName, RequestToHeadersMapper.getAllHeaders(httpRequest));
     if (graphql == null) {
       replyWithGraphqlError(
           Status.NOT_FOUND, String.format("Unknown keyspace '%s'", keyspaceName), asyncResponse);
@@ -189,12 +185,12 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
     }
   }
 
-  private boolean isAuthorized(String token, String keyspaceName, Map<String, String> headers) {
+  private boolean isAuthorized(HttpServletRequest httpRequest, String keyspaceName) {
+    AuthenticationSubject subject =
+        (AuthenticationSubject) httpRequest.getAttribute(AuthenticationFilter.SUBJECT_KEY);
     try {
-      AuthenticationSubject authenticationSubject =
-          authenticationService.validateToken(token, headers);
       authorizationService.authorizeSchemaRead(
-          authenticationSubject,
+          subject,
           Collections.singletonList(keyspaceName),
           Collections.emptyList(),
           SourceAPI.GRAPHQL);

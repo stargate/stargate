@@ -3,7 +3,6 @@ package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 import static com.datastax.oss.driver.shaded.guava.common.base.Preconditions.checkNotNull;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -18,11 +17,8 @@ public abstract class IndexFetcher extends DdlQueryFetcher {
   protected final Scope scope;
 
   protected IndexFetcher(
-      AuthenticationService authenticationService,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory,
-      Scope scope) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory, Scope scope) {
+    super(authorizationService, dataStoreFactory);
 
     checkNotNull(scope, "No Scope provided");
     this.scope = scope;
