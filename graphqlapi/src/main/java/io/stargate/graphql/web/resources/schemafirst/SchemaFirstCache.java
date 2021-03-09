@@ -41,7 +41,6 @@ public class SchemaFirstCache {
   private static final Logger LOG = LoggerFactory.getLogger(SchemaFirstCache.class);
 
   private final Persistence persistence;
-  private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
   private final SchemaSourceDao schemaSourceDao;
@@ -56,7 +55,6 @@ public class SchemaFirstCache {
       DataStoreFactory dataStoreFactory,
       SchemaSourceDao schemaSourceDao) {
     this.persistence = persistence;
-    this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
     this.schemaSourceDao = schemaSourceDao;
@@ -162,7 +160,7 @@ public class SchemaFirstCache {
 
     private GraphQL buildGraphql() {
       ProcessedSchema processedSchema =
-          new SchemaProcessor(authenticationService, authorizationService, dataStoreFactory, true)
+          new SchemaProcessor(authorizationService, dataStoreFactory, true)
               .process(source.getContents(), keyspace);
       // Check that the data model still matches
       CassandraMigrator.forPersisted().compute(processedSchema.getMappingModel(), keyspace);

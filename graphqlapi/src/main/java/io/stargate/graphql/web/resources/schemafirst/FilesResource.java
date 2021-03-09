@@ -27,6 +27,7 @@ import io.stargate.graphql.persistence.schemafirst.SchemaSource;
 import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
 import io.stargate.graphql.schema.scalars.CqlScalar;
 import io.stargate.graphql.web.RequestToHeadersMapper;
+import io.stargate.graphql.web.resources.Authenticated;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collections;
@@ -48,6 +49,7 @@ import javax.ws.rs.core.Response;
 
 @Singleton
 @Path(ResourcePaths.FILES)
+@Authenticated
 public class FilesResource {
 
   private final SchemaSourceDao schemaSourceDao;

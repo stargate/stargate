@@ -19,6 +19,7 @@ import graphql.GraphQL;
 import graphql.GraphqlErrorException;
 import io.stargate.graphql.web.RequestToHeadersMapper;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
+import io.stargate.graphql.web.resources.Authenticated;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import java.util.regex.Pattern;
 import javax.inject.Inject;
@@ -43,6 +44,7 @@ import org.slf4j.LoggerFactory;
 @Singleton
 @Path(ResourcePaths.NAMESPACES)
 @Produces(MediaType.APPLICATION_JSON)
+@Authenticated
 public class NamespaceResource extends GraphqlResourceBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(NamespaceResource.class);

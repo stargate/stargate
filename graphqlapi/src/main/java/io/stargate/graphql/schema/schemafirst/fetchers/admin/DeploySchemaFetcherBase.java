@@ -16,7 +16,6 @@
 package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -39,10 +38,8 @@ import java.util.UUID;
 abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResponseDto> {
 
   DeploySchemaFetcherBase(
-      AuthenticationService authenticationService,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
+    super(authorizationService, dataStoreFactory);
   }
 
   @Override
@@ -78,7 +75,7 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
     List<MigrationQuery> queries;
     try {
       ProcessedSchema processedSchema =
-          new SchemaProcessor(authenticationService, authorizationService, dataStoreFactory, false)
+          new SchemaProcessor(authorizationService, dataStoreFactory, false)
               .process(input, keyspace);
       response.setLogs(processedSchema.getLogs());
 

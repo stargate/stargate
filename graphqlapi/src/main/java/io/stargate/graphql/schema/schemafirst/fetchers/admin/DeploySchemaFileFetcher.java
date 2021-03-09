@@ -17,7 +17,6 @@ package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
 import com.google.common.io.CharStreams;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
 import java.io.IOException;
@@ -28,10 +27,8 @@ import java.nio.charset.StandardCharsets;
 public class DeploySchemaFileFetcher extends DeploySchemaFetcherBase {
 
   public DeploySchemaFileFetcher(
-      AuthenticationService authenticationService,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
+    super(authorizationService, dataStoreFactory);
   }
 
   @Override

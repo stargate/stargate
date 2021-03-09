@@ -23,7 +23,6 @@ import graphql.Scalars;
 import graphql.language.ListType;
 import graphql.language.Type;
 import graphql.schema.GraphQLScalarType;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
@@ -69,10 +68,9 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
   public DynamicFetcher(
       MappingModel mappingModel,
-      AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+    super(authorizationService, dataStoreFactory);
     this.mappingModel = mappingModel;
   }
 

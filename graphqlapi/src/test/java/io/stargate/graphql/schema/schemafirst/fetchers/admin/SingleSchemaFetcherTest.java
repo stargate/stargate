@@ -20,7 +20,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStore;
@@ -45,7 +44,6 @@ class SingleSchemaFetcherTest {
     when(schemaSourceDao.getByVersion(namespace, Optional.empty())).thenReturn(schemaSource);
     SingleSchemaFetcher singleSchemaFetcher =
         new SingleSchemaFetcher(
-            mock(AuthenticationService.class),
             mock(AuthorizationService.class),
             mock(DataStoreFactory.class),
             (ds) -> schemaSourceDao);
@@ -73,7 +71,6 @@ class SingleSchemaFetcherTest {
     when(schemaSourceDao.getByVersion(namespace, Optional.of(version))).thenReturn(schemaSource);
     SingleSchemaFetcher singleSchemaFetcher =
         new SingleSchemaFetcher(
-            mock(AuthenticationService.class),
             mock(AuthorizationService.class),
             mock(DataStoreFactory.class),
             (ds) -> schemaSourceDao);
