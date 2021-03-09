@@ -190,9 +190,7 @@ public class QueryOptions {
       if (!flags.isEmpty()) {
         int pageSize = flags.contains(QueryOptions.Codec.Flag.PAGE_SIZE) ? body.readInt() : -1;
         ByteBuffer pagingState =
-            flags.contains(QueryOptions.Codec.Flag.PAGING_STATE)
-                ? CBUtil.readValueNoCopy(body)
-                : null;
+            flags.contains(QueryOptions.Codec.Flag.PAGING_STATE) ? CBUtil.readValue(body) : null;
         ConsistencyLevel serialConsistency =
             flags.contains(QueryOptions.Codec.Flag.SERIAL_CONSISTENCY)
                 ? CBUtil.readConsistencyLevel(body)

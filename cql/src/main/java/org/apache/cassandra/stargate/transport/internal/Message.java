@@ -172,7 +172,7 @@ public abstract class Message {
   public final Type type;
   protected Connection connection;
   private int streamId;
-  private Frame sourceFrame;
+  private long sourceFrameBodySizeInBytes;
   private Map<String, ByteBuffer> customPayload;
   protected ProtocolVersion forcedProtocolVersion = null;
 
@@ -197,12 +197,12 @@ public abstract class Message {
     return streamId;
   }
 
-  public void setSourceFrame(Frame sourceFrame) {
-    this.sourceFrame = sourceFrame;
+  public void setSourceFrameBodySizeInBytes(long sourceFrameBodySizeInBytes) {
+    this.sourceFrameBodySizeInBytes = sourceFrameBodySizeInBytes;
   }
 
-  public Frame getSourceFrame() {
-    return sourceFrame;
+  public long getSourceFrameBodySizeInBytes() {
+    return sourceFrameBodySizeInBytes;
   }
 
   public Map<String, ByteBuffer> getCustomPayload() {
@@ -329,7 +329,7 @@ public abstract class Message {
 
         Message message = frame.header.type.codec.decode(frame.body, frame.header.version);
         message.setStreamId(frame.header.streamId);
-        message.setSourceFrame(frame);
+        message.setSourceFrameBodySizeInBytes(frame.header.bodySizeInBytes);
         message.setCustomPayload(customPayload);
 
         if (isRequest) {
@@ -362,9 +362,10 @@ public abstract class Message {
 
         results.add(message);
       } catch (Throwable ex) {
-        frame.release();
         // Remember the streamId
         throw ErrorMessage.wrap(ex, frame.header.streamId);
+      } finally {
+        frame.release();
       }
     }
   }
@@ -603,7 +604,7 @@ public abstract class Message {
      * <p>Note: this method should execute on the netty event loop.
      */
     private boolean shouldHandleRequest(ChannelHandlerContext ctx, Request request) {
-      long frameSize = request.getSourceFrame().header.bodySizeInBytes;
+      long frameSize = request.getSourceFrameBodySizeInBytes();
 
       ResourceLimits.EndpointAndGlobal endpointAndGlobalPayloadsInFlight =
           endpointPayloadTracker.endpointAndGlobalPayloadsInFlight;
@@ -695,8 +696,7 @@ public abstract class Message {
 
                   logger.trace("Responding: {}, v={}", response, connection.getVersion());
                   flush(
-                      new FlushItem(
-                          ctx, response, request.getSourceFrame().header.bodySizeInBytes, this));
+                      new FlushItem(ctx, response, request.getSourceFrameBodySizeInBytes(), this));
                 } catch (Throwable t) {
                   // after adding the item to the queue
                   // JVMStabilityInspector.inspectThrowable(t); // TODO
@@ -704,8 +704,6 @@ public abstract class Message {
                       "Failed to reply, got another error whilst writing reply: {}",
                       t.getMessage(),
                       t);
-                } finally {
-                  request.getSourceFrame().release();
                 }
               }
             });
@@ -732,12 +730,9 @@ public abstract class Message {
             new Message.Dispatcher.FlushItem(
                 ctx,
                 ErrorMessage.fromException(error, handler).setStreamId(request.getStreamId()),
-                request.getSourceFrame().header.bodySizeInBytes,
+                request.getSourceFrameBodySizeInBytes(),
                 this));
       } catch (Throwable t) {
-        request
-            .getSourceFrame()
-            .release(); // ok to release since flush was the last call and does not throw after
         // adding the item to the queue
         // JVMStabilityInspector.inspectThrowable(t); // TODO
         logger.error(
@@ -746,7 +741,6 @@ public abstract class Message {
             t.getMessage(),
             t);
       } finally {
-        request.getSourceFrame().release();
         ClientWarn.instance.resetWarnings();
       }
     }
