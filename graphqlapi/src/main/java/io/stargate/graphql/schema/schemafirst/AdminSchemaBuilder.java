@@ -559,36 +559,28 @@ public class AdminSchemaBuilder {
             newCodeRegistry()
                 .dataFetcher(
                     coordinates(QUERY, NAMESPACES_QUERY),
-                    new AllNamespacesFetcher(
-                        authenticationService, authorizationService, dataStoreFactory))
+                    new AllNamespacesFetcher(authorizationService, dataStoreFactory))
                 .dataFetcher(
                     coordinates(QUERY, NAMESPACE_QUERY),
-                    new SingleNamespaceFetcher(
-                        authenticationService, authorizationService, dataStoreFactory))
+                    new SingleNamespaceFetcher(authorizationService, dataStoreFactory))
                 .dataFetcher(
                     coordinates(QUERY, SCHEMA_QUERY),
-                    new SingleSchemaFetcher(
-                        authenticationService, authorizationService, dataStoreFactory))
+                    new SingleSchemaFetcher(authorizationService, dataStoreFactory))
                 .dataFetcher(
                     coordinates(QUERY, SCHEMA_HISTORY_PER_NAMESPACE_QUERY),
-                    new AllSchemasFetcher(
-                        authenticationService, authorizationService, dataStoreFactory))
+                    new AllSchemasFetcher(authorizationService, dataStoreFactory))
                 .dataFetcher(
                     coordinates(MUTATION, CREATE_NAMESPACE_MUTATION),
-                    new CreateNamespaceFetcher(
-                        authenticationService, authorizationService, dataStoreFactory))
+                    new CreateNamespaceFetcher(authorizationService, dataStoreFactory))
                 .dataFetcher(
                     coordinates(MUTATION, DROP_NAMESPACE_MUTATION),
-                    new DropNamespaceFetcher(
-                        authenticationService, authorizationService, dataStoreFactory))
+                    new DropNamespaceFetcher(authorizationService, dataStoreFactory))
                 .dataFetcher(
                     coordinates(MUTATION, DEPLOY_SCHEMA_MUTATION),
-                    new DeploySchemaFetcher(
-                        authenticationService, authorizationService, dataStoreFactory))
+                    new DeploySchemaFetcher(authorizationService, dataStoreFactory))
                 .dataFetcher(
                     coordinates(MUTATION, DEPLOY_SCHEMA_FILE_MUTATION),
-                    new DeploySchemaFileFetcher(
-                        authenticationService, authorizationService, dataStoreFactory))
+                    new DeploySchemaFileFetcher(authorizationService, dataStoreFactory))
                 .build())
         .build();
   }

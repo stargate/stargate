@@ -16,7 +16,6 @@
 package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStore;
@@ -27,10 +26,8 @@ import java.util.Map;
 public class SingleNamespaceFetcher extends NamespaceFetcher<Map<String, Object>> {
 
   public SingleNamespaceFetcher(
-      AuthenticationService authenticationService,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
+    super(authorizationService, dataStoreFactory);
   }
 
   @Override

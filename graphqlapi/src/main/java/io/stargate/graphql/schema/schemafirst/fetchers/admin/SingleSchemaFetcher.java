@@ -30,19 +30,16 @@ public class SingleSchemaFetcher extends SchemaFetcher<SchemaSource> {
   private final Function<DataStore, SchemaSourceDao> schemaSourceDaoProvider;
 
   public SingleSchemaFetcher(
-      AuthenticationService authenticationService,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    this(authenticationService, authorizationService, dataStoreFactory, SchemaSourceDao::new);
+      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
+    this(authorizationService, dataStoreFactory, SchemaSourceDao::new);
   }
 
   @VisibleForTesting
   public SingleSchemaFetcher(
-      AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory,
       Function<DataStore, SchemaSourceDao> schemaSourceDaoProvider) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+    super(authorizationService, dataStoreFactory);
     this.schemaSourceDaoProvider = schemaSourceDaoProvider;
   }
 

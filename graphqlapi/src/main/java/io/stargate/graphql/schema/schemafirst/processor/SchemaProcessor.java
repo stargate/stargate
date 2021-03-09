@@ -48,7 +48,6 @@ import graphql.schema.idl.errors.SchemaProblem;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import graphql.util.TreeTransformerUtil;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
@@ -79,7 +78,6 @@ public class SchemaProcessor {
                   SchemaProcessor.class.getResourceAsStream("/schemafirst/federation.graphql"),
                   StandardCharsets.UTF_8));
 
-  private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
   private final boolean isPersisted;
@@ -90,11 +88,9 @@ public class SchemaProcessor {
    *     error messages.
    */
   public SchemaProcessor(
-      AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory,
       boolean isPersisted) {
-    this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
     this.isPersisted = isPersisted;
@@ -207,8 +203,7 @@ public class SchemaProcessor {
     if (mappingModel.hasFederatedEntities()) {
       federationTransformer
           .fetchEntities(
-              new FederatedEntityFetcher(
-                  mappingModel, authenticationService, authorizationService, dataStoreFactory))
+              new FederatedEntityFetcher(mappingModel, authorizationService, dataStoreFactory))
           .resolveEntityType(
               environment -> {
                 FederatedEntity entity = environment.getObject();
@@ -286,8 +281,7 @@ public class SchemaProcessor {
     for (OperationModel operation : mappingModel.getOperations()) {
       builder.dataFetcher(
           operation.getCoordinates(),
-          operation.getDataFetcher(
-              mappingModel, authenticationService, authorizationService, dataStoreFactory));
+          operation.getDataFetcher(mappingModel, authorizationService, dataStoreFactory));
     }
     return builder.build();
   }

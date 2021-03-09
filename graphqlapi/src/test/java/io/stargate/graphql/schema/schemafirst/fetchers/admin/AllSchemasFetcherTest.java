@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStore;
@@ -45,7 +44,6 @@ class AllSchemasFetcherTest {
         .thenReturn(Arrays.asList(schemaSource1, schemaSource2));
     AllSchemasFetcher allSchemasFetcher =
         new AllSchemasFetcher(
-            mock(AuthenticationService.class),
             mock(AuthorizationService.class),
             mock(DataStoreFactory.class),
             (ds) -> schemaSourceDao);

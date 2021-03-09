@@ -16,7 +16,6 @@
 package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
 import com.google.common.collect.ImmutableMap;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
@@ -36,10 +35,8 @@ abstract class NamespaceFetcher<ResultT> extends CassandraFetcher<ResultT> {
   private static final Logger LOG = LoggerFactory.getLogger(AllNamespacesFetcher.class);
 
   protected NamespaceFetcher(
-      AuthenticationService authenticationService,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
+    super(authorizationService, dataStoreFactory);
   }
 
   protected boolean isReadAuthorized(

@@ -17,7 +17,6 @@ package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
 import com.google.common.collect.ImmutableMap;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -30,10 +29,8 @@ import java.util.concurrent.ExecutionException;
 public class DropNamespaceFetcher extends NamespaceFetcher<Map<String, Object>> {
 
   public DropNamespaceFetcher(
-      AuthenticationService authenticationService,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
+    super(authorizationService, dataStoreFactory);
   }
 
   @Override
