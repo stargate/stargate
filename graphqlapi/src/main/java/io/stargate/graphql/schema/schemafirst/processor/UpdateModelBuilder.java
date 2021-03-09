@@ -64,7 +64,16 @@ class UpdateModelBuilder extends MutationModelBuilder {
     }
 
     InputValueDefinition input = inputs.get(0);
-    EntityModel entity = findEntity(input, "update");
+    EntityModel entity =
+        findEntity(input)
+            .orElseThrow(
+                () -> {
+                  invalidMapping(
+                      "Mutation %s: unexpected argument type, "
+                          + "updates expect an input object that maps to a CQL entity",
+                      operationName);
+                  return SkipException.INSTANCE;
+                });
     return new UpdateModel(parentTypeName, operation, entity, input.getName());
   }
 }

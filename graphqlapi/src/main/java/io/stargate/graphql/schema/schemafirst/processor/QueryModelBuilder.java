@@ -83,7 +83,8 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
         // Assume non-annotated fields are PK components in order:
         FieldModel pkField = primaryKey.get(pkIndex++);
         Type<?> inputType = inputValue.getType();
-        if (!inputType.isEqualTo(pkField.getGraphqlType())) {
+        if (!TypeHelper.unwrapNonNull(inputType)
+            .isEqualTo(TypeHelper.unwrapNonNull(pkField.getGraphqlType()))) {
           invalidMapping(
               "Query %s: expected argument %s to have the same type as %s.%s",
               operationName,

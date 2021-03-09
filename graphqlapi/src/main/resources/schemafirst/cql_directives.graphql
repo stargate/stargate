@@ -127,6 +127,13 @@ Note that this is not required if the mutation name starts with `delete` or `rem
 """
 directive @cql_delete(
     """
+    The name of the type to delete. This is only needed if the mutation takes individual key fields
+    as arguments (as opposed to an instance of the type).
+    This must be a type that maps to a table.
+    """
+    targetEntity: String
+
+    """
     Whether to check if the entity exists before deleting.
 
     Delete mutations return the outcome of the deletion, either directly if the mutation returns

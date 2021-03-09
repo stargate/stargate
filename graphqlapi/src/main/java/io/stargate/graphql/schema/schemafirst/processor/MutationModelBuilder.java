@@ -34,29 +34,17 @@ abstract class MutationModelBuilder extends OperationModelBuilderBase<MutationMo
     super(operation, entities, responsePayloads, context);
   }
 
-  protected EntityModel findEntity(InputValueDefinition input, String mutationKind)
-      throws SkipException {
+  protected Optional<EntityModel> findEntity(InputValueDefinition input) {
 
     Type<?> type = TypeHelper.unwrapNonNull(input.getType());
 
     if (type instanceof ListType) {
-      invalidMapping(
-          "Mutation %s: unexpected list type, %ss expect a single entity",
-          operationName, mutationKind);
-      throw SkipException.INSTANCE;
+      return Optional.empty();
     }
 
     String inputTypeName = ((TypeName) type).getName();
-    Optional<EntityModel> entity =
-        entities.values().stream()
-            .filter(e -> e.getInputTypeName().map(name -> name.equals(inputTypeName)).orElse(false))
-            .findFirst();
-    if (!entity.isPresent()) {
-      invalidMapping(
-          "Mutation %s: unexpected type, %ss expect an input object that maps to a CQL entity",
-          operationName, mutationKind);
-      throw SkipException.INSTANCE;
-    }
-    return entity.get();
+    return entities.values().stream()
+        .filter(e -> e.getInputTypeName().map(name -> name.equals(inputTypeName)).orElse(false))
+        .findFirst();
   }
 }

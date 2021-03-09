@@ -15,11 +15,16 @@
  */
 package io.stargate.graphql.schema.schemafirst.processor;
 
+import com.google.common.collect.ImmutableList;
+import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
+import graphql.language.Type;
 import io.stargate.graphql.schema.schemafirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.schemafirst.processor.OperationModel.SimpleReturnType;
 import io.stargate.graphql.schema.schemafirst.processor.ResponsePayloadModel.TechnicalField;
+import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +48,8 @@ class DeleteModelBuilder extends MutationModelBuilder {
 
   @Override
   MutationModel build() throws SkipException {
-    // TODO allow partial PK for multi-row deletions
+    Optional<Directive> cqlDeleteDirective = DirectiveHelper.getDirective("cql_delete", operation);
+    boolean ifExists = computeIfExists(cqlDeleteDirective);
 
     ReturnType returnType = getReturnType("Mutation " + operationName);
     if (returnType != SimpleReturnType.BOOLEAN && !(returnType instanceof ResponsePayloadModel)) {
@@ -67,41 +73,126 @@ class DeleteModelBuilder extends MutationModelBuilder {
       }
     }
 
-    List<InputValueDefinition> inputs = operation.getInputValueDefinitions();
-    if (inputs.isEmpty()) {
+    List<InputValueDefinition> arguments = operation.getInputValueDefinitions();
+    if (arguments.isEmpty()) {
       invalidMapping(
-          "Mutation %s: deletes must take the entity input type as the first argument",
+          "Mutation %s: deletes must take either the entity input type or a list of primary key fields",
           operationName);
       throw SkipException.INSTANCE;
     }
 
-    if (inputs.size() > 1) {
-      invalidMapping("Mutation %s: deletes can't have more than one argument", operationName);
-      throw SkipException.INSTANCE;
+    EntityModel entity;
+    InputValueDefinition firstArgument = arguments.get(0);
+    Optional<EntityModel> entityFromFirstArgument = findEntity(firstArgument);
+    Optional<String> entityArgumentName =
+        entityFromFirstArgument.map(__ -> firstArgument.getName());
+    List<String> pkArgumentNames;
+    if (entityFromFirstArgument.isPresent()) {
+      if (arguments.size() > 1) {
+        invalidMapping(
+            "Mutation %s: if a delete takes an entity input type, it must be the only argument",
+            operationName);
+        throw SkipException.INSTANCE;
+      }
+      entity = entityFromFirstArgument.get();
+      pkArgumentNames = Collections.emptyList();
+    } else {
+      entity = entityFromDirective(cqlDeleteDirective);
+      pkArgumentNames = gatherPkArgumentNames(arguments, entity, ifExists);
     }
 
-    InputValueDefinition input = inputs.get(0);
-    EntityModel entity = findEntity(input, "delete");
     return new DeleteModel(
-        parentTypeName, operation, entity, input.getName(), returnType, computeIfExists());
+        parentTypeName,
+        operation,
+        entity,
+        entityArgumentName,
+        pkArgumentNames,
+        returnType,
+        ifExists);
   }
 
-  private boolean computeIfExists() {
-    // If the directive is set, it always takes precedence
-    Optional<Boolean> fromDirective =
-        DirectiveHelper.getDirective("cql_delete", operation)
-            .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "ifExists", context));
-    if (fromDirective.isPresent()) {
-      return fromDirective.get();
+  private boolean computeIfExists(Optional<Directive> cqlDeleteDirective) {
+    return cqlDeleteDirective
+        .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "ifExists", context))
+        .orElseGet(
+            () -> {
+              if (operation.getName().endsWith("IfExists")) {
+                info(
+                    "Mutation %s: setting the 'ifExists' flag implicitly "
+                        + "because the name follows the naming convention.",
+                    operationName);
+                return true;
+              }
+              return false;
+            });
+  }
+
+  private EntityModel entityFromDirective(Optional<Directive> cqlDeleteDirective)
+      throws SkipException {
+    EntityModel entity;
+    String entityName =
+        cqlDeleteDirective
+            .flatMap(d -> DirectiveHelper.getStringArgument(d, "targetEntity", context))
+            .orElseThrow(
+                () -> {
+                  invalidMapping(
+                      "Mutation %s: if a delete doesn't take an entity input type, "
+                          + "it must indicate the entity name in '@cql_delete.targetEntity'",
+                      operationName);
+                  return SkipException.INSTANCE;
+                });
+    entity = entities.get(entityName);
+    if (entity == null) {
+      invalidMapping(
+          "Mutation %s: unknown entity %s (from '@cql_delete.targetEntity')",
+          operationName, entityName);
+      throw SkipException.INSTANCE;
     }
-    // Otherwise, try the naming convention
-    if (operation.getName().endsWith("IfExists")) {
-      info(
-          "Mutation %s: setting the 'ifExists' flag implicitly "
-              + "because the name follows the naming convention.",
+    return entity;
+  }
+
+  private List<String> gatherPkArgumentNames(
+      List<InputValueDefinition> arguments, EntityModel entity, boolean ifExists)
+      throws SkipException {
+    List<FieldModel> primaryKey = entity.getPrimaryKey();
+    int pkIndex = 0;
+    ImmutableList.Builder<String> pkArgumentNamesBuilder = ImmutableList.builder();
+    boolean foundErrors = false;
+    for (InputValueDefinition argument : arguments) {
+      FieldModel pkField = primaryKey.get(pkIndex++);
+      Type<?> inputType = argument.getType();
+      if (!TypeHelper.unwrapNonNull(inputType)
+          .isEqualTo(TypeHelper.unwrapNonNull(pkField.getGraphqlType()))) {
+        invalidMapping(
+            "Mutation %s: expected argument %s to have the same type as %s.%s",
+            operationName, argument.getName(), entity.getGraphqlName(), pkField.getGraphqlName());
+        foundErrors = true;
+      }
+      pkArgumentNamesBuilder.add(argument.getName());
+    }
+    if (foundErrors) {
+      throw SkipException.INSTANCE;
+    }
+
+    ImmutableList<String> pkArgumentNames = pkArgumentNamesBuilder.build();
+
+    List<FieldModel> partitionKey = entity.getPartitionKey();
+    if (pkArgumentNames.size() < partitionKey.size()) {
+      invalidMapping(
+          "Mutation %s: expected to have at least enough arguments to cover the partition key "
+              + "(%d needed, %d provided).",
+          operationName, partitionKey.size(), pkArgumentNames.size());
+      throw SkipException.INSTANCE;
+    }
+
+    if (ifExists && pkArgumentNames.size() < primaryKey.size()) {
+      invalidMapping(
+          "Mutation %s: not enough arguments. "
+              + "All partition and clustering fields must be provided when 'ifExists' is set.",
           operationName);
-      return true;
+      throw SkipException.INSTANCE;
     }
-    return false;
+
+    return pkArgumentNames;
   }
 }
