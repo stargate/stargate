@@ -16,7 +16,6 @@
 package io.stargate.graphql.schema.schemafirst.fetchers.dynamic;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -46,10 +45,9 @@ public class DeleteFetcher extends DynamicFetcher<Boolean> {
   public DeleteFetcher(
       DeleteModel model,
       MappingModel mappingModel,
-      AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(mappingModel, authenticationService, authorizationService, dataStoreFactory);
+    super(mappingModel, authorizationService, dataStoreFactory);
     this.model = model;
   }
 

@@ -16,7 +16,6 @@
 package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
@@ -29,10 +28,8 @@ import java.util.Collections;
 
 public abstract class SchemaFetcher<ResultT> extends CassandraFetcher<ResultT> {
   public SchemaFetcher(
-      AuthenticationService authenticationService,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
+    super(authorizationService, dataStoreFactory);
   }
 
   protected void authorize(AuthenticationSubject authenticationSubject)

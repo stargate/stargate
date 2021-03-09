@@ -17,7 +17,6 @@ package io.stargate.graphql.schema.schemafirst.fetchers.admin;
 
 import com.google.common.annotations.VisibleForTesting;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStore;
@@ -31,19 +30,16 @@ public class AllSchemasFetcher extends SchemaFetcher<List<SchemaSource>> {
   private final Function<DataStore, SchemaSourceDao> schemaSourceDaoProvider;
 
   public AllSchemasFetcher(
-      AuthenticationService authenticationService,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    this(authenticationService, authorizationService, dataStoreFactory, (SchemaSourceDao::new));
+      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
+    this(authorizationService, dataStoreFactory, (SchemaSourceDao::new));
   }
 
   @VisibleForTesting
   public AllSchemasFetcher(
-      AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory,
       Function<DataStore, SchemaSourceDao> schemaSourceDaoProvider) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+    super(authorizationService, dataStoreFactory);
     this.schemaSourceDaoProvider = schemaSourceDaoProvider;
   }
 
