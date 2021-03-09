@@ -365,6 +365,12 @@ public abstract class Message {
         // Remember the streamId
         throw ErrorMessage.wrap(ex, frame.header.streamId);
       } finally {
+        // Release the frame body {@link io.netty.buffer.ByteBuf}. All bytes have been copied into
+        // the decoded message. Keeping this around during the request execution and response flush
+        // can cause a pathological case where the cumulation buffer in {@link
+        // io.netty.handler.codec.ByteToMessageDecoder} grows significantly. See the logic in {@link
+        // io.netty.handler.codec.ByteToMessageDecoder#MERGE_CUMULATOR} where the buffer is expanded
+        // when the reference count of a buffer is greater than 0.
         frame.release();
       }
     }
