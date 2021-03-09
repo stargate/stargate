@@ -20,11 +20,14 @@ import graphql.schema.DataFetcher;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.DeleteFetcher;
+import java.util.List;
+import java.util.Optional;
 
 public class DeleteModel extends MutationModel {
 
   private final EntityModel entity;
-  private final String entityArgumentName;
+  private final Optional<String> entityArgumentName;
+  private final List<String> pkArgumentNames;
   private final ReturnType returnType;
   private final boolean ifExists;
 
@@ -32,12 +35,14 @@ public class DeleteModel extends MutationModel {
       String parentTypeName,
       FieldDefinition field,
       EntityModel entity,
-      String entityArgumentName,
+      Optional<String> entityArgumentName,
+      List<String> pkArgumentNames,
       ReturnType returnType,
       boolean ifExists) {
     super(parentTypeName, field);
     this.entity = entity;
     this.entityArgumentName = entityArgumentName;
+    this.pkArgumentNames = pkArgumentNames;
     this.returnType = returnType;
     this.ifExists = ifExists;
   }
@@ -46,8 +51,20 @@ public class DeleteModel extends MutationModel {
     return entity;
   }
 
-  public String getEntityArgumentName() {
+  /**
+   * If the mutation takes a unique entity input argument, the name of that argument. Either this or
+   * {@link #getPkArgumentNames()} is set.
+   */
+  public Optional<String> getEntityArgumentName() {
     return entityArgumentName;
+  }
+
+  /**
+   * If the mutation takes individual PK fields, their names. Either this or {@link
+   * #getEntityArgumentName()} is set.
+   */
+  public List<String> getPkArgumentNames() {
+    return pkArgumentNames;
   }
 
   public ReturnType getReturnType() {

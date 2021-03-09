@@ -54,7 +54,16 @@ class InsertModelBuilder extends MutationModelBuilder {
       throw SkipException.INSTANCE;
     }
     InputValueDefinition input = inputs.get(0);
-    EntityModel entity = findEntity(input, "insert");
+    EntityModel entity =
+        findEntity(input)
+            .orElseThrow(
+                () -> {
+                  invalidMapping(
+                      "Mutation %s: unexpected argument type, "
+                          + "inserts expect an input object that maps to a CQL entity",
+                      operationName);
+                  return SkipException.INSTANCE;
+                });
 
     // Validate return type: must be the entity itself, or a wrapper payload
     ReturnType returnType = getReturnType("Mutation " + operationName);

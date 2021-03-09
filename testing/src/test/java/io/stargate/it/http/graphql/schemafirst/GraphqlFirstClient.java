@@ -125,6 +125,11 @@ public class GraphqlFirstClient extends GraphqlClient {
     return getGraphqlData(authToken, buildNamespaceUri(namespace), graphqlQuery);
   }
 
+  /** Executes a GraphQL query for a namespace, expecting a <b>single</b> GraphQL error. */
+  public String getNamespaceError(String namespace, String graphqlQuery) {
+    return getGraphqlError(authToken, buildNamespaceUri(namespace), graphqlQuery);
+  }
+
   private String buildSchemaFileUri(String namespace, String version) {
     String url = String.format("http://%s:8080%s/namespace/%s.graphql", host, FILES, namespace);
     if (version != null) {
