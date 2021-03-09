@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableMap;
 import graphql.ExceptionWhileDataFetching;
 import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -39,10 +38,8 @@ public class CreateNamespaceFetcher
     extends NamespaceFetcher<DataFetcherResult<Map<String, Object>>> {
 
   public CreateNamespaceFetcher(
-      AuthenticationService authenticationService,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
+    super(authorizationService, dataStoreFactory);
   }
 
   @Override

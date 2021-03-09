@@ -17,7 +17,6 @@ package io.stargate.graphql.schema.schemafirst.processor;
 
 import graphql.language.FieldDefinition;
 import graphql.schema.DataFetcher;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.DeleteFetcher;
@@ -45,10 +44,8 @@ public class DeleteModel extends MutationModel {
   @Override
   public DataFetcher<?> getDataFetcher(
       MappingModel mappingModel,
-      AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    return new DeleteFetcher(
-        this, mappingModel, authenticationService, authorizationService, dataStoreFactory);
+    return new DeleteFetcher(this, mappingModel, authorizationService, dataStoreFactory);
   }
 }

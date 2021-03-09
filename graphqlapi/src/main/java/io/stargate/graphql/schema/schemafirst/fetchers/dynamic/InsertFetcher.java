@@ -17,7 +17,6 @@ package io.stargate.graphql.schema.schemafirst.fetchers.dynamic;
 
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -56,10 +55,9 @@ public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
   public InsertFetcher(
       InsertModel model,
       MappingModel mappingModel,
-      AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(mappingModel, authenticationService, authorizationService, dataStoreFactory);
+    super(mappingModel, authorizationService, dataStoreFactory);
     this.model = model;
   }
 
