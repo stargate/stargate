@@ -375,15 +375,6 @@ public abstract class CBUtil {
     return ByteBuffer.wrap(readRawBytes(cb, length));
   }
 
-  public static ByteBuffer readValueNoCopy(ByteBuf cb) {
-    int length = cb.readInt();
-    if (length < 0) return null;
-
-    ByteBuffer buffer = cb.nioBuffer(cb.readerIndex(), length);
-    cb.skipBytes(length);
-    return buffer;
-  }
-
   public static ByteBuffer readBoundValue(ByteBuf cb, ProtocolVersion protocolVersion) {
     int length = cb.readInt();
     if (length < 0) {
