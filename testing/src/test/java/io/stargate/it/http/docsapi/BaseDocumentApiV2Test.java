@@ -859,7 +859,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3\nHint: update the parent path with a defined object instead.\",\"code\":400}");
+            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3. Hint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = objectMapper.readTree("true");
     r =
@@ -870,7 +870,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: true\nHint: update the parent path with a defined object instead.\",\"code\":400}");
+            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: true. Hint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = objectMapper.readTree("null");
     r =
@@ -881,7 +881,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Bad Request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: null\nHint: update the parent path with a defined object instead.\",\"code\":400}");
+            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: null. Hint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = objectMapper.readTree("\"Eric\"");
     r =
@@ -892,7 +892,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Bad Request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: \"Eric\"\nHint: update the parent path with a defined object instead.\",\"code\":400}");
+            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: \\\"Eric\\\". Hint: update the parent path with a defined object instead.\",\"code\":400}");
   }
 
   @Test
@@ -1305,7 +1305,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3\nHint: update the parent path with a defined object instead.\",\"code\":400}");
+            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3. Hint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = objectMapper.readTree("true");
     r =
@@ -1316,7 +1316,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: true\nHint: update the parent path with a defined object instead.\",\"code\":400}");
+            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: true. Hint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = objectMapper.readTree("null");
     r =
@@ -1327,7 +1327,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: null\nHint: update the parent path with a defined object instead.\",\"code\":400}");
+            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: null. Hint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = objectMapper.readTree("\"Eric\"");
     r =
@@ -1338,7 +1338,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: \"Eric\"\nHint: update the parent path with a defined object instead.\",\"code\":400}");
+            "{\"description\":\"Bad request: Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: \\\"Eric\\\". Hint: update the parent path with a defined object instead.\",\"code\":400}");
   }
 
   @Test

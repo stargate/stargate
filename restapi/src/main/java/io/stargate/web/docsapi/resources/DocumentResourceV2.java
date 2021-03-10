@@ -86,14 +86,14 @@ public class DocumentResourceV2 {
             message = "Created",
             responseHeaders = @ResponseHeader(name = "Location"),
             response = WriteDocResponse.class),
-        @ApiResponse(code = 400, message = "Bad request"),
-        @ApiResponse(code = 401, message = "Unauthorized"),
-        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}")
-  @Consumes("application/json, application/x-www-form-urlencoded")
-  @Produces("application/json")
+  @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_FORM_URLENCODED})
+  @Produces(MediaType.APPLICATION_JSON)
   public Response postDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
@@ -148,14 +148,14 @@ public class DocumentResourceV2 {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
-        @ApiResponse(code = 400, message = "Bad request"),
-        @ApiResponse(code = 401, message = "Unauthorized"),
-        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}/{document-id}")
-  @Consumes("application/json, application/x-www-form-urlencoded")
-  @Produces("application/json")
+  @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_FORM_URLENCODED})
+  @Produces(MediaType.APPLICATION_JSON)
   public Response putDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
@@ -207,14 +207,14 @@ public class DocumentResourceV2 {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
-        @ApiResponse(code = 400, message = "Bad request"),
-        @ApiResponse(code = 401, message = "Unauthorized"),
-        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}/{document-id}/{document-path: .*}")
-  @Consumes("application/json, application/x-www-form-urlencoded")
-  @Produces("application/json")
+  @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_FORM_URLENCODED})
+  @Produces(MediaType.APPLICATION_JSON)
   public Response putDocPath(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
@@ -269,14 +269,14 @@ public class DocumentResourceV2 {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
-        @ApiResponse(code = 400, message = "Bad request"),
-        @ApiResponse(code = 401, message = "Unauthorized"),
-        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}/{document-id}")
-  @Consumes("application/json, application/x-www-form-urlencoded")
-  @Produces("application/json")
+  @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_FORM_URLENCODED})
+  @Produces(MediaType.APPLICATION_JSON)
   public Response patchDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
@@ -329,14 +329,14 @@ public class DocumentResourceV2 {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
-        @ApiResponse(code = 400, message = "Bad request"),
-        @ApiResponse(code = 401, message = "Unauthorized"),
-        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}/{document-id}/{document-path: .*}")
-  @Consumes("application/json, application/x-www-form-urlencoded")
-  @Produces("application/json")
+  @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_FORM_URLENCODED})
+  @Produces(MediaType.APPLICATION_JSON)
   public Response patchDocPath(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
@@ -394,8 +394,8 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
-  @Consumes("application/json")
-  @Produces("application/json")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
   public Response deleteDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
@@ -434,8 +434,8 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
-  @Consumes("application/json")
-  @Produces("application/json")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
   public Response deleteDocPath(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
@@ -474,15 +474,15 @@ public class DocumentResourceV2 {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = DocumentResponseWrapper.class),
-        @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 400, message = "Bad Request"),
-        @ApiResponse(code = 401, message = "Unauthorized"),
-        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 204, message = "No Content", response = Error.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
-  @Consumes("application/json")
-  @Produces("application/json")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
   public Response getDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
@@ -548,15 +548,15 @@ public class DocumentResourceV2 {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = DocumentResponseWrapper.class),
-        @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 400, message = "Bad Request"),
-        @ApiResponse(code = 401, message = "Unauthorized"),
-        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 204, message = "No Content", response = Error.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
-  @Consumes("application/json")
-  @Produces("application/json")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
   public Response getDocPath(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
@@ -697,14 +697,14 @@ public class DocumentResourceV2 {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = DocumentResponseWrapper.class),
-        @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 400, message = "Bad Request"),
-        @ApiResponse(code = 401, message = "Unauthorized"),
-        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 204, message = "No Content", response = Error.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id: [a-zA-Z_0-9]+}")
-  @Produces("application/json")
+  @Produces(MediaType.APPLICATION_JSON)
   public Response searchDoc(
       @Context HttpHeaders headers,
       @Context UriInfo ui,
