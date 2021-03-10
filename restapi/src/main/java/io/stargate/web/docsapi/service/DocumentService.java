@@ -32,6 +32,7 @@ import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
+import io.stargate.web.models.Filter;
 import io.stargate.web.resources.Db;
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -935,9 +936,6 @@ public class DocumentService {
       int pageSize,
       int limit)
       throws UnauthorizedException {
-    ObjectNode docsResult = mapper.createObjectNode();
-    LinkedHashSet<String> existsByDoc = new LinkedHashSet<>();
-
     Optional<FilterCondition> firstSupportedFilter =
         filters.stream()
             .filter(f -> !FilterOp.LIMITED_SUPPORT_FILTERS.contains(f.getFilterOp()))
@@ -959,14 +957,114 @@ public class DocumentService {
               .collect(Collectors.toList());
     }
 
+    if (inCassandraFilters.isEmpty()) {
+      return searchWithOnlyInMemoryFilters(
+          db,
+          keyspace,
+          collection,
+          inMemoryFilters,
+          fields,
+          initialPagingState,
+          pageSize,
+          limit
+      );
+    }
+    return searchUsingCassandraFilter(
+      db,
+      keyspace,
+      collection,
+      inCassandraFilters,
+      inMemoryFilters,
+      fields,
+      initialPagingState,
+      limit * 10,
+      limit
+    );
+  }
+
+  private ImmutablePair<JsonNode, DocumentSearchPageState> searchUsingCassandraFilter(
+    DocumentDB db,
+    String keyspace,
+    String collection,
+    List<FilterCondition> inCassandraFilters,
+    List<FilterCondition> inMemoryFilters,
+    List<String> fields,
+    DocumentSearchPageState initialPagingState,
+    int pageSize,
+    int limit
+  ) throws UnauthorizedException {
     ImmutablePair<List<Row>, ByteBuffer> page = null;
+    ByteBuffer currentPageState;
+    ObjectNode docsResult = mapper.createObjectNode();
+    LinkedHashSet<String> existsByDoc = new LinkedHashSet<>();
+    Map<String, List<Row>> documentCandidates = new HashMap<>();
+    boolean firstRequest = true;
+    int indexCount = 0;
+    List<String> path = inCassandraFilters.get(0).getPath();
+    do {
+      if (firstRequest) {
+        if (initialPagingState == null) {
+          currentPageState = null;
+        } else {
+          currentPageState = initialPagingState.getPageState();
+        }
+      } else {
+        currentPageState = page.right;
+      }
+      page =
+              searchRows(
+                      keyspace,
+                      collection,
+                      db,
+                      inCassandraFilters,
+                      Collections.emptyList(),
+                      path,
+                      false,
+                      null,
+                      pageSize,
+                      currentPageState);
+      indexCount += page.left.size();
+      for (Row r : page.left) {
+        String key = r.getString("key");
+        List<Row> docRows = documentCandidates.getOrDefault(key, new ArrayList<>());
+        docRows.add(r);
+        documentCandidates.put(key, docRows);
+      }
+      updateExistenceForMap(
+              existsByDoc
+              page.left,
+              inMemoryFilters,
+              db.treatBooleansAsNumeric(),
+              true);
+      // Remove all keys not found in the existence set
+      for (String key : existsByDoc) {
+        documentCandidates.remove(key);
+      }
+      firstRequest = false;
+    } while (existsByDoc.size() <= limit && currentPageState != null);
+
+    // Either we've reached the end of all rows in the collection, or we have enough rows
+    // in memory to build the final result.
+    
+  }
+
+  private ImmutablePair<JsonNode, DocumentSearchPageState> searchWithOnlyInMemoryFilters(
+    DocumentDB db,
+    String keyspace,
+    String collection,
+    List<FilterCondition> inMemoryFilters,
+    List<String> fields,
+    DocumentSearchPageState initialPagingState,
+    int pageSize,
+    int limit
+  ) throws UnauthorizedException {
     List<Row> leftoverRows = Collections.emptyList();
+    ImmutablePair<List<Row>, ByteBuffer> page = null;
     ByteBuffer currentPageState;
     boolean firstRequest = true;
-    List<String> path =
-        inCassandraFilters.isEmpty()
-            ? Collections.emptyList()
-            : inCassandraFilters.get(0).getPath();
+    ObjectNode docsResult = mapper.createObjectNode();
+    LinkedHashSet<String> existsByDoc = new LinkedHashSet<>();
+
     do {
       if (firstRequest) {
         if (initialPagingState == null) {
@@ -979,17 +1077,17 @@ public class DocumentService {
       }
 
       page =
-          searchRows(
-              keyspace,
-              collection,
-              db,
-              inCassandraFilters,
-              Collections.emptyList(),
-              path,
-              false,
-              null,
-              pageSize,
-              currentPageState);
+              searchRows(
+                      keyspace,
+                      collection,
+                      db,
+                      new ArrayList<>(),
+                      Collections.emptyList(),
+                      Collections.emptyList(),
+                      false,
+                      null,
+                      pageSize,
+                      currentPageState);
       ArrayList<Row> rowsResult = new ArrayList<>();
       rowsResult.addAll(leftoverRows);
       List<Row> rows = page.left;
@@ -1029,7 +1127,7 @@ public class DocumentService {
     }
 
     List<BuiltCondition> predicate =
-        ImmutableList.of(BuiltCondition.of("key", Predicate.IN, new ArrayList<>(docNames)));
+            ImmutableList.of(BuiltCondition.of("key", Predicate.IN, new ArrayList<>(docNames)));
 
     List<Row> rows = db.executeSelect(keyspace, collection, predicate).rows();
     Map<String, List<Row>> rowsByDoc = new HashMap<>();
@@ -1044,8 +1142,8 @@ public class DocumentService {
 
     for (Map.Entry<String, List<Row>> entry : rowsByDoc.entrySet()) {
       docsResult.set(
-          entry.getKey(),
-          convertToJsonDoc(entry.getValue(), false, db.treatBooleansAsNumeric()).left);
+              entry.getKey(),
+              convertToJsonDoc(entry.getValue(), false, db.treatBooleansAsNumeric()).left);
     }
 
     return ImmutablePair.of(docsResult, finalPagingState);
