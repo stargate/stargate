@@ -1328,15 +1328,12 @@ public class DocumentServiceTest {
     Mockito.when(
             serviceMock.getFullDocuments(
                 any(),
-                any(),
-                anyString(),
                 anyString(),
                 anyString(),
                 anyListOf(String.class),
                 any(),
                 anyInt(),
-                anyInt(),
-                any()))
+                anyInt()))
         .thenCallRealMethod();
     Mockito.doCallRealMethod().when(serviceMock).addRowsToMap(anyMap(), anyList());
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
@@ -1344,16 +1341,7 @@ public class DocumentServiceTest {
 
     ImmutablePair<JsonNode, DocumentSearchPageState> result =
         serviceMock.getFullDocuments(
-            dbFactoryMock,
-            dbMock,
-            "authToken",
-            "keyspace",
-            "collection",
-            new ArrayList<>(),
-            null,
-            100,
-            1,
-            EMPTY_HEADERS);
+            dbMock, "keyspace", "collection", new ArrayList<>(), null, 100, 1);
     assertThat(result.right).isNull();
     assertThat(result.left).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
   }
@@ -1373,15 +1361,12 @@ public class DocumentServiceTest {
     Mockito.when(
             serviceMock.getFullDocuments(
                 any(),
-                any(),
-                anyString(),
                 anyString(),
                 anyString(),
                 anyListOf(String.class),
                 any(),
                 anyInt(),
-                anyInt(),
-                any()))
+                anyInt()))
         .thenCallRealMethod();
     Mockito.doCallRealMethod().when(serviceMock).addRowsToMap(anyMap(), anyList());
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
@@ -1389,17 +1374,8 @@ public class DocumentServiceTest {
 
     ImmutablePair<JsonNode, DocumentSearchPageState> result =
         serviceMock.getFullDocuments(
-            dbFactoryMock,
-            dbMock,
-            "authToken",
-            "keyspace",
-            "collection",
-            new ArrayList<>(),
-            null,
-            100,
-            1,
-            EMPTY_HEADERS);
-    assertThat(result.right.getPageState()).isNull();
+            dbMock, "keyspace", "collection", new ArrayList<>(), null, 100, 1);
+    assertThat(result.right).isNull();
     assertThat(result.left).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
   }
 

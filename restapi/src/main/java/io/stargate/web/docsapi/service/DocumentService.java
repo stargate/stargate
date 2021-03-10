@@ -834,17 +834,14 @@ public class DocumentService {
    * and stringing them together. This is NOT expected to perform well for large documents.
    */
   public ImmutablePair<JsonNode, DocumentSearchPageState> getFullDocuments(
-      Db dbFactory,
       DocumentDB db,
-      String authToken,
       String keyspace,
       String collection,
       List<String> fields,
       DocumentSearchPageState initialPagingState,
       int pageSize,
-      int limit,
-      Map<String, String> headers)
-      throws ExecutionException, InterruptedException, UnauthorizedException {
+      int limit)
+      throws UnauthorizedException {
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashMap<String, List<Row>> rowsByDoc = new LinkedHashMap<>();
 
@@ -929,40 +926,37 @@ public class DocumentService {
    * intensive than getFullDocuments.
    */
   public ImmutablePair<JsonNode, DocumentSearchPageState> getFullDocumentsFiltered(
-      Db dbFactory,
       DocumentDB db,
-      String authToken,
       String keyspace,
       String collection,
       List<FilterCondition> filters,
       List<String> fields,
       DocumentSearchPageState initialPagingState,
       int pageSize,
-      int limit,
-      Map<String, String> headers)
+      int limit)
       throws UnauthorizedException {
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashSet<String> existsByDoc = new LinkedHashSet<>();
 
-    List<FilterCondition> inCassandraFilters =
+    Optional<FilterCondition> firstSupportedFilter =
         filters.stream()
             .filter(f -> !FilterOp.LIMITED_SUPPORT_FILTERS.contains(f.getFilterOp()))
-            .collect(Collectors.toList());
-    List<FilterCondition> inMemoryFilters =
-        filters.stream()
-            .filter(f -> FilterOp.LIMITED_SUPPORT_FILTERS.contains(f.getFilterOp()))
-            .collect(Collectors.toList());
+            .findFirst();
+    List<FilterCondition> inCassandraFilters = new ArrayList<>();
+    List<FilterCondition> inMemoryFilters = filters;
 
-    Set<String> inCassandraPaths =
-        inCassandraFilters.stream().map(f -> f.getFullFieldPath()).collect(Collectors.toSet());
-    if (inCassandraPaths.size() > 1 || inMemoryFilters.size() > 0) {
-      // If the request involves more than one filter that could be handled by cassandra, or if
-      // there is a combination of supported and unsupported filters, then we have to default to the
-      // I/O intensive in-memory filter because the relevant where clause wouldn't be supported in
-      // CQL (multiple C* filters would indirectly require an `OR` due to the document schema
-      // structure).
-      inCassandraFilters = Collections.emptyList();
-      inMemoryFilters = filters;
+    String cassandraPath;
+    if (firstSupportedFilter.isPresent()) {
+      cassandraPath = firstSupportedFilter.get().getFullFieldPath();
+
+      inCassandraFilters =
+          filters.stream()
+              .filter(f -> f.getFullFieldPath().equals(cassandraPath))
+              .collect(Collectors.toList());
+      inMemoryFilters =
+          filters.stream()
+              .filter(f -> !f.getFullFieldPath().equals(cassandraPath))
+              .collect(Collectors.toList());
     }
 
     ImmutablePair<List<Row>, ByteBuffer> page = null;
@@ -1036,8 +1030,6 @@ public class DocumentService {
 
     List<BuiltCondition> predicate =
         ImmutableList.of(BuiltCondition.of("key", Predicate.IN, new ArrayList<>(docNames)));
-
-    db = dbFactory.getDocDataStoreForToken(authToken, headers);
 
     List<Row> rows = db.executeSelect(keyspace, collection, predicate).rows();
     Map<String, List<Row>> rowsByDoc = new HashMap<>();

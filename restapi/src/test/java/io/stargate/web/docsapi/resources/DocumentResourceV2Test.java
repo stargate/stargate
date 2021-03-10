@@ -1,7 +1,6 @@
 package io.stargate.web.docsapi.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyObject;
@@ -493,16 +492,13 @@ public class DocumentResourceV2Test {
     Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
                 anyObject(),
-                anyObject(),
-                anyString(),
                 anyString(),
                 anyString(),
                 anyList(),
                 anyList(),
                 anyObject(),
                 anyInt(),
-                anyInt(),
-                any()))
+                anyInt()))
         .thenReturn(ImmutablePair.of(searchResult, null));
 
     Response r =
@@ -554,16 +550,13 @@ public class DocumentResourceV2Test {
     Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
                 anyObject(),
-                anyObject(),
-                anyString(),
                 anyString(),
                 anyString(),
                 anyList(),
                 anyList(),
                 anyObject(),
                 anyInt(),
-                anyInt(),
-                any()))
+                anyInt()))
         .thenReturn(ImmutablePair.of(searchResult, null));
 
     Response r =
@@ -615,16 +608,13 @@ public class DocumentResourceV2Test {
     Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
                 anyObject(),
-                anyObject(),
-                anyString(),
                 anyString(),
                 anyString(),
                 anyList(),
                 anyList(),
                 anyObject(),
                 anyInt(),
-                anyInt(),
-                any()))
+                anyInt()))
         .thenReturn(ImmutablePair.of(searchResult, null));
 
     Response r =
@@ -744,16 +734,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getFullDocuments(
-                anyObject(),
-                anyObject(),
-                anyString(),
-                anyString(),
-                anyString(),
-                anyList(),
-                anyObject(),
-                anyInt(),
-                anyInt(),
-                any()))
+                anyObject(), anyString(), anyString(), anyList(), anyObject(), anyInt(), anyInt()))
         .thenReturn(ImmutablePair.of(searchResult, null));
 
     Response r =

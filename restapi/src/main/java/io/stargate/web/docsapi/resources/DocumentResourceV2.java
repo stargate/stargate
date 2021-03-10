@@ -793,30 +793,24 @@ public class DocumentResourceV2 {
           if (filters.isEmpty()) {
             results =
                 documentService.getFullDocuments(
-                    dbFactory,
                     db,
-                    authToken,
                     namespace,
                     collection,
                     selectionList,
                     pageState,
                     pageSize,
-                    Math.max(1, pageSizeParam),
-                    getAllHeaders(request));
+                    Math.max(1, pageSizeParam));
           } else {
             results =
                 documentService.getFullDocumentsFiltered(
-                    dbFactory,
                     db,
-                    authToken,
                     namespace,
                     collection,
                     filters,
                     selectionList,
                     pageState,
                     pageSize,
-                    Math.max(1, pageSizeParam),
-                    getAllHeaders(request));
+                    Math.max(1, pageSizeParam));
           }
 
           if (results == null) {
