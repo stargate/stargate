@@ -414,6 +414,23 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
 
     Varint(14, BigInteger.class, false, "Arbitrary-precision integer"),
 
+    // TODO: geo types have fake IDs, we need to fix that for proper metadata serialization in CQL
+    Point(
+        101,
+        io.stargate.db.schema.Point.class,
+        true,
+        "Contains two coordinate values for latitude and longitude"),
+    Polygon(
+        102,
+        io.stargate.db.schema.Polygon.class,
+        true,
+        "Contains three or more point values forming a polygon"),
+    LineString(
+        103,
+        io.stargate.db.schema.LineString.class,
+        true,
+        "Contains two or more point values forming a line"),
+
     UDT(
         48,
         UdtValue.class,
