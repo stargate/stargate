@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.immutables.value.Value;
 
 @Value.Immutable(prehash = true)
@@ -30,9 +31,12 @@ public abstract class Schema {
 
   public abstract Set<Keyspace> keyspaces();
 
+  abstract Set<Keyspace> hiddenKeyspaces();
+
   @Value.Lazy
   Map<String, Keyspace> keyspaceMap() {
-    return keyspaces().stream().collect(Collectors.toMap(Keyspace::name, Function.identity()));
+    return Stream.concat(keyspaces().stream(), hiddenKeyspaces().stream())
+        .collect(Collectors.toMap(Keyspace::name, Function.identity()));
   }
 
   public Keyspace keyspace(String name) {
@@ -44,11 +48,23 @@ public abstract class Schema {
   }
 
   public List<String> keyspaceNames() {
-    return keyspaces().stream().map(k -> k.name()).sorted().collect(Collectors.toList());
+    return keyspaces().stream().map(Keyspace::name).sorted().collect(Collectors.toList());
   }
 
   public static Schema create(Iterable<Keyspace> keyspaces) {
     return ImmutableSchema.builder().addAllKeyspaces(keyspaces).build();
+  }
+
+  /**
+   * @param hiddenKeyspaces an additional set of keyspaces that won't be listed in {@link
+   *     #keyspaces()} or {@link #keyspaceNames()}, but can be accessed directly by name with {@link
+   *     #keyspace(String)}.
+   */
+  public static Schema create(Iterable<Keyspace> keyspaces, Iterable<Keyspace> hiddenKeyspaces) {
+    return ImmutableSchema.builder()
+        .addAllKeyspaces(keyspaces)
+        .addAllHiddenKeyspaces(hiddenKeyspaces)
+        .build();
   }
 
   public static SchemaBuilder build() {
