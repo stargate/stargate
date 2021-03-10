@@ -66,6 +66,18 @@ public class DataStoreHealthChecker extends HealthCheck {
           DataStore dataStore = dataStoreFactory.createInternal();
           ensureTableExists(dataStore);
 
+          // insert record
+          dataStore
+              .execute(
+                  dataStore
+                      .queryBuilder()
+                      .insertInto(KEYSPACE_NAME, TABLE_NAME)
+                      .value(PK_COLUMN_NAME, PK_COLUMN_VALUE)
+                      .value(VALUE_COLUMN_NAME, VALUE_COLUMN_VALUE)
+                      .build()
+                      .bind())
+              .get();
+
           Future<ResultSet> rs =
               dataStore
                   .queryBuilder()
@@ -127,18 +139,6 @@ public class DataStoreHealthChecker extends HealthCheck {
                 .table(KEYSPACE_NAME, TABLE_NAME)
                 .ifNotExists()
                 .column(EXPECTED_TABLE.columns())
-                .build()
-                .bind())
-        .get();
-
-    // insert record
-    dataStore
-        .execute(
-            dataStore
-                .queryBuilder()
-                .insertInto(KEYSPACE_NAME, TABLE_NAME)
-                .value(PK_COLUMN_NAME, PK_COLUMN_VALUE)
-                .value(VALUE_COLUMN_NAME, VALUE_COLUMN_VALUE)
                 .build()
                 .bind())
         .get();
