@@ -49,16 +49,17 @@ public class DataStoreHealthChecker extends HealthCheck {
           .build();
   private final DataStoreFactory dataStoreFactory;
 
-  public DataStoreHealthChecker(DataStoreFactory dataStoreFactory) {
+  public DataStoreHealthChecker(DataStoreFactory dataStoreFactory)
+      throws ExecutionException, InterruptedException {
 
     this.dataStoreFactory = dataStoreFactory;
+    ensureTableExists(dataStoreFactory.createInternal());
   }
 
   @Override
   protected Result check() throws Exception {
     try {
       DataStore dataStore = dataStoreFactory.createInternal();
-      ensureTableExists(dataStore);
 
       // insert record
       dataStore
