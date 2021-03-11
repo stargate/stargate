@@ -49,6 +49,7 @@ public final class ClientMetrics {
 
   private Meter authSuccess;
   private Meter authFailure;
+  private Meter authError;
 
   private AtomicInteger pausedConnections;
   private Meter requestDiscarded;
@@ -61,6 +62,10 @@ public final class ClientMetrics {
 
   public void markAuthFailure() {
     authFailure.mark();
+  }
+
+  public void markAuthError() {
+    authError.mark();
   }
 
   public void pauseConnection() {
@@ -99,6 +104,7 @@ public final class ClientMetrics {
 
     authSuccess = registerMeter("AuthSuccess");
     authFailure = registerMeter("AuthFailure");
+    authError = registerMeter("AuthError");
 
     pausedConnections = new AtomicInteger();
     registerGauge("PausedConnections", pausedConnections::get);

@@ -98,6 +98,7 @@ public class AuthResponse extends Message.Request {
                 ClientMetrics.instance.markAuthFailure();
                 future.complete(ErrorMessage.fromException(ae));
               } catch (Exception e) {
+                ClientMetrics.instance.markAuthError();
                 future.completeExceptionally(e);
               }
             });
