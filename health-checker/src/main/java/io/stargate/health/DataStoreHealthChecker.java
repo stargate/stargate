@@ -32,8 +32,10 @@ import org.slf4j.LoggerFactory;
 
 public class DataStoreHealthChecker extends HealthCheck {
   private static final Logger logger = LoggerFactory.getLogger(StargateNodesHealthChecker.class);
-  private static final String KEYSPACE_NAME = "data_store_health_check";
-  private static final String TABLE_NAME = "dummy_table";
+  private static final String KEYSPACE_NAME =
+      System.getProperty("stargate.health_check.keyspace_name", "data_store_health_check");
+  private static final String TABLE_NAME =
+      System.getProperty("stargate.health_check.table_name", "health_table");
   public static final String PK_COLUMN_VALUE = "dummy_pk";
   public static final String VALUE_COLUMN_VALUE = "dummy_value";
 
