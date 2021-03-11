@@ -1,3 +1,18 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.it.cql;
 
 import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.bindMarker;
@@ -9,38 +24,30 @@ import static io.stargate.it.cql.TypeSample.listOf;
 import static io.stargate.it.cql.TypeSample.mapOfIntTo;
 import static io.stargate.it.cql.TypeSample.mapToIntFrom;
 import static io.stargate.it.cql.TypeSample.setOf;
-import static io.stargate.it.cql.TypeSample.tupleOfIntAnd;
 import static io.stargate.it.cql.TypeSample.typeSample;
-import static io.stargate.it.cql.TypeSample.udtOfIntAnd;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.dse.driver.api.core.data.geometry.LineString;
+import com.datastax.dse.driver.api.core.data.geometry.Point;
+import com.datastax.dse.driver.api.core.data.geometry.Polygon;
+import com.datastax.dse.driver.api.core.type.DseDataTypes;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.BatchStatement;
 import com.datastax.oss.driver.api.core.cql.BatchType;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
-import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.api.core.type.DataTypes;
-import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.api.querybuilder.schema.CreateTable;
-import com.datastax.oss.protocol.internal.util.Bytes;
 import com.google.common.collect.ImmutableList;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
+import io.stargate.it.storage.ClusterConnectionInfo;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,9 +55,14 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 @ExtendWith(CqlSessionExtension.class)
-public class DataTypeTest extends BaseOsgiIntegrationTest {
+public class GeoTypeTest extends BaseOsgiIntegrationTest {
 
   private static List<TypeSample<?>> allTypes;
+
+  @BeforeAll
+  public static void validateAssumptions(ClusterConnectionInfo backend) {
+    Assumptions.assumeTrue(backend.isDse());
+  }
 
   @BeforeAll
   public static void createSchema(CqlSession session, @TestKeyspace CqlIdentifier keyspaceId) {
@@ -61,10 +73,8 @@ public class DataTypeTest extends BaseOsgiIntegrationTest {
     CreateTable createTableQuery = createTable("test").withPartitionKey("k", DataTypes.INT);
     for (TypeSample<?> sample : allTypes) {
       createTableQuery = createTableQuery.withColumn(sample.columnName, sample.cqlType);
-      if (sample.cqlType instanceof UserDefinedType) {
-        session.execute(((UserDefinedType) sample.cqlType).describe(false));
-      }
     }
+
     session.execute(createTableQuery.asCql());
   }
 
@@ -106,61 +116,32 @@ public class DataTypeTest extends BaseOsgiIntegrationTest {
   private static List<TypeSample<?>> generateAllTypes(CqlIdentifier keyspaceId) {
     List<TypeSample<?>> primitiveTypes =
         ImmutableList.of(
-            typeSample(DataTypes.ASCII, GenericType.STRING, "sample ascii"),
-            typeSample(DataTypes.BIGINT, GenericType.LONG, Long.MAX_VALUE),
             typeSample(
-                DataTypes.BLOB, GenericType.of(ByteBuffer.class), Bytes.fromHexString("0xCAFE")),
-            typeSample(DataTypes.BOOLEAN, GenericType.BOOLEAN, Boolean.TRUE),
-            typeSample(DataTypes.DECIMAL, GenericType.BIG_DECIMAL, new BigDecimal("12.3E+7")),
-            typeSample(DataTypes.DOUBLE, GenericType.DOUBLE, Double.MAX_VALUE),
-            typeSample(DataTypes.FLOAT, GenericType.FLOAT, Float.MAX_VALUE),
-            typeSample(DataTypes.INET, GenericType.INET_ADDRESS, sampleInet()),
-            typeSample(DataTypes.TINYINT, GenericType.BYTE, Byte.MAX_VALUE),
-            typeSample(DataTypes.SMALLINT, GenericType.SHORT, Short.MAX_VALUE),
-            typeSample(DataTypes.INT, GenericType.INTEGER, Integer.MAX_VALUE),
-            typeSample(DataTypes.DURATION, GenericType.CQL_DURATION, CqlDuration.from("PT30H20M")),
-            typeSample(DataTypes.TEXT, GenericType.STRING, "sample text"),
+                DseDataTypes.POINT, GenericType.of(Point.class), Point.fromCoordinates(1, 2)),
             typeSample(
-                DataTypes.TIMESTAMP, GenericType.INSTANT, Instant.ofEpochMilli(872835240000L)),
-            typeSample(DataTypes.DATE, GenericType.LOCAL_DATE, LocalDate.ofEpochDay(16071)),
+                DseDataTypes.POLYGON,
+                GenericType.of(Polygon.class),
+                Polygon.fromPoints(
+                    Point.fromCoordinates(0, 0),
+                    Point.fromCoordinates(0, 1),
+                    Point.fromCoordinates(1, 1))),
             typeSample(
-                DataTypes.TIME, GenericType.LOCAL_TIME, LocalTime.ofNanoOfDay(54012123450000L)),
-            typeSample(
-                DataTypes.TIMEUUID,
-                GenericType.UUID,
-                UUID.fromString("FE2B4360-28C6-11E2-81C1-0800200C9A66")),
-            typeSample(
-                DataTypes.UUID,
-                GenericType.UUID,
-                UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff00")),
-            typeSample(
-                DataTypes.VARINT,
-                GenericType.BIG_INTEGER,
-                new BigInteger(Integer.MAX_VALUE + "000")));
+                DseDataTypes.LINE_STRING,
+                GenericType.of(LineString.class),
+                LineString.fromPoints(Point.fromCoordinates(0, 0), Point.fromCoordinates(0, 1))));
 
     List<TypeSample<?>> allTypes = new ArrayList<>();
     for (TypeSample<?> type : primitiveTypes) {
       // Generate additional samples from each primitive
       allTypes.add(type);
       allTypes.add(listOf(type));
-      if (!type.javaType.equals(GenericType.CQL_DURATION)) {
-        allTypes.add(setOf(type));
-        allTypes.add(mapToIntFrom(type));
-      }
+      allTypes.add(setOf(type));
+      allTypes.add(mapToIntFrom(type));
       allTypes.add(mapOfIntTo(type));
-      allTypes.add(tupleOfIntAnd(type));
-      allTypes.add(udtOfIntAnd(type, keyspaceId));
+      // TODO: there are some odd codec lookup errors in tupleOfIntAnd(...) and udtOfIntAnd(...)
+      // TODO: allTypes.add(tupleOfIntAnd(type));
+      // TODO: allTypes.add(udtOfIntAnd(type, keyspaceId));
     }
     return allTypes;
-  }
-
-  private static InetAddress sampleInet() {
-    InetAddress address;
-    try {
-      address = InetAddress.getByAddress(new byte[] {127, 0, 0, 1});
-    } catch (UnknownHostException uhae) {
-      throw new AssertionError("Could not get address from 127.0.0.1", uhae);
-    }
-    return address;
   }
 }
