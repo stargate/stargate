@@ -1,5 +1,27 @@
 # Changelog
 
+## [v1.0.14](https://github.com/stargate/stargate/tree/v1.0.14) (2021-03-11)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.13...v1.0.14)
+
+**Closed issues:**
+
+- Upgrade graphql-java from 14.2 to 16.2 [\#736](https://github.com/stargate/stargate/issues/736)
+- Clean up GraphQL authentication [\#732](https://github.com/stargate/stargate/issues/732)
+- Inconsistent authentication error messages in REST API and DOC API [\#630](https://github.com/stargate/stargate/issues/630)
+
+**Merged pull requests:**
+
+- Support geospacial types [\#750](https://github.com/stargate/stargate/pull/750) ([dimas-b](https://github.com/dimas-b))
+- Update CODEOWNERS [\#747](https://github.com/stargate/stargate/pull/747) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Allow tests to customize cassandra.yaml in storage nodes [\#744](https://github.com/stargate/stargate/pull/744) ([dimas-b](https://github.com/dimas-b))
+- Clean up GraphQL authentication \(fixes \#732\) [\#738](https://github.com/stargate/stargate/pull/738) ([olim7t](https://github.com/olim7t))
+- Reduce Netty buffer memory usage for CQL transport [\#737](https://github.com/stargate/stargate/pull/737) ([mpenick](https://github.com/mpenick))
+- Bumping version for next release [\#734](https://github.com/stargate/stargate/pull/734) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Improved error message when schema agreement fails, as currently it always logs the check took zero milliseconds [\#726](https://github.com/stargate/stargate/pull/726) ([maxtomassi](https://github.com/maxtomassi))
+- set authenticator via system property [\#725](https://github.com/stargate/stargate/pull/725) ([tomekl007](https://github.com/tomekl007))
+- Fix \#630 - Inconsistent authentication error messages [\#704](https://github.com/stargate/stargate/pull/704) ([eribeiro](https://github.com/eribeiro))
+
 ## [v1.0.13](https://github.com/stargate/stargate/tree/v1.0.13) (2021-03-03)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.12...v1.0.13)
