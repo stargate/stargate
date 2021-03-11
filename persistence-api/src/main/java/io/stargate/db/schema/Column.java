@@ -125,6 +125,10 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
 
     Class<?> javaType();
 
+    default String marshalTypeName() {
+      throw new UnsupportedOperationException("marshalTypeName() not supported by " + name());
+    }
+
     default boolean isParameterized() {
       return false;
     }
@@ -414,6 +418,30 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
 
     Varint(14, BigInteger.class, false, "Arbitrary-precision integer"),
 
+    Point(
+        0, // custom type
+        io.stargate.db.schema.Point.class,
+        "org.apache.cassandra.db.marshal.PointType",
+        true,
+        null,
+        "Contains two coordinate values for latitude and longitude"),
+
+    Polygon(
+        0, // custom type
+        io.stargate.db.schema.Polygon.class,
+        "org.apache.cassandra.db.marshal.PolygonType",
+        true,
+        null,
+        "Contains three or more point values forming a polygon"),
+
+    LineString(
+        0, // custom type
+        io.stargate.db.schema.LineString.class,
+        "org.apache.cassandra.db.marshal.LineStringType",
+        true,
+        null,
+        "Contains two or more point values forming a line"),
+
     UDT(
         48,
         UdtValue.class,
@@ -431,6 +459,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
     private String description;
 
     private Class<?> javaType;
+    private final String marshalTypeName;
 
     private boolean requiresQuotes;
 
@@ -443,13 +472,26 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       }
       ids = new Column.Type[maxId + 1];
       for (Column.Type t : Column.Type.values()) {
-        ids[t.id] = t;
+        if (t.id > 0) {
+          ids[t.id] = t;
+        }
       }
     }
 
     Type(
         final int id, Class<?> javaType, boolean requiresQuotes, String usage, String description) {
+      this(id, javaType, null, requiresQuotes, usage, description);
+    }
+
+    Type(
+        final int id,
+        Class<?> javaType,
+        String marshalTypeName,
+        boolean requiresQuotes,
+        String usage,
+        String description) {
       this.id = id;
+      this.marshalTypeName = marshalTypeName;
       this.javaType = javaType;
       this.requiresQuotes = requiresQuotes;
       this.description = description;
@@ -470,6 +512,11 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
     }
 
     @Override
+    public String marshalTypeName() {
+      return marshalTypeName;
+    }
+
+    @Override
     public int id() {
       return id;
     }
@@ -481,6 +528,10 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
 
     @Override
     public String cqlDefinition() {
+      if (marshalTypeName != null) {
+        return "'" + marshalTypeName + "'";
+      }
+
       return name().toLowerCase();
     }
 
