@@ -688,6 +688,8 @@ public abstract class Message {
         logger.trace("Received: {}, v={}", request, connection.getVersion());
         connection.requests.inc();
 
+        ClientMetrics.instance.markRequest();
+
         CompletableFuture<? extends Response> req = request.execute(queryStartNanoTime);
 
         req.whenComplete(

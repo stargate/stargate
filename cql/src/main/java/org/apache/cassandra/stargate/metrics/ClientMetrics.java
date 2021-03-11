@@ -54,6 +54,7 @@ public final class ClientMetrics {
 
   private AtomicInteger pausedConnections;
   private Meter requestDiscarded;
+  private Meter requestRate;
 
   private Counter totalBytesRead;
   private Counter totalBytesWritten;
@@ -61,6 +62,10 @@ public final class ClientMetrics {
   private Histogram bytesTransmittedPerFrame;
 
   private ClientMetrics() {}
+
+  public void markRequest() {
+    requestRate.mark();
+  }
 
   public void markAuthSuccess() {
     authSuccess.mark();
@@ -126,6 +131,7 @@ public final class ClientMetrics {
     pausedConnections = new AtomicInteger();
     registerGauge("PausedConnections", pausedConnections::get);
     requestDiscarded = registerMeter("RequestDiscarded");
+    requestRate = registerMeter("RequestRate");
 
     totalBytesRead = registerCounter("TotalBytesRead");
     totalBytesWritten = registerCounter("TotalBytesWritten");
