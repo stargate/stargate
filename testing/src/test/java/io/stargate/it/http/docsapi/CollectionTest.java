@@ -156,7 +156,9 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
     r =
         RestUtils.post(
             authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections", newColl, 400);
-    assertThat(r).contains("`name` is required to create a collection");
+    assertThat(r)
+        .isEqualTo(
+            "{\"description\":\"Bad request: `name` is required to create a collection\",\"code\":400}");
   }
 
   @Test
@@ -176,8 +178,14 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
         authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/newcollection", 204);
 
     // Delete it again, not found
-    RestUtils.delete(
-        authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/newcollection", 404);
+    r =
+        RestUtils.delete(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/newcollection",
+            404);
+    assertThat(r)
+        .isEqualTo(
+            "{\"description\":\"Bad request: Collection 'newcollection' not found\",\"code\":404}");
   }
 
   @Test

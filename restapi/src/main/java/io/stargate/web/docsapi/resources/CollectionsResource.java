@@ -57,12 +57,12 @@ public class CollectionsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
-        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("collections")
-  @Consumes("application/json")
-  @Produces("application/json")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
   public Response getCollections(
       @ApiParam(
               value =
@@ -107,12 +107,12 @@ public class CollectionsResource {
       value = {
         @ApiResponse(code = 201, message = "Created"),
         @ApiResponse(code = 409, message = "Conflict", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("collections")
-  @Consumes("application/json")
-  @Produces("application/json")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
   public Response createCollection(
       @ApiParam(
               value =
@@ -162,13 +162,13 @@ public class CollectionsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 404, message = "Not Found"),
-        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("collections/{collection-id}")
-  @Consumes("application/json")
-  @Produces("application/json")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
   public Response deleteCollection(
       @ApiParam(
               value =
@@ -199,7 +199,10 @@ public class CollectionsResource {
               authenticatedDB.getDataStore().schema().keyspace(namespace).table(collection);
           if (toDelete == null) {
             return Response.status(Response.Status.NOT_FOUND)
-                .entity(String.format("Collection %s not found", collection))
+                .entity(
+                    new Error(
+                        String.format("Bad request: Collection '%s' not found", collection),
+                        Response.Status.NOT_FOUND.getStatusCode()))
                 .build();
           }
           collectionService.deleteCollection(
@@ -221,14 +224,14 @@ public class CollectionsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
-        @ApiResponse(code = 400, message = "Bad Request"),
-        @ApiResponse(code = 401, message = "Unauthorized"),
-        @ApiResponse(code = 404, message = "Collection not found"),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 404, message = "Collection not found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("collections/{collection-id}/upgrade")
-  @Consumes("application/json")
-  @Produces("application/json")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
   public Response upgradeCollection(
       @ApiParam(
               value =
