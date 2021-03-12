@@ -61,7 +61,7 @@ public class DataStoreHealthChecker extends HealthCheck {
         return Result.unhealthy("Null schema version");
       }
 
-      return Result.healthy("Stargate Nodes are operational");
+      return Result.healthy("DataStore is operational");
     } catch (Exception e) {
       logger.warn("checkIsReady failed with {}", e.getMessage(), e);
       return Result.unhealthy("Unable to access DataStore: " + e);
