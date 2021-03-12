@@ -32,6 +32,9 @@ import org.slf4j.LoggerFactory;
 
 public class DataStoreHealthChecker extends HealthCheck {
   private static final Logger logger = LoggerFactory.getLogger(StargateNodesHealthChecker.class);
+  private static final boolean SHOULD_CREATE_KS_AND_TABLE =
+      Boolean.parseBoolean(
+          System.getProperty("stargate.health_check.data_store.create_ks_and_table", "true"));
   private static final String KEYSPACE_NAME =
       System.getProperty("stargate.health_check.keyspace_name", "data_store_health_check");
   private static final String TABLE_NAME =
@@ -55,7 +58,9 @@ public class DataStoreHealthChecker extends HealthCheck {
       throws ExecutionException, InterruptedException {
 
     this.dataStoreFactory = dataStoreFactory;
-    ensureTableExists(dataStoreFactory.createInternal());
+    if (SHOULD_CREATE_KS_AND_TABLE) {
+      ensureTableExists(dataStoreFactory.createInternal());
+    }
   }
 
   @Override
@@ -89,14 +94,10 @@ public class DataStoreHealthChecker extends HealthCheck {
       String pk = row.getString(PK_COLUMN_NAME);
       String value = row.getString(VALUE_COLUMN_NAME);
 
-      if (pk == null || value == null) {
-        return Result.unhealthy("DataStore did not return the proper data.");
-      }
-
-      if (pk.equals(PK_COLUMN_VALUE) && value.equals(VALUE_COLUMN_VALUE)) {
+      if (PK_COLUMN_VALUE.equals(pk) && VALUE_COLUMN_VALUE.equals(value)) {
         return Result.healthy("DataStore is operational");
       } else {
-        return Result.healthy("DataStore did not return the proper data.");
+        return Result.unhealthy("DataStore did not return the proper data.");
       }
     } catch (Exception e) {
       logger.warn("checkIsReady failed with {}", e.getMessage(), e);
