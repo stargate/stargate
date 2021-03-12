@@ -174,7 +174,7 @@ public class Converters {
   public static BuiltCondition idToWhere(String val, String name, Table tableData) {
     Column column = tableData.column(name);
     if (column == null) {
-      throw new IllegalArgumentException(String.format("Unknown field name '%s'", name));
+      throw new IllegalArgumentException(String.format("Unknown field name '%s'.", name));
     }
     Column.ColumnType type = column.type();
     Object value = val;
@@ -189,7 +189,7 @@ public class Converters {
   public static ValueModifier colToValue(String name, Object value, Table tableData) {
     Column column = tableData.column(name);
     if (column == null) {
-      throw new IllegalArgumentException(String.format("Unknown field name '%s'", name));
+      throw new IllegalArgumentException(String.format("Unknown field name '%s'.", name));
     }
     Column.ColumnType type = column.type();
     Object valueObj = value;

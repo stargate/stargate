@@ -647,7 +647,7 @@ public class RowResource {
   private static Object filterToValue(Object val, String name, Table tableData) {
     Column column = tableData.column(name);
     if (column == null) {
-      throw new IllegalArgumentException(String.format("unknown field name '%s'", name));
+      throw new IllegalArgumentException(String.format("Unknown field name '%s'.", name));
     }
     Object value = val;
     Column.ColumnType type = column.type();

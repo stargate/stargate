@@ -40,7 +40,7 @@ public class WhereParser {
     try {
       filterJson = mapper.readTree(whereParam);
     } catch (JsonProcessingException e) {
-      throw new IllegalArgumentException("Input provided is not valid json");
+      throw new IllegalArgumentException("Input provided is not valid json.");
     }
     List<BuiltCondition> conditions = new ArrayList<>();
 
@@ -67,7 +67,8 @@ public class WhereParser {
         try {
           op = FilterOp.valueOf(rawOp.toUpperCase());
         } catch (IllegalArgumentException iea) {
-          throw new IllegalArgumentException(String.format("Operation %s is not supported", rawOp));
+          throw new IllegalArgumentException(
+              String.format("Operation %s is not supported.", rawOp));
         }
 
         JsonNode value = fieldConditions.get(rawOp);
@@ -101,7 +102,7 @@ public class WhereParser {
           Column column = tableData.column(fieldName);
           if (column == null) {
             throw new IllegalArgumentException(
-                String.format("Unknown column name '%s'.", fieldName));
+                String.format("Unknown field name '%s'.", fieldName));
           }
           Column.ColumnType mapType = column.type();
           if (mapType == null || !mapType.isMap()) {
@@ -127,7 +128,7 @@ public class WhereParser {
 
           if (op == FilterOp.$EXISTS) {
             if (!value.isBoolean() || !value.booleanValue()) {
-              throw new IllegalArgumentException("`exists` only supports the value `true`");
+              throw new IllegalArgumentException("`exists` only supports the value `true`.");
             }
             conditions.add(conditionToWhere(fieldName, op, true));
           } else {

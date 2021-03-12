@@ -930,7 +930,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription())
-        .isEqualTo("Bad request: Unknown field name 'invalid_field'");
+        .isEqualTo("Bad request: Unknown field name 'invalid_field'.");
   }
 
   @Test
