@@ -63,7 +63,7 @@ public class WhereParserTest {
             .build();
 
     assertThatThrownBy(() -> WhereParser.parseWhere(whereParam, table))
-        .isInstanceOf(RuntimeException.class)
+        .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Was expecting a JSON object as input for where parameter.");
   }
 
@@ -79,7 +79,7 @@ public class WhereParserTest {
             .build();
 
     assertThatThrownBy(() -> WhereParser.parseWhere(whereParam, table))
-        .isInstanceOf(RuntimeException.class)
+        .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Entry for field name was expecting a JSON object as input.");
   }
 
@@ -95,7 +95,7 @@ public class WhereParserTest {
             .build();
 
     assertThatThrownBy(() -> WhereParser.parseWhere(whereParam, table))
-        .isInstanceOf(RuntimeException.class)
+        .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(
             "Value entry for field name, operation $gt was expecting a value, but found null.");
   }
@@ -112,7 +112,7 @@ public class WhereParserTest {
             .build();
 
     assertThatThrownBy(() -> WhereParser.parseWhere(whereParam, table))
-        .isInstanceOf(RuntimeException.class)
+        .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("`exists` only supports the value `true`");
   }
 
@@ -128,7 +128,7 @@ public class WhereParserTest {
             .build();
 
     assertThatThrownBy(() -> WhereParser.parseWhere(whereParam, table))
-        .isInstanceOf(RuntimeException.class)
+        .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Operation $foo is not supported");
   }
 
@@ -144,7 +144,7 @@ public class WhereParserTest {
             .build();
 
     assertThatThrownBy(() -> WhereParser.parseWhere(whereParam, table))
-        .isInstanceOf(RuntimeException.class)
+        .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Unknown field name 'invalid_field' in where clause.");
   }
 
@@ -204,7 +204,7 @@ public class WhereParserTest {
             .build();
 
     assertThatThrownBy(() -> WhereParser.parseWhere(whereParam, table))
-        .isInstanceOf(RuntimeException.class)
+        .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Input provided is not valid json");
   }
 
