@@ -43,6 +43,8 @@ public class StorageHealthChecker extends HealthCheck {
   private static final String TABLE_NAME =
       System.getProperty("stargate.health_check.table_name", "health_table");
   private static final int INSERT_TTL_SECONDS = 600;
+  private static final boolean STORAGE_CHECK_ENABLED =
+      Boolean.parseBoolean(System.getProperty("stargate.health_check.data_store.enabled", "true"));
 
   static final String PK_COLUMN_NAME = "pk";
   static final String VALUE_COLUMN_NAME = "value";
@@ -68,6 +70,9 @@ public class StorageHealthChecker extends HealthCheck {
 
   @Override
   protected Result check() throws Exception {
+    if (!STORAGE_CHECK_ENABLED) {
+      return Result.healthy("Storage check disabled");
+    }
     try {
       DataStore dataStore = dataStoreFactory.createInternal();
 
