@@ -16,15 +16,18 @@
 package io.stargate.health;
 
 import com.codahale.metrics.health.HealthCheck;
+import com.datastax.oss.driver.api.core.uuid.Uuids;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
+import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.Replication;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableTable;
 import io.stargate.db.schema.Table;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import org.slf4j.Logger;
@@ -39,8 +42,7 @@ public class StorageHealthChecker extends HealthCheck {
       System.getProperty("stargate.health_check.keyspace_name", "data_store_health_check");
   private static final String TABLE_NAME =
       System.getProperty("stargate.health_check.table_name", "health_table");
-  public static final String PK_COLUMN_VALUE = "dummy_pk";
-  public static final String VALUE_COLUMN_VALUE = "dummy_value";
+  private static final int INSERT_TTL_SECONDS = 60;
 
   static final String PK_COLUMN_NAME = "pk";
   static final String VALUE_COLUMN_NAME = "value";
@@ -49,7 +51,8 @@ public class StorageHealthChecker extends HealthCheck {
           .keyspace(KEYSPACE_NAME)
           .name(TABLE_NAME)
           .addColumns(
-              ImmutableColumn.create(PK_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Varchar),
+              ImmutableColumn.create(
+                  PK_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Timeuuid),
               ImmutableColumn.create(VALUE_COLUMN_NAME, Column.Kind.Regular, Column.Type.Varchar))
           .build();
   private final DataStoreFactory dataStoreFactory;
@@ -68,14 +71,17 @@ public class StorageHealthChecker extends HealthCheck {
     try {
       DataStore dataStore = dataStoreFactory.createInternal();
 
+      UUID pkValue = Uuids.timeBased();
+      String valueColumnValue = "dummy_value";
       // insert record
       dataStore
           .execute(
               dataStore
                   .queryBuilder()
                   .insertInto(KEYSPACE_NAME, TABLE_NAME)
-                  .value(PK_COLUMN_NAME, PK_COLUMN_VALUE)
-                  .value(VALUE_COLUMN_NAME, VALUE_COLUMN_VALUE)
+                  .value(PK_COLUMN_NAME, pkValue)
+                  .value(VALUE_COLUMN_NAME, valueColumnValue)
+                  .ttl(INSERT_TTL_SECONDS)
                   .build()
                   .bind())
           .get();
@@ -87,14 +93,14 @@ public class StorageHealthChecker extends HealthCheck {
               .column(PK_COLUMN_NAME)
               .column(VALUE_COLUMN_NAME)
               .from(KEYSPACE_NAME, TABLE_NAME)
+              .where(PK_COLUMN_NAME, Predicate.EQ, pkValue)
               .build()
               .execute();
 
       Row row = rs.get().one();
-      String pk = row.getString(PK_COLUMN_NAME);
+      UUID pk = row.getUuid(PK_COLUMN_NAME);
       String value = row.getString(VALUE_COLUMN_NAME);
-
-      if (PK_COLUMN_VALUE.equals(pk) && VALUE_COLUMN_VALUE.equals(value)) {
+      if (pkValue.equals(pk) && valueColumnValue.equals(value)) {
         return Result.healthy("Storage is operational");
       } else {
         return Result.unhealthy("Storage did not return the proper data.");
