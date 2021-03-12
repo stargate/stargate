@@ -644,10 +644,13 @@ public class RowResource {
     }
   }
 
-  private static Object filterToValue(Object val, String column, Table tableData) {
-    Column.ColumnType type = tableData.column(column).type();
+  private static Object filterToValue(Object val, String name, Table tableData) {
+    Column column = tableData.column(name);
+    if (column == null) {
+      throw new IllegalArgumentException(String.format("unknown field name '%s'", name));
+    }
     Object value = val;
-
+    Column.ColumnType type = column.type();
     if (type != null) {
       value = Converters.toCqlValue(type, (String) val);
     }

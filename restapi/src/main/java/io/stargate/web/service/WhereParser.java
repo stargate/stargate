@@ -97,7 +97,12 @@ public class WhereParser {
                         + "with two fields 'key' and 'value'.",
                     fieldName, rawOp));
           }
-          Column.ColumnType mapType = tableData.column(fieldName).type();
+          Column column = tableData.column(fieldName);
+          if (column == null) {
+            throw new IllegalArgumentException(
+                String.format("Unknown column name '%s'.", fieldName));
+          }
+          Column.ColumnType mapType = column.type();
           if (mapType == null || !mapType.isMap()) {
             throw new RuntimeException(
                 String.format(
@@ -128,7 +133,7 @@ public class WhereParser {
             Object val = value.asText();
             Column column = tableData.column(fieldName);
             if (column == null) {
-              throw new RuntimeException(
+              throw new IllegalArgumentException(
                   String.format("Unknown field name '%s' in where clause.", fieldName));
             }
             Column.ColumnType columnType = column.type();
