@@ -42,7 +42,7 @@ public class StorageHealthChecker extends HealthCheck {
       System.getProperty("stargate.health_check.keyspace_name", "data_store_health_check");
   private static final String TABLE_NAME =
       System.getProperty("stargate.health_check.table_name", "health_table");
-  private static final int INSERT_TTL_SECONDS = 60;
+  private static final int INSERT_TTL_SECONDS = 600;
 
   static final String PK_COLUMN_NAME = "pk";
   static final String VALUE_COLUMN_NAME = "value";
