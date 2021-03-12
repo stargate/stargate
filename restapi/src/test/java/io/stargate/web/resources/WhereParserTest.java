@@ -133,6 +133,22 @@ public class WhereParserTest {
   }
 
   @Test
+  public void testParseInvalidFieldName() {
+    String whereParam = "{ \"invalid_field\": {\"$eq\": 10} }";
+
+    ImmutableTable table =
+        ImmutableTable.builder()
+            .name("table")
+            .keyspace("keyspace")
+            .addColumns(ImmutableColumn.create("name", Column.Type.Text))
+            .build();
+
+    assertThatThrownBy(() -> WhereParser.parseWhere(whereParam, table))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("Unknown field name 'invalid_field' in where clause.");
+  }
+
+  @Test
   public void testParse() throws IOException {
     String whereParam = "{\"price\": {\"$gt\": 600, \"$lt\": 600.05}}";
     List<BuiltCondition> whereExpected =

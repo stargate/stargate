@@ -564,6 +564,35 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void getInvalidWhereClause() throws IOException {
+    createKeyspace(keyspaceName);
+    createTable(keyspaceName, tableName);
+
+    String rowIdentifier = UUID.randomUUID().toString();
+    Map<String, String> row = new HashMap<>();
+    row.put("id", rowIdentifier);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
+
+    String whereClause = "{\"invalid_field\":{\"$eq\":\"test\"}}";
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s?where=%s", host, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_INTERNAL_SERVER_ERROR);
+
+    Error response = objectMapper.readValue(body, Error.class);
+
+    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+    assertThat(response.getDescription()).isNotEmpty();
+  }
+
+  @Test
   public void getRows() throws IOException {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);

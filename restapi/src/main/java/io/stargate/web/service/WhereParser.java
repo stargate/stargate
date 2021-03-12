@@ -126,7 +126,12 @@ public class WhereParser {
             conditions.add(conditionToWhere(fieldName, op, true));
           } else {
             Object val = value.asText();
-            Column.ColumnType columnType = tableData.column(fieldName).type();
+            Column column = tableData.column(fieldName);
+            if (column == null) {
+              throw new RuntimeException(
+                  String.format("Unknown field name '%s' in where clause.", fieldName));
+            }
+            Column.ColumnType columnType = column.type();
             if (columnType != null) {
               Column.ColumnType valueType;
               if (op == FilterOp.$CONTAINS) {
