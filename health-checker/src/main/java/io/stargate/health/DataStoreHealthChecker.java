@@ -20,117 +20,51 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
-import io.stargate.db.query.builder.Replication;
-import io.stargate.db.schema.Column;
-import io.stargate.db.schema.ImmutableColumn;
-import io.stargate.db.schema.ImmutableTable;
-import io.stargate.db.schema.Table;
-import java.util.concurrent.ExecutionException;
+import java.util.UUID;
 import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DataStoreHealthChecker extends HealthCheck {
-  private static final Logger logger = LoggerFactory.getLogger(StargateNodesHealthChecker.class);
-  private static final boolean SHOULD_CREATE_KS_AND_TABLE =
-      Boolean.parseBoolean(
-          System.getProperty("stargate.health_check.data_store.create_ks_and_table", "true"));
-  private static final String KEYSPACE_NAME =
-      System.getProperty("stargate.health_check.keyspace_name", "data_store_health_check");
-  private static final String TABLE_NAME =
-      System.getProperty("stargate.health_check.table_name", "health_table");
-  public static final String PK_COLUMN_VALUE = "dummy_pk";
-  public static final String VALUE_COLUMN_VALUE = "dummy_value";
+  private static final Logger logger = LoggerFactory.getLogger(DataStoreHealthChecker.class);
 
-  static final String PK_COLUMN_NAME = "pk";
-  static final String VALUE_COLUMN_NAME = "value";
-  static final Table EXPECTED_TABLE =
-      ImmutableTable.builder()
-          .keyspace(KEYSPACE_NAME)
-          .name(TABLE_NAME)
-          .addColumns(
-              ImmutableColumn.create(PK_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Varchar),
-              ImmutableColumn.create(VALUE_COLUMN_NAME, Column.Kind.Regular, Column.Type.Varchar))
-          .build();
   private final DataStoreFactory dataStoreFactory;
 
-  public DataStoreHealthChecker(DataStoreFactory dataStoreFactory)
-      throws ExecutionException, InterruptedException {
-
+  public DataStoreHealthChecker(DataStoreFactory dataStoreFactory) {
     this.dataStoreFactory = dataStoreFactory;
-    if (SHOULD_CREATE_KS_AND_TABLE) {
-      ensureTableExists(dataStoreFactory.createInternal());
-    }
   }
 
   @Override
-  protected Result check() throws Exception {
+  protected Result check() {
     try {
       DataStore dataStore = dataStoreFactory.createInternal();
-
-      // insert record
-      dataStore
-          .execute(
-              dataStore
-                  .queryBuilder()
-                  .insertInto(KEYSPACE_NAME, TABLE_NAME)
-                  .value(PK_COLUMN_NAME, PK_COLUMN_VALUE)
-                  .value(VALUE_COLUMN_NAME, VALUE_COLUMN_VALUE)
-                  .build()
-                  .bind())
-          .get();
 
       Future<ResultSet> rs =
           dataStore
               .queryBuilder()
               .select()
-              .column(PK_COLUMN_NAME)
-              .column(VALUE_COLUMN_NAME)
-              .from(KEYSPACE_NAME, TABLE_NAME)
+              .column("cluster_name")
+              .column("schema_version")
+              .from("system", "local")
               .build()
               .execute();
 
       Row row = rs.get().one();
-      String pk = row.getString(PK_COLUMN_NAME);
-      String value = row.getString(VALUE_COLUMN_NAME);
+      String clusterName = row.getString("cluster_name");
+      UUID schemaVersion = row.getUuid("schema_version");
 
-      if (PK_COLUMN_VALUE.equals(pk) && VALUE_COLUMN_VALUE.equals(value)) {
-        return Result.healthy("DataStore is operational");
-      } else {
-        return Result.unhealthy("DataStore did not return the proper data.");
+      if (clusterName == null || clusterName.isEmpty()) {
+        return Result.unhealthy("Empty cluster name: " + clusterName);
       }
+
+      if (schemaVersion == null) {
+        return Result.unhealthy("Null schema version");
+      }
+
+      return Result.healthy("Stargate Nodes are operational");
     } catch (Exception e) {
       logger.warn("checkIsReady failed with {}", e.getMessage(), e);
       return Result.unhealthy("Unable to access DataStore: " + e);
     }
-  }
-
-  private void ensureTableExists(DataStore dataStore)
-      throws ExecutionException, InterruptedException {
-    // create a dedicated health-check keyspace to not risk conflicts with users keyspace
-    dataStore
-        .execute(
-            dataStore
-                .queryBuilder()
-                .create()
-                .keyspace(KEYSPACE_NAME)
-                .ifNotExists()
-                .withReplication(Replication.simpleStrategy(1))
-                .build()
-                .bind())
-        .get();
-
-    // create table
-    dataStore
-        .execute(
-            dataStore
-                .queryBuilder()
-                .create()
-                .table(KEYSPACE_NAME, TABLE_NAME)
-                .ifNotExists()
-                .column(EXPECTED_TABLE.columns())
-                .build()
-                .bind())
-        .get();
   }
 }

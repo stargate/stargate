@@ -44,7 +44,8 @@ public class HealthCheckerTest extends BaseOsgiIntegrationTest {
     "?check=deadlocks",
     "?check=graphql",
     "?check=deadlocks&check=graphql",
-    "?check=datastore"
+    "?check=datastore",
+    "?check=storage"
   })
   public void readiness(String query) throws IOException {
     query = query == null ? "" : query;

@@ -16,8 +16,8 @@ public class HealthCheckerActivator extends BaseActivator {
   private static final Logger log = LoggerFactory.getLogger(HealthCheckerActivator.class);
 
   public static final String BUNDLES_CHECK_NAME = "bundles";
-  public static final String DATASTORE_CHECK_NAME = "datastore";
-  public static final String STARGATE_NODES_CHECK_NAME = "stargate-nodes";
+  public static final String STORAGE_CHECK_NAME = "storage";
+  public static final String DATA_STORE_CHECK_NAME = "datastore";
   public static final String SCHEMA_CHECK_NAME = "schema-agreement";
 
   private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
@@ -33,8 +33,8 @@ public class HealthCheckerActivator extends BaseActivator {
   @Override
   public synchronized void stop(BundleContext context) {
     healthCheckRegistry.get().unregister(BUNDLES_CHECK_NAME);
-    healthCheckRegistry.get().unregister(STARGATE_NODES_CHECK_NAME);
-    healthCheckRegistry.get().unregister(DATASTORE_CHECK_NAME);
+    healthCheckRegistry.get().unregister(DATA_STORE_CHECK_NAME);
+    healthCheckRegistry.get().unregister(STORAGE_CHECK_NAME);
   }
 
   @Nullable
@@ -45,11 +45,10 @@ public class HealthCheckerActivator extends BaseActivator {
       healthCheckRegistry.get().register(BUNDLES_CHECK_NAME, new BundleStateChecker(context));
       healthCheckRegistry
           .get()
-          .register(
-              STARGATE_NODES_CHECK_NAME, new StargateNodesHealthChecker(dataStoreFactory.get()));
+          .register(DATA_STORE_CHECK_NAME, new DataStoreHealthChecker(dataStoreFactory.get()));
       healthCheckRegistry
           .get()
-          .register(DATASTORE_CHECK_NAME, new DataStoreHealthChecker(dataStoreFactory.get()));
+          .register(STORAGE_CHECK_NAME, new StorageHealthChecker(dataStoreFactory.get()));
       healthCheckRegistry.get().register(SCHEMA_CHECK_NAME, new SchemaAgreementChecker(context));
 
       WebImpl web = new WebImpl(context, metrics.get(), healthCheckRegistry.get());
