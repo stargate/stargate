@@ -16,7 +16,7 @@
 package io.stargate.db.cassandra;
 
 import static io.stargate.db.cassandra.CassandraPersistenceActivator.makeConfig;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,7 +33,7 @@ class CassandraPersistenceActivatorTest {
   @BeforeEach
   void setUp() throws IOException {
     System.clearProperty("stargate.unsafe.cassandra_config_path");
-    baseDir = Files.createTempDirectory("stargate-cassandra-3.11-test").toFile();
+    baseDir = Files.createTempDirectory("stargate-cassandra-311-test").toFile();
   }
 
   @AfterEach
