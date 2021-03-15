@@ -40,12 +40,13 @@ public class WhereParser {
     try {
       filterJson = mapper.readTree(whereParam);
     } catch (JsonProcessingException e) {
-      throw new RuntimeException("Input provided is not valid json");
+      throw new IllegalArgumentException("Input provided is not valid json.");
     }
     List<BuiltCondition> conditions = new ArrayList<>();
 
     if (!filterJson.isObject()) {
-      throw new RuntimeException("Was expecting a JSON object as input for where parameter.");
+      throw new IllegalArgumentException(
+          "Was expecting a JSON object as input for where parameter.");
     }
 
     ObjectNode input = (ObjectNode) filterJson;
@@ -55,7 +56,7 @@ public class WhereParser {
       JsonNode fieldConditions = input.get(fieldName);
 
       if (!fieldConditions.isObject()) {
-        throw new RuntimeException(
+        throw new IllegalArgumentException(
             String.format("Entry for field %s was expecting a JSON object as input.", fieldName));
       }
 
@@ -66,12 +67,13 @@ public class WhereParser {
         try {
           op = FilterOp.valueOf(rawOp.toUpperCase());
         } catch (IllegalArgumentException iea) {
-          throw new RuntimeException(String.format("Operation %s is not supported", rawOp));
+          throw new IllegalArgumentException(
+              String.format("Operation %s is not supported.", rawOp));
         }
 
         JsonNode value = fieldConditions.get(rawOp);
         if (value.isNull()) {
-          throw new RuntimeException(
+          throw new IllegalArgumentException(
               String.format(
                   "Value entry for field %s, operation %s was expecting a value, but found null.",
                   fieldName, rawOp));
@@ -79,7 +81,7 @@ public class WhereParser {
 
         if (op == FilterOp.$IN) {
           if (!value.isArray()) {
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
                 String.format(
                     "Value entry for field %s, operation %s must be an array.", fieldName, rawOp));
           }
@@ -91,15 +93,20 @@ public class WhereParser {
               || value.size() != 2
               || (entryKey = value.get("key")) == null
               || (entryValue = value.get("value")) == null) {
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
                 String.format(
                     "Value entry for field %s, operation %s must be an object "
                         + "with two fields 'key' and 'value'.",
                     fieldName, rawOp));
           }
-          Column.ColumnType mapType = tableData.column(fieldName).type();
+          Column column = tableData.column(fieldName);
+          if (column == null) {
+            throw new IllegalArgumentException(
+                String.format("Unknown field name '%s'.", fieldName));
+          }
+          Column.ColumnType mapType = column.type();
           if (mapType == null || !mapType.isMap()) {
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
                 String.format(
                     "Field %s: operation %s is only supported for map types", fieldName, rawOp));
           }
@@ -113,7 +120,7 @@ public class WhereParser {
         } else {
           // Remaining operators: the value is a simple node
           if (!value.isValueNode()) {
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
                 String.format(
                     "Value entry for field %s, operation %s was expecting a value, but found an object or array.",
                     fieldName, rawOp));
@@ -121,12 +128,17 @@ public class WhereParser {
 
           if (op == FilterOp.$EXISTS) {
             if (!value.isBoolean() || !value.booleanValue()) {
-              throw new RuntimeException("`exists` only supports the value `true`");
+              throw new IllegalArgumentException("`exists` only supports the value `true`.");
             }
             conditions.add(conditionToWhere(fieldName, op, true));
           } else {
             Object val = value.asText();
-            Column.ColumnType columnType = tableData.column(fieldName).type();
+            Column column = tableData.column(fieldName);
+            if (column == null) {
+              throw new IllegalArgumentException(
+                  String.format("Unknown field name '%s' in where clause.", fieldName));
+            }
+            Column.ColumnType columnType = column.type();
             if (columnType != null) {
               Column.ColumnType valueType;
               if (op == FilterOp.$CONTAINS) {
@@ -136,7 +148,7 @@ public class WhereParser {
                           ? columnType.parameters().get(1)
                           : columnType.parameters().get(0);
                 } else {
-                  throw new RuntimeException(
+                  throw new IllegalArgumentException(
                       String.format(
                           "Field %s: operation %s is only supported for collection types",
                           fieldName, rawOp));
@@ -145,7 +157,7 @@ public class WhereParser {
                 if (columnType.isMap()) {
                   valueType = columnType.parameters().get(0);
                 } else {
-                  throw new RuntimeException(
+                  throw new IllegalArgumentException(
                       String.format(
                           "Field %s: operation %s is only supported for map types",
                           fieldName, rawOp));

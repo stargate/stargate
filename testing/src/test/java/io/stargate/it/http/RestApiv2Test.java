@@ -564,6 +564,36 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void getInvalidWhereClause() throws IOException {
+    createKeyspace(keyspaceName);
+    createTable(keyspaceName, tableName);
+
+    String rowIdentifier = UUID.randomUUID().toString();
+    Map<String, String> row = new HashMap<>();
+    row.put("id", rowIdentifier);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
+
+    String whereClause = "{\"invalid_field\":{\"$eq\":\"test\"}}";
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s?where=%s", host, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_BAD_REQUEST);
+
+    Error response = objectMapper.readValue(body, Error.class);
+
+    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(response.getDescription())
+        .isEqualTo("Bad request: Unknown field name 'invalid_field' in where clause.");
+  }
+
+  @Test
   public void getRows() throws IOException {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
@@ -877,6 +907,30 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     assertThat(data.get(0).get("name")).isEqualTo("alice");
     assertThat(data.get(0).get("email"))
         .isEqualTo(Arrays.asList("foo@example.com", "bar@example.com"));
+  }
+
+  @Test
+  public void addRowInvalidField() throws IOException {
+    createKeyspace(keyspaceName);
+    createTable(keyspaceName, tableName);
+
+    String rowIdentifier = UUID.randomUUID().toString();
+    Map<String, String> row = new HashMap<>();
+    row.put("id", rowIdentifier);
+    row.put("invalid_field", "John");
+
+    String body =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+            objectMapper.writeValueAsString(row),
+            HttpStatus.SC_BAD_REQUEST);
+
+    Error response = objectMapper.readValue(body, Error.class);
+
+    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(response.getDescription())
+        .isEqualTo("Bad request: Unknown field name 'invalid_field'.");
   }
 
   @Test
