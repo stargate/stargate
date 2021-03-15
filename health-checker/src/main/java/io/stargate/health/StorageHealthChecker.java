@@ -16,7 +16,6 @@
 package io.stargate.health;
 
 import com.codahale.metrics.health.HealthCheck;
-import com.datastax.oss.driver.api.core.uuid.Uuids;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
@@ -27,13 +26,14 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableTable;
 import io.stargate.db.schema.Table;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class StorageHealthChecker extends HealthCheck {
+  private static final UUID STARGATE_NODE_ID = UUID.randomUUID();
   private static final Logger logger = LoggerFactory.getLogger(DataStoreHealthChecker.class);
   private static final boolean SHOULD_CREATE_KS_AND_TABLE =
       Boolean.parseBoolean(
@@ -46,15 +46,15 @@ public class StorageHealthChecker extends HealthCheck {
   private static final boolean STORAGE_CHECK_ENABLED =
       Boolean.parseBoolean(System.getProperty("stargate.health_check.data_store.enabled", "true"));
 
-  static final String PK_COLUMN_NAME = "pk";
-  static final String VALUE_COLUMN_NAME = "value";
-  static final Table EXPECTED_TABLE =
+  private static final String PK_COLUMN_NAME = "pk";
+  private static final String VALUE_COLUMN_NAME = "value";
+  private static final String VALUE_COLUMN_VALUE = "dummy_value";
+  private static final Table EXPECTED_TABLE =
       ImmutableTable.builder()
           .keyspace(KEYSPACE_NAME)
           .name(TABLE_NAME)
           .addColumns(
-              ImmutableColumn.create(
-                  PK_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Timeuuid),
+              ImmutableColumn.create(PK_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Uuid),
               ImmutableColumn.create(VALUE_COLUMN_NAME, Column.Kind.Regular, Column.Type.Varchar))
           .build();
   private final DataStoreFactory dataStoreFactory;
@@ -76,36 +76,38 @@ public class StorageHealthChecker extends HealthCheck {
     try {
       DataStore dataStore = dataStoreFactory.createInternal();
 
-      UUID pkValue = Uuids.timeBased();
-      String valueColumnValue = "dummy_value";
+      Instant writeTimestamp = Instant.now();
       // insert record
       dataStore
           .execute(
               dataStore
                   .queryBuilder()
                   .insertInto(KEYSPACE_NAME, TABLE_NAME)
-                  .value(PK_COLUMN_NAME, pkValue)
-                  .value(VALUE_COLUMN_NAME, valueColumnValue)
+                  .value(PK_COLUMN_NAME, STARGATE_NODE_ID)
+                  .value(VALUE_COLUMN_NAME, VALUE_COLUMN_VALUE)
                   .ttl(INSERT_TTL_SECONDS)
+                  .timestamp(writeTimestamp.toEpochMilli())
                   .build()
                   .bind())
           .get();
 
-      Future<ResultSet> rs =
+      // select record
+      ResultSet rs =
           dataStore
-              .queryBuilder()
-              .select()
-              .column(PK_COLUMN_NAME)
-              .column(VALUE_COLUMN_NAME)
-              .from(KEYSPACE_NAME, TABLE_NAME)
-              .where(PK_COLUMN_NAME, Predicate.EQ, pkValue)
-              .build()
-              .execute();
+              .execute(
+                  dataStore
+                      .queryBuilder()
+                      .select()
+                      .writeTimeColumn(VALUE_COLUMN_NAME)
+                      .from(KEYSPACE_NAME, TABLE_NAME)
+                      .where(PK_COLUMN_NAME, Predicate.EQ, STARGATE_NODE_ID)
+                      .build()
+                      .bind())
+              .get();
 
-      Row row = rs.get().one();
-      UUID pk = row.getUuid(PK_COLUMN_NAME);
-      String value = row.getString(VALUE_COLUMN_NAME);
-      if (pkValue.equals(pk) && valueColumnValue.equals(value)) {
+      Row row = rs.one();
+      Instant timestampRead = Instant.ofEpochMilli(row.getLong(0));
+      if (isGreaterThanOrEqual(timestampRead, writeTimestamp)) {
         return Result.healthy("Storage is operational");
       } else {
         return Result.unhealthy("Storage did not return the proper data.");
@@ -114,6 +116,15 @@ public class StorageHealthChecker extends HealthCheck {
       logger.warn("checkIsReady failed with {}", e.getMessage(), e);
       return Result.unhealthy("Unable to access Storage: " + e);
     }
+  }
+
+  private boolean isGreaterThanOrEqual(Instant timestampRead, Instant expectedTimestamp) {
+    if (timestampRead == null) {
+      return false;
+    }
+    // in case there was a concurrent update, validate that the timestampRead is greater than
+    // expected timestamp
+    return expectedTimestamp.equals(timestampRead) || timestampRead.isAfter(expectedTimestamp);
   }
 
   private void ensureTableExists(DataStore dataStore)
