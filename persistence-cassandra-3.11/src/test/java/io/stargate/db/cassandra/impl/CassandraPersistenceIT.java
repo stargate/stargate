@@ -35,7 +35,7 @@ class CassandraPersistenceIT extends PersistenceTest {
 
   @BeforeAll
   public static void createPersistence(ClusterConnectionInfo backend) throws IOException {
-    baseDir = Files.createTempDirectory("stargate-cassandra-311-test").toFile();
+    baseDir = Files.createTempDirectory("stargate-cassandra-3.11-test").toFile();
 
     System.setProperty("stargate.listen_address", "127.0.0.11");
     System.setProperty("stargate.cluster_name", backend.clusterName());

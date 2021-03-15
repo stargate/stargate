@@ -33,7 +33,7 @@ class CassandraPersistenceActivatorTest {
   @BeforeEach
   void setUp() throws IOException {
     System.clearProperty("stargate.unsafe.cassandra_config_path");
-    baseDir = Files.createTempDirectory("stargate-cassandra-311-test").toFile();
+    baseDir = Files.createTempDirectory("stargate-cassandra-3.11-test").toFile();
   }
 
   @AfterEach
