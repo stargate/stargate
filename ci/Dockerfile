@@ -4,6 +4,8 @@ RUN apt-get update \
     && apt-get install -y \
     openjdk-8-jdk \
     git \
+    gcc \
+    python-dev \
     python2.7 \
     python-setuptools \
     python-six \
@@ -42,6 +44,6 @@ RUN git clone --branch master --single-branch https://github.com/riptano/ccm.git
 # Create clusters to pre-download necessary artifacts
 RUN ccm create -v 4.0-beta4 stargate_40 && ccm remove stargate_40
 RUN ccm create -v 3.11.8 stargate_311 && ccm remove stargate_311
-RUN ccm create -v 6.8.5 --dse stargate_dse68 && ccm remove stargate_dse68
+RUN ccm create -v 6.8.9 --dse stargate_dse68 && ccm remove stargate_dse68
 
 CMD ["/bin/bash"]
