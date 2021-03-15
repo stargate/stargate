@@ -2,7 +2,6 @@ package io.stargate.graphql.schema;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Parameters;
@@ -14,7 +13,6 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /** Base class for fetchers that access the Cassandra backend. It also handles authentication. */
 public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> {
-  protected final AuthenticationService authenticationService;
   protected final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
 
@@ -30,10 +28,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
           .build();
 
   public CassandraFetcher(
-      AuthenticationService authenticationService,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    this.authenticationService = authenticationService;
+      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
   }
@@ -42,9 +37,7 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
   public final ResultT get(DataFetchingEnvironment environment) throws Exception {
     HttpAwareContext httpAwareContext = environment.getContext();
 
-    String token = httpAwareContext.getAuthToken();
-    AuthenticationSubject authenticationSubject =
-        authenticationService.validateToken(token, httpAwareContext.getAllHeaders());
+    AuthenticationSubject authenticationSubject = httpAwareContext.getSubject();
 
     Parameters parameters = getDatastoreParameters(environment);
     DataStoreOptions dataStoreOptions =

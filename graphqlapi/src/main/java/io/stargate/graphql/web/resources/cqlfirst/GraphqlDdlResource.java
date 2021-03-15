@@ -17,6 +17,7 @@ package io.stargate.graphql.web.resources.cqlfirst;
 
 import graphql.GraphQL;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
+import io.stargate.graphql.web.resources.Authenticated;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -33,6 +34,7 @@ import javax.ws.rs.core.MediaType;
 
 @Path("/graphql-schema")
 @Singleton
+@Authenticated
 public class GraphqlDdlResource extends GraphqlResourceBase {
 
   private final GraphQL graphql;

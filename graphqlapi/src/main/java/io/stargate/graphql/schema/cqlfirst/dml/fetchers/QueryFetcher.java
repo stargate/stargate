@@ -18,7 +18,6 @@ package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 import com.google.common.collect.ImmutableList;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
@@ -48,10 +47,9 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
   public QueryFetcher(
       Table table,
       NameMapping nameMapping,
-      AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(table, nameMapping, authenticationService, authorizationService, dataStoreFactory);
+    super(table, nameMapping, authorizationService, dataStoreFactory);
   }
 
   @Override

@@ -13,8 +13,13 @@ import org.apache.cassandra.stargate.transport.ServerError;
  * schema agreement doesn't happen quickly.
  */
 public class SchemaAgreement {
+
+  /** The number of retries that will be performed if a schema disagreement is detected */
   private static final int SCHEMA_AGREEMENT_WAIT_RETRIES =
       Integer.getInteger("stargate.cql.schema.agreement.wait.retries", 1800);
+
+  /** The amount of time (in milliseconds) between two consecutive schema agreement checks */
+  private static final int SCHEMA_AGREEMENT_RETRIES_INTERVAL_MILLIS = 100;
 
   private static final ScheduledThreadPoolExecutor EXECUTOR = new ScheduledThreadPoolExecutor(1);
 
@@ -27,7 +32,7 @@ public class SchemaAgreement {
             CompletableFuture<Result> agreementFuture = new CompletableFuture<Result>();
             EXECUTOR.schedule(
                 new SchemaAgreement.Handler(agreementFuture, result, persistence),
-                100,
+                SCHEMA_AGREEMENT_RETRIES_INTERVAL_MILLIS,
                 TimeUnit.MILLISECONDS);
             resultFuture = agreementFuture;
           }
@@ -54,11 +59,13 @@ public class SchemaAgreement {
         future.complete(result);
       } else if (count > 0) {
         count--;
-        EXECUTOR.schedule(this, 100, TimeUnit.MILLISECONDS);
+        EXECUTOR.schedule(this, SCHEMA_AGREEMENT_RETRIES_INTERVAL_MILLIS, TimeUnit.MILLISECONDS);
       } else {
         future.completeExceptionally(
             new ServerError(
-                "Failed to reach schema agreement after " + (count * 100) + " milliseconds."));
+                "Failed to reach schema agreement after "
+                    + (SCHEMA_AGREEMENT_WAIT_RETRIES * SCHEMA_AGREEMENT_RETRIES_INTERVAL_MILLIS)
+                    + " milliseconds."));
       }
     }
   }

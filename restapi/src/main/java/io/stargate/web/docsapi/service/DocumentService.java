@@ -418,7 +418,7 @@ public class DocumentService {
       throw new DocumentAPIRequestException(
           "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: "
               + payload
-              + "\nHint: update the parent path with a defined object instead.");
+              + ". Hint: update the parent path with a defined object instead.");
     }
 
     logger.debug("Bind {}", bindVariableList.size());

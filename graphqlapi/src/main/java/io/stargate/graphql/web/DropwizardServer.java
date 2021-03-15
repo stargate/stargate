@@ -28,6 +28,7 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.GraphqlActivator;
+import io.stargate.graphql.web.resources.AuthenticationFilter;
 import io.stargate.graphql.web.resources.PlaygroundResource;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlCache;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlDdlResource;
@@ -83,8 +84,7 @@ public class DropwizardServer extends Application<Configuration> {
   public void run(final Configuration config, final Environment environment) {
 
     GraphqlCache graphqlCache =
-        new GraphqlCache(
-            persistence, authenticationService, authorizationService, dataStoreFactory);
+        new GraphqlCache(persistence, authorizationService, dataStoreFactory);
     environment
         .jersey()
         .register(
@@ -101,6 +101,16 @@ public class DropwizardServer extends Application<Configuration> {
               @Override
               protected void configure() {
                 bind(FrameworkUtil.getBundle(GraphqlActivator.class)).to(Bundle.class);
+              }
+            });
+    environment.jersey().register(new AuthenticationFilter(authenticationService));
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(authorizationService).to(AuthorizationService.class);
               }
             });
 

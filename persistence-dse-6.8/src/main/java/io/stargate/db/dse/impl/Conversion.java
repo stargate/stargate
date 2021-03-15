@@ -30,8 +30,11 @@ import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.db.marshal.AbstractType;
+import org.apache.cassandra.db.marshal.LineStringType;
 import org.apache.cassandra.db.marshal.ListType;
 import org.apache.cassandra.db.marshal.MapType;
+import org.apache.cassandra.db.marshal.PointType;
+import org.apache.cassandra.db.marshal.PolygonType;
 import org.apache.cassandra.db.marshal.ReversedType;
 import org.apache.cassandra.db.marshal.SetType;
 import org.apache.cassandra.db.marshal.TupleType;
@@ -136,10 +139,18 @@ public class Conversion {
                   && ct != Column.Type.List
                   && ct != Column.Type.Map
                   && ct != Column.Type.Set
+                  && ct != Column.Type.Point
+                  && ct != Column.Type.Polygon
+                  && ct != Column.Type.LineString
                   && ct != Column.Type.UDT) {
                 types.put(ColumnUtils.toInternalType(ct).getClass(), ct);
               }
             });
+
+    types.put(PointType.class, Column.Type.Point);
+    types.put(PolygonType.class, Column.Type.Polygon);
+    types.put(LineStringType.class, Column.Type.LineString);
+
     TYPE_MAPPINGS = ImmutableMap.copyOf(types);
   }
 

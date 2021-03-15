@@ -76,7 +76,7 @@ public class NamespacesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
-        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   public Response getAllNamespaces(
@@ -121,9 +121,9 @@ public class NamespacesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Keyspace.class),
-        @ApiResponse(code = 400, message = "Bad Request"),
-        @ApiResponse(code = 401, message = "Unauthorized"),
-        @ApiResponse(code = 404, message = "Not Found"),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{namespace-id: [a-zA-Z_0-9]+}")
@@ -179,9 +179,9 @@ public class NamespacesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = Map.class),
-        @ApiResponse(code = 400, message = "Bad Request"),
-        @ApiResponse(code = 401, message = "Unauthorized"),
-        @ApiResponse(code = 409, message = "Conflict"),
+        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 409, message = "Conflict", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   public Response createNamespace(
@@ -267,7 +267,7 @@ public class NamespacesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{namespace-id: [a-zA-Z_0-9]+}")

@@ -98,6 +98,12 @@ public class ColumnUtils {
           encodeType(t, dest, version);
         }
         break;
+      case Point: // Fallthrough intended
+      case Polygon: // Fallthrough intended
+      case LineString:
+        // For custom types the class name of the type follows the type ID (which is zero)
+        CBUtil.writeAsciiString(type.marshalTypeName(), dest);
+        break;
       default:
         // Nothing else to do for simple types
     }
@@ -130,6 +136,11 @@ public class ColumnUtils {
         for (Column.ColumnType t : tup.parameters()) {
           size += encodeSizeType(t, version);
         }
+        break;
+      case Point: // Fallthrough intended
+      case Polygon: // Fallthrough intended
+      case LineString:
+        size += CBUtil.sizeOfAsciiString(type.marshalTypeName());
         break;
       default: // fall though (simple types)
     }

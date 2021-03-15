@@ -172,7 +172,7 @@ public abstract class Message {
   public final Type type;
   protected Connection connection;
   private int streamId;
-  private Frame sourceFrame;
+  private long sourceFrameBodySizeInBytes;
   private Map<String, ByteBuffer> customPayload;
   protected ProtocolVersion forcedProtocolVersion = null;
 
@@ -197,12 +197,12 @@ public abstract class Message {
     return streamId;
   }
 
-  public void setSourceFrame(Frame sourceFrame) {
-    this.sourceFrame = sourceFrame;
+  public void setSourceFrameBodySizeInBytes(long sourceFrameBodySizeInBytes) {
+    this.sourceFrameBodySizeInBytes = sourceFrameBodySizeInBytes;
   }
 
-  public Frame getSourceFrame() {
-    return sourceFrame;
+  public long getSourceFrameBodySizeInBytes() {
+    return sourceFrameBodySizeInBytes;
   }
 
   public Map<String, ByteBuffer> getCustomPayload() {
@@ -329,7 +329,7 @@ public abstract class Message {
 
         Message message = frame.header.type.codec.decode(frame.body, frame.header.version);
         message.setStreamId(frame.header.streamId);
-        message.setSourceFrame(frame);
+        message.setSourceFrameBodySizeInBytes(frame.header.bodySizeInBytes);
         message.setCustomPayload(customPayload);
 
         if (isRequest) {
@@ -362,9 +362,16 @@ public abstract class Message {
 
         results.add(message);
       } catch (Throwable ex) {
-        frame.release();
         // Remember the streamId
         throw ErrorMessage.wrap(ex, frame.header.streamId);
+      } finally {
+        // Release the frame body {@link io.netty.buffer.ByteBuf}. All bytes have been copied into
+        // the decoded message. Keeping this around during the request execution and response flush
+        // can cause a pathological case where the cumulation buffer in {@link
+        // io.netty.handler.codec.ByteToMessageDecoder} grows significantly. See the logic in {@link
+        // io.netty.handler.codec.ByteToMessageDecoder#MERGE_CUMULATOR} where the buffer is expanded
+        // when the reference count of a buffer is greater than 0.
+        frame.release();
       }
     }
   }
@@ -465,13 +472,13 @@ public abstract class Message {
     private static class FlushItem {
       final ChannelHandlerContext ctx;
       final Object response;
-      final Frame sourceFrame;
+      final long bodySizeInBytes;
       final Dispatcher dispatcher;
 
       private FlushItem(
-          ChannelHandlerContext ctx, Object response, Frame sourceFrame, Dispatcher dispatcher) {
+          ChannelHandlerContext ctx, Object response, long bodySizeInBytes, Dispatcher dispatcher) {
         this.ctx = ctx;
-        this.sourceFrame = sourceFrame;
+        this.bodySizeInBytes = bodySizeInBytes;
         this.response = response;
         this.dispatcher = dispatcher;
       }
@@ -603,7 +610,7 @@ public abstract class Message {
      * <p>Note: this method should execute on the netty event loop.
      */
     private boolean shouldHandleRequest(ChannelHandlerContext ctx, Request request) {
-      long frameSize = request.getSourceFrame().header.bodySizeInBytes;
+      long frameSize = request.getSourceFrameBodySizeInBytes();
 
       ResourceLimits.EndpointAndGlobal endpointAndGlobalPayloadsInFlight =
           endpointPayloadTracker.endpointAndGlobalPayloadsInFlight;
@@ -624,7 +631,7 @@ public abstract class Message {
           throw ErrorMessage.wrap(
               new OverloadedException(
                   "Server is in overloaded state. Cannot accept more requests at this point"),
-              request.getSourceFrame().header.streamId);
+              request.getStreamId());
         } else {
           // set backpressure on the channel, and handle the request
           endpointAndGlobalPayloadsInFlight.allocate(frameSize);
@@ -644,8 +651,7 @@ public abstract class Message {
      * of variables of being on the event loop.
      */
     private void releaseItem(FlushItem item) {
-      long itemSize = item.sourceFrame.header.bodySizeInBytes;
-      item.sourceFrame.release();
+      long itemSize = item.bodySizeInBytes;
 
       // since the request has been processed, decrement inflight payload at channel, endpoint and
       // global levels
@@ -682,6 +688,8 @@ public abstract class Message {
         logger.trace("Received: {}, v={}", request, connection.getVersion());
         connection.requests.inc();
 
+        ClientMetrics.instance.markRequestProcessed();
+
         CompletableFuture<? extends Response> req = request.execute(queryStartNanoTime);
 
         req.whenComplete(
@@ -695,11 +703,9 @@ public abstract class Message {
                   connection.applyStateTransition(request.type, response.type);
 
                   logger.trace("Responding: {}, v={}", response, connection.getVersion());
-                  flush(new FlushItem(ctx, response, request.getSourceFrame(), this));
+                  flush(
+                      new FlushItem(ctx, response, request.getSourceFrameBodySizeInBytes(), this));
                 } catch (Throwable t) {
-                  request
-                      .getSourceFrame()
-                      .release(); // ok to release since flush was the last call and does not throw
                   // after adding the item to the queue
                   // JVMStabilityInspector.inspectThrowable(t); // TODO
                   logger.error(
@@ -732,12 +738,9 @@ public abstract class Message {
             new Message.Dispatcher.FlushItem(
                 ctx,
                 ErrorMessage.fromException(error, handler).setStreamId(request.getStreamId()),
-                request.getSourceFrame(),
+                request.getSourceFrameBodySizeInBytes(),
                 this));
       } catch (Throwable t) {
-        request
-            .getSourceFrame()
-            .release(); // ok to release since flush was the last call and does not throw after
         // adding the item to the queue
         // JVMStabilityInspector.inspectThrowable(t); // TODO
         logger.error(

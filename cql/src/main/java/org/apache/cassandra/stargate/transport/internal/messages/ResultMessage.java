@@ -132,8 +132,7 @@ public class ResultMessage extends Message.Response {
             }
 
             ByteBuffer pagingState = null;
-            if (flags.contains(Result.Flag.HAS_MORE_PAGES))
-              pagingState = CBUtil.readValueNoCopy(body);
+            if (flags.contains(Result.Flag.HAS_MORE_PAGES)) pagingState = CBUtil.readValue(body);
 
             if (flags.contains(Result.Flag.NO_METADATA))
               return new Result.ResultMetadata(flags, columnCount, null, null, pagingState);

@@ -34,7 +34,6 @@ import io.stargate.db.schema.Schema;
 import io.stargate.graphql.web.HttpAwareContext;
 import io.stargate.graphql.web.HttpAwareContext.BatchContext;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -52,7 +51,6 @@ import org.mockito.junit.jupiter.MockitoSettings;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = LENIENT)
 public abstract class GraphQlTestBase {
-  private final String token = "mock token";
   protected GraphQL graphQl;
   protected GraphQLSchema graphQlSchema;
   @Mock protected AuthenticationService authenticationService;
@@ -74,8 +72,6 @@ public abstract class GraphQlTestBase {
     try {
       Schema schema = getCQLSchema();
       String roleName = "mock role name";
-      when(authenticationService.validateToken(token, Collections.emptyMap()))
-          .thenReturn(authenticationSubject);
       when(authenticationSubject.roleName()).thenReturn(roleName);
       when(authenticationSubject.asUser()).thenCallRealMethod();
       when(authorizationService.authorizedDataRead(
@@ -140,7 +136,7 @@ public abstract class GraphQlTestBase {
     // Use a dedicated batch executor per execution
     BatchContext batchContext = new BatchContext();
 
-    when(context.getAuthToken()).thenReturn(token);
+    when(context.getSubject()).thenReturn(authenticationSubject);
     when(context.getBatchContext()).thenReturn(batchContext);
     return graphQl.execute(ExecutionInput.newExecutionInput(query).context(context).build());
   }
