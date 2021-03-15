@@ -17,7 +17,7 @@ public class BaseCassandraTest {
   @BeforeAll
   public static void setup() throws IOException {
     if (!DatabaseDescriptor.isDaemonInitialized()) {
-      File baseDir = Files.createTempDirectory("stargate-dse-test").toFile();
+      File baseDir = Files.createTempDirectory("stargate-cassandra-3.11-test").toFile();
       baseDir.deleteOnExit();
       DatabaseDescriptor.daemonInitialization(
           () -> {
