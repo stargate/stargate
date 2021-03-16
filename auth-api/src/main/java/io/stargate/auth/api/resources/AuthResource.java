@@ -57,6 +57,8 @@ public class AuthResource {
       Integer.parseInt(System.getProperty("stargate.auth_tokenttl", "1800"));
   private final AuthenticationService authService;
   private final boolean shouldEnableUsernameToken;
+  private final CacheControl cacheControlNoStore = cacheControlNoStore();
+  private final CacheControl cacheControlWithMaxAge = cacheControlWithAge();
 
   @Inject
   public AuthResource(AuthenticationService authService) {
@@ -87,21 +89,21 @@ public class AuthResource {
     if (secret == null) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide a body to the request"))
-          .cacheControl(cacheControlNoStore())
+          .cacheControl(cacheControlNoStore)
           .build();
     }
 
     if (secret.getKey() == null || secret.getKey().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide key in request"))
-          .cacheControl(cacheControlNoStore())
+          .cacheControl(cacheControlNoStore)
           .build();
     }
 
     if (secret.getSecret() == null || secret.getSecret().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide secret in request"))
-          .cacheControl(cacheControlNoStore())
+          .cacheControl(cacheControlNoStore)
           .build();
     }
 
@@ -111,19 +113,19 @@ public class AuthResource {
     } catch (UnauthorizedException e) {
       return Response.status(Response.Status.UNAUTHORIZED)
           .entity(new Error("Failed to create token: " + e.getMessage()))
-          .cacheControl(cacheControlNoStore())
+          .cacheControl(cacheControlNoStore)
           .build();
     } catch (Exception e) {
       logger.error("Failed to create token", e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
           .entity(new Error("Failed to create token: " + e.getMessage()))
-          .cacheControl(cacheControlNoStore())
+          .cacheControl(cacheControlNoStore)
           .build();
     }
 
     return Response.status(Response.Status.CREATED)
         .entity(new AuthTokenResponse().authToken(token))
-        .cacheControl(cacheControlWithAge())
+        .cacheControl(cacheControlWithMaxAge)
         .build();
   }
 
@@ -147,21 +149,21 @@ public class AuthResource {
     if (credentials == null) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide a body to the request"))
-          .cacheControl(cacheControlNoStore())
+          .cacheControl(cacheControlNoStore)
           .build();
     }
 
     if (credentials.getUsername() == null || credentials.getUsername().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide username in request"))
-          .cacheControl(cacheControlNoStore())
+          .cacheControl(cacheControlNoStore)
           .build();
     }
 
     if (credentials.getPassword() == null || credentials.getPassword().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide password in request"))
-          .cacheControl(cacheControlNoStore())
+          .cacheControl(cacheControlNoStore)
           .build();
     }
 
@@ -173,19 +175,19 @@ public class AuthResource {
     } catch (UnauthorizedException e) {
       return Response.status(Response.Status.UNAUTHORIZED)
           .entity(new Error("Failed to create token: " + e.getMessage()))
-          .cacheControl(cacheControlNoStore())
+          .cacheControl(cacheControlNoStore)
           .build();
     } catch (Exception e) {
       logger.error("Failed to create token", e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
           .entity(new Error("Failed to create token: " + e.getMessage()))
-          .cacheControl(cacheControlNoStore())
+          .cacheControl(cacheControlNoStore)
           .build();
     }
 
     return Response.status(Response.Status.CREATED)
         .entity(new AuthTokenResponse().authToken(token))
-        .cacheControl(cacheControlWithAge())
+        .cacheControl(cacheControlWithMaxAge)
         .build();
   }
 
@@ -226,21 +228,21 @@ public class AuthResource {
     if (!shouldEnableUsernameToken) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Generating a token for a username is not allowed"))
-          .cacheControl(cacheControlNoStore())
+          .cacheControl(cacheControlNoStore)
           .build();
     }
 
     if (usernameCredentials == null) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide a body to the request"))
-          .cacheControl(cacheControlNoStore())
+          .cacheControl(cacheControlNoStore)
           .build();
     }
 
     if (usernameCredentials.getUsername() == null || usernameCredentials.getUsername().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide username in request"))
-          .cacheControl(cacheControlNoStore())
+          .cacheControl(cacheControlNoStore)
           .build();
     }
 
@@ -250,19 +252,19 @@ public class AuthResource {
     } catch (UnauthorizedException e) {
       return Response.status(Response.Status.UNAUTHORIZED)
           .entity(new Error("Failed to create token: " + e.getMessage()))
-          .cacheControl(cacheControlNoStore())
+          .cacheControl(cacheControlNoStore)
           .build();
     } catch (Exception e) {
       logger.error("Failed to create token", e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
           .entity(new Error("Failed to create token: " + e.getMessage()))
-          .cacheControl(cacheControlNoStore())
+          .cacheControl(cacheControlNoStore)
           .build();
     }
 
     return Response.status(Response.Status.CREATED)
         .entity(new AuthTokenResponse().authToken(token))
-        .cacheControl(cacheControlWithAge())
+        .cacheControl(cacheControlWithMaxAge)
         .build();
   }
 
