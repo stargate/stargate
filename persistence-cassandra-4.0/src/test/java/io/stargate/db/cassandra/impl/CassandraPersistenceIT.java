@@ -55,10 +55,9 @@ class CassandraPersistenceIT extends PersistenceTest {
 
   @AfterAll
   public static void cleanup() throws IOException {
-    // TODO: persistence.destroy() - it fails with a NPE in NativeTransportService.destroy ATM
-    //    if (persistence != null) {
-    //      persistence.destroy();
-    //    }
+    if (persistence != null) {
+      persistence.destroy();
+    }
   }
 
   @Override
