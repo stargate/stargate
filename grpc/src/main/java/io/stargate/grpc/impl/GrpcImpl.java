@@ -24,6 +24,8 @@ import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.SimpleStatement;
+import io.stargate.proto.QueryOuterClass.Query;
+import io.stargate.proto.QueryOuterClass.Result;
 import io.stargate.proto.StargateOuterClass.Request;
 import io.stargate.proto.StargateOuterClass.ResultSet;
 import java.io.IOException;
@@ -72,14 +74,16 @@ public class GrpcImpl {
   }
 
   private class StargateServer extends io.stargate.proto.StargateGrpc.StargateImplBase {
+
     @Override
-    public void query(Request request, StreamObserver<ResultSet> responseObserver) {
+    public void execute(Query request, StreamObserver<Result> responseObserver) {
       // TODO: Handle parameters and result set
       long queryStartNanoTime = System.nanoTime();
       Parameters parameters = ImmutableParameters.builder().build();
+      request.getParameters().getValues(0).
       persistence
           .newConnection()
-          .execute(new SimpleStatement(request.getQuery()), parameters, queryStartNanoTime)
+          .execute(new SimpleStatement(query.getQuery()), parameters, queryStartNanoTime)
           .whenComplete(
               (r, t) -> {
                 if (t != null) {

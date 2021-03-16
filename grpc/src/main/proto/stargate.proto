@@ -4,13 +4,12 @@ option java_package = "io.stargate.proto";
 
 package stargate;
 
+import "query.proto";
+
 service Stargate {
-  rpc Query(Request) returns (ResultSet) {}
+  rpc Execute(Query) returns (Result) {}
+  rpc ExecutePrepared(Bound) returns (Result) {}
+  rpc ExecuteBatch(Batch) returns (Result) {}
+  rpc PrepareQuery(Prepare) returns (PrepareResult) {}
 }
 
-message Request {
-  string query = 1;
-}
-
-message ResultSet {
-}
