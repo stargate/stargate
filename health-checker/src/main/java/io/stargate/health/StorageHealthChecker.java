@@ -39,12 +39,16 @@ public class StorageHealthChecker extends HealthCheck {
       Boolean.parseBoolean(
           System.getProperty("stargate.health_check.data_store.create_ks_and_table", "true"));
   private static final String KEYSPACE_NAME =
-      System.getProperty("stargate.health_check.keyspace_name", "data_store_health_check");
+      System.getProperty(
+          "stargate.health_check.data_store.keyspace_name", "data_store_health_check");
   private static final String TABLE_NAME =
-      System.getProperty("stargate.health_check.table_name", "health_table");
+      System.getProperty("stargate.health_check.data_store.table_name", "health_table");
   private static final int INSERT_TTL_SECONDS = 600;
   private static final boolean STORAGE_CHECK_ENABLED =
       Boolean.parseBoolean(System.getProperty("stargate.health_check.data_store.enabled", "true"));
+  private static final int REPLICATION_FACTOR =
+      Integer.parseInt(
+          System.getProperty("stargate.health_check.data_store.replication_factor", "1"));
 
   private static final String PK_COLUMN_NAME = "pk";
   private static final String VALUE_COLUMN_NAME = "value";
@@ -137,7 +141,7 @@ public class StorageHealthChecker extends HealthCheck {
                 .create()
                 .keyspace(KEYSPACE_NAME)
                 .ifNotExists()
-                .withReplication(Replication.simpleStrategy(1))
+                .withReplication(Replication.simpleStrategy(REPLICATION_FACTOR))
                 .build()
                 .bind())
         .get();
