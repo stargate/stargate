@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
-import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
@@ -36,6 +35,7 @@ class CassandraPersistenceIT extends PersistenceTest {
   @BeforeAll
   public static void createPersistence(ClusterConnectionInfo backend) throws IOException {
     baseDir = Files.createTempDirectory("stargate-cassandra-3.11-test").toFile();
+    baseDir.deleteOnExit();
 
     System.setProperty("stargate.listen_address", "127.0.0.11");
     System.setProperty("stargate.cluster_name", backend.clusterName());
@@ -59,8 +59,6 @@ class CassandraPersistenceIT extends PersistenceTest {
     //    if (persistence != null) {
     //      persistence.destroy();
     //    }
-
-    FileUtils.deleteDirectory(baseDir);
   }
 
   @Override
