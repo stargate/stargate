@@ -35,6 +35,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -52,6 +53,8 @@ public class AuthResource {
 
   private static final Logger logger = LoggerFactory.getLogger(AuthResource.class);
 
+  private static final int tokenMaxAge =
+      Integer.parseInt(System.getProperty("stargate.auth_tokenttl", "1800"));
   private final AuthenticationService authService;
   private final boolean shouldEnableUsernameToken;
 
@@ -84,18 +87,21 @@ public class AuthResource {
     if (secret == null) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide a body to the request"))
+          .cacheControl(cacheControlNoCache())
           .build();
     }
 
     if (secret.getKey() == null || secret.getKey().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide key in request"))
+          .cacheControl(cacheControlNoCache())
           .build();
     }
 
     if (secret.getSecret() == null || secret.getSecret().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide secret in request"))
+          .cacheControl(cacheControlNoCache())
           .build();
     }
 
@@ -105,16 +111,19 @@ public class AuthResource {
     } catch (UnauthorizedException e) {
       return Response.status(Response.Status.UNAUTHORIZED)
           .entity(new Error("Failed to create token: " + e.getMessage()))
+          .cacheControl(cacheControlNoCache())
           .build();
     } catch (Exception e) {
       logger.error("Failed to create token", e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
           .entity(new Error("Failed to create token: " + e.getMessage()))
+          .cacheControl(cacheControlNoCache())
           .build();
     }
 
     return Response.status(Response.Status.CREATED)
         .entity(new AuthTokenResponse().authToken(token))
+        .cacheControl(cacheControlWithAge())
         .build();
   }
 
@@ -138,18 +147,21 @@ public class AuthResource {
     if (credentials == null) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide a body to the request"))
+          .cacheControl(cacheControlNoCache())
           .build();
     }
 
     if (credentials.getUsername() == null || credentials.getUsername().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide username in request"))
+          .cacheControl(cacheControlNoCache())
           .build();
     }
 
     if (credentials.getPassword() == null || credentials.getPassword().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide password in request"))
+          .cacheControl(cacheControlNoCache())
           .build();
     }
 
@@ -161,16 +173,19 @@ public class AuthResource {
     } catch (UnauthorizedException e) {
       return Response.status(Response.Status.UNAUTHORIZED)
           .entity(new Error("Failed to create token: " + e.getMessage()))
+          .cacheControl(cacheControlNoCache())
           .build();
     } catch (Exception e) {
       logger.error("Failed to create token", e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
           .entity(new Error("Failed to create token: " + e.getMessage()))
+          .cacheControl(cacheControlNoCache())
           .build();
     }
 
     return Response.status(Response.Status.CREATED)
         .entity(new AuthTokenResponse().authToken(token))
+        .cacheControl(cacheControlWithAge())
         .build();
   }
 
@@ -211,18 +226,21 @@ public class AuthResource {
     if (!shouldEnableUsernameToken) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Generating a token for a username is not allowed"))
+          .cacheControl(cacheControlNoCache())
           .build();
     }
 
     if (usernameCredentials == null) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide a body to the request"))
+          .cacheControl(cacheControlNoCache())
           .build();
     }
 
     if (usernameCredentials.getUsername() == null || usernameCredentials.getUsername().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(new Error("Must provide username in request"))
+          .cacheControl(cacheControlNoCache())
           .build();
     }
 
@@ -232,16 +250,50 @@ public class AuthResource {
     } catch (UnauthorizedException e) {
       return Response.status(Response.Status.UNAUTHORIZED)
           .entity(new Error("Failed to create token: " + e.getMessage()))
+          .cacheControl(cacheControlNoCache())
           .build();
     } catch (Exception e) {
       logger.error("Failed to create token", e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
           .entity(new Error("Failed to create token: " + e.getMessage()))
+          .cacheControl(cacheControlNoCache())
           .build();
     }
 
     return Response.status(Response.Status.CREATED)
         .entity(new AuthTokenResponse().authToken(token))
+        .cacheControl(cacheControlWithAge())
         .build();
+  }
+
+  /**
+   * Used to create a Cache-Control header containing the proper values for the token's max-age and
+   * s-maxage as defined by {@code stargate.auth_tokenttl}. If the property is not set then the
+   * default value of 1800 will be used.
+   *
+   * @return A {@link CacheControl} object which is converted into a Cache-Control header with
+   *     proper directives.
+   */
+  private CacheControl cacheControlWithAge() {
+    CacheControl cacheControl = new CacheControl();
+    cacheControl.setMaxAge(tokenMaxAge);
+    cacheControl.setSMaxAge(tokenMaxAge);
+
+    return cacheControl;
+  }
+
+  /**
+   * Used to create a Cache-Control header that will indicate the response should not be cached.
+   * This is intended to be used in the event of a failure to authenticate.
+   *
+   * @return A {@link CacheControl} object denoting the response should not be cached.
+   */
+  private CacheControl cacheControlNoCache() {
+    CacheControl cacheControl = new CacheControl();
+    cacheControl.setMaxAge(0);
+    cacheControl.setSMaxAge(0);
+    cacheControl.setNoStore(true);
+
+    return cacheControl;
   }
 }
