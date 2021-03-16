@@ -2,7 +2,6 @@ package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
 import com.google.common.collect.ImmutableList;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
@@ -29,10 +28,9 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
   protected DmlFetcher(
       Table table,
       NameMapping nameMapping,
-      AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(authenticationService, authorizationService, dataStoreFactory);
+    super(authorizationService, dataStoreFactory);
     this.table = table;
     this.nameMapping = nameMapping;
   }

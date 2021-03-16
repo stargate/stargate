@@ -148,6 +148,9 @@ public class Conversion {
                   && ct != Column.Type.List
                   && ct != Column.Type.Map
                   && ct != Column.Type.Set
+                  && ct != Column.Type.Point
+                  && ct != Column.Type.Polygon
+                  && ct != Column.Type.LineString
                   && ct != Column.Type.UDT) {
                 types.put(ColumnUtils.toInternalType(ct).getClass(), ct);
               }

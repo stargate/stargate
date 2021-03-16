@@ -19,7 +19,9 @@
 
 package org.apache.cassandra.stargate.metrics;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import io.netty.buffer.ByteBufAllocatorMetricProvider;
@@ -49,11 +51,22 @@ public final class ClientMetrics {
 
   private Meter authSuccess;
   private Meter authFailure;
+  private Meter authError;
 
   private AtomicInteger pausedConnections;
   private Meter requestDiscarded;
+  private Meter requestsProcessed;
+
+  private Counter totalBytesRead;
+  private Counter totalBytesWritten;
+  private Histogram bytesReceivedPerFrame;
+  private Histogram bytesTransmittedPerFrame;
 
   private ClientMetrics() {}
+
+  public void markRequestProcessed() {
+    requestsProcessed.mark();
+  }
 
   public void markAuthSuccess() {
     authSuccess.mark();
@@ -61,6 +74,10 @@ public final class ClientMetrics {
 
   public void markAuthFailure() {
     authFailure.mark();
+  }
+
+  public void markAuthError() {
+    authError.mark();
   }
 
   public void pauseConnection() {
@@ -73,6 +90,22 @@ public final class ClientMetrics {
 
   public void markRequestDiscarded() {
     requestDiscarded.mark();
+  }
+
+  public Counter getTotalBytesRead() {
+    return totalBytesRead;
+  }
+
+  public Counter getTotalBytesWritten() {
+    return totalBytesWritten;
+  }
+
+  public Histogram getBytesReceivedPerFrame() {
+    return bytesReceivedPerFrame;
+  }
+
+  public Histogram getBytesTransmittedPerFrame() {
+    return bytesTransmittedPerFrame;
   }
 
   public List<ConnectedClient> allConnectedClients() {
@@ -99,10 +132,18 @@ public final class ClientMetrics {
 
     authSuccess = registerMeter("AuthSuccess");
     authFailure = registerMeter("AuthFailure");
+    authError = registerMeter("AuthError");
 
     pausedConnections = new AtomicInteger();
     registerGauge("PausedConnections", pausedConnections::get);
     requestDiscarded = registerMeter("RequestDiscarded");
+    requestsProcessed = registerMeter("RequestsProcessed");
+
+    totalBytesRead = registerCounter("TotalBytesRead");
+    totalBytesWritten = registerCounter("TotalBytesWritten");
+
+    bytesReceivedPerFrame = registerHistogram("BytesReceivedPerFrame");
+    bytesTransmittedPerFrame = registerHistogram("BytesTransmittedPerFrame");
 
     initialized = true;
   }
@@ -164,6 +205,14 @@ public final class ClientMetrics {
 
   private <T> Gauge<T> registerGauge(String name, Gauge<T> gauge) {
     return metricRegistry.register(factory.createMetricName(name).getMetricName(), gauge);
+  }
+
+  private Histogram registerHistogram(String name) {
+    return metricRegistry.histogram(factory.createMetricName(name).getMetricName());
+  }
+
+  private Counter registerCounter(String name) {
+    return metricRegistry.counter(factory.createMetricName(name).getMetricName());
   }
 
   private Meter registerMeter(String name) {

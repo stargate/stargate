@@ -17,7 +17,6 @@ package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
 import com.google.common.base.Preconditions;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -41,10 +40,9 @@ public class InsertMutationFetcher extends MutationFetcher {
   public InsertMutationFetcher(
       Table table,
       NameMapping nameMapping,
-      AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
-    super(table, nameMapping, authenticationService, authorizationService, dataStoreFactory);
+    super(table, nameMapping, authorizationService, dataStoreFactory);
   }
 
   @Override

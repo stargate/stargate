@@ -15,9 +15,11 @@
  */
 package io.stargate.graphql.web;
 
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
+import io.stargate.graphql.web.resources.AuthenticationFilter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +30,8 @@ import javax.servlet.http.HttpServletRequest;
 
 public class HttpAwareContext {
 
-  private HttpServletRequest request;
+  private final HttpServletRequest request;
+  private final AuthenticationSubject subject;
 
   // We need to manually maintain state between multiple selections in a single mutation
   // operation to execute them as a batch.
@@ -40,10 +43,15 @@ public class HttpAwareContext {
 
   public HttpAwareContext(HttpServletRequest request) {
     this.request = request;
+    this.subject = (AuthenticationSubject) request.getAttribute(AuthenticationFilter.SUBJECT_KEY);
+    if (this.subject == null) {
+      // This happens if a GraphQL resource is not annotated with @Authenticated
+      throw new AssertionError("Missing authentication subject in the request");
+    }
   }
 
-  public String getAuthToken() {
-    return request.getHeader("X-Cassandra-Token");
+  public AuthenticationSubject getSubject() {
+    return subject;
   }
 
   public Map<String, String> getAllHeaders() {

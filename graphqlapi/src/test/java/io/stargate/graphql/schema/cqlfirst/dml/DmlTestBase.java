@@ -17,10 +17,7 @@ public abstract class DmlTestBase extends GraphQlTestBase {
   @Override
   protected GraphQLSchema createGraphQlSchema() {
     return SchemaFactory.newDmlSchema(
-        authenticationService,
-        authorizationService,
-        getCQLSchema().keyspaces().iterator().next(),
-        dataStoreFactory);
+        authorizationService, getCQLSchema().keyspaces().iterator().next(), dataStoreFactory);
   }
 
   /** Creates a basic row suitable for faking result sets. */

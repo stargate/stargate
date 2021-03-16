@@ -171,19 +171,27 @@ public class Converters {
     return cqlValue;
   }
 
-  public static BuiltCondition idToWhere(String val, String column, Table tableData) {
-    Column.ColumnType type = tableData.column(column).type();
+  public static BuiltCondition idToWhere(String val, String name, Table tableData) {
+    Column column = tableData.column(name);
+    if (column == null) {
+      throw new IllegalArgumentException(String.format("Unknown field name '%s'.", name));
+    }
+    Column.ColumnType type = column.type();
     Object value = val;
 
     if (type != null) {
       value = toCqlValue(type, val);
     }
 
-    return BuiltCondition.of(column.toLowerCase(), Predicate.EQ, value);
+    return BuiltCondition.of(name.toLowerCase(), Predicate.EQ, value);
   }
 
   public static ValueModifier colToValue(String name, Object value, Table tableData) {
-    Column.ColumnType type = tableData.column(name).type();
+    Column column = tableData.column(name);
+    if (column == null) {
+      throw new IllegalArgumentException(String.format("Unknown field name '%s'.", name));
+    }
+    Column.ColumnType type = column.type();
     Object valueObj = value;
 
     if (type != null) {

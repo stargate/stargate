@@ -30,7 +30,6 @@ import graphql.schema.GraphQLOutputType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeReference;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.schema.cqlfirst.ddl.fetchers.AllKeyspacesFetcher;
@@ -51,16 +50,12 @@ public class DdlSchemaBuilder {
 
   private final HashMap<String, GraphQLType> objects;
   private final DataStoreFactory dataStoreFactory;
-  private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
 
   public DdlSchemaBuilder(
-      AuthenticationService authenticationService,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
+      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
     this.dataStoreFactory = dataStoreFactory;
     this.objects = new HashMap<>();
-    this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
   }
 
@@ -92,8 +87,7 @@ public class DdlSchemaBuilder {
         .argument(
             GraphQLArgument.newArgument().name("toAdd").type(nonNull(list(buildColumnInput()))))
         .type(Scalars.GraphQLBoolean)
-        .dataFetcher(
-            new AlterTableAddFetcher(authenticationService, authorizationService, dataStoreFactory))
+        .dataFetcher(new AlterTableAddFetcher(authorizationService, dataStoreFactory))
         .build();
   }
 
@@ -107,9 +101,7 @@ public class DdlSchemaBuilder {
         .argument(
             GraphQLArgument.newArgument().name("toDrop").type(nonNull(list(Scalars.GraphQLString))))
         .type(Scalars.GraphQLBoolean)
-        .dataFetcher(
-            new AlterTableDropFetcher(
-                authenticationService, authorizationService, dataStoreFactory))
+        .dataFetcher(new AlterTableDropFetcher(authorizationService, dataStoreFactory))
         .build();
   }
 
@@ -122,8 +114,7 @@ public class DdlSchemaBuilder {
             GraphQLArgument.newArgument().name("tableName").type(nonNull(Scalars.GraphQLString)))
         .argument(GraphQLArgument.newArgument().name("ifExists").type(Scalars.GraphQLBoolean))
         .type(Scalars.GraphQLBoolean)
-        .dataFetcher(
-            new DropTableFetcher(authenticationService, authorizationService, dataStoreFactory))
+        .dataFetcher(new DropTableFetcher(authorizationService, dataStoreFactory))
         .build();
   }
 
@@ -138,8 +129,7 @@ public class DdlSchemaBuilder {
             GraphQLArgument.newArgument().name("fields").type(nonNull(list(buildColumnInput()))))
         .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
         .type(Scalars.GraphQLBoolean)
-        .dataFetcher(
-            new CreateTypeFetcher(authenticationService, authorizationService, dataStoreFactory))
+        .dataFetcher(new CreateTypeFetcher(authorizationService, dataStoreFactory))
         .build();
   }
 
@@ -152,8 +142,7 @@ public class DdlSchemaBuilder {
             GraphQLArgument.newArgument().name("typeName").type(nonNull(Scalars.GraphQLString)))
         .argument(GraphQLArgument.newArgument().name("ifExists").type(Scalars.GraphQLBoolean))
         .type(Scalars.GraphQLBoolean)
-        .dataFetcher(
-            new DropTypeFetcher(authenticationService, authorizationService, dataStoreFactory))
+        .dataFetcher(new DropTypeFetcher(authorizationService, dataStoreFactory))
         .build();
   }
 
@@ -190,9 +179,7 @@ public class DdlSchemaBuilder {
                         + "You must specify either this or 'replicas', but not both.")
                 .build())
         .type(Scalars.GraphQLBoolean)
-        .dataFetcher(
-            new CreateKeyspaceFetcher(
-                authenticationService, authorizationService, dataStoreFactory))
+        .dataFetcher(new CreateKeyspaceFetcher(authorizationService, dataStoreFactory))
         .build();
   }
 
@@ -213,8 +200,7 @@ public class DdlSchemaBuilder {
                     "Whether the operation will succeed if the keyspace does not exist. "
                         + "Defaults to false if absent."))
         .type(Scalars.GraphQLBoolean)
-        .dataFetcher(
-            new DropKeyspaceFetcher(authenticationService, authorizationService, dataStoreFactory))
+        .dataFetcher(new DropKeyspaceFetcher(authorizationService, dataStoreFactory))
         .build();
   }
 
@@ -231,9 +217,7 @@ public class DdlSchemaBuilder {
         .name("keyspace")
         .argument(GraphQLArgument.newArgument().name("name").type(nonNull(Scalars.GraphQLString)))
         .type(buildKeyspace())
-        .dataFetcher(
-            new SingleKeyspaceFetcher(
-                authenticationService, authorizationService, dataStoreFactory))
+        .dataFetcher(new SingleKeyspaceFetcher(authorizationService, dataStoreFactory))
         .build();
   }
 
@@ -421,8 +405,7 @@ public class DdlSchemaBuilder {
     return GraphQLFieldDefinition.newFieldDefinition()
         .name("keyspaces")
         .type(list(buildKeyspace()))
-        .dataFetcher(
-            new AllKeyspacesFetcher(authenticationService, authorizationService, dataStoreFactory))
+        .dataFetcher(new AllKeyspacesFetcher(authorizationService, dataStoreFactory))
         .build();
   }
 
@@ -452,8 +435,7 @@ public class DdlSchemaBuilder {
         .argument(GraphQLArgument.newArgument().name("values").type(list(buildColumnInput())))
         .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
         .type(Scalars.GraphQLBoolean)
-        .dataFetcher(
-            new CreateTableFetcher(authenticationService, authorizationService, dataStoreFactory))
+        .dataFetcher(new CreateTableFetcher(authorizationService, dataStoreFactory))
         .build();
   }
 
@@ -485,8 +467,7 @@ public class DdlSchemaBuilder {
                         + " FULL (full index of a frozen collection)")
                 .type(buildIndexKind()))
         .type(Scalars.GraphQLBoolean)
-        .dataFetcher(
-            new CreateIndexFetcher(authenticationService, authorizationService, dataStoreFactory))
+        .dataFetcher(new CreateIndexFetcher(authorizationService, dataStoreFactory))
         .build();
   }
 
@@ -499,8 +480,7 @@ public class DdlSchemaBuilder {
             GraphQLArgument.newArgument().name("indexName").type(nonNull(Scalars.GraphQLString)))
         .argument(GraphQLArgument.newArgument().name("ifExists").type(Scalars.GraphQLBoolean))
         .type(Scalars.GraphQLBoolean)
-        .dataFetcher(
-            new DropIndexFetcher(authenticationService, authorizationService, dataStoreFactory))
+        .dataFetcher(new DropIndexFetcher(authorizationService, dataStoreFactory))
         .build();
   }
 
