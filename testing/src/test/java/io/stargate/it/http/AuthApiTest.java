@@ -110,7 +110,7 @@ public class AuthApiTest extends BaseOsgiIntegrationTest {
             HttpStatus.SC_CREATED);
 
     assertThat(response.header("Cache-Control"))
-        .isEqualTo("no-transform, max-age=1800, s-maxage=1800");
+        .isEqualTo("no-transform, max-age=1790, s-maxage=1790");
   }
 
   @Test
@@ -188,7 +188,7 @@ public class AuthApiTest extends BaseOsgiIntegrationTest {
             HttpStatus.SC_CREATED);
 
     assertThat(response.header("Cache-Control"))
-        .isEqualTo("no-transform, max-age=1800, s-maxage=1800");
+        .isEqualTo("no-transform, max-age=1790, s-maxage=1790");
   }
 
   @Test
@@ -254,7 +254,7 @@ public class AuthApiTest extends BaseOsgiIntegrationTest {
             HttpStatus.SC_CREATED);
 
     assertThat(response.header("Cache-Control"))
-        .isEqualTo("no-transform, max-age=1800, s-maxage=1800");
+        .isEqualTo("no-transform, max-age=1790, s-maxage=1790");
   }
 
   @Test
