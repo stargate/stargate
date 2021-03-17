@@ -12,4 +12,3 @@ service Stargate {
   rpc ExecuteBatch(Batch) returns (Result) {}
   rpc PrepareQuery(Prepare) returns (PrepareResult) {}
 }
-

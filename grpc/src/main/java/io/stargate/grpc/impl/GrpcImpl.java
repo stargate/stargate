@@ -24,10 +24,9 @@ import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.SimpleStatement;
+import io.stargate.proto.QueryOuterClass.Empty;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Result;
-import io.stargate.proto.StargateOuterClass.Request;
-import io.stargate.proto.StargateOuterClass.ResultSet;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import org.slf4j.Logger;
@@ -76,20 +75,20 @@ public class GrpcImpl {
   private class StargateServer extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
     @Override
-    public void execute(Query request, StreamObserver<Result> responseObserver) {
+    public void execute(Query query, StreamObserver<Result> responseObserver) {
       // TODO: Handle parameters and result set
       long queryStartNanoTime = System.nanoTime();
       Parameters parameters = ImmutableParameters.builder().build();
-      request.getParameters().getValues(0).
       persistence
           .newConnection()
-          .execute(new SimpleStatement(query.getQuery()), parameters, queryStartNanoTime)
+          .execute(new SimpleStatement(query.getCql()), parameters, queryStartNanoTime)
           .whenComplete(
               (r, t) -> {
                 if (t != null) {
                   responseObserver.onError(t);
                 } else {
-                  responseObserver.onNext(ResultSet.newBuilder().build());
+                  responseObserver.onNext(
+                      Result.newBuilder().setEmpty(Empty.newBuilder().build()).build());
                   responseObserver.onCompleted();
                 }
               });

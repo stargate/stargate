@@ -34,6 +34,7 @@ message UdtValue {
   map<string, Value> fields = 1;
 }
 
+/*
 message Value {
   message Null { }
   oneof inner {
@@ -50,8 +51,8 @@ message Value {
     UdtValue udt = 11; // udt
   }
 }
+ */
 
-/*
 message Value {
   message Null { }
   oneof inner {
@@ -59,13 +60,10 @@ message Value {
     bytes payload = 2;
   }
 }
-*/
 
-message QueryParameters {
-  // ...
-  repeated Value values = 2;
-  repeated string value_names = 3;
-  // ...
+message Query {
+  string cql = 1;
+  QueryParameters parameters = 2;
 }
 
 message QueryParameters {
@@ -82,10 +80,6 @@ message QueryParameters {
   int32 now_in_seconds = 11;
 }
 
-message Query {
-  string cql = 1;
-  QueryParameters parameters = 2;
-}
 
 message Bound {
   bytes id = 1;
