@@ -120,6 +120,9 @@ public class NamespaceResource extends GraphqlResourceBase {
                 namespace),
             asyncResponse);
         return null;
+      } else if (!isAuthorized(request, namespace)) {
+        replyWithGraphqlError(Response.Status.UNAUTHORIZED, "Not authorized", asyncResponse);
+        return null;
       } else {
         return graphql;
       }
