@@ -16,16 +16,10 @@
 package io.stargate.graphql.web.resources.cqlfirst;
 
 import graphql.GraphQL;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.SourceAPI;
-import io.stargate.auth.UnauthorizedException;
 import io.stargate.graphql.web.RequestToHeadersMapper;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
 import io.stargate.graphql.web.resources.Authenticated;
-import io.stargate.graphql.web.resources.AuthenticationFilter;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
-import java.util.Collections;
 import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -54,7 +48,6 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
   private static final Pattern KEYSPACE_NAME_PATTERN = Pattern.compile("\\w+");
 
   @Inject private GraphqlCache graphqlCache;
-  @Inject private AuthorizationService authorizationService;
 
   @GET
   public void get(
@@ -182,21 +175,6 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       return null;
     } else {
       return graphql;
-    }
-  }
-
-  private boolean isAuthorized(HttpServletRequest httpRequest, String keyspaceName) {
-    AuthenticationSubject subject =
-        (AuthenticationSubject) httpRequest.getAttribute(AuthenticationFilter.SUBJECT_KEY);
-    try {
-      authorizationService.authorizeSchemaRead(
-          subject,
-          Collections.singletonList(keyspaceName),
-          Collections.emptyList(),
-          SourceAPI.GRAPHQL);
-      return true;
-    } catch (UnauthorizedException e) {
-      return false;
     }
   }
 }
