@@ -27,6 +27,8 @@ import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.GetResponseWrapper;
+import io.stargate.web.models.IndexAdd;
+import io.stargate.web.models.IndexKind;
 import io.stargate.web.models.Keyspace;
 import io.stargate.web.models.PrimaryKey;
 import io.stargate.web.models.ResponseWrapper;
@@ -362,6 +364,149 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         authToken,
         String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s", host, keyspaceName, tableName),
         HttpStatus.SC_NO_CONTENT);
+  }
+
+  @Test
+  public void createIndex() throws IOException {
+    createKeyspace(keyspaceName);
+    String tableName = "tbl_createtable_" + System.currentTimeMillis();
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "firstName text", "email list<text>"),
+        Collections.singletonList("id"),
+        null);
+
+    IndexAdd indexAdd = new IndexAdd();
+    indexAdd.setTable(tableName);
+    indexAdd.setColumn("firstName");
+    indexAdd.setName("test_idx");
+    indexAdd.setIfNotExists(false);
+
+    String body =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspaceName),
+            objectMapper.writeValueAsString(indexAdd),
+            HttpStatus.SC_CREATED);
+    SuccessResponse successResponse =
+        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
+    assertThat(successResponse.getSuccess()).isTrue();
+
+    // don't create and index if it already exists and don't throw error
+    indexAdd.setIfNotExists(true);
+    body =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspaceName),
+            objectMapper.writeValueAsString(indexAdd),
+            HttpStatus.SC_CREATED);
+    successResponse = objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
+    assertThat(successResponse.getSuccess()).isTrue();
+
+    // throw error if index already exists
+    indexAdd.setIfNotExists(false);
+    body =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspaceName),
+            objectMapper.writeValueAsString(indexAdd),
+            HttpStatus.SC_BAD_REQUEST);
+
+    Error response = objectMapper.readValue(body, Error.class);
+    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(response.getDescription())
+        .isEqualTo("Bad request: An index named test_idx already exists");
+
+    // index a collection
+    indexAdd.setColumn("email");
+    indexAdd.setName(null);
+    indexAdd.setKind(IndexKind.VALUES);
+    body =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspaceName),
+            objectMapper.writeValueAsString(indexAdd),
+            HttpStatus.SC_CREATED);
+    successResponse = objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
+    assertThat(successResponse.getSuccess()).isTrue();
+  }
+
+  @Test
+  public void createInvalidIndex() throws IOException {
+    createKeyspace(keyspaceName);
+    String tableName = "tbl_createtable_" + System.currentTimeMillis();
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "firstName text", "email list<text>"),
+        Collections.singletonList("id"),
+        null);
+
+    // invalid table
+    IndexAdd indexAdd = new IndexAdd();
+    indexAdd.setTable("invalid_table");
+    indexAdd.setColumn("firstName");
+    String body =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspaceName),
+            objectMapper.writeValueAsString(indexAdd),
+            HttpStatus.SC_NOT_FOUND);
+    Error response = objectMapper.readValue(body, Error.class);
+    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
+    assertThat(response.getDescription()).isEqualTo("Table 'invalid_table' not found in keyspace.");
+
+    // invalid column
+    indexAdd.setTable(tableName);
+    indexAdd.setColumn("invalid_column");
+    body =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspaceName),
+            objectMapper.writeValueAsString(indexAdd),
+            HttpStatus.SC_NOT_FOUND);
+
+    response = objectMapper.readValue(body, Error.class);
+    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
+    assertThat(response.getDescription()).isEqualTo("Column 'invalid_column' not found in table.");
+
+    // invalid index kind
+    indexAdd.setTable(tableName);
+    indexAdd.setColumn("firstName");
+    indexAdd.setKind(IndexKind.ENTRIES);
+    body =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspaceName),
+            objectMapper.writeValueAsString(indexAdd),
+            HttpStatus.SC_BAD_REQUEST);
+
+    response = objectMapper.readValue(body, Error.class);
+    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(response.getDescription())
+        .isEqualTo("Bad request: Indexing entries can only be used with a map");
+  }
+
+  @Test
+  public void dropIndex() throws IOException {
+    createKeyspace(keyspaceName);
+    createIndex();
+
+    String indexName = "test_idx";
+    RestUtils.delete(
+        authToken,
+        String.format("%s:8082/v1/keyspaces/%s/indexes/%s", host, keyspaceName, indexName),
+        HttpStatus.SC_NO_CONTENT);
+
+    indexName = "invalid_idx";
+    String body =
+        RestUtils.delete(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/indexes/%s", host, keyspaceName, indexName),
+            HttpStatus.SC_BAD_REQUEST);
+
+    Error response = objectMapper.readValue(body, Error.class);
+    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(response.getDescription()).isEqualTo("Index 'invalid_idx' not found");
   }
 
   @Test

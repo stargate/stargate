@@ -37,6 +37,7 @@ import io.stargate.web.docsapi.resources.NamespacesResource;
 import io.stargate.web.resources.ColumnResource;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.HealthResource;
+import io.stargate.web.resources.IndexResource;
 import io.stargate.web.resources.KeyspaceResource;
 import io.stargate.web.resources.RowResource;
 import io.stargate.web.resources.TableResource;
@@ -119,6 +120,7 @@ public class Server extends Application<ApplicationConfiguration> {
     environment.jersey().register(TableResource.class);
     environment.jersey().register(RowResource.class);
     environment.jersey().register(ColumnResource.class);
+    environment.jersey().register(IndexResource.class);
     environment.jersey().register(HealthResource.class);
     environment.jersey().register(RowsResource.class);
     environment.jersey().register(TablesResource.class);
