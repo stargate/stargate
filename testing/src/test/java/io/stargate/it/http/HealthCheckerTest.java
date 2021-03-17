@@ -22,6 +22,10 @@ public class HealthCheckerTest extends BaseOsgiIntegrationTest {
 
   private static String host;
 
+  static {
+    System.setProperty("stargate.health_check.data_store.enabled", "true");
+  }
+
   @BeforeAll
   public static void setup(StargateConnectionInfo cluster) {
     host = "http://" + cluster.seedAddress();

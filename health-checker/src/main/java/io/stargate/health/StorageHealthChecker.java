@@ -45,7 +45,7 @@ public class StorageHealthChecker extends HealthCheck {
       System.getProperty("stargate.health_check.data_store.table_name", "health_table");
   private static final int INSERT_TTL_SECONDS = 600;
   private static final boolean STORAGE_CHECK_ENABLED =
-      Boolean.parseBoolean(System.getProperty("stargate.health_check.data_store.enabled", "true"));
+      Boolean.parseBoolean(System.getProperty("stargate.health_check.data_store.enabled", "false"));
   private static final int REPLICATION_FACTOR =
       Integer.parseInt(
           System.getProperty("stargate.health_check.data_store.replication_factor", "1"));
