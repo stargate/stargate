@@ -28,8 +28,20 @@ import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
-import io.stargate.web.models.*;
-import io.stargate.web.models.Error;
+import io.stargate.web.models.Changeset;
+import io.stargate.web.models.ColumnDefinition;
+import io.stargate.web.models.ColumnModel;
+import io.stargate.web.models.Filter;
+import io.stargate.web.models.PrimaryKey;
+import io.stargate.web.models.Query;
+import io.stargate.web.models.RowAdd;
+import io.stargate.web.models.RowResponse;
+import io.stargate.web.models.RowUpdate;
+import io.stargate.web.models.Rows;
+import io.stargate.web.models.RowsResponse;
+import io.stargate.web.models.SuccessResponse;
+import io.stargate.web.models.TableAdd;
+import io.stargate.web.models.TableResponse;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -264,116 +276,6 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     SuccessResponse successResponse =
         objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
     assertThat(successResponse.getSuccess()).isTrue();
-  }
-
-  @Test
-  public void createIndex() throws IOException {
-    String tableName = "tbl_createtable_" + System.currentTimeMillis();
-    createTable(tableName);
-
-    IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setTable(tableName);
-    indexAdd.setColumn("firstName");
-    indexAdd.setName("test_idx");
-    indexAdd.setIfNotExists(false);
-
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspace),
-            objectMapper.writeValueAsString(indexAdd),
-            HttpStatus.SC_CREATED);
-
-    SuccessResponse successResponse =
-        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
-    assertThat(successResponse.getSuccess()).isTrue();
-
-    // don't create and index if it already exists and don't throw error
-    indexAdd.setIfNotExists(true);
-
-    body =
-        RestUtils.post(
-            authToken,
-            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspace),
-            objectMapper.writeValueAsString(indexAdd),
-            HttpStatus.SC_CREATED);
-
-    successResponse = objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
-    assertThat(successResponse.getSuccess()).isTrue();
-
-    // throw an error if index already exists
-    indexAdd.setIfNotExists(false);
-
-    body =
-        RestUtils.post(
-            authToken,
-            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspace),
-            objectMapper.writeValueAsString(indexAdd),
-            HttpStatus.SC_BAD_REQUEST);
-
-    Error response = objectMapper.readValue(body, Error.class);
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription())
-        .isEqualTo("Bad request: An index named test_idx already exists");
-  }
-
-  @Test
-  public void createInvalidIndex() throws IOException {
-    String tableName = "tbl_createtable_" + System.currentTimeMillis();
-    createTable(tableName);
-
-    // invalid table
-    IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setTable("invalid_table");
-    indexAdd.setColumn("firstName");
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspace),
-            objectMapper.writeValueAsString(indexAdd),
-            HttpStatus.SC_NOT_FOUND);
-    Error response = objectMapper.readValue(body, Error.class);
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
-    assertThat(response.getDescription()).isEqualTo("Table 'invalid_table' not found in keyspace.");
-
-    // invalid column
-    indexAdd.setTable(tableName);
-    indexAdd.setColumn("invalid_column");
-    body =
-        RestUtils.post(
-            authToken,
-            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspace),
-            objectMapper.writeValueAsString(indexAdd),
-            HttpStatus.SC_NOT_FOUND);
-
-    response = objectMapper.readValue(body, Error.class);
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
-    assertThat(response.getDescription()).isEqualTo("Column 'invalid_column' not found in table.");
-  }
-
-  @Test
-  public void dropIndex() throws IOException {
-    String tableName = "tbl_createtable_" + System.currentTimeMillis();
-    createTable(tableName);
-
-    createIndex();
-
-    String indexName = "test_idx";
-    RestUtils.delete(
-        authToken,
-        String.format("%s:8082/v1/keyspaces/%s/indexes/%s", host, keyspace, indexName),
-        HttpStatus.SC_NO_CONTENT);
-
-    indexName = "invalid_idx";
-    String body =
-        RestUtils.delete(
-            authToken,
-            String.format("%s:8082/v1/keyspaces/%s/indexes/%s", host, keyspace, indexName),
-            HttpStatus.SC_BAD_REQUEST);
-
-    Error response = objectMapper.readValue(body, Error.class);
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription()).isEqualTo("Index 'invalid_idx' not found");
   }
 
   @Test
