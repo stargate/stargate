@@ -20,6 +20,7 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.schema.CollectionIndexingType;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableCollectionIndexingType;
@@ -122,62 +123,72 @@ public class IndexesResource {
                 .build();
           }
 
-          db.getAuthorizationService()
-              .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  Scope.CREATE,
-                  SourceAPI.REST);
-
-          boolean indexKeys = false;
-          boolean indexEntries = false;
-          boolean indexValues = false;
-          boolean indexFull = false;
-          if (indexAdd.getKind() != null) {
-            switch (indexAdd.getKind()) {
-              case KEYS:
-                indexKeys = true;
-                break;
-              case VALUES:
-                indexValues = true;
-                break;
-              case ENTRIES:
-                indexEntries = true;
-                break;
-              case FULL:
-                indexFull = true;
-                break;
-              default:
-                throw new IllegalArgumentException(
-                    String.format("Invalid indexKind value: %s", indexAdd.getKind()));
-            }
-          }
-
-          CollectionIndexingType indexingType =
-              ImmutableCollectionIndexingType.builder()
-                  .indexEntries(indexEntries)
-                  .indexKeys(indexKeys)
-                  .indexValues(indexValues)
-                  .indexFull(indexFull)
-                  .build();
-
-          authenticatedDB
-              .getDataStore()
-              .queryBuilder()
-              .create()
-              .custom(indexAdd.getType())
-              .index(indexAdd.getName())
-              .ifNotExists(indexAdd.getIfNotExists())
-              .on(keyspaceName, tableName)
-              .column(columnName)
-              .indexingType(indexingType)
-              .build()
-              .execute()
-              .get();
+          createIndex(keyspaceName, indexAdd, authenticatedDB, tableName, columnName);
 
           return Response.status(Response.Status.CREATED).entity(new SuccessResponse()).build();
         });
+  }
+
+  private void createIndex(
+      String keyspaceName,
+      IndexAdd indexAdd,
+      AuthenticatedDB authenticatedDB,
+      String tableName,
+      String columnName)
+      throws UnauthorizedException, InterruptedException, java.util.concurrent.ExecutionException {
+    db.getAuthorizationService()
+        .authorizeSchemaWrite(
+            authenticatedDB.getAuthenticationSubject(),
+            keyspaceName,
+            tableName,
+            Scope.CREATE,
+            SourceAPI.REST);
+
+    boolean indexKeys = false;
+    boolean indexEntries = false;
+    boolean indexValues = false;
+    boolean indexFull = false;
+    if (indexAdd.getKind() != null) {
+      switch (indexAdd.getKind()) {
+        case KEYS:
+          indexKeys = true;
+          break;
+        case VALUES:
+          indexValues = true;
+          break;
+        case ENTRIES:
+          indexEntries = true;
+          break;
+        case FULL:
+          indexFull = true;
+          break;
+        default:
+          throw new IllegalArgumentException(
+              String.format("Invalid indexKind value: %s", indexAdd.getKind()));
+      }
+    }
+
+    CollectionIndexingType indexingType =
+        ImmutableCollectionIndexingType.builder()
+            .indexEntries(indexEntries)
+            .indexKeys(indexKeys)
+            .indexValues(indexValues)
+            .indexFull(indexFull)
+            .build();
+
+    authenticatedDB
+        .getDataStore()
+        .queryBuilder()
+        .create()
+        .custom(indexAdd.getType())
+        .index(indexAdd.getName())
+        .ifNotExists(indexAdd.getIfNotExists())
+        .on(keyspaceName, tableName)
+        .column(columnName)
+        .indexingType(indexingType)
+        .build()
+        .execute()
+        .get();
   }
 
   @Timed
@@ -240,24 +251,30 @@ public class IndexesResource {
                 .build();
           }
 
-          db.getAuthorizationService()
-              .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationSubject(),
-                  keyspaceName,
-                  table.get().name(),
-                  Scope.DROP,
-                  SourceAPI.REST);
-
-          authenticatedDB
-              .getDataStore()
-              .queryBuilder()
-              .drop()
-              .index(keyspaceName, indexName)
-              .build()
-              .execute()
-              .get();
+          dropIndex(keyspaceName, indexName, authenticatedDB, table);
 
           return Response.status(Response.Status.NO_CONTENT).build();
         });
+  }
+
+  private void dropIndex(
+      String keyspaceName, String indexName, AuthenticatedDB authenticatedDB, Optional<Table> table)
+      throws UnauthorizedException, InterruptedException, java.util.concurrent.ExecutionException {
+    db.getAuthorizationService()
+        .authorizeSchemaWrite(
+            authenticatedDB.getAuthenticationSubject(),
+            keyspaceName,
+            table.get().name(),
+            Scope.DROP,
+            SourceAPI.REST);
+
+    authenticatedDB
+        .getDataStore()
+        .queryBuilder()
+        .drop()
+        .index(keyspaceName, indexName)
+        .build()
+        .execute()
+        .get();
   }
 }
