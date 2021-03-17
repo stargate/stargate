@@ -51,7 +51,7 @@ import javax.ws.rs.core.Response;
     produces = MediaType.APPLICATION_JSON,
     consumes = MediaType.APPLICATION_JSON,
     tags = {"schemas"})
-@Path("/v2/keyspaces/{keyspaceName}/indexes")
+@Path("/v2/schemas/keyspaces/{keyspaceName}/indexes")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class IndexesResource {

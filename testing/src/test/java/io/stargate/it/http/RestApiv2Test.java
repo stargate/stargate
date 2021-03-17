@@ -385,7 +385,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspaceName),
+            String.format("%s:8082/v2/schemas/keyspaces/%s/indexes", host, keyspaceName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_CREATED);
     SuccessResponse successResponse =
@@ -397,7 +397,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspaceName),
+            String.format("%s:8082/v2/schemas/keyspaces/%s/indexes", host, keyspaceName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_CREATED);
     successResponse = objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
@@ -408,7 +408,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspaceName),
+            String.format("%s:8082/v2/schemas/keyspaces/%s/indexes", host, keyspaceName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_BAD_REQUEST);
 
@@ -424,7 +424,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspaceName),
+            String.format("%s:8082/v2/schemas/keyspaces/%s/indexes", host, keyspaceName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_CREATED);
     successResponse = objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
@@ -448,7 +448,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspaceName),
+            String.format("%s:8082/v2/schemas/keyspaces/%s/indexes", host, keyspaceName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_NOT_FOUND);
     Error response = objectMapper.readValue(body, Error.class);
@@ -461,7 +461,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspaceName),
+            String.format("%s:8082/v2/schemas/keyspaces/%s/indexes", host, keyspaceName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_NOT_FOUND);
 
@@ -476,7 +476,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/indexes", host, keyspaceName),
+            String.format("%s:8082/v2/schemas/keyspaces/%s/indexes", host, keyspaceName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_BAD_REQUEST);
 
@@ -494,19 +494,20 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     String indexName = "test_idx";
     RestUtils.delete(
         authToken,
-        String.format("%s:8082/v1/keyspaces/%s/indexes/%s", host, keyspaceName, indexName),
+        String.format("%s:8082/v2/schemas/keyspaces/%s/indexes/%s", host, keyspaceName, indexName),
         HttpStatus.SC_NO_CONTENT);
 
     indexName = "invalid_idx";
     String body =
         RestUtils.delete(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/indexes/%s", host, keyspaceName, indexName),
+            String.format(
+                "%s:8082/v2/schemas/keyspaces/%s/indexes/%s", host, keyspaceName, indexName),
             HttpStatus.SC_BAD_REQUEST);
 
     Error response = objectMapper.readValue(body, Error.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription()).isEqualTo("Index 'invalid_idx' not found");
+    assertThat(response.getDescription()).isEqualTo("Index 'invalid_idx' not found.");
   }
 
   @Test
