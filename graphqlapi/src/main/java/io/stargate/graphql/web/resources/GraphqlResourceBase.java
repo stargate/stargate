@@ -26,13 +26,19 @@ import com.google.common.collect.ImmutableMap;
 import graphql.ExecutionInput;
 import graphql.GraphQL;
 import graphql.GraphqlErrorException;
+import io.stargate.auth.AuthenticationSubject;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.SourceAPI;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.graphql.web.HttpAwareContext;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlDdlResource;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Produces;
 import javax.ws.rs.container.AsyncResponse;
@@ -59,6 +65,8 @@ public class GraphqlResourceBase {
   private static final TypeReference<Map<String, List<String>>> FILES_MAPPING_TYPE =
       new TypeReference<Map<String, List<String>>>() {};
   private static final Splitter PATH_SPLITTER = Splitter.on(".");
+
+  @Inject protected AuthorizationService authorizationService;
 
   /**
    * Handles a GraphQL GET request.
@@ -330,6 +338,21 @@ public class GraphqlResourceBase {
                   Status.INTERNAL_SERVER_ERROR, "Internal server error", asyncResponse);
               return null;
             });
+  }
+
+  protected boolean isAuthorized(HttpServletRequest httpRequest, String keyspaceName) {
+    AuthenticationSubject subject =
+        (AuthenticationSubject) httpRequest.getAttribute(AuthenticationFilter.SUBJECT_KEY);
+    try {
+      authorizationService.authorizeSchemaRead(
+          subject,
+          Collections.singletonList(keyspaceName),
+          Collections.emptyList(),
+          SourceAPI.GRAPHQL);
+      return true;
+    } catch (UnauthorizedException e) {
+      return false;
+    }
   }
 
   protected static void replyWithGraphqlError(
