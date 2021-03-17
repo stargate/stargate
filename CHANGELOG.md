@@ -1,5 +1,34 @@
 # Changelog
 
+## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.15...HEAD)
+
+**Closed issues:**
+
+- Error 500 returns HTML and not a JSON body [\#740](https://github.com/stargate/stargate/issues/740)
+
+## [v1.0.15](https://github.com/stargate/stargate/tree/v1.0.15) (2021-03-16)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.14...v1.0.15)
+
+**Fixed bugs:**
+
+- io.stargate.web.service.WhereParser\#parseWhere throws NPE for bad column name [\#752](https://github.com/stargate/stargate/issues/752)
+
+**Closed issues:**
+
+- Ensure metric is reported for unexpected exceptions during auth [\#760](https://github.com/stargate/stargate/issues/760)
+- Generate an auth token [\#746](https://github.com/stargate/stargate/issues/746)
+
+**Merged pull requests:**
+
+- Adding Ivan [\#763](https://github.com/stargate/stargate/pull/763) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Fixes \#752 - NPE for bad column name in Where clause [\#757](https://github.com/stargate/stargate/pull/757) ([eribeiro](https://github.com/eribeiro))
+- Add metric to cql for auth errors [\#756](https://github.com/stargate/stargate/pull/756) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Bumping version for next release [\#754](https://github.com/stargate/stargate/pull/754) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Add request rate metric to CQL [\#753](https://github.com/stargate/stargate/pull/753) ([mpenick](https://github.com/mpenick))
+
 ## [v1.0.14](https://github.com/stargate/stargate/tree/v1.0.14) (2021-03-11)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.13...v1.0.14)
