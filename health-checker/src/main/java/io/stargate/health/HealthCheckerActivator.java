@@ -3,6 +3,7 @@ package io.stargate.health;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
+import io.stargate.db.datastore.DataStoreFactory;
 import java.util.Arrays;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -15,10 +16,13 @@ public class HealthCheckerActivator extends BaseActivator {
   private static final Logger log = LoggerFactory.getLogger(HealthCheckerActivator.class);
 
   public static final String BUNDLES_CHECK_NAME = "bundles";
-  public static final String DATASTORE_CHECK_NAME = "datastore";
+  public static final String STORAGE_CHECK_NAME = "storage";
+  public static final String DATA_STORE_CHECK_NAME = "datastore";
   public static final String SCHEMA_CHECK_NAME = "schema-agreement";
 
   private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  private ServicePointer<DataStoreFactory> dataStoreFactory =
+      ServicePointer.create(DataStoreFactory.class);
   private ServicePointer<HealthCheckRegistry> healthCheckRegistry =
       ServicePointer.create(HealthCheckRegistry.class);
 
@@ -29,7 +33,8 @@ public class HealthCheckerActivator extends BaseActivator {
   @Override
   public synchronized void stop(BundleContext context) {
     healthCheckRegistry.get().unregister(BUNDLES_CHECK_NAME);
-    healthCheckRegistry.get().unregister(DATASTORE_CHECK_NAME);
+    healthCheckRegistry.get().unregister(DATA_STORE_CHECK_NAME);
+    healthCheckRegistry.get().unregister(STORAGE_CHECK_NAME);
   }
 
   @Nullable
@@ -38,7 +43,12 @@ public class HealthCheckerActivator extends BaseActivator {
     log.info("Starting healthchecker....");
     try {
       healthCheckRegistry.get().register(BUNDLES_CHECK_NAME, new BundleStateChecker(context));
-      healthCheckRegistry.get().register(DATASTORE_CHECK_NAME, new DataStoreHealthChecker(context));
+      healthCheckRegistry
+          .get()
+          .register(DATA_STORE_CHECK_NAME, new DataStoreHealthChecker(dataStoreFactory.get()));
+      healthCheckRegistry
+          .get()
+          .register(STORAGE_CHECK_NAME, new StorageHealthChecker(dataStoreFactory.get()));
       healthCheckRegistry.get().register(SCHEMA_CHECK_NAME, new SchemaAgreementChecker(context));
 
       WebImpl web = new WebImpl(context, metrics.get(), healthCheckRegistry.get());
@@ -52,6 +62,6 @@ public class HealthCheckerActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(metrics, healthCheckRegistry);
+    return Arrays.asList(metrics, healthCheckRegistry, dataStoreFactory);
   }
 }
