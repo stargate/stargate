@@ -24,6 +24,7 @@ public class HealthCheckerTest extends BaseOsgiIntegrationTest {
 
   static {
     System.setProperty("stargate.health_check.data_store.enabled", "true");
+    System.setProperty("stargate.health_check.data_store.create_ks_and_table", "true");
   }
 
   @BeforeAll

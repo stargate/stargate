@@ -37,7 +37,7 @@ public class StorageHealthChecker extends HealthCheck {
   private static final Logger logger = LoggerFactory.getLogger(DataStoreHealthChecker.class);
   private static final boolean SHOULD_CREATE_KS_AND_TABLE =
       Boolean.parseBoolean(
-          System.getProperty("stargate.health_check.data_store.create_ks_and_table", "true"));
+          System.getProperty("stargate.health_check.data_store.create_ks_and_table", "false"));
   private static final String KEYSPACE_NAME =
       System.getProperty(
           "stargate.health_check.data_store.keyspace_name", "data_store_health_check");
