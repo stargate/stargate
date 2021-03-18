@@ -35,6 +35,7 @@ import io.stargate.db.schema.Table;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.GetResponseWrapper;
 import io.stargate.web.models.ResponseWrapper;
+import io.stargate.web.models.Rows;
 import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
@@ -49,6 +50,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -259,6 +261,97 @@ public class RowsResource {
           Object response = getRows(fields, raw, sort, authenticatedDB, tableMetadata, where);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
+              .build();
+        });
+  }
+
+  @Timed
+  @GET
+  @ApiOperation(
+      value = "Retrieve all rows",
+      notes = "Get all rows from a table.",
+      response = Rows.class)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = Rows.class),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
+  @Path("/rows")
+  public Response getAllRows(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @QueryParam("fields") final String fields,
+      @ApiParam(value = "Restrict the number of returned items") @QueryParam("page-size")
+          final int pageSizeParam,
+      @ApiParam(value = "Move the cursor to a particular result") @QueryParam("page-state")
+          final String pageStateParam,
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
+          final boolean raw,
+      @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort,
+      @Context HttpServletRequest request) {
+    return RequestHandler.handle(
+        () -> {
+          ByteBuffer pageState = null;
+          if (pageStateParam != null) {
+            byte[] decodedBytes = Base64.getDecoder().decode(pageStateParam);
+            pageState = ByteBuffer.wrap(decodedBytes);
+          }
+
+          int pageSize = DEFAULT_PAGE_SIZE;
+          if (pageSizeParam > 0) {
+            pageSize = pageSizeParam;
+          }
+
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB =
+              db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
+
+          BoundQuery query =
+              authenticatedDB
+                  .getDataStore()
+                  .queryBuilder()
+                  .select()
+                  .from(keyspaceName, tableName)
+                  .build()
+                  .bind();
+
+          final ResultSet r =
+              db.getAuthorizationService()
+                  .authorizedDataRead(
+                      () ->
+                          authenticatedDB
+                              .getDataStore()
+                              .execute(query, ConsistencyLevel.LOCAL_QUORUM)
+                              .get(),
+                      authenticatedDB.getAuthenticationSubject(),
+                      keyspaceName,
+                      tableName,
+                      Collections.emptyList(),
+                      SourceAPI.REST);
+
+          final List<Map<String, Object>> rows =
+              r.currentPageRows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
+
+          String newPagingState =
+              r.getPagingState() != null
+                  ? Base64.getEncoder().encodeToString(r.getPagingState().array())
+                  : null;
+          return Response.status(Response.Status.OK)
+              .entity(new Rows(rows.size(), newPagingState, rows))
               .build();
         });
   }

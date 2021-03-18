@@ -38,6 +38,7 @@ import io.stargate.web.models.IndexKind;
 import io.stargate.web.models.Keyspace;
 import io.stargate.web.models.PrimaryKey;
 import io.stargate.web.models.ResponseWrapper;
+import io.stargate.web.models.Rows;
 import io.stargate.web.models.SuccessResponse;
 import io.stargate.web.models.TableAdd;
 import io.stargate.web.models.TableOptions;
@@ -900,6 +901,61 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(0);
     assertThat(data).isEmpty();
+  }
+
+  @Test
+  public void getAllRowsWithPaging() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "firstName text"),
+        Collections.singletonList("id"),
+        null);
+
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName Jonh"),
+            Arrays.asList("id 2", "firstName Jane"),
+            Arrays.asList("id 3", "firstName Scott"),
+            Arrays.asList("id 4", "firstName April")));
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/rows?page-size=2", host, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
+    assertThat(rows.getCount()).isEqualTo(2);
+    assertThat(rows.getPageState()).isNotNull();
+  }
+
+  @Test
+  public void getAllRowsNoPaging() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "firstName text"),
+        Collections.singletonList("id"),
+        null);
+
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName Jonh"),
+            Arrays.asList("id 2", "firstName Jane"),
+            Arrays.asList("id 3", "firstName Scott"),
+            Arrays.asList("id 4", "firstName April")));
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/keyspaces/%s/%s/rows", host, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
+    assertThat(rows.getPageState()).isNull();
+    assertThat(rows.getCount()).isEqualTo(4);
   }
 
   @Test
@@ -2350,6 +2406,23 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         String.format("%s:8082/v2/schemas/keyspaces", host),
         createKeyspaceRequest,
         HttpStatus.SC_CREATED);
+  }
+
+  private void insertTestTableRows(List<List<String>> rows) throws IOException {
+
+    for (List<String> row : rows) {
+      Map<String, String> rowMap = new HashMap<>();
+      for (String kv : row) {
+        String[] parts = kv.split(" ");
+        rowMap.put(parts[0].trim(), parts[1].trim());
+      }
+
+      RestUtils.post(
+          authToken,
+          String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+          objectMapper.writeValueAsString(rowMap),
+          HttpStatus.SC_CREATED);
+    }
   }
 
   private String setupClusteringTestCase() throws IOException {
