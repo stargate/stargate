@@ -18,6 +18,29 @@ enum Consistency {
   LOCAL_ONE = 0x0A;
 }
 
+// We don't necessarily need to commit to using these code it just a start.
+enum ErrorCode {
+  SERVER_ERROR = 0x0000;
+  PROTOCOL_ERROR = 0x000A; // This probably doesn't make sense
+  BAD_CREDENTIALS = 0x0100;
+  UNAVAILABLE = 0x1000;
+  OVERLOADED = 0x1001;
+  IS_BOOTSTRAPPING = 0x1002;
+  TRUNCATE_ERROR = 0x1003;
+  WRITE_TIMEOUT = 0x1100;
+  READ_TIMEOUT = 0x1200;
+  READ_FAILURE = 0x1300;
+  FUNCTION_FAILURE = 0x1400;
+  WRITE_FAILURE = 0x1500;
+  SYNTAX_ERROR = 0x2000;
+  UNAUTHORIZED = 0x2100;
+  INVALID_QUERY = 0x2200;
+  CONFIG_ERROR = 0x2300;
+  ALREADY_EXISTS = 0x2400;
+  UNPREPARED = 0x2500;
+  CLIENT_WRITE_FAILURE = 0x8000;
+}
+
 message Collection {
   repeated Value elements = 1;
 }
@@ -92,6 +115,15 @@ message Prepare {
   bool tracing = 3;
 }
 
+message PrepareResult {
+  bytes id = 1;
+  bytes metadata_id = 2;
+  // Note: Not including partition key indexes
+  repeated ColumnSpec bound_columns = 3;
+  bytes tracing_id = 4;
+  repeated string warnings = 5;
+}
+
 enum Type {
   CUSTOM = 0x00;
   ASCII = 0x01;
@@ -152,19 +184,88 @@ message ColumnSpec {
 }
 
 message Result {
+  Error error = 1; // Maybe move into payload?
   oneof payload {
-    Empty empty = 1;
-    ResultSet result_set = 2;
+    Empty empty = 2;
+    ResultSet result_set = 3;
   }
-  bytes tracing_id = 3;
-  repeated string warnings = 4;
+  bytes tracing_id = 4;
+  repeated string warnings = 5;
 }
 
 message Empty { }
 
+message Unavailable {
+  Consistency consistency = 1;
+  int32 required = 2;
+  int32 alive = 3;
+};
+
+message WriteTimeout {
+  Consistency consistency = 1;
+  int32 received = 2;
+  int32 block_for = 3;
+  string write_type = 4;
+};
+
+message ReadTimeout {
+  Consistency consistency = 1;
+  int32 received = 2;
+  int32 block_for = 3;
+  bool data_present = 4;
+};
+
+message ReadFailure {
+  Consistency consistency = 1;
+  int32 received = 2;
+  int32 block_for = 3;
+  int32 num_failures = 4;
+  bool data_present = 5;
+};
+
+message FunctionFailure {
+  string keyspace = 1;
+  string function = 2;
+  repeated string arg_types = 3;
+}
+
+message WriteFailure {
+  Consistency consistency = 1;
+  int32 received = 2;
+  int32 block_for = 3;
+  int32 num_failures = 4;
+  string write_type = 5;
+}
+
+message AlreadyExists {
+  string keyspace = 1;
+  string table = 2;
+}
+
+message Error {
+  ErrorCode code = 1;
+  oneof data {
+    string message = 2;
+    Unavailable unavailable = 4;
+    WriteTimeout write_timeout = 5;
+    ReadTimeout read_timeout = 6;
+    ReadFailure read_failure = 7;
+    FunctionFailure function_failure = 8;
+    WriteFailure write_failure = 9;
+    AlreadyExists already_exists = 10;
+  }
+}
+
+/*
 message Row {
+  repeated Value values = 1;
   repeated sint32 lengths = 1; // -1 == null
   bytes values = 2;
+}
+ */
+
+message Row {
+  repeated Value values = 1;
 }
 
 message ResultSet {
@@ -176,10 +277,10 @@ message ResultSet {
 message PrepareResult {
   bytes id = 1;
   bytes metadata_id = 2;
-  repeated int32 bound_pk_indexes = 3;
-  repeated ColumnSpec bound_columns = 4;
-  bytes tracing_id = 5;
-  repeated string warnings = 6;
+  // Note: Not including partition key indexes
+  repeated ColumnSpec bound_columns = 3;
+  bytes tracing_id = 4;
+  repeated string warnings = 5;
 }
 
 message BatchQuery {
