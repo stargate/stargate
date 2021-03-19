@@ -182,7 +182,7 @@ public class IndexesResource {
       code = 204)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 201, message = "Created", response = SuccessResponse.class),
+        @ApiResponse(code = 204, message = "No Content"),
         @ApiResponse(code = 400, message = "Bad request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
