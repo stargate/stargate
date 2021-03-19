@@ -256,31 +256,21 @@ message Error {
   }
 }
 
-/*
 message Row {
-  repeated Value values = 1;
   repeated sint32 lengths = 1; // -1 == null
   bytes values = 2;
 }
- */
 
+/*
 message Row {
   repeated Value values = 1;
 }
+ */
 
 message ResultSet {
   repeated ColumnSpec columns = 1;
   repeated Row rows = 2;
   bool applied = 3;
-}
-
-message PrepareResult {
-  bytes id = 1;
-  bytes metadata_id = 2;
-  // Note: Not including partition key indexes
-  repeated ColumnSpec bound_columns = 3;
-  bytes tracing_id = 4;
-  repeated string warnings = 5;
 }
 
 message BatchQuery {

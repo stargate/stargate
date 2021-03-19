@@ -4,8 +4,8 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.storage.StargateEnvironmentInfo;
+import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.StargateGrpc;
-import io.stargate.proto.StargateOuterClass.Request;
 import org.junit.jupiter.api.Test;
 
 public class SimpleQuery extends BaseOsgiIntegrationTest {
@@ -18,6 +18,6 @@ public class SimpleQuery extends BaseOsgiIntegrationTest {
             .build();
     StargateGrpc.StargateBlockingStub stub = StargateGrpc.newBlockingStub(channel);
     // TODO: Get and check result
-    stub.query(Request.newBuilder().setQuery("SELECT * FROM system.local").build());
+    stub.execute(Query.newBuilder().setCql("SELECT * FROM system.local").build());
   }
 }
