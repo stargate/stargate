@@ -46,6 +46,7 @@ import org.apache.cassandra.auth.CassandraRoleManager;
 import org.apache.cassandra.auth.IAuthContext;
 import org.apache.cassandra.auth.RoleResource;
 import org.apache.cassandra.auth.user.UserRolesAndPermissions;
+import org.apache.cassandra.concurrent.TPC;
 import org.apache.cassandra.concurrent.TPCTaskType;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.DatabaseDescriptor;
@@ -484,7 +485,7 @@ public class DsePersistence
         if (parameters.protocolVersion().isGreaterOrEqualTo(ProtocolVersion.V4))
           ClientWarn.instance.captureWarnings();
 
-        Single<QueryState> queryState = newQueryState();
+        Single<QueryState> queryState = newQueryState().subscribeOn(TPC.bestTPCScheduler());
         Request request = requestSupplier.get();
         if (parameters.tracingRequested()) {
           request.setTracingRequested();
