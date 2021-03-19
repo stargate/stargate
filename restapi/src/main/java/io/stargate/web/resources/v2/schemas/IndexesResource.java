@@ -179,7 +179,7 @@ public class IndexesResource {
       value = "Drop an index from keyspace",
       notes = "Drop an index",
       response = SuccessResponse.class,
-      code = 201)
+      code = 204)
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = SuccessResponse.class),
