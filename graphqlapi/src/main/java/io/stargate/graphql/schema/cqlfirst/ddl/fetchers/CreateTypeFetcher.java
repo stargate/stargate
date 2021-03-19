@@ -18,6 +18,7 @@ package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Resource;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
@@ -50,7 +51,7 @@ public class CreateTypeFetcher extends DdlQueryFetcher {
 
     // Permissions on a type are the same as keyspace
     authorizationService.authorizeSchemaWrite(
-        authenticationSubject, keyspaceName, null, Scope.CREATE, SourceAPI.GRAPHQL);
+        authenticationSubject, keyspaceName, null, Scope.CREATE, SourceAPI.GRAPHQL, Resource.TYPE);
 
     List<Map<String, Object>> fieldList = dataFetchingEnvironment.getArgument("fields");
     if (fieldList.isEmpty()) {

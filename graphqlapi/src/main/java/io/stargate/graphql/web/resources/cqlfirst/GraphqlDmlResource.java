@@ -18,6 +18,7 @@ package io.stargate.graphql.web.resources.cqlfirst;
 import graphql.GraphQL;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Resource;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.graphql.web.RequestToHeadersMapper;
@@ -193,7 +194,8 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
           subject,
           Collections.singletonList(keyspaceName),
           Collections.emptyList(),
-          SourceAPI.GRAPHQL);
+          SourceAPI.GRAPHQL,
+          Resource.KEYSPACE);
       return true;
     } catch (UnauthorizedException e) {
       return false;

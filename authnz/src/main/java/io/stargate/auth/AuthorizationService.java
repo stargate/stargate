@@ -111,13 +111,15 @@ public interface AuthorizationService {
    *     resource being read.
    * @param tableNames The table(s) within the provided keyspace(s) that is being read.
    * @param sourceAPI The source api which calls this method.
+   * @param resource The resource for which read authorization is being requested.
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeSchemaRead(
       AuthenticationSubject authenticationSubject,
       List<String> keyspaceNames,
       List<String> tableNames,
-      SourceAPI sourceAPI)
+      SourceAPI sourceAPI,
+      Resource resource)
       throws UnauthorizedException;
 
   /**
@@ -130,6 +132,7 @@ public interface AuthorizationService {
    * @param table The table within the provided keyspace that is being modified.
    * @param scope The {@link Scope} of the action to be performed.
    * @param sourceAPI The source api which calls this method.
+   * @param resource The resource for which read authorization is being requested.
    * @throws UnauthorizedException An exception relating to the failure to authorize.
    */
   void authorizeSchemaWrite(
@@ -137,7 +140,8 @@ public interface AuthorizationService {
       String keyspace,
       String table,
       Scope scope,
-      SourceAPI sourceAPI)
+      SourceAPI sourceAPI,
+      Resource resource)
       throws UnauthorizedException;
 
   /**

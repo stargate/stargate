@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Resource;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.schema.Column;
@@ -88,7 +89,8 @@ public class KeyspaceDto {
           authenticationSubject,
           Collections.singletonList(keyspace.name()),
           Collections.singletonList(table.name()),
-          SourceAPI.GRAPHQL);
+          SourceAPI.GRAPHQL,
+          Resource.KEYSPACE);
       return true;
     } catch (UnauthorizedException e) {
       LOG.debug(

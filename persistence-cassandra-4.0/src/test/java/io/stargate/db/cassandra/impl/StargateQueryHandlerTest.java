@@ -14,6 +14,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import com.google.common.collect.ImmutableMap;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Resource;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
@@ -116,7 +117,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeByTokenSelectStatement() throws IOException, UnauthorizedException {
+  void authorizeByTokenSelectStatement() throws UnauthorizedException {
     SelectStatement.Raw rawStatement = QueryProcessor.parseStatement("select * from system.local");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
@@ -146,7 +147,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeByTokenModificationStatementDelete() throws IOException, UnauthorizedException {
+  void authorizeByTokenModificationStatementDelete() throws UnauthorizedException {
     DeleteStatement.Parsed rawStatement =
         (DeleteStatement.Parsed)
             QueryProcessor.parseStatement("delete from ks1.tbl1 where key = ?");
@@ -167,7 +168,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeByTokenModificationStatementModify() throws IOException, UnauthorizedException {
+  void authorizeByTokenModificationStatementModify() throws UnauthorizedException {
     UpdateStatement.Parsed rawStatement =
         (UpdateStatement.Parsed)
             QueryProcessor.parseStatement("update ks1.tbl1 set value = 'a' where key = ?");
@@ -188,7 +189,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeByTokenTruncateStatement() throws IOException, UnauthorizedException {
+  void authorizeByTokenTruncateStatement() throws UnauthorizedException {
     TruncateStatement.Raw rawStatement = QueryProcessor.parseStatement("truncate ks1.tbl1");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
@@ -204,7 +205,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementCreateTable() throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementCreateTable() throws UnauthorizedException {
     CreateTableStatement.Raw rawStatement =
         (CreateTableStatement.Raw)
             QueryProcessor.parseStatement(
@@ -219,11 +220,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("ks1"),
             eq("tbl2"),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(Resource.TABLE));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementDeleteTable() throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementDeleteTable() throws UnauthorizedException {
     DropTableStatement.Raw rawStatement =
         (Raw) QueryProcessor.parseStatement("drop table ks1.tbl1");
 
@@ -232,11 +234,16 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq("tbl1"), eq(Scope.DROP), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.DROP),
+            eq(SourceAPI.CQL),
+            eq(Resource.TABLE));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementAlterTable() throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementAlterTable() throws UnauthorizedException {
     AlterTableStatement.Raw rawStatement =
         (AlterTableStatement.Raw)
             QueryProcessor.parseStatement("ALTER TABLE ks1.tbl1 ADD val2 INT");
@@ -250,12 +257,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("ks1"),
             eq("tbl1"),
             eq(Scope.ALTER),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(Resource.TABLE));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementCreateKeyspace()
-      throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementCreateKeyspace() throws UnauthorizedException {
     CreateKeyspaceStatement.Raw rawStatement =
         (CreateKeyspaceStatement.Raw)
             QueryProcessor.parseStatement(
@@ -266,12 +273,16 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks2"), eq(null), eq(Scope.CREATE), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks2"),
+            eq(null),
+            eq(Scope.CREATE),
+            eq(SourceAPI.CQL),
+            eq(Resource.KEYSPACE));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementDeleteKeyspace()
-      throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementDeleteKeyspace() throws UnauthorizedException {
     DropKeyspaceStatement.Raw rawStatement =
         (DropKeyspaceStatement.Raw) QueryProcessor.parseStatement("drop keyspace ks1");
 
@@ -280,12 +291,16 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq(null), eq(Scope.DROP), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.DROP),
+            eq(SourceAPI.CQL),
+            eq(Resource.KEYSPACE));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementAlterKeyspace()
-      throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementAlterKeyspace() throws UnauthorizedException {
     AlterKeyspaceStatement.Raw rawStatement =
         (AlterKeyspaceStatement.Raw)
             QueryProcessor.parseStatement(
@@ -296,11 +311,16 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq(null), eq(Scope.ALTER), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.ALTER),
+            eq(SourceAPI.CQL),
+            eq(Resource.KEYSPACE));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementAlterType() throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementAlterType() throws UnauthorizedException {
     AlterTypeStatement.Raw rawStatement =
         (AlterTypeStatement.Raw)
             QueryProcessor.parseStatement("ALTER TYPE cycling.fullname ADD middlename text;");
@@ -314,11 +334,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("cycling"),
             eq(null),
             eq(Scope.ALTER),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(Resource.TYPE));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementAlterView() throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementAlterView() throws UnauthorizedException {
     AlterViewStatement.Raw rawStatement =
         (AlterViewStatement.Raw)
             QueryProcessor.parseStatement(
@@ -341,12 +362,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("cycling"),
             eq(null),
             eq(Scope.ALTER),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(Resource.VIEW));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementCreateAggregate()
-      throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementCreateAggregate() throws UnauthorizedException {
     CreateAggregateStatement.Raw rawStatement =
         (CreateAggregateStatement.Raw)
             QueryProcessor.parseStatement(
@@ -368,12 +389,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("cycling"),
             eq(null),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(Resource.AGGREGATE));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementCreateFunction()
-      throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementCreateFunction() throws UnauthorizedException {
     CreateFunctionStatement.Raw rawStatement =
         (CreateFunctionStatement.Raw)
             QueryProcessor.parseStatement(
@@ -397,11 +418,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("cycling"),
             eq(null),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(Resource.FUNCTION));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementCreateIndex() throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementCreateIndex() throws UnauthorizedException {
     CreateIndexStatement.Raw rawStatement =
         (CreateIndexStatement.Raw)
             QueryProcessor.parseStatement(
@@ -416,12 +438,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("ks1"),
             eq("tbl1"),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(Resource.INDEX));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementCreateTrigger()
-      throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementCreateTrigger() throws UnauthorizedException {
     CreateTriggerStatement.Raw rawStatement =
         (CreateTriggerStatement.Raw)
             QueryProcessor.parseStatement(
@@ -438,11 +460,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("ks1"),
             eq("tbl1"),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(Resource.TRIGGER));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementCreateType() throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementCreateType() throws UnauthorizedException {
     CreateTypeStatement.Raw rawStatement =
         (CreateTypeStatement.Raw)
             QueryProcessor.parseStatement("CREATE TYPE IF NOT EXISTS ks1.type1 (a text, b text);");
@@ -452,11 +475,16 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq(null), eq(Scope.CREATE), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.CREATE),
+            eq(SourceAPI.CQL),
+            eq(Resource.TYPE));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementCreateView() throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementCreateView() throws UnauthorizedException {
     CreateViewStatement.Raw rawStatement =
         (CreateViewStatement.Raw)
             QueryProcessor.parseStatement(
@@ -482,12 +510,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("cycling"),
             eq(null),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL));
+            eq(SourceAPI.CQL),
+            eq(Resource.VIEW));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementDropAggregate()
-      throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementDropAggregate() throws UnauthorizedException {
     DropAggregateStatement.Raw rawStatement =
         (DropAggregateStatement.Raw)
             QueryProcessor.parseStatement("DROP AGGREGATE IF EXISTS ks1.agg1;");
@@ -497,12 +525,16 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq(null), eq(Scope.DROP), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.DROP),
+            eq(SourceAPI.CQL),
+            eq(Resource.AGGREGATE));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementDropFunction()
-      throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementDropFunction() throws UnauthorizedException {
     DropFunctionStatement.Raw rawStatement =
         (DropFunctionStatement.Raw)
             QueryProcessor.parseStatement("DROP FUNCTION IF EXISTS ks1.fLog;");
@@ -512,11 +544,16 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq(null), eq(Scope.DROP), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.DROP),
+            eq(SourceAPI.CQL),
+            eq(Resource.FUNCTION));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementDropIndex() throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementDropIndex() throws UnauthorizedException {
     DropIndexStatement.Raw rawStatement =
         (DropIndexStatement.Raw)
             QueryProcessor.parseStatement("DROP INDEX IF EXISTS ks1.value_idx;");
@@ -526,11 +563,16 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq(null), eq(Scope.DROP), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.DROP),
+            eq(SourceAPI.CQL),
+            eq(Resource.INDEX));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementDropTrigger() throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementDropTrigger() throws UnauthorizedException {
     DropTriggerStatement.Raw rawStatement =
         (DropTriggerStatement.Raw)
             QueryProcessor.parseStatement("DROP TRIGGER IF EXISTS trigger1 ON ks1.tbl1;");
@@ -540,11 +582,16 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq("tbl1"), eq(Scope.DROP), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.DROP),
+            eq(SourceAPI.CQL),
+            eq(Resource.TRIGGER));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementDropType() throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementDropType() throws UnauthorizedException {
     DropTypeStatement.Raw rawStatement =
         (DropTypeStatement.Raw) QueryProcessor.parseStatement("DROP TYPE IF EXISTS ks1.typ1;");
 
@@ -553,11 +600,16 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq(null), eq(Scope.DROP), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.DROP),
+            eq(SourceAPI.CQL),
+            eq(Resource.TYPE));
   }
 
   @Test
-  void authorizeByTokenAlterSchemaStatementDropView() throws IOException, UnauthorizedException {
+  void authorizeByTokenAlterSchemaStatementDropView() throws UnauthorizedException {
     DropViewStatement.Raw rawStatement =
         (DropViewStatement.Raw)
             QueryProcessor.parseStatement("DROP MATERIALIZED VIEW IF EXISTS ks1.view1;");
@@ -567,12 +619,17 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
-            refEq(authenticationSubject), eq("ks1"), eq(null), eq(Scope.DROP), eq(SourceAPI.CQL));
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq(null),
+            eq(Scope.DROP),
+            eq(SourceAPI.CQL),
+            eq(Resource.VIEW));
   }
 
   @Test
   void authorizeByTokenAuthorizationStatementPermissionsManagementStatement()
-      throws IOException, UnauthorizedException {
+      throws UnauthorizedException {
     PermissionsManagementStatement.Raw rawStatement =
         QueryProcessor.parseStatement("GRANT ALL ON KEYSPACE ks1 TO role1;");
 
@@ -590,7 +647,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
   @Test
   void authorizeByTokenAuthorizationStatementListPermissionsStatement()
-      throws IOException, UnauthorizedException {
+      throws UnauthorizedException {
     ListPermissionsStatement.Raw rawStatement =
         QueryProcessor.parseStatement("LIST ALL PERMISSIONS OF sam;");
 
@@ -602,7 +659,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeListPermissionsException() throws IOException, UnauthorizedException {
+  void authorizeListPermissionsException() throws UnauthorizedException {
     ListPermissionsStatement.Raw rawStatement =
         QueryProcessor.parseStatement("LIST ALL PERMISSIONS OF sam;");
 
@@ -617,8 +674,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeByTokenAuthorizationStatementListRolesStatement()
-      throws IOException, UnauthorizedException {
+  void authorizeByTokenAuthorizationStatementListRolesStatement() throws UnauthorizedException {
     ListRolesStatement.Raw rawStatement = QueryProcessor.parseStatement("LIST ROLES;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
@@ -629,8 +685,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeByTokenAuthorizationStatementRevokeRoleStatement()
-      throws IOException, UnauthorizedException {
+  void authorizeByTokenAuthorizationStatementRevokeRoleStatement() throws UnauthorizedException {
     RevokeRoleStatement.Raw rawStatement =
         QueryProcessor.parseStatement("REVOKE SELECT\n" + "ON KEYSPACE cycling \n" + "FROM coach;");
 
@@ -647,8 +702,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeByTokenAuthorizationStatementGrantRoleStatement()
-      throws IOException, UnauthorizedException {
+  void authorizeByTokenAuthorizationStatementGrantRoleStatement() throws UnauthorizedException {
     GrantRoleStatement.Raw rawStatement =
         QueryProcessor.parseStatement("GRANT ALTER\n" + "ON KEYSPACE cycling\n" + "TO coach;");
 
@@ -665,7 +719,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeAuthorizationStatementException() throws IOException, UnauthorizedException {
+  void authorizeAuthorizationStatementException() throws UnauthorizedException {
     GrantRoleStatement.Raw rawStatement =
         QueryProcessor.parseStatement("GRANT ALTER\n" + "ON KEYSPACE cycling\n" + "TO coach;");
 
@@ -681,7 +735,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
   @Test
   void authorizeByTokenAuthorizationStatementListRolesStatementWithRole()
-      throws IOException, UnauthorizedException {
+      throws UnauthorizedException {
     ListRolesStatement.Raw rawStatement = QueryProcessor.parseStatement("LIST ROLES OF coach;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
@@ -706,8 +760,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeByTokenAuthenticationStatementRevokeRoleStatement()
-      throws IOException, UnauthorizedException {
+  void authorizeByTokenAuthenticationStatementRevokeRoleStatement() throws UnauthorizedException {
     RevokeRoleStatement.Raw rawStatement =
         QueryProcessor.parseStatement("REVOKE cycling_admin\n" + "FROM coach;");
 
@@ -724,7 +777,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeRevokeRoleException() throws IOException, UnauthorizedException {
+  void authorizeRevokeRoleException() throws UnauthorizedException {
     RevokeRoleStatement.Raw rawStatement =
         QueryProcessor.parseStatement("REVOKE cycling_admin\n" + "FROM coach;");
 
@@ -739,8 +792,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeByTokenAuthenticationStatementGrantRoleStatement()
-      throws IOException, UnauthorizedException {
+  void authorizeByTokenAuthenticationStatementGrantRoleStatement() throws UnauthorizedException {
     GrantRoleStatement.Raw rawStatement =
         QueryProcessor.parseStatement("GRANT cycling_admin\n" + "TO coach;");
 
@@ -758,7 +810,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
   @Test
   void authorizeByTokenAuthenticationStatementGrantRoleStatementOnTable()
-      throws IOException, UnauthorizedException {
+      throws UnauthorizedException {
     GrantRoleStatement.Raw rawStatement =
         QueryProcessor.parseStatement(
             "GRANT ALTER\n" + "ON TABLE cycling.cyclist_name\n" + "TO coach;");
@@ -776,8 +828,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeByTokenAuthenticationStatementDropRoleStatement()
-      throws IOException, UnauthorizedException {
+  void authorizeByTokenAuthenticationStatementDropRoleStatement() throws UnauthorizedException {
     DropRoleStatement.Raw rawStatement =
         QueryProcessor.parseStatement("DROP ROLE IF EXISTS team_manager;");
 
@@ -793,8 +844,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeByTokenAuthenticationStatementCreateRoleStatement()
-      throws IOException, UnauthorizedException {
+  void authorizeByTokenAuthenticationStatementCreateRoleStatement() throws UnauthorizedException {
     CreateRoleStatement.Raw rawStatement =
         QueryProcessor.parseStatement(
             "CREATE ROLE IF NOT EXISTS coach \n"
@@ -810,8 +860,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeByTokenAuthenticationStatementAlterRoleStatement()
-      throws IOException, UnauthorizedException {
+  void authorizeByTokenAuthenticationStatementAlterRoleStatement() throws UnauthorizedException {
     AlterRoleStatement.Raw rawStatement =
         QueryProcessor.parseStatement("ALTER ROLE sandy WITH PASSWORD = 'bestTeam';");
 
@@ -849,7 +898,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   }
 
   @Test
-  void authorizeByTokenBatchStatement() throws IOException, UnauthorizedException {
+  void authorizeByTokenBatchStatement() throws UnauthorizedException {
     BatchStatement.Raw rawStatement =
         QueryProcessor.parseStatement(
             "BEGIN BATCH\n"

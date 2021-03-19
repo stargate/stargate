@@ -21,6 +21,7 @@ import static io.stargate.auth.jwt.AuthnJwtService.STARGATE_PREFIX;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Resource;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
@@ -162,7 +163,8 @@ public class AuthzJwtService implements AuthorizationService {
       AuthenticationSubject authenticationSubject,
       List<String> keyspaceNames,
       List<String> tableNames,
-      SourceAPI sourceAPI)
+      SourceAPI sourceAPI,
+      Resource resource)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -179,7 +181,8 @@ public class AuthzJwtService implements AuthorizationService {
       String keyspace,
       String table,
       Scope scope,
-      SourceAPI sourceAPI)
+      SourceAPI sourceAPI,
+      Resource resource)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }

@@ -3,6 +3,7 @@ package io.stargate.web.docsapi.resources;
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.stargate.auth.Resource;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.db.schema.SchemaEntity;
@@ -87,7 +88,8 @@ public class CollectionsResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(namespace),
                   tables.stream().map(SchemaEntity::name).collect(Collectors.toList()),
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  Resource.TABLE);
 
           List<DocCollection> result =
               tables.stream()
@@ -143,7 +145,8 @@ public class CollectionsResource {
                   namespace,
                   info.getName(),
                   Scope.CREATE,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  Resource.TABLE);
 
           boolean res = collectionService.createCollection(namespace, info.getName(), docDB);
           if (res) {
@@ -193,7 +196,8 @@ public class CollectionsResource {
                   namespace,
                   collection,
                   Scope.DROP,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  Resource.TABLE);
 
           Table toDelete =
               authenticatedDB.getDataStore().schema().keyspace(namespace).table(collection);
@@ -263,7 +267,8 @@ public class CollectionsResource {
                   namespace,
                   collection,
                   Scope.ALTER,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  Resource.TABLE);
 
           Table table = authenticatedDB.getTable(namespace, collection);
           if (table == null) {

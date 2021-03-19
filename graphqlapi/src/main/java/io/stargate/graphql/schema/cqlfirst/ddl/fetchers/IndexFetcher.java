@@ -5,6 +5,7 @@ import static com.datastax.oss.driver.shaded.guava.common.base.Preconditions.che
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Resource;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
@@ -34,7 +35,7 @@ public abstract class IndexFetcher extends DdlQueryFetcher {
     String tableName = dataFetchingEnvironment.getArgument("tableName");
 
     authorizationService.authorizeSchemaWrite(
-        authenticationSubject, keyspaceName, tableName, scope, SourceAPI.GRAPHQL);
+        authenticationSubject, keyspaceName, tableName, scope, SourceAPI.GRAPHQL, Resource.INDEX);
 
     return buildQuery(dataFetchingEnvironment, builder, keyspaceName, tableName);
   }
