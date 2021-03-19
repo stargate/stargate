@@ -196,7 +196,7 @@ public class IndexesResource {
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @ApiParam(value = "Name of the table to use for the request.", required = true)
+      @ApiParam(value = "Name of the index to use for the request.", required = true)
           @PathParam("indexName")
           final String indexName,
       @Context HttpServletRequest request) {
