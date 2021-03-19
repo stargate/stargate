@@ -28,6 +28,7 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.IndexAdd;
+import io.stargate.web.models.IndexKind;
 import io.stargate.web.models.SuccessResponse;
 import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Db;
@@ -144,29 +145,10 @@ public class IndexesResource {
             Scope.CREATE,
             SourceAPI.REST);
 
-    boolean indexKeys = false;
-    boolean indexEntries = false;
-    boolean indexValues = false;
-    boolean indexFull = false;
-    if (indexAdd.getKind() != null) {
-      switch (indexAdd.getKind()) {
-        case KEYS:
-          indexKeys = true;
-          break;
-        case VALUES:
-          indexValues = true;
-          break;
-        case ENTRIES:
-          indexEntries = true;
-          break;
-        case FULL:
-          indexFull = true;
-          break;
-        default:
-          throw new IllegalArgumentException(
-              String.format("Invalid indexKind value: %s", indexAdd.getKind()));
-      }
-    }
+    boolean indexKeys = indexAdd.getKind() == IndexKind.KEYS;
+    boolean indexEntries = indexAdd.getKind() == IndexKind.ENTRIES;
+    boolean indexValues = indexAdd.getKind() == IndexKind.VALUES;
+    boolean indexFull = indexAdd.getKind() == IndexKind.FULL;
 
     CollectionIndexingType indexingType =
         ImmutableCollectionIndexingType.builder()
