@@ -20,22 +20,12 @@ import io.swagger.annotations.ApiModelProperty;
 import javax.validation.constraints.NotNull;
 
 public class IndexAdd {
-  @NotNull private String table;
   @NotNull private String column;
   private String name;
   private String type;
   private IndexKind kind;
 
   private boolean ifNotExists = false;
-
-  public void setTable(String table) {
-    this.table = table;
-  }
-
-  @ApiModelProperty(required = true, value = "Table name")
-  public String getTable() {
-    return table;
-  }
 
   public void setColumn(String column) {
     this.column = column;
@@ -50,7 +40,9 @@ public class IndexAdd {
     this.name = name;
   }
 
-  @ApiModelProperty(value = "The name of the index to add.")
+  @ApiModelProperty(
+      value =
+          "Optional index name. If no name is specified, Cassandra names the index: table_name_column_name_idx.")
   public String getName() {
     return name;
   }
@@ -70,7 +62,7 @@ public class IndexAdd {
     this.type = type;
   }
 
-  @ApiModelProperty(value = "A custom index class name or class path.")
+  @ApiModelProperty(value = "A custom index class name or classpath.")
   public String getType() {
     return type;
   }
@@ -80,7 +72,7 @@ public class IndexAdd {
   }
 
   @JsonProperty("kind")
-  @ApiModelProperty(value = "The kind (ENTRIES, KEY, VALUES, FULL) of a index")
+  @ApiModelProperty(value = "The kind (ENTRIES, KEY, VALUES, FULL) of an index")
   public IndexKind getKind() {
     return kind;
   }

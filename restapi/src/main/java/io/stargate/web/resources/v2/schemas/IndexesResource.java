@@ -18,12 +18,18 @@ package io.stargate.web.resources.v2.schemas;
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
 import com.codahale.metrics.annotation.Timed;
+import io.dropwizard.util.Strings;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
-import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.TypedKeyValue;
+import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.query.BoundQuery;
+import io.stargate.db.query.BoundSelect;
+import io.stargate.db.query.Predicate;
 import io.stargate.db.schema.CollectionIndexingType;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableCollectionIndexingType;
+import io.stargate.db.schema.Index;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.Error;
@@ -31,6 +37,7 @@ import io.stargate.web.models.IndexAdd;
 import io.stargate.web.models.IndexKind;
 import io.stargate.web.models.SuccessResponse;
 import io.stargate.web.resources.AuthenticatedDB;
+import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.Api;
@@ -38,8 +45,9 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
@@ -47,16 +55,104 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 @Api(
     produces = MediaType.APPLICATION_JSON,
     consumes = MediaType.APPLICATION_JSON,
     tags = {"schemas"})
-@Path("/v2/schemas/keyspaces/{keyspaceName}/indexes")
-@Consumes(MediaType.APPLICATION_JSON)
+@Path("/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}/indexes")
 @Produces(MediaType.APPLICATION_JSON)
 public class IndexesResource {
   @Inject private Db db;
+
+  private final String SYSTEM_SCHEMA = "system_schema";
+  private final String INDEXES_TABLE = "indexes";
+
+  @Timed
+  @GET
+  @ApiOperation(
+      value = "Get all indexes for a given table",
+      notes = "Get all indexes for a given table",
+      response = SuccessResponse.class,
+      code = 201)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 201, message = "Created", response = SuccessResponse.class),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
+  public Response getAllIndexesForTable(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @Context HttpServletRequest request) {
+    return RequestHandler.handle(
+        () -> {
+          Map<String, String> allHeaders = getAllHeaders(request);
+          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+
+          db.getAuthorizationService()
+              .authorizeDataRead(
+                  authenticatedDB.getAuthenticationSubject(),
+                  keyspaceName,
+                  tableName,
+                  SourceAPI.REST);
+
+          try {
+            Table tableMetadata = authenticatedDB.getTable(SYSTEM_SCHEMA, INDEXES_TABLE);
+            List<Column> columns = tableMetadata.columns();
+            BoundQuery query =
+                authenticatedDB
+                    .getDataStore()
+                    .queryBuilder()
+                    .select()
+                    .column(columns)
+                    .from(SYSTEM_SCHEMA, INDEXES_TABLE)
+                    .where("table_name", Predicate.EQ, tableName)
+                    .allowFiltering(true)
+                    .build()
+                    .bind();
+
+            final ResultSet r =
+                db.getAuthorizationService()
+                    .authorizedDataRead(
+                        () ->
+                            authenticatedDB
+                                .getDataStore()
+                                .execute(query, ConsistencyLevel.LOCAL_QUORUM)
+                                .get(),
+                        authenticatedDB.getAuthenticationSubject(),
+                        keyspaceName,
+                        tableName,
+                        TypedKeyValue.forSelect((BoundSelect) query),
+                        SourceAPI.REST);
+
+            List<Map<String, Object>> rows =
+                r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
+            return Response.status(Response.Status.OK)
+                .entity(Converters.writeResponse(rows))
+                .build();
+          } catch (NotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND)
+                .entity(
+                    new Error(
+                        String.format("Table '%s' not found in keyspace.", tableName),
+                        Response.Status.NOT_FOUND.getStatusCode()))
+                .build();
+          }
+        });
+  }
 
   @Timed
   @POST
@@ -82,6 +178,9 @@ public class IndexesResource {
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
       @ApiParam(required = true) @NotNull final IndexAdd indexAdd,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
@@ -89,16 +188,31 @@ public class IndexesResource {
           Map<String, String> allHeaders = getAllHeaders(request);
           AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
-          String tableName = indexAdd.getTable();
-          String columnName = indexAdd.getColumn();
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(
+                  authenticatedDB.getAuthenticationSubject(),
+                  keyspaceName,
+                  tableName,
+                  Scope.CREATE,
+                  SourceAPI.REST);
 
-          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
-          if (keyspace == null) {
+          String columnName = indexAdd.getColumn();
+          if (Strings.isNullOrEmpty(columnName)) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
                     new Error(
-                        String.format("Keyspace '%s' not found.", keyspaceName),
+                        String.format("Column name ('%s') cannot be empty/null.", columnName),
                         Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
+
+          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+          if (keyspace == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                .entity(
+                    new Error(
+                        String.format("Keyspace '%s' not found.", keyspaceName),
+                        Response.Status.NOT_FOUND.getStatusCode()))
                 .build();
           }
 
@@ -122,53 +236,35 @@ public class IndexesResource {
                 .build();
           }
 
-          createIndex(keyspaceName, indexAdd, authenticatedDB, tableName, columnName);
+          boolean indexKeys = indexAdd.getKind() == IndexKind.KEYS;
+          boolean indexEntries = indexAdd.getKind() == IndexKind.ENTRIES;
+          boolean indexValues = indexAdd.getKind() == IndexKind.VALUES;
+          boolean indexFull = indexAdd.getKind() == IndexKind.FULL;
+
+          CollectionIndexingType indexingType =
+              ImmutableCollectionIndexingType.builder()
+                  .indexEntries(indexEntries)
+                  .indexKeys(indexKeys)
+                  .indexValues(indexValues)
+                  .indexFull(indexFull)
+                  .build();
+
+          authenticatedDB
+              .getDataStore()
+              .queryBuilder()
+              .create()
+              .custom(indexAdd.getType())
+              .index(indexAdd.getName())
+              .ifNotExists(indexAdd.getIfNotExists())
+              .on(keyspaceName, tableName)
+              .column(columnName)
+              .indexingType(indexingType)
+              .build()
+              .execute()
+              .get();
 
           return Response.status(Response.Status.CREATED).entity(new SuccessResponse()).build();
         });
-  }
-
-  private void createIndex(
-      String keyspaceName,
-      IndexAdd indexAdd,
-      AuthenticatedDB authenticatedDB,
-      String tableName,
-      String columnName)
-      throws UnauthorizedException, InterruptedException, java.util.concurrent.ExecutionException {
-    db.getAuthorizationService()
-        .authorizeSchemaWrite(
-            authenticatedDB.getAuthenticationSubject(),
-            keyspaceName,
-            tableName,
-            Scope.CREATE,
-            SourceAPI.REST);
-
-    boolean indexKeys = indexAdd.getKind() == IndexKind.KEYS;
-    boolean indexEntries = indexAdd.getKind() == IndexKind.ENTRIES;
-    boolean indexValues = indexAdd.getKind() == IndexKind.VALUES;
-    boolean indexFull = indexAdd.getKind() == IndexKind.FULL;
-
-    CollectionIndexingType indexingType =
-        ImmutableCollectionIndexingType.builder()
-            .indexEntries(indexEntries)
-            .indexKeys(indexKeys)
-            .indexValues(indexValues)
-            .indexFull(indexFull)
-            .build();
-
-    authenticatedDB
-        .getDataStore()
-        .queryBuilder()
-        .create()
-        .custom(indexAdd.getType())
-        .index(indexAdd.getName())
-        .ifNotExists(indexAdd.getIfNotExists())
-        .on(keyspaceName, tableName)
-        .column(columnName)
-        .indexingType(indexingType)
-        .build()
-        .execute()
-        .get();
   }
 
   @Timed
@@ -196,6 +292,9 @@ public class IndexesResource {
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
       @ApiParam(value = "Name of the index to use for the request.", required = true)
           @PathParam("indexName")
           final String indexName,
@@ -205,54 +304,54 @@ public class IndexesResource {
           Map<String, String> allHeaders = getAllHeaders(request);
           AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(
+                  authenticatedDB.getAuthenticationSubject(),
+                  keyspaceName,
+                  tableName,
+                  Scope.DROP,
+                  SourceAPI.REST);
+
           Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
           if (keyspace == null) {
-            return Response.status(Response.Status.BAD_REQUEST)
+            return Response.status(Response.Status.NOT_FOUND)
                 .entity(
                     new Error(
                         String.format("Keyspace '%s' not found.", keyspaceName),
-                        Response.Status.BAD_REQUEST.getStatusCode()))
+                        Response.Status.NOT_FOUND.getStatusCode()))
                 .build();
           }
 
-          Optional<Table> table =
-              keyspace.tables().stream()
-                  .filter(t -> t.indexes().stream().anyMatch(i -> indexName.equals(i.name())))
-                  .findFirst();
-
-          if (!table.isPresent()) {
-            return Response.status(Response.Status.BAD_REQUEST)
+          try {
+            final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
+            Index index = tableMetadata.index(indexName);
+            if (index == null) {
+              return Response.status(Response.Status.NOT_FOUND)
+                  .entity(
+                      new Error(
+                          String.format("Index '%s' not found.", indexName),
+                          Response.Status.NOT_FOUND.getStatusCode()))
+                  .build();
+            }
+          } catch (NotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND)
                 .entity(
                     new Error(
-                        String.format("Index '%s' not found.", indexName),
-                        Response.Status.BAD_REQUEST.getStatusCode()))
+                        String.format("Table '%s' not found in keyspace.", tableName),
+                        Response.Status.NOT_FOUND.getStatusCode()))
                 .build();
           }
 
-          dropIndex(keyspaceName, indexName, authenticatedDB, table);
+          authenticatedDB
+              .getDataStore()
+              .queryBuilder()
+              .drop()
+              .index(keyspaceName, indexName)
+              .build()
+              .execute()
+              .get();
 
           return Response.status(Response.Status.NO_CONTENT).build();
         });
-  }
-
-  private void dropIndex(
-      String keyspaceName, String indexName, AuthenticatedDB authenticatedDB, Optional<Table> table)
-      throws UnauthorizedException, InterruptedException, java.util.concurrent.ExecutionException {
-    db.getAuthorizationService()
-        .authorizeSchemaWrite(
-            authenticatedDB.getAuthenticationSubject(),
-            keyspaceName,
-            table.get().name(),
-            Scope.DROP,
-            SourceAPI.REST);
-
-    authenticatedDB
-        .getDataStore()
-        .queryBuilder()
-        .drop()
-        .index(keyspaceName, indexName)
-        .build()
-        .execute()
-        .get();
   }
 }

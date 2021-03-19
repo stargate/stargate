@@ -14,6 +14,9 @@ import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.models.GetResponseWrapper;
+import io.stargate.web.models.IndexAdd;
+import io.stargate.web.models.IndexKind;
+import io.stargate.web.models.SuccessResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -123,6 +126,40 @@ public class RestApiv2DseTest extends BaseOsgiIntegrationTest {
     data =
         query("/maps_per_entry?where={\"m\":{\"$containsEntry\":{\"key\": 1, \"value\": \"b\"}}}");
     assertThat(data).hasSize(0);
+  }
+
+  @Test
+  public void createCustomIndexes() throws IOException {
+    IndexAdd indexAdd = new IndexAdd();
+    indexAdd.setColumn("l");
+    indexAdd.setName("idx1");
+    indexAdd.setIfNotExists(false);
+    indexAdd.setType("StorageAttachedIndex");
+    createIndex("lists", indexAdd);
+
+    indexAdd.setName("idx2");
+    indexAdd.setKind(IndexKind.KEYS);
+    createIndex("maps_per_key", indexAdd);
+
+    indexAdd.setName("idx2");
+    indexAdd.setKind(null);
+    createIndex("maps_per_value", indexAdd);
+
+    indexAdd.setName("idx4");
+    indexAdd.setKind(IndexKind.ENTRIES);
+    createIndex("maps_per_entry", indexAdd);
+  }
+
+  private void createIndex(String tableName, IndexAdd indexAdd) throws IOException {
+    String body =
+        RestUtils.post(
+            authToken,
+            keyspaceUri + String.format("/tables/%s/indexes", tableName),
+            objectMapper.writeValueAsString(indexAdd),
+            HttpStatus.SC_CREATED);
+    SuccessResponse successResponse =
+        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
+    assertThat(successResponse.getSuccess()).isTrue();
   }
 
   private static String fetchAuthToken(String host) throws IOException {
