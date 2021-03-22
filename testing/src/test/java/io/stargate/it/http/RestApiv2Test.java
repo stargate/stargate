@@ -400,8 +400,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     assertThat(successResponse.getSuccess()).isTrue();
 
     List<Row> rows = session.execute("SELECT * FROM system_schema.indexes;").all();
-    assertThat(rows.size()).isEqualTo(1);
-    assertThat(rows.get(0).getString("index_name")).isEqualTo("test_idx");
+    assertThat(rows.stream().anyMatch(i -> "test_idx".equals(i.getString("index_name")))).isTrue();
 
     // don't create and index if it already exists and don't throw error
     indexAdd.setIfNotExists(true);
@@ -539,7 +538,8 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     List<Map<String, Object>> data =
         objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
-    assertThat(data.size()).isEqualTo(1);
+
+    assertThat(data.stream().anyMatch(m -> "test_idx".equals(m.get("index_name")))).isTrue();
   }
 
   @Test
