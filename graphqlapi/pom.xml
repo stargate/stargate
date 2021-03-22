@@ -141,7 +141,7 @@
     <dependency>
       <groupId>com.apollographql.federation</groupId>
       <artifactId>federation-graphql-java-support</artifactId>
-      <version>0.6.1</version>
+      <version>0.6.3</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
