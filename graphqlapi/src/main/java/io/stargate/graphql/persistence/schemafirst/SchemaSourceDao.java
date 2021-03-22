@@ -121,19 +121,6 @@ public class SchemaSourceDao {
     return getByVersion(namespace, Optional.empty());
   }
 
-  private boolean tableExists() {
-    Keyspace keyspace = dataStore.schema().keyspace(KEYSPACE_NAME);
-    if (keyspace == null) {
-      return false;
-    }
-    Table table = keyspace.table(TABLE_NAME);
-    if (table == null) {
-      return false;
-    }
-    failIfUnexpectedSchema(table);
-    return true;
-  }
-
   private SchemaSource toSchemaSource(String namespace, Row r) {
     return new SchemaSource(
         namespace, r.getUuid(VERSION_COLUMN_NAME), r.getString(CONTENTS_COLUMN_NAME));
@@ -194,6 +181,9 @@ public class SchemaSourceDao {
   }
 
   private void ensureTableExists() throws Exception {
+    if (tableExists()) {
+      return;
+    }
     dataStore
         .execute(
             dataStore
@@ -217,9 +207,21 @@ public class SchemaSourceDao {
                 .bind())
         .get();
 
-    // If the table already existed, CREATE IF NOT EXISTS does not guarantee that it matches what we
-    // were trying to create.
+    // Just in case our `CREATE IF NOT EXISTS` calls raced with another client:
     failIfUnexpectedSchema(dataStore.schema().keyspace(KEYSPACE_NAME).table(TABLE_NAME));
+  }
+
+  private boolean tableExists() {
+    Keyspace keyspace = dataStore.schema().keyspace(KEYSPACE_NAME);
+    if (keyspace == null) {
+      return false;
+    }
+    Table table = keyspace.table(TABLE_NAME);
+    if (table == null) {
+      return false;
+    }
+    failIfUnexpectedSchema(table);
+    return true;
   }
 
   private static void failIfUnexpectedSchema(Table table) {
