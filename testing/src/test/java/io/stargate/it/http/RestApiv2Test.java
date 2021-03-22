@@ -503,6 +503,12 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   @Test
   public void listAllIndexes(CqlSession session) throws IOException {
     createKeyspace(keyspaceName);
+    tableName = "tbl_createtable_" + System.currentTimeMillis();
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "firstName text", "email list<text>"),
+        Collections.singletonList("id"),
+        null);
 
     String body =
         RestUtils.get(
@@ -512,7 +518,17 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             HttpStatus.SC_OK);
     assertThat(body).isEqualTo("[]");
 
-    createIndex(session);
+    IndexAdd indexAdd = new IndexAdd();
+    indexAdd.setColumn("firstName");
+    indexAdd.setName("test_idx");
+    indexAdd.setIfNotExists(false);
+
+    RestUtils.post(
+        authToken,
+        String.format(
+            "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
+        objectMapper.writeValueAsString(indexAdd),
+        HttpStatus.SC_CREATED);
 
     body =
         RestUtils.get(
@@ -523,17 +539,33 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     List<Map<String, Object>> data =
         objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
-    assertThat(data.size()).isEqualTo(2);
+    assertThat(data.size()).isEqualTo(1);
   }
 
   @Test
   public void dropIndex(CqlSession session) throws IOException {
     createKeyspace(keyspaceName);
-    createIndex(session);
+    tableName = "tbl_createtable_" + System.currentTimeMillis();
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "firstName text", "email list<text>"),
+        Collections.singletonList("id"),
+        null);
 
-    // createIndex() creates two indexes: over firstName and email
+    IndexAdd indexAdd = new IndexAdd();
+    indexAdd.setColumn("firstName");
+    indexAdd.setName("test_idx");
+    indexAdd.setIfNotExists(false);
+
+    RestUtils.post(
+        authToken,
+        String.format(
+            "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
+        objectMapper.writeValueAsString(indexAdd),
+        HttpStatus.SC_CREATED);
+
     List<Row> rows = session.execute("SELECT * FROM system_schema.indexes;").all();
-    assertThat(rows.size()).isEqualTo(2);
+    assertThat(rows.size()).isEqualTo(1);
 
     String indexName = "test_idx";
     RestUtils.delete(
@@ -544,7 +576,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         HttpStatus.SC_NO_CONTENT);
 
     rows = session.execute("SELECT * FROM system_schema.indexes;").all();
-    assertThat(rows.size()).isEqualTo(1);
+    assertThat(rows.size()).isEqualTo(0);
 
     indexName = "invalid_idx";
     String body =
