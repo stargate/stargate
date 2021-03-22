@@ -7,13 +7,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.exception.XNotFoundException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.models.Error;
+import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Db;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -478,6 +482,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
@@ -552,6 +557,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
@@ -631,6 +637,19 @@ public class DocumentResourceV2 {
               throw new DocumentAPIRequestException(
                   "When selecting `fields`, the field referenced by `where` must be in the selection.");
             }
+          }
+
+          // check first that namespace and table exist
+          AuthenticatedDB authenticatedDB = dbFactory.getDataStoreForToken(authToken, allHeaders);
+          // TODO does this require authenticateSchemaRead?
+          Keyspace keyspace = authenticatedDB.getKeyspace(namespace);
+          if (null == keyspace) {
+            throw new XNotFoundException(String.format("Namespace %s does not exist.", namespace));
+          }
+          Table table = keyspace.table(collection);
+          if (null == table) {
+            throw new XNotFoundException(
+                String.format("Collection %s does not exist.", collection));
           }
 
           JsonNode node;
@@ -840,6 +859,13 @@ public class DocumentResourceV2 {
               new Error(
                   "Bad request: " + sre.getLocalizedMessage(),
                   Response.Status.BAD_REQUEST.getStatusCode()))
+          .build();
+    } catch (XNotFoundException nfe) {
+      return Response.status(Response.Status.NOT_FOUND)
+          .entity(
+              new Error(
+                  "Not found: " + nfe.getLocalizedMessage(),
+                  Response.Status.NOT_FOUND.getStatusCode()))
           .build();
     } catch (NoNodeAvailableException e) {
       return Response.status(Response.Status.SERVICE_UNAVAILABLE)

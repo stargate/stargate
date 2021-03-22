@@ -9,7 +9,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.*;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
@@ -27,12 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import net.jcip.annotations.NotThreadSafe;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import okhttp3.*;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -257,6 +255,26 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             String.format(
                 "{\"description\":\"Server error: Unknown table %s.collection \",\"code\":500}",
                 keyspace));
+  }
+
+  @Test
+  public void testDocGetOnNotExistingNamespace() throws IOException {
+    String resp =
+        RestUtils.get(
+            authToken, hostWithPort + "/v2/namespaces/unknown/collections/collection/1", 404);
+    assertThat(resp)
+        .isEqualTo(
+            "{\"description\":\"Not found: Namespace unknown does not exist.\",\"code\":404}");
+  }
+
+  @Test
+  public void testDocGetOnNotExistingCollection() throws IOException {
+    String resp =
+        RestUtils.get(
+            authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/unknown/1", 404);
+    assertThat(resp)
+        .isEqualTo(
+            "{\"description\":\"Not found: Collection unknown does not exist.\",\"code\":404}");
   }
 
   @Test
@@ -2838,6 +2856,42 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         authToken,
         String.format("%s:8082/v2/schemas/namespaces/%s", host, keyspaceName),
         HttpStatus.SC_NOT_FOUND);
+  }
+
+  @Test
+  public void createCollection() throws IOException {
+    String tableName = "tb_createTable_" + System.currentTimeMillis();
+
+    RestUtils.post(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
+        "{\"name\" : \"" + tableName + "\"}",
+        201);
+  }
+
+  @Test
+  public void createExistingCollection() throws IOException {
+    // second post fails with 409
+    String tableName = "tb_createTable_" + System.currentTimeMillis();
+
+    RestUtils.post(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
+        "{\"name\" : \"" + tableName + "\"}",
+        201);
+
+    String response =
+        RestUtils.post(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
+            "{\"name\" : \"" + tableName + "\"}",
+            409);
+
+    assertThat(response)
+        .isEqualTo(
+            "{\"description\":\"Create failed: collection "
+                + tableName
+                + " already exists.\",\"code\":409}");
   }
 
   private JsonNode wrapResponse(JsonNode node, String id, String pagingState) {
