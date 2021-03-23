@@ -206,7 +206,7 @@ type Mutation {
 * `booksFilter`: (**Deprecated**) Query book values by filtering the result with additional
   operators e.g. `gt` (greater than), `lt` (less than), `in` (in a list of values) etc.
   The `books()` equality style query is preferable if your queries don't require the use
-  non-equality operators.
+  of non-equality operators.
 
 #### Mutations:
 
