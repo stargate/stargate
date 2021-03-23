@@ -487,6 +487,16 @@ public class AdminSchemaBuilder {
                 .build())
         .argument(
             newArgument()
+                .name("force")
+                .description(
+                    "Proceed even if the previous deployment is still marked as in progress. "
+                        + "This is used to recover manually if a previous deployment failed unexpectedly during the "
+                        + "CQL migration phase.")
+                .type(nonNull(GraphQLBoolean))
+                .defaultValue(false)
+                .build())
+        .argument(
+            newArgument()
                 .name("dryRun")
                 .description(
                     "Just parse and validate the schema, don't deploy it or apply any changes to "
