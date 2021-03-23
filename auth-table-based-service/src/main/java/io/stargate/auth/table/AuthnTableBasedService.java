@@ -247,7 +247,7 @@ public class AuthnTableBasedService implements AuthenticationService {
               .from(AUTH_KEYSPACE, AUTH_TABLE)
               .where("auth_token", Predicate.EQ, uuid)
               .build()
-              .execute()
+              .execute(ConsistencyLevel.LOCAL_QUORUM)
               .get();
 
       if (resultSet.hasNoMoreFetchedRows()) {
