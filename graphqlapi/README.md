@@ -21,9 +21,8 @@ at least one user-defined keyspace in your database to get started.
 
 ### Using the Playground
 
-The easiest way to get started is to use the built-in GraphQL playground and can then be accessed by
-going to <http://localhost:8080/graphql/{keyspace}>. Once in the playground, you can create new
-schema and interact with the GraphQL APIs.
+The easiest way to get started is to use the built-in GraphQL playground at http://localhost:8080/playground.
+You can then interact with the various GraphQL schemas by entering their URL in the playground's address bar, for example http://localhost:8080/graphql/{keyspace}.
 
 ### Path Layout
 
