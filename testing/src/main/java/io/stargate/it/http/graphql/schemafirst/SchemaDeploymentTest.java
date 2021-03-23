@@ -95,8 +95,32 @@ public class SchemaDeploymentTest extends GraphqlFirstTestBase {
         CLIENT.getDeploySchemaError(namespace, currentVersion.toString(), SCHEMA_CONTENTS);
 
     // then
-    assertThat(error)
-        .contains("It looks like someone else is deploying a new schema. Please try again later.");
+    assertThat(error).contains("It looks like someone else is deploying a new schema");
+  }
+
+  @Test
+  @DisplayName("Should force deployment when already in progress")
+  public void forceDeploySchemaWhenInProgress(
+      @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+    // given
+    String namespace = keyspaceId.asInternal();
+    UUID currentVersion = CLIENT.deploySchema(namespace, SCHEMA_CONTENTS);
+    session.execute(
+        "UPDATE stargate_graphql.schema_source "
+            + "SET deployment_in_progress = true WHERE namespace = ?",
+        namespace);
+
+    // when
+    CLIENT.deploySchema(namespace, currentVersion.toString(), true, SCHEMA_CONTENTS);
+
+    // then
+    Row row =
+        session
+            .execute("select * from stargate_graphql.schema_source where namespace = ?", namespace)
+            .one();
+    assertThat(row).isNotNull();
+    assertThat(row.isNull("deployment_in_progress")).isFalse();
+    assertThat(row.getBoolean("deployment_in_progress")).isFalse();
   }
 
   @Test
@@ -111,6 +135,33 @@ public class SchemaDeploymentTest extends GraphqlFirstTestBase {
     String error =
         CLIENT.getDeploySchemaError(
             keyspaceId.asInternal(), wrongExpectedVersion.toString(), SCHEMA_CONTENTS);
+
+    // then
+    assertThat(error)
+        .contains(
+            String.format(
+                "You specified expectedVersion %s, but there is a more recent version %s",
+                wrongExpectedVersion, currentVersion));
+  }
+
+  @Test
+  @DisplayName("Should fail to force deploy schema when version doesn't match")
+  public void forceDeploySchemaWhenVersionMismatch(
+      @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+    // given
+    String namespace = keyspaceId.asInternal();
+    UUID currentVersion = CLIENT.deploySchema(namespace, SCHEMA_CONTENTS);
+    session.execute(
+        "UPDATE stargate_graphql.schema_source "
+            + "SET deployment_in_progress = true WHERE namespace = ?",
+        namespace);
+    UUID wrongExpectedVersion = Uuids.timeBased();
+    assertThat(wrongExpectedVersion).isNotEqualTo(currentVersion);
+
+    // when
+    String error =
+        CLIENT.getDeploySchemaError(
+            namespace, wrongExpectedVersion.toString(), true, SCHEMA_CONTENTS);
 
     // then
     assertThat(error)
