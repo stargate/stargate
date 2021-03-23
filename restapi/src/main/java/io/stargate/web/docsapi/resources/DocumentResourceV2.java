@@ -12,7 +12,7 @@ import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
-import io.stargate.web.docsapi.exception.XNotFoundException;
+import io.stargate.web.docsapi.exception.ResourceNotFoundException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
@@ -641,14 +641,14 @@ public class DocumentResourceV2 {
 
           // check first that namespace and table exist
           AuthenticatedDB authenticatedDB = dbFactory.getDataStoreForToken(authToken, allHeaders);
-          // TODO does this require authenticateSchemaRead?
           Keyspace keyspace = authenticatedDB.getKeyspace(namespace);
           if (null == keyspace) {
-            throw new XNotFoundException(String.format("Namespace %s does not exist.", namespace));
+            throw new ResourceNotFoundException(
+                String.format("Namespace %s does not exist.", namespace));
           }
           Table table = keyspace.table(collection);
           if (null == table) {
-            throw new XNotFoundException(
+            throw new ResourceNotFoundException(
                 String.format("Collection %s does not exist.", collection));
           }
 
@@ -860,7 +860,7 @@ public class DocumentResourceV2 {
                   "Bad request: " + sre.getLocalizedMessage(),
                   Response.Status.BAD_REQUEST.getStatusCode()))
           .build();
-    } catch (XNotFoundException nfe) {
+    } catch (ResourceNotFoundException nfe) {
       return Response.status(Response.Status.NOT_FOUND)
           .entity(
               new Error(

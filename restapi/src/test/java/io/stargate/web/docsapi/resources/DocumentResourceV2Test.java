@@ -17,10 +17,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.models.Error;
+import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Db;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,6 +43,7 @@ public class DocumentResourceV2Test {
   private static final ObjectMapper mapper = new ObjectMapper();
   private final DocumentService documentServiceMock = mock(DocumentService.class);
   private final Db dbFactoryMock = mock(Db.class);
+  private final AuthenticatedDB authenticatedDBMock = mock(AuthenticatedDB.class);
   private DocumentResourceV2 documentResourceV2;
   private HttpServletRequest httpServletRequest;
 
@@ -205,6 +209,13 @@ public class DocumentResourceV2Test {
                 anyObject(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(mockedReturn);
 
+    Keyspace keyspaceMock = mock(Keyspace.class);
+    Table tableMock = mock(Table.class);
+    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), any()))
+        .thenReturn(authenticatedDBMock);
+    when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
+    when(keyspaceMock.table(collection)).thenReturn(tableMock);
+
     Response r =
         documentResourceV2.getDoc(
             headers,
@@ -247,6 +258,13 @@ public class DocumentResourceV2Test {
             documentServiceMock.getJsonAtPath(
                 anyObject(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(mockedReturn);
+
+    Keyspace keyspaceMock = mock(Keyspace.class);
+    Table tableMock = mock(Table.class);
+    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), any()))
+        .thenReturn(authenticatedDBMock);
+    when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
+    when(keyspaceMock.table(collection)).thenReturn(tableMock);
 
     Response r =
         documentResourceV2.getDocPath(
@@ -304,6 +322,13 @@ public class DocumentResourceV2Test {
 
     Mockito.when(documentServiceMock.convertToSelectionList(anyObject())).thenCallRealMethod();
 
+    Keyspace keyspaceMock = mock(Keyspace.class);
+    Table tableMock = mock(Table.class);
+    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), any()))
+        .thenReturn(authenticatedDBMock);
+    when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
+    when(keyspaceMock.table(collection)).thenReturn(tableMock);
+
     Response r =
         documentResourceV2.getDocPath(
             headers,
@@ -348,6 +373,13 @@ public class DocumentResourceV2Test {
                 anyObject(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(mockedReturn);
 
+    Keyspace keyspaceMock = mock(Keyspace.class);
+    Table tableMock = mock(Table.class);
+    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), any()))
+        .thenReturn(authenticatedDBMock);
+    when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
+    when(keyspaceMock.table(collection)).thenReturn(tableMock);
+
     Response r =
         documentResourceV2.getDocPath(
             headers,
@@ -390,6 +422,13 @@ public class DocumentResourceV2Test {
             documentServiceMock.getJsonAtPath(
                 anyObject(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(null);
+
+    Keyspace keyspaceMock = mock(Keyspace.class);
+    Table tableMock = mock(Table.class);
+    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), any()))
+        .thenReturn(authenticatedDBMock);
+    when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
+    when(keyspaceMock.table(collection)).thenReturn(tableMock);
 
     Response r =
         documentResourceV2.getDocPath(
