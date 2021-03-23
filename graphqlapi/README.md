@@ -21,8 +21,8 @@ at least one user-defined keyspace in your database to get started.
 
 ### Using the Playground
 
-The easiest way to get started is to use the built-in GraphQL playground at http://localhost:8080/playground.
-You can then interact with the various GraphQL schemas by entering their URL in the playground's address bar, for example http://localhost:8080/graphql/{keyspace}.
+The easiest way to get started is to use the built-in GraphQL playground at <http://localhost:8080/playground>.
+You can then interact with the various GraphQL schemas by entering their URL in the playground's address bar, for example <http://localhost:8080/graphql/{keyspace}>.
 
 ### Path Layout
 
@@ -37,7 +37,7 @@ By default, the server paths are structured to provide:
 #### Keyspaces
 
 For each keyspace created in your Cassandra schema, a new path is created under the
-root `graphql-path` (default is: `/graphql`). For example, a path
+root graphql-path of `/graphql`. For example, a path
 `/graphql/library` is created for the `library` keyspace when it is added to the Cassandra schema.
 
 ### Schema
