@@ -55,12 +55,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE maps_per_entry(k int PRIMARY KEY, m map<int, text>)",
       "CREATE CUSTOM INDEX maps_per_entry_m_idx ON maps_per_entry(entries(m)) USING 'StorageAttachedIndex'",
       "INSERT INTO maps_per_entry (k,m) values (1, {1:'a',2:'b',3:'c'})",
+      // Table for index test
+      "CREATE TABLE index_test_table(k int PRIMARY KEY, l list<int>, m1 map<int, text>, m2 map<int, text>, m3 map<int, text>)",
     })
 public class RestApiv2DseTest extends BaseOsgiIntegrationTest {
 
   private static final ObjectMapper objectMapper =
       new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
   private static String keyspaceUri;
+  private static String schemaUri;
   private static String authToken;
 
   @BeforeAll
@@ -69,6 +72,8 @@ public class RestApiv2DseTest extends BaseOsgiIntegrationTest {
     String host = cluster.seedAddress();
     authToken = fetchAuthToken(host);
     keyspaceUri = String.format("http://%s:8082/v2/keyspaces/%s", host, keyspaceId.asInternal());
+    schemaUri =
+        String.format("http://%s:8082/v2/schemas/keyspaces/%s", host, keyspaceId.asInternal());
   }
 
   @Test
@@ -131,30 +136,33 @@ public class RestApiv2DseTest extends BaseOsgiIntegrationTest {
   @Test
   public void createCustomIndexes() throws IOException {
     IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("l");
     indexAdd.setName("idx1");
+    indexAdd.setColumn("l");
     indexAdd.setIfNotExists(false);
     indexAdd.setType("StorageAttachedIndex");
-    createIndex("lists", indexAdd);
+    createIndex("index_test_table", indexAdd);
 
     indexAdd.setName("idx2");
+    indexAdd.setColumn("m1");
     indexAdd.setKind(IndexKind.KEYS);
-    createIndex("maps_per_key", indexAdd);
+    createIndex("index_test_table", indexAdd);
 
-    indexAdd.setName("idx2");
+    indexAdd.setName("idx3");
+    indexAdd.setColumn("m2");
     indexAdd.setKind(null);
-    createIndex("maps_per_value", indexAdd);
+    createIndex("index_test_table", indexAdd);
 
     indexAdd.setName("idx4");
+    indexAdd.setColumn("m3");
     indexAdd.setKind(IndexKind.ENTRIES);
-    createIndex("maps_per_entry", indexAdd);
+    createIndex("index_test_table", indexAdd);
   }
 
   private void createIndex(String tableName, IndexAdd indexAdd) throws IOException {
     String body =
         RestUtils.post(
             authToken,
-            keyspaceUri + String.format("/tables/%s/indexes", tableName),
+            String.format("%s/tables/%s/indexes", schemaUri, tableName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_CREATED);
     SuccessResponse successResponse =
