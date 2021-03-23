@@ -244,17 +244,6 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(resp)
         .isEqualTo(
             "{\"description\":\"Bad request: Could not create collection invalid-character, it has invalid characters. Valid characters are alphanumeric and underscores.\",\"code\":400}");
-
-    resp =
-        RestUtils.get(
-            authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/unknown",
-            500);
-    assertThat(resp)
-        .isEqualTo(
-            String.format(
-                "{\"description\":\"Server error: Unknown table %s.collection \",\"code\":500}",
-                keyspace));
   }
 
   @Test
