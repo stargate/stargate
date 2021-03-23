@@ -66,9 +66,10 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
     String input = getSchemaContents(environment);
     UUID expectedVersion = getExpectedVersion(environment);
     MigrationStrategy migrationStrategy = environment.getArgument("migrationStrategy");
+    boolean force = environment.getArgument("force");
     boolean dryRun = environment.getArgument("dryRun");
     if (!dryRun) {
-      schemaSourceDao.startDeployment(namespace, expectedVersion);
+      schemaSourceDao.startDeployment(namespace, expectedVersion, force);
     }
 
     DeploySchemaResponseDto response = new DeploySchemaResponseDto();

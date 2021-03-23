@@ -55,9 +55,16 @@ public class GraphqlFirstClient extends GraphqlClient {
   }
 
   public UUID deploySchema(String namespace, String expectedVersion, String contents) {
+    return deploySchema(namespace, expectedVersion, false, contents);
+  }
+
+  public UUID deploySchema(
+      String namespace, String expectedVersion, boolean force, String contents) {
     Map<String, Object> response =
         getGraphqlData(
-            authToken, adminUri, buildDeploySchemaQuery(namespace, expectedVersion, contents));
+            authToken,
+            adminUri,
+            buildDeploySchemaQuery(namespace, expectedVersion, force, contents));
     String version = JsonPath.read(response, "$.deploySchema.version");
     return UUID.fromString(version);
   }
@@ -68,16 +75,23 @@ public class GraphqlFirstClient extends GraphqlClient {
    * @return the message of that error.
    */
   public String getDeploySchemaError(String namespace, String expectedVersion, String contents) {
-    return getGraphqlError(
-        authToken, adminUri, buildDeploySchemaQuery(namespace, expectedVersion, contents));
+    return getDeploySchemaError(namespace, expectedVersion, false, contents);
   }
 
-  private String buildDeploySchemaQuery(String namespace, String expectedVersion, String contents) {
+  public String getDeploySchemaError(
+      String namespace, String expectedVersion, boolean force, String contents) {
+    return getGraphqlError(
+        authToken, adminUri, buildDeploySchemaQuery(namespace, expectedVersion, force, contents));
+  }
+
+  private String buildDeploySchemaQuery(
+      String namespace, String expectedVersion, boolean force, String contents) {
     StringBuilder query = new StringBuilder("mutation { deploySchema( ");
     query.append(String.format("namespace: \"%s\" ", namespace));
     if (expectedVersion != null) {
       query.append(String.format("expectedVersion: \"%s\" ", expectedVersion));
     }
+    query.append(String.format("force: %b ", force));
     query.append(String.format("schema: \"\"\"%s\"\"\" ", contents));
     return query.append(") { version } }").toString();
   }

@@ -16,11 +16,13 @@
 package io.stargate.graphql.persistence.schemafirst;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
+import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.Replication;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
@@ -29,11 +31,7 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.schemafirst.migration.CassandraSchemaHelper;
 import io.stargate.graphql.schema.schemafirst.util.Uuids;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -239,16 +237,23 @@ public class SchemaSourceDao {
    *
    * @throws IllegalStateException if the deployment could not be started.
    */
-  public void startDeployment(String namespace, UUID expectedLatestVersion) throws Exception {
+  public void startDeployment(String namespace, UUID expectedLatestVersion, boolean force)
+      throws Exception {
     ensureTableExists();
+    List<BuiltCondition> conditions =
+        force
+            ? ImmutableList.of(
+                BuiltCondition.of(LATEST_VERSION_COLUMN_NAME, Predicate.EQ, expectedLatestVersion))
+            : ImmutableList.of(
+                BuiltCondition.of(LATEST_VERSION_COLUMN_NAME, Predicate.EQ, expectedLatestVersion),
+                BuiltCondition.of(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Predicate.NEQ, true));
     BoundQuery updateDeploymentToInProgress =
         dataStore
             .queryBuilder()
             .update(KEYSPACE_NAME, TABLE_NAME)
             .value(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, true)
             .where(NAMESPACE_COLUMN_NAME, Predicate.EQ, namespace)
-            .ifs(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Predicate.NEQ, true)
-            .ifs(LATEST_VERSION_COLUMN_NAME, Predicate.EQ, expectedLatestVersion)
+            .ifs(conditions)
             .build()
             .bind();
 
@@ -265,7 +270,9 @@ public class SchemaSourceDao {
       if (Objects.equals(actualLatestVersion, expectedLatestVersion)) {
         assert row.getBoolean(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME);
         throw new IllegalStateException(
-            "It looks like someone else is deploying a new schema. Please try again later.");
+            "It looks like someone else is deploying a new schema, please check the latest version and try again. "
+                + "This can also happen if a previous deployment failed unexpectedly, in that case you can use the "
+                + "'force' argument to bypass this check.");
       }
       throw new IllegalStateException(
           String.format(
