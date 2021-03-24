@@ -90,7 +90,7 @@ public class KeyspaceDto {
           Collections.singletonList(keyspace.name()),
           Collections.singletonList(table.name()),
           SourceAPI.GRAPHQL,
-          ResourceKind.KEYSPACE);
+          ResourceKind.TABLE);
       return true;
     } catch (UnauthorizedException e) {
       LOG.debug(
