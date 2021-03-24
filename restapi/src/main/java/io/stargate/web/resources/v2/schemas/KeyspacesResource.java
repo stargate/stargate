@@ -19,9 +19,9 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.stargate.auth.Resource;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.query.builder.Replication;
 import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
@@ -106,7 +106,7 @@ public class KeyspacesResource {
                   keyspaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
                   null,
                   SourceAPI.REST,
-                  Resource.KEYSPACE);
+                  ResourceKind.KEYSPACE);
 
           Object response = raw ? keyspaces : new ResponseWrapper(keyspaces);
           return Response.status(Response.Status.OK)
@@ -153,7 +153,7 @@ public class KeyspacesResource {
                   Collections.singletonList(keyspaceName),
                   null,
                   SourceAPI.REST,
-                  Resource.KEYSPACE);
+                  ResourceKind.KEYSPACE);
 
           io.stargate.db.schema.Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
@@ -230,7 +230,7 @@ public class KeyspacesResource {
                   null,
                   Scope.CREATE,
                   SourceAPI.REST,
-                  Resource.KEYSPACE);
+                  ResourceKind.KEYSPACE);
 
           Replication replication;
           if (requestBody.containsKey("datacenters")) {
@@ -299,7 +299,7 @@ public class KeyspacesResource {
                   null,
                   Scope.DROP,
                   SourceAPI.REST,
-                  Resource.KEYSPACE);
+                  ResourceKind.KEYSPACE);
 
           authenticatedDB
               .getDataStore()

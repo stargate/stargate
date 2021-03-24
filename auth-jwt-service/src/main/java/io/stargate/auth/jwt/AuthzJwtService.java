@@ -21,11 +21,11 @@ import static io.stargate.auth.jwt.AuthnJwtService.STARGATE_PREFIX;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.Resource;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
@@ -164,7 +164,7 @@ public class AuthzJwtService implements AuthorizationService {
       List<String> keyspaceNames,
       List<String> tableNames,
       SourceAPI sourceAPI,
-      Resource resource)
+      ResourceKind resource)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -182,7 +182,7 @@ public class AuthzJwtService implements AuthorizationService {
       String table,
       Scope scope,
       SourceAPI sourceAPI,
-      Resource resource)
+      ResourceKind resource)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }

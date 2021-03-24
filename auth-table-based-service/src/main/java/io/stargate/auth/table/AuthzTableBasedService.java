@@ -17,11 +17,11 @@ package io.stargate.auth.table;
 
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.Resource;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.ResultSet;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -111,7 +111,7 @@ public class AuthzTableBasedService implements AuthorizationService {
       List<String> keyspaceNames,
       List<String> tableNames,
       SourceAPI sourceAPI,
-      Resource resource)
+      ResourceKind resource)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }
@@ -130,7 +130,7 @@ public class AuthzTableBasedService implements AuthorizationService {
       String table,
       Scope scope,
       SourceAPI sourceAPI,
-      Resource resource)
+      ResourceKind resource)
       throws UnauthorizedException {
     // Cannot perform authorization with a table based token so just return
   }

@@ -18,9 +18,9 @@ package io.stargate.web.resources.v2.schemas;
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
 import com.codahale.metrics.annotation.Timed;
-import io.stargate.auth.Resource;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Kind;
@@ -120,7 +120,7 @@ public class TablesResource {
                   Collections.singletonList(keyspaceName),
                   tableResponses.stream().map(TableResponse::getName).collect(Collectors.toList()),
                   SourceAPI.REST,
-                  Resource.TABLE);
+                  ResourceKind.TABLE);
 
           Object response = raw ? tableResponses : new ResponseWrapper(tableResponses);
           return Response.status(Response.Status.OK)
@@ -169,7 +169,7 @@ public class TablesResource {
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
                   SourceAPI.REST,
-                  Resource.TABLE);
+                  ResourceKind.TABLE);
 
           Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -236,7 +236,7 @@ public class TablesResource {
                   tableName,
                   Scope.CREATE,
                   SourceAPI.REST,
-                  Resource.TABLE);
+                  ResourceKind.TABLE);
 
           PrimaryKey primaryKey = tableAdd.getPrimaryKey();
           if (primaryKey == null) {
@@ -343,7 +343,7 @@ public class TablesResource {
                   tableName,
                   Scope.ALTER,
                   SourceAPI.REST,
-                  Resource.TABLE);
+                  ResourceKind.TABLE);
 
           TableOptions options = tableUpdate.getTableOptions();
           List<ClusteringExpression> clusteringExpressions = options.getClusteringExpression();
@@ -419,7 +419,7 @@ public class TablesResource {
                   tableName,
                   Scope.DROP,
                   SourceAPI.REST,
-                  Resource.TABLE);
+                  ResourceKind.TABLE);
 
           authenticatedDB
               .getDataStore()

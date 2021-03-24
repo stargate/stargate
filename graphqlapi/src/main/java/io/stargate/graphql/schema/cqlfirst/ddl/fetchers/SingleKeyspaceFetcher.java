@@ -18,8 +18,8 @@ package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.Resource;
 import io.stargate.auth.SourceAPI;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
@@ -51,7 +51,7 @@ public class SingleKeyspaceFetcher extends CassandraFetcher<KeyspaceDto> {
         Collections.singletonList(keyspace.name()),
         null,
         SourceAPI.GRAPHQL,
-        Resource.KEYSPACE);
+        ResourceKind.KEYSPACE);
 
     return new KeyspaceDto(keyspace, authorizationService, authenticationSubject);
   }

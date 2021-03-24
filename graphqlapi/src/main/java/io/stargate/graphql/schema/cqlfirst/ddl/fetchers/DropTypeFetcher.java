@@ -18,10 +18,10 @@ package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.Resource;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
@@ -46,7 +46,12 @@ public class DropTypeFetcher extends DdlQueryFetcher {
 
     // Permissions on a type are the same as keyspace
     authorizationService.authorizeSchemaWrite(
-        authenticationSubject, keyspaceName, null, Scope.DROP, SourceAPI.GRAPHQL, Resource.TYPE);
+        authenticationSubject,
+        keyspaceName,
+        null,
+        Scope.DROP,
+        SourceAPI.GRAPHQL,
+        ResourceKind.TYPE);
 
     Boolean ifExists = dataFetchingEnvironment.getArgument("ifExists");
     return builder

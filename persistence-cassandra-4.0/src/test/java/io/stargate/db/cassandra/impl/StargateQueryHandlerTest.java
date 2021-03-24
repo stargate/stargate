@@ -14,10 +14,10 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import com.google.common.collect.ImmutableMap;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.Resource;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.AuthenticatedUser;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -221,7 +221,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("tbl2"),
             eq(Scope.CREATE),
             eq(SourceAPI.CQL),
-            eq(Resource.TABLE));
+            eq(ResourceKind.TABLE));
   }
 
   @Test
@@ -239,7 +239,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("tbl1"),
             eq(Scope.DROP),
             eq(SourceAPI.CQL),
-            eq(Resource.TABLE));
+            eq(ResourceKind.TABLE));
   }
 
   @Test
@@ -258,7 +258,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("tbl1"),
             eq(Scope.ALTER),
             eq(SourceAPI.CQL),
-            eq(Resource.TABLE));
+            eq(ResourceKind.TABLE));
   }
 
   @Test
@@ -278,7 +278,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq(null),
             eq(Scope.CREATE),
             eq(SourceAPI.CQL),
-            eq(Resource.KEYSPACE));
+            eq(ResourceKind.KEYSPACE));
   }
 
   @Test
@@ -296,7 +296,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq(null),
             eq(Scope.DROP),
             eq(SourceAPI.CQL),
-            eq(Resource.KEYSPACE));
+            eq(ResourceKind.KEYSPACE));
   }
 
   @Test
@@ -316,7 +316,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq(null),
             eq(Scope.ALTER),
             eq(SourceAPI.CQL),
-            eq(Resource.KEYSPACE));
+            eq(ResourceKind.KEYSPACE));
   }
 
   @Test
@@ -335,7 +335,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq(null),
             eq(Scope.ALTER),
             eq(SourceAPI.CQL),
-            eq(Resource.TYPE));
+            eq(ResourceKind.TYPE));
   }
 
   @Test
@@ -363,7 +363,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq(null),
             eq(Scope.ALTER),
             eq(SourceAPI.CQL),
-            eq(Resource.VIEW));
+            eq(ResourceKind.VIEW));
   }
 
   @Test
@@ -390,7 +390,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq(null),
             eq(Scope.CREATE),
             eq(SourceAPI.CQL),
-            eq(Resource.AGGREGATE));
+            eq(ResourceKind.AGGREGATE));
   }
 
   @Test
@@ -419,7 +419,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq(null),
             eq(Scope.CREATE),
             eq(SourceAPI.CQL),
-            eq(Resource.FUNCTION));
+            eq(ResourceKind.FUNCTION));
   }
 
   @Test
@@ -439,7 +439,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("tbl1"),
             eq(Scope.CREATE),
             eq(SourceAPI.CQL),
-            eq(Resource.INDEX));
+            eq(ResourceKind.INDEX));
   }
 
   @Test
@@ -461,7 +461,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("tbl1"),
             eq(Scope.CREATE),
             eq(SourceAPI.CQL),
-            eq(Resource.TRIGGER));
+            eq(ResourceKind.TRIGGER));
   }
 
   @Test
@@ -480,7 +480,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq(null),
             eq(Scope.CREATE),
             eq(SourceAPI.CQL),
-            eq(Resource.TYPE));
+            eq(ResourceKind.TYPE));
   }
 
   @Test
@@ -511,7 +511,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq(null),
             eq(Scope.CREATE),
             eq(SourceAPI.CQL),
-            eq(Resource.VIEW));
+            eq(ResourceKind.VIEW));
   }
 
   @Test
@@ -530,7 +530,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq(null),
             eq(Scope.DROP),
             eq(SourceAPI.CQL),
-            eq(Resource.AGGREGATE));
+            eq(ResourceKind.AGGREGATE));
   }
 
   @Test
@@ -549,7 +549,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq(null),
             eq(Scope.DROP),
             eq(SourceAPI.CQL),
-            eq(Resource.FUNCTION));
+            eq(ResourceKind.FUNCTION));
   }
 
   @Test
@@ -568,7 +568,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq(null),
             eq(Scope.DROP),
             eq(SourceAPI.CQL),
-            eq(Resource.INDEX));
+            eq(ResourceKind.INDEX));
   }
 
   @Test
@@ -587,7 +587,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq("tbl1"),
             eq(Scope.DROP),
             eq(SourceAPI.CQL),
-            eq(Resource.TRIGGER));
+            eq(ResourceKind.TRIGGER));
   }
 
   @Test
@@ -605,7 +605,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq(null),
             eq(Scope.DROP),
             eq(SourceAPI.CQL),
-            eq(Resource.TYPE));
+            eq(ResourceKind.TYPE));
   }
 
   @Test
@@ -624,7 +624,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             eq(null),
             eq(Scope.DROP),
             eq(SourceAPI.CQL),
-            eq(Resource.VIEW));
+            eq(ResourceKind.VIEW));
   }
 
   @Test

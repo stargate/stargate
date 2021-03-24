@@ -15,6 +15,7 @@
  */
 package io.stargate.auth;
 
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.ResultSet;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -119,7 +120,7 @@ public interface AuthorizationService {
       List<String> keyspaceNames,
       List<String> tableNames,
       SourceAPI sourceAPI,
-      Resource resource)
+      ResourceKind resource)
       throws UnauthorizedException;
 
   /**
@@ -141,7 +142,7 @@ public interface AuthorizationService {
       String table,
       Scope scope,
       SourceAPI sourceAPI,
-      Resource resource)
+      ResourceKind resource)
       throws UnauthorizedException;
 
   /**
