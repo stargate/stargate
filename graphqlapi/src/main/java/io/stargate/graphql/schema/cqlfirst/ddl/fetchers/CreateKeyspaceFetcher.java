@@ -21,6 +21,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
@@ -45,7 +46,12 @@ public class CreateKeyspaceFetcher extends DdlQueryFetcher {
     String keyspaceName = dataFetchingEnvironment.getArgument("name");
 
     authorizationService.authorizeSchemaWrite(
-        authenticationSubject, keyspaceName, null, Scope.CREATE, SourceAPI.GRAPHQL);
+        authenticationSubject,
+        keyspaceName,
+        null,
+        Scope.CREATE,
+        SourceAPI.GRAPHQL,
+        ResourceKind.KEYSPACE);
 
     boolean ifNotExists =
         dataFetchingEnvironment.getArgumentOrDefault("ifNotExists", Boolean.FALSE);

@@ -16,7 +16,7 @@
 package io.stargate.auth.entity;
 
 /**
- * Identities an entity (e.g. a keyspace) or a group of entities (e.g. all tables in a keyspace).
+ * Identifies an entity (e.g. a keyspace) or a group of entities (e.g. all tables in a keyspace).
  *
  * <p>A "wildcard" selector, means "all resources" within their scope.
  */

@@ -20,6 +20,7 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Kind;
@@ -117,7 +118,8 @@ public class TableResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   tableNames,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           return Response.status(Response.Status.OK).entity(tableNames).build();
         });
@@ -214,7 +216,8 @@ public class TableResource {
                   keyspaceName,
                   tableName,
                   Scope.CREATE,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           int ttl = 0;
           if (options != null && options.getDefaultTimeToLive() != null) {
@@ -275,7 +278,8 @@ public class TableResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -362,7 +366,8 @@ public class TableResource {
                   keyspaceName,
                   tableName,
                   Scope.DROP,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           authenticatedDB
               .getDataStore()

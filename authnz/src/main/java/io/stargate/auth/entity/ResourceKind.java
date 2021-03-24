@@ -19,4 +19,9 @@ public enum ResourceKind {
   KEYSPACE,
   TABLE,
   FUNCTION,
+  TYPE,
+  TRIGGER,
+  AGGREGATE,
+  VIEW,
+  INDEX
 }

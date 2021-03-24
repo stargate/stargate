@@ -22,6 +22,7 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.AuthenticatedUser.Serializer;
 import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
@@ -355,80 +356,121 @@ public class StargateQueryHandler implements QueryHandler {
       AuthorizationService authorization) {
     SchemaAlteringStatement castStatement = (SchemaAlteringStatement) statement;
     Scope scope = null;
+    ResourceKind resource = null;
     String keyspaceName = null;
     String tableName = null;
 
     if (statement instanceof CreateTableStatement) {
       scope = Scope.CREATE;
+      resource = ResourceKind.TABLE;
+
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     } else if (statement instanceof DropTableStatement) {
       scope = Scope.DROP;
+      resource = ResourceKind.TABLE;
+
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     } else if (statement instanceof AlterTableStatement) {
       scope = Scope.ALTER;
+      resource = ResourceKind.TABLE;
+
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     } else if (statement instanceof CreateKeyspaceStatement) {
       scope = Scope.CREATE;
+      resource = ResourceKind.KEYSPACE;
+
       keyspaceName = castStatement.keyspace();
       tableName = null;
     } else if (statement instanceof DropKeyspaceStatement) {
       scope = Scope.DROP;
+      resource = ResourceKind.KEYSPACE;
+
       keyspaceName = castStatement.keyspace();
       tableName = null;
     } else if (statement instanceof AlterKeyspaceStatement) {
       scope = Scope.ALTER;
+      resource = ResourceKind.KEYSPACE;
+
       keyspaceName = castStatement.keyspace();
       tableName = null;
     } else if (statement instanceof AlterTypeStatement) {
       scope = Scope.ALTER;
+      resource = ResourceKind.TYPE;
+
       keyspaceName = castStatement.keyspace();
     } else if (statement instanceof AlterViewStatement) {
       scope = Scope.ALTER;
+      resource = ResourceKind.VIEW;
+
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     } else if (statement instanceof CreateAggregateStatement) {
       scope = Scope.CREATE;
+      resource = ResourceKind.AGGREGATE;
+
       keyspaceName = getKeyspaceNameFromFunction(statement);
     } else if (statement instanceof CreateFunctionStatement) {
       scope = Scope.CREATE;
+      resource = ResourceKind.FUNCTION;
+
       keyspaceName = getKeyspaceNameFromFunction(statement);
     } else if (statement instanceof CreateIndexStatement) {
       scope = Scope.CREATE;
+      resource = ResourceKind.INDEX;
+
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     } else if (statement instanceof CreateTriggerStatement) {
       scope = Scope.CREATE;
+      resource = ResourceKind.TRIGGER;
+
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     } else if (statement instanceof CreateTypeStatement) {
       scope = Scope.CREATE;
+      resource = ResourceKind.TYPE;
+
       keyspaceName = castStatement.keyspace();
     } else if (statement instanceof CreateViewStatement) {
       scope = Scope.CREATE;
+      resource = ResourceKind.VIEW;
+
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     } else if (statement instanceof DropAggregateStatement) {
       scope = Scope.DROP;
+      resource = ResourceKind.AGGREGATE;
+
       keyspaceName = getKeyspaceNameFromFunction(statement);
     } else if (statement instanceof DropFunctionStatement) {
       scope = Scope.DROP;
+      resource = ResourceKind.FUNCTION;
+
       keyspaceName = getKeyspaceNameFromFunction(statement);
     } else if (statement instanceof DropIndexStatement) {
       scope = Scope.DROP;
+      resource = ResourceKind.INDEX;
+
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     } else if (statement instanceof DropTriggerStatement) {
       scope = Scope.DROP;
+      resource = ResourceKind.TRIGGER;
+
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     } else if (statement instanceof DropTypeStatement) {
       scope = Scope.DROP;
+      resource = ResourceKind.TYPE;
+
       keyspaceName = castStatement.keyspace();
     } else if (statement instanceof DropViewStatement) {
       scope = Scope.DROP;
+      resource = ResourceKind.VIEW;
+
       keyspaceName = castStatement.keyspace();
       tableName = castStatement.columnFamily();
     }
@@ -441,7 +483,7 @@ public class StargateQueryHandler implements QueryHandler {
 
     try {
       authorization.authorizeSchemaWrite(
-          authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL);
+          authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL, resource);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format(

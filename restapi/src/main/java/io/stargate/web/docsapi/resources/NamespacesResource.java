@@ -21,6 +21,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.query.builder.Replication;
 import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
@@ -103,7 +104,8 @@ public class NamespacesResource {
                   authenticatedDB.getAuthenticationSubject(),
                   namespaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
                   null,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.KEYSPACE);
 
           Object response = raw ? namespaces : new ResponseWrapper(namespaces);
           return Response.status(Response.Status.OK)
@@ -149,7 +151,8 @@ public class NamespacesResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(namespaceName),
                   null,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.KEYSPACE);
 
           io.stargate.db.schema.Keyspace keyspace = authenticatedDB.getKeyspace(namespaceName);
           if (keyspace == null) {
@@ -225,7 +228,8 @@ public class NamespacesResource {
                   keyspaceName,
                   null,
                   Scope.CREATE,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.KEYSPACE);
 
           Replication replication;
           if (requestBody.containsKey("datacenters")) {
@@ -293,7 +297,8 @@ public class NamespacesResource {
                   namespaceName,
                   null,
                   Scope.DROP,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.KEYSPACE);
 
           authenticatedDB
               .getDataStore()
