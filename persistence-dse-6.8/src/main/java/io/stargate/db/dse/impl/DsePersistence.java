@@ -482,6 +482,17 @@ public class DsePersistence
         Parameters parameters, long queryStartNanoTime, Supplier<Request> requestSupplier) {
 
       try {
+        // When running inside DSE, query tasks clear ExecutorLocals before
+        // running, which is handled by its Message.channelRead0. In Stargate
+        // requests may come from Epoll threads of the CQL module, from HTTP
+        // threads or any other client. So here we ensure that DSE code starts
+        // processing the request with a clean thread local state.
+        ExecutorLocals.set(null);
+
+        if (parameters.protocolVersion().isGreaterOrEqualTo(ProtocolVersion.V4)) {
+          ClientWarn.instance.captureWarnings();
+        }
+
         Single<QueryState> queryState = newQueryState();
 
         Request request = requestSupplier.get();
@@ -516,19 +527,6 @@ public class DsePersistence
                         return result;
                       } finally {
                         ClientWarn.instance.resetWarnings();
-                      }
-                    })
-                .doOnSubscribe(
-                    disposable -> {
-                      // When running inside DSE, query tasks clear ExecutorLocals before
-                      // running, which is handled by its Message.channelRead0. In Stargate
-                      // requests may come from Epoll threads of the CQL module, from HTTP
-                      // threads or any other client. So here we ensure that DSE code starts
-                      // processing the request with a clean thread local state.
-                      ExecutorLocals.set(null);
-
-                      if (parameters.protocolVersion().isGreaterOrEqualTo(ProtocolVersion.V4)) {
-                        ClientWarn.instance.captureWarnings();
                       }
                     })
                 .subscribe(
