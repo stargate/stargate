@@ -46,6 +46,7 @@ import org.apache.cassandra.auth.CassandraRoleManager;
 import org.apache.cassandra.auth.IAuthContext;
 import org.apache.cassandra.auth.RoleResource;
 import org.apache.cassandra.auth.user.UserRolesAndPermissions;
+import org.apache.cassandra.concurrent.ExecutorLocals;
 import org.apache.cassandra.concurrent.TPCTaskType;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.DatabaseDescriptor;
@@ -481,10 +482,8 @@ public class DsePersistence
         Parameters parameters, long queryStartNanoTime, Supplier<Request> requestSupplier) {
 
       try {
-        if (parameters.protocolVersion().isGreaterOrEqualTo(ProtocolVersion.V4))
-          ClientWarn.instance.captureWarnings();
-
         Single<QueryState> queryState = newQueryState();
+
         Request request = requestSupplier.get();
         if (parameters.tracingRequested()) {
           request.setTracingRequested();
@@ -517,6 +516,19 @@ public class DsePersistence
                         return result;
                       } finally {
                         ClientWarn.instance.resetWarnings();
+                      }
+                    })
+                .doOnSubscribe(
+                    disposable -> {
+                      // When running inside DSE, query tasks clear ExecutorLocals before
+                      // running, which is handled by its Message.channelRead0. In Stargate
+                      // requests may come from Epoll threads of the CQL module, from HTTP
+                      // threads or any other client. So here we ensure that DSE code starts
+                      // processing the request with a clean thread local state.
+                      ExecutorLocals.set(null);
+
+                      if (parameters.protocolVersion().isGreaterOrEqualTo(ProtocolVersion.V4)) {
+                        ClientWarn.instance.captureWarnings();
                       }
                     })
                 .subscribe(
