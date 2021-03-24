@@ -53,6 +53,7 @@ public class AuthResource {
 
   private static final Logger logger = LoggerFactory.getLogger(AuthResource.class);
 
+  // The token's Time To Live in seconds
   private static final int tokenMaxAge =
       Integer.parseInt(System.getProperty("stargate.auth_tokenttl", "1800"));
   private final AuthenticationService authService;
