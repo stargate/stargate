@@ -29,6 +29,7 @@ import io.stargate.db.schema.Table;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,7 +93,8 @@ public class StorageHealthChecker extends HealthCheck {
                   .ttl(INSERT_TTL_SECONDS)
                   .timestamp(writeTimestamp.toEpochMilli())
                   .build()
-                  .bind())
+                  .bind(),
+              ConsistencyLevel.LOCAL_QUORUM)
           .get();
 
       // select record
@@ -106,7 +108,8 @@ public class StorageHealthChecker extends HealthCheck {
                       .from(KEYSPACE_NAME, TABLE_NAME)
                       .where(PK_COLUMN_NAME, Predicate.EQ, STARGATE_NODE_ID)
                       .build()
-                      .bind())
+                      .bind(),
+                  ConsistencyLevel.LOCAL_QUORUM)
               .get();
 
       Row row = rs.one();
