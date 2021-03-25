@@ -28,7 +28,7 @@ public class UdtInfo {
   private boolean frozen;
   private @NotNull List<UdtType> typeParams;
 
-  @ApiModelProperty(value = "return the name")
+  @ApiModelProperty(value = "The name of the type")
   public String getName() {
     return name;
   }
