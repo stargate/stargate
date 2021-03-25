@@ -72,8 +72,8 @@ public class UdtsResource {
   @Timed
   @GET
   @ApiOperation(
-      value = "Get all UDTs",
-      notes = "Get all UDTs from a given keyspace",
+      value = "Get all Types",
+      notes = "Get all Types from a given keyspace",
       response = GetResponseWrapper.class,
       responseContainer = "List")
   @ApiResponses(
