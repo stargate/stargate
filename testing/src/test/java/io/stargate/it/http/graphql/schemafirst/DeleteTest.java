@@ -66,6 +66,8 @@ public class DeleteTest extends GraphqlFirstTestBase {
             + "  deleteFoo2(pk: Int, cc1: Int, cc2: Int): Boolean\n"
             + "    @cql_delete(targetEntity: \"Foo\")\n"
             + "  deleteFooIfExists(foo: FooInput!): DeleteFooResponse \n"
+            + "  deleteFooPartition(pk: Int): Boolean\n"
+            + "    @cql_delete(targetEntity: \"Foo\")\n"
             + "}");
   }
 
@@ -172,5 +174,37 @@ public class DeleteTest extends GraphqlFirstTestBase {
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooIfExists.applied")).isFalse();
     assertThat(exists(1, 1, 1)).isFalse();
+  }
+
+  @Test
+  @DisplayName("Should delete full partition with dedicated query")
+  public void deleteFullPartitionDedicated() {
+    // Given
+    insert(1, 1, 1);
+    insert(1, 2, 2);
+
+    // When
+    Object response =
+        CLIENT.executeNamespaceQuery(NAMESPACE, "mutation { deleteFooPartition(pk: 1) }");
+
+    // Then
+    assertThat(exists(1, 1, 1)).isFalse();
+    assertThat(exists(1, 2, 2)).isFalse();
+  }
+
+  @Test
+  @DisplayName("Should delete full partition by not providing clustering arguments")
+  public void deleteFullPartitionOmitClustering() {
+    // Given
+    insert(1, 1, 1);
+    insert(1, 2, 2);
+
+    // When
+    // we call an operation that takes the whole PK, but only provide the partition key arguments
+    Object response = CLIENT.executeNamespaceQuery(NAMESPACE, "mutation { deleteFoo2(pk: 1) }");
+
+    // Then
+    assertThat(exists(1, 1, 1)).isFalse();
+    assertThat(exists(1, 2, 2)).isFalse();
   }
 }
