@@ -27,7 +27,7 @@ public class DeleteModel extends MutationModel {
 
   private final EntityModel entity;
   private final Optional<String> entityArgumentName;
-  private final List<String> pkArgumentNames;
+  private final List<WhereConditionModel> whereConditions;
   private final ReturnType returnType;
   private final boolean ifExists;
 
@@ -36,13 +36,13 @@ public class DeleteModel extends MutationModel {
       FieldDefinition field,
       EntityModel entity,
       Optional<String> entityArgumentName,
-      List<String> pkArgumentNames,
+      List<WhereConditionModel> whereConditions,
       ReturnType returnType,
       boolean ifExists) {
     super(parentTypeName, field);
     this.entity = entity;
     this.entityArgumentName = entityArgumentName;
-    this.pkArgumentNames = pkArgumentNames;
+    this.whereConditions = whereConditions;
     this.returnType = returnType;
     this.ifExists = ifExists;
   }
@@ -53,18 +53,18 @@ public class DeleteModel extends MutationModel {
 
   /**
    * If the mutation takes a unique entity input argument, the name of that argument. Either this or
-   * {@link #getPkArgumentNames()} is set.
+   * {@link #getWhereConditions()} is set.
    */
   public Optional<String> getEntityArgumentName() {
     return entityArgumentName;
   }
 
   /**
-   * If the mutation takes individual PK fields, their names. Either this or {@link
-   * #getEntityArgumentName()} is set.
+   * If the mutation takes individual PK fields, the condition builder associated with each field.
+   * Either this or {@link #getEntityArgumentName()} is set.
    */
-  public List<String> getPkArgumentNames() {
-    return pkArgumentNames;
+  public List<WhereConditionModel> getWhereConditions() {
+    return whereConditions;
   }
 
   public ReturnType getReturnType() {

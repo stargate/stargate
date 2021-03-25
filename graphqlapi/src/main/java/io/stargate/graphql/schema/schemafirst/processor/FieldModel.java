@@ -78,6 +78,10 @@ public class FieldModel {
     return clusteringOrder;
   }
 
+  public boolean isClusteringColumn() {
+    return getClusteringOrder().isPresent();
+  }
+
   public boolean isPrimaryKey() {
     return partitionKey || clusteringOrder.isPresent();
   }

@@ -20,6 +20,7 @@ import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class EntityModel {
 
@@ -36,6 +37,7 @@ public class EntityModel {
   private final List<FieldModel> partitionKey;
   private final List<FieldModel> clusteringColumns;
   private final List<FieldModel> primaryKey;
+  private final List<WhereConditionModel> primaryKeyWhereConditions;
   private final List<FieldModel> regularColumns;
   private final List<FieldModel> allColumns;
   private final Table tableCqlSchema;
@@ -67,6 +69,8 @@ public class EntityModel {
     this.clusteringColumns = ImmutableList.copyOf(clusteringColumns);
     this.primaryKey =
         ImmutableList.<FieldModel>builder().addAll(partitionKey).addAll(clusteringColumns).build();
+    this.primaryKeyWhereConditions =
+        primaryKey.stream().map(WhereConditionModel::new).collect(Collectors.toList());
     this.regularColumns = ImmutableList.copyOf(regularColumns);
     this.allColumns =
         ImmutableList.<FieldModel>builder().addAll(primaryKey).addAll(regularColumns).build();
@@ -105,6 +109,14 @@ public class EntityModel {
    */
   public List<FieldModel> getPrimaryKey() {
     return primaryKey;
+  }
+
+  /**
+   * Returns a default list of WHERE conditions that select all primary key columns with {@code =}
+   * relations.
+   */
+  public List<WhereConditionModel> getPrimaryKeyWhereConditions() {
+    return primaryKeyWhereConditions;
   }
 
   public List<FieldModel> getRegularColumns() {
