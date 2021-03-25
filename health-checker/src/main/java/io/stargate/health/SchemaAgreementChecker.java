@@ -51,6 +51,16 @@ public class SchemaAgreementChecker extends HealthCheck {
             return Result.healthy("All schemas agree");
           }
 
+          // The purpose of the health check is to indicate when restarting this node can help
+          // it to achieve schema agreement. Since schema is never actively pulled from other
+          // Stargate nodes, restarting will not be effective when local schema agrees with
+          // storage nodes and disagrees only with some other Stargate nodes. It is expected
+          // that only the Stargate node that does not agree with storage will fail its health
+          // check and will be restarted as appropriate.
+          if (persistence.isInSchemaAgreementWithStorage()) {
+            return Result.healthy("Local schema is in agreement with storage nodes");
+          }
+
           if (persistence.isSchemaAgreementAchievable()) {
             return Result.healthy("Waiting for schema agreement");
           }

@@ -91,6 +91,7 @@ import org.apache.cassandra.transport.messages.QueryMessage;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.transport.messages.StartupMessage;
 import org.apache.cassandra.utils.ByteBufferUtil;
+import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.apache.cassandra.utils.MD5Digest;
 import org.apache.cassandra.utils.SystemTimeSource;
@@ -302,6 +303,25 @@ public class CassandraPersistence
                 ep -> {
                   EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
                   return epState != null && !Gossiper.instance.isDeadState(epState);
+                })
+            .map(Gossiper.instance::getSchemaVersion)
+            .collect(Collectors.toSet())
+            .size()
+        <= 1;
+  }
+
+  @Override
+  public boolean isInSchemaAgreementWithStorage() {
+    // See comment in isInSchemaAgreement()
+    // Here we also exclude _other_ Stargate nodes (by checking isGossipOnlyMember)
+    InetAddress localAddress = FBUtilities.getBroadcastAddress();
+    return Gossiper.instance.getLiveMembers().stream()
+            .filter(
+                ep -> {
+                  EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
+                  return epState != null
+                      && !Gossiper.instance.isDeadState(epState)
+                      && (!Gossiper.instance.isGossipOnlyMember(ep) || localAddress.equals(ep));
                 })
             .map(Gossiper.instance::getSchemaVersion)
             .collect(Collectors.toSet())

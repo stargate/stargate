@@ -86,6 +86,11 @@ public interface Persistence {
 
   boolean isInSchemaAgreement();
 
+  /** Returns <code>true</code>> if the local schema agrees with all storage nodes. */
+  default boolean isInSchemaAgreementWithStorage() {
+    return isInSchemaAgreement();
+  }
+
   default boolean supportsSecondaryIndex() {
     return Boolean.parseBoolean(
         System.getProperty("stargate.persistence.2i.support.default", "true"));

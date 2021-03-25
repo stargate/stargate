@@ -26,6 +26,7 @@ import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -85,6 +86,7 @@ import org.apache.cassandra.transport.messages.QueryMessage;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.transport.messages.StartupMessage;
 import org.apache.cassandra.utils.ByteBufferUtil;
+import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.flow.RxThreads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -273,6 +275,25 @@ public class DsePersistence
                 ep -> {
                   EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
                   return epState != null && !Gossiper.instance.isDeadState(epState);
+                })
+            .map(Gossiper.instance::getSchemaVersion)
+            .collect(Collectors.toSet())
+            .size()
+        <= 1;
+  }
+
+  @Override
+  public boolean isInSchemaAgreementWithStorage() {
+    // See comment in isInSchemaAgreement()
+    // Here we also exclude _other_ Stargate nodes (by checking isGossipOnlyMember)
+    InetAddress localAddress = FBUtilities.getBroadcastAddress();
+    return Gossiper.instance.getLiveMembers().stream()
+            .filter(
+                ep -> {
+                  EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
+                  return epState != null
+                      && !Gossiper.instance.isDeadState(epState)
+                      && (!Gossiper.instance.isGossipOnlyMember(ep) || localAddress.equals(ep));
                 })
             .map(Gossiper.instance::getSchemaVersion)
             .collect(Collectors.toSet())
