@@ -105,7 +105,7 @@ public class UdtsResource {
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(null),
                   SourceAPI.REST,
-                  ResourceKind.UDT);
+                  ResourceKind.TYPE);
 
           Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
           if (keyspace == null) {
@@ -167,7 +167,7 @@ public class UdtsResource {
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(null),
                   SourceAPI.REST,
-                  ResourceKind.UDT);
+                  ResourceKind.TYPE);
 
           Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
           if (keyspace == null) {
@@ -245,7 +245,7 @@ public class UdtsResource {
                   null,
                   Scope.DROP,
                   SourceAPI.REST,
-                  ResourceKind.UDT);
+                  ResourceKind.TYPE);
 
           Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
           if (keyspace == null) {
@@ -325,7 +325,7 @@ public class UdtsResource {
                   null,
                   Scope.CREATE,
                   SourceAPI.REST,
-                  ResourceKind.UDT);
+                  ResourceKind.TYPE);
 
           Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
           if (keyspace == null) {

@@ -15,12 +15,14 @@
  */
 package io.stargate.web.models;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.common.base.MoreObjects;
 import io.stargate.web.models.udt.UdtType;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 import javax.validation.constraints.NotNull;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UdtAdd {
   private boolean ifNotExists;
   private @NotNull List<UdtType> fields;

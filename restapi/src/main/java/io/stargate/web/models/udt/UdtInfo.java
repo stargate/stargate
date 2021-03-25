@@ -15,16 +15,18 @@
  */
 package io.stargate.web.models.udt;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 import javax.validation.constraints.NotNull;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UdtInfo {
   private String name;
   private boolean frozen;
-  private @NotNull List<UdtType> subTypes;
+  private @NotNull List<UdtType> typeParams;
 
   @ApiModelProperty(value = "return the name")
   public String getName() {
@@ -44,14 +46,14 @@ public class UdtInfo {
     this.frozen = frozen;
   }
 
-  @JsonProperty("subTypes")
-  @ApiModelProperty(value = "return subtypes")
-  public List<UdtType> getSubTypes() {
-    return subTypes;
+  @JsonProperty("typeParams")
+  @ApiModelProperty(value = "return type parameters")
+  public List<UdtType> getTypeParams() {
+    return typeParams;
   }
 
-  public void setSubTypes(List<UdtType> subTypes) {
-    this.subTypes = subTypes;
+  public void setTypeParams(List<UdtType> typeParams) {
+    this.typeParams = typeParams;
   }
 
   @Override
@@ -59,7 +61,7 @@ public class UdtInfo {
     return MoreObjects.toStringHelper(this)
         .add("name", name)
         .add("frozen", frozen)
-        .add("subTypes", subTypes)
+        .add("typeParams", typeParams)
         .omitNullValues()
         .toString();
   }

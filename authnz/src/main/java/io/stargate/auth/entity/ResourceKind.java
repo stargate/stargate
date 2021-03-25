@@ -23,6 +23,5 @@ public enum ResourceKind {
   TRIGGER,
   AGGREGATE,
   VIEW,
-  INDEX,
-  UDT
+  INDEX
 }

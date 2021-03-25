@@ -1038,11 +1038,8 @@ public class Converters {
   }
 
   public static Map<String, String> convertColumnMap(UserDefinedType udt) {
-    Map<String, String> map = new HashMap<>();
-    for (Map.Entry<String, Column> e : udt.columnMap().entrySet()) {
-      map.put(e.getKey(), e.getValue().toString());
-    }
-    return map;
+    return udt.columnMap().entrySet().stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
   }
 
   public static List<Column> fromUdtAdd(UdtAdd udtAdd) {
@@ -1065,7 +1062,7 @@ public class Converters {
   public static Column.ColumnType decodeType(UdtType udtType) {
     CQLType basic = udtType.getBasic();
     UdtInfo info = udtType.getInfo();
-    List<UdtType> subTypes = info != null ? info.getSubTypes() : null;
+    List<UdtType> typeParams = info != null ? info.getTypeParams() : null;
     boolean frozen = info != null ? info.isFrozen() : false;
 
     switch (basic) {
@@ -1115,28 +1112,28 @@ public class Converters {
           throw new IllegalArgumentException(
               "List cqlType should contain an 'info' field specifying the sub cqlType");
         }
-        if (subTypes == null || subTypes.size() != 1) {
+        if (typeParams == null || typeParams.size() != 1) {
           throw new IllegalArgumentException("List sub types should contain 1 item");
         }
-        return Column.Type.List.of(decodeType(subTypes.get(0))).frozen(frozen);
+        return Column.Type.List.of(decodeType(typeParams.get(0))).frozen(frozen);
       case SET:
         if (info == null) {
           throw new IllegalArgumentException(
               "Set cqlType should contain an 'info' field specifying the sub cqlType");
         }
-        if (subTypes == null || subTypes.size() != 1) {
+        if (typeParams == null || typeParams.size() != 1) {
           throw new IllegalArgumentException("Set sub types should contain 1 item");
         }
-        return Column.Type.Set.of(decodeType(subTypes.get(0))).frozen(frozen);
+        return Column.Type.Set.of(decodeType(typeParams.get(0))).frozen(frozen);
       case MAP:
         if (info == null) {
           throw new IllegalArgumentException(
               "Map cqlType should contain an 'info' field specifying the sub types");
         }
-        if (subTypes == null || subTypes.size() != 2) {
+        if (typeParams == null || typeParams.size() != 2) {
           throw new IllegalArgumentException("Map sub types should contain 2 items");
         }
-        return Column.Type.Map.of(decodeType(subTypes.get(0)), decodeType(subTypes.get(1)))
+        return Column.Type.Map.of(decodeType(typeParams.get(0)), decodeType(typeParams.get(1)))
             .frozen(frozen);
       case UDT:
         if (info == null || Strings.isNullOrEmpty(info.getName())) {
@@ -1149,15 +1146,15 @@ public class Converters {
           throw new IllegalArgumentException(
               "TUPLE cqlType should contain an 'info' field specifying the sub types");
         }
-        if (subTypes == null || subTypes.isEmpty()) {
+        if (typeParams == null || typeParams.isEmpty()) {
           throw new IllegalArgumentException("TUPLE cqlType should have at least one sub cqlType");
         }
-        Column.ColumnType[] decodedSubTypes =
-            subTypes.stream()
+        Column.ColumnType[] decodedTypeParams =
+            typeParams.stream()
                 .map(Converters::decodeType)
                 .collect(Collectors.toList())
                 .toArray(new Column.ColumnType[0]);
-        return Column.Type.Tuple.of(decodedSubTypes);
+        return Column.Type.Tuple.of(decodedTypeParams);
     }
     throw new RuntimeException(String.format("Data cqlType %s is not supported", basic));
   }

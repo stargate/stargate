@@ -2119,9 +2119,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     Error error = objectMapper.readValue(response, Error.class);
     assertThat(error.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(error.getDescription())
-        .isEqualTo(
-            String.format(
-                "Bad request: A type named \"%s\".%s already exists", keyspaceName, "udt1"));
+        .isEqualTo(String.format("A type named \"%s\".%s already exists", keyspaceName, "udt1"));
 
     // don't create and don't throw exception because ifNotExists = true
     udtString = "{\"ifNotExists\": true, \"fields\":[{\"name\":\"firstname\",\"basic\":\"DATE\"}]}";
