@@ -37,7 +37,7 @@ public class UdtType {
   }
 
   @JsonProperty("basic")
-  @ApiModelProperty(value = "return the field type.")
+  @ApiModelProperty(value = "The basic CQL type to be used for the field. If this type is a collection or User Defined Type then an info will also need to be provided for its type. An example of this would be a list of ints.")
   public CQLType getBasic() {
     return basic;
   }
