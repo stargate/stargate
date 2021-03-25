@@ -25,9 +25,9 @@ import javax.validation.constraints.NotNull;
 public class UdtType {
   private String name;
   private @NotNull CQLType basic;
-  private UdtInfo info;
+  private TypeInfo info;
 
-  @ApiModelProperty(value = "return the field name")
+  @ApiModelProperty(value = "The name of the field that is part of the new type")
   public String getName() {
     return name;
   }
@@ -37,7 +37,9 @@ public class UdtType {
   }
 
   @JsonProperty("basic")
-  @ApiModelProperty(value = "The basic CQL type to be used for the field. If this type is a collection or User Defined Type then an info will also need to be provided for its type. An example of this would be a list of ints.")
+  @ApiModelProperty(
+      value =
+          "The basic CQL type to be used for the field. If this type is a collection or User Defined Type then an info will also need to be provided for its type. An example of this would be a list of ints.")
   public CQLType getBasic() {
     return basic;
   }
@@ -47,12 +49,14 @@ public class UdtType {
   }
 
   @JsonProperty("info")
-  @ApiModelProperty(value = "return type info.")
-  public UdtInfo getInfo() {
+  @ApiModelProperty(
+      value =
+          "Additional type params like type parameter of a collection (LIST/SET/MAP/TUPLE) and options like frozen.")
+  public TypeInfo getInfo() {
     return info;
   }
 
-  public void setInfo(UdtInfo info) {
+  public void setInfo(TypeInfo info) {
     this.info = info;
   }
 

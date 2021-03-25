@@ -45,9 +45,9 @@ import io.stargate.web.models.ClusteringExpression;
 import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.models.PrimaryKey;
 import io.stargate.web.models.TableOptions;
-import io.stargate.web.models.UdtAdd;
+import io.stargate.web.models.TypeAdd;
 import io.stargate.web.models.udt.CQLType;
-import io.stargate.web.models.udt.UdtInfo;
+import io.stargate.web.models.udt.TypeInfo;
 import io.stargate.web.models.udt.UdtType;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -1037,13 +1037,16 @@ public class Converters {
     return '"' + PATTERN_DOUBLE_QUOTE.matcher(text).replaceAll(ESCAPED_DOUBLE_QUOTE) + '"';
   }
 
-  public static Map<String, String> convertColumnMap(UserDefinedType udt) {
-    return udt.columnMap().entrySet().stream()
+  public static Map<String, String> convertColumnMap(UserDefinedType type) {
+    if (type == null) {
+      throw new IllegalArgumentException("UserDefinedType cannot be null");
+    }
+    return type.columnMap().entrySet().stream()
         .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
   }
 
-  public static List<Column> fromUdtAdd(UdtAdd udtAdd) {
-    List<UdtType> fieldsList = udtAdd.getFields();
+  public static List<Column> fromTypeAdd(TypeAdd typeAdd) {
+    List<UdtType> fieldsList = typeAdd.getFields();
     if (fieldsList == null || fieldsList.isEmpty()) {
       throw new IllegalArgumentException("Must have at least one field");
     }
@@ -1061,8 +1064,8 @@ public class Converters {
 
   public static Column.ColumnType decodeType(UdtType udtType) {
     CQLType basic = udtType.getBasic();
-    UdtInfo info = udtType.getInfo();
-    List<UdtType> typeParams = info != null ? info.getTypeParams() : null;
+    TypeInfo info = udtType.getInfo();
+    List<UdtType> typeParams = info != null ? info.getSubTypes() : null;
     boolean frozen = info != null ? info.isFrozen() : false;
 
     switch (basic) {
@@ -1156,6 +1159,6 @@ public class Converters {
                 .toArray(new Column.ColumnType[0]);
         return Column.Type.Tuple.of(decodedTypeParams);
     }
-    throw new RuntimeException(String.format("Data cqlType %s is not supported", basic));
+    throw new IllegalArgumentException(String.format("Data cqlType %s is not supported", basic));
   }
 }

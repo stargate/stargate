@@ -23,9 +23,19 @@ import java.util.List;
 import javax.validation.constraints.NotNull;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class UdtAdd {
+public class TypeAdd {
+  private @NotNull String name;
   private boolean ifNotExists;
   private @NotNull List<UdtType> fields;
+
+  @ApiModelProperty(required = true, value = "The name of the type.")
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
 
   @ApiModelProperty(
       value =
@@ -38,7 +48,7 @@ public class UdtAdd {
     this.ifNotExists = ifNotExists;
   }
 
-  @ApiModelProperty(value = "The fields defined for this type.")
+  @ApiModelProperty(required = true, value = "The fields defined for this type.")
   public List<UdtType> getFields() {
     return fields;
   }

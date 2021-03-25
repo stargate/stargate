@@ -23,12 +23,13 @@ import java.util.List;
 import javax.validation.constraints.NotNull;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class UdtInfo {
+public class TypeInfo {
   private String name;
   private boolean frozen;
-  private @NotNull List<UdtType> typeParams;
+  private @NotNull List<UdtType> subTypes;
 
-  @ApiModelProperty(value = "The name of the type")
+  @ApiModelProperty(
+      value = "The optional name of the type if the basic type is a UDT itself, for example")
   public String getName() {
     return name;
   }
@@ -37,7 +38,9 @@ public class UdtInfo {
     this.name = name;
   }
 
-  @ApiModelProperty(value = "return true if is frozen")
+  @ApiModelProperty(
+      value =
+          "Denotes whether or not the type should be defined as frozen. Using frozen means any upsert overwrites the entire value that is treated like a Blob.")
   public boolean isFrozen() {
     return frozen;
   }
@@ -47,13 +50,15 @@ public class UdtInfo {
   }
 
   @JsonProperty("typeParams")
-  @ApiModelProperty(value = "return type parameters")
-  public List<UdtType> getTypeParams() {
-    return typeParams;
+  @ApiModelProperty(
+      value =
+          "The CQL sub-type of the parent type. This is to be used when the parent type is a collection (list, tuple, map, or set), a TUPLE or a UDT.")
+  public List<UdtType> getSubTypes() {
+    return subTypes;
   }
 
-  public void setTypeParams(List<UdtType> typeParams) {
-    this.typeParams = typeParams;
+  public void setSubTypes(List<UdtType> subTypes) {
+    this.subTypes = subTypes;
   }
 
   @Override
@@ -61,7 +66,7 @@ public class UdtInfo {
     return MoreObjects.toStringHelper(this)
         .add("name", name)
         .add("frozen", frozen)
-        .add("typeParams", typeParams)
+        .add("typeParams", subTypes)
         .omitNullValues()
         .toString();
   }

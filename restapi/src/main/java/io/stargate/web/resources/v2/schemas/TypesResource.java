@@ -28,7 +28,7 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.GetResponseWrapper;
-import io.stargate.web.models.UdtAdd;
+import io.stargate.web.models.TypeAdd;
 import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
@@ -65,7 +65,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
     tags = {"schemas"})
 @Path("/v2/schemas/keyspaces/{keyspaceName}/types")
 @Produces(MediaType.APPLICATION_JSON)
-public class UdtsResource {
+public class TypesResource {
 
   @Inject private Db db;
 
@@ -81,9 +81,10 @@ public class UdtsResource {
         @ApiResponse(code = 200, message = "OK", response = GetResponseWrapper.class),
         @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 404, message = "Not found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  public Response listAllUdts(
+  public Response listAllTypes(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -140,10 +141,11 @@ public class UdtsResource {
         @ApiResponse(code = 200, message = "OK", response = GetResponseWrapper.class),
         @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 404, message = "Not found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{typeName}")
-  public Response getUdt(
+  public Response getType(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -214,7 +216,7 @@ public class UdtsResource {
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   @Path("/{typeName}")
-  public Response deleteUdt(
+  public Response deleteType(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -299,8 +301,7 @@ public class UdtsResource {
         @ApiResponse(code = 409, message = "Conflict", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  @Path("/{typeName}")
-  public Response createUdt(
+  public Response createType(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -310,8 +311,7 @@ public class UdtsResource {
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @ApiParam(value = "Type name", required = true) @PathParam("typeName") final String typeName,
-      @ApiParam(required = true) @NotNull final UdtAdd udtAdd,
+      @ApiParam(required = true) @NotNull final TypeAdd typeAdd,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
@@ -337,17 +337,28 @@ public class UdtsResource {
                 .build();
           }
 
-          if (udtAdd.getFields() == null || udtAdd.getFields().isEmpty()) {
+          String typeName = typeAdd.getName();
+
+          if (typeName == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
                     new Error(
-                        String.format("A UDT definition should incluse the fields definition."),
+                        String.format("A UDT definition should include the name of the type."),
+                        Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
+
+          if (typeAdd.getFields() == null || typeAdd.getFields().isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        String.format("A UDT definition should include the fields definition."),
                         Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
 
           try {
-            List<Column> fields = Converters.fromUdtAdd(udtAdd);
+            List<Column> fields = Converters.fromTypeAdd(typeAdd);
 
             UserDefinedType udt =
                 ImmutableUserDefinedType.builder()
@@ -361,7 +372,7 @@ public class UdtsResource {
                 .queryBuilder()
                 .create()
                 .type(keyspaceName, udt)
-                .ifNotExists(udtAdd.getIfNotExists())
+                .ifNotExists(typeAdd.getIfNotExists())
                 .build()
                 .execute(ConsistencyLevel.LOCAL_QUORUM)
                 .get();
