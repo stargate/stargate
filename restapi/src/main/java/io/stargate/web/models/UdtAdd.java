@@ -29,7 +29,7 @@ public class UdtAdd {
 
   @ApiModelProperty(
       value =
-          "Determines whether to create a new udt if an udt with the same name exists. Attempting to create an existing udt returns an error unless this option is true.")
+          "Determines whether to create a new type if a type with the same name exists. Attempting to create an existing type returns an error unless this option is true.")
   public boolean getIfNotExists() {
     return ifNotExists;
   }
