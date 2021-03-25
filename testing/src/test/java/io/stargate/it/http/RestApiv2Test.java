@@ -500,7 +500,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void listAllIndexes(CqlSession session) throws IOException {
+  public void listAllIndexes() throws IOException {
     createKeyspace(keyspaceName);
     tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
@@ -2171,14 +2171,16 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt1"),
             HttpStatus.SC_OK);
 
+    @SuppressWarnings("rawtypes")
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     Map<String, Map<String, Object>> response =
-        objectMapper.readValue(body, new TypeReference<Map<String, Map<String, Object>>>() {});
+        objectMapper.convertValue(
+            getResponseWrapper.getData(), new TypeReference<Map<String, Map<String, Object>>>() {});
+
     assertThat(response.size()).isEqualTo(1);
     assertThat(response.containsKey("test_udt1")).isTrue();
 
     // get non existent UDT
-    udtString =
-        "{\"name\": \"invalid_udt\", \"fields\":[{\"name\":\"firstname\",\"basic\":\"DATE\"}]}";
     RestUtils.get(
         authToken,
         String.format(
@@ -2195,8 +2197,12 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             authToken,
             String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
             HttpStatus.SC_OK);
+
+    @SuppressWarnings("rawtypes")
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     Map<String, Map<String, Object>> response =
-        objectMapper.readValue(body, new TypeReference<Map<String, Map<String, Object>>>() {});
+        objectMapper.convertValue(
+            getResponseWrapper.getData(), new TypeReference<Map<String, Map<String, Object>>>() {});
     assertThat(response.size()).isEqualTo(0);
 
     String udtString =
@@ -2211,8 +2217,10 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
             HttpStatus.SC_OK);
 
+    getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     response =
-        objectMapper.readValue(body, new TypeReference<Map<String, Map<String, Object>>>() {});
+        objectMapper.convertValue(
+            getResponseWrapper.getData(), new TypeReference<Map<String, Map<String, Object>>>() {});
     assertThat(response.size()).isEqualTo(10);
   }
 

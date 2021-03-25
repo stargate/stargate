@@ -28,6 +28,7 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.GetResponseWrapper;
+import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.models.TypeAdd;
 import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
@@ -94,6 +95,8 @@ public class TypesResource {
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
+          final boolean raw,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
@@ -118,10 +121,12 @@ public class TypesResource {
                 .build();
           }
 
-          Map<String, Map<String, String>> response =
+          Map<String, Map<String, String>> types =
               authenticatedDB.getDataStore().schema().keyspace(keyspaceName).userDefinedTypes()
                   .stream()
                   .collect(Collectors.toMap(UserDefinedType::name, Converters::convertColumnMap));
+
+          Object response = raw ? types : new ResponseWrapper(types);
 
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
@@ -157,6 +162,8 @@ public class TypesResource {
           final String keyspaceName,
       @ApiParam(value = "Name of the type.", required = true) @PathParam("typeName")
           final String typeName,
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
+          final boolean raw,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
@@ -197,8 +204,10 @@ public class TypesResource {
                 .build();
           }
 
-          Map<String, Map<String, String>> response = Maps.newHashMap();
-          response.put(udt.name(), Converters.convertColumnMap(udt));
+          Map<String, Map<String, String>> type = Maps.newHashMap();
+          type.put(udt.name(), Converters.convertColumnMap(udt));
+
+          Object response = raw ? type : new ResponseWrapper(type);
 
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
