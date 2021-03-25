@@ -23,12 +23,14 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.schemafirst.processor.EntityModel;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Executes the {@code _entities} query of GraphQL federation.
@@ -81,8 +83,22 @@ public class FederatedEntityFetcher extends DynamicFetcher<List<FederatedEntity>
       throw new IllegalArgumentException(String.format("Unknown entity type %s", entityName));
     }
     Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
+    List<BuiltCondition> whereConditions =
+        bind(
+            entityModel.getPrimaryKeyWhereConditions(),
+            entityModel,
+            representation::containsKey,
+            representation::get,
+            keyspace);
     ResultSet resultSet =
-        querySingleEntity(entityModel, representation, dataStore, keyspace, authenticationSubject);
+        query(
+            entityModel,
+            whereConditions,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            dataStore,
+            authenticationSubject);
     Map<String, Object> entity = toSingleEntity(resultSet, entityModel);
     return FederatedEntity.wrap(entityModel, entity);
   }

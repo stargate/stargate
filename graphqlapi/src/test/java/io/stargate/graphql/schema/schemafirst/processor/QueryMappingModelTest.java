@@ -47,7 +47,8 @@ class QueryMappingModelTest {
     QueryModel operationMappingModel = (QueryModel) mappingModel.getOperations().get(0);
     assertThat(operationMappingModel.getCoordinates().getFieldName()).isEqualTo("getUser");
     assertThat(operationMappingModel.getCoordinates().getTypeName()).isEqualTo("Query");
-    assertThat(operationMappingModel.getPkArgumentNames().get(0)).isEqualTo("id");
+    assertThat(operationMappingModel.getWhereConditions().get(0).getField().getGraphqlName())
+        .isEqualTo("id");
 
     EntityModel entityModel = mappingModel.getEntities().get("User");
     FieldModel primaryKey = entityModel.getPrimaryKey().get(0);
@@ -99,7 +100,7 @@ class QueryMappingModelTest {
     QueryModel operationMappingModel = (QueryModel) mappingModel.getOperations().get(0);
     assertThat(operationMappingModel.getCoordinates().getFieldName()).isEqualTo("foo");
     assertThat(operationMappingModel.getCoordinates().getTypeName()).isEqualTo("Query");
-    assertThat(operationMappingModel.getPkArgumentNames().size()).isEqualTo(4);
+    assertThat(operationMappingModel.getWhereConditions().size()).isEqualTo(4);
 
     EntityModel entityModel = mappingModel.getEntities().get("Foo");
     assertThat(entityModel.getPartitionKey().size()).isEqualTo(2);
@@ -136,7 +137,7 @@ class QueryMappingModelTest {
         .isInstanceOf(GraphqlErrorException.class)
         .extracting(ex -> extractMappingErrors((GraphqlErrorException) ex))
         .isEqualTo(
-            "Query foo: expected to have at least enough arguments to cover the partition key (2 needed, 1 provided).");
+            "Operation foo: every partition key field of type Foo must be present (expected: pk1, pk2)");
   }
 
   @Test
@@ -163,7 +164,7 @@ class QueryMappingModelTest {
     QueryModel operationMappingModel = (QueryModel) mappingModel.getOperations().get(0);
     assertThat(operationMappingModel.getCoordinates().getFieldName()).isEqualTo("foo1");
     assertThat(operationMappingModel.getCoordinates().getTypeName()).isEqualTo("Query");
-    assertThat(operationMappingModel.getPkArgumentNames().size()).isEqualTo(3);
+    assertThat(operationMappingModel.getWhereConditions().size()).isEqualTo(3);
 
     EntityModel entityModel = mappingModel.getEntities().get("Foo");
     assertThat(entityModel.getPartitionKey().size()).isEqualTo(2);

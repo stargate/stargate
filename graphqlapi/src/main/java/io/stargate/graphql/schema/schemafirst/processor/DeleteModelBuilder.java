@@ -15,16 +15,12 @@
  */
 package io.stargate.graphql.schema.schemafirst.processor;
 
-import com.google.common.collect.ImmutableList;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
-import graphql.language.Type;
 import io.stargate.graphql.schema.schemafirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.schemafirst.processor.OperationModel.SimpleReturnType;
 import io.stargate.graphql.schema.schemafirst.processor.ResponsePayloadModel.TechnicalField;
-import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -86,7 +82,7 @@ class DeleteModelBuilder extends MutationModelBuilder {
     Optional<EntityModel> entityFromFirstArgument = findEntity(firstArgument);
     Optional<String> entityArgumentName =
         entityFromFirstArgument.map(__ -> firstArgument.getName());
-    List<String> pkArgumentNames;
+    List<WhereConditionModel> whereConditions;
     if (entityFromFirstArgument.isPresent()) {
       if (arguments.size() > 1) {
         invalidMapping(
@@ -95,10 +91,11 @@ class DeleteModelBuilder extends MutationModelBuilder {
         throw SkipException.INSTANCE;
       }
       entity = entityFromFirstArgument.get();
-      pkArgumentNames = Collections.emptyList();
+      whereConditions = entity.getPrimaryKeyWhereConditions();
     } else {
       entity = entityFromDirective(cqlDeleteDirective);
-      pkArgumentNames = gatherPkArgumentNames(arguments, entity, ifExists);
+      whereConditions = buildWhereConditions(entity);
+      validateWhereConditions(whereConditions, entity);
     }
 
     return new DeleteModel(
@@ -106,7 +103,7 @@ class DeleteModelBuilder extends MutationModelBuilder {
         operation,
         entity,
         entityArgumentName,
-        pkArgumentNames,
+        whereConditions,
         returnType,
         ifExists);
   }
@@ -149,50 +146,5 @@ class DeleteModelBuilder extends MutationModelBuilder {
       throw SkipException.INSTANCE;
     }
     return entity;
-  }
-
-  private List<String> gatherPkArgumentNames(
-      List<InputValueDefinition> arguments, EntityModel entity, boolean ifExists)
-      throws SkipException {
-    List<FieldModel> primaryKey = entity.getPrimaryKey();
-    int pkIndex = 0;
-    ImmutableList.Builder<String> pkArgumentNamesBuilder = ImmutableList.builder();
-    boolean foundErrors = false;
-    for (InputValueDefinition argument : arguments) {
-      FieldModel pkField = primaryKey.get(pkIndex++);
-      Type<?> inputType = argument.getType();
-      if (!TypeHelper.unwrapNonNull(inputType)
-          .isEqualTo(TypeHelper.unwrapNonNull(pkField.getGraphqlType()))) {
-        invalidMapping(
-            "Mutation %s: expected argument %s to have the same type as %s.%s",
-            operationName, argument.getName(), entity.getGraphqlName(), pkField.getGraphqlName());
-        foundErrors = true;
-      }
-      pkArgumentNamesBuilder.add(argument.getName());
-    }
-    if (foundErrors) {
-      throw SkipException.INSTANCE;
-    }
-
-    ImmutableList<String> pkArgumentNames = pkArgumentNamesBuilder.build();
-
-    List<FieldModel> partitionKey = entity.getPartitionKey();
-    if (pkArgumentNames.size() < partitionKey.size()) {
-      invalidMapping(
-          "Mutation %s: expected to have at least enough arguments to cover the partition key "
-              + "(%d needed, %d provided).",
-          operationName, partitionKey.size(), pkArgumentNames.size());
-      throw SkipException.INSTANCE;
-    }
-
-    if (ifExists && pkArgumentNames.size() < primaryKey.size()) {
-      invalidMapping(
-          "Mutation %s: not enough arguments. "
-              + "All partition and clustering fields must be provided when 'ifExists' is set.",
-          operationName);
-      throw SkipException.INSTANCE;
-    }
-
-    return pkArgumentNames;
   }
 }

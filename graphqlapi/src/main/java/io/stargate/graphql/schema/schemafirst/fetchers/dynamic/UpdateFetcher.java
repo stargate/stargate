@@ -25,7 +25,6 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.BoundDMLQuery;
-import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.ValueModifier;
@@ -34,10 +33,7 @@ import io.stargate.graphql.schema.schemafirst.processor.EntityModel;
 import io.stargate.graphql.schema.schemafirst.processor.FieldModel;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
 import io.stargate.graphql.schema.schemafirst.processor.UpdateModel;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class UpdateFetcher extends DynamicFetcher<Boolean> {
 
@@ -63,20 +59,13 @@ public class UpdateFetcher extends DynamicFetcher<Boolean> {
     Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
     Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
 
-    Collection<BuiltCondition> conditions = new ArrayList<>();
-    for (FieldModel column : entityModel.getPrimaryKey()) {
-      String graphqlName = column.getGraphqlName();
-      Object graphqlValue = input.get(graphqlName);
-      if (graphqlValue == null) {
-        throw new IllegalArgumentException("Missing value for field " + graphqlName);
-      } else {
-        conditions.add(
-            BuiltCondition.of(
-                column.getCqlName(),
-                Predicate.EQ,
-                toCqlValue(graphqlValue, column.getCqlType(), keyspace)));
-      }
-    }
+    List<BuiltCondition> whereConditions =
+        bind(
+            entityModel.getPrimaryKeyWhereConditions(),
+            entityModel,
+            input::containsKey,
+            input::get,
+            keyspace);
 
     Collection<ValueModifier> modifiers = new ArrayList<>();
     for (FieldModel column : entityModel.getRegularColumns()) {
@@ -98,7 +87,7 @@ public class UpdateFetcher extends DynamicFetcher<Boolean> {
             .queryBuilder()
             .update(entityModel.getKeyspaceName(), entityModel.getCqlName())
             .value(modifiers)
-            .where(conditions)
+            .where(whereConditions)
             .build()
             .bind();
 
