@@ -19,7 +19,6 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.Maps;
-import io.dropwizard.util.Strings;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
@@ -29,9 +28,6 @@ import io.stargate.db.schema.UserDefinedType;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.GetResponseWrapper;
 import io.stargate.web.models.UdtAdd;
-import io.stargate.web.models.udt.CQLType;
-import io.stargate.web.models.udt.UdtInfo;
-import io.stargate.web.models.udt.UdtType;
 import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
@@ -41,9 +37,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -113,7 +107,7 @@ public class UdtsResource {
           Map<String, Map<String, String>> response =
               authenticatedDB.getDataStore().schema().keyspace(keyspaceName).userDefinedTypes()
                   .stream()
-                  .collect(Collectors.toMap(UserDefinedType::name, UdtsResource::convertColumnMap));
+                  .collect(Collectors.toMap(UserDefinedType::name, Converters::convertColumnMap));
 
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
@@ -170,7 +164,7 @@ public class UdtsResource {
                   .userDefinedType(typeName);
 
           Map<String, Map<String, String>> response = Maps.newHashMap();
-          response.put(udt.name(), convertColumnMap(udt));
+          response.put(udt.name(), Converters.convertColumnMap(udt));
 
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
@@ -282,7 +276,7 @@ public class UdtsResource {
                   SourceAPI.REST,
                   ResourceKind.UDT);
 
-          List<Column> fields = fromUdtAdd(udtAdd);
+          List<Column> fields = Converters.fromUdtAdd(udtAdd);
 
           UserDefinedType udt =
               ImmutableUserDefinedType.builder()
@@ -303,131 +297,5 @@ public class UdtsResource {
 
           return Response.status(Response.Status.CREATED).build();
         });
-  }
-
-  static Map<String, String> convertColumnMap(UserDefinedType udt) {
-    Map<String, String> map = new HashMap<>();
-    for (Map.Entry<String, Column> e : udt.columnMap().entrySet()) {
-      map.put(e.getKey(), e.getValue().toString());
-    }
-    return map;
-  }
-
-  private static List<Column> fromUdtAdd(UdtAdd udtAdd) {
-    List<UdtType> fieldsList = udtAdd.getFields();
-    if (fieldsList == null || fieldsList.isEmpty()) {
-      throw new IllegalArgumentException("Must have at least one field");
-    }
-    List<Column> fields = new ArrayList<>(fieldsList.size());
-
-    for (UdtType field : fieldsList) {
-      // TODO: TypeDef.name should be not null?
-      if (Strings.isNullOrEmpty(field.getName())) {
-        throw new IllegalArgumentException(
-            "UDT definition should contain a 'name' field specifying the UDT field name.");
-      }
-      fields.add(Column.create(field.getName(), decodeType(field)));
-    }
-    return fields;
-  }
-
-  private static Column.ColumnType decodeType(UdtType udtType) {
-    CQLType basic = udtType.getBasic();
-    UdtInfo info = udtType.getInfo();
-    List<UdtType> subTypes = info != null ? info.getSubTypes() : null;
-    boolean frozen = info != null ? info.isFrozen() : false;
-
-    switch (basic) {
-      case INT:
-        return Column.Type.Int;
-      case INET:
-        return Column.Type.Inet;
-      case TIMEUUID:
-        return Column.Type.Timeuuid;
-      case TIMESTAMP:
-        return Column.Type.Timestamp;
-      case BIGINT:
-        return Column.Type.Bigint;
-      case TIME:
-        return Column.Type.Time;
-      case DURATION:
-        return Column.Type.Duration;
-      case VARINT:
-        return Column.Type.Varint;
-      case UUID:
-        return Column.Type.Uuid;
-      case BOOLEAN:
-        return Column.Type.Boolean;
-      case TINYINT:
-        return Column.Type.Tinyint;
-      case SMALLINT:
-        return Column.Type.Smallint;
-      case ASCII:
-        return Column.Type.Ascii;
-      case DECIMAL:
-        return Column.Type.Decimal;
-      case BLOB:
-        return Column.Type.Blob;
-      case VARCHAR:
-      case TEXT:
-        return Column.Type.Text;
-      case DOUBLE:
-        return Column.Type.Double;
-      case COUNTER:
-        return Column.Type.Counter;
-      case DATE:
-        return Column.Type.Date;
-      case FLOAT:
-        return Column.Type.Float;
-      case LIST:
-        if (info == null) {
-          throw new IllegalArgumentException(
-              "List cqlType should contain an 'info' field specifying the sub cqlType");
-        }
-        if (subTypes == null || subTypes.size() != 1) {
-          throw new IllegalArgumentException("List sub types should contain 1 item");
-        }
-        return Column.Type.List.of(decodeType(subTypes.get(0))).frozen(frozen);
-      case SET:
-        if (info == null) {
-          throw new IllegalArgumentException(
-              "Set cqlType should contain an 'info' field specifying the sub cqlType");
-        }
-        if (subTypes == null || subTypes.size() != 1) {
-          throw new IllegalArgumentException("Set sub types should contain 1 item");
-        }
-        return Column.Type.Set.of(decodeType(subTypes.get(0))).frozen(frozen);
-      case MAP:
-        if (info == null) {
-          throw new IllegalArgumentException(
-              "Map cqlType should contain an 'info' field specifying the sub types");
-        }
-        if (subTypes == null || subTypes.size() != 2) {
-          throw new IllegalArgumentException("Map sub types should contain 2 items");
-        }
-        return Column.Type.Map.of(decodeType(subTypes.get(0)), decodeType(subTypes.get(1)))
-            .frozen(frozen);
-      case UDT:
-        if (info == null || Strings.isNullOrEmpty(info.getName())) {
-          throw new IllegalArgumentException(
-              "UDT cqlType should contain an 'info' field specifying the UDT name");
-        }
-        return UserDefinedType.reference(udtType.getName()).frozen(frozen);
-      case TUPLE:
-        if (info == null) {
-          throw new IllegalArgumentException(
-              "TUPLE cqlType should contain an 'info' field specifying the sub types");
-        }
-        if (subTypes == null || subTypes.isEmpty()) {
-          throw new IllegalArgumentException("TUPLE cqlType should have at least one sub cqlType");
-        }
-        Column.ColumnType[] decodedSubTypes =
-            subTypes.stream()
-                .map(UdtsResource::decodeType)
-                .collect(Collectors.toList())
-                .toArray(new Column.ColumnType[0]);
-        return Column.Type.Tuple.of(decodedSubTypes);
-    }
-    throw new RuntimeException(String.format("Data cqlType %s is not supported", basic));
   }
 }

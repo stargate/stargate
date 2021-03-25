@@ -26,6 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import io.dropwizard.util.Strings;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Modification.Operation;
 import io.stargate.db.query.Predicate;
@@ -44,6 +45,10 @@ import io.stargate.web.models.ClusteringExpression;
 import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.models.PrimaryKey;
 import io.stargate.web.models.TableOptions;
+import io.stargate.web.models.UdtAdd;
+import io.stargate.web.models.udt.CQLType;
+import io.stargate.web.models.udt.UdtInfo;
+import io.stargate.web.models.udt.UdtType;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -1030,5 +1035,131 @@ public class Converters {
     if (UNQUOTED_IDENTIFIER.matcher(text).matches() && !ReservedKeywords.isReserved(text))
       return text;
     return '"' + PATTERN_DOUBLE_QUOTE.matcher(text).replaceAll(ESCAPED_DOUBLE_QUOTE) + '"';
+  }
+
+  public static Map<String, String> convertColumnMap(UserDefinedType udt) {
+    Map<String, String> map = new HashMap<>();
+    for (Map.Entry<String, Column> e : udt.columnMap().entrySet()) {
+      map.put(e.getKey(), e.getValue().toString());
+    }
+    return map;
+  }
+
+  public static List<Column> fromUdtAdd(UdtAdd udtAdd) {
+    List<UdtType> fieldsList = udtAdd.getFields();
+    if (fieldsList == null || fieldsList.isEmpty()) {
+      throw new IllegalArgumentException("Must have at least one field");
+    }
+    List<Column> fields = new ArrayList<>(fieldsList.size());
+
+    for (UdtType field : fieldsList) {
+      // TODO: TypeDef.name should be not null?
+      if (Strings.isNullOrEmpty(field.getName())) {
+        throw new IllegalArgumentException(
+            "UDT definition should contain a 'name' field specifying the UDT field name.");
+      }
+      fields.add(Column.create(field.getName(), decodeType(field)));
+    }
+    return fields;
+  }
+
+  public static Column.ColumnType decodeType(UdtType udtType) {
+    CQLType basic = udtType.getBasic();
+    UdtInfo info = udtType.getInfo();
+    List<UdtType> subTypes = info != null ? info.getSubTypes() : null;
+    boolean frozen = info != null ? info.isFrozen() : false;
+
+    switch (basic) {
+      case INT:
+        return Column.Type.Int;
+      case INET:
+        return Column.Type.Inet;
+      case TIMEUUID:
+        return Column.Type.Timeuuid;
+      case TIMESTAMP:
+        return Column.Type.Timestamp;
+      case BIGINT:
+        return Column.Type.Bigint;
+      case TIME:
+        return Column.Type.Time;
+      case DURATION:
+        return Column.Type.Duration;
+      case VARINT:
+        return Column.Type.Varint;
+      case UUID:
+        return Column.Type.Uuid;
+      case BOOLEAN:
+        return Column.Type.Boolean;
+      case TINYINT:
+        return Column.Type.Tinyint;
+      case SMALLINT:
+        return Column.Type.Smallint;
+      case ASCII:
+        return Column.Type.Ascii;
+      case DECIMAL:
+        return Column.Type.Decimal;
+      case BLOB:
+        return Column.Type.Blob;
+      case VARCHAR:
+      case TEXT:
+        return Column.Type.Text;
+      case DOUBLE:
+        return Column.Type.Double;
+      case COUNTER:
+        return Column.Type.Counter;
+      case DATE:
+        return Column.Type.Date;
+      case FLOAT:
+        return Column.Type.Float;
+      case LIST:
+        if (info == null) {
+          throw new IllegalArgumentException(
+              "List cqlType should contain an 'info' field specifying the sub cqlType");
+        }
+        if (subTypes == null || subTypes.size() != 1) {
+          throw new IllegalArgumentException("List sub types should contain 1 item");
+        }
+        return Column.Type.List.of(decodeType(subTypes.get(0))).frozen(frozen);
+      case SET:
+        if (info == null) {
+          throw new IllegalArgumentException(
+              "Set cqlType should contain an 'info' field specifying the sub cqlType");
+        }
+        if (subTypes == null || subTypes.size() != 1) {
+          throw new IllegalArgumentException("Set sub types should contain 1 item");
+        }
+        return Column.Type.Set.of(decodeType(subTypes.get(0))).frozen(frozen);
+      case MAP:
+        if (info == null) {
+          throw new IllegalArgumentException(
+              "Map cqlType should contain an 'info' field specifying the sub types");
+        }
+        if (subTypes == null || subTypes.size() != 2) {
+          throw new IllegalArgumentException("Map sub types should contain 2 items");
+        }
+        return Column.Type.Map.of(decodeType(subTypes.get(0)), decodeType(subTypes.get(1)))
+            .frozen(frozen);
+      case UDT:
+        if (info == null || Strings.isNullOrEmpty(info.getName())) {
+          throw new IllegalArgumentException(
+              "UDT cqlType should contain an 'info' field specifying the UDT name");
+        }
+        return UserDefinedType.reference(udtType.getName()).frozen(frozen);
+      case TUPLE:
+        if (info == null) {
+          throw new IllegalArgumentException(
+              "TUPLE cqlType should contain an 'info' field specifying the sub types");
+        }
+        if (subTypes == null || subTypes.isEmpty()) {
+          throw new IllegalArgumentException("TUPLE cqlType should have at least one sub cqlType");
+        }
+        Column.ColumnType[] decodedSubTypes =
+            subTypes.stream()
+                .map(Converters::decodeType)
+                .collect(Collectors.toList())
+                .toArray(new Column.ColumnType[0]);
+        return Column.Type.Tuple.of(decodedSubTypes);
+    }
+    throw new RuntimeException(String.format("Data cqlType %s is not supported", basic));
   }
 }

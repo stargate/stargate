@@ -15,13 +15,12 @@
  */
 package io.stargate.web.models.udt;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.MoreObjects;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 import javax.validation.constraints.NotNull;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UdtInfo {
   private String name;
   private boolean frozen;
@@ -57,6 +56,11 @@ public class UdtInfo {
 
   @Override
   public String toString() {
-    return "{ name: " + name + ", frozen: " + frozen + ", subTypes: " + subTypes + "}";
+    return MoreObjects.toStringHelper(this)
+        .add("name", name)
+        .add("frozen", frozen)
+        .add("subTypes", subTypes)
+        .omitNullValues()
+        .toString();
   }
 }
