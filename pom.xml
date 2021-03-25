@@ -201,6 +201,29 @@
           <name>!m2e.version</name>
         </property>
       </activation>
+      <modules>
+        <module>core</module>
+        <module>stargate-starter</module>
+        <module>persistence-api</module>
+        <module>persistence-common</module>
+        <module>persistence-test</module>
+        <module>persistence-cassandra-3.11</module>
+        <module>persistence-cassandra-4.0</module>
+        <module>cql</module>
+        <module>graphqlapi</module>
+        <module>restapi</module>
+        <module>auth-api</module>
+        <module>authnz</module>
+        <module>auth-table-based-service</module>
+        <module>auth-jwt-service</module>
+        <module>health-checker</module>
+        <module>config-store-api</module>
+        <module>config-store-yaml</module>
+        <module>rate-limiting-global</module>
+        <!-- testing last -->
+        <module>testing-services</module>
+        <module>testing</module>
+      </modules>
       <build>
       <plugins>
       <plugin>
@@ -237,7 +260,6 @@
         </plugins>
       </build>
       </profile>
-      
   </profiles>
   <build>
     <plugins>
