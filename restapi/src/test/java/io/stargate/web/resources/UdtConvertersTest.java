@@ -85,7 +85,7 @@ public class UdtConvertersTest {
 
     List<Column> response = Converters.fromUdtAdd(udt);
     assertThat(response.size()).isEqualTo(3);
-    
+
     for (Column column : response) {
       switch (column.name()) {
         case "col1":

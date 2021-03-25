@@ -47,10 +47,12 @@ import javax.validation.constraints.NotNull;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -60,7 +62,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
     produces = MediaType.APPLICATION_JSON,
     consumes = MediaType.APPLICATION_JSON,
     tags = {"schemas"})
-@Path("/v2/schemas/keyspaces/{keyspaceName}/udts")
+@Path("/v2/schemas/keyspaces/{keyspaceName}/types")
 @Produces(MediaType.APPLICATION_JSON)
 public class UdtsResource {
 
@@ -118,10 +120,10 @@ public class UdtsResource {
   @Timed
   @GET
   @ApiOperation(
-      value = "Get all UDTs",
-      notes = "Get all UDTs from a given keyspace",
+      value = "Get an UDT by name",
+      notes = "Get an UDT by name from a given keyspace",
       response = GetResponseWrapper.class,
-      responseContainer = "List")
+      responseContainer = "Map")
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = GetResponseWrapper.class),
@@ -163,6 +165,11 @@ public class UdtsResource {
                   .keyspace(keyspaceName)
                   .userDefinedType(typeName);
 
+          if (udt == null) {
+            throw new NotFoundException(
+                String.format("The type \"%s\".%s was not found.", keyspaceName, typeName));
+          }
+
           Map<String, Map<String, String>> response = Maps.newHashMap();
           response.put(udt.name(), Converters.convertColumnMap(udt));
 
@@ -174,7 +181,7 @@ public class UdtsResource {
 
   @Timed
   @DELETE
-  @ApiOperation(value = "Delete a udt", notes = "Delete a udt in the specified keyspace.")
+  @ApiOperation(value = "Delete an UDT", notes = "Delete a udt in the specified keyspace.")
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
@@ -195,10 +202,11 @@ public class UdtsResource {
       @ApiParam(value = "Name of the udt.", required = true) @PathParam("typeName")
           final String typeName,
       @ApiParam(
+              defaultValue = "false",
               value =
                   "Determines whether to drop an udt if an udt with the name exists. Attempting to drop a non existing udt returns an error unless this option is true.")
-          @PathParam("ifExists")
-          final Boolean ifExists,
+          @QueryParam("ifExists")
+          final boolean ifExists,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
@@ -219,7 +227,7 @@ public class UdtsResource {
               .queryBuilder()
               .drop()
               .type(keyspaceName, UserDefinedType.reference(keyspaceName, typeName))
-              .ifExists(ifExists != null && ifExists)
+              .ifExists(ifExists)
               .build()
               .execute(ConsistencyLevel.LOCAL_QUORUM)
               .get();
@@ -231,8 +239,8 @@ public class UdtsResource {
   @Timed
   @POST
   @ApiOperation(
-      value = "Create a UDT",
-      notes = "Create a UDT in the given keyspace",
+      value = "Create an UDT",
+      notes = "Create an UDT in the given keyspace",
       response = String.class,
       responseContainer = "Map",
       code = 201)

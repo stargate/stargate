@@ -2104,7 +2104,30 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/udts/%s", host, keyspaceName, "udt1"),
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "udt1"),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    // throws error because ifNotExists = false
+    String response =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "udt1"),
+            udtString,
+            HttpStatus.SC_BAD_REQUEST);
+
+    Error error = objectMapper.readValue(response, Error.class);
+    assertThat(error.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(error.getDescription())
+        .isEqualTo(
+            String.format(
+                "Bad request: A type named \"%s\".%s already exists", keyspaceName, "udt1"));
+
+    // don't create and don't throw exception because ifNotExists = true
+    udtString = "{\"ifNotExists\": true, \"fields\":[{\"name\":\"firstname\",\"basic\":\"DATE\"}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "udt1"),
         udtString,
         HttpStatus.SC_CREATED);
   }
@@ -2119,8 +2142,14 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.delete(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/udts/%s", host, keyspaceName, "test_udt"),
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt"),
         HttpStatus.SC_NO_CONTENT);
+
+    // delete a non existent UDT
+    RestUtils.delete(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt"),
+        HttpStatus.SC_BAD_REQUEST);
   }
 
   @Test
@@ -2135,32 +2164,47 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/udts/%s", host, keyspaceName, "test_udt1"),
+                "%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt1"),
             HttpStatus.SC_OK);
 
     Map<String, Map<String, Object>> response =
         objectMapper.readValue(body, new TypeReference<Map<String, Map<String, Object>>>() {});
     assertThat(response.size()).isEqualTo(1);
     assertThat(response.containsKey("test_udt1")).isTrue();
+
+    // get non existent UDT
+    RestUtils.get(
+        authToken,
+        String.format(
+            "%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "invalid_udt"),
+        HttpStatus.SC_NOT_FOUND);
   }
 
   @Test
   public void listAllUdts() throws IOException {
     createKeyspace(keyspaceName);
 
-    String udtString = "{\"fields\":[{\"name\":\"firstname\",\"basic\":\"DATE\"}]}";
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+            HttpStatus.SC_OK);
+    Map<String, Map<String, Object>> response =
+        objectMapper.readValue(body, new TypeReference<Map<String, Map<String, Object>>>() {});
+    assertThat(response.size()).isEqualTo(0);
 
+    String udtString = "{\"fields\":[{\"name\":\"firstname\",\"basic\":\"DATE\"}]}";
     for (int i = 0; i < 10; i++) {
       createUdt("udt" + i, udtString);
     }
 
-    String body =
+    body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/%s/udts", host, keyspaceName),
+            String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
             HttpStatus.SC_OK);
 
-    Map<String, Map<String, Object>> response =
+    response =
         objectMapper.readValue(body, new TypeReference<Map<String, Map<String, Object>>>() {});
     assertThat(response.size()).isEqualTo(10);
   }
@@ -2412,7 +2456,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   private void createUdt(String typeName, String udt) throws IOException {
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/udts/%s", host, keyspaceName, typeName),
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, typeName),
         udt,
         HttpStatus.SC_CREATED);
   }

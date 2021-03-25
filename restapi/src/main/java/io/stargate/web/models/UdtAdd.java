@@ -23,7 +23,6 @@ import javax.validation.constraints.NotNull;
 
 public class UdtAdd {
   private boolean ifNotExists;
-
   private @NotNull List<UdtType> fields;
 
   @ApiModelProperty(
