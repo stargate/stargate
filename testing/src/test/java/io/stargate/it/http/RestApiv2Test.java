@@ -40,6 +40,10 @@ import io.stargate.web.models.SuccessResponse;
 import io.stargate.web.models.TableAdd;
 import io.stargate.web.models.TableOptions;
 import io.stargate.web.models.TableResponse;
+import io.stargate.web.models.UdtAdd;
+import io.stargate.web.models.udt.CQLType;
+import io.stargate.web.models.udt.UdtInfo;
+import io.stargate.web.models.udt.UdtType;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -2096,6 +2100,98 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     assertThat(response.getDescription()).isNotEmpty();
   }
 
+  @Test
+  public void createUdt() throws IOException {
+    createKeyspace(keyspaceName);
+
+    String udtString =
+        "{\"ifNotExists\":true,\"fields\":[{\"name\":\"firstname\",\"basic\":\"DATE\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/udts/%s", host, keyspaceName, "udt1"),
+        udtString,
+        HttpStatus.SC_CREATED);
+  }
+
+  @Test
+  public void dropUdt() throws IOException {
+    createKeyspace(keyspaceName);
+
+    UdtAdd udt = new UdtAdd();
+    UdtType type = new UdtType();
+    type.setName("firstName");
+    type.setBasic(CQLType.VARCHAR);
+    udt.setFields(Arrays.asList(type));
+
+    createUdt("test_udt", udt);
+
+    RestUtils.delete(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/udts/%s", host, keyspaceName, "test_udt"),
+        HttpStatus.SC_NO_CONTENT);
+  }
+
+  @Test
+  public void getUdt() throws IOException {
+    createKeyspace(keyspaceName);
+
+    UdtAdd udt = new UdtAdd();
+    UdtType type = new UdtType();
+    type.setName("firstName");
+    type.setBasic(CQLType.VARCHAR);
+    udt.setFields(Arrays.asList(type));
+
+    createUdt("test_udt1", udt);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/schemas/keyspaces/%s/udts/%s", host, keyspaceName, "test_udt1"),
+            HttpStatus.SC_OK);
+
+    Map<String, Map<String, Object>> response =
+        objectMapper.readValue(body, new TypeReference<Map<String, Map<String, Object>>>() {});
+    assertThat(response.size()).isEqualTo(1);
+    assertThat(response.containsKey("test_udt1")).isTrue();
+  }
+
+  @Test
+  public void listAllUdts() throws IOException {
+    createKeyspace(keyspaceName);
+
+    UdtAdd udt = new UdtAdd();
+    UdtType type = new UdtType();
+    type.setName("firstName");
+    type.setBasic(CQLType.LIST);
+    UdtInfo info = new UdtInfo();
+
+    UdtType subType = new UdtType();
+    subType.setBasic(CQLType.INT);
+
+    info.setSubTypes(Arrays.asList(subType));
+    type.setInfo(info);
+    udt.setFields(Arrays.asList(type));
+
+    createUdt("test_udt1", udt);
+    createUdt("test_udt2", udt);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/schemas/keyspaces/%s/udts", host, keyspaceName),
+            HttpStatus.SC_OK);
+
+    Map<String, Map<String, Object>> response =
+        objectMapper.readValue(body, new TypeReference<Map<String, Map<String, Object>>>() {});
+    assertThat(response.size()).isEqualTo(2);
+    assertThat(response.containsKey("test_udt1")).isTrue();
+    assertThat(response.containsKey("test_udt2")).isTrue();
+
+//    assertThat(body).isEqualTo("");
+  }
+
   private void createTable(String keyspaceName, String tableName) throws IOException {
     TableAdd tableAdd = new TableAdd();
     tableAdd.setName(tableName);
@@ -2337,6 +2433,17 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         authToken,
         String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
+  }
+
+  private void createUdt(String typeName, UdtAdd udt) throws IOException {
+    String udtString =
+        "{\"ifNotExists\":true,\"fields\":[{\"name\":\"firstname\",\"basic\":\"DATE\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/udts/%s", host, keyspaceName, typeName),
+        objectMapper.writeValueAsString(udt),
         HttpStatus.SC_CREATED);
   }
 }

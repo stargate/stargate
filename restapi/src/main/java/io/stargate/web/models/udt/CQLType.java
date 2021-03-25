@@ -13,16 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.auth.entity;
+package io.stargate.web.models.udt;
 
-public enum ResourceKind {
-  KEYSPACE,
-  TABLE,
-  FUNCTION,
-  TYPE,
-  TRIGGER,
-  AGGREGATE,
-  VIEW,
-  INDEX,
+public enum CQLType {
+  TEXT,
+  VARCHAR,
+  DATE,
+  INT,
+  INET,
+  TIMEUUID,
+  TIMESTAMP,
+  BIGINT,
+  TIME,
+  DURATION,
+  VARINT,
+  UUID,
+  BOOLEAN,
+  TINYINT,
+  SMALLINT,
+  ASCII,
+  DECIMAL,
+  DOUBLE,
+  COUNTER,
+  FLOAT,
+  BLOB,
+  LIST,
+  SET,
+  MAP,
+  TUPLE,
   UDT
 }
