@@ -36,6 +36,7 @@
     <jacoco.version>0.8.6</jacoco.version>
     <errorprone.version>2.3.4</errorprone.version>
     <commons-io.version>2.7</commons-io.version>
+    <immutables.version>2.5.6</immutables.version>
   </properties>
   <dependencies>
     <dependency>
@@ -191,6 +192,52 @@
         <module>testing</module>
       </modules>
     </profile>
+    
+    <!-- This block is needed to disable erroprone in Eclipse -->
+    <profile>
+      <id>errorprone-unless-ide</id>
+      <activation>
+        <property>
+          <name>!m2e.version</name>
+        </property>
+      </activation>
+      <build>
+      <plugins>
+      <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.8.1</version>
+          <configuration>
+            <compilerId>javac-with-errorprone</compilerId>
+            <forceJavacCompilerUse>true</forceJavacCompilerUse>
+            <source>1.8</source>
+            <target>1.8</target>
+            <compilerArgs combine.children="override">
+              <compilerArg>-Xep:MixedMutabilityReturnType:OFF</compilerArg>
+              <compilerArg>-Xep:ImmutableEnumChecker:OFF</compilerArg>
+              <compilerArg>-Xep:FutureReturnValueIgnored:OFF</compilerArg>
+              <compilerArg>-XepExcludedPaths:.*/target/(?:generated-sources|generated-test-sources)/.*</compilerArg>
+            </compilerArgs>
+            <showWarnings>true</showWarnings>
+            <failOnWarning>false</failOnWarning>
+          </configuration>
+          <dependencies>
+            <dependency>
+              <groupId>org.codehaus.plexus</groupId>
+              <artifactId>plexus-compiler-javac-errorprone</artifactId>
+              <version>2.8.6</version>
+            </dependency>
+            <dependency>
+              <groupId>com.google.errorprone</groupId>
+              <artifactId>error_prone_core</artifactId>
+              <version>${errorprone.version}</version>
+            </dependency>
+          </dependencies>
+        </plugin>
+        </plugins>
+      </build>
+      </profile>
+      
   </profiles>
   <build>
     <plugins>
@@ -353,7 +400,7 @@
             </configuration>
           </execution>
         </executions>
-      </plugin>
+      </plugin>	
     </plugins>
     <pluginManagement>
       <plugins>
@@ -361,7 +408,8 @@
           <artifactId>maven-jar-plugin</artifactId>
           <version>3.2.0</version>
         </plugin>
-        <plugin>
+         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.8.1</version>
           <configuration>
@@ -369,14 +417,14 @@
             <forceJavacCompilerUse>true</forceJavacCompilerUse>
             <source>1.8</source>
             <target>1.8</target>
-            <compilerArgs combine.children="override">
-              <compilerArg>-Xep:MixedMutabilityReturnType:OFF</compilerArg>
-              <compilerArg>-Xep:ImmutableEnumChecker:OFF</compilerArg>
-              <compilerArg>-Xep:FutureReturnValueIgnored:OFF</compilerArg>
-              <compilerArg>-XepExcludedPaths:.*/target/(?:generated-sources|generated-test-sources)/.*</compilerArg>
-            </compilerArgs>
-            <showWarnings>true</showWarnings>
-            <failOnWarning>false</failOnWarning>
+            <!-- Immutables need tweak in eclipse -->
+            <annotationProcessorPaths>
+             <path>
+              <groupId>org.immutables</groupId>
+              <artifactId>value</artifactId>
+              <version>${immutables.version}</version>
+              </path>
+            </annotationProcessorPaths>
           </configuration>
           <dependencies>
             <dependency>
@@ -435,6 +483,53 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>3.0.0-M3</version>
         </plugin>
+        <!-- Required to build in eclipse = ignoring not supported plugins -->
+		<plugin>
+			<groupId>org.eclipse.m2e</groupId>
+			<artifactId>lifecycle-mapping</artifactId>
+			<version>1.0.0</version>
+			<configuration>
+		     <lifecycleMappingMetadata>
+			  <pluginExecutions>
+	           <pluginExecution>
+			    <pluginExecutionFilter>
+				 <groupId>au.com.acegi</groupId>
+				 <artifactId>xml-format-maven-plugin</artifactId>
+				 <versionRange>[3.1,)</versionRange>
+				 <goals><goal>xml-check</goal></goals>
+			   </pluginExecutionFilter>
+			   <action><execute /></action>
+			 </pluginExecution>
+	         <pluginExecution>
+			  <pluginExecutionFilter>
+			   <groupId>com.coveo</groupId>
+			   <artifactId>fmt-maven-plugin</artifactId>
+			   <versionRange>[2,)</versionRange>
+				<goals><goal>check</goal></goals>
+			  </pluginExecutionFilter>
+			  <action><execute /></action></pluginExecution>
+	          <pluginExecution>
+			   <pluginExecutionFilter>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<versionRange>[1,)</versionRange>
+				<goals><goal>run</goal></goals>
+			   </pluginExecutionFilter>
+			   <action><execute /></action>
+			  </pluginExecution>
+			  <pluginExecution>
+			   <pluginExecutionFilter>
+			    <groupId>com.github.sparow199</groupId>
+				<artifactId>apollo-client-maven-plugin</artifactId>
+				<versionRange>[3.2,)</versionRange>
+				<goals><goal>generate</goal></goals>
+		       </pluginExecutionFilter>
+			   <action><execute /></action>
+			  </pluginExecution>
+			 </pluginExecutions>
+			</lifecycleMappingMetadata>
+		   </configuration>
+		</plugin>
       </plugins>
     </pluginManagement>
   </build>
