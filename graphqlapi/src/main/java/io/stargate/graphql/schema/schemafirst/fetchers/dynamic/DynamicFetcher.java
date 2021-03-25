@@ -34,7 +34,6 @@ import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundSelect;
-import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
@@ -45,16 +44,14 @@ import io.stargate.graphql.schema.scalars.CqlScalar;
 import io.stargate.graphql.schema.schemafirst.processor.EntityModel;
 import io.stargate.graphql.schema.schemafirst.processor.FieldModel;
 import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.WhereConditionModel;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
@@ -248,117 +245,16 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
     return result;
   }
 
-  /**
-   * Builds and executes a query to fetch a list of entity instances, given the full partition key
-   * and zero or more clustering columns.
-   *
-   * @param arguments the arguments of the GraphQL query.
-   * @param argumentNames for each key component, the name of the argument that represents it.
-   * @param limit
-   * @param pageSize
-   */
-  protected ResultSet queryListOfEntities(
+  /** Queries one or more instances of an entity for the given conditions. */
+  protected ResultSet query(
       EntityModel entity,
-      Map<String, Object> arguments,
-      List<String> argumentNames,
+      List<BuiltCondition> whereConditions,
       Optional<ByteBuffer> pagingState,
       Optional<Integer> limit,
       Optional<Integer> pageSize,
       DataStore dataStore,
-      Keyspace keyspace,
       AuthenticationSubject authenticationSubject)
       throws UnauthorizedException {
-    return query(
-        entity,
-        arguments,
-        argumentNames,
-        argumentNames.size(),
-        pagingState,
-        limit,
-        pageSize,
-        dataStore,
-        keyspace,
-        authenticationSubject);
-  }
-
-  /**
-   * Builds and executes a query to fetch a single entity, given the full primary key (all partition
-   * keys and clustering columns).
-   *
-   * @param arguments the arguments of the GraphQL query.
-   * @param argumentNames for each key component, the name of the argument that represents it.
-   */
-  protected ResultSet querySingleEntity(
-      EntityModel entity,
-      Map<String, Object> arguments,
-      List<String> argumentNames,
-      DataStore dataStore,
-      Keyspace keyspace,
-      AuthenticationSubject authenticationSubject)
-      throws UnauthorizedException {
-    return query(
-        entity,
-        arguments,
-        argumentNames,
-        argumentNames.size(),
-        Optional.empty(),
-        Optional.empty(),
-        Optional.empty(),
-        dataStore,
-        keyspace,
-        authenticationSubject);
-  }
-
-  /**
-   * Builds and executes a query to fetch a single entity, given the full primary key (all partition
-   * keys and clustering columns). This variant assumes that the arguments are named exactly like
-   * the primary key fields.
-   */
-  protected ResultSet querySingleEntity(
-      EntityModel entity,
-      Map<String, Object> arguments,
-      DataStore dataStore,
-      Keyspace keyspace,
-      AuthenticationSubject authenticationSubject)
-      throws UnauthorizedException {
-    return query(
-        entity,
-        arguments,
-        null,
-        entity.getPrimaryKey().size(),
-        Optional.empty(),
-        Optional.empty(),
-        Optional.empty(),
-        dataStore,
-        keyspace,
-        authenticationSubject);
-  }
-
-  private ResultSet query(
-      EntityModel entity,
-      Map<String, Object> arguments,
-      List<String> argumentNames,
-      int argumentCount,
-      Optional<ByteBuffer> pagingState,
-      Optional<Integer> limit,
-      Optional<Integer> pageSize,
-      DataStore dataStore,
-      Keyspace keyspace,
-      AuthenticationSubject authenticationSubject)
-      throws UnauthorizedException {
-
-    List<BuiltCondition> whereConditions = new ArrayList<>();
-    assert argumentNames == null || argumentNames.size() == argumentCount;
-    for (int i = 0; i < argumentCount; i++) {
-      FieldModel field = entity.getPrimaryKey().get(i);
-      String argumentName = argumentNames != null ? argumentNames.get(i) : field.getGraphqlName();
-      Object graphqlValue = arguments.get(argumentName);
-      whereConditions.add(
-          BuiltCondition.of(
-              field.getCqlName(),
-              Predicate.EQ,
-              toCqlValue(graphqlValue, field.getCqlType(), keyspace)));
-    }
 
     AbstractBound<?> query =
         dataStore
@@ -445,5 +341,86 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
         throw new RuntimeException(cause);
       }
     }
+  }
+
+  /**
+   * Given the WHERE conditions that were inferred from an operation signature, find out which
+   * arguments are actually present in an runtime invocation, and bind the corresponding conditions.
+   *
+   * <p>Example:
+   *
+   * <pre>
+   * // Query definition
+   * type Query { readings(sensorId: ID!, hour: Int, minute: Int): [SensorReading] }
+   *
+   * // Inferred conditions:
+   * sensorId = ? AND hour = ? AND minute = ?
+   *
+   * // GraphQL call:
+   * { readings(sensorId: "xyz", hour: 12) { value } }
+   *
+   * // Actual conditions:
+   * sensorId = 'xyz' AND hour = 12
+   * </pre>
+   *
+   * @param hasArgument how to know if an argument is present (this is abstracted because in some
+   *     cases the values are not directly arguments, but instead inner fields of an object
+   *     argument).
+   * @param getArgument how to get the value of an argument (same).
+   */
+  protected List<BuiltCondition> bind(
+      List<WhereConditionModel> whereConditionModels,
+      EntityModel entity,
+      Predicate<String> hasArgument,
+      Function<String, Object> getArgument,
+      Keyspace keyspace) {
+
+    List<BuiltCondition> result = new ArrayList<>();
+    Set<String> partitionKeys = new HashSet<>();
+    Set<String> clusteringColumns = new HashSet<>();
+    for (WhereConditionModel model : whereConditionModels) {
+      FieldModel field = model.getField();
+      String graphqlName = field.getGraphqlName();
+      if (hasArgument.test(graphqlName)) {
+        Object graphqlValue = getArgument.apply(graphqlName);
+        Object cqlValue = toCqlValue(graphqlValue, field.getCqlType(), keyspace);
+        if (cqlValue != null) {
+          if (field.isPartitionKey()) {
+            partitionKeys.add(field.getGraphqlName());
+          }
+          if (field.isClusteringColumn()) {
+            clusteringColumns.add(field.getGraphqlName());
+          }
+        }
+        result.add(model.build(cqlValue));
+      }
+    }
+
+    // Re-check that we have enough values for a valid CQL query
+    // TODO update this when we allow conditions on regular (indexed) columns
+    for (FieldModel field : entity.getPartitionKey()) {
+      String name = field.getGraphqlName();
+      if (!partitionKeys.contains(name)) {
+        throw new IllegalArgumentException(
+            String.format("Missing value for partition key field '%s'.", name));
+      }
+    }
+    String firstUnset = null;
+    for (FieldModel field : entity.getClusteringColumns()) {
+      String name = field.getGraphqlName();
+      if (clusteringColumns.contains(name)) {
+        if (firstUnset != null) {
+          throw new IllegalArgumentException(
+              String.format(
+                  "Unexpected value for clustering field '%s': field '%s' was unset, "
+                      + "so no clustering fields after it should be set.",
+                  name, firstUnset));
+        }
+      } else if (firstUnset == null) {
+        firstUnset = name;
+      }
+    }
+
+    return result;
   }
 }

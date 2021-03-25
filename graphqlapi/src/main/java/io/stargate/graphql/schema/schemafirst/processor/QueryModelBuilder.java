@@ -15,7 +15,6 @@
  */
 package io.stargate.graphql.schema.schemafirst.processor;
 
-import com.google.common.collect.ImmutableList;
 import graphql.Scalars;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
@@ -63,62 +62,35 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
                   return SkipException.INSTANCE;
                 });
 
-    List<FieldModel> primaryKey = entity.getPrimaryKey();
-    int pkIndex = 0;
-
-    ImmutableList.Builder<String> pkArgumentNamesBuilder = ImmutableList.builder();
-    Optional<String> pagingStateArgumentName = Optional.empty();
-
-    boolean foundErrors = false;
-    for (InputValueDefinition inputValue : operation.getInputValueDefinitions()) {
-      if (isPagingState(inputValue)) {
-        if (pagingStateArgumentName.isPresent()) {
-          invalidMapping(
-              "Query %s: @cql_pagingState can be used on at most one argument (found %s and %s)",
-              operationName, pagingStateArgumentName.get(), inputValue.getName());
-          foundErrors = true;
-        }
-        pagingStateArgumentName = Optional.of(inputValue.getName());
-      } else {
-        // Assume non-annotated fields are PK components in order:
-        FieldModel pkField = primaryKey.get(pkIndex++);
-        Type<?> inputType = inputValue.getType();
-        if (!TypeHelper.unwrapNonNull(inputType)
-            .isEqualTo(TypeHelper.unwrapNonNull(pkField.getGraphqlType()))) {
-          invalidMapping(
-              "Query %s: expected argument %s to have the same type as %s.%s",
-              operationName,
-              inputValue.getName(),
-              entity.getGraphqlName(),
-              pkField.getGraphqlName());
-          foundErrors = true;
-        }
-        pkArgumentNamesBuilder.add(inputValue.getName());
-      }
-    }
-    if (foundErrors) {
-      throw SkipException.INSTANCE;
-    }
-
-    ImmutableList<String> pkArgumentNames = pkArgumentNamesBuilder.build();
-    List<FieldModel> partitionKey = entity.getPartitionKey();
-    if (pkArgumentNames.size() < partitionKey.size()) {
-      invalidMapping(
-          "Query %s: expected to have at least enough arguments to cover the partition key "
-              + "(%d needed, %d provided).",
-          operationName, partitionKey.size(), pkArgumentNames.size());
-      throw SkipException.INSTANCE;
-    }
+    Optional<String> pagingStateArgumentName = findPagingState();
+    List<WhereConditionModel> whereConditions = buildWhereConditions(entity);
+    validateWhereConditions(whereConditions, entity);
 
     return new QueryModel(
         parentTypeName,
         operation,
         entity,
-        pkArgumentNames,
+        whereConditions,
         pagingStateArgumentName,
         limit,
         pageSize,
         returnType);
+  }
+
+  private Optional<String> findPagingState() throws SkipException {
+    Optional<String> result = Optional.empty();
+    for (InputValueDefinition inputValue : operation.getInputValueDefinitions()) {
+      if (isPagingState(inputValue)) {
+        if (result.isPresent()) {
+          invalidMapping(
+              "Query %s: @cql_pagingState can be used on at most one argument (found %s and %s)",
+              operationName, result.get(), inputValue.getName());
+          throw SkipException.INSTANCE;
+        }
+        result = Optional.of(inputValue.getName());
+      }
+    }
+    return result;
   }
 
   private boolean isPagingState(InputValueDefinition inputValue) throws SkipException {

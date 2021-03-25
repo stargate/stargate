@@ -23,17 +23,14 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.scalars.CqlScalar;
-import io.stargate.graphql.schema.schemafirst.processor.MappingModel;
+import io.stargate.graphql.schema.schemafirst.processor.*;
 import io.stargate.graphql.schema.schemafirst.processor.OperationModel.ReturnType;
-import io.stargate.graphql.schema.schemafirst.processor.QueryModel;
-import io.stargate.graphql.schema.schemafirst.processor.ResponsePayloadModel;
 import io.stargate.graphql.schema.schemafirst.processor.ResponsePayloadModel.TechnicalField;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class QueryFetcher extends DynamicFetcher<Object> {
 
@@ -68,32 +65,27 @@ public class QueryFetcher extends DynamicFetcher<Object> {
 
     ReturnType returnType = model.getReturnType();
 
-    ResultSet resultSet;
-    Object entityData;
-    if (returnType.isEntityList()) {
-      resultSet =
-          queryListOfEntities(
-              model.getEntity(),
-              environment.getArguments(),
-              model.getPkArgumentNames(),
-              pagingState,
-              model.getLimit(),
-              model.getPageSize(),
-              dataStore,
-              keyspace,
-              authenticationSubject);
-      entityData = toEntities(resultSet, model.getEntity());
-    } else {
-      resultSet =
-          querySingleEntity(
-              model.getEntity(),
-              environment.getArguments(),
-              model.getPkArgumentNames(),
-              dataStore,
-              keyspace,
-              authenticationSubject);
-      entityData = toSingleEntity(resultSet, model.getEntity());
-    }
+    List<BuiltCondition> whereConditions =
+        bind(
+            model.getWhereConditions(),
+            model.getEntity(),
+            environment::containsArgument,
+            environment::getArgument,
+            keyspace);
+
+    ResultSet resultSet =
+        query(
+            model.getEntity(),
+            whereConditions,
+            pagingState,
+            model.getLimit(),
+            model.getPageSize(),
+            dataStore,
+            authenticationSubject);
+    Object entityData =
+        returnType.isEntityList()
+            ? toEntities(resultSet, model.getEntity())
+            : toSingleEntity(resultSet, model.getEntity());
 
     if (returnType instanceof ResponsePayloadModel) {
       ResponsePayloadModel payloadModel = (ResponsePayloadModel) returnType;
