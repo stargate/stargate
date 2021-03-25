@@ -1053,7 +1053,6 @@ public class Converters {
     List<Column> fields = new ArrayList<>(fieldsList.size());
 
     for (UdtType field : fieldsList) {
-      // TODO: TypeDef.name should be not null?
       if (Strings.isNullOrEmpty(field.getName())) {
         throw new IllegalArgumentException(
             "UDT definition should contain a 'name' field specifying the UDT field name.");

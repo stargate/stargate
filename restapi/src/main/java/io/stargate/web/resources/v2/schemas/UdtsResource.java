@@ -24,6 +24,7 @@ import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableUserDefinedType;
+import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.GetResponseWrapper;
@@ -106,6 +107,16 @@ public class UdtsResource {
                   SourceAPI.REST,
                   ResourceKind.UDT);
 
+          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+          if (keyspace == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                .entity(
+                    new Error(
+                        String.format("Keyspace '%s' not found.", keyspaceName),
+                        Response.Status.NOT_FOUND.getStatusCode()))
+                .build();
+          }
+
           Map<String, Map<String, String>> response =
               authenticatedDB.getDataStore().schema().keyspace(keyspaceName).userDefinedTypes()
                   .stream()
@@ -158,6 +169,16 @@ public class UdtsResource {
                   SourceAPI.REST,
                   ResourceKind.UDT);
 
+          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+          if (keyspace == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                .entity(
+                    new Error(
+                        String.format("Keyspace '%s' not found.", keyspaceName),
+                        Response.Status.NOT_FOUND.getStatusCode()))
+                .build();
+          }
+
           UserDefinedType udt =
               authenticatedDB
                   .getDataStore()
@@ -166,8 +187,12 @@ public class UdtsResource {
                   .userDefinedType(typeName);
 
           if (udt == null) {
-            throw new NotFoundException(
-                String.format("The type \"%s\".%s was not found.", keyspaceName, typeName));
+            return Response.status(Response.Status.NOT_FOUND)
+                .entity(
+                    new Error(
+                        String.format("The type %s.%s was not found.", keyspaceName, typeName),
+                        Response.Status.NOT_FOUND.getStatusCode()))
+                .build();
           }
 
           Map<String, Map<String, String>> response = Maps.newHashMap();
@@ -204,7 +229,7 @@ public class UdtsResource {
       @ApiParam(
               defaultValue = "false",
               value =
-                  "Determines whether to drop an udt if an udt with the name exists. Attempting to drop a non existing udt returns an error unless this option is true.")
+                  "Attempting to drop a non existing udt returns an error unless this option is true.")
           @QueryParam("ifExists")
           final boolean ifExists,
       @Context HttpServletRequest request) {
@@ -222,16 +247,34 @@ public class UdtsResource {
                   SourceAPI.REST,
                   ResourceKind.UDT);
 
-          authenticatedDB
-              .getDataStore()
-              .queryBuilder()
-              .drop()
-              .type(keyspaceName, UserDefinedType.reference(keyspaceName, typeName))
-              .ifExists(ifExists)
-              .build()
-              .execute(ConsistencyLevel.LOCAL_QUORUM)
-              .get();
+          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+          if (keyspace == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                .entity(
+                    new Error(
+                        String.format("Keyspace '%s' not found.", keyspaceName),
+                        Response.Status.NOT_FOUND.getStatusCode()))
+                .build();
+          }
 
+          try {
+            authenticatedDB
+                .getDataStore()
+                .queryBuilder()
+                .drop()
+                .type(keyspaceName, UserDefinedType.reference(keyspaceName, typeName))
+                .ifExists(ifExists)
+                .build()
+                .execute(ConsistencyLevel.LOCAL_QUORUM)
+                .get();
+          } catch (IllegalArgumentException | NotFoundException iae) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        String.format("%s", iae.getMessage()),
+                        Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }
@@ -284,24 +327,52 @@ public class UdtsResource {
                   SourceAPI.REST,
                   ResourceKind.UDT);
 
-          List<Column> fields = Converters.fromUdtAdd(udtAdd);
+          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+          if (keyspace == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                .entity(
+                    new Error(
+                        String.format("Keyspace '%s' not found.", keyspaceName),
+                        Response.Status.NOT_FOUND.getStatusCode()))
+                .build();
+          }
 
-          UserDefinedType udt =
-              ImmutableUserDefinedType.builder()
-                  .keyspace(keyspaceName)
-                  .name(typeName)
-                  .addAllColumns(fields)
-                  .build();
+          if (udtAdd.getFields() == null || udtAdd.getFields().isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        String.format("A UDT definition should incluse the fields definition."),
+                        Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
 
-          authenticatedDB
-              .getDataStore()
-              .queryBuilder()
-              .create()
-              .type(keyspaceName, udt)
-              .ifNotExists(udtAdd.getIfNotExists())
-              .build()
-              .execute(ConsistencyLevel.LOCAL_QUORUM)
-              .get();
+          try {
+            List<Column> fields = Converters.fromUdtAdd(udtAdd);
+
+            UserDefinedType udt =
+                ImmutableUserDefinedType.builder()
+                    .keyspace(keyspaceName)
+                    .name(typeName)
+                    .addAllColumns(fields)
+                    .build();
+
+            authenticatedDB
+                .getDataStore()
+                .queryBuilder()
+                .create()
+                .type(keyspaceName, udt)
+                .ifNotExists(udtAdd.getIfNotExists())
+                .build()
+                .execute(ConsistencyLevel.LOCAL_QUORUM)
+                .get();
+          } catch (IllegalArgumentException iae) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        String.format(iae.getMessage()),
+                        Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
 
           return Response.status(Response.Status.CREATED).build();
         });
