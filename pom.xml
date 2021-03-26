@@ -192,74 +192,6 @@
         <module>testing</module>
       </modules>
     </profile>
-    
-    <!-- This block is needed to disable erroprone in Eclipse -->
-    <profile>
-      <id>errorprone-unless-ide</id>
-      <activation>
-        <property>
-          <name>!m2e.version</name>
-        </property>
-      </activation>
-      <modules>
-        <module>core</module>
-        <module>stargate-starter</module>
-        <module>persistence-api</module>
-        <module>persistence-common</module>
-        <module>persistence-test</module>
-        <module>persistence-cassandra-3.11</module>
-        <module>persistence-cassandra-4.0</module>
-        <module>cql</module>
-        <module>graphqlapi</module>
-        <module>restapi</module>
-        <module>auth-api</module>
-        <module>authnz</module>
-        <module>auth-table-based-service</module>
-        <module>auth-jwt-service</module>
-        <module>health-checker</module>
-        <module>config-store-api</module>
-        <module>config-store-yaml</module>
-        <module>rate-limiting-global</module>
-        <!-- testing last -->
-        <module>testing-services</module>
-        <module>testing</module>
-      </modules>
-      <build>
-      <plugins>
-      <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.1</version>
-          <configuration>
-            <compilerId>javac-with-errorprone</compilerId>
-            <forceJavacCompilerUse>true</forceJavacCompilerUse>
-            <source>1.8</source>
-            <target>1.8</target>
-            <compilerArgs combine.children="override">
-              <compilerArg>-Xep:MixedMutabilityReturnType:OFF</compilerArg>
-              <compilerArg>-Xep:ImmutableEnumChecker:OFF</compilerArg>
-              <compilerArg>-Xep:FutureReturnValueIgnored:OFF</compilerArg>
-              <compilerArg>-XepExcludedPaths:.*/target/(?:generated-sources|generated-test-sources)/.*</compilerArg>
-            </compilerArgs>
-            <showWarnings>true</showWarnings>
-            <failOnWarning>false</failOnWarning>
-          </configuration>
-          <dependencies>
-            <dependency>
-              <groupId>org.codehaus.plexus</groupId>
-              <artifactId>plexus-compiler-javac-errorprone</artifactId>
-              <version>2.8.6</version>
-            </dependency>
-            <dependency>
-              <groupId>com.google.errorprone</groupId>
-              <artifactId>error_prone_core</artifactId>
-              <version>${errorprone.version}</version>
-            </dependency>
-          </dependencies>
-        </plugin>
-        </plugins>
-      </build>
-      </profile>
   </profiles>
   <build>
     <plugins>
@@ -422,7 +354,7 @@
             </configuration>
           </execution>
         </executions>
-      </plugin>	
+      </plugin>
     </plugins>
     <pluginManagement>
       <plugins>
@@ -430,8 +362,7 @@
           <artifactId>maven-jar-plugin</artifactId>
           <version>3.2.0</version>
         </plugin>
-         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
+        <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.8.1</version>
           <configuration>
@@ -439,7 +370,14 @@
             <forceJavacCompilerUse>true</forceJavacCompilerUse>
             <source>1.8</source>
             <target>1.8</target>
-            <!-- Immutables need tweak in eclipse -->
+            <compilerArgs combine.children="override">
+              <compilerArg>-Xep:MixedMutabilityReturnType:OFF</compilerArg>
+              <compilerArg>-Xep:ImmutableEnumChecker:OFF</compilerArg>
+              <compilerArg>-Xep:FutureReturnValueIgnored:OFF</compilerArg>
+              <compilerArg>-XepExcludedPaths:.*/target/(?:generated-sources|generated-test-sources)/.*</compilerArg>
+            </compilerArgs>
+            <showWarnings>true</showWarnings>
+            <failOnWarning>false</failOnWarning>
             <annotationProcessorPaths>
              <path>
               <groupId>org.immutables</groupId>

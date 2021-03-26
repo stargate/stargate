@@ -1,4 +1,4 @@
- package io.stargate.web.resources.v2.schemas;
+package io.stargate.web.resources.v2.schemas;
 /*
  * Copyright The Stargate Authors
  *
@@ -130,7 +130,8 @@ public class UserDefinedTypesResource {
                   udtResponses.stream()
                       .map(UserDefinedTypeResponse::getName)
                       .collect(Collectors.toList()),
-                  SourceAPI.REST, ResourceKind.TYPE);
+                  SourceAPI.REST,
+                  ResourceKind.TYPE);
           // Wrap response if user does not asked for raw.
           Object response =
               raw ? udtResponses : new ResponseWrapper<List<UserDefinedTypeResponse>>(udtResponses);
@@ -182,7 +183,8 @@ public class UserDefinedTypesResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   null,
-                  SourceAPI.REST, ResourceKind.TYPE);
+                  SourceAPI.REST,
+                  ResourceKind.TYPE);
           // Mapping to Rest API expected output
           UserDefinedTypeResponse udtResponse =
               mapUdtAsReponse(authenticatedDB.getType(keyspaceName, typeName));
@@ -252,7 +254,8 @@ public class UserDefinedTypesResource {
                   keyspaceName,
                   null,
                   Scope.CREATE,
-                  SourceAPI.REST, ResourceKind.TYPE);
+                  SourceAPI.REST,
+                  ResourceKind.TYPE);
           String typeName = udtAdd.getName();
           if (typeName == null || typeName.equals("")) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -340,7 +343,8 @@ public class UserDefinedTypesResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   null,
-                  SourceAPI.REST, ResourceKind.TYPE);
+                  SourceAPI.REST,
+                  ResourceKind.TYPE);
 
           authenticatedDB
               .getDataStore()
