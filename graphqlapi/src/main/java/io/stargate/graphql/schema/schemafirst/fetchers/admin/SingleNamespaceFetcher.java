@@ -40,7 +40,7 @@ public class SingleNamespaceFetcher extends NamespaceFetcher<Map<String, Object>
     Keyspace keyspace = dataStore.schema().keyspace(name);
 
     if (keyspace == null || !isReadAuthorized(keyspace, authenticationSubject)) {
-      throw new IllegalArgumentException(String.format("Unknown keyspace '%s'", name));
+      throw new IllegalArgumentException(String.format("Unknown namespace '%s'", name));
     }
 
     return formatNamespace(keyspace);

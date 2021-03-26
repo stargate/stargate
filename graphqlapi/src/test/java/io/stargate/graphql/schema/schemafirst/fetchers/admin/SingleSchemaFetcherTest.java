@@ -41,7 +41,7 @@ class SingleSchemaFetcherTest {
     SchemaSource schemaSource = new SchemaSource(namespace, Uuids.timeBased(), "content");
 
     SchemaSourceDao schemaSourceDao = mock(SchemaSourceDao.class);
-    when(schemaSourceDao.getByVersion(namespace, Optional.empty())).thenReturn(schemaSource);
+    when(schemaSourceDao.getSingleVersion(namespace, Optional.empty())).thenReturn(schemaSource);
     SingleSchemaFetcher singleSchemaFetcher =
         new SingleSchemaFetcher(
             mock(AuthorizationService.class),
@@ -68,7 +68,8 @@ class SingleSchemaFetcherTest {
     SchemaSource schemaSource = new SchemaSource(namespace, Uuids.timeBased(), "content");
 
     SchemaSourceDao schemaSourceDao = mock(SchemaSourceDao.class);
-    when(schemaSourceDao.getByVersion(namespace, Optional.of(version))).thenReturn(schemaSource);
+    when(schemaSourceDao.getSingleVersion(namespace, Optional.of(version)))
+        .thenReturn(schemaSource);
     SingleSchemaFetcher singleSchemaFetcher =
         new SingleSchemaFetcher(
             mock(AuthorizationService.class),

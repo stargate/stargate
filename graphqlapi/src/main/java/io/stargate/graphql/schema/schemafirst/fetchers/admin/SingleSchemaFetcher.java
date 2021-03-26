@@ -53,8 +53,8 @@ public class SingleSchemaFetcher extends SchemaFetcher<SchemaSource> {
     Optional<UUID> version =
         Optional.ofNullable((String) environment.getArgument("version")).map(UUID::fromString);
 
-    authorize(authenticationSubject);
+    authorize(authenticationSubject, namespace);
 
-    return schemaSourceDaoProvider.apply(dataStore).getByVersion(namespace, version);
+    return schemaSourceDaoProvider.apply(dataStore).getSingleVersion(namespace, version);
   }
 }

@@ -33,7 +33,7 @@ public abstract class SchemaFetcher<ResultT> extends CassandraFetcher<ResultT> {
     super(authorizationService, dataStoreFactory);
   }
 
-  protected void authorize(AuthenticationSubject authenticationSubject)
+  protected void authorize(AuthenticationSubject authenticationSubject, String namespace)
       throws UnauthorizedException {
     authorizationService.authorizeSchemaRead(
         authenticationSubject,
@@ -41,6 +41,15 @@ public abstract class SchemaFetcher<ResultT> extends CassandraFetcher<ResultT> {
         Collections.singletonList(SchemaSourceDao.TABLE_NAME),
         SourceAPI.GRAPHQL,
         ResourceKind.TABLE);
+
+    // Also check that the user has access to the keyspace. We don't want to let them see the
+    // GraphQL schema for something that's forbidden to them.
+    authorizationService.authorizeSchemaRead(
+        authenticationSubject,
+        Collections.singletonList(namespace),
+        Collections.emptyList(),
+        SourceAPI.GRAPHQL,
+        ResourceKind.KEYSPACE);
   }
 
   protected String getNamespace(DataFetchingEnvironment environment, DataStore dataStore) {
