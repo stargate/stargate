@@ -24,6 +24,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.builder.Replication;
@@ -52,7 +53,12 @@ public class CreateNamespaceFetcher
 
     try {
       authorizationService.authorizeSchemaWrite(
-          authenticationSubject, name, null, Scope.CREATE, SourceAPI.GRAPHQL);
+          authenticationSubject,
+          name,
+          null,
+          Scope.CREATE,
+          SourceAPI.GRAPHQL,
+          ResourceKind.KEYSPACE);
     } catch (UnauthorizedException e) {
       return errorResult(e, environment).build();
     }

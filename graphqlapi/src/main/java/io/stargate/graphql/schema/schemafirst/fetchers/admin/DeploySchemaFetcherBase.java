@@ -20,6 +20,7 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
@@ -61,7 +62,12 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
     }
 
     authorizationService.authorizeSchemaWrite(
-        authenticationSubject, namespace, null, Scope.MODIFY, SourceAPI.GRAPHQL);
+        authenticationSubject,
+        namespace,
+        null,
+        Scope.MODIFY,
+        SourceAPI.GRAPHQL,
+        ResourceKind.KEYSPACE);
 
     String input = getSchemaContents(environment);
     UUID expectedVersion = getExpectedVersion(environment);
