@@ -37,7 +37,6 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// TODO purge old entries
 public class SchemaSourceDao {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SchemaSourceDao.class);
@@ -81,7 +80,7 @@ public class SchemaSourceDao {
     this.dataStore = dataStore;
   }
 
-  public List<SchemaSource> getSchemaHistory(String namespace) throws Exception {
+  public List<SchemaSource> getAllVersions(String namespace) throws Exception {
     if (!tableExists()) {
       return Collections.emptyList();
     }
@@ -92,7 +91,7 @@ public class SchemaSourceDao {
     return row.stream().map(r -> toSchemaSource(namespace, r)).collect(Collectors.toList());
   }
 
-  public SchemaSource getByVersion(
+  public SchemaSource getSingleVersion(
       String namespace,
       @SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<UUID> maybeVersion)
       throws Exception {
@@ -115,8 +114,8 @@ public class SchemaSourceDao {
     return toSchemaSource(namespace, resultSet.one());
   }
 
-  public SchemaSource getLatest(String namespace) throws Exception {
-    return getByVersion(namespace, Optional.empty());
+  public SchemaSource getLatestVersion(String namespace) throws Exception {
+    return getSingleVersion(namespace, Optional.empty());
   }
 
   private SchemaSource toSchemaSource(String namespace, Row r) {
@@ -293,8 +292,8 @@ public class SchemaSourceDao {
     dataStore.execute(updateDeploymentToNotInProgress).get();
   }
 
-  public void purgeOldSchemaEntries(String namespace) throws Exception {
-    List<SchemaSource> allSchemasForNamespace = getSchemaHistory(namespace);
+  public void purgeOldVersions(String namespace) throws Exception {
+    List<SchemaSource> allSchemasForNamespace = getAllVersions(namespace);
 
     int numberOfEntriesToRemove =
         allSchemasForNamespace.size() - NUMBER_OF_RETAINED_SCHEMA_VERSIONS;
