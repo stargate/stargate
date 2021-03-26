@@ -1158,7 +1158,8 @@ public class Converters {
                 .collect(Collectors.toList())
                 .toArray(new Column.ColumnType[0]);
         return Column.Type.Tuple.of(decodedTypeParams);
+      default:
+        throw new IllegalArgumentException(String.format("Data cqlType %s is not supported", basic));
     }
-    throw new IllegalArgumentException(String.format("Data cqlType %s is not supported", basic));
   }
 }
