@@ -23,6 +23,7 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.graphql.persistence.schemafirst.SchemaSource;
 import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
 import io.stargate.graphql.schema.scalars.CqlScalar;
@@ -153,7 +154,8 @@ public class FilesResource {
           authenticationSubject,
           Collections.singletonList(SchemaSourceDao.KEYSPACE_NAME),
           Collections.singletonList(SchemaSourceDao.TABLE_NAME),
-          SourceAPI.GRAPHQL);
+          SourceAPI.GRAPHQL,
+          ResourceKind.TABLE);
       return true;
     } catch (UnauthorizedException e) {
       return false;

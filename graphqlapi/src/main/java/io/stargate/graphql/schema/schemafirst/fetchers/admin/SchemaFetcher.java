@@ -20,6 +20,7 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
@@ -38,7 +39,8 @@ public abstract class SchemaFetcher<ResultT> extends CassandraFetcher<ResultT> {
         authenticationSubject,
         Collections.singletonList(SchemaSourceDao.KEYSPACE_NAME),
         Collections.singletonList(SchemaSourceDao.TABLE_NAME),
-        SourceAPI.GRAPHQL);
+        SourceAPI.GRAPHQL,
+        ResourceKind.TABLE);
   }
 
   protected String getNamespace(DataFetchingEnvironment environment, DataStore dataStore) {
