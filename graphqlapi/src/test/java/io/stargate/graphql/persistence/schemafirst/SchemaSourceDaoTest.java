@@ -44,7 +44,7 @@ class SchemaSourceDaoTest {
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
     // when
-    SchemaSource schema = schemaSourceDao.getLatest(namespace);
+    SchemaSource schema = schemaSourceDao.getLatestVersion(namespace);
 
     // then
     assertThat(schema.getContents()).isEqualTo(schemaContent);
@@ -64,7 +64,7 @@ class SchemaSourceDaoTest {
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
     // when
-    SchemaSource schema = schemaSourceDao.getByVersion(namespace, Optional.of(versionId));
+    SchemaSource schema = schemaSourceDao.getSingleVersion(namespace, Optional.of(versionId));
 
     // then
     assertThat(schema.getContents()).isEqualTo(schemaContent);
@@ -82,7 +82,7 @@ class SchemaSourceDaoTest {
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
     // when
-    SchemaSource schema = schemaSourceDao.getLatest(namespace);
+    SchemaSource schema = schemaSourceDao.getLatestVersion(namespace);
 
     // then
     assertThat(schema).isNull();
@@ -102,7 +102,7 @@ class SchemaSourceDaoTest {
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
     // when
-    List<SchemaSource> schema = schemaSourceDao.getSchemaHistory(namespace);
+    List<SchemaSource> schema = schemaSourceDao.getAllVersions(namespace);
 
     // then
     assertThat(schema.size()).isEqualTo(2);
@@ -127,7 +127,7 @@ class SchemaSourceDaoTest {
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
     // when
-    List<SchemaSource> schema = schemaSourceDao.getSchemaHistory(namespace);
+    List<SchemaSource> schema = schemaSourceDao.getAllVersions(namespace);
 
     // then
     assertThat(schema).isEmpty();

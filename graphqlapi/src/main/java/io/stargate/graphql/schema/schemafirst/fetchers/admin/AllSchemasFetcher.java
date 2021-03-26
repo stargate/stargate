@@ -51,8 +51,8 @@ public class AllSchemasFetcher extends SchemaFetcher<List<SchemaSource>> {
       throws Exception {
     String namespace = getNamespace(environment, dataStore);
 
-    authorize(authenticationSubject);
+    authorize(authenticationSubject, namespace);
 
-    return schemaSourceDaoProvider.apply(dataStore).getSchemaHistory(namespace);
+    return schemaSourceDaoProvider.apply(dataStore).getAllVersions(namespace);
   }
 }

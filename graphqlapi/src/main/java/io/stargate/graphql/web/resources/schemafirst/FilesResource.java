@@ -102,7 +102,7 @@ public class FilesResource {
     }
 
     SchemaSource schemaSource =
-        schemaSourceDao.getByVersion(namespace, Optional.ofNullable(versionUuid));
+        schemaSourceDao.getSingleVersion(namespace, Optional.ofNullable(versionUuid));
     if (schemaSource == null) {
       return notFound(namespace, version);
     }

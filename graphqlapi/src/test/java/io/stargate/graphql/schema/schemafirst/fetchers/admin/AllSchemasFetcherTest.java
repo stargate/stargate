@@ -40,7 +40,7 @@ class AllSchemasFetcherTest {
     SchemaSource schemaSource2 = new SchemaSource(namespace, Uuids.timeBased(), "content-2");
 
     SchemaSourceDao schemaSourceDao = mock(SchemaSourceDao.class);
-    when(schemaSourceDao.getSchemaHistory(namespace))
+    when(schemaSourceDao.getAllVersions(namespace))
         .thenReturn(Arrays.asList(schemaSource1, schemaSource2));
     AllSchemasFetcher allSchemasFetcher =
         new AllSchemasFetcher(

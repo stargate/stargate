@@ -78,7 +78,7 @@ public class SchemaFirstCache {
   }
 
   private GraphQL getGraphql(String namespace) throws Exception {
-    SchemaSource latestSource = schemaSourceDao.getLatest(namespace);
+    SchemaSource latestSource = schemaSourceDao.getLatestVersion(namespace);
     if (latestSource == null) {
       if (graphqlHolders.remove(namespace) != null) {
         LOG.debug(
@@ -120,7 +120,7 @@ public class SchemaFirstCache {
       String namespace = keyspace.name();
       SchemaSource source;
       try {
-        source = schemaSourceDao.getLatest(namespace);
+        source = schemaSourceDao.getLatestVersion(namespace);
       } catch (Exception e) {
         // The only way this can happen is if the schema_source table exists but with the wrong
         // schema.
