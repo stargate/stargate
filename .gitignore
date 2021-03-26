@@ -47,3 +47,5 @@ settings.xml
 .classpath
 *.prefs
 .factorypath
+# JENV
+.java-version

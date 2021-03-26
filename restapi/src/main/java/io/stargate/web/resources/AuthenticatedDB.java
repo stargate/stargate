@@ -20,7 +20,6 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
-
 import java.util.Collection;
 import java.util.Set;
 import javax.ws.rs.NotFoundException;
@@ -80,7 +79,7 @@ public class AuthenticatedDB {
   public void setAuthenticationSubject(AuthenticationSubject authenticationSubject) {
     this.authenticationSubject = authenticationSubject;
   }
-  
+
   /**
    * Retrieve user defined types Definitions for a keyspace.
    *
