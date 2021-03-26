@@ -80,6 +80,16 @@ public class RateLimitingPersistence implements Persistence {
   }
 
   @Override
+  public boolean isInSchemaAgreementWithStorage() {
+    return persistence.isInSchemaAgreementWithStorage();
+  }
+
+  @Override
+  public boolean isSchemaAgreementAchievable() {
+    return persistence.isSchemaAgreementAchievable();
+  }
+
+  @Override
   public boolean supportsSecondaryIndex() {
     return persistence.supportsSecondaryIndex();
   }
