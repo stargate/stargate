@@ -49,6 +49,7 @@ import io.stargate.web.resources.v2.schemas.ColumnsResource;
 import io.stargate.web.resources.v2.schemas.IndexesResource;
 import io.stargate.web.resources.v2.schemas.KeyspacesResource;
 import io.stargate.web.resources.v2.schemas.TablesResource;
+import io.stargate.web.resources.v2.schemas.UserDefinedTypesResource;
 import io.stargate.web.swagger.SwaggerUIResource;
 import io.swagger.config.ScannerFactory;
 import io.swagger.jaxrs.config.BeanConfig;
@@ -142,7 +143,7 @@ public class Server extends Application<ApplicationConfiguration> {
     environment.jersey().register(KeyspacesResource.class);
     environment.jersey().register(ColumnsResource.class);
     environment.jersey().register(IndexesResource.class);
-    environment.jersey().register(UserDefinedTypeResponse.class);
+    environment.jersey().register(UserDefinedTypesResource.class);
 
     // Documents API
     environment.jersey().register(new DocsApiComponentsBinder(environment));

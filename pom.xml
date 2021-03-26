@@ -378,6 +378,7 @@
             </compilerArgs>
             <showWarnings>true</showWarnings>
             <failOnWarning>false</failOnWarning>
+            <!-- 
             <annotationProcessorPaths>
              <path>
               <groupId>org.immutables</groupId>
@@ -385,6 +386,7 @@
               <version>${immutables.version}</version>
               </path>
             </annotationProcessorPaths>
+            -->
           </configuration>
           <dependencies>
             <dependency>
