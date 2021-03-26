@@ -259,6 +259,15 @@ public class DsePersistence
     return ByteBufferUtil.UNSET_BYTE_BUFFER;
   }
 
+  private static boolean shouldCheckSchema(InetAddress ep) {
+    EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
+    return epState != null && !Gossiper.instance.isDeadState(epState);
+  }
+
+  private static boolean isStorageNode(InetAddress ep) {
+    return !Gossiper.instance.isGossipOnlyMember(ep);
+  }
+
   @Override
   public boolean isInSchemaAgreement() {
     // We only include live nodes because this method is mainly used to wait for schema
@@ -270,34 +279,26 @@ public class DsePersistence
     // Important: This must include all nodes including fat clients, otherwise we'll get write
     // errors
     // with INCOMPATIBLE_SCHEMA.
+
+    // Collect schema IDs from all relevant nodes and check that we have at most 1 distinct ID.
     return Gossiper.instance.getLiveMembers().stream()
-            .filter(
-                ep -> {
-                  EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
-                  return epState != null && !Gossiper.instance.isDeadState(epState);
-                })
+            .filter(DsePersistence::shouldCheckSchema)
             .map(Gossiper.instance::getSchemaVersion)
-            .collect(Collectors.toSet())
-            .size()
+            .distinct()
+            .count()
         <= 1;
   }
 
   @Override
   public boolean isInSchemaAgreementWithStorage() {
-    // See comment in isInSchemaAgreement()
-    // Here we also exclude _other_ Stargate nodes (by checking isGossipOnlyMember)
+    // Collect schema IDs from storage and local node and check that we have at most 1 distinct ID
     InetAddress localAddress = FBUtilities.getBroadcastAddress();
     return Gossiper.instance.getLiveMembers().stream()
-            .filter(
-                ep -> {
-                  EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
-                  return epState != null
-                      && !Gossiper.instance.isDeadState(epState)
-                      && (!Gossiper.instance.isGossipOnlyMember(ep) || localAddress.equals(ep));
-                })
+            .filter(DsePersistence::shouldCheckSchema)
+            .filter(ep -> isStorageNode(ep) || localAddress.equals(ep))
             .map(Gossiper.instance::getSchemaVersion)
-            .collect(Collectors.toSet())
-            .size()
+            .distinct()
+            .count()
         <= 1;
   }
 
@@ -306,19 +307,13 @@ public class DsePersistence
    * version among themselves.
    */
   private boolean isStorageInSchemaAgreement() {
-    // See comment in isInSchemaAgreement()
-    // Here we also exclude Stargate nodes (by checking isGossipOnlyMember)
+    // Collect schema IDs from storage nodes and check that we have at most 1 distinct ID.
     return Gossiper.instance.getLiveMembers().stream()
-            .filter(
-                ep -> {
-                  EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
-                  return epState != null
-                      && !Gossiper.instance.isDeadState(epState)
-                      && !Gossiper.instance.isGossipOnlyMember(ep);
-                })
+            .filter(DsePersistence::shouldCheckSchema)
+            .filter(DsePersistence::isStorageNode)
             .map(Gossiper.instance::getSchemaVersion)
-            .collect(Collectors.toSet())
-            .size()
+            .distinct()
+            .count()
         <= 1;
   }
 
