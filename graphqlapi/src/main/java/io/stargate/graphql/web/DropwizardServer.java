@@ -136,12 +136,7 @@ public class DropwizardServer extends Application<Configuration> {
             });
 
     SchemaFirstCache schemaFirstCache =
-        new SchemaFirstCache(
-            persistence,
-            authenticationService,
-            authorizationService,
-            dataStoreFactory,
-            schemaSourceDao);
+        new SchemaFirstCache(persistence, authorizationService, dataStoreFactory, schemaSourceDao);
 
     environment
         .jersey()
