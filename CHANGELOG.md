@@ -1,5 +1,20 @@
 # Changelog
 
+## [v1.0.17](https://github.com/stargate/stargate/tree/v1.0.17) (2021-03-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.16...v1.0.17)
+
+**Closed issues:**
+
+- Better status codes for table not exist/table already exists errors [\#775](https://github.com/stargate/stargate/issues/775)
+
+**Merged pull requests:**
+
+- Do not fail health check when schema is in agreement with storage nodes [\#802](https://github.com/stargate/stargate/pull/802) ([dimas-b](https://github.com/dimas-b))
+- Move the resetting of ExecutorLocals to the start of executeRequest [\#797](https://github.com/stargate/stargate/pull/797) ([dimas-b](https://github.com/dimas-b))
+- Bumping version for next release [\#796](https://github.com/stargate/stargate/pull/796) ([github-actions[bot]](https://github.com/apps/github-actions))
+- fixes \#775: better status codes for missing tables in document api [\#785](https://github.com/stargate/stargate/pull/785) ([ivansenic](https://github.com/ivansenic))
+
 ## [v1.0.16](https://github.com/stargate/stargate/tree/v1.0.16) (2021-03-24)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.15...v1.0.16)
