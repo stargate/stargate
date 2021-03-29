@@ -111,6 +111,7 @@ class CassandraPersistenceTest {
 
     assertThat(persistence.isInSchemaAgreement()).isTrue();
     assertThat(persistence.isInSchemaAgreementWithStorage()).isTrue();
+    assertThat(persistence.isStorageInSchemaAgreement()).isTrue();
     assertThat(persistence.isSchemaAgreementAchievable()).isTrue();
   }
 
@@ -123,6 +124,7 @@ class CassandraPersistenceTest {
 
     assertThat(persistence.isInSchemaAgreement()).isTrue();
     assertThat(persistence.isInSchemaAgreementWithStorage()).isTrue();
+    assertThat(persistence.isStorageInSchemaAgreement()).isTrue();
     assertThat(persistence.isSchemaAgreementAchievable()).isTrue();
   }
 
@@ -135,6 +137,7 @@ class CassandraPersistenceTest {
 
     assertThat(persistence.isInSchemaAgreement()).isFalse();
     assertThat(persistence.isInSchemaAgreementWithStorage()).isTrue();
+    assertThat(persistence.isStorageInSchemaAgreement()).isTrue();
     assertThat(persistence.isSchemaAgreementAchievable()).isTrue();
   }
 
@@ -147,6 +150,7 @@ class CassandraPersistenceTest {
 
     assertThat(persistence.isInSchemaAgreement()).isFalse();
     assertThat(persistence.isInSchemaAgreementWithStorage()).isFalse();
+    assertThat(persistence.isStorageInSchemaAgreement()).isTrue();
     assertThat(persistence.isSchemaAgreementAchievable()).isTrue();
   }
 
@@ -159,6 +163,7 @@ class CassandraPersistenceTest {
 
     assertThat(persistence.isInSchemaAgreement()).isFalse();
     assertThat(persistence.isInSchemaAgreementWithStorage()).isFalse();
+    assertThat(persistence.isStorageInSchemaAgreement()).isFalse();
     assertThat(persistence.isSchemaAgreementAchievable()).isTrue();
   }
 
@@ -171,6 +176,7 @@ class CassandraPersistenceTest {
 
     assertThat(persistence.isInSchemaAgreement()).isTrue();
     assertThat(persistence.isInSchemaAgreementWithStorage()).isTrue();
+    assertThat(persistence.isStorageInSchemaAgreement()).isTrue();
     assertThat(persistence.isSchemaAgreementAchievable()).isTrue();
   }
 }

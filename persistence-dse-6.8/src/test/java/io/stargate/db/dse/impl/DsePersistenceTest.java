@@ -105,6 +105,7 @@ class DsePersistenceTest {
 
     assertThat(persistence.isInSchemaAgreement()).isTrue();
     assertThat(persistence.isInSchemaAgreementWithStorage()).isTrue();
+    assertThat(persistence.isStorageInSchemaAgreement()).isTrue();
     assertThat(persistence.isSchemaAgreementAchievable()).isTrue();
   }
 
@@ -117,6 +118,7 @@ class DsePersistenceTest {
 
     assertThat(persistence.isInSchemaAgreement()).isTrue();
     assertThat(persistence.isInSchemaAgreementWithStorage()).isTrue();
+    assertThat(persistence.isStorageInSchemaAgreement()).isTrue();
     assertThat(persistence.isSchemaAgreementAchievable()).isTrue();
   }
 
@@ -129,6 +131,7 @@ class DsePersistenceTest {
 
     assertThat(persistence.isInSchemaAgreement()).isFalse();
     assertThat(persistence.isInSchemaAgreementWithStorage()).isTrue();
+    assertThat(persistence.isStorageInSchemaAgreement()).isTrue();
     assertThat(persistence.isSchemaAgreementAchievable()).isFalse();
   }
 
@@ -141,6 +144,7 @@ class DsePersistenceTest {
 
     assertThat(persistence.isInSchemaAgreement()).isFalse();
     assertThat(persistence.isInSchemaAgreementWithStorage()).isFalse();
+    assertThat(persistence.isStorageInSchemaAgreement()).isTrue();
     assertThat(persistence.isSchemaAgreementAchievable()).isFalse();
   }
 
@@ -153,6 +157,7 @@ class DsePersistenceTest {
 
     assertThat(persistence.isInSchemaAgreement()).isFalse();
     assertThat(persistence.isInSchemaAgreementWithStorage()).isFalse();
+    assertThat(persistence.isStorageInSchemaAgreement()).isFalse();
     assertThat(persistence.isSchemaAgreementAchievable()).isTrue();
   }
 
@@ -165,6 +170,7 @@ class DsePersistenceTest {
 
     assertThat(persistence.isInSchemaAgreement()).isTrue();
     assertThat(persistence.isInSchemaAgreementWithStorage()).isTrue();
+    assertThat(persistence.isStorageInSchemaAgreement()).isTrue();
     assertThat(persistence.isSchemaAgreementAchievable()).isTrue();
   }
 }

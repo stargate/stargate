@@ -17,6 +17,7 @@ package io.stargate.db.cassandra.impl;
 
 import static org.apache.cassandra.concurrent.SharedExecutorPool.SHARED;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -333,7 +334,8 @@ public class CassandraPersistence
    * This method indicates whether storage nodes (i.e. excluding Stargate) agree on the schema
    * version among themselves.
    */
-  private boolean isStorageInSchemaAgreement() {
+  @VisibleForTesting
+  boolean isStorageInSchemaAgreement() {
     // Collect schema IDs from storage nodes and check that we have at most 1 distinct ID.
     return Gossiper.instance.getLiveMembers().stream()
             .filter(CassandraPersistence::shouldCheckSchema)
