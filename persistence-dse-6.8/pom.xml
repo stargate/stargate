@@ -312,16 +312,18 @@
             <Bundle-Activator>io.stargate.db.dse.DsePersistenceActivator</Bundle-Activator>
             <Import-Package><![CDATA[
               org.osgi.framework,
+              io.stargate.core.*,
+              io.stargate.auth.*,
               io.stargate.db,
-              io.stargate.db.datastore,
-              io.stargate.db.datastore.*,
+              io.stargate.db.*,
               org.apache.cassandra.stargate,
+              org.apache.cassandra.stargate.*,
+              org.javatuples,
               !com.codahale.metrics.graphite.*,
-              io.stargate.core,
               com.codahale.metrics,
+              com.datastax.oss.driver.shaded.guava.*,
             ]]></Import-Package>
-            <Export-Package>io.stargate.db.dse</Export-Package>
-            <DynamicImport-Package>*</DynamicImport-Package>
+            <Export-Package>!*</Export-Package>
             <Bundle-ClassPath>.,sjk-core-0.14.jar,dnsjava-2.1.8.jar,{maven-dependencies}</Bundle-ClassPath>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>

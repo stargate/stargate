@@ -70,13 +70,15 @@
                         <Bundle-Description>Core API for Stargate project</Bundle-Description>
                         <Bundle-SymbolicName>io.stargate.core</Bundle-SymbolicName>
                         <Bundle-Activator>io.stargate.core.CoreActivator</Bundle-Activator>
-                        <Import-Package>org.osgi.framework</Import-Package>
+                        <Import-Package><![CDATA[
+                          org.osgi.framework,
+                          org.osgi.util.tracker,
+                        ]]></Import-Package>
                         <Export-Package><![CDATA[
                           io.stargate.core.*,
                           com.codahale.metrics,
                           com.codahale.metrics.*,
                         ]]></Export-Package>
-                        <DynamicImport-Package>*</DynamicImport-Package>
                         <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
                         <Embed-Transitive>true</Embed-Transitive>
                     </instructions>
