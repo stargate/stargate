@@ -42,7 +42,6 @@ import graphql.schema.GraphQLInputObjectType;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.schema.schemafirst.fetchers.admin.AllNamespacesFetcher;
@@ -548,15 +547,11 @@ public class AdminSchemaBuilder {
           .field(DEPLOY_SCHEMA_FILE_MUTATION)
           .build();
 
-  private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
 
   public AdminSchemaBuilder(
-      AuthenticationService authenticationService,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    this.authenticationService = authenticationService;
+      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
   }

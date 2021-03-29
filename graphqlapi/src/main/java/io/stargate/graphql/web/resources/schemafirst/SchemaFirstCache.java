@@ -17,7 +17,6 @@ package io.stargate.graphql.web.resources.schemafirst;
 
 import com.google.common.base.Throwables;
 import graphql.GraphQL;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreFactory;
@@ -50,7 +49,6 @@ public class SchemaFirstCache {
 
   public SchemaFirstCache(
       Persistence persistence,
-      AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory,
       SchemaSourceDao schemaSourceDao) {
@@ -60,10 +58,7 @@ public class SchemaFirstCache {
     this.schemaSourceDao = schemaSourceDao;
 
     this.adminGraphql =
-        GraphQL.newGraphQL(
-                new AdminSchemaBuilder(
-                        authenticationService, authorizationService, dataStoreFactory)
-                    .build())
+        GraphQL.newGraphQL(new AdminSchemaBuilder(authorizationService, dataStoreFactory).build())
             .build();
 
     this.graphqlHolders = initSchemas();
