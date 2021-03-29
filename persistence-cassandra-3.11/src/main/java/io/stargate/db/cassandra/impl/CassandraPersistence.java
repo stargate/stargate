@@ -17,6 +17,7 @@ package io.stargate.db.cassandra.impl;
 
 import static org.apache.cassandra.concurrent.SharedExecutorPool.SHARED;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -49,7 +50,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.cassandra.auth.AuthenticatedUser;
@@ -91,6 +91,7 @@ import org.apache.cassandra.transport.messages.QueryMessage;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.transport.messages.StartupMessage;
 import org.apache.cassandra.utils.ByteBufferUtil;
+import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.apache.cassandra.utils.MD5Digest;
 import org.apache.cassandra.utils.SystemTimeSource;
@@ -287,6 +288,15 @@ public class CassandraPersistence
     return future;
   }
 
+  private static boolean shouldCheckSchema(InetAddress ep) {
+    EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
+    return epState != null && !Gossiper.instance.isDeadState(epState);
+  }
+
+  private static boolean isStorageNode(InetAddress ep) {
+    return !Gossiper.instance.isGossipOnlyMember(ep);
+  }
+
   @Override
   public boolean isInSchemaAgreement() {
     // We only include live nodes because this method is mainly used to wait for schema
@@ -297,15 +307,26 @@ public class CassandraPersistence
 
     // Important: This must include all nodes including fat clients, otherwise we'll get write
     // errors with INCOMPATIBLE_SCHEMA.
+
+    // Collect schema IDs from all relevant nodes and check that we have at most 1 distinct ID.
     return Gossiper.instance.getLiveMembers().stream()
-            .filter(
-                ep -> {
-                  EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
-                  return epState != null && !Gossiper.instance.isDeadState(epState);
-                })
+            .filter(CassandraPersistence::shouldCheckSchema)
             .map(Gossiper.instance::getSchemaVersion)
-            .collect(Collectors.toSet())
-            .size()
+            .distinct()
+            .count()
+        <= 1;
+  }
+
+  @Override
+  public boolean isInSchemaAgreementWithStorage() {
+    // Collect schema IDs from storage and local node and check that we have at most 1 distinct ID
+    InetAddress localAddress = FBUtilities.getBroadcastAddress();
+    return Gossiper.instance.getLiveMembers().stream()
+            .filter(CassandraPersistence::shouldCheckSchema)
+            .filter(ep -> isStorageNode(ep) || localAddress.equals(ep))
+            .map(Gossiper.instance::getSchemaVersion)
+            .distinct()
+            .count()
         <= 1;
   }
 
@@ -313,20 +334,15 @@ public class CassandraPersistence
    * This method indicates whether storage nodes (i.e. excluding Stargate) agree on the schema
    * version among themselves.
    */
-  private boolean isStorageInSchemaAgreement() {
-    // See comment in isInSchemaAgreement()
-    // Here we also exclude Stargate nodes (by checking isGossipOnlyMember)
+  @VisibleForTesting
+  boolean isStorageInSchemaAgreement() {
+    // Collect schema IDs from storage nodes and check that we have at most 1 distinct ID.
     return Gossiper.instance.getLiveMembers().stream()
-            .filter(
-                ep -> {
-                  EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
-                  return epState != null
-                      && !Gossiper.instance.isDeadState(epState)
-                      && !Gossiper.instance.isGossipOnlyMember(ep);
-                })
+            .filter(CassandraPersistence::shouldCheckSchema)
+            .filter(CassandraPersistence::isStorageNode)
             .map(Gossiper.instance::getSchemaVersion)
-            .collect(Collectors.toSet())
-            .size()
+            .distinct()
+            .count()
         <= 1;
   }
 
