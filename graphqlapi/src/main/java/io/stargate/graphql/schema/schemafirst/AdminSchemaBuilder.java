@@ -239,7 +239,7 @@ public class AdminSchemaBuilder {
           .build();
 
   // See https://graphql-rules.com/rules/mutation-payload-query
-  private static GraphQLFieldDefinition QUERY_FIELD =
+  private static final GraphQLFieldDefinition QUERY_FIELD =
       newFieldDefinition()
           .name("query")
           .description(
