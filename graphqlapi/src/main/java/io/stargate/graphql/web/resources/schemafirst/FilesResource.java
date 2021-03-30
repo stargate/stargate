@@ -47,11 +47,15 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Singleton
 @Path(ResourcePaths.FILES)
 @Authenticated
 public class FilesResource {
+
+  private static final Logger LOG = LoggerFactory.getLogger(FilesResource.class);
 
   private final SchemaSourceDao schemaSourceDao;
   private final AuthenticationService authenticationService;
@@ -87,6 +91,12 @@ public class FilesResource {
       @QueryParam("version") String version,
       @Context HttpServletRequest httpRequest)
       throws Exception {
+
+    if (!NamespaceResource.NAMESPACE_PATTERN.matcher(namespace).matches()) {
+      LOG.warn("Invalid namespace in URI, this could be an XSS attack: {}", namespace);
+      // Do not reflect back the value
+      return Response.status(Response.Status.BAD_REQUEST).entity("Invalid namespace name").build();
+    }
 
     if (!isAuthorized(token, httpRequest)) {
       return Response.status(Response.Status.UNAUTHORIZED).build();

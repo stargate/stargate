@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 
 abstract class NamespaceFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(AllNamespacesFetcher.class);
+  private static final Logger LOG = LoggerFactory.getLogger(NamespaceFetcher.class);
 
   protected NamespaceFetcher(
       AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
