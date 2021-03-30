@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
 public class NamespaceResource extends GraphqlResourceBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(NamespaceResource.class);
-  private static final Pattern NAMESPACE_PATTERN = Pattern.compile("\\w+");
+  static final Pattern NAMESPACE_PATTERN = Pattern.compile("\\w+");
 
   @Inject private SchemaFirstCache graphqlCache;
 
