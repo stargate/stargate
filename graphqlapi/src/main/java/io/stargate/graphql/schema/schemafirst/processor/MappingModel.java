@@ -31,6 +31,7 @@ import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/** How a custom, user-submitted GraphQL schema will be mapped to CQL. */
 public class MappingModel {
 
   private static final Logger LOG = LoggerFactory.getLogger(MappingModel.class);
@@ -77,78 +78,19 @@ public class MappingModel {
     Optional<ObjectTypeDefinition> maybeSubscriptionType =
         getOperationType(registry, "subscription", "Subscription");
 
-    Set<ObjectTypeDefinition> typesToIgnore = new HashSet<>();
-    typesToIgnore.add(queryType);
-    maybeMutationType.ifPresent(typesToIgnore::add);
-    maybeSubscriptionType.ifPresent(
-        t -> {
-          context.addError(
-              t.getSourceLocation(),
-              ProcessingErrorType.InvalidMapping,
-              "This GraphQL implementation does not support subscriptions");
-          typesToIgnore.add(t);
-        });
+    Set<ObjectTypeDefinition> typesToIgnore =
+        buildTypesToIgnore(queryType, maybeMutationType, maybeSubscriptionType, context);
 
-    // Parse objects in two passes: all entities first, then all payloads (because the latter
-    // reference the former).
-    ImmutableMap.Builder<String, EntityModel> entitiesBuilder = ImmutableMap.builder();
-    registry.getTypes(ObjectTypeDefinition.class).stream()
-        .filter(t -> !typesToIgnore.contains(t))
-        .filter(IS_RESPONSE_PAYLOAD.negate())
-        .forEach(
-            type -> {
-              try {
-                entitiesBuilder.put(type.getName(), new EntityModelBuilder(type, context).build());
-              } catch (SkipException e) {
-                LOG.debug(
-                    "Skipping type {} because it has mapping errors, "
-                        + "this will be reported after the whole schema has been processed.",
-                    type.getName());
-              }
-            });
-    Map<String, EntityModel> entities = entitiesBuilder.build();
+    Map<String, EntityModel> entities = buildEntities(registry, typesToIgnore, context);
 
-    ImmutableMap.Builder<String, ResponsePayloadModel> responsePayloadsBuilder =
-        ImmutableMap.builder();
-    registry.getTypes(ObjectTypeDefinition.class).stream()
-        .filter(t -> !typesToIgnore.contains(t))
-        .filter(IS_RESPONSE_PAYLOAD)
-        .forEach(
-            type -> {
-              responsePayloadsBuilder.put(
-                  type.getName(), new ResponsePayloadModelBuilder(type, entities, context).build());
-            });
-    Map<String, ResponsePayloadModel> responsePayloads = responsePayloadsBuilder.build();
+    Map<String, ResponsePayloadModel> responsePayloads =
+        buildResponsePayloads(registry, typesToIgnore, entities, context);
 
     ImmutableList.Builder<OperationModel> operationsBuilder = ImmutableList.builder();
-    for (FieldDefinition query : queryType.getFieldDefinitions()) {
-      try {
-
-        operationsBuilder.add(
-            new QueryModelBuilder(query, queryType.getName(), entities, responsePayloads, context)
-                .build());
-      } catch (SkipException e) {
-        LOG.debug(
-            "Skipping query {} because it has mapping errors, "
-                + "this will be reported after the whole schema has been processed.",
-            query.getName());
-      }
-    }
+    buildQueries(queryType, entities, responsePayloads, operationsBuilder, context);
     maybeMutationType.ifPresent(
-        mutationType -> {
-          for (FieldDefinition mutation : mutationType.getFieldDefinitions()) {
-            try {
-              operationsBuilder.add(
-                  MutationModelFactory.build(
-                      mutation, mutationType.getName(), entities, responsePayloads, context));
-            } catch (SkipException e) {
-              LOG.debug(
-                  "Skipping mutation {} because it has mapping errors, "
-                      + "this will be reported after the whole schema has been processed.",
-                  mutation.getName());
-            }
-          }
-        });
+        mutationType ->
+            buildMutations(mutationType, entities, responsePayloads, operationsBuilder, context));
 
     if (!context.getErrors().isEmpty()) {
       // No point in continuing to validation if the model is broken
@@ -165,12 +107,24 @@ public class MappingModel {
     return new MappingModel(entities, responsePayloads, operationsBuilder.build());
   }
 
+  /**
+   * Finds the GraphQL default operation container types: Query, Mutation and Subscription.
+   *
+   * <p>They can be declared either directly with their default name:
+   *
+   * <pre>
+   * type Query { ... }
+   * </pre>
+   *
+   * Or on the schema element with a custom name:
+   *
+   * <pre>
+   * schema { query: MyCustomQueryType }
+   * type MyCustomQueryType { ... }
+   * </pre>
+   */
   private static Optional<ObjectTypeDefinition> getOperationType(
       TypeDefinitionRegistry registry, String fieldName, String defaultTypeName) {
-
-    // Operation types can have custom names if the schema is explicitly declared, e.g:
-    //   schema { query: MyQueryRootType }
-
     String typeName =
         registry
             .schemaDefinition()
@@ -189,5 +143,117 @@ public class MappingModel {
         .getType(typeName)
         .filter(t -> t instanceof ObjectTypeDefinition)
         .map(t -> (ObjectTypeDefinition) t);
+  }
+
+  /**
+   * Ensure we won't try to map the default Query, Mutation and Subscription types to CQL tables.
+   */
+  private static Set<ObjectTypeDefinition> buildTypesToIgnore(
+      ObjectTypeDefinition queryType,
+      Optional<ObjectTypeDefinition> maybeMutationType,
+      Optional<ObjectTypeDefinition> maybeSubscriptionType,
+      ProcessingContext context) {
+    Set<ObjectTypeDefinition> typesToIgnore = new HashSet<>();
+    typesToIgnore.add(queryType);
+    maybeMutationType.ifPresent(typesToIgnore::add);
+    maybeSubscriptionType.ifPresent(
+        t -> {
+          context.addError(
+              t.getSourceLocation(),
+              ProcessingErrorType.InvalidMapping,
+              "This GraphQL implementation does not support subscriptions");
+          typesToIgnore.add(t);
+        });
+    return typesToIgnore;
+  }
+
+  /**
+   * Analyze each GraphQL output type, and try to map it as an "entity" that will have a
+   * corresponding CQL table or UDT.
+   */
+  private static Map<String, EntityModel> buildEntities(
+      TypeDefinitionRegistry registry,
+      Set<ObjectTypeDefinition> typesToIgnore,
+      ProcessingContext context) {
+    ImmutableMap.Builder<String, EntityModel> entitiesBuilder = ImmutableMap.builder();
+    registry.getTypes(ObjectTypeDefinition.class).stream()
+        .filter(t -> !typesToIgnore.contains(t))
+        .filter(IS_RESPONSE_PAYLOAD.negate())
+        .forEach(
+            type -> {
+              try {
+                entitiesBuilder.put(type.getName(), new EntityModelBuilder(type, context).build());
+              } catch (SkipException e) {
+                LOG.debug(
+                    "Skipping type {} because it has mapping errors, "
+                        + "this will be reported after the whole schema has been processed.",
+                    type.getName());
+              }
+            });
+    return entitiesBuilder.build();
+  }
+
+  /**
+   * Analyze each GraphQL output type, and try to map it as a "payload": this is a transient type
+   * that is only used as a result of an operation. It is not mapped to a CQL table.
+   */
+  private static Map<String, ResponsePayloadModel> buildResponsePayloads(
+      TypeDefinitionRegistry registry,
+      Set<ObjectTypeDefinition> typesToIgnore,
+      Map<String, EntityModel> entities,
+      ProcessingContext context) {
+    ImmutableMap.Builder<String, ResponsePayloadModel> responsePayloadsBuilder =
+        ImmutableMap.builder();
+    registry.getTypes(ObjectTypeDefinition.class).stream()
+        .filter(t -> !typesToIgnore.contains(t))
+        .filter(IS_RESPONSE_PAYLOAD)
+        .forEach(
+            type -> {
+              responsePayloadsBuilder.put(
+                  type.getName(), new ResponsePayloadModelBuilder(type, entities, context).build());
+            });
+    return responsePayloadsBuilder.build();
+  }
+
+  /** Analyze each GraphQL query and try to generate a CQL query for it. */
+  private static void buildQueries(
+      ObjectTypeDefinition queryType,
+      Map<String, EntityModel> entities,
+      Map<String, ResponsePayloadModel> responsePayloads,
+      ImmutableList.Builder<OperationModel> operationsBuilder,
+      ProcessingContext context) {
+    for (FieldDefinition query : queryType.getFieldDefinitions()) {
+      try {
+        operationsBuilder.add(
+            new QueryModelBuilder(query, queryType.getName(), entities, responsePayloads, context)
+                .build());
+      } catch (SkipException e) {
+        LOG.debug(
+            "Skipping query {} because it has mapping errors, "
+                + "this will be reported after the whole schema has been processed.",
+            query.getName());
+      }
+    }
+  }
+
+  /** Analyze each GraphQL mutation and try to generate a CQL query for it. */
+  private static void buildMutations(
+      ObjectTypeDefinition mutationType,
+      Map<String, EntityModel> entities,
+      Map<String, ResponsePayloadModel> responsePayloads,
+      ImmutableList.Builder<OperationModel> operationsBuilder,
+      ProcessingContext context) {
+    for (FieldDefinition mutation : mutationType.getFieldDefinitions()) {
+      try {
+        operationsBuilder.add(
+            MutationModelFactory.build(
+                mutation, mutationType.getName(), entities, responsePayloads, context));
+      } catch (SkipException e) {
+        LOG.debug(
+            "Skipping mutation {} because it has mapping errors, "
+                + "this will be reported after the whole schema has been processed.",
+            mutation.getName());
+      }
+    }
   }
 }

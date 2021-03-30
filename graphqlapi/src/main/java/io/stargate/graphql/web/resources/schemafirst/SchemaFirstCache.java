@@ -138,6 +138,8 @@ public class SchemaFirstCache {
   class GraphqlHolder {
     private final SchemaSource source;
     private final Keyspace keyspace;
+    // This future is used to guarantee that the cached value is built only twice, even if two
+    // clients try to initialize it concurrently.
     private final CompletableFuture<GraphQL> graphqlFuture = new CompletableFuture<>();
 
     GraphqlHolder(SchemaSource source, Keyspace keyspace) {
