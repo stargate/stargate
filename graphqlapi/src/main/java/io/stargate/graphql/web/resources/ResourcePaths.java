@@ -13,21 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.graphql.web.resources.schemafirst;
+package io.stargate.graphql.web.resources;
 
 import java.nio.file.Paths;
 
 public class ResourcePaths {
 
-  /**
-   * The path under which all schema-first resource reside. Must not clash with {@code /graphql},
-   * which is used by the CQL-first API.
-   */
-  public static final String ROOT = "/graphqlv2";
-
-  public static final String ADMIN = ROOT + "/admin";
-  public static final String NAMESPACES = ROOT + "/namespace";
-  public static final String FILES = ROOT + "/files";
+  public static final String DDL = "/graphql-schema";
+  public static final String DML = "/graphql";
+  public static final String ADMIN = "/graphql-admin";
+  public static final String FILES = "/graphql-files";
   public static final String FILES_RELATIVE_TO_ADMIN =
       Paths.get(ADMIN).relativize(Paths.get(FILES)).toString();
 }

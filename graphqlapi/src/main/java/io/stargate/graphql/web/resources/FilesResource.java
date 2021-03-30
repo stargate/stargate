@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.graphql.web.resources.schemafirst;
+package io.stargate.graphql.web.resources;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Charsets;
 import com.google.common.io.Resources;
@@ -27,8 +27,8 @@ import io.stargate.auth.entity.ResourceKind;
 import io.stargate.graphql.persistence.schemafirst.SchemaSource;
 import io.stargate.graphql.persistence.schemafirst.SchemaSourceDao;
 import io.stargate.graphql.schema.scalars.CqlScalar;
+import io.stargate.graphql.schema.schemafirst.AdminSchemaBuilder;
 import io.stargate.graphql.web.RequestToHeadersMapper;
-import io.stargate.graphql.web.resources.Authenticated;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collections;
@@ -50,6 +50,12 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * A REST service that provides download links for some of the results returned by the admin API.
+ *
+ * @see AdminSchemaBuilder
+ * @see AdminResource
+ */
 @Singleton
 @Path(ResourcePaths.FILES)
 @Authenticated
@@ -92,7 +98,7 @@ public class FilesResource {
       @Context HttpServletRequest httpRequest)
       throws Exception {
 
-    if (!NamespaceResource.NAMESPACE_PATTERN.matcher(namespace).matches()) {
+    if (!DmlResource.KEYSPACE_NAME_PATTERN.matcher(namespace).matches()) {
       LOG.warn("Invalid namespace in URI, this could be an XSS attack: {}", namespace);
       // Do not reflect back the value
       return Response.status(Response.Status.BAD_REQUEST).entity("Invalid namespace name").build();
