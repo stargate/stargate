@@ -21,6 +21,7 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
+import com.datastax.oss.driver.shaded.guava.common.base.Joiner;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import com.github.misberner.apcommons.util.AFModifier;
 import com.github.misberner.duzzt.annotations.DSLAction;
@@ -52,6 +53,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -89,7 +91,7 @@ import org.javatuples.Pair;
           name = "index",
           definedAs =
               "(drop ((materializedView|index) ifExists?)) | (create ((materializedView ifNotExists? asSelect (column+) from)"
-                  + " | (custom? index ifNotExists? on column (indexKeys|indexValues|indexEntries|indexFull|indexingType)?)))"),
+                  + " | (custom? index ifNotExists? on column (indexKeys|indexValues|indexEntries|indexFull|indexingType)? options?)))"),
     })
 public class QueryBuilderImpl {
   private final Schema schema;
@@ -154,6 +156,7 @@ public class QueryBuilderImpl {
   private Integer defaultTTL;
   private String indexCreateColumn;
   private String customIndexClass;
+  private Map<String, String> customIndexOptions;
   private UserDefinedType type;
   private Value<Integer> ttl;
   private Value<Long> timestamp;
@@ -633,6 +636,17 @@ public class QueryBuilderImpl {
   }
 
   @DSLAction
+  public void custom(String customIndexClass, Map<String, String> customIndexOptions) {
+    custom(customIndexClass);
+    this.customIndexOptions = customIndexOptions;
+  }
+
+  @DSLAction
+  public void options(Map<String, String> customIndexOptions) {
+    this.customIndexOptions = customIndexOptions;
+  }
+
+  @DSLAction
   public void type(String keyspace, UserDefinedType type) {
     this.keyspaceName = keyspace;
     this.type = type;
@@ -1067,6 +1081,9 @@ public class QueryBuilderImpl {
     query.append(")");
     if (customIndexClass != null) {
       query.append(" USING").append(format(" '%s'", customIndexClass));
+      if (customIndexOptions != null && !customIndexOptions.isEmpty()) {
+        query.append(buildIndexOptions(customIndexOptions));
+      }
     }
     return new BuiltOther(valueCodec, executor, query.toString());
   }
@@ -1317,6 +1334,18 @@ public class QueryBuilderImpl {
       default:
         throw new UnsupportedOperationException();
     }
+  }
+
+  private String buildIndexOptions(Map<String, String> indexOptions) {
+    StringBuilder builder = new StringBuilder();
+    String options =
+        Joiner.on(", ")
+            .join(
+                indexOptions.entrySet().stream()
+                    .map(e -> String.format("'%s': '%s'", e.getKey(), e.getValue()))
+                    .collect(Collectors.toList()));
+    builder.append(" WITH OPTIONS = { ").append(options).append(" }");
+    return builder.toString();
   }
 
   private BuiltUpdate updateQuery() {

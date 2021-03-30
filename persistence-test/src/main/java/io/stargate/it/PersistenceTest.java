@@ -90,6 +90,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -547,6 +548,7 @@ public abstract class PersistenceTest {
         .column("a", Int, PartitionKey)
         .column("b", Varchar)
         .column("c", Uuid)
+        .column("d", Varchar)
         .build()
         .execute()
         .join();
@@ -569,6 +571,7 @@ public abstract class PersistenceTest {
                 .column("a", Int, PartitionKey)
                 .column("b", Varchar)
                 .column("c", Uuid)
+                .column("d", Varchar)
                 .secondaryIndex("byB")
                 .column("b")
                 .build()
@@ -594,6 +597,7 @@ public abstract class PersistenceTest {
                 .column("a", Int, PartitionKey)
                 .column("b", Varchar)
                 .column("c", Uuid)
+                .column("d", Varchar)
                 .secondaryIndex("byB")
                 .column("b")
                 .secondaryIndex("byC")
@@ -602,6 +606,48 @@ public abstract class PersistenceTest {
                 .keyspace(keyspace)
                 .table(table)
                 .toString());
+
+    String indexClass = "org.apache.cassandra.index.sasi.SASIIndex";
+    Map<String, String> indexOptions = new HashMap<>();
+    indexOptions.put("mode", "CONTAINS");
+    dataStore
+        .queryBuilder()
+        .create()
+        .custom(indexClass)
+        .index("byD")
+        .ifNotExists()
+        .on(keyspace, table)
+        .column("d")
+        .options(indexOptions)
+        .build()
+        .execute()
+        .join();
+
+    Table actualTable = dataStore.schema().keyspace(keyspace).table(this.table);
+    Table expectedTable =
+        Schema.build()
+            .keyspace(keyspace)
+            .table(table)
+            .column("a", Int, PartitionKey)
+            .column("b", Varchar)
+            .column("c", Uuid)
+            .column("d", Varchar)
+            .secondaryIndex("byB")
+            .column("b")
+            .secondaryIndex("byC")
+            .column("c")
+            .secondaryIndex("byD")
+            .column("d")
+            .indexClass(indexClass)
+            .indexOptions(indexOptions)
+            .build()
+            .keyspace(keyspace)
+            .table(table);
+
+    // TODO: as indexes are stored in a Map there's no guarantee that the order they
+    // printed when calling table#toString() is the same in both expected and actual table
+    assertThat(actualTable.indexes().size()).isEqualTo(expectedTable.indexes().size());
+    assertThat(actualTable.index("byD")).isEqualTo(expectedTable.index("byD"));
   }
 
   @Disabled("Disabling for now since it currently just hangs")

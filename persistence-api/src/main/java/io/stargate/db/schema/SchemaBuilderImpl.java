@@ -24,6 +24,7 @@ import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
 import com.github.misberner.duzzt.annotations.SubExpr;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +45,7 @@ import java.util.stream.Collectors;
       @SubExpr(
           name = "table",
           definedAs =
-              "table (column)+ (secondaryIndex column (indexKeys|indexValues|indexEntries|indexFull|indexCustom)?)* <materializedView>*"),
+              "table (column)+ (secondaryIndex column (indexKeys|indexValues|indexEntries|indexFull|indexCustom)? indexClass? indexOptions?)* <materializedView>*"),
       @SubExpr(name = "materializedView", definedAs = "materializedView (column)+"),
       @SubExpr(name = "type", definedAs = "type (column)+"),
     })
@@ -68,6 +69,8 @@ public class SchemaBuilderImpl {
   private boolean indexEntries;
   private boolean indexFull;
   private boolean indexCustom;
+  private String indexClass;
+  private Map<String, String> indexOptions = new HashMap<>();
   private List<Column> fromColumns = new ArrayList<>();
   private List<Column> toColumns = new ArrayList<>();
   private Map<String, String> replication = Collections.emptyMap();
@@ -341,6 +344,18 @@ public class SchemaBuilderImpl {
   }
 
   @DSLAction
+  public void indexClass(String name) {
+    // TODO: can set indexCustom here?
+    indexCustom();
+    indexClass = name;
+  }
+
+  @DSLAction
+  public void indexOptions(Map<String, String> options) {
+    indexOptions = options;
+  }
+
+  @DSLAction
   public void from(String fromVertex) {}
 
   @DSLAction
@@ -455,6 +470,23 @@ public class SchemaBuilderImpl {
           indexValues = true;
         }
       }
+
+      // TODO: valid checks?
+      //      if (indexCustom) {
+      //        Preconditions.checkArgument(
+      //            Strings.isNullOrEmpty(indexClass) && (indexOptions != null &&
+      // !indexOptions.isEmpty()),
+      //            "indexOptions cannot be informed without informing a index class");
+      //      } else {
+      //        Preconditions.checkArgument(
+      //            !Strings.isNullOrEmpty(indexClass),
+      //            "indexClass cannot be informed without setting indexCustom as true");
+      //
+      //        Preconditions.checkArgument(
+      //            indexOptions != null && !indexOptions.isEmpty(),
+      //            "indexOptions cannot be informed without setting indexCustom as true");
+      //      }
+
       indexes.add(
           SecondaryIndex.create(
               keyspaceName,
@@ -466,7 +498,9 @@ public class SchemaBuilderImpl {
                   .indexValues(indexValues)
                   .indexFull(indexFull)
                   .build(),
-              indexCustom));
+              indexCustom,
+              indexClass,
+              indexOptions));
 
       secondaryIndexColumn = null;
       secondaryIndexName = null;
@@ -474,6 +508,10 @@ public class SchemaBuilderImpl {
       indexValues = false;
       indexEntries = false;
       indexFull = false;
+      indexClass = null;
+      if (indexOptions != null) {
+        indexOptions.clear();
+      }
     }
   }
 

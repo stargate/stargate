@@ -132,6 +132,25 @@ public class SchemaConverter
   }
 
   @Override
+  protected String indexClass(IndexMetadata index) {
+    return index.options.get("class_name");
+  }
+
+  @Override
+  protected Map<String, String> indexOptions(IndexMetadata index) {
+    //TODO: other options to exclude?
+    //TODO: DSE has only those two extra options are C* 4.0?
+    Set<String> excludeOptions =
+            new HashSet<>(
+                    Arrays.asList(
+                            IndexTarget.CUSTOM_INDEX_OPTION_NAME,
+                            IndexTarget.TARGET_OPTION_NAME));
+    return index.options.entrySet().stream()
+            .filter(x -> !excludeOptions.contains(x.getKey()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
+
+  @Override
   protected List<Column> userTypeFields(UserType userType) {
     return Conversion.getUDTColumns(userType);
   }
