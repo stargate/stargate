@@ -18,7 +18,7 @@ enum Consistency {
   LOCAL_ONE = 0x0A;
 }
 
-// We don't necessarily need to commit to using these code it just a start.
+// We don't necessarily need to commit to using these codes, it's just a start.
 enum ErrorCode {
   SERVER_ERROR = 0x0000;
   PROTOCOL_ERROR = 0x000A; // This probably doesn't make sense
