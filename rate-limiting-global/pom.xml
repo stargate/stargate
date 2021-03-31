@@ -36,10 +36,11 @@
             <Bundle-Activator>io.stargate.db.limiter.global.GlobalRateLimitingActivator</Bundle-Activator>
             <Import-Package><![CDATA[
               org.osgi.framework,
-              io.stargate.db
+              io.stargate.core.*,
+              io.stargate.db,
+              io.stargate.db.*,
             ]]></Import-Package>
-            <Export-Package>io.stargate.db.limiter.global</Export-Package>
-            <DynamicImport-Package>*</DynamicImport-Package>
+            <Export-Package>!*</Export-Package>
             <Bundle-ClassPath>.,{maven-dependencies}</Bundle-ClassPath>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>

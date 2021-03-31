@@ -164,21 +164,21 @@
             <Bundle-Activator>io.stargate.graphql.GraphqlActivator</Bundle-Activator>
             <Embed-Transitive>true</Embed-Transitive>
             <Import-Package><![CDATA[
-                            !org.eclipse.jetty.*,
-                            !com.sun.nio.file,
-                            !org.slf4j,
-                            !org.slf4j.helpers,
-                            !org.slf4j.spi,
-                            !sun.misc,
-                            io.stargate.db,
+                            org.osgi.framework,
+                            io.stargate.db.*,
                             org.apache.cassandra.stargate,
                             org.apache.cassandra.stargate.*,
-                            io.stargate.core,
+                            com.datastax.oss.driver.api.core,
+                            com.datastax.oss.driver.api.core.*,
+                            org.javatuples,
+                            io.stargate.core.*,
+                            io.stargate.auth,
+                            io.stargate.auth.*,
                             com.codahale.metrics,
                             com.codahale.metrics.*,
+                            com.datastax.oss.driver.shaded.guava.*,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
-            <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
           </instructions>
           <buildDirectory>${project.basedir}/../stargate-lib</buildDirectory>

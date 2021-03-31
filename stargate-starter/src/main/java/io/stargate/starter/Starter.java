@@ -449,7 +449,19 @@ public class Starter {
         System.getProperty("felix.log.level", String.valueOf(Logger.LOG_WARNING)));
     configMap.put(
         FelixConstants.FRAMEWORK_SYSTEMPACKAGES_EXTRA,
-        "sun.misc,sun.nio.ch,com.sun.management,sun.rmi.registry");
+        String.join(
+            ",", "sun.misc,sun.nio.ch", "com.sun.management", "sun.rmi.registry", "org.osgi.*"));
+    configMap.put(
+        FelixConstants.FRAMEWORK_BOOTDELEGATION,
+        String.join(
+            ",",
+            "javax.*",
+            "sun.*",
+            "com.sun.*",
+            "org.xml.sax",
+            "org.xml.sax.*",
+            "org.w3c.dom",
+            "org.w3c.dom.*"));
 
     if (CACHE_DIRECTORY != null) {
       configMap.put(FelixConstants.FRAMEWORK_STORAGE, CACHE_DIRECTORY);

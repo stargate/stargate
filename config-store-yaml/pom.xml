@@ -89,11 +89,11 @@
 						<Import-Package><![CDATA[
                                         org.osgi.framework,
                                         io.stargate.config.store.api,
+                                        io.stargate.core.*,
                                         com.codahale.metrics,
                                         !com.codahale.metrics.graphite.*,
                                         ]]>
 						</Import-Package>
-						<DynamicImport-Package>*</DynamicImport-Package>
 						<Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
 						<Embed-Transitive>true</Embed-Transitive>
 					</instructions>
