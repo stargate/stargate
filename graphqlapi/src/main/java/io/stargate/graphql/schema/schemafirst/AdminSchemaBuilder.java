@@ -45,6 +45,7 @@ import io.stargate.graphql.schema.schemafirst.fetchers.admin.AllSchemasFetcher;
 import io.stargate.graphql.schema.schemafirst.fetchers.admin.DeploySchemaFetcher;
 import io.stargate.graphql.schema.schemafirst.fetchers.admin.DeploySchemaFileFetcher;
 import io.stargate.graphql.schema.schemafirst.fetchers.admin.SingleSchemaFetcher;
+import io.stargate.graphql.schema.schemafirst.fetchers.admin.UndeploySchemaFetcher;
 import io.stargate.graphql.schema.schemafirst.migration.MigrationStrategy;
 import io.stargate.graphql.schema.schemafirst.processor.ProcessingLogType;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
@@ -347,11 +348,45 @@ public class AdminSchemaBuilder {
                   .build())
           .build();
 
+  private static final GraphQLFieldDefinition UNDEPLOY_SCHEMA_MUTATION =
+      newFieldDefinition()
+          .name("undeploySchema")
+          .description(
+              "Cancels a previous deployment.\n"
+                  + "The keyspace will revert to the generated, \"CQL-first\" schema. The schema history will be "
+                  + "preserved, but with all versions marked as `current: false`.")
+          .argument(
+              newArgument()
+                  .name("keyspace")
+                  .description("The keyspace to deploy to.")
+                  .type(nonNull(GraphQLString))
+                  .build())
+          .argument(
+              newArgument()
+                  .name("expectedVersion")
+                  .description(
+                      "The current version.\nThis is used to ensure that another user is not deploying concurrently.")
+                  .type(nonNull(GraphQLString))
+                  .build())
+          .argument(
+              newArgument()
+                  .name("force")
+                  .description(
+                      "Proceed even if the previous deployment is still marked as in progress. "
+                          + "This is used to recover manually if a previous deployment failed unexpectedly during the "
+                          + "CQL migration phase.")
+                  .type(nonNull(GraphQLBoolean))
+                  .defaultValue(false)
+                  .build())
+          .type(GraphQLBoolean)
+          .build();
+
   private static final GraphQLObjectType MUTATION =
       newObject()
           .name("Mutation")
           .field(DEPLOY_SCHEMA_MUTATION)
           .field(DEPLOY_SCHEMA_FILE_MUTATION)
+          .field(UNDEPLOY_SCHEMA_MUTATION)
           .build();
 
   private final AuthorizationService authorizationService;
@@ -381,6 +416,9 @@ public class AdminSchemaBuilder {
                 .dataFetcher(
                     coordinates(MUTATION, DEPLOY_SCHEMA_FILE_MUTATION),
                     new DeploySchemaFileFetcher(authorizationService, dataStoreFactory))
+                .dataFetcher(
+                    coordinates(MUTATION, UNDEPLOY_SCHEMA_MUTATION),
+                    new UndeploySchemaFetcher(authorizationService, dataStoreFactory))
                 .build())
         .build();
   }
