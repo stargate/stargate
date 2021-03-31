@@ -5,6 +5,7 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.schema.SchemaEntity;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
@@ -16,11 +17,7 @@ import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.*;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -28,15 +25,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -87,7 +76,8 @@ public class CollectionsResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(namespace),
                   tables.stream().map(SchemaEntity::name).collect(Collectors.toList()),
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           List<DocCollection> result =
               tables.stream()
@@ -143,7 +133,8 @@ public class CollectionsResource {
                   namespace,
                   info.getName(),
                   Scope.CREATE,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           boolean res = collectionService.createCollection(namespace, info.getName(), docDB);
           if (res) {
@@ -151,7 +142,10 @@ public class CollectionsResource {
           } else {
             return Response.status(Response.Status.CONFLICT)
                 .entity(
-                    String.format("Create failed: collection %s already exists", info.getName()))
+                    new Error(
+                        String.format(
+                            "Create failed: collection %s already exists.", info.getName()),
+                        Response.Status.CONFLICT.getStatusCode()))
                 .build();
           }
         });
@@ -193,7 +187,8 @@ public class CollectionsResource {
                   namespace,
                   collection,
                   Scope.DROP,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           Table toDelete =
               authenticatedDB.getDataStore().schema().keyspace(namespace).table(collection);
@@ -263,7 +258,8 @@ public class CollectionsResource {
                   namespace,
                   collection,
                   Scope.ALTER,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           Table table = authenticatedDB.getTable(namespace, collection);
           if (table == null) {

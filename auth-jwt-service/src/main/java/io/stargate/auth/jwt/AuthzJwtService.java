@@ -25,6 +25,7 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
@@ -162,7 +163,8 @@ public class AuthzJwtService implements AuthorizationService {
       AuthenticationSubject authenticationSubject,
       List<String> keyspaceNames,
       List<String> tableNames,
-      SourceAPI sourceAPI)
+      SourceAPI sourceAPI,
+      ResourceKind resource)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }
@@ -179,7 +181,8 @@ public class AuthzJwtService implements AuthorizationService {
       String keyspace,
       String table,
       Scope scope,
-      SourceAPI sourceAPI)
+      SourceAPI sourceAPI,
+      ResourceKind resource)
       throws UnauthorizedException {
     // Cannot perform authorization with a JWT token so just return
   }

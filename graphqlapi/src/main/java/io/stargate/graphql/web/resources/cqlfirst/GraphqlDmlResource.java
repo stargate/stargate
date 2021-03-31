@@ -20,6 +20,7 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.graphql.web.RequestToHeadersMapper;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
 import io.stargate.graphql.web.resources.Authenticated;
@@ -147,7 +148,7 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
   }
 
   private GraphQL getDefaultGraphql(HttpServletRequest httpRequest, AsyncResponse asyncResponse) {
-    GraphQL graphql = graphqlCache.getDefaultDml();
+    GraphQL graphql = graphqlCache.getDefaultDml(RequestToHeadersMapper.getAllHeaders(httpRequest));
     if (graphql == null) {
       replyWithGraphqlError(Status.NOT_FOUND, "No default keyspace defined", asyncResponse);
       return null;
@@ -175,7 +176,10 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
     }
 
     GraphQL graphql =
-        graphqlCache.getDml(keyspaceName, RequestToHeadersMapper.getAllHeaders(httpRequest));
+        graphqlCache.getDml(
+            keyspaceName,
+            (AuthenticationSubject) httpRequest.getAttribute(AuthenticationFilter.SUBJECT_KEY),
+            RequestToHeadersMapper.getAllHeaders(httpRequest));
     if (graphql == null) {
       replyWithGraphqlError(
           Status.NOT_FOUND, String.format("Unknown keyspace '%s'", keyspaceName), asyncResponse);
@@ -193,7 +197,8 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
           subject,
           Collections.singletonList(keyspaceName),
           Collections.emptyList(),
-          SourceAPI.GRAPHQL);
+          SourceAPI.GRAPHQL,
+          ResourceKind.KEYSPACE);
       return true;
     } catch (UnauthorizedException e) {
       return false;

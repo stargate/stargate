@@ -20,6 +20,7 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Kind;
@@ -118,7 +119,8 @@ public class TablesResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   tableResponses.stream().map(TableResponse::getName).collect(Collectors.toList()),
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           Object response = raw ? tableResponses : new ResponseWrapper(tableResponses);
           return Response.status(Response.Status.OK)
@@ -166,7 +168,8 @@ public class TablesResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -232,7 +235,8 @@ public class TablesResource {
                   keyspaceName,
                   tableName,
                   Scope.CREATE,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           PrimaryKey primaryKey = tableAdd.getPrimaryKey();
           if (primaryKey == null) {
@@ -338,7 +342,8 @@ public class TablesResource {
                   keyspaceName,
                   tableName,
                   Scope.ALTER,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           TableOptions options = tableUpdate.getTableOptions();
           List<ClusteringExpression> clusteringExpressions = options.getClusteringExpression();
@@ -413,7 +418,8 @@ public class TablesResource {
                   keyspaceName,
                   tableName,
                   Scope.DROP,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           authenticatedDB
               .getDataStore()

@@ -16,7 +16,7 @@
 package io.stargate.db.cassandra;
 
 import static io.stargate.db.cassandra.CassandraPersistenceActivator.makeConfig;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
 import java.io.IOException;

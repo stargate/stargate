@@ -42,6 +42,7 @@ import io.stargate.web.resources.RowResource;
 import io.stargate.web.resources.TableResource;
 import io.stargate.web.resources.v2.RowsResource;
 import io.stargate.web.resources.v2.schemas.ColumnsResource;
+import io.stargate.web.resources.v2.schemas.IndexesResource;
 import io.stargate.web.resources.v2.schemas.KeyspacesResource;
 import io.stargate.web.resources.v2.schemas.TablesResource;
 import io.stargate.web.swagger.SwaggerUIResource;
@@ -124,6 +125,7 @@ public class Server extends Application<ApplicationConfiguration> {
     environment.jersey().register(TablesResource.class);
     environment.jersey().register(KeyspacesResource.class);
     environment.jersey().register(ColumnsResource.class);
+    environment.jersey().register(IndexesResource.class);
 
     // Documents API
     environment.jersey().register(DocumentResourceV2.class);

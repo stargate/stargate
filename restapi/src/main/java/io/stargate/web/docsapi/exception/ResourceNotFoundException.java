@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.auth.entity;
+package io.stargate.web.docsapi.exception;
 
-public enum ResourceKind {
-  KEYSPACE,
-  TABLE,
-  FUNCTION,
-  TYPE,
-  TRIGGER,
-  AGGREGATE,
-  VIEW,
-  INDEX
+/** Thrown when API can not find a requested resource. */
+public class ResourceNotFoundException extends RuntimeException {
+  public ResourceNotFoundException(String msg) {
+    super(msg);
+  }
+
+  public ResourceNotFoundException(String msg, Throwable cause) {
+    super(msg, cause);
+  }
 }

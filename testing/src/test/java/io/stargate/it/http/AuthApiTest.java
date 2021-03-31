@@ -27,6 +27,7 @@ import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
 import net.jcip.annotations.NotThreadSafe;
+import okhttp3.Response;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -100,6 +101,32 @@ public class AuthApiTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void authTokenGenerateCheckCacheHeader() throws IOException {
+    Response response =
+        RestUtils.postRaw(
+            "",
+            String.format("%s:8081/v1/auth/token/generate", host),
+            objectMapper.writeValueAsString(new Secret("cassandra", "cassandra")),
+            HttpStatus.SC_CREATED);
+
+    assertThat(response.header("Cache-Control"))
+        .isEqualTo("no-transform, max-age=1790, s-maxage=1790");
+  }
+
+  @Test
+  public void authTokenGenerateCheckHeaderBadCreds() throws IOException {
+    Response response =
+        RestUtils.postRaw(
+            "",
+            String.format("%s:8081/v1/auth/token/generate", host),
+            objectMapper.writeValueAsString(new Secret("cassandra", "bad_password")),
+            HttpStatus.SC_UNAUTHORIZED);
+
+    assertThat(response.header("Cache-Control"))
+        .isEqualTo("no-store, no-transform, max-age=0, s-maxage=0");
+  }
+
+  @Test
   public void auth() throws IOException {
     String body =
         RestUtils.post(
@@ -152,6 +179,32 @@ public class AuthApiTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void authCheckCacheHeader() throws IOException {
+    Response response =
+        RestUtils.postRaw(
+            "",
+            String.format("%s:8081/v1/auth", host),
+            objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
+            HttpStatus.SC_CREATED);
+
+    assertThat(response.header("Cache-Control"))
+        .isEqualTo("no-transform, max-age=1790, s-maxage=1790");
+  }
+
+  @Test
+  public void authCheckHeaderBadCreds() throws IOException {
+    Response response =
+        RestUtils.postRaw(
+            "",
+            String.format("%s:8081/v1/auth", host),
+            objectMapper.writeValueAsString(new Credentials("bad_username", "cassandra")),
+            HttpStatus.SC_UNAUTHORIZED);
+
+    assertThat(response.header("Cache-Control"))
+        .isEqualTo("no-store, no-transform, max-age=0, s-maxage=0");
+  }
+
+  @Test
   public void authUsernameToken() throws IOException {
     String body =
         RestUtils.post(
@@ -189,5 +242,31 @@ public class AuthApiTest extends BaseOsgiIntegrationTest {
 
     Error error = objectMapper.readValue(body, Error.class);
     assertThat(error.getDescription()).isEqualTo("Must provide a body to the request");
+  }
+
+  @Test
+  public void authUsernameTokenCheckHeader() throws IOException {
+    Response response =
+        RestUtils.postRaw(
+            "",
+            String.format("%s:8081/v1/admin/auth/usernametoken", host),
+            objectMapper.writeValueAsString(new UsernameCredentials("cassandra")),
+            HttpStatus.SC_CREATED);
+
+    assertThat(response.header("Cache-Control"))
+        .isEqualTo("no-transform, max-age=1790, s-maxage=1790");
+  }
+
+  @Test
+  public void authUsernameToken_CheckHeaderBadUsername() throws IOException {
+    Response response =
+        RestUtils.postRaw(
+            "",
+            String.format("%s:8081/v1/admin/auth/usernametoken", host),
+            objectMapper.writeValueAsString(new UsernameCredentials("bad_user_name")),
+            HttpStatus.SC_UNAUTHORIZED);
+
+    assertThat(response.header("Cache-Control"))
+        .isEqualTo("no-store, no-transform, max-age=0, s-maxage=0");
   }
 }

@@ -20,6 +20,7 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.schema.CassandraFetcher;
@@ -52,7 +53,8 @@ public class AllKeyspacesFetcher extends CassandraFetcher<List<KeyspaceDto>> {
                     authenticationSubject,
                     Collections.singletonList(keyspace.name()),
                     null,
-                    SourceAPI.GRAPHQL);
+                    SourceAPI.GRAPHQL,
+                    ResourceKind.KEYSPACE);
                 return true;
               } catch (UnauthorizedException e) {
                 LOG.debug("Not returning keyspace {} due to not being authorized", keyspace.name());

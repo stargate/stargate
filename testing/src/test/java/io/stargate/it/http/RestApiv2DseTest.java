@@ -14,6 +14,9 @@ import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.models.GetResponseWrapper;
+import io.stargate.web.models.IndexAdd;
+import io.stargate.web.models.IndexKind;
+import io.stargate.web.models.SuccessResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -52,12 +55,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE maps_per_entry(k int PRIMARY KEY, m map<int, text>)",
       "CREATE CUSTOM INDEX maps_per_entry_m_idx ON maps_per_entry(entries(m)) USING 'StorageAttachedIndex'",
       "INSERT INTO maps_per_entry (k,m) values (1, {1:'a',2:'b',3:'c'})",
+      // Table for index test
+      "CREATE TABLE index_test_table(k int PRIMARY KEY, l list<int>, m1 map<int, text>, m2 map<int, text>, m3 map<int, text>)",
     })
 public class RestApiv2DseTest extends BaseOsgiIntegrationTest {
 
   private static final ObjectMapper objectMapper =
       new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
   private static String keyspaceUri;
+  private static String schemaUri;
   private static String authToken;
 
   @BeforeAll
@@ -66,6 +72,8 @@ public class RestApiv2DseTest extends BaseOsgiIntegrationTest {
     String host = cluster.seedAddress();
     authToken = fetchAuthToken(host);
     keyspaceUri = String.format("http://%s:8082/v2/keyspaces/%s", host, keyspaceId.asInternal());
+    schemaUri =
+        String.format("http://%s:8082/v2/schemas/keyspaces/%s", host, keyspaceId.asInternal());
   }
 
   @Test
@@ -123,6 +131,43 @@ public class RestApiv2DseTest extends BaseOsgiIntegrationTest {
     data =
         query("/maps_per_entry?where={\"m\":{\"$containsEntry\":{\"key\": 1, \"value\": \"b\"}}}");
     assertThat(data).hasSize(0);
+  }
+
+  @Test
+  public void createCustomIndexes() throws IOException {
+    IndexAdd indexAdd = new IndexAdd();
+    indexAdd.setName("idx1");
+    indexAdd.setColumn("l");
+    indexAdd.setIfNotExists(false);
+    indexAdd.setType("StorageAttachedIndex");
+    createIndex("index_test_table", indexAdd);
+
+    indexAdd.setName("idx2");
+    indexAdd.setColumn("m1");
+    indexAdd.setKind(IndexKind.KEYS);
+    createIndex("index_test_table", indexAdd);
+
+    indexAdd.setName("idx3");
+    indexAdd.setColumn("m2");
+    indexAdd.setKind(null);
+    createIndex("index_test_table", indexAdd);
+
+    indexAdd.setName("idx4");
+    indexAdd.setColumn("m3");
+    indexAdd.setKind(IndexKind.ENTRIES);
+    createIndex("index_test_table", indexAdd);
+  }
+
+  private void createIndex(String tableName, IndexAdd indexAdd) throws IOException {
+    String body =
+        RestUtils.post(
+            authToken,
+            String.format("%s/tables/%s/indexes", schemaUri, tableName),
+            objectMapper.writeValueAsString(indexAdd),
+            HttpStatus.SC_CREATED);
+    SuccessResponse successResponse =
+        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
+    assertThat(successResponse.getSuccess()).isTrue();
   }
 
   private static String fetchAuthToken(String host) throws IOException {

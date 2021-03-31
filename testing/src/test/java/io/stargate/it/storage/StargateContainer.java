@@ -533,6 +533,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     @Override
     public Collection<String> commandArguments(ClusterConnectionInfo backend) {
       Collection<String> args = new ArrayList<>();
+      args.add("-ea");
       args.add("-jar");
       args.add(starterJar().getAbsolutePath());
       args.add("--cluster-seed");

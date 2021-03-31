@@ -21,6 +21,7 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
@@ -88,7 +89,8 @@ public class KeyspaceDto {
           authenticationSubject,
           Collections.singletonList(keyspace.name()),
           Collections.singletonList(table.name()),
-          SourceAPI.GRAPHQL);
+          SourceAPI.GRAPHQL,
+          ResourceKind.TABLE);
       return true;
     } catch (UnauthorizedException e) {
       LOG.debug(

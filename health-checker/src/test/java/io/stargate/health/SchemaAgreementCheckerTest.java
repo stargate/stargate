@@ -65,6 +65,13 @@ class SchemaAgreementCheckerTest {
   }
 
   @Test
+  public void shouldSucceedWhenSchemaAgreesWithStorage() {
+    Mockito.doReturn(false).when(persistence).isInSchemaAgreement();
+    Mockito.doReturn(true).when(persistence).isInSchemaAgreementWithStorage();
+    assertThat(checker.execute()).extracting(Result::isHealthy).isEqualTo(true);
+  }
+
+  @Test
   public void shouldSucceedWhenAgreementIsAchievable() {
     Mockito.doReturn(false).when(persistence).isInSchemaAgreement();
     Mockito.doReturn(true).when(persistence).isSchemaAgreementAchievable();

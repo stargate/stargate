@@ -13,15 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.auth.entity;
+package io.stargate.web.models;
 
-public enum ResourceKind {
-  KEYSPACE,
-  TABLE,
-  FUNCTION,
-  TYPE,
-  TRIGGER,
-  AGGREGATE,
-  VIEW,
-  INDEX
+public enum IndexKind {
+  KEYS,
+  VALUES,
+  ENTRIES,
+  FULL
 }

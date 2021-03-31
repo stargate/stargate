@@ -20,16 +20,17 @@ import com.google.errorprone.annotations.FormatString;
 import graphql.GraphQL;
 import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.EventListener;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
+import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.cqlfirst.SchemaFactory;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +59,7 @@ public class GraphqlCache implements EventListener {
 
   private final GraphQL ddlGraphql;
   private final String defaultKeyspace;
-  private final ConcurrentMap<String, DmlGraphqlReference> dmlGraphqls;
+  private final ConcurrentMap<String, GraphQL> dmlGraphqls = new ConcurrentHashMap<>();
 
   public GraphqlCache(
       Persistence persistence,
@@ -70,9 +71,7 @@ public class GraphqlCache implements EventListener {
 
     this.ddlGraphql =
         newGraphql(SchemaFactory.newDdlSchema(authorizationService, dataStoreFactory));
-    DataStore dataStore = dataStoreFactory.createInternal();
-    this.defaultKeyspace = findDefaultKeyspace(dataStore);
-    this.dmlGraphqls = initDmlGraphqls(dataStore, authorizationService, dataStoreFactory);
+    this.defaultKeyspace = findDefaultKeyspace(dataStoreFactory.createInternal());
 
     persistence.registerEventListener(this);
   }
@@ -81,18 +80,40 @@ public class GraphqlCache implements EventListener {
     return ddlGraphql;
   }
 
-  public GraphQL getDml(String keyspace, Map<String, String> headers) {
-    String decoratedName = persistence.decorateKeyspaceName(keyspace, headers);
-    DmlGraphqlReference ref = dmlGraphqls.get(decoratedName);
-    return ref == null ? null : ref.get();
+  public GraphQL getDml(
+      String keyspaceName, AuthenticationSubject subject, Map<String, String> headers) {
+    String decoratedKeyspaceName = persistence.decorateKeyspaceName(keyspaceName, headers);
+    return dmlGraphqls.computeIfAbsent(
+        decoratedKeyspaceName, __ -> buildDmlGraphql(keyspaceName, subject, headers));
   }
 
-  public GraphQL getDefaultDml() {
-    return defaultKeyspace == null ? null : getDml(defaultKeyspace, Collections.emptyMap());
+  public GraphQL getDefaultDml(Map<String, String> headers) {
+    return defaultKeyspace == null ? null : getDml(defaultKeyspace, null, headers);
   }
 
   public String getDefaultKeyspaceName() {
     return defaultKeyspace;
+  }
+
+  private GraphQL buildDmlGraphql(
+      String keyspaceName, AuthenticationSubject subject, Map<String, String> headers) {
+    DataStoreOptions dataStoreOptions =
+        DataStoreOptions.builder().putAllCustomProperties(headers).build();
+    DataStore dataStore =
+        subject == null
+            ? dataStoreFactory.createInternal(dataStoreOptions)
+            : dataStoreFactory.create(subject.asUser(), dataStoreOptions);
+    Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
+    return (keyspace == null)
+        ? null
+        : newGraphql(SchemaFactory.newDmlSchema(authorizationService, keyspace, dataStoreFactory));
+  }
+
+  private static GraphQL newGraphql(GraphQLSchema schema) {
+    return GraphQL.newGraphQL(schema)
+        // Use parallel execution strategy for mutations (serial is default)
+        .mutationExecutionStrategy(new AsyncExecutionStrategy())
+        .build();
   }
 
   /** Populate a default keyspace to allow for omitting the keyspace from the path of requests. */
@@ -137,184 +158,105 @@ public class GraphqlCache implements EventListener {
     }
   }
 
-  private ConcurrentMap<String, DmlGraphqlReference> initDmlGraphqls(
-      DataStore dataStore,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    ConcurrentMap<String, DmlGraphqlReference> map = new ConcurrentHashMap<>();
-
-    for (Keyspace keyspace : dataStore.schema().keyspaces()) {
-      String keyspaceName = keyspace.name();
-      LOG.debug("Prepare GraphQL schema for {}", keyspaceName);
-      map.put(
-          keyspaceName, new DmlGraphqlReference(keyspace, authorizationService, dataStoreFactory));
-    }
-    return map;
-  }
-
-  @FormatMethod
-  private void addOrReplaceDmlGraphql(
-      String keyspaceName, @FormatString String reason, Object... reasonArguments) {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug(
-          "Refreshing GraphQL schema for keyspace {} because {}",
-          keyspaceName,
-          String.format(reason, reasonArguments));
-    }
-    try {
-      DataStore dataStore = dataStoreFactory.createInternal();
-      Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
-      if (keyspace == null) {
-        // This happens when come from a notification for a keyspace that was just dropped
-        LOG.debug("Removing GraphQL schema for keyspace {} because it was dropped", keyspaceName);
-        dmlGraphqls.remove(keyspaceName);
-      } else {
-        dmlGraphqls.put(
-            keyspaceName,
-            new DmlGraphqlReference(keyspace, authorizationService, dataStoreFactory));
-      }
-      LOG.debug("Done refreshing GraphQL schema for keyspace {}", keyspaceName);
-    } catch (Exception e) {
-      LOG.error("Error while refreshing GraphQL schema for keyspace {}", keyspaceName, e);
-    }
-  }
-
-  // Schema change callbacks: we refresh a keyspace whenever it gets created or dropped, or anything
-  // inside it changes.
+  // Schema change callbacks: whenever something changes in the keyspace, we invalidate the
+  // corresponding GraphQL schema. The next client request will recompute it.
   // TODO maybe add debouncing mechanism to amortize quick event bursts
 
   @Override
-  public void onCreateKeyspace(String keyspaceName) {
-    addOrReplaceDmlGraphql(keyspaceName, "it was created");
+  public void onDropKeyspace(String decoratedKeyspaceName) {
+    invalidateDmlGraphql(decoratedKeyspaceName, "it was dropped");
   }
 
   @Override
-  public void onDropKeyspace(String keyspaceName) {
-    // Note that if the keyspace contained any children, we probably already removed the handler
-    // while processing those children's DROP events.
-    DmlGraphqlReference removed = dmlGraphqls.remove(keyspaceName);
-    if (removed != null) {
-      LOG.debug("Removing GraphQL schema for keyspace {} because it was dropped", keyspaceName);
+  public void onCreateTable(String decoratedKeyspaceName, String table) {
+    invalidateDmlGraphql(decoratedKeyspaceName, "table %s was created", table);
+  }
+
+  @Override
+  public void onCreateView(String decoratedKeyspaceName, String view) {
+    invalidateDmlGraphql(decoratedKeyspaceName, "view %s was created", view);
+  }
+
+  @Override
+  public void onCreateType(String decoratedKeyspaceName, String type) {
+    invalidateDmlGraphql(decoratedKeyspaceName, "type %s was created", type);
+  }
+
+  @Override
+  public void onCreateFunction(
+      String decoratedKeyspaceName, String function, List<String> argumentTypes) {
+    invalidateDmlGraphql(decoratedKeyspaceName, "function %s was created", function);
+  }
+
+  @Override
+  public void onCreateAggregate(
+      String decoratedKeyspaceName, String aggregate, List<String> argumentTypes) {
+    invalidateDmlGraphql(decoratedKeyspaceName, "aggregate %s was created", aggregate);
+  }
+
+  @Override
+  public void onAlterTable(String decoratedKeyspaceName, String table) {
+    invalidateDmlGraphql(decoratedKeyspaceName, "table %s was altered", table);
+  }
+
+  @Override
+  public void onAlterView(String decoratedKeyspaceName, String view) {
+    invalidateDmlGraphql(decoratedKeyspaceName, "view %s was altered", view);
+  }
+
+  @Override
+  public void onAlterType(String decoratedKeyspaceName, String type) {
+    invalidateDmlGraphql(decoratedKeyspaceName, "type %s was altered", type);
+  }
+
+  @Override
+  public void onAlterFunction(
+      String decoratedKeyspaceName, String function, List<String> argumentTypes) {
+    invalidateDmlGraphql(decoratedKeyspaceName, "function %s was altered", function);
+  }
+
+  @Override
+  public void onAlterAggregate(
+      String decoratedKeyspaceName, String aggregate, List<String> argumentTypes) {
+    invalidateDmlGraphql(decoratedKeyspaceName, "aggregate %s was altered", aggregate);
+  }
+
+  @Override
+  public void onDropTable(String decoratedKeyspaceName, String table) {
+    invalidateDmlGraphql(decoratedKeyspaceName, "table %s was dropped", table);
+  }
+
+  @Override
+  public void onDropView(String decoratedKeyspaceName, String view) {
+    invalidateDmlGraphql(decoratedKeyspaceName, "view %s was dropped", view);
+  }
+
+  @Override
+  public void onDropType(String decoratedKeyspaceName, String type) {
+    invalidateDmlGraphql(decoratedKeyspaceName, "type %s was dropped", type);
+  }
+
+  @Override
+  public void onDropFunction(
+      String decoratedKeyspaceName, String function, List<String> argumentTypes) {
+    invalidateDmlGraphql(decoratedKeyspaceName, "function %s was dropped", function);
+  }
+
+  @Override
+  public void onDropAggregate(
+      String decoratedKeyspaceName, String aggregate, List<String> argumentTypes) {
+    invalidateDmlGraphql(decoratedKeyspaceName, "aggregate %s was dropped", aggregate);
+  }
+
+  @FormatMethod
+  private void invalidateDmlGraphql(
+      String decoratedKeyspaceName, @FormatString String reason, Object... reasonArguments) {
+    GraphQL previous = dmlGraphqls.remove(decoratedKeyspaceName);
+    if (previous != null && LOG.isDebugEnabled()) {
+      LOG.debug(
+          "Invalidated GraphQL schema for keyspace {} because {}",
+          decoratedKeyspaceName,
+          String.format(reason, reasonArguments));
     }
-  }
-
-  @Override
-  public void onCreateTable(String keyspaceName, String table) {
-    addOrReplaceDmlGraphql(keyspaceName, "table %s was created", table);
-  }
-
-  @Override
-  public void onCreateView(String keyspaceName, String view) {
-    addOrReplaceDmlGraphql(keyspaceName, "view %s was created", view);
-  }
-
-  @Override
-  public void onCreateType(String keyspaceName, String type) {
-    addOrReplaceDmlGraphql(keyspaceName, "type %s was created", type);
-  }
-
-  @Override
-  public void onCreateFunction(String keyspaceName, String function, List<String> argumentTypes) {
-    addOrReplaceDmlGraphql(keyspaceName, "function %s was created", function);
-  }
-
-  @Override
-  public void onCreateAggregate(String keyspaceName, String aggregate, List<String> argumentTypes) {
-    addOrReplaceDmlGraphql(keyspaceName, "aggregate %s was created", aggregate);
-  }
-
-  @Override
-  public void onAlterTable(String keyspaceName, String table) {
-    addOrReplaceDmlGraphql(keyspaceName, "table %s was altered", table);
-  }
-
-  @Override
-  public void onAlterView(String keyspaceName, String view) {
-    addOrReplaceDmlGraphql(keyspaceName, "view %s was altered", view);
-  }
-
-  @Override
-  public void onAlterType(String keyspaceName, String type) {
-    addOrReplaceDmlGraphql(keyspaceName, "type %s was altered", type);
-  }
-
-  @Override
-  public void onAlterFunction(String keyspaceName, String function, List<String> argumentTypes) {
-    addOrReplaceDmlGraphql(keyspaceName, "function %s was altered", function);
-  }
-
-  @Override
-  public void onAlterAggregate(String keyspaceName, String aggregate, List<String> argumentTypes) {
-    addOrReplaceDmlGraphql(keyspaceName, "aggregate %s was altered", aggregate);
-  }
-
-  @Override
-  public void onDropTable(String keyspaceName, String table) {
-    addOrReplaceDmlGraphql(keyspaceName, "table %s was dropped", table);
-  }
-
-  @Override
-  public void onDropView(String keyspaceName, String view) {
-    addOrReplaceDmlGraphql(keyspaceName, "view %s was dropped", view);
-  }
-
-  @Override
-  public void onDropType(String keyspaceName, String type) {
-    addOrReplaceDmlGraphql(keyspaceName, "type %s was dropped", type);
-  }
-
-  @Override
-  public void onDropFunction(String keyspaceName, String function, List<String> argumentTypes) {
-    addOrReplaceDmlGraphql(keyspaceName, "function %s was dropped", function);
-  }
-
-  @Override
-  public void onDropAggregate(String keyspaceName, String aggregate, List<String> argumentTypes) {
-    addOrReplaceDmlGraphql(keyspaceName, "aggregate %s was dropped", aggregate);
-  }
-
-  /**
-   * Lazily holds the {@link GraphQL} instance for the DML operations on a particular keyspace: it
-   * will only be initialized if the keyspace is queried.
-   */
-  static class DmlGraphqlReference {
-
-    private final Keyspace keyspace;
-    private final AuthorizationService authorizationService;
-    private final DataStoreFactory dataStoreFactory;
-
-    private volatile GraphQL graphql;
-
-    DmlGraphqlReference(
-        Keyspace keyspace,
-        AuthorizationService authorizationService,
-        DataStoreFactory dataStoreFactory) {
-      this.keyspace = keyspace;
-      this.authorizationService = authorizationService;
-      this.dataStoreFactory = dataStoreFactory;
-    }
-
-    GraphQL get() {
-      // Double-checked locking
-      GraphQL result = graphql;
-      if (result != null) {
-        return result;
-      }
-      synchronized (this) {
-        if (graphql == null) {
-          graphql =
-              newGraphql(
-                  SchemaFactory.newDmlSchema(authorizationService, keyspace, dataStoreFactory));
-        }
-        return graphql;
-      }
-    }
-  }
-
-  private static GraphQL newGraphql(GraphQLSchema schema) {
-    return GraphQL.newGraphQL(schema)
-        // Use parallel execution strategy for mutations (serial is default)
-        .mutationExecutionStrategy(new AsyncExecutionStrategy())
-        .build();
   }
 }

@@ -2,6 +2,7 @@ package io.stargate.db.dse.impl;
 
 import com.datastax.bdp.db.util.ProductType;
 import com.datastax.bdp.db.util.ProductVersion;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -26,6 +27,7 @@ import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,6 +48,7 @@ import org.apache.cassandra.auth.CassandraRoleManager;
 import org.apache.cassandra.auth.IAuthContext;
 import org.apache.cassandra.auth.RoleResource;
 import org.apache.cassandra.auth.user.UserRolesAndPermissions;
+import org.apache.cassandra.concurrent.ExecutorLocals;
 import org.apache.cassandra.concurrent.TPCTaskType;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.DatabaseDescriptor;
@@ -84,6 +87,7 @@ import org.apache.cassandra.transport.messages.QueryMessage;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.transport.messages.StartupMessage;
 import org.apache.cassandra.utils.ByteBufferUtil;
+import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.flow.RxThreads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -256,6 +260,15 @@ public class DsePersistence
     return ByteBufferUtil.UNSET_BYTE_BUFFER;
   }
 
+  private static boolean shouldCheckSchema(InetAddress ep) {
+    EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
+    return epState != null && !Gossiper.instance.isDeadState(epState);
+  }
+
+  private static boolean isStorageNode(InetAddress ep) {
+    return !Gossiper.instance.isGossipOnlyMember(ep);
+  }
+
   @Override
   public boolean isInSchemaAgreement() {
     // We only include live nodes because this method is mainly used to wait for schema
@@ -267,15 +280,26 @@ public class DsePersistence
     // Important: This must include all nodes including fat clients, otherwise we'll get write
     // errors
     // with INCOMPATIBLE_SCHEMA.
+
+    // Collect schema IDs from all relevant nodes and check that we have at most 1 distinct ID.
     return Gossiper.instance.getLiveMembers().stream()
-            .filter(
-                ep -> {
-                  EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
-                  return epState != null && !Gossiper.instance.isDeadState(epState);
-                })
+            .filter(DsePersistence::shouldCheckSchema)
             .map(Gossiper.instance::getSchemaVersion)
-            .collect(Collectors.toSet())
-            .size()
+            .distinct()
+            .count()
+        <= 1;
+  }
+
+  @Override
+  public boolean isInSchemaAgreementWithStorage() {
+    // Collect schema IDs from storage and local node and check that we have at most 1 distinct ID
+    InetAddress localAddress = FBUtilities.getBroadcastAddress();
+    return Gossiper.instance.getLiveMembers().stream()
+            .filter(DsePersistence::shouldCheckSchema)
+            .filter(ep -> isStorageNode(ep) || localAddress.equals(ep))
+            .map(Gossiper.instance::getSchemaVersion)
+            .distinct()
+            .count()
         <= 1;
   }
 
@@ -283,20 +307,15 @@ public class DsePersistence
    * This method indicates whether storage nodes (i.e. excluding Stargate) agree on the schema
    * version among themselves.
    */
-  private boolean isStorageInSchemaAgreement() {
-    // See comment in isInSchemaAgreement()
-    // Here we also exclude Stargate nodes (by checking isGossipOnlyMember)
+  @VisibleForTesting
+  boolean isStorageInSchemaAgreement() {
+    // Collect schema IDs from storage nodes and check that we have at most 1 distinct ID.
     return Gossiper.instance.getLiveMembers().stream()
-            .filter(
-                ep -> {
-                  EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
-                  return epState != null
-                      && !Gossiper.instance.isDeadState(epState)
-                      && !Gossiper.instance.isGossipOnlyMember(ep);
-                })
+            .filter(DsePersistence::shouldCheckSchema)
+            .filter(DsePersistence::isStorageNode)
             .map(Gossiper.instance::getSchemaVersion)
-            .collect(Collectors.toSet())
-            .size()
+            .distinct()
+            .count()
         <= 1;
   }
 
@@ -481,10 +500,19 @@ public class DsePersistence
         Parameters parameters, long queryStartNanoTime, Supplier<Request> requestSupplier) {
 
       try {
-        if (parameters.protocolVersion().isGreaterOrEqualTo(ProtocolVersion.V4))
+        // When running inside DSE, query tasks clear ExecutorLocals before
+        // running, which is handled by its Message.channelRead0. In Stargate
+        // requests may come from Epoll threads of the CQL module, from HTTP
+        // threads or any other client. So here we ensure that DSE code starts
+        // processing the request with a clean thread local state.
+        ExecutorLocals.set(null);
+
+        if (parameters.protocolVersion().isGreaterOrEqualTo(ProtocolVersion.V4)) {
           ClientWarn.instance.captureWarnings();
+        }
 
         Single<QueryState> queryState = newQueryState();
+
         Request request = requestSupplier.get();
         if (parameters.tracingRequested()) {
           request.setTracingRequested();

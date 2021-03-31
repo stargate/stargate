@@ -21,6 +21,7 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.AuthenticatedUser.Serializer;
 import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
@@ -494,99 +495,134 @@ public class StargateQueryHandler implements QueryHandler {
       AuthorizationService authorization) {
     SchemaTransformation castStatement = (SchemaTransformation) statement;
     Scope scope = null;
+    ResourceKind resource = null;
     String keyspaceName = null;
     String tableName = null;
 
     if (statement instanceof CreateTableStatement) {
       scope = Scope.CREATE;
+      resource = ResourceKind.TABLE;
 
       CreateTableStatement stmt = (CreateTableStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
       tableName = getTableName(stmt);
     } else if (statement instanceof DropTableStatement) {
       scope = Scope.DROP;
+      resource = ResourceKind.TABLE;
 
       DropTableStatement stmt = (DropTableStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
       tableName = getTableName(stmt);
     } else if (statement instanceof AlterTableStatement) {
       scope = Scope.ALTER;
+      resource = ResourceKind.TABLE;
 
       AlterTableStatement stmt = (AlterTableStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
       tableName = getTableName(stmt);
     } else if (statement instanceof CreateKeyspaceStatement) {
       scope = Scope.CREATE;
+      resource = ResourceKind.KEYSPACE;
 
       CreateKeyspaceStatement stmt = (CreateKeyspaceStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof DropKeyspaceStatement) {
       scope = Scope.DROP;
+      resource = ResourceKind.KEYSPACE;
 
       DropKeyspaceStatement stmt = (DropKeyspaceStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof AlterKeyspaceStatement) {
       scope = Scope.ALTER;
+      resource = ResourceKind.KEYSPACE;
 
       AlterKeyspaceStatement stmt = (AlterKeyspaceStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof AlterTypeStatement) {
       scope = Scope.ALTER;
+      resource = ResourceKind.TYPE;
+
       AlterTypeStatement stmt = (AlterTypeStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof AlterViewStatement) {
       scope = Scope.ALTER;
+      resource = ResourceKind.VIEW;
+
       AlterViewStatement stmt = (AlterViewStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof CreateAggregateStatement) {
       scope = Scope.CREATE;
+      resource = ResourceKind.AGGREGATE;
+
       CreateAggregateStatement stmt = (CreateAggregateStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof CreateFunctionStatement) {
       scope = Scope.CREATE;
+      resource = ResourceKind.FUNCTION;
+
       CreateFunctionStatement stmt = (CreateFunctionStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof CreateIndexStatement) {
       scope = Scope.CREATE;
+      resource = ResourceKind.INDEX;
+
       CreateIndexStatement stmt = (CreateIndexStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
       tableName = getTableName(stmt);
     } else if (statement instanceof CreateTriggerStatement) {
       scope = Scope.CREATE;
+      resource = ResourceKind.TRIGGER;
+
       CreateTriggerStatement stmt = (CreateTriggerStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
       tableName = getTableName(stmt);
     } else if (statement instanceof CreateTypeStatement) {
       scope = Scope.CREATE;
+      resource = ResourceKind.TYPE;
+
       CreateTypeStatement stmt = (CreateTypeStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof CreateViewStatement) {
       scope = Scope.CREATE;
+      resource = ResourceKind.VIEW;
+
       CreateViewStatement stmt = (CreateViewStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof DropAggregateStatement) {
       scope = Scope.DROP;
+      resource = ResourceKind.AGGREGATE;
+
       DropAggregateStatement stmt = (DropAggregateStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof DropFunctionStatement) {
       scope = Scope.DROP;
+      resource = ResourceKind.FUNCTION;
+
       DropFunctionStatement stmt = (DropFunctionStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof DropIndexStatement) {
       scope = Scope.DROP;
+      resource = ResourceKind.INDEX;
+
       DropIndexStatement stmt = (DropIndexStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof DropTriggerStatement) {
       scope = Scope.DROP;
+      resource = ResourceKind.TRIGGER;
+
       DropTriggerStatement stmt = (DropTriggerStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
       tableName = getTableName(stmt);
     } else if (statement instanceof DropTypeStatement) {
       scope = Scope.DROP;
+      resource = ResourceKind.TYPE;
+
       DropTypeStatement stmt = (DropTypeStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     } else if (statement instanceof DropViewStatement) {
       scope = Scope.DROP;
+      resource = ResourceKind.VIEW;
+
       DropViewStatement stmt = (DropViewStatement) statement;
       keyspaceName = getKeyspaceNameFromSuper(stmt);
     }
@@ -599,7 +635,7 @@ public class StargateQueryHandler implements QueryHandler {
 
     try {
       authorization.authorizeSchemaWrite(
-          authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL);
+          authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL, resource);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format(

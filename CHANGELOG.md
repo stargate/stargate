@@ -1,5 +1,79 @@
 # Changelog
 
+## [v1.0.17](https://github.com/stargate/stargate/tree/v1.0.17) (2021-03-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.16...v1.0.17)
+
+**Closed issues:**
+
+- Better status codes for table not exist/table already exists errors [\#775](https://github.com/stargate/stargate/issues/775)
+
+**Merged pull requests:**
+
+- Do not fail health check when schema is in agreement with storage nodes [\#802](https://github.com/stargate/stargate/pull/802) ([dimas-b](https://github.com/dimas-b))
+- Move the resetting of ExecutorLocals to the start of executeRequest [\#797](https://github.com/stargate/stargate/pull/797) ([dimas-b](https://github.com/dimas-b))
+- Bumping version for next release [\#796](https://github.com/stargate/stargate/pull/796) ([github-actions[bot]](https://github.com/apps/github-actions))
+- fixes \#775: better status codes for missing tables in document api [\#785](https://github.com/stargate/stargate/pull/785) ([ivansenic](https://github.com/ivansenic))
+
+## [v1.0.16](https://github.com/stargate/stargate/tree/v1.0.16) (2021-03-24)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.15...v1.0.16)
+
+**Implemented enhancements:**
+
+- Add "CREATE INDEX" to REST API [\#580](https://github.com/stargate/stargate/issues/580)
+
+**Closed issues:**
+
+- JVM OnOutOfMemoryError configuration warning on startup [\#793](https://github.com/stargate/stargate/issues/793)
+- UserDefinedType Resource in the schema RestApi [\#790](https://github.com/stargate/stargate/issues/790)
+- Restarting stargate immediately results in startup failure [\#782](https://github.com/stargate/stargate/issues/782)
+- starting stargate from systemd unit file [\#776](https://github.com/stargate/stargate/issues/776)
+- Create Release didn't happen but it didn't fail [\#773](https://github.com/stargate/stargate/issues/773)
+- Bad request, use ALLOW FILTERING [\#772](https://github.com/stargate/stargate/issues/772)
+- Allow filtering on REST endpoint [\#766](https://github.com/stargate/stargate/issues/766)
+- Return Cache-Control and Expires headers on successful REST authorization call [\#762](https://github.com/stargate/stargate/issues/762)
+- Error 500 returns HTML and not a JSON body [\#740](https://github.com/stargate/stargate/issues/740)
+- exists only supports the value true [\#720](https://github.com/stargate/stargate/issues/720)
+- Validate CQL access to storage nodes during readiness check [\#631](https://github.com/stargate/stargate/issues/631)
+
+**Merged pull requests:**
+
+- Use ResourceKind in IndexesResource [\#795](https://github.com/stargate/stargate/pull/795) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Read auth tokens at CL == LOCAL\_QUORUM [\#794](https://github.com/stargate/stargate/pull/794) ([dimas-b](https://github.com/dimas-b))
+- change CL of StorageHealthChecker queries to LOCAL\_QUORUM [\#789](https://github.com/stargate/stargate/pull/789) ([tomekl007](https://github.com/tomekl007))
+- Quick graphql readme cleanup [\#787](https://github.com/stargate/stargate/pull/787) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Reset ExecutorLocals in DSE persistence requests [\#786](https://github.com/stargate/stargate/pull/786) ([dimas-b](https://github.com/dimas-b))
+- Bump testcontainers to 1.15.2 [\#784](https://github.com/stargate/stargate/pull/784) ([olim7t](https://github.com/olim7t))
+- Add a new Resource type to schema authz [\#783](https://github.com/stargate/stargate/pull/783) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Fixes \#580 - Allows index creation/dropping via the REST API [\#771](https://github.com/stargate/stargate/pull/771) ([eribeiro](https://github.com/eribeiro))
+- Add Cache-Control header to auth-api responses - Fixes \#762 [\#767](https://github.com/stargate/stargate/pull/767) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Bumping version for next release [\#765](https://github.com/stargate/stargate/pull/765) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Use user-scoped datastore to compute GraphQL schemas [\#761](https://github.com/stargate/stargate/pull/761) ([olim7t](https://github.com/olim7t))
+- Validate CQL access to storage nodes during readiness and liveness checks [\#742](https://github.com/stargate/stargate/pull/742) ([tomekl007](https://github.com/tomekl007))
+- Try to run gcb steps in parallel again [\#733](https://github.com/stargate/stargate/pull/733) ([dougwettlaufer](https://github.com/dougwettlaufer))
+
+## [v1.0.15](https://github.com/stargate/stargate/tree/v1.0.15) (2021-03-16)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.14...v1.0.15)
+
+**Fixed bugs:**
+
+- io.stargate.web.service.WhereParser\#parseWhere throws NPE for bad column name [\#752](https://github.com/stargate/stargate/issues/752)
+
+**Closed issues:**
+
+- Ensure metric is reported for unexpected exceptions during auth [\#760](https://github.com/stargate/stargate/issues/760)
+- Generate an auth token [\#746](https://github.com/stargate/stargate/issues/746)
+
+**Merged pull requests:**
+
+- Adding Ivan [\#763](https://github.com/stargate/stargate/pull/763) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Fixes \#752 - NPE for bad column name in Where clause [\#757](https://github.com/stargate/stargate/pull/757) ([eribeiro](https://github.com/eribeiro))
+- Add metric to cql for auth errors [\#756](https://github.com/stargate/stargate/pull/756) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Bumping version for next release [\#754](https://github.com/stargate/stargate/pull/754) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Add request rate metric to CQL [\#753](https://github.com/stargate/stargate/pull/753) ([mpenick](https://github.com/mpenick))
+
 ## [v1.0.14](https://github.com/stargate/stargate/tree/v1.0.14) (2021-03-11)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.13...v1.0.14)

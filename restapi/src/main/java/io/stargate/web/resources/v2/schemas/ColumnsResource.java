@@ -20,6 +20,7 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.ImmutableColumn;
@@ -106,7 +107,8 @@ public class ColumnsResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           final Table tableMetadata;
           try {
@@ -204,7 +206,8 @@ public class ColumnsResource {
                   keyspaceName,
                   tableName,
                   Scope.ALTER,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           authenticatedDB
               .getDataStore()
@@ -265,7 +268,8 @@ public class ColumnsResource {
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   Collections.singletonList(tableName),
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           final Table tableMetadata;
           try {
@@ -342,7 +346,8 @@ public class ColumnsResource {
                   keyspaceName,
                   tableName,
                   Scope.ALTER,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           authenticatedDB
               .getDataStore()
@@ -398,7 +403,8 @@ public class ColumnsResource {
                   keyspaceName,
                   tableName,
                   Scope.ALTER,
-                  SourceAPI.REST);
+                  SourceAPI.REST,
+                  ResourceKind.TABLE);
 
           authenticatedDB
               .getDataStore()

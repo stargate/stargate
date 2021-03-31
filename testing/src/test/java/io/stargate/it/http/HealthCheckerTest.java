@@ -22,6 +22,11 @@ public class HealthCheckerTest extends BaseOsgiIntegrationTest {
 
   private static String host;
 
+  static {
+    System.setProperty("stargate.health_check.data_store.enabled", "true");
+    System.setProperty("stargate.health_check.data_store.create_ks_and_table", "true");
+  }
+
   @BeforeAll
   public static void setup(StargateConnectionInfo cluster) {
     host = "http://" + cluster.seedAddress();
@@ -39,7 +44,14 @@ public class HealthCheckerTest extends BaseOsgiIntegrationTest {
   }
 
   @ParameterizedTest
-  @CsvSource({",", "?check=deadlocks", "?check=graphql", "?check=deadlocks&check=graphql"})
+  @CsvSource({
+    ",",
+    "?check=deadlocks",
+    "?check=graphql",
+    "?check=deadlocks&check=graphql",
+    "?check=datastore",
+    "?check=storage"
+  })
   public void readiness(String query) throws IOException {
     query = query == null ? "" : query;
     String body =

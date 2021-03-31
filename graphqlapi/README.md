@@ -7,6 +7,7 @@ These APIs are used as a Stargate OSGi bundle. Add the graphql jar to the Starga
 ## Getting Started
 
 ### Installation
+
 To build the GraphQL plugin individually, run the command:
 
 ```sh
@@ -15,46 +16,38 @@ To build the GraphQL plugin individually, run the command:
 
 ### Using GraphQL
 
-By default, a GraphQL endpoint is started and will generate a GraphQL schema per 
-keyspace. You need at least one user-defined keyspace in your database to get 
-started.  
-
-# GraphQL API for Apache Cassandra
+By default, a GraphQL endpoint is started and will generate a GraphQL schema per keyspace. You need
+at least one user-defined keyspace in your database to get started.
 
 ### Using the Playground
 
-The easiest way to get started is to use the built-in GraphQL playground. GraphQL
-playground can be downloaded as a standalone app [here](https://github.com/prisma-labs/graphql-playground)
-and can then be accessed by going to http://localhost:8080/graphql/{keyspace}. 
-Once in the playground, you can create new schema and interact with the GraphQL APIs.
+The easiest way to get started is to use the built-in GraphQL playground at <http://localhost:8080/playground>.
+You can then interact with the various GraphQL schemas by entering their URL in the playground's address bar, for example <http://localhost:8080/graphql/{keyspace}>.
 
 ### Path Layout
 
 By default, the server paths are structured to provide:
-* `/graphql-schema`: An API for exploring and creating schema, in
-database terminology this is know as: Data Definition Language (DDL). In
-Cassandra these are the queries used to create, modify, drop keyspaces and
-tables e.g. `CREATE KEYSPACE ...`, `CREATE TABLE ...`, `DROP TABLE ...`.
-* `/graphql/<keyspace>`: An API for querying and modifying your Cassandra
-tables using GraphQL fields.
+
+* `/graphql-schema`: An API for exploring and creating schema, in database terminology this is known
+  as: Data Definition Language (DDL). In Cassandra these are the queries used to create, modify,
+  drop keyspaces and tables e.g. `CREATE KEYSPACE ...`, `CREATE TABLE ...`, `DROP TABLE ...`.
+* `/graphql/<keyspace>`: An API for querying and modifying your Cassandra tables using GraphQL
+  fields.
 
 #### Keyspaces
 
-For each keyspace created in your Cassandra schema, a new path is created under
-the root `graphql-path` (default is: `/graphql`). For example, a path
-`/graphql/library` is created for the `library` keyspace when it is added to
-the Cassandra schema.
-
+For each keyspace created in your Cassandra schema, a new path is created under the
+root graphql-path of `/graphql`. For example, a path
+`/graphql/library` is created for the `library` keyspace when it is added to the Cassandra schema.
 
 ### Schema
 
-Before you can get started using GraphQL APIs you must create a keyspace and at
-least one table. If your Cassandra database already has existing schema then the
-server has already imported your schema and you might skip this step.
-Otherwise, use the following steps to create new schema.
+Before you can get started using GraphQL APIs you must create a keyspace and at least one table. If
+your Cassandra database already has existing schema then the server has already imported your schema
+and you might skip this step. Otherwise, use the following steps to create new schema.
 
-Inside the playground, navigate to http://localhost:8080/graphql-schema, then
-create a keyspace by executing:
+Inside the playground, navigate to <http://localhost:8080/graphql-schema>, then create a keyspace by
+executing:
 
 ```graphql
 mutation {
@@ -88,7 +81,7 @@ mutation {
     ]
     clusteringKeys: [ # Secondary key used to access values within the partition
       { name: "title", type: {basic: TEXT} }
-  	]
+    ]
   )
 }
 ```
@@ -198,136 +191,45 @@ type Query {
 }
 
 type Mutation {
-  insertBooks(value: BooksInput!, ifNotExists: Boolean, options: UpdateOptions): BooksMutationResult
-  updateBooks(value: BooksInput!, ifExists: Boolean, ifCondition: BooksFilterInput, options: UpdateOptions): BooksMutationResult
-  deleteBooks(value: BooksInput!, ifExists: Boolean, ifCondition: BooksFilterInput, options: UpdateOptions): BooksMutationResult
+  insertbooks(value: BooksInput!, ifNotExists: Boolean, options: UpdateOptions): BooksMutationResult
+  updatebooks(value: BooksInput!, ifExists: Boolean, ifCondition: BooksFilterInput, options: UpdateOptions): BooksMutationResult
+  deletebooks(value: BooksInput!, ifExists: Boolean, ifCondition: BooksFilterInput, options: UpdateOptions): BooksMutationResult
 }
 ```
 
 #### Queries:
 
-* `books()`: Query book values by equality. If no `value` argument is provided
-  then the first 100 (default pagesize) values are returned.
+* `books()`: Query book values by equality. If no `value` argument is provided then the first 100 (
+  default pagesize) values are returned.
 
 * `booksFilter`: (**Deprecated**) Query book values by filtering the result with additional
-  operators e.g. `gt` (greater than), `lt` (less than), `in` (in a list of
-  values) etc. The `books()` equality style query is preferable if your queries
-  don't require the use non-equality operators.
+  operators e.g. `gt` (greater than), `lt` (less than), `in` (in a list of values) etc.
+  The `books()` equality style query is preferable if your queries don't require the use
+  of non-equality operators.
 
 #### Mutations:
-  
-* `insertBooks()`: Insert a new book. This is an "upsert" operation that will
-  update the value of existing books if they already exists unless `ifNotExists`
-  is set to `true`. Using `ifNotExists` causes the mutation to use a lightweight
-  transaction (LWT) adding significant overhead.
 
-* `updateBooks()`: Update an existing book. This is also an "upsert" and will
-  create a new book if one doesn't exists unless `ifExists` is set to `true`.
-  Using `ifExists` or `ifCondition` causes the mutation to use a lightweight
-  transaction (LWT) adding significant overhead.
+* `insertbooks()`: Insert a new book. This is an "upsert" operation that will update the value of
+  existing books if they already exists unless `ifNotExists`
+  is set to `true`. Using `ifNotExists` causes the mutation to use a lightweight transaction (LWT)
+  adding significant overhead.
 
-* `deleteBooks()`: Deletes a book.  Using `ifExists` or `ifCondition` causes the
-   mutation to use a lightweight transaction (LWT) adding significant overhead.
+* `updatebooks()`: Update an existing book. This is also an "upsert" and will create a new book if
+  one doesn't exists unless `ifExists` is set to `true`. Using `ifExists` or `ifCondition` causes
+  the mutation to use a lightweight transaction (LWT) adding significant overhead.
+
+* `deletebooks()`: Deletes a book. Using `ifExists` or `ifCondition` causes the mutation to use a
+  lightweight transaction (LWT) adding significant overhead.
 
 As more tables are added to a keyspace additional fields will be added to the
 `Query` and `Mutation` types to handle queries and mutations for those
 new tables.
 
-### API Naming Convention
-
-The default naming convention converts CQL (tables and columns) names to
-`lowerCamelCase` for GraphQL fields and `UpperCamelCase` for GraphQL types. If
-the naming convention rules result in a naming conflict, a number suffix is
-appended to the name e.g. `someExistingColumn` --> `someExistingColumn2`. If a
-naming conflict is not resolved within the maximum suffix value of `999` it will
-result in a error.
-
 ### Using the API
 
-This section will show you how to add and query books. Navigate to your keyspace
-inside the playground by going to http://localhost:8080/graphql/library and add
-some entries.
+See the [QuickStart](https://stargate.io/docs/stargate/1.0/quickstart/quick_start-graphql.html) for
+more information.
 
-#### Insert Books
-
-```graphql
-mutation {
-  moby: insertBooks(value: {title:"Moby Dick", author:"Herman Melville"}) {
-    value {
-      title
-    }
-  }
-  catch22: insertBooks(value: {title:"Catch-22", author:"Joseph Heller"}) {
-    value {
-      title
-    }
-  }
-}
-```
-
-#### Query Books
-
-To query those values you can run the following:
-
-```graphql
-query {
-    books {
-      values {
-      	title
-      	author
-      }
-    }
-}
-```
-
-```json
-{
-  "data": {
-    "books": {
-      "values": [
-        {
-          "author": "Joseph Heller",
-          "title": "Catch-22"
-        },
-        {
-          "author": "Herman Melville",
-          "title": "Moby Dick"
-        }
-      ]
-    }
-  }
-}
-```
-
-#### Query a Single Book
-
-A specific book can be queried by providing a key value:
-
-```graphql
-query {
-    books (value: {title:"Moby Dick"}) {
-      values {
-      	title
-      	author
-      }
-    }
-}
-```
-
-```json
-{
-  "data": {
-    "books": {
-      "values": [
-        {
-          "author": "Herman Melville",
-          "title": "Moby Dick"
-        }
-      ]
-    }
-  }
-}
-```
 
 ## Using Apollo Client
 
@@ -377,7 +279,7 @@ client.query({
 })
 ```
 
-Then run then example.
+Then run the example.
 
 ```sh
 $ node index.js # Use the name of the file you created in the previous step
@@ -540,8 +442,8 @@ query {
 }
 ```
 
-The `in` operator allow for filtering a specific set of values. This query
-returns the books by "Herman Melville` in the provided `in` set.
+The `in` operator allow for filtering a specific set of values. This query returns the books
+by `Herman Melville` in the provided `in` set.
 
 ```graphql
 query {
@@ -553,19 +455,6 @@ query {
   }
 }
 ```
-
-#### Supported Operators
-
-| Operator | Example | Description | 
-| --- | --- | --- |
-| `eq` | `filter: { title: { eq: "Moby Dick" }`  | Equals              |
-| `ne` | `filter: { title: { ne: "Moby Dick" }`  | Not equals          |
-| `lt` | `filter: { pages: { lt: 800 }`          | Less than           |
-| `lte`| `filter: { pages: { lte: 799 }`         | Less than equals    |
-| `gt` | `filter: { pages: { gt: 100 }`          | Greater than        |
-| `gte`| `filter: { pages: { gte: 99 }`          | Greater than equal  |
-| `in` | `title: {in: ["Moby Dick", "Redburn"]}` | In a list of values |
-
 
 ### Mutation Options
 
@@ -630,7 +519,7 @@ mutation succeeded then `applied: true` is returned.
 
 ```graphql
 mutation {
-  insertBooks(value: {title: "Don Quixote", author: "Miguel De Cervantes"}, ifNotExists: true) {
+  insertbooks(value: {title: "Don Quixote", author: "Miguel De Cervantes"}, ifNotExists: true) {
     applied
     value {
       title
@@ -645,7 +534,7 @@ Result:
 ```json
 {
   "data": {
-    "insertBooks": {
+    "insertbooks": {
       "applied": true,
       "value": {
         "author": "Miguel De Cervantes",
@@ -658,15 +547,14 @@ Result:
 
 #### Return values
 
-When mutations fail with `applied: false`, the most up-to-date, existing values
-are returned in the result. Using the previous query, if the book already exists
-then the result would return a value for the `author`. Values that part of the
-paritition and clustering keys are always returned in the result, independent of
-whether the mutation was applied.
+When mutations fail with `applied: false`, the most up-to-date, existing values are returned in the
+result. Using the previous query, if the book already exists then the result would return a value
+for the `author`. Values that are part of the partition and clustering keys are always returned in
+the result, independent of whether the mutation was applied.
 
 ```graphql
 mutation {
-  insertBooks(value: {title: "Don Quixote", author: "Herman Melville"}, ifNotExists: true) {
+  insertbooks(value: {title: "Don Quixote", author: "Herman Melville"}, ifNotExists: true) {
     applied
     value {
       title
@@ -681,7 +569,7 @@ Result:
 ```json
 {
   "data": {
-    "insertBooks": {
+    "insertbooks": {
       "applied": false,
       "value": {
         "author": "Miguel De Cervantes",
