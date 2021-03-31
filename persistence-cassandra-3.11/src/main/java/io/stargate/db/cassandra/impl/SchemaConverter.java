@@ -7,10 +7,8 @@ import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Order;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.ColumnDefinition;
@@ -138,13 +136,12 @@ public class SchemaConverter
   @Override
   protected Map<String, String> indexOptions(IndexMetadata index) {
     // TODO: other options to exclude?
-    Set<String> excludeOptions =
-        new HashSet<>(
-            Arrays.asList(
-                IndexTarget.CUSTOM_INDEX_OPTION_NAME,
-                IndexTarget.TARGET_OPTION_NAME,
-                IndexTarget.INDEX_ENTRIES_OPTION_NAME,
-                IndexTarget.INDEX_KEYS_OPTION_NAME));
+    List<String> excludeOptions =
+        Arrays.asList(
+            IndexTarget.CUSTOM_INDEX_OPTION_NAME,
+            IndexTarget.TARGET_OPTION_NAME,
+            IndexTarget.INDEX_ENTRIES_OPTION_NAME,
+            IndexTarget.INDEX_KEYS_OPTION_NAME);
     return index.options.entrySet().stream()
         .filter(x -> !excludeOptions.contains(x.getKey()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

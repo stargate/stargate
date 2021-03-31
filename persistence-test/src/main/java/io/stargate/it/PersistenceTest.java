@@ -647,7 +647,8 @@ public abstract class PersistenceTest {
     // TODO: as indexes are stored in a Map there's no guarantee that the order they
     // printed when calling table#toString() is the same in both expected and actual table
     assertThat(actualTable.indexes().size()).isEqualTo(expectedTable.indexes().size());
-    assertThat(actualTable.index("byD")).isEqualTo(expectedTable.index("byD"));
+    assertThat(actualTable.index("byD").toString())
+        .isEqualTo(expectedTable.index("byD").toString());
   }
 
   @Disabled("Disabling for now since it currently just hangs")
