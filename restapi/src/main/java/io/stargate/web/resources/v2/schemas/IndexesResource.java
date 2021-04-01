@@ -342,7 +342,7 @@ public class IndexesResource {
           try {
             final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
             Index index = tableMetadata.index(indexName);
-            if (index == null) {
+            if (index == null && !ifExists) {
               return Response.status(Response.Status.NOT_FOUND)
                   .entity(
                       new Error(

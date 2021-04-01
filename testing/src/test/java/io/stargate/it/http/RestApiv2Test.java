@@ -621,6 +621,15 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     Error response = objectMapper.readValue(body, Error.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
     assertThat(response.getDescription()).isEqualTo("Index 'invalid_idx' not found.");
+
+    // ifExists=true
+    indexName = "invalid_idx";
+    RestUtils.delete(
+        authToken,
+        String.format(
+            "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes/%s?ifExists=true",
+            host, keyspaceName, tableName, indexName),
+        HttpStatus.SC_NO_CONTENT);
   }
 
   @Test
