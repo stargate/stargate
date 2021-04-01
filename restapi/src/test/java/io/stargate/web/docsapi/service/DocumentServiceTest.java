@@ -176,6 +176,7 @@ public class DocumentServiceTest {
             List.class,
             List.class,
             List.class,
+            List.class,
             Boolean.class,
             String.class,
             int.class,
@@ -1238,7 +1239,7 @@ public class DocumentServiceTest {
         .thenCallRealMethod();
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
         .thenReturn(ImmutablePair.of(new ArrayList<>(), null));
 
     List<FilterCondition> filters =
@@ -1260,7 +1261,7 @@ public class DocumentServiceTest {
         .thenCallRealMethod();
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
         .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
@@ -1285,7 +1286,7 @@ public class DocumentServiceTest {
         .thenCallRealMethod();
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
         .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
@@ -1323,7 +1324,7 @@ public class DocumentServiceTest {
     Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
         .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
     Mockito.when(
             serviceMock.getFullDocuments(
@@ -1356,7 +1357,7 @@ public class DocumentServiceTest {
     Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
         .thenReturn(ImmutablePair.of(twoDocsRows, null));
     Mockito.when(
             serviceMock.getFullDocuments(
@@ -1407,6 +1408,7 @@ public class DocumentServiceTest {
                 "keyspace",
                 "collection",
                 dbMock,
+                new ArrayList<>(),
                 filters,
                 new ArrayList<>(),
                 ImmutableList.of("a,b", "*", "c"),
@@ -1425,6 +1427,7 @@ public class DocumentServiceTest {
                 "keyspace",
                 "collection",
                 dbMock,
+                new ArrayList<>(),
                 new ArrayList<>(),
                 new ArrayList<>(),
                 new ArrayList<>(),
@@ -1465,6 +1468,7 @@ public class DocumentServiceTest {
                     "keyspace",
                     "collection",
                     dbMock,
+                    new ArrayList<>(),
                     filters,
                     new ArrayList<>(),
                     ImmutableList.of("a,b", "*", "c"),

@@ -210,7 +210,7 @@ public class DocumentResourceV2Test {
 
     Keyspace keyspaceMock = mock(Keyspace.class);
     Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), any()))
+    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
         .thenReturn(authenticatedDBMock);
     when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
     when(keyspaceMock.table(collection)).thenReturn(tableMock);
@@ -260,7 +260,7 @@ public class DocumentResourceV2Test {
 
     Keyspace keyspaceMock = mock(Keyspace.class);
     Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), any()))
+    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
         .thenReturn(authenticatedDBMock);
     when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
     when(keyspaceMock.table(collection)).thenReturn(tableMock);
@@ -323,7 +323,7 @@ public class DocumentResourceV2Test {
 
     Keyspace keyspaceMock = mock(Keyspace.class);
     Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), any()))
+    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
         .thenReturn(authenticatedDBMock);
     when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
     when(keyspaceMock.table(collection)).thenReturn(tableMock);
@@ -374,7 +374,7 @@ public class DocumentResourceV2Test {
 
     Keyspace keyspaceMock = mock(Keyspace.class);
     Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), any()))
+    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
         .thenReturn(authenticatedDBMock);
     when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
     when(keyspaceMock.table(collection)).thenReturn(tableMock);
@@ -424,7 +424,7 @@ public class DocumentResourceV2Test {
 
     Keyspace keyspaceMock = mock(Keyspace.class);
     Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), any()))
+    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
         .thenReturn(authenticatedDBMock);
     when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
     when(keyspaceMock.table(collection)).thenReturn(tableMock);
