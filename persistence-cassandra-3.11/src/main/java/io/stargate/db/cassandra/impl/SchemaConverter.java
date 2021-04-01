@@ -137,11 +137,7 @@ public class SchemaConverter
   @Override
   protected Map<String, String> indexOptions(IndexMetadata index) {
     final Set<String> excludeOptions =
-        ImmutableSet.of(
-            IndexTarget.CUSTOM_INDEX_OPTION_NAME,
-            IndexTarget.TARGET_OPTION_NAME,
-            IndexTarget.INDEX_ENTRIES_OPTION_NAME,
-            IndexTarget.INDEX_KEYS_OPTION_NAME);
+        ImmutableSet.of(IndexTarget.CUSTOM_INDEX_OPTION_NAME, IndexTarget.TARGET_OPTION_NAME);
     return index.options.entrySet().stream()
         .filter(x -> !excludeOptions.contains(x.getKey()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
