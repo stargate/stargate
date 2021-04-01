@@ -1,14 +1,15 @@
 package io.stargate.db.cassandra.impl;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.stargate.db.datastore.common.AbstractCassandraSchemaConverter;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Order;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.ColumnDefinition;
@@ -135,9 +136,8 @@ public class SchemaConverter
 
   @Override
   protected Map<String, String> indexOptions(IndexMetadata index) {
-    // TODO: other options to exclude?
-    List<String> excludeOptions =
-        Arrays.asList(
+    final Set<String> excludeOptions =
+        ImmutableSet.of(
             IndexTarget.CUSTOM_INDEX_OPTION_NAME,
             IndexTarget.TARGET_OPTION_NAME,
             IndexTarget.INDEX_ENTRIES_OPTION_NAME,

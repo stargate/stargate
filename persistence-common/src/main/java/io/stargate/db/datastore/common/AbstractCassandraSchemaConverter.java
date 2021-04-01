@@ -204,7 +204,6 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
         indexName(index),
         col.get(),
         result.getValue1(),
-        isCustom(index),
         indexClass(index),
         indexOptions(index));
   }

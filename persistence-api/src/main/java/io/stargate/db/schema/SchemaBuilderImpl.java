@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
       @SubExpr(
           name = "table",
           definedAs =
-              "table (column)+ (secondaryIndex column (indexKeys|indexValues|indexEntries|indexFull|indexCustom)? indexClass? indexOptions?)* <materializedView>*"),
+              "table (column)+ (secondaryIndex column (indexKeys|indexValues|indexEntries|indexFull)? (indexClass indexOptions?)?)* <materializedView>*"),
       @SubExpr(name = "materializedView", definedAs = "materializedView (column)+"),
       @SubExpr(name = "type", definedAs = "type (column)+"),
     })
@@ -68,7 +68,6 @@ public class SchemaBuilderImpl {
   private boolean indexValues;
   private boolean indexEntries;
   private boolean indexFull;
-  private boolean indexCustom;
   private String indexClass;
   private Map<String, String> indexOptions = new HashMap<>();
   private List<Column> fromColumns = new ArrayList<>();
@@ -339,14 +338,7 @@ public class SchemaBuilderImpl {
   }
 
   @DSLAction
-  public void indexCustom() {
-    indexCustom = true;
-  }
-
-  @DSLAction
   public void indexClass(String name) {
-    // TODO: can set indexCustom here?
-    indexCustom();
     indexClass = name;
   }
 
@@ -471,22 +463,6 @@ public class SchemaBuilderImpl {
         }
       }
 
-      // TODO: valid checks?
-      //      if (indexCustom) {
-      //        Preconditions.checkArgument(
-      //            Strings.isNullOrEmpty(indexClass) && (indexOptions != null &&
-      // !indexOptions.isEmpty()),
-      //            "indexOptions cannot be informed without informing a index class");
-      //      } else {
-      //        Preconditions.checkArgument(
-      //            !Strings.isNullOrEmpty(indexClass),
-      //            "indexClass cannot be informed without setting indexCustom as true");
-      //
-      //        Preconditions.checkArgument(
-      //            indexOptions != null && !indexOptions.isEmpty(),
-      //            "indexOptions cannot be informed without setting indexCustom as true");
-      //      }
-
       indexes.add(
           SecondaryIndex.create(
               keyspaceName,
@@ -498,7 +474,6 @@ public class SchemaBuilderImpl {
                   .indexValues(indexValues)
                   .indexFull(indexFull)
                   .build(),
-              indexCustom,
               indexClass,
               indexOptions));
 

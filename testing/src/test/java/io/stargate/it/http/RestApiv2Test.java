@@ -379,7 +379,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstName text", "email list<text>"),
+        Arrays.asList("id text", "firstName text", "lastName text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
@@ -442,6 +442,37 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             HttpStatus.SC_CREATED);
     successResponse = objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
     assertThat(successResponse.getSuccess()).isTrue();
+
+    // creates a custom index
+    String indexType = "org.apache.cassandra.index.sasi.SASIIndex";
+    indexAdd.setColumn("lastName");
+    indexAdd.setName("test_custom_idx");
+    indexAdd.setType(indexType);
+    indexAdd.setIfNotExists(false);
+    indexAdd.setKind(null);
+
+    Map<String, String> options = new HashMap<>();
+    options.put("mode", "CONTAINS");
+    indexAdd.setOptions(options);
+
+    body =
+        RestUtils.post(
+            authToken,
+            String.format(
+                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
+            objectMapper.writeValueAsString(indexAdd),
+            HttpStatus.SC_CREATED);
+    successResponse = objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
+    assertThat(successResponse.getSuccess()).isTrue();
+
+    rows = session.execute("SELECT * FROM system_schema.indexes;").all();
+    Optional<Row> row =
+        rows.stream().filter(i -> "test_custom_idx".equals(i.getString("index_name"))).findFirst();
+    Map<String, String> optionsReturned = row.get().getMap("options", String.class, String.class);
+
+    assertThat(optionsReturned.get("class_name")).isEqualTo(indexType);
+    assertThat(optionsReturned.get("target")).isEqualTo("\"lastName\"");
+    assertThat(optionsReturned.get("mode")).isEqualTo("CONTAINS");
   }
 
   @Test

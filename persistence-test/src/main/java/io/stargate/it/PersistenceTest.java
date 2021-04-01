@@ -613,11 +613,11 @@ public abstract class PersistenceTest {
     dataStore
         .queryBuilder()
         .create()
-        .custom(indexClass)
         .index("byD")
         .ifNotExists()
         .on(keyspace, table)
         .column("d")
+        .custom(indexClass)
         .options(indexOptions)
         .build()
         .execute()

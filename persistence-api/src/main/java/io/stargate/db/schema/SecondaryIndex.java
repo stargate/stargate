@@ -15,6 +15,7 @@
  */
 package io.stargate.db.schema;
 
+import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import java.util.Map;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
@@ -30,12 +31,13 @@ public abstract class SecondaryIndex implements Index, QualifiedSchemaEntity {
 
   @Value.Default
   public boolean isCustom() {
-    return false;
+    return !Strings.isNullOrEmpty(indexingClass());
   }
 
   @Nullable
   public abstract String indexingClass();
 
+  @Nullable
   public abstract Map<String, String> indexingOptions();
 
   public static SecondaryIndex create(String keyspace, String name, Column column) {
@@ -52,7 +54,6 @@ public abstract class SecondaryIndex implements Index, QualifiedSchemaEntity {
       String name,
       Column column,
       CollectionIndexingType indexingType,
-      boolean isCustom,
       String indexClass,
       Map<String, String> indexOptions) {
     return ImmutableSecondaryIndex.builder()
@@ -60,7 +61,6 @@ public abstract class SecondaryIndex implements Index, QualifiedSchemaEntity {
         .name(name)
         .column(column)
         .indexingType(indexingType)
-        .isCustom(isCustom)
         .indexingClass(indexClass)
         .indexingOptions(indexOptions)
         .build();

@@ -60,6 +60,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -262,12 +263,12 @@ public class IndexesResource {
               .getDataStore()
               .queryBuilder()
               .create()
-              .custom(indexAdd.getType())
               .index(indexAdd.getName())
               .ifNotExists(indexAdd.getIfNotExists())
               .on(keyspaceName, tableName)
               .column(columnName)
               .indexingType(indexingType)
+              .custom(indexAdd.getType(), indexAdd.getOptions())
               .build()
               .execute()
               .get();
@@ -307,6 +308,12 @@ public class IndexesResource {
       @ApiParam(value = "Name of the index to use for the request.", required = true)
           @PathParam("indexName")
           final String indexName,
+      @ApiParam(
+              defaultValue = "false",
+              value =
+                  "If the index doesn't exists drop will throw an error unless this query param is set to true.")
+          @QueryParam("ifExists")
+          final boolean ifExists,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
@@ -357,6 +364,7 @@ public class IndexesResource {
               .queryBuilder()
               .drop()
               .index(keyspaceName, indexName)
+              .ifExists(ifExists)
               .build()
               .execute()
               .get();
