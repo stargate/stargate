@@ -1342,8 +1342,8 @@ public class QueryBuilderImpl {
         Joiner.on(", ")
             .join(
                 indexOptions.entrySet().stream()
-                    .map(e -> String.format("'%s': '%s'", e.getKey(), e.getValue()))
-                    .collect(Collectors.toList()));
+                    .map(e -> format("'%s': '%s'", e.getKey(), e.getValue()))
+                    .collect(toList()));
     builder.append(" WITH OPTIONS = { ").append(options).append(" }");
     return builder.toString();
   }
