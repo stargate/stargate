@@ -42,7 +42,7 @@ public class SchemaSourceDao {
   private static final Logger LOGGER = LoggerFactory.getLogger(SchemaSourceDao.class);
   public static final String KEYSPACE_NAME = "stargate_graphql";
   public static final String TABLE_NAME = "schema_source";
-  @VisibleForTesting static final String KEYSPACE_COLUMN_NAME = "keyspace";
+  @VisibleForTesting static final String KEYSPACE_COLUMN_NAME = "keyspace_name";
   @VisibleForTesting static final String VERSION_COLUMN_NAME = "version";
   @VisibleForTesting static final String LATEST_VERSION_COLUMN_NAME = "latest_version";
   @VisibleForTesting static final String CONTENTS_COLUMN_NAME = "contents";

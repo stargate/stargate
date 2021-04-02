@@ -27,6 +27,7 @@ abstract class GraphqlFirstTestBase extends BaseOsgiIntegrationTest {
         .ifPresent(
             __ ->
                 session.execute(
-                    "DELETE FROM stargate_graphql.schema_source WHERE keyspace = ?", keyspace));
+                    "DELETE FROM stargate_graphql.schema_source WHERE keyspace_name = ?",
+                    keyspace));
   }
 }

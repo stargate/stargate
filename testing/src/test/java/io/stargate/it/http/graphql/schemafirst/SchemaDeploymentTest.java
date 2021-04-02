@@ -71,7 +71,8 @@ public class SchemaDeploymentTest extends GraphqlFirstTestBase {
     // then
     Row row =
         session
-            .execute("select * from stargate_graphql.schema_source where keyspace = ?", keyspace)
+            .execute(
+                "select * from stargate_graphql.schema_source wHERE keyspace_name = ?", keyspace)
             .one();
     assertThat(row).isNotNull();
     assertThat(row.isNull("deployment_in_progress")).isFalse();
@@ -87,7 +88,7 @@ public class SchemaDeploymentTest extends GraphqlFirstTestBase {
     UUID currentVersion = CLIENT.deploySchema(keyspace, SCHEMA_CONTENTS);
     session.execute(
         "UPDATE stargate_graphql.schema_source "
-            + "SET deployment_in_progress = true WHERE keyspace = ?",
+            + "SET deployment_in_progress = true WHERE keyspace_name = ?",
         keyspace);
 
     // when
@@ -107,7 +108,7 @@ public class SchemaDeploymentTest extends GraphqlFirstTestBase {
     UUID currentVersion = CLIENT.deploySchema(keyspace, SCHEMA_CONTENTS);
     session.execute(
         "UPDATE stargate_graphql.schema_source "
-            + "SET deployment_in_progress = true WHERE keyspace = ?",
+            + "SET deployment_in_progress = true WHERE keyspace_name = ?",
         keyspace);
 
     // when
@@ -116,7 +117,8 @@ public class SchemaDeploymentTest extends GraphqlFirstTestBase {
     // then
     Row row =
         session
-            .execute("select * from stargate_graphql.schema_source where keyspace = ?", keyspace)
+            .execute(
+                "select * from stargate_graphql.schema_source wHERE keyspace_name = ?", keyspace)
             .one();
     assertThat(row).isNotNull();
     assertThat(row.isNull("deployment_in_progress")).isFalse();
@@ -153,7 +155,7 @@ public class SchemaDeploymentTest extends GraphqlFirstTestBase {
     UUID currentVersion = CLIENT.deploySchema(keyspace, SCHEMA_CONTENTS);
     session.execute(
         "UPDATE stargate_graphql.schema_source "
-            + "SET deployment_in_progress = true WHERE keyspace = ?",
+            + "SET deployment_in_progress = true WHERE keyspace_name = ?",
         keyspace);
     UUID wrongExpectedVersion = Uuids.timeBased();
     assertThat(wrongExpectedVersion).isNotEqualTo(currentVersion);
