@@ -6,8 +6,11 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Order;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import org.apache.cassandra.cql3.statements.schema.IndexTarget;
 import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.index.Index;
@@ -138,12 +141,13 @@ public class SchemaConverter
 
   @Override
   protected Map<String, String> indexOptions(IndexMetadata index) {
-    //TODO: other options to exclude?
-    //TODO: DSE has only those two extra options are C* 4.0?
-    List<String> excludeOptions = Arrays.asList(IndexTarget.CUSTOM_INDEX_OPTION_NAME, IndexTarget.TARGET_OPTION_NAME));
+    // TODO: other options to exclude?
+    // TODO: DSE has only those two extra options are C* 4.0?
+    List<String> excludeOptions =
+        Arrays.asList(IndexTarget.CUSTOM_INDEX_OPTION_NAME, IndexTarget.TARGET_OPTION_NAME);
     return index.options.entrySet().stream()
-            .filter(x -> !excludeOptions.contains(x.getKey()))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        .filter(x -> !excludeOptions.contains(x.getKey()))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   @Override
