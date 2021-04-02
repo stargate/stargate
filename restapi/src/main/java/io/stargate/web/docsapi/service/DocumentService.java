@@ -1005,9 +1005,11 @@ public class DocumentService {
       throws UnauthorizedException {
     ByteBuffer currentPageState;
     ObjectNode docsResult = mapper.createObjectNode();
-    LinkedHashSet<String> candidates;
-    ByteBuffer nextPage = null;
     boolean firstRequest = true;
+    LinkedHashSet<String> candidates = new LinkedHashSet<>();
+    ByteBuffer nextPage = null;
+    ByteBuffer finalPagingState;
+    List<Row> rows = null;
 
     do {
       if (firstRequest) {
@@ -1022,32 +1024,54 @@ public class DocumentService {
 
       ImmutablePair<LinkedHashSet<String>, ByteBuffer> candidateResult =
           getCandidatesForPage(
-              db,
-              keyspace,
-              collection,
-              inCassandraFilters,
-              pageSize,
-              currentPageState,
-              new LinkedHashSet<>());
+              db, keyspace, collection, inCassandraFilters, pageSize, currentPageState, candidates);
       candidates = candidateResult.left;
       nextPage = candidateResult.right;
+
+      // Do an in-memory filter if there are non-cassandra filters
+      if (!inMemoryFilters.isEmpty()) {
+        BuiltCondition candidatesPredicate =
+            BuiltCondition.of("key", Predicate.IN, new ArrayList<>(candidates));
+        rows = db.executeSelect(keyspace, collection, ImmutableList.of(candidatesPredicate)).rows();
+        candidates.clear();
+        updateExistenceForMap(candidates, rows, inMemoryFilters, db.treatBooleansAsNumeric(), true);
+      }
       firstRequest = false;
     } while (candidates.size() <= limit && nextPage != null);
 
     // Either we've reached the end of all rows in the collection, or we have enough rows
     // in memory to build the final result.
-    BuiltCondition candidatesPredicate = BuiltCondition.of("key", Predicate.IN, candidates);
-    List<Row> rows =
-        db.executeSelect(keyspace, collection, ImmutableList.of(candidatesPredicate)).rows();
+    if (rows == null) {
+      BuiltCondition candidatesPredicate =
+          BuiltCondition.of("key", Predicate.IN, new ArrayList<>(candidates));
+      rows = db.executeSelect(keyspace, collection, ImmutableList.of(candidatesPredicate)).rows();
+      updateExistenceForMap(
+          new HashSet<>(), rows, Collections.emptyList(), db.treatBooleansAsNumeric(), true);
+    }
+
+    Set<String> docNames = candidates;
+    if (candidates.size() > limit) {
+      docNames = new HashSet<>();
+      Iterator<String> iter = candidates.iterator();
+      int i = 0;
+      while (i < limit) {
+        docNames.add(iter.next());
+      }
+      finalPagingState = null; // FIX
+    } else {
+      finalPagingState = null;
+    }
+
     Map<String, List<Row>> rowsByDoc = new HashMap<>();
-    rows = filterOutRowsInMemory(rows, inMemoryFilters, db.treatBooleansAsNumeric());
     for (Row row : rows) {
       String key = row.getString("key");
-      List<Row> rowsAtKey = rowsByDoc.getOrDefault(key, new ArrayList<>());
-      if (fields.isEmpty() || fields.contains(row.getString("p0"))) {
-        rowsAtKey.add(row);
+      if (docNames.contains(key)) {
+        List<Row> rowsAtKey = rowsByDoc.getOrDefault(key, new ArrayList<>());
+        if (fields.isEmpty() || fields.contains(row.getString("p0"))) {
+          rowsAtKey.add(row);
+        }
+        rowsByDoc.put(key, rowsAtKey);
       }
-      rowsByDoc.put(key, rowsAtKey);
     }
 
     for (Map.Entry<String, List<Row>> entry : rowsByDoc.entrySet()) {
@@ -1090,27 +1114,32 @@ public class DocumentService {
                 pageSize,
                 pageState);
         firstPage = page;
+        candidatesThisPage = new LinkedHashSet<>();
+        for (Row row : page.left) {
+          candidatesThisPage.add(row.getString("key"));
+        }
       } else {
-        BuiltCondition candidateCondition =
-            BuiltCondition.of("key", Predicate.IN, candidatesThisPage);
-        page =
-            searchRows(
-                keyspace,
-                collection,
-                db,
-                ImmutableList.of(candidateCondition),
-                ImmutableList.of(condition),
-                Collections.emptyList(),
-                path,
-                false,
-                null,
-                pageSize,
-                pageState);
-      }
-
-      candidatesThisPage = new LinkedHashSet<>();
-      for (Row row : page.left) {
-        candidatesThisPage.add(row.getString("key"));
+        LinkedHashSet<String> tempCandidates = new LinkedHashSet<>();
+        for (String candidate : candidatesThisPage) {
+          BuiltCondition candidateCondition = BuiltCondition.of("key", Predicate.EQ, candidate);
+          page =
+              searchRows(
+                  keyspace,
+                  collection,
+                  db,
+                  ImmutableList.of(candidateCondition),
+                  ImmutableList.of(condition),
+                  Collections.emptyList(),
+                  path,
+                  false,
+                  null,
+                  pageSize,
+                  pageState);
+          if (!page.left.isEmpty()) {
+            tempCandidates.add(candidate);
+          }
+        }
+        candidatesThisPage = tempCandidates;
       }
     }
 
