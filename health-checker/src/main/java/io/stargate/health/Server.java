@@ -97,4 +97,7 @@ public class Server extends Application<ApplicationConfiguration> {
     topLevelRegistry.register("jvm.threads", new ThreadStatesGaugeSet());
     topLevelRegistry.register("cpu", new CPUGaugeMetricSet());
   }
+
+  @Override
+  protected void bootstrapLogging() {}
 }

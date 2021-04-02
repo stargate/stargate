@@ -153,4 +153,7 @@ public class DropwizardServer extends Application<Configuration> {
       s.stop();
     }
   }
+
+  @Override
+  protected void bootstrapLogging() {}
 }

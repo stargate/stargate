@@ -4,3 +4,8 @@ server:
   connector:
     type: http
     port: 8082
+  requestLog:
+    type: external
+logging:
+    type: external
+

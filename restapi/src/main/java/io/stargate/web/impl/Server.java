@@ -176,4 +176,7 @@ public class Server extends Application<ApplicationConfiguration> {
 
     filter.addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), true, "/*");
   }
+
+  @Override
+  protected void bootstrapLogging() {}
 }
