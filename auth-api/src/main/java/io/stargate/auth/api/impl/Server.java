@@ -127,5 +127,7 @@ public class Server extends Application<ApplicationConfiguration> {
   }
 
   @Override
-  protected void bootstrapLogging() {}
+  protected void bootstrapLogging() {
+    // disable dropwizard logging, it will use external logback
+  }
 }
