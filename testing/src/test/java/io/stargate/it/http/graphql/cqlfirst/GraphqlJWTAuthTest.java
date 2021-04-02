@@ -28,6 +28,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE \"Books\"(title text PRIMARY KEY, author text)",
       "CREATE TABLE \"Secret\"(k int PRIMARY KEY)",
       "GRANT MODIFY ON TABLE \"Books\" TO web_user",
+      "CREATE KEYSPACE IF NOT EXISTS stargate_graphql WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
+      "GRANT SELECT ON KEYSPACE stargate_graphql TO web_user",
     })
 public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
 

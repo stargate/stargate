@@ -55,7 +55,7 @@ import io.stargate.graphql.schema.schemafirst.fetchers.admin.SingleSchemaFetcher
 import io.stargate.graphql.schema.schemafirst.migration.MigrationStrategy;
 import io.stargate.graphql.schema.schemafirst.processor.ProcessingLogType;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
-import io.stargate.graphql.web.resources.schemafirst.ResourcePaths;
+import io.stargate.graphql.web.resources.ResourcePaths;
 import java.io.InputStream;
 
 public class AdminSchemaBuilder {

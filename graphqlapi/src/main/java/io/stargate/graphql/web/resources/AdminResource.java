@@ -1,9 +1,7 @@
-package io.stargate.graphql.web.resources.schemafirst;
+package io.stargate.graphql.web.resources;
 
 import graphql.GraphQL;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
-import io.stargate.graphql.web.resources.Authenticated;
-import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
@@ -21,8 +19,8 @@ import org.glassfish.jersey.media.multipart.FormDataMultiPart;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 
 /**
- * Serves the GraphQL schema for admin operations: managing namespaces, deploying schemas to them,
- * etc.
+ * A GraphQL service that allows users to deploy and manage custom GraphQL schemas for their
+ * keyspaces.
  */
 @Singleton
 @Path(ResourcePaths.ADMIN)
@@ -33,8 +31,8 @@ public class AdminResource extends GraphqlResourceBase {
   private final GraphQL graphql;
 
   @Inject
-  public AdminResource(SchemaFirstCache schemaFirstCache) {
-    this.graphql = schemaFirstCache.getAdminGraphql();
+  public AdminResource(GraphqlCache graphqlCache) {
+    this.graphql = graphqlCache.getSchemaFirstAdminGraphql();
   }
 
   @GET
