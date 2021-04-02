@@ -33,6 +33,9 @@ import org.eclipse.jetty.util.thread.ThreadPool;
 @JsonTypeName("rest-api")
 public class RestApiServerFactory extends SimpleServerFactory {
 
+  private static final boolean REQUEST_LOGS_ENABLED =
+      Boolean.parseBoolean(System.getProperty("stargate.requests_logging.enabled", "true"));
+
   @Override
   public Server build(Environment environment) {
     configure(environment);
@@ -60,8 +63,11 @@ public class RestApiServerFactory extends SimpleServerFactory {
         Collections.singletonMap(getApplicationContextPath(), applicationHandler);
     final ContextRoutingHandler routingHandler = new ContextRoutingHandler(handlers);
     final Handler gzipHandler = buildGzipHandler(routingHandler);
-    server.setHandler(addStatsHandler(addRequestLog(server, gzipHandler, environment.getName())));
-
+    if (REQUEST_LOGS_ENABLED) {
+      server.setHandler(addStatsHandler(addRequestLog(server, gzipHandler, environment.getName())));
+    } else {
+      server.setHandler(addStatsHandler(gzipHandler));
+    }
     return server;
   }
 
