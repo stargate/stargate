@@ -33,7 +33,7 @@ public abstract class SchemaFetcher<ResultT> extends CassandraFetcher<ResultT> {
     super(authorizationService, dataStoreFactory);
   }
 
-  protected void authorize(AuthenticationSubject authenticationSubject, String namespace)
+  protected void authorize(AuthenticationSubject authenticationSubject, String keyspace)
       throws UnauthorizedException {
     authorizationService.authorizeSchemaRead(
         authenticationSubject,
@@ -46,18 +46,17 @@ public abstract class SchemaFetcher<ResultT> extends CassandraFetcher<ResultT> {
     // GraphQL schema for something that's forbidden to them.
     authorizationService.authorizeSchemaRead(
         authenticationSubject,
-        Collections.singletonList(namespace),
+        Collections.singletonList(keyspace),
         Collections.emptyList(),
         SourceAPI.GRAPHQL,
         ResourceKind.KEYSPACE);
   }
 
-  protected String getNamespace(DataFetchingEnvironment environment, DataStore dataStore) {
-    String namespace = environment.getArgument("namespace");
-    if (!dataStore.schema().keyspaceNames().contains(namespace)) {
-      throw new IllegalArgumentException(
-          String.format("Namespace '%s' does not exist.", namespace));
+  protected String getKeyspace(DataFetchingEnvironment environment, DataStore dataStore) {
+    String keyspace = environment.getArgument("keyspace");
+    if (!dataStore.schema().keyspaceNames().contains(keyspace)) {
+      throw new IllegalArgumentException(String.format("Keyspace '%s' does not exist.", keyspace));
     }
-    return namespace;
+    return keyspace;
   }
 }

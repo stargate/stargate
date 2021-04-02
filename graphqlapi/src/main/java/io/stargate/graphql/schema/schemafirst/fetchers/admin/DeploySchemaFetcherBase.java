@@ -51,19 +51,15 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
       throws Exception {
     SchemaSourceDao schemaSourceDao = new SchemaSourceDao(dataStore);
 
-    String namespace = environment.getArgument("namespace");
-    Keyspace keyspace = dataStore.schema().keyspace(namespace);
+    String keyspaceName = environment.getArgument("keyspace");
+    Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
     if (keyspace == null) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Namespace '%s' does not exist. "
-                  + "Use the 'createNamespace' mutation to create it first.",
-              namespace));
+      throw new IllegalArgumentException("Keyspace '%s' does not exist.");
     }
 
     authorizationService.authorizeSchemaWrite(
         authenticationSubject,
-        namespace,
+        keyspaceName,
         null,
         Scope.MODIFY,
         SourceAPI.GRAPHQL,
@@ -75,7 +71,7 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
     boolean force = environment.getArgument("force");
     boolean dryRun = environment.getArgument("dryRun");
     if (!dryRun) {
-      schemaSourceDao.startDeployment(namespace, expectedVersion, force);
+      schemaSourceDao.startDeployment(keyspaceName, expectedVersion, force);
     }
 
     DeploySchemaResponseDto response = new DeploySchemaResponseDto();
@@ -92,7 +88,7 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
       response.setCqlChanges(queries);
     } catch (Exception e) {
       if (!dryRun) {
-        schemaSourceDao.abortDeployment(namespace); // unsets the flag (no need for LWT)
+        schemaSourceDao.abortDeployment(keyspaceName); // unsets the flag (no need for LWT)
       }
       throw e;
     }
@@ -101,8 +97,8 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
       for (MigrationQuery query : queries) {
         dataStore.execute(query.build(dataStore)).get();
       }
-      SchemaSource newSource = schemaSourceDao.insert(namespace, input);
-      schemaSourceDao.purgeOldVersions(namespace);
+      SchemaSource newSource = schemaSourceDao.insert(keyspaceName, input);
+      schemaSourceDao.purgeOldVersions(keyspaceName);
       response.setVersion(newSource.getVersion());
       // TODO update SchemaFirstCache from here instead of letting it reload from the DB
     }

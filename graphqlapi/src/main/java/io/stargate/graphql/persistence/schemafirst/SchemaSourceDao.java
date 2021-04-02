@@ -42,7 +42,7 @@ public class SchemaSourceDao {
   private static final Logger LOGGER = LoggerFactory.getLogger(SchemaSourceDao.class);
   public static final String KEYSPACE_NAME = "stargate_graphql";
   public static final String TABLE_NAME = "schema_source";
-  @VisibleForTesting static final String NAMESPACE_COLUMN_NAME = "namespace";
+  @VisibleForTesting static final String KEYSPACE_COLUMN_NAME = "keyspace";
   @VisibleForTesting static final String VERSION_COLUMN_NAME = "version";
   @VisibleForTesting static final String LATEST_VERSION_COLUMN_NAME = "latest_version";
   @VisibleForTesting static final String CONTENTS_COLUMN_NAME = "contents";
@@ -60,7 +60,7 @@ public class SchemaSourceDao {
           .name(TABLE_NAME)
           .addColumns(
               ImmutableColumn.create(
-                  NAMESPACE_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Varchar),
+                  KEYSPACE_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Varchar),
               ImmutableColumn.create(
                   VERSION_COLUMN_NAME,
                   Column.Kind.Clustering,
@@ -80,19 +80,19 @@ public class SchemaSourceDao {
     this.dataStore = dataStore;
   }
 
-  public List<SchemaSource> getAllVersions(String namespace) throws Exception {
+  public List<SchemaSource> getAllVersions(String keyspace) throws Exception {
     if (!tableExists()) {
       return Collections.emptyList();
     }
-    List<Row> row = dataStore.execute(schemaQuery(namespace)).get().rows();
+    List<Row> row = dataStore.execute(schemaQuery(keyspace)).get().rows();
     if (row == null) {
       return Collections.emptyList();
     }
-    return row.stream().map(r -> toSchemaSource(namespace, r)).collect(Collectors.toList());
+    return row.stream().map(r -> toSchemaSource(keyspace, r)).collect(Collectors.toList());
   }
 
   public SchemaSource getSingleVersion(
-      String namespace,
+      String keyspace,
       @SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<UUID> maybeVersion)
       throws Exception {
     if (!tableExists()) {
@@ -104,53 +104,53 @@ public class SchemaSourceDao {
       if (versionUuid.version() != 1) { // must be time-based
         return null;
       }
-      resultSet = dataStore.execute(schemaQueryWithSpecificVersion(namespace, versionUuid)).get();
+      resultSet = dataStore.execute(schemaQueryWithSpecificVersion(keyspace, versionUuid)).get();
     } else {
-      resultSet = dataStore.execute(schemaQuery(namespace)).get();
+      resultSet = dataStore.execute(schemaQuery(keyspace)).get();
     }
     if (!resultSet.iterator().hasNext()) {
       return null;
     }
-    return toSchemaSource(namespace, resultSet.one());
+    return toSchemaSource(keyspace, resultSet.one());
   }
 
-  public SchemaSource getLatestVersion(String namespace) throws Exception {
-    return getSingleVersion(namespace, Optional.empty());
+  public SchemaSource getLatestVersion(String keyspace) throws Exception {
+    return getSingleVersion(keyspace, Optional.empty());
   }
 
-  private SchemaSource toSchemaSource(String namespace, Row r) {
+  private SchemaSource toSchemaSource(String keyspace, Row r) {
     return new SchemaSource(
-        namespace, r.getUuid(VERSION_COLUMN_NAME), r.getString(CONTENTS_COLUMN_NAME));
+        keyspace, r.getUuid(VERSION_COLUMN_NAME), r.getString(CONTENTS_COLUMN_NAME));
   }
 
   @VisibleForTesting
-  BoundQuery schemaQueryWithSpecificVersion(String namespace, UUID uuid) {
+  BoundQuery schemaQueryWithSpecificVersion(String keyspace, UUID uuid) {
     return dataStore
         .queryBuilder()
         .select()
         .column(VERSION_COLUMN_NAME, CONTENTS_COLUMN_NAME)
         .from(KEYSPACE_NAME, TABLE_NAME)
-        .where(NAMESPACE_COLUMN_NAME, Predicate.EQ, namespace)
+        .where(KEYSPACE_COLUMN_NAME, Predicate.EQ, keyspace)
         .where(VERSION_COLUMN_NAME, Predicate.EQ, uuid)
         .build()
         .bind();
   }
 
   @VisibleForTesting
-  BoundQuery schemaQuery(String namespace) {
+  BoundQuery schemaQuery(String keyspace) {
     return dataStore
         .queryBuilder()
         .select()
         .column(VERSION_COLUMN_NAME, CONTENTS_COLUMN_NAME)
         .from(KEYSPACE_NAME, TABLE_NAME)
-        .where(NAMESPACE_COLUMN_NAME, Predicate.EQ, namespace)
+        .where(KEYSPACE_COLUMN_NAME, Predicate.EQ, keyspace)
         .orderBy(VERSION_COLUMN_NAME, Column.Order.DESC)
         .build()
         .bind();
   }
 
   /** @return the new version */
-  public SchemaSource insert(String namespace, String newContents) {
+  public SchemaSource insert(String keyspace, String newContents) {
 
     UUID newVersion = Uuids.timeBased();
 
@@ -158,7 +158,7 @@ public class SchemaSourceDao {
         dataStore
             .queryBuilder()
             .insertInto(KEYSPACE_NAME, TABLE_NAME)
-            .value(NAMESPACE_COLUMN_NAME, namespace)
+            .value(KEYSPACE_COLUMN_NAME, keyspace)
             .value(VERSION_COLUMN_NAME, newVersion)
             .value(LATEST_VERSION_COLUMN_NAME, newVersion)
             .value(CONTENTS_COLUMN_NAME, newContents)
@@ -171,10 +171,9 @@ public class SchemaSourceDao {
     } catch (Exception e) {
       throw new RuntimeException(
           String.format(
-              "Schema deployment for namespace: %s and version: %s failed.",
-              namespace, newVersion));
+              "Schema deployment for keyspace: %s and version: %s failed.", keyspace, newVersion));
     }
-    return new SchemaSource(namespace, newVersion, newContents);
+    return new SchemaSource(keyspace, newVersion, newContents);
   }
 
   private void ensureTableExists() throws Exception {
@@ -236,7 +235,7 @@ public class SchemaSourceDao {
    *
    * @throws IllegalStateException if the deployment could not be started.
    */
-  public void startDeployment(String namespace, UUID expectedLatestVersion, boolean force)
+  public void startDeployment(String keyspace, UUID expectedLatestVersion, boolean force)
       throws Exception {
     ensureTableExists();
     List<BuiltCondition> conditions =
@@ -251,7 +250,7 @@ public class SchemaSourceDao {
             .queryBuilder()
             .update(KEYSPACE_NAME, TABLE_NAME)
             .value(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, true)
-            .where(NAMESPACE_COLUMN_NAME, Predicate.EQ, namespace)
+            .where(KEYSPACE_COLUMN_NAME, Predicate.EQ, keyspace)
             .ifs(conditions)
             .build()
             .bind();
@@ -280,36 +279,35 @@ public class SchemaSourceDao {
     }
   }
 
-  public void abortDeployment(String namespace) throws ExecutionException, InterruptedException {
+  public void abortDeployment(String keyspace) throws ExecutionException, InterruptedException {
     BoundQuery updateDeploymentToNotInProgress =
         dataStore
             .queryBuilder()
             .update(KEYSPACE_NAME, TABLE_NAME)
             .value(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, false)
-            .where(NAMESPACE_COLUMN_NAME, Predicate.EQ, namespace)
+            .where(KEYSPACE_COLUMN_NAME, Predicate.EQ, keyspace)
             .build()
             .bind();
     dataStore.execute(updateDeploymentToNotInProgress).get();
   }
 
-  public void purgeOldVersions(String namespace) throws Exception {
-    List<SchemaSource> allSchemasForNamespace = getAllVersions(namespace);
+  public void purgeOldVersions(String keyspace) throws Exception {
+    List<SchemaSource> allSchemasForKeyspace = getAllVersions(keyspace);
 
-    int numberOfEntriesToRemove =
-        allSchemasForNamespace.size() - NUMBER_OF_RETAINED_SCHEMA_VERSIONS;
+    int numberOfEntriesToRemove = allSchemasForKeyspace.size() - NUMBER_OF_RETAINED_SCHEMA_VERSIONS;
     if (numberOfEntriesToRemove > 0) {
       LOGGER.info("Removing {} old schema entries.", numberOfEntriesToRemove);
 
       // remove N oldest entries
       SchemaSource mostRecentToRemove =
-          allSchemasForNamespace.get(NUMBER_OF_RETAINED_SCHEMA_VERSIONS);
+          allSchemasForKeyspace.get(NUMBER_OF_RETAINED_SCHEMA_VERSIONS);
 
       BoundQuery deleteSchemaQuery =
           dataStore
               .queryBuilder()
               .delete()
               .from(KEYSPACE_NAME, TABLE_NAME)
-              .where(NAMESPACE_COLUMN_NAME, Predicate.EQ, namespace)
+              .where(KEYSPACE_COLUMN_NAME, Predicate.EQ, keyspace)
               .where(VERSION_COLUMN_NAME, Predicate.LTE, mostRecentToRemove.getVersion())
               .build()
               .bind();
