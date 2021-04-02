@@ -31,16 +31,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(CqlSessionExtension.class)
 public class SelectTest extends GraphqlFirstTestBase {
   private static GraphqlFirstClient CLIENT;
-  private static String NAMESPACE;
+  private static String KEYSPACE;
 
   @BeforeAll
   public static void setup(StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId) {
     CLIENT =
         new GraphqlFirstClient(
             cluster.seedAddress(), RestUtils.getAuthToken(cluster.seedAddress()));
-    NAMESPACE = keyspaceId.asInternal();
+    KEYSPACE = keyspaceId.asInternal();
     CLIENT.deploySchema(
-        NAMESPACE,
+        KEYSPACE,
         "type Foo @cql_input {\n"
             + "  pk1: Int! @cql_column(partitionKey: true)\n"
             + "  pk2: Int! @cql_column(partitionKey: true)\n"
@@ -80,8 +80,8 @@ public class SelectTest extends GraphqlFirstTestBase {
   }
 
   private static void insert(int pk1, int pk2, int cc1, int cc2) {
-    CLIENT.executeNamespaceQuery(
-        NAMESPACE,
+    CLIENT.executeKeyspaceQuery(
+        KEYSPACE,
         String.format(
             "mutation {\n"
                 + "  result: insertFoo(foo: {pk1: %d, pk2: %d, cc1: %d, cc2: %d}) {\n"
@@ -96,8 +96,8 @@ public class SelectTest extends GraphqlFirstTestBase {
   public void selectFullPrimaryKey() {
     // when
     Object response =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE,
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
             "query {\n"
                 + "  result: foo(pk1: 1, pk2: 2, cc1: 1, cc2: 1) {\n"
                 + "    pk1,pk2,cc1,cc2\n"
@@ -116,8 +116,8 @@ public class SelectTest extends GraphqlFirstTestBase {
   public void selectPrimaryKeyPrefix() {
     // when
     Object response =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE,
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
             "query {\n"
                 + "  results: fooByPkAndCc1(pk1: 1, pk2: 2, cc1: 1) {\n"
                 + "    pk1,pk2,cc1,cc2\n"
@@ -134,8 +134,8 @@ public class SelectTest extends GraphqlFirstTestBase {
   public void selectFullPartition() {
     // when
     Object response =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE,
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
             "query {\n"
                 + "  results: fooByPk(pk1: 1, pk2: 2) {\n"
                 + "    pk1,pk2,cc1,cc2\n"
@@ -160,8 +160,8 @@ public class SelectTest extends GraphqlFirstTestBase {
   public void selectFullPartitionWithLimit() {
     // when
     Object response =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE,
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
             "query {\n"
                 + "  results: fooByPkLimit(pk1: 1, pk2: 2) {\n"
                 + "    pk1,pk2,cc1,cc2\n"
@@ -182,8 +182,8 @@ public class SelectTest extends GraphqlFirstTestBase {
   @DisplayName("Should select full partition with pagination")
   public void selectFullPartitionWithPagination() {
     Object page1 =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE,
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
             "query {\n"
                 + "  results: fooByPkPaginated(pk1: 1, pk2: 2) {\n"
                 + "    data { pk1, pk2, cc1, cc2 }\n"
@@ -202,8 +202,8 @@ public class SelectTest extends GraphqlFirstTestBase {
     assertThat(pagingState).isNotNull();
 
     Object page2 =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE,
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
             String.format(
                 "query {\n"
                     + "  results: fooByPkPaginated(pk1: 1, pk2: 2, pagingState: \"%s\") {\n"
