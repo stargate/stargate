@@ -33,7 +33,6 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.graphql.web.HttpAwareContext;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
-import io.stargate.graphql.web.resources.cqlfirst.GraphqlDdlResource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -60,7 +59,7 @@ import org.slf4j.LoggerFactory;
 @Produces(MediaType.APPLICATION_JSON)
 public class GraphqlResourceBase {
 
-  private static final Logger LOG = LoggerFactory.getLogger(GraphqlDdlResource.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DdlResource.class);
   protected static final String APPLICATION_GRAPHQL = "application/graphql";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final TypeReference<Map<String, List<String>>> FILES_MAPPING_TYPE =
