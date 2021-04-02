@@ -13,15 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.graphql.web.resources.cqlfirst;
+package io.stargate.graphql.web.resources;
 
 import graphql.GraphQL;
+import graphql.GraphqlErrorException;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.graphql.web.RequestToHeadersMapper;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
-import io.stargate.graphql.web.resources.Authenticated;
-import io.stargate.graphql.web.resources.AuthenticationFilter;
-import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -37,17 +35,28 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Path("/graphql")
+/**
+ * A collection of GraphQL services for user keyspaces.
+ *
+ * <p>For each keyspace, this is either:
+ *
+ * <ul>
+ *   <li>a custom "GraphQL-first" schema, if the user has provided their own GraphQL.
+ *   <li>otherwise, a generic "CQL-first" schema generated from the existing CQL tables.
+ * </ul>
+ */
+@Path(ResourcePaths.DML)
 @Singleton
 @Authenticated
-public class GraphqlDmlResource extends GraphqlResourceBase {
+public class DmlResource extends GraphqlResourceBase {
 
-  private static final Logger LOG = LoggerFactory.getLogger(GraphqlDmlResource.class);
-  private static final Pattern KEYSPACE_NAME_PATTERN = Pattern.compile("\\w+");
+  private static final Logger LOG = LoggerFactory.getLogger(DmlResource.class);
+  static final Pattern KEYSPACE_NAME_PATTERN = Pattern.compile("\\w+");
 
   @Inject private GraphqlCache graphqlCache;
 
@@ -59,9 +68,14 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getDefaultGraphql(httpRequest, asyncResponse);
-    if (graphql != null) {
-      get(query, operationName, variables, graphql, httpRequest, asyncResponse);
+    String defaultKeyspaceName = graphqlCache.getDefaultKeyspaceName();
+    if (defaultKeyspaceName == null) {
+      replyWithGraphqlError(Status.NOT_FOUND, "No default keyspace defined", asyncResponse);
+    } else {
+      GraphQL graphql = getGraphql(defaultKeyspaceName, httpRequest, asyncResponse);
+      if (graphql != null) {
+        get(query, operationName, variables, graphql, httpRequest, asyncResponse);
+      }
     }
   }
 
@@ -75,7 +89,7 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphl(keyspaceName, httpRequest, asyncResponse);
+    GraphQL graphql = getGraphql(keyspaceName, httpRequest, asyncResponse);
     if (graphql != null) {
       get(query, operationName, variables, graphql, httpRequest, asyncResponse);
     }
@@ -89,7 +103,7 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getDefaultGraphql(httpRequest, asyncResponse);
+    GraphQL graphql = getGraphql(graphqlCache.getDefaultKeyspaceName(), httpRequest, asyncResponse);
     if (graphql != null) {
       postJson(jsonBody, queryFromUrl, graphql, httpRequest, asyncResponse);
     }
@@ -105,7 +119,7 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphl(keyspaceName, httpRequest, asyncResponse);
+    GraphQL graphql = getGraphql(keyspaceName, httpRequest, asyncResponse);
     if (graphql != null) {
       postJson(jsonBody, queryFromUrl, graphql, httpRequest, asyncResponse);
     }
@@ -119,7 +133,7 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       @HeaderParam("X-Cassandra-Token") String token,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getDefaultGraphql(httpRequest, asyncResponse);
+    GraphQL graphql = getGraphql(graphqlCache.getDefaultKeyspaceName(), httpRequest, asyncResponse);
     if (graphql != null) {
       postGraphql(query, graphql, httpRequest, asyncResponse);
     }
@@ -135,27 +149,13 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       @HeaderParam("X-Cassandra-Token") String token,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphl(keyspaceName, httpRequest, asyncResponse);
+    GraphQL graphql = getGraphql(keyspaceName, httpRequest, asyncResponse);
     if (graphql != null) {
       postGraphql(query, graphql, httpRequest, asyncResponse);
     }
   }
 
-  private GraphQL getDefaultGraphql(HttpServletRequest httpRequest, AsyncResponse asyncResponse) {
-    GraphQL graphql = graphqlCache.getDefaultDml(RequestToHeadersMapper.getAllHeaders(httpRequest));
-    if (graphql == null) {
-      replyWithGraphqlError(Status.NOT_FOUND, "No default keyspace defined", asyncResponse);
-      return null;
-    } else {
-      if (!isAuthorized(httpRequest, graphqlCache.getDefaultKeyspaceName())) {
-        replyWithGraphqlError(Status.UNAUTHORIZED, "Not authorized", asyncResponse);
-        return null;
-      }
-      return graphql;
-    }
-  }
-
-  private GraphQL getGraphl(
+  private GraphQL getGraphql(
       String keyspaceName, HttpServletRequest httpRequest, AsyncResponse asyncResponse) {
     if (!KEYSPACE_NAME_PATTERN.matcher(keyspaceName).matches()) {
       LOG.warn("Invalid keyspace in URI, this could be an XSS attack: {}", keyspaceName);
@@ -169,17 +169,29 @@ public class GraphqlDmlResource extends GraphqlResourceBase {
       return null;
     }
 
-    GraphQL graphql =
-        graphqlCache.getDml(
-            keyspaceName,
-            (AuthenticationSubject) httpRequest.getAttribute(AuthenticationFilter.SUBJECT_KEY),
-            RequestToHeadersMapper.getAllHeaders(httpRequest));
-    if (graphql == null) {
-      replyWithGraphqlError(
-          Status.NOT_FOUND, String.format("Unknown keyspace '%s'", keyspaceName), asyncResponse);
+    try {
+      GraphQL graphql =
+          graphqlCache.getDml(
+              keyspaceName,
+              (AuthenticationSubject) httpRequest.getAttribute(AuthenticationFilter.SUBJECT_KEY),
+              RequestToHeadersMapper.getAllHeaders(httpRequest));
+      if (graphql == null) {
+        replyWithGraphqlError(
+            Status.NOT_FOUND, String.format("Unknown keyspace '%s'", keyspaceName), asyncResponse);
+        return null;
+      } else {
+        return graphql;
+      }
+    } catch (GraphqlErrorException e) {
+      replyWithGraphqlError(Response.Status.INTERNAL_SERVER_ERROR, e, asyncResponse);
       return null;
-    } else {
-      return graphql;
+    } catch (Exception e) {
+      LOG.error("Unexpected error while accessing keyspace {}", keyspaceName, e);
+      replyWithGraphqlError(
+          Response.Status.INTERNAL_SERVER_ERROR,
+          "Unexpected error while accessing keyspace: " + e.getMessage(),
+          asyncResponse);
+      return null;
     }
   }
 }

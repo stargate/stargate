@@ -28,10 +28,9 @@ public class GraphqlFirstClient extends GraphqlClient {
 
   // Note: these constants duplicate the ones from the production code's `ResourcePaths` (which is
   // not accessible from here).
-  private static final String ROOT = "/graphqlv2";
-  private static final String ADMIN = ROOT + "/admin";
-  private static final String NAMESPACES = ROOT + "/namespace";
-  private static final String FILES = ROOT + "/files";
+  private static final String ADMIN = "/graphql-admin";
+  private static final String NAMESPACES = "/graphql";
+  private static final String FILES = "/graphql-files";
 
   private final String host;
   private final String authToken;

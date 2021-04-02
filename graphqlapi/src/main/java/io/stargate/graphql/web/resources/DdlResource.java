@@ -13,12 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.graphql.web.resources.cqlfirst;
+package io.stargate.graphql.web.resources;
 
 import graphql.GraphQL;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
-import io.stargate.graphql.web.resources.Authenticated;
-import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
@@ -32,15 +30,19 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-@Path("/graphql-schema")
+/**
+ * A GraphQL service that allows users to execute CQL DDL queries directly (e.g. create a keyspace,
+ * drop a table, etc).
+ */
+@Path(ResourcePaths.DDL)
 @Singleton
 @Authenticated
-public class GraphqlDdlResource extends GraphqlResourceBase {
+public class DdlResource extends GraphqlResourceBase {
 
   private final GraphQL graphql;
 
   @Inject
-  public GraphqlDdlResource(GraphqlCache graphqlCache) {
+  public DdlResource(GraphqlCache graphqlCache) {
     this.graphql = graphqlCache.getDdl();
   }
 
