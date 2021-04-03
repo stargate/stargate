@@ -68,7 +68,14 @@ public class ScalarsDmlTest extends DmlTestBase {
 
     tableBuilder.addColumns(
         Arrays.stream(Column.Type.values())
-            .filter(t -> !t.isCollection() && !t.isTuple() && !t.isUserDefined())
+            .filter(
+                t ->
+                    !t.isCollection()
+                        && !t.isTuple()
+                        && !t.isUserDefined()
+                        && t != Column.Type.Point
+                        && t != Column.Type.LineString
+                        && t != Column.Type.Polygon)
             .map(ScalarsDmlTest::getColumn)
             .toArray(ImmutableColumn[]::new));
 
