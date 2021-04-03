@@ -722,6 +722,14 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
+
+    whereClause = String.format("{\"id\":{\"$contains\":\"%s\"}}", rowIdentifier);
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s?where=%s", host, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
   }
 
   @Test

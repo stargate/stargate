@@ -120,12 +120,13 @@ public class RowsResource {
                       + "| $lte | Less Than Or Equal To | \n "
                       + "| $gt | Greater Than | \n "
                       + "| $gte | Greater Than Or Equal To | \n "
+                      + "| $eq | Equal To | \n "
                       + "| $ne | Not Equal To | \n "
                       + "| $in | Contained In | \n "
                       + "| $contains | Contains the given element (for lists or sets) or value (for maps) | \n "
                       + "| $containsKey | Contains the given key (for maps) | \n "
                       + "| $containsEntry | Contains the given key/value entry (for maps) | \n "
-                      + "| $exists | A value is set for the key | ",
+                      + "| $exists | Returns the rows whose column (boolean type) value is true | ",
               required = true)
           @QueryParam("where")
           final String where,

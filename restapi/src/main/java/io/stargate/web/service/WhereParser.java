@@ -15,12 +15,12 @@
  */
 package io.stargate.web.service;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.BuiltCondition.LHS;
 import io.stargate.db.schema.Column;
@@ -28,50 +28,41 @@ import io.stargate.db.schema.Table;
 import io.stargate.web.resources.Converters;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class WhereParser {
   private static final ObjectMapper mapper = new ObjectMapper();
 
+  // Throws an exception on duplicate keys like
+  //    {"key1": 1, "key1": 2} or {"key1": {"eq": 1, "eq":2}}
+  static {
+    mapper.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
+  }
+
   public static List<BuiltCondition> parseWhere(String whereParam, Table tableData)
       throws IOException {
-    JsonNode filterJson;
-    try {
-      filterJson = mapper.readTree(whereParam);
-    } catch (JsonProcessingException e) {
-      throw new IllegalArgumentException("Input provided is not valid json.");
-    }
-    List<BuiltCondition> conditions = new ArrayList<>();
+    JsonNode jsonTree = parseJson(whereParam);
 
-    if (!filterJson.isObject()) {
-      throw new IllegalArgumentException(
-          "Was expecting a JSON object as input for where parameter.");
-    }
+    final List<BuiltCondition> conditions = new ArrayList<>();
 
-    ObjectNode input = (ObjectNode) filterJson;
-    Iterator<String> fields = input.fieldNames();
-    while (fields.hasNext()) {
-      String fieldName = fields.next();
-      JsonNode fieldConditions = input.get(fieldName);
+    for (Map.Entry<String, JsonNode> whereCondition : asIterable(jsonTree.fields())) {
+      String fieldName = whereCondition.getKey();
+      Column column = getColumn(tableData, fieldName);
 
-      if (!fieldConditions.isObject()) {
+      JsonNode condition = whereCondition.getValue();
+      if (!condition.isObject()) {
         throw new IllegalArgumentException(
             String.format("Entry for field %s was expecting a JSON object as input.", fieldName));
       }
 
-      Iterator<String> ops = fieldConditions.fieldNames();
-      while (ops.hasNext()) {
-        String rawOp = ops.next();
-        FilterOp op;
-        try {
-          op = FilterOp.valueOf(rawOp.toUpperCase());
-        } catch (IllegalArgumentException iea) {
-          throw new IllegalArgumentException(
-              String.format("Operation %s is not supported.", rawOp));
-        }
+      for (Map.Entry<String, JsonNode> operandAndValue : asIterable(condition.fields())) {
+        String rawOp = operandAndValue.getKey();
+        FilterOp operator = decode(rawOp);
 
-        JsonNode value = fieldConditions.get(rawOp);
+        JsonNode value = operandAndValue.getValue();
         if (value.isNull()) {
           throw new IllegalArgumentException(
               String.format(
@@ -79,104 +70,186 @@ public class WhereParser {
                   fieldName, rawOp));
         }
 
-        if (op == FilterOp.$IN) {
-          if (!value.isArray()) {
-            throw new IllegalArgumentException(
-                String.format(
-                    "Value entry for field %s, operation %s must be an array.", fieldName, rawOp));
-          }
-          ObjectReader reader = mapper.readerFor(new TypeReference<List<Object>>() {});
-          conditions.add(conditionToWhere(fieldName, op, reader.readValue(value)));
-        } else if (op == FilterOp.$CONTAINSENTRY) {
-          JsonNode entryKey, entryValue;
-          if (!value.isObject()
-              || value.size() != 2
-              || (entryKey = value.get("key")) == null
-              || (entryValue = value.get("value")) == null) {
-            throw new IllegalArgumentException(
-                String.format(
-                    "Value entry for field %s, operation %s must be an object "
-                        + "with two fields 'key' and 'value'.",
-                    fieldName, rawOp));
-          }
-          Column column = tableData.column(fieldName);
-          if (column == null) {
-            throw new IllegalArgumentException(
-                String.format("Unknown field name '%s'.", fieldName));
-          }
-          Column.ColumnType mapType = column.type();
-          if (mapType == null || !mapType.isMap()) {
-            throw new IllegalArgumentException(
-                String.format(
-                    "Field %s: operation %s is only supported for map types", fieldName, rawOp));
-          }
-          Column.ColumnType keyType = mapType.parameters().get(0);
-          Column.ColumnType valueType = mapType.parameters().get(1);
-          Object mapKey = Converters.toCqlValue(keyType, entryKey.asText());
-          Object mapValue = Converters.toCqlValue(valueType, entryValue.asText());
-          conditions.add(
-              BuiltCondition.of(
-                  LHS.mapAccess(fieldName.toLowerCase(), mapKey), op.predicate, mapValue));
-        } else {
-          // Remaining operators: the value is a simple node
-          if (!value.isValueNode()) {
-            throw new IllegalArgumentException(
-                String.format(
-                    "Value entry for field %s, operation %s was expecting a value, but found an object or array.",
-                    fieldName, rawOp));
-          }
+        QueryContext context = new QueryContext();
+        context.fieldName = fieldName;
+        context.rawOp = rawOp;
+        context.operator = operator;
+        context.value = value;
+        context.type = column.type();
 
-          if (op == FilterOp.$EXISTS) {
-            if (!value.isBoolean() || !value.booleanValue()) {
-              throw new IllegalArgumentException("`exists` only supports the value `true`.");
+        switch (operator) {
+          case $IN:
+            evaluateIN(conditions, context);
+            break;
+          case $EXISTS:
+            evaluateExists(conditions, context);
+            break;
+          case $CONTAINS:
+            evaluateContains(conditions, context);
+            break;
+          case $CONTAINSKEY:
+            evaluateContainsKey(conditions, context);
+            break;
+          case $CONTAINSENTRY:
+            evaluateContainsEntry(conditions, context);
+            break;
+          default: // GT, GTE, LT, LTE, EQ, NE
+            {
+              addToCondition(conditions, context);
             }
-            conditions.add(conditionToWhere(fieldName, op, true));
-          } else {
-            Object val = value.asText();
-            Column column = tableData.column(fieldName);
-            if (column == null) {
-              throw new IllegalArgumentException(
-                  String.format("Unknown field name '%s' in where clause.", fieldName));
-            }
-            Column.ColumnType columnType = column.type();
-            if (columnType != null) {
-              Column.ColumnType valueType;
-              if (op == FilterOp.$CONTAINS) {
-                if (columnType.isCollection()) {
-                  valueType =
-                      columnType.isMap()
-                          ? columnType.parameters().get(1)
-                          : columnType.parameters().get(0);
-                } else {
-                  throw new IllegalArgumentException(
-                      String.format(
-                          "Field %s: operation %s is only supported for collection types",
-                          fieldName, rawOp));
-                }
-              } else if (op == FilterOp.$CONTAINSKEY) {
-                if (columnType.isMap()) {
-                  valueType = columnType.parameters().get(0);
-                } else {
-                  throw new IllegalArgumentException(
-                      String.format(
-                          "Field %s: operation %s is only supported for map types",
-                          fieldName, rawOp));
-                }
-              } else {
-                valueType = columnType;
-              }
-              val = Converters.toCqlValue(valueType, value.asText());
-            }
-            conditions.add(conditionToWhere(fieldName, op, val));
-          }
         }
       }
     }
 
-    return conditions;
+    return Collections.unmodifiableList(conditions);
+  }
+
+  private static FilterOp decode(String rawOp) {
+    try {
+      return FilterOp.valueOf(rawOp.toUpperCase());
+    } catch (IllegalArgumentException iea) {
+      throw new IllegalArgumentException(String.format("Operation %s is not supported.", rawOp));
+    }
+  }
+
+  private static JsonNode parseJson(String whereParam) {
+    try {
+      JsonNode input = mapper.readTree(whereParam);
+      if (!input.isObject()) {
+        throw new IllegalArgumentException(
+            "Was expecting a JSON object as input for where parameter.");
+      }
+      return input;
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException(
+          String.format("Input provided is not valid json. %s", e.getMessage()));
+    }
+  }
+
+  private static <T> Iterable<T> asIterable(Iterator<T> iterator) {
+    return () -> iterator;
+  }
+
+  private static Column getColumn(Table tableData, String fieldName) {
+    Column column = tableData.column(fieldName);
+    if (column == null) {
+      throw new IllegalArgumentException(String.format("Unknown field name '%s'.", fieldName));
+    }
+    return column;
+  }
+
+  private static void addToCondition(List<BuiltCondition> conditions, QueryContext context) {
+    if (context.value.isArray()) {
+      for (JsonNode element : asIterable(context.value.elements())) {
+        Object val = Converters.toCqlValue(context.type, element.asText());
+        conditions.add(conditionToWhere(context.fieldName, context.operator, val));
+      }
+    } else {
+      Object val = Converters.toCqlValue(context.type, context.value.asText());
+      conditions.add(conditionToWhere(context.fieldName, context.operator, val));
+    }
   }
 
   private static BuiltCondition conditionToWhere(String fieldName, FilterOp op, Object value) {
     return BuiltCondition.of(fieldName.toLowerCase(), op.predicate, value);
+  }
+
+  private static void evaluateContainsKey(List<BuiltCondition> conditions, QueryContext context) {
+    if (context.type == null || !context.type.isMap()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Field %s: operation %s is only supported for map types",
+              context.fieldName, context.rawOp));
+    }
+    context.type = context.type.parameters().get(0);
+    addToCondition(conditions, context);
+  }
+
+  private static void evaluateContains(List<BuiltCondition> conditions, QueryContext context) {
+    if (context.type == null || !context.type.isCollection()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Field %s: operation %s is only supported for collection types",
+              context.fieldName, context.rawOp));
+    }
+    context.type =
+        context.type.isMap() ? context.type.parameters().get(1) : context.type.parameters().get(0);
+    addToCondition(conditions, context);
+  }
+
+  private static void evaluateExists(List<BuiltCondition> conditions, QueryContext context) {
+    if (!context.value.isBoolean() || !context.value.booleanValue()) {
+      throw new IllegalArgumentException("`exists` only supports the value `true`.");
+    }
+    conditions.add(conditionToWhere(context.fieldName, context.operator, true));
+  }
+
+  private static void evaluateContainsEntry(List<BuiltCondition> conditions, QueryContext context) {
+    if (context.value.isObject()) {
+      addEntryCondition(conditions, context);
+    } else if (context.value.isArray()) {
+      JsonNode entries = context.value;
+      for (JsonNode entry : asIterable(entries.elements())) {
+        context.value = entry;
+        addEntryCondition(conditions, context);
+      }
+    } else {
+      throw new IllegalArgumentException(
+          String.format(
+              "Value entry for field %s, operation %s must be an object "
+                  + "with two fields 'key' and 'value' or an array of those objects.",
+              context.fieldName, context.rawOp));
+    }
+  }
+
+  private static void addEntryCondition(List<BuiltCondition> conditions, QueryContext context) {
+    JsonNode entryKey, entryValue;
+    if (!context.value.isObject()
+        || context.value.size() != 2
+        || (entryKey = context.value.get("key")) == null
+        || (entryValue = context.value.get("value")) == null) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Value entry for field %s, operation %s must be an object "
+                  + "with two fields 'key' and 'value'.",
+              context.fieldName, context.rawOp));
+    }
+
+    if (context.type == null || !context.type.isMap()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Field %s: operation %s is only supported for map types",
+              context.fieldName, context.rawOp));
+    }
+    Column.ColumnType keyType = context.type.parameters().get(0);
+    Column.ColumnType valueType = context.type.parameters().get(1);
+    Object mapKey = Converters.toCqlValue(keyType, entryKey.asText());
+    Object mapValue = Converters.toCqlValue(valueType, entryValue.asText());
+    conditions.add(
+        BuiltCondition.of(
+            LHS.mapAccess(context.fieldName.toLowerCase(), mapKey),
+            context.operator.predicate,
+            mapValue));
+  }
+
+  private static void evaluateIN(List<BuiltCondition> conditions, QueryContext context)
+      throws IOException {
+    if (!context.value.isArray()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Value entry for field %s, operation %s must be an array.",
+              context.fieldName, context.rawOp));
+    }
+    ObjectReader reader = mapper.readerFor(new TypeReference<List<Object>>() {});
+    conditions.add(
+        conditionToWhere(context.fieldName, context.operator, reader.readValue(context.value)));
+  }
+
+  private static class QueryContext {
+    public String fieldName;
+    public String rawOp;
+    public FilterOp operator;
+    public JsonNode value;
+    public Column.ColumnType type;
   }
 }
