@@ -49,12 +49,12 @@ public class SingleSchemaFetcher extends SchemaFetcher<SchemaSource> {
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)
       throws Exception {
-    String namespace = getNamespace(environment, dataStore);
+    String keyspace = getKeyspace(environment, dataStore);
     Optional<UUID> version =
         Optional.ofNullable((String) environment.getArgument("version")).map(UUID::fromString);
 
-    authorize(authenticationSubject, namespace);
+    authorize(authenticationSubject, keyspace);
 
-    return schemaSourceDaoProvider.apply(dataStore).getSingleVersion(namespace, version);
+    return schemaSourceDaoProvider.apply(dataStore).getSingleVersion(keyspace, version);
   }
 }

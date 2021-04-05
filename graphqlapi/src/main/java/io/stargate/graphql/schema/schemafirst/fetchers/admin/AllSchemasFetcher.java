@@ -49,10 +49,10 @@ public class AllSchemasFetcher extends SchemaFetcher<List<SchemaSource>> {
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)
       throws Exception {
-    String namespace = getNamespace(environment, dataStore);
+    String keyspace = getKeyspace(environment, dataStore);
 
-    authorize(authenticationSubject, namespace);
+    authorize(authenticationSubject, keyspace);
 
-    return schemaSourceDaoProvider.apply(dataStore).getAllVersions(namespace);
+    return schemaSourceDaoProvider.apply(dataStore).getAllVersions(keyspace);
   }
 }

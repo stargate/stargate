@@ -95,7 +95,7 @@ public class MappingModel {
     if (!context.getErrors().isEmpty()) {
       // No point in continuing to validation if the model is broken
       String schemaOrigin =
-          context.isPersisted() ? "stored for this namespace" : "that you provided";
+          context.isPersisted() ? "stored for this keyspace" : "that you provided";
       throw GraphqlErrorException.newErrorException()
           .message(
               String.format(

@@ -33,14 +33,14 @@ import org.junit.jupiter.api.Test;
 class AllSchemasFetcherTest {
 
   @Test
-  public void getSchemasPerNamespaces() throws Exception {
+  public void getSchemasPerKeyspace() throws Exception {
     // given
-    String namespace = "ns_1";
-    SchemaSource schemaSource1 = new SchemaSource(namespace, Uuids.timeBased(), "content");
-    SchemaSource schemaSource2 = new SchemaSource(namespace, Uuids.timeBased(), "content-2");
+    String keyspace = "ns_1";
+    SchemaSource schemaSource1 = new SchemaSource(keyspace, Uuids.timeBased(), "content");
+    SchemaSource schemaSource2 = new SchemaSource(keyspace, Uuids.timeBased(), "content-2");
 
     SchemaSourceDao schemaSourceDao = mock(SchemaSourceDao.class);
-    when(schemaSourceDao.getAllVersions(namespace))
+    when(schemaSourceDao.getAllVersions(keyspace))
         .thenReturn(Arrays.asList(schemaSource1, schemaSource2));
     AllSchemasFetcher allSchemasFetcher =
         new AllSchemasFetcher(
@@ -48,8 +48,8 @@ class AllSchemasFetcherTest {
             mock(DataStoreFactory.class),
             (ds) -> schemaSourceDao);
 
-    DataFetchingEnvironment dataFetchingEnvironment = mockDataFetchingEnvironment(namespace);
-    DataStore dataStore = mockDataStore(namespace);
+    DataFetchingEnvironment dataFetchingEnvironment = mockDataFetchingEnvironment(keyspace);
+    DataStore dataStore = mockDataStore(keyspace);
 
     // when
     List<SchemaSource> result =
@@ -60,17 +60,17 @@ class AllSchemasFetcherTest {
     assertThat(result).containsExactly(schemaSource1, schemaSource2);
   }
 
-  private DataFetchingEnvironment mockDataFetchingEnvironment(String namespace) {
+  private DataFetchingEnvironment mockDataFetchingEnvironment(String keyspace) {
     DataFetchingEnvironment dataFetchingEnvironment = mock(DataFetchingEnvironment.class);
-    when(dataFetchingEnvironment.getArgument("namespace")).thenReturn(namespace);
+    when(dataFetchingEnvironment.getArgument("keyspace")).thenReturn(keyspace);
     return dataFetchingEnvironment;
   }
 
-  private DataStore mockDataStore(String namespace) {
+  private DataStore mockDataStore(String keyspace) {
     DataStore dataStore = mock(DataStore.class);
     Schema schema = mock(Schema.class);
     when(dataStore.schema()).thenReturn(schema);
-    when(schema.keyspaceNames()).thenReturn(Collections.singletonList(namespace));
+    when(schema.keyspaceNames()).thenReturn(Collections.singletonList(keyspace));
     return dataStore;
   }
 }

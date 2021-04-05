@@ -74,8 +74,8 @@ public class FilesResourceTest extends BaseOsgiIntegrationTest {
   @Test
   @DisplayName("Should return 404 if schema file coordinates are invalid")
   public void schemaFileNotFound(@TestKeyspace CqlIdentifier keyspaceId) {
-    CLIENT.expectSchemaFileStatus("unknown_namespace", Status.NOT_FOUND);
-    CLIENT.expectSchemaFileStatus("malformed namespace #!?", Status.NOT_FOUND);
+    CLIENT.expectSchemaFileStatus("unknown_keyspace", Status.NOT_FOUND);
+    CLIENT.expectSchemaFileStatus("malformed keyspace #!?", Status.NOT_FOUND);
     CLIENT.expectSchemaFileStatus(
         keyspaceId.asInternal(), WRONG_SCHEMA_VERSION.toString(), Status.NOT_FOUND);
     CLIENT.expectSchemaFileStatus(keyspaceId.asInternal(), "NOT A UUID", Status.NOT_FOUND);

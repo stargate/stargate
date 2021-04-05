@@ -89,19 +89,19 @@ public class FilesResource {
   }
 
   @GET
-  @Path("/namespace/{namespaceName}.graphql")
+  @Path("/keyspace/{keyspaceName}.graphql")
   @Produces(MediaType.TEXT_PLAIN)
   public Response getSchema(
       @HeaderParam("X-Cassandra-Token") String token,
-      @PathParam("namespaceName") String namespace,
+      @PathParam("keyspaceName") String keyspace,
       @QueryParam("version") String version,
       @Context HttpServletRequest httpRequest)
       throws Exception {
 
-    if (!DmlResource.KEYSPACE_NAME_PATTERN.matcher(namespace).matches()) {
-      LOG.warn("Invalid namespace in URI, this could be an XSS attack: {}", namespace);
+    if (!DmlResource.KEYSPACE_NAME_PATTERN.matcher(keyspace).matches()) {
+      LOG.warn("Invalid keyspace in URI, this could be an XSS attack: {}", keyspace);
       // Do not reflect back the value
-      return Response.status(Response.Status.BAD_REQUEST).entity("Invalid namespace name").build();
+      return Response.status(Response.Status.BAD_REQUEST).entity("Invalid keyspace name").build();
     }
 
     if (!isAuthorized(token, httpRequest)) {
@@ -113,14 +113,14 @@ public class FilesResource {
       try {
         versionUuid = UUID.fromString(version);
       } catch (IllegalArgumentException e) {
-        return notFound(namespace, version);
+        return notFound(keyspace, version);
       }
     }
 
     SchemaSource schemaSource =
-        schemaSourceDao.getSingleVersion(namespace, Optional.ofNullable(versionUuid));
+        schemaSourceDao.getSingleVersion(keyspace, Optional.ofNullable(versionUuid));
     if (schemaSource == null) {
-      return notFound(namespace, version);
+      return notFound(keyspace, version);
     }
 
     return Response.ok(schemaSource.getContents())
@@ -128,18 +128,17 @@ public class FilesResource {
         .build();
   }
 
-  private Response notFound(
-      @PathParam("namespaceName") String namespace, @QueryParam("version") String version) {
+  private Response notFound(String keyspace, String version) {
     return Response.status(
             Response.Status.NOT_FOUND.getStatusCode(),
             String.format(
-                "The schema for namespace %s and version %s does not exist.", namespace, version))
+                "The schema for keyspace %s and version %s does not exist.", keyspace, version))
         .build();
   }
 
   private String createFileName(SchemaSource schemaSource) {
     return String.format(
-        "\"%s-%s.graphql\"", schemaSource.getNamespace(), schemaSource.getVersion());
+        "\"%s-%s.graphql\"", schemaSource.getKeyspace(), schemaSource.getVersion());
   }
 
   private static String buildDirectivesResponse() {
