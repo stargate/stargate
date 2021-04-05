@@ -265,7 +265,7 @@ public class SchemaProcessor {
       return parser.parse(source);
     } catch (SchemaProblem schemaProblem) {
       List<GraphQLError> schemaErrors = schemaProblem.getErrors();
-      String schemaOrigin = isPersisted ? "stored for this namespace" : "that you provided";
+      String schemaOrigin = isPersisted ? "stored for this keyspace" : "that you provided";
       throw GraphqlErrorException.newErrorException()
           .message(
               String.format(

@@ -62,10 +62,7 @@ import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
-/**
- * Base class for fetchers that are generated at runtime for a user's deployed schema (i.e. the
- * GraphQL operations under {@code /namespace/xxx} endpoints).
- */
+/** Base class for fetchers that are generated at runtime for a user's deployed schema. */
 abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
   protected final MappingModel mappingModel;

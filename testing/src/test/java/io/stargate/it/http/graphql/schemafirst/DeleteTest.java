@@ -34,7 +34,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(CqlSessionExtension.class)
 public class DeleteTest extends GraphqlFirstTestBase {
   private static GraphqlFirstClient CLIENT;
-  private static String NAMESPACE;
+  private static String KEYSPACE;
   private static CqlSession SESSION;
 
   @BeforeAll
@@ -43,10 +43,10 @@ public class DeleteTest extends GraphqlFirstTestBase {
     CLIENT =
         new GraphqlFirstClient(
             cluster.seedAddress(), RestUtils.getAuthToken(cluster.seedAddress()));
-    NAMESPACE = keyspaceId.asInternal();
+    KEYSPACE = keyspaceId.asInternal();
     SESSION = session;
     CLIENT.deploySchema(
-        NAMESPACE,
+        KEYSPACE,
         "type Foo @cql_input {\n"
             + "  pk: Int! @cql_column(partitionKey: true)\n"
             + "  cc1: Int! @cql_column(clusteringOrder: ASC)\n"
@@ -94,8 +94,8 @@ public class DeleteTest extends GraphqlFirstTestBase {
 
     // when
     Object response =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE, "mutation { deleteFoo(foo: {pk: 1, cc1: 1, cc2: 1}) }");
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE, "mutation { deleteFoo(foo: {pk: 1, cc1: 1, cc2: 1}) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFoo")).isTrue();
@@ -104,8 +104,8 @@ public class DeleteTest extends GraphqlFirstTestBase {
     // Deleting a non-existing row always returns true:
     // when
     response =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE, "mutation { deleteFoo(foo: {pk: 1, cc1: 1, cc2: 1}) }");
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE, "mutation { deleteFoo(foo: {pk: 1, cc1: 1, cc2: 1}) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFoo")).isTrue();
@@ -120,7 +120,7 @@ public class DeleteTest extends GraphqlFirstTestBase {
     insert(1, 3, 3);
 
     // when
-    CLIENT.executeNamespaceQuery(NAMESPACE, "mutation { deleteFoo2(pk: 1, cc1: 3) }");
+    CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFoo2(pk: 1, cc1: 3) }");
 
     // then
     assertThat(exists(1, 1, 1)).isTrue();
@@ -128,7 +128,7 @@ public class DeleteTest extends GraphqlFirstTestBase {
     assertThat(exists(1, 3, 3)).isFalse();
 
     // when
-    CLIENT.executeNamespaceQuery(NAMESPACE, "mutation { deleteFoo2(pk: 1) }");
+    CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFoo2(pk: 1) }");
 
     // then
     assertThat(exists(1, 1, 1)).isFalse();
@@ -138,14 +138,14 @@ public class DeleteTest extends GraphqlFirstTestBase {
   @Test
   @DisplayName("Should fail if not all partition keys are present")
   public void deleteWithMissingPartitionKey() {
-    assertThat(CLIENT.getNamespaceError(NAMESPACE, "mutation { deleteFoo2(cc1: 1, cc2: 1) }"))
+    assertThat(CLIENT.getKeyspaceError(KEYSPACE, "mutation { deleteFoo2(cc1: 1, cc2: 1) }"))
         .contains("Missing value for partition key field 'pk'.");
   }
 
   @Test
   @DisplayName("Should fail if partial primary key is not a prefix")
   public void deleteByPartialPrimaryKeyNotPrefix() {
-    assertThat(CLIENT.getNamespaceError(NAMESPACE, "mutation { deleteFoo2(pk: 1, cc2: 1) }"))
+    assertThat(CLIENT.getKeyspaceError(KEYSPACE, "mutation { deleteFoo2(pk: 1, cc2: 1) }"))
         .contains(
             "Unexpected value for clustering field 'cc2': field 'cc1' was unset, so no clustering fields after it should be set.");
   }
@@ -158,8 +158,8 @@ public class DeleteTest extends GraphqlFirstTestBase {
 
     // when
     Object response =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE, "mutation { deleteFooIfExists(foo: {pk: 1, cc1: 1, cc2: 1}) {applied} }");
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE, "mutation { deleteFooIfExists(foo: {pk: 1, cc1: 1, cc2: 1}) {applied} }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooIfExists.applied")).isTrue();
@@ -168,8 +168,8 @@ public class DeleteTest extends GraphqlFirstTestBase {
     // Deleting a non-existing row returns false:
     // when
     response =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE, "mutation { deleteFooIfExists(foo: {pk: 1, cc1: 1, cc2: 1}) {applied} }");
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE, "mutation { deleteFooIfExists(foo: {pk: 1, cc1: 1, cc2: 1}) {applied} }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooIfExists.applied")).isFalse();
@@ -185,7 +185,7 @@ public class DeleteTest extends GraphqlFirstTestBase {
 
     // When
     Object response =
-        CLIENT.executeNamespaceQuery(NAMESPACE, "mutation { deleteFooPartition(pk: 1) }");
+        CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFooPartition(pk: 1) }");
 
     // Then
     assertThat(exists(1, 1, 1)).isFalse();
@@ -201,7 +201,7 @@ public class DeleteTest extends GraphqlFirstTestBase {
 
     // When
     // we call an operation that takes the whole PK, but only provide the partition key arguments
-    Object response = CLIENT.executeNamespaceQuery(NAMESPACE, "mutation { deleteFoo2(pk: 1) }");
+    Object response = CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFoo2(pk: 1) }");
 
     // Then
     assertThat(exists(1, 1, 1)).isFalse();

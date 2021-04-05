@@ -36,7 +36,7 @@ class SchemaSourceDaoTest {
   @Test
   public void shouldGetLatestSchema() throws Exception {
     // given
-    String namespace = "ns_1";
+    String keyspace = "ns_1";
     UUID versionId = Uuids.timeBased();
     String schemaContent = "some_schema";
     ResultSet resultSet = mockSchemaResultSet(versionId, schemaContent);
@@ -44,11 +44,11 @@ class SchemaSourceDaoTest {
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
     // when
-    SchemaSource schema = schemaSourceDao.getLatestVersion(namespace);
+    SchemaSource schema = schemaSourceDao.getLatestVersion(keyspace);
 
     // then
     assertThat(schema.getContents()).isEqualTo(schemaContent);
-    assertThat(schema.getNamespace()).isEqualTo(namespace);
+    assertThat(schema.getKeyspace()).isEqualTo(keyspace);
     assertThat(schema.getVersion()).isEqualTo(versionId);
     assertThat(schema.getDeployDate()).isNotNull();
   }
@@ -56,7 +56,7 @@ class SchemaSourceDaoTest {
   @Test
   public void shouldGetSpecificSchema() throws Exception {
     // given
-    String namespace = "ns_1";
+    String keyspace = "ns_1";
     UUID versionId = Uuids.timeBased();
     String schemaContent = "some_schema";
     ResultSet resultSet = mockSchemaResultSet(versionId, schemaContent);
@@ -64,11 +64,11 @@ class SchemaSourceDaoTest {
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
     // when
-    SchemaSource schema = schemaSourceDao.getSingleVersion(namespace, Optional.of(versionId));
+    SchemaSource schema = schemaSourceDao.getSingleVersion(keyspace, Optional.of(versionId));
 
     // then
     assertThat(schema.getContents()).isEqualTo(schemaContent);
-    assertThat(schema.getNamespace()).isEqualTo(namespace);
+    assertThat(schema.getKeyspace()).isEqualTo(keyspace);
     assertThat(schema.getVersion()).isEqualTo(versionId);
     assertThat(schema.getDeployDate()).isNotNull();
   }
@@ -76,13 +76,13 @@ class SchemaSourceDaoTest {
   @Test
   public void shouldReturnNullIfLatestSchemaNotExists() throws Exception {
     // given
-    String namespace = "ns_1";
+    String keyspace = "ns_1";
     ResultSet resultSet = mockNullResultSet();
     DataStore dataStore = mockDataStore(resultSet);
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
     // when
-    SchemaSource schema = schemaSourceDao.getLatestVersion(namespace);
+    SchemaSource schema = schemaSourceDao.getLatestVersion(keyspace);
 
     // then
     assertThat(schema).isNull();
@@ -91,7 +91,7 @@ class SchemaSourceDaoTest {
   @Test
   public void shouldGetSchemaHistory() throws Exception {
     // given
-    String namespace = "ns_1";
+    String keyspace = "ns_1";
     UUID versionId = Uuids.timeBased();
     String schemaContent = "some_schema";
     UUID versionId2 = Uuids.timeBased();
@@ -102,18 +102,18 @@ class SchemaSourceDaoTest {
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
     // when
-    List<SchemaSource> schema = schemaSourceDao.getAllVersions(namespace);
+    List<SchemaSource> schema = schemaSourceDao.getAllVersions(keyspace);
 
     // then
     assertThat(schema.size()).isEqualTo(2);
     SchemaSource firstSchema = schema.get(0);
     assertThat(firstSchema.getContents()).isEqualTo(schemaContent);
-    assertThat(firstSchema.getNamespace()).isEqualTo(namespace);
+    assertThat(firstSchema.getKeyspace()).isEqualTo(keyspace);
     assertThat(firstSchema.getVersion()).isEqualTo(versionId);
     assertThat(firstSchema.getDeployDate()).isNotNull();
     SchemaSource secondSchema = schema.get(1);
     assertThat(secondSchema.getContents()).isEqualTo(schemaContent2);
-    assertThat(secondSchema.getNamespace()).isEqualTo(namespace);
+    assertThat(secondSchema.getKeyspace()).isEqualTo(keyspace);
     assertThat(secondSchema.getVersion()).isEqualTo(versionId2);
     assertThat(secondSchema.getDeployDate()).isNotNull();
   }
@@ -121,13 +121,13 @@ class SchemaSourceDaoTest {
   @Test
   public void shouldGetEmptySchemaHistoryIfReturnsNull() throws Exception {
     // given
-    String namespace = "ns_1";
+    String keyspace = "ns_1";
     ResultSet resultSet = mockNullResultSet();
     DataStore dataStore = mockDataStore(resultSet);
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
     // when
-    List<SchemaSource> schema = schemaSourceDao.getAllVersions(namespace);
+    List<SchemaSource> schema = schemaSourceDao.getAllVersions(keyspace);
 
     // then
     assertThat(schema).isEmpty();
@@ -185,12 +185,12 @@ class SchemaSourceDaoTest {
     }
 
     @Override
-    BoundQuery schemaQuery(String namespace) {
+    BoundQuery schemaQuery(String keyspace) {
       return mock(BoundQuery.class);
     }
 
     @Override
-    BoundQuery schemaQueryWithSpecificVersion(String namespace, UUID uuid) {
+    BoundQuery schemaQueryWithSpecificVersion(String keyspace, UUID uuid) {
       return mock(BoundQuery.class);
     }
   }

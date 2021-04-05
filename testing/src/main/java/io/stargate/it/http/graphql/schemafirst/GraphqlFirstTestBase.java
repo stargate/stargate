@@ -19,7 +19,7 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import io.stargate.it.BaseOsgiIntegrationTest;
 
 abstract class GraphqlFirstTestBase extends BaseOsgiIntegrationTest {
-  protected static void deleteAllGraphqlSchemas(String namespace, CqlSession session) {
+  protected static void deleteAllGraphqlSchemas(String keyspace, CqlSession session) {
     session
         .getMetadata()
         .getKeyspace("stargate_graphql")
@@ -27,6 +27,7 @@ abstract class GraphqlFirstTestBase extends BaseOsgiIntegrationTest {
         .ifPresent(
             __ ->
                 session.execute(
-                    "DELETE FROM stargate_graphql.schema_source WHERE namespace = ?", namespace));
+                    "DELETE FROM stargate_graphql.schema_source WHERE keyspace_name = ?",
+                    keyspace));
   }
 }
