@@ -87,7 +87,7 @@ public class DataTypesTest extends GraphqlFirstTestBase {
             typeName,
             (cqlTypeHint == null) ? "" : "@cql_column(typeHint: \"" + cqlTypeHint + "\")"));
 
-    CLIENT.executeNamespaceQuery(
+    CLIENT.executeKeyspaceQuery(
         keyspaceId.asInternal(),
         String.format(
             "mutation { insertHolder(holder: {id: \"%s\", value: %s}) { id } }", ID, literalValue));
@@ -100,7 +100,7 @@ public class DataTypesTest extends GraphqlFirstTestBase {
       selection = "value";
     }
     Object response =
-        CLIENT.executeNamespaceQuery(
+        CLIENT.executeKeyspaceQuery(
             keyspaceId.asInternal(),
             String.format("{ getHolder(id: \"%s\") { %s } }", ID, selection));
     assertThat(JsonPath.<Object>read(response, "$.getHolder.value"))

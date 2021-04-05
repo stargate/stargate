@@ -98,7 +98,7 @@ public class CassandraMigrator {
     if (!errors.isEmpty()) {
       String message =
           isPersisted
-              ? "The GraphQL schema stored for this namespace doesn't match the CQL data model "
+              ? "The GraphQL schema stored for this keyspace doesn't match the CQL data model "
                   + "anymore. It looks like the database was altered manually."
               : String.format(
                   "The GraphQL schema that you provided can't be mapped to the current CQL data "

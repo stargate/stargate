@@ -24,8 +24,6 @@ import static graphql.schema.GraphQLCodeRegistry.newCodeRegistry;
 import static graphql.schema.GraphQLEnumType.newEnum;
 import static graphql.schema.GraphQLEnumValueDefinition.newEnumValueDefinition;
 import static graphql.schema.GraphQLFieldDefinition.newFieldDefinition;
-import static graphql.schema.GraphQLInputObjectField.newInputObjectField;
-import static graphql.schema.GraphQLInputObjectType.newInputObject;
 import static graphql.schema.GraphQLList.list;
 import static graphql.schema.GraphQLNonNull.nonNull;
 import static graphql.schema.GraphQLObjectType.newObject;
@@ -38,19 +36,14 @@ import graphql.schema.CoercingParseValueException;
 import graphql.schema.CoercingSerializeException;
 import graphql.schema.GraphQLEnumType;
 import graphql.schema.GraphQLFieldDefinition;
-import graphql.schema.GraphQLInputObjectType;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
-import io.stargate.graphql.schema.schemafirst.fetchers.admin.AllNamespacesFetcher;
 import io.stargate.graphql.schema.schemafirst.fetchers.admin.AllSchemasFetcher;
-import io.stargate.graphql.schema.schemafirst.fetchers.admin.CreateNamespaceFetcher;
 import io.stargate.graphql.schema.schemafirst.fetchers.admin.DeploySchemaFetcher;
 import io.stargate.graphql.schema.schemafirst.fetchers.admin.DeploySchemaFileFetcher;
-import io.stargate.graphql.schema.schemafirst.fetchers.admin.DropNamespaceFetcher;
-import io.stargate.graphql.schema.schemafirst.fetchers.admin.SingleNamespaceFetcher;
 import io.stargate.graphql.schema.schemafirst.fetchers.admin.SingleSchemaFetcher;
 import io.stargate.graphql.schema.schemafirst.migration.MigrationStrategy;
 import io.stargate.graphql.schema.schemafirst.processor.ProcessingLogType;
@@ -60,106 +53,14 @@ import java.io.InputStream;
 
 public class AdminSchemaBuilder {
 
-  private static final GraphQLObjectType DC_TYPE =
-      newObject()
-          .name("Datacenter")
-          .description(
-              "A group of Cassandra nodes, related and configured within a cluster for replication purposes.")
-          .field(
-              newFieldDefinition()
-                  .name("name")
-                  .description("The name of the datacenter.")
-                  .type(nonNull(GraphQLString))
-                  .build())
-          .field(
-              newFieldDefinition()
-                  .name("replicas")
-                  .description(
-                      "The number of data replicas that Cassandra uses for this datacenter.")
-                  .type(nonNull(GraphQLInt))
-                  .build())
-          .build();
-
-  private static final GraphQLInputObjectType DC_INPUT_TYPE =
-      newInputObject()
-          .name("DatacenterInput")
-          .description(
-              "A group of Cassandra nodes, related and configured within a cluster for replication purposes.")
-          .field(
-              newInputObjectField()
-                  .name("name")
-                  .description("The name of the datacenter.")
-                  .type(nonNull(GraphQLString))
-                  .build())
-          .field(
-              newInputObjectField()
-                  .name("replicas")
-                  .description(
-                      "The number of data replicas that Cassandra uses for this datacenter.")
-                  .defaultValue(3)
-                  .type(GraphQLInt)
-                  .build())
-          .build();
-
-  private static final GraphQLObjectType NAMESPACE_TYPE =
-      newObject()
-          .name("Namespace")
-          .description(
-              "A logical grouping of all the types in a GraphQL schema.\n"
-                  + "(Note: there is a 1:1 mapping between namespaces and Cassandra keyspaces.)")
-          .field(
-              newFieldDefinition()
-                  .name("name")
-                  .description("The name of the namespace.")
-                  .type(nonNull(GraphQLString))
-                  .build())
-          .field(
-              newFieldDefinition()
-                  .name("replicas")
-                  .description(
-                      "The number of replicas if the namespace uses the simple replication strategy "
-                          + "(exactly one of `replicas` or `datacenters` will be present).")
-                  .type(GraphQLInt)
-                  .build())
-          .field(
-              newFieldDefinition()
-                  .name("datacenters")
-                  .description(
-                      "The number of replicas per datacenter, if the namespace uses the network "
-                          + "topology replication strategy "
-                          + "(exactly one of `replicas` or `datacenters` will be present).")
-                  .type(list(DC_TYPE))
-                  .build())
-          .build();
-
-  private static final GraphQLFieldDefinition NAMESPACE_QUERY =
-      newFieldDefinition()
-          .name("namespace")
-          .description("Lists a single namespace")
-          .argument(
-              newArgument()
-                  .name("name")
-                  .description("The name of the namespace")
-                  .type(nonNull(GraphQLString))
-                  .build())
-          .type(NAMESPACE_TYPE)
-          .build();
-
-  private static final GraphQLFieldDefinition NAMESPACES_QUERY =
-      newFieldDefinition()
-          .name("namespaces")
-          .description("Lists all available namespaces")
-          .type(list(NAMESPACE_TYPE))
-          .build();
-
   private static final GraphQLObjectType SCHEMA_TYPE =
       newObject()
           .name("Schema")
-          .description("The GraphQL schema that is deployed in a namespace")
+          .description("The GraphQL schema that is deployed in a keyspace")
           .field(
               newFieldDefinition()
-                  .name("namespace")
-                  .description("The name of the namespace.")
+                  .name("keyspace")
+                  .description("The name of the keyspace.")
                   .type(nonNull(GraphQLString))
                   .build())
           .field(
@@ -200,11 +101,11 @@ public class AdminSchemaBuilder {
   private static final GraphQLFieldDefinition SCHEMA_QUERY =
       newFieldDefinition()
           .name("schema")
-          .description("Retrieves the GraphQL schema that is deployed in a namespace")
+          .description("Retrieves the GraphQL schema that is deployed in a keyspace")
           .argument(
               newArgument()
-                  .name("namespace")
-                  .description("The name of the namespace")
+                  .name("keyspace")
+                  .description("The name of the keyspace")
                   .type(nonNull(GraphQLString))
                   .build())
           .argument(
@@ -216,14 +117,14 @@ public class AdminSchemaBuilder {
           .type(nonNull(SCHEMA_TYPE))
           .build();
 
-  private static final GraphQLFieldDefinition SCHEMA_HISTORY_PER_NAMESPACE_QUERY =
+  private static final GraphQLFieldDefinition SCHEMA_HISTORY_PER_KEYSPACE_QUERY =
       newFieldDefinition()
           .name("schemas")
-          .description("Retrieves all GraphQL schemas that are deployed in a namespace")
+          .description("Retrieves all GraphQL schemas that are deployed in a keyspace")
           .argument(
               newArgument()
-                  .name("namespace")
-                  .description("The name of the namespace")
+                  .name("keyspace")
+                  .description("The name of the keyspace")
                   .type(nonNull(GraphQLString))
                   .build())
           .type(list(SCHEMA_TYPE))
@@ -232,10 +133,8 @@ public class AdminSchemaBuilder {
   private static final GraphQLObjectType QUERY =
       newObject()
           .name("Query")
-          .field(NAMESPACES_QUERY)
-          .field(NAMESPACE_QUERY)
           .field(SCHEMA_QUERY)
-          .field(SCHEMA_HISTORY_PER_NAMESPACE_QUERY)
+          .field(SCHEMA_HISTORY_PER_KEYSPACE_QUERY)
           .build();
 
   // See https://graphql-rules.com/rules/mutation-payload-query
@@ -246,96 +145,6 @@ public class AdminSchemaBuilder {
               "A reference to the `Query` object, "
                   + "in case you need to chain queries after the mutation.")
           .type(QUERY)
-          .build();
-
-  private static final GraphQLObjectType CREATE_NAMESPACE_TYPE =
-      newObject()
-          .name("CreateNamespaceResponse")
-          .description("The outcome of a `createNamespace` mutation")
-          .field(
-              newFieldDefinition()
-                  .name("namespace")
-                  .description("The namespace that was created, or already existed.")
-                  .type(NAMESPACE_TYPE)
-                  .build())
-          .field(QUERY_FIELD)
-          .build();
-
-  private static final GraphQLFieldDefinition CREATE_NAMESPACE_MUTATION =
-      newFieldDefinition()
-          .name("createNamespace")
-          .description("Creates a namespace where a new GraphQL schema can be installed.")
-          .argument(
-              newArgument()
-                  .name("name")
-                  .description("The name of the namespace")
-                  .type(nonNull(GraphQLString))
-                  .build())
-          .argument(
-              newArgument()
-                  .name("replicas")
-                  .description(
-                      "The number of replicas if the namespace is to use the simple "
-                          + "replication strategy (defaults to 1 if "
-                          + "`datacenters` is not provided either).")
-                  .type(GraphQLInt)
-                  .build())
-          .argument(
-              newArgument()
-                  .name("datacenters")
-                  .description(
-                      "The number of replicas per datacenter if the namespace is to "
-                          + "use the network topology replication strategy.")
-                  .type(list(DC_INPUT_TYPE))
-                  .build())
-          .argument(
-              newArgument()
-                  .name("ifNotExists")
-                  .description(
-                      "What to do if the namespace already exists: "
-                          + "if `true`, the mutation will succeed; "
-                          + "if `false` (the default), an error will be raised.")
-                  .defaultValue(false)
-                  .type(GraphQLBoolean)
-                  .build())
-          .type(nonNull(CREATE_NAMESPACE_TYPE))
-          .build();
-
-  private static final GraphQLObjectType DROP_NAMESPACE_TYPE =
-      newObject()
-          .name("DropNamespaceResponse")
-          .description("The outcome of a `dropNamespace` mutation")
-          .field(
-              newFieldDefinition()
-                  .name("applied")
-                  .description(
-                      "Will always be `true` (an error is always raised if the deletion failed).")
-                  .type(nonNull(GraphQLBoolean))
-                  .build())
-          .field(QUERY_FIELD)
-          .build();
-
-  private static final GraphQLFieldDefinition DROP_NAMESPACE_MUTATION =
-      newFieldDefinition()
-          .name("dropNamespace")
-          .description("Drops a namespace.")
-          .argument(
-              newArgument()
-                  .name("name")
-                  .description("The name of the namespace")
-                  .type(nonNull(GraphQLString))
-                  .build())
-          .argument(
-              newArgument()
-                  .name("ifExists")
-                  .description(
-                      "What to do if the namespace does not exists: "
-                          + "if `true`, the mutation will succeed; "
-                          + "if `false` (the default), an error will be raised.")
-                  .defaultValue(false)
-                  .type(GraphQLBoolean)
-                  .build())
-          .type(nonNull(DROP_NAMESPACE_TYPE))
           .build();
 
   public static final GraphQLEnumType MIGRATION_STRATEGY_ENUM =
@@ -464,8 +273,8 @@ public class AdminSchemaBuilder {
     return newFieldDefinition()
         .argument(
             newArgument()
-                .name("namespace")
-                .description("The namespace to deploy to.")
+                .name("keyspace")
+                .description("The keyspace to deploy to.")
                 .type(nonNull(GraphQLString))
                 .build())
         .argument(
@@ -511,7 +320,7 @@ public class AdminSchemaBuilder {
   private static final GraphQLFieldDefinition DEPLOY_SCHEMA_MUTATION =
       deploySchemaStart()
           .name("deploySchema")
-          .description("Deploys a GraphQL schema to a namespace.")
+          .description("Deploys a GraphQL schema to a keyspace.")
           .argument(
               newArgument()
                   .name("schema")
@@ -527,7 +336,7 @@ public class AdminSchemaBuilder {
       deploySchemaStart()
           .name("deploySchemaFile")
           .description(
-              "Deploys a GraphQL schema to a namespace via a file upload.\n"
+              "Deploys a GraphQL schema to a keyspace via a file upload.\n"
                   + "This mutation must be executed with a [multipart request](https://github.com/jaydenseric/graphql-multipart-request-spec) "
                   + "(note that your `operations` part **must** declare MIME type `application/json`).")
           .argument(
@@ -541,8 +350,6 @@ public class AdminSchemaBuilder {
   private static final GraphQLObjectType MUTATION =
       newObject()
           .name("Mutation")
-          .field(CREATE_NAMESPACE_MUTATION)
-          .field(DROP_NAMESPACE_MUTATION)
           .field(DEPLOY_SCHEMA_MUTATION)
           .field(DEPLOY_SCHEMA_FILE_MUTATION)
           .build();
@@ -563,23 +370,11 @@ public class AdminSchemaBuilder {
         .codeRegistry(
             newCodeRegistry()
                 .dataFetcher(
-                    coordinates(QUERY, NAMESPACES_QUERY),
-                    new AllNamespacesFetcher(authorizationService, dataStoreFactory))
-                .dataFetcher(
-                    coordinates(QUERY, NAMESPACE_QUERY),
-                    new SingleNamespaceFetcher(authorizationService, dataStoreFactory))
-                .dataFetcher(
                     coordinates(QUERY, SCHEMA_QUERY),
                     new SingleSchemaFetcher(authorizationService, dataStoreFactory))
                 .dataFetcher(
-                    coordinates(QUERY, SCHEMA_HISTORY_PER_NAMESPACE_QUERY),
+                    coordinates(QUERY, SCHEMA_HISTORY_PER_KEYSPACE_QUERY),
                     new AllSchemasFetcher(authorizationService, dataStoreFactory))
-                .dataFetcher(
-                    coordinates(MUTATION, CREATE_NAMESPACE_MUTATION),
-                    new CreateNamespaceFetcher(authorizationService, dataStoreFactory))
-                .dataFetcher(
-                    coordinates(MUTATION, DROP_NAMESPACE_MUTATION),
-                    new DropNamespaceFetcher(authorizationService, dataStoreFactory))
                 .dataFetcher(
                     coordinates(MUTATION, DEPLOY_SCHEMA_MUTATION),
                     new DeploySchemaFetcher(authorizationService, dataStoreFactory))

@@ -34,16 +34,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 public class InsertTest extends GraphqlFirstTestBase {
 
   private static GraphqlFirstClient CLIENT;
-  private static String NAMESPACE;
+  private static String KEYSPACE;
 
   @BeforeAll
   public static void setup(StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId) {
     CLIENT =
         new GraphqlFirstClient(
             cluster.seedAddress(), RestUtils.getAuthToken(cluster.seedAddress()));
-    NAMESPACE = keyspaceId.asInternal();
+    KEYSPACE = keyspaceId.asInternal();
     CLIENT.deploySchema(
-        NAMESPACE,
+        KEYSPACE,
         "type User @cql_input {\n"
             + "  id: ID!\n"
             + "  name: String\n"
@@ -77,8 +77,8 @@ public class InsertTest extends GraphqlFirstTestBase {
 
   private void testSimpleInsert(String mutationName) {
     Object response =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE,
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
             String.format(
                 "mutation {\n"
                     + "  result: %s(user: {name: \"Ada Lovelace\", username: \"@ada\"}) {\n"
@@ -101,8 +101,8 @@ public class InsertTest extends GraphqlFirstTestBase {
   @DisplayName("Should map simple insert that returns a payload wrapper")
   public void testSimpleInsertReturningPayload() {
     Object response =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE,
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
             "mutation {\n"
                 + "  insertUser2(user: {name: \"Ada Lovelace\", username: \"@ada\"}) {\n"
                 + "    applied"
@@ -137,8 +137,8 @@ public class InsertTest extends GraphqlFirstTestBase {
 
   private void testConditionalInsert(String mutationName) {
     Object response =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE,
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
             String.format(
                 "mutation {\n"
                     + "  result: %s(user: {name: \"Ada Lovelace\", username: \"@ada\"}) {\n"
@@ -158,8 +158,8 @@ public class InsertTest extends GraphqlFirstTestBase {
     // Try to insert again with the same id
     UUID id = UUID.fromString(JsonPath.read(response, "$.result.user.id"));
     response =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE,
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
             String.format(
                 "mutation {\n"
                     + "  result: %s(user: { id: \"%s\", name: \"Alan Turing\", username: \"@complete\"}) {\n"

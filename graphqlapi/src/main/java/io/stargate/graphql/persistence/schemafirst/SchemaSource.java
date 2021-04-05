@@ -29,18 +29,18 @@ import java.util.UUID;
  * definitions...) to produce the actual one used at runtime.
  */
 public class SchemaSource {
-  private final String namespace;
+  private final String keyspace;
   private final UUID version;
   private final String contents;
 
-  public SchemaSource(String namespace, UUID version, String contents) {
-    this.namespace = namespace;
+  public SchemaSource(String keyspace, UUID version, String contents) {
+    this.keyspace = keyspace;
     this.version = version;
     this.contents = contents;
   }
 
-  public String getNamespace() {
-    return namespace;
+  public String getKeyspace() {
+    return keyspace;
   }
 
   public UUID getVersion() {
@@ -58,15 +58,15 @@ public class SchemaSource {
 
   public String getContentsUri() {
     return String.format(
-        "%s/namespace/%s.graphql?version=%s",
-        ResourcePaths.FILES_RELATIVE_TO_ADMIN, namespace, version);
+        "%s/keyspace/%s.graphql?version=%s",
+        ResourcePaths.FILES_RELATIVE_TO_ADMIN, keyspace, version);
   }
 
   @Override
   public String toString() {
     return "SchemaSource{"
-        + "namespace='"
-        + namespace
+        + "keyspace='"
+        + keyspace
         + '\''
         + ", version="
         + version

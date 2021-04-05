@@ -53,16 +53,16 @@ public class FederationTest extends GraphqlFirstTestBase {
   private static final UUID UUID_KEY = UUID.randomUUID();
 
   private static GraphqlFirstClient CLIENT;
-  private static String NAMESPACE;
+  private static String KEYSPACE;
 
   @BeforeAll
   public static void setup(
       StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspace, CqlSession session) {
     String host = cluster.seedAddress();
     CLIENT = new GraphqlFirstClient(host, RestUtils.getAuthToken(host));
-    NAMESPACE = keyspace.asInternal();
+    KEYSPACE = keyspace.asInternal();
 
-    CLIENT.deploySchema(NAMESPACE, SCHEMA);
+    CLIENT.deploySchema(KEYSPACE, SCHEMA);
 
     session.execute("INSERT INTO \"Entity1\" (k) VALUES (?)", UUID_KEY);
     session.execute("INSERT INTO \"Entity2\" (k) VALUES (1)");
@@ -74,8 +74,8 @@ public class FederationTest extends GraphqlFirstTestBase {
   @DisplayName("Should fetch entity with ID key")
   public void idKeyTest() {
     Object response =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE,
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
             "query {\n"
                 + "_entities(representations: [ "
                 + String.format("{ __typename: \"Entity1\", k: \"%s\" }, ", UUID_KEY)
@@ -90,8 +90,8 @@ public class FederationTest extends GraphqlFirstTestBase {
   @DisplayName("Should fetch entity with Int key")
   public void intKeyTest() {
     Object response =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE,
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
             "query {\n"
                 + "_entities(representations: [ "
                 + "{ __typename: \"Entity2\", k: 1 }, "
@@ -106,8 +106,8 @@ public class FederationTest extends GraphqlFirstTestBase {
   @DisplayName("Should fetch entity with composite key")
   public void compositeKeyTest() {
     Object response =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE,
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
             "query {\n"
                 + "_entities(representations: [ "
                 + "{ __typename: \"Entity3\", k1: 1, k2: 2, cc1: 3, cc2: 4 }, "
@@ -125,8 +125,8 @@ public class FederationTest extends GraphqlFirstTestBase {
   @DisplayName("Should fetch entity with UDT key")
   public void udtKeyTest() {
     Object response =
-        CLIENT.executeNamespaceQuery(
-            NAMESPACE,
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
             "query {\n"
                 + "_entities(representations: [ "
                 + "{ __typename: \"Entity4\", k: { k: 1 } }, "
