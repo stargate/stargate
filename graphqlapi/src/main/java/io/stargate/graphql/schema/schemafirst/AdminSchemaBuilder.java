@@ -270,54 +270,6 @@ public class AdminSchemaBuilder {
           .field(QUERY_FIELD)
           .build();
 
-  private static GraphQLFieldDefinition.Builder deploySchemaStart() {
-    return newFieldDefinition()
-        .argument(
-            newArgument()
-                .name("keyspace")
-                .description("The keyspace to deploy to.")
-                .type(nonNull(GraphQLString))
-                .build())
-        .argument(
-            newArgument()
-                .name("expectedVersion")
-                .description(
-                    "The version that those changes apply to, "
-                        + "or null if this is the first deployment.\n"
-                        + "This is used to prevent concurrent updates.")
-                .type(GraphQLString)
-                .build())
-        .argument(
-            newArgument()
-                .name("migrationStrategy")
-                .description("The strategy to update the CQL schema if necessary.")
-                .type(nonNull(MIGRATION_STRATEGY_ENUM))
-                .defaultValue(MigrationStrategy.ADD_MISSING_TABLES_AND_COLUMNS)
-                .build())
-        .argument(
-            newArgument()
-                .name("force")
-                .description(
-                    "Proceed even if the previous deployment is still marked as in progress. "
-                        + "This is used to recover manually if a previous deployment failed unexpectedly during the "
-                        + "CQL migration phase.")
-                .type(nonNull(GraphQLBoolean))
-                .defaultValue(false)
-                .build())
-        .argument(
-            newArgument()
-                .name("dryRun")
-                .description(
-                    "Just parse and validate the schema, don't deploy it or apply any changes to "
-                        + "the database. This is useful in particular in conjunction with the "
-                        + "`cqlChanges` field in the result, to evaluate the impacts on the CQL "
-                        + "data model.")
-                .type(nonNull(GraphQLBoolean))
-                .defaultValue(false)
-                .build())
-        .type(DEPLOY_SCHEMA_TYPE);
-  }
-
   private static final GraphQLFieldDefinition DEPLOY_SCHEMA_MUTATION =
       deploySchemaStart()
           .name("deploySchema")
@@ -388,6 +340,54 @@ public class AdminSchemaBuilder {
           .field(DEPLOY_SCHEMA_FILE_MUTATION)
           .field(UNDEPLOY_SCHEMA_MUTATION)
           .build();
+
+  private static GraphQLFieldDefinition.Builder deploySchemaStart() {
+    return newFieldDefinition()
+        .argument(
+            newArgument()
+                .name("keyspace")
+                .description("The keyspace to deploy to.")
+                .type(nonNull(GraphQLString))
+                .build())
+        .argument(
+            newArgument()
+                .name("expectedVersion")
+                .description(
+                    "The version that those changes apply to, "
+                        + "or null if this is the first deployment.\n"
+                        + "This is used to prevent concurrent updates.")
+                .type(GraphQLString)
+                .build())
+        .argument(
+            newArgument()
+                .name("migrationStrategy")
+                .description("The strategy to update the CQL schema if necessary.")
+                .type(nonNull(MIGRATION_STRATEGY_ENUM))
+                .defaultValue(MigrationStrategy.ADD_MISSING_TABLES_AND_COLUMNS)
+                .build())
+        .argument(
+            newArgument()
+                .name("force")
+                .description(
+                    "Proceed even if the previous deployment is still marked as in progress. "
+                        + "This is used to recover manually if a previous deployment failed unexpectedly during the "
+                        + "CQL migration phase.")
+                .type(nonNull(GraphQLBoolean))
+                .defaultValue(false)
+                .build())
+        .argument(
+            newArgument()
+                .name("dryRun")
+                .description(
+                    "Just parse and validate the schema, don't deploy it or apply any changes to "
+                        + "the database. This is useful in particular in conjunction with the "
+                        + "`cqlChanges` field in the result, to evaluate the impacts on the CQL "
+                        + "data model.")
+                .type(nonNull(GraphQLBoolean))
+                .defaultValue(false)
+                .build())
+        .type(DEPLOY_SCHEMA_TYPE);
+  }
 
   private final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
