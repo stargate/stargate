@@ -476,7 +476,7 @@ public class DocumentResourceV2Test {
     String where = "";
     String fields = null;
     int pageSizeParam = 0;
-    String pageStateParam = "dmFsdWU=";
+    String pageStateParam = null;
     boolean raw = false;
 
     List<FilterCondition> conditions = new ArrayList<>();

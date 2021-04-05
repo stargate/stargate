@@ -10,6 +10,7 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.dao.DocumentSearchPageState;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.exception.ResourceNotFoundException;
@@ -774,18 +775,17 @@ public class DocumentResourceV2 {
             selectionList = documentService.convertToSelectionList(fieldsJson);
           }
 
-          ByteBuffer pageState = null;
+          DocumentSearchPageState pageState = null;
           if (pageStateParam != null) {
             byte[] decodedBytes = Base64.getDecoder().decode(pageStateParam);
-            pageState = ByteBuffer.wrap(decodedBytes);
+            pageState = mapper.readValue(decodedBytes, DocumentSearchPageState.class);
           }
 
           int pageSize = DEFAULT_PAGE_SIZE;
 
-          ByteBuffer cloneState = pageState != null ? pageState.duplicate() : null;
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
 
-          ImmutablePair<JsonNode, ByteBuffer> results;
+          ImmutablePair<JsonNode, DocumentSearchPageState> results;
 
           if (pageSizeParam > 20) {
             throw new DocumentAPIRequestException("The parameter `page-size` is limited to 20.");
@@ -799,7 +799,7 @@ public class DocumentResourceV2 {
                     namespace,
                     collection,
                     selectionList,
-                    cloneState,
+                    pageState,
                     pageSize,
                     Math.max(1, pageSizeParam),
                     getAllHeaders(request));
@@ -813,7 +813,7 @@ public class DocumentResourceV2 {
                     collection,
                     filters,
                     selectionList,
-                    cloneState,
+                    pageState,
                     pageSize,
                     Math.max(1, pageSizeParam),
                     getAllHeaders(request));
@@ -824,10 +824,11 @@ public class DocumentResourceV2 {
           }
 
           JsonNode docsResult = results.left;
-          String pagingStateStr =
-              results.right != null
-                  ? Base64.getEncoder().encodeToString(results.right.array())
-                  : null;
+          String pagingStateStr = null;
+          if (results.right != null) {
+            byte[] pagingJson = mapper.writeValueAsBytes(results.right);
+            pagingStateStr = Base64.getEncoder().encodeToString(pagingJson);
+          }
 
           String json;
           if (raw == null || !raw) {

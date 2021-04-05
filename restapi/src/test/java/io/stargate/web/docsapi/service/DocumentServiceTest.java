@@ -42,6 +42,7 @@ import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.dao.DocumentSearchPageState;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
@@ -127,7 +128,6 @@ public class DocumentServiceTest {
         DocumentService.class.getDeclaredMethod(
             "updateExistenceForMap",
             Set.class,
-            Map.class,
             List.class,
             List.class,
             boolean.class,
@@ -1310,12 +1310,9 @@ public class DocumentServiceTest {
   @Test
   public void updateExistenceForMap() throws InvocationTargetException, IllegalAccessException {
     Set<String> existenceByDoc = new HashSet<>();
-    Map<String, Integer> countsByDoc = new HashMap<>();
     List<Row> rows = makeInitialRowData();
-    updateExistenceForMap.invoke(
-        service, existenceByDoc, countsByDoc, rows, new ArrayList<>(), false, true);
+    updateExistenceForMap.invoke(service, existenceByDoc, rows, new ArrayList<>(), false, true);
     assertThat(existenceByDoc.contains("1")).isTrue();
-    assertThat(countsByDoc.get("1")).isEqualTo(3);
   }
 
   @Test
@@ -1345,7 +1342,7 @@ public class DocumentServiceTest {
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
 
-    ImmutablePair<JsonNode, ByteBuffer> result =
+    ImmutablePair<JsonNode, DocumentSearchPageState> result =
         serviceMock.getFullDocuments(
             dbFactoryMock,
             dbMock,
@@ -1390,7 +1387,7 @@ public class DocumentServiceTest {
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
 
-    ImmutablePair<JsonNode, ByteBuffer> result =
+    ImmutablePair<JsonNode, DocumentSearchPageState> result =
         serviceMock.getFullDocuments(
             dbFactoryMock,
             dbMock,
@@ -1402,7 +1399,7 @@ public class DocumentServiceTest {
             100,
             1,
             EMPTY_HEADERS);
-    assertThat(result.right).isNull();
+    assertThat(result.right.getPageState()).isNull();
     assertThat(result.left).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
   }
 

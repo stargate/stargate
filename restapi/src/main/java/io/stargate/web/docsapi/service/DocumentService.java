@@ -25,6 +25,7 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.dao.DocumentSearchPageState;
 import io.stargate.web.docsapi.exception.DocumentAPIErrorHandlingStrategy;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
@@ -766,7 +767,6 @@ public class DocumentService {
 
   private List<Row> updateExistenceForMap(
       Set<String> existsByDoc,
-      Map<String, Integer> rowCountsByDoc,
       List<Row> rows,
       List<FilterCondition> filters,
       boolean booleansStoredAsTinyint,
@@ -790,11 +790,6 @@ public class DocumentService {
       if (!filteredRows.isEmpty()) {
         existsByDoc.add(key);
       }
-
-      if (!chunk.isEmpty()) {
-        int value = rowCountsByDoc.getOrDefault(key, 0);
-        rowCountsByDoc.put(key, value + chunk.size());
-      }
     }
 
     if (!chunksList.isEmpty() && !endOfResults) {
@@ -804,17 +799,48 @@ public class DocumentService {
   }
 
   /**
+   * If the DocumentSearchPageState has a defined last seen `documentId`, advance the result set to
+   * be just after that ID.
+   */
+  private List<Row> skipSeenRows(DocumentSearchPageState initialPagingState, List<Row> rows) {
+    if (initialPagingState == null) {
+      return rows;
+    }
+
+    String lastSeenId = initialPagingState.getLastSeenDocId();
+    if (lastSeenId == null) {
+      return rows;
+    }
+
+    boolean idFound = false;
+    boolean doneSkipping = false;
+    while (!doneSkipping && rows.size() > 0) {
+      String docId = rows.get(0).getString("key");
+      if (docId.equals(lastSeenId)) {
+        idFound = true;
+        rows.remove(0);
+      } else if (idFound) {
+        doneSkipping = true;
+      } else {
+        rows.remove(0);
+      }
+    }
+
+    return rows;
+  }
+
+  /**
    * This method gets all the rows for @param limit documents, by fetching result sets sequentially
    * and stringing them together. This is NOT expected to perform well for large documents.
    */
-  public ImmutablePair<JsonNode, ByteBuffer> getFullDocuments(
+  public ImmutablePair<JsonNode, DocumentSearchPageState> getFullDocuments(
       Db dbFactory,
       DocumentDB db,
       String authToken,
       String keyspace,
       String collection,
       List<String> fields,
-      ByteBuffer initialPagingState,
+      DocumentSearchPageState initialPagingState,
       int pageSize,
       int limit,
       Map<String, String> headers)
@@ -822,9 +848,20 @@ public class DocumentService {
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashMap<String, List<Row>> rowsByDoc = new LinkedHashMap<>();
 
-    ImmutablePair<List<Row>, ByteBuffer> page;
-    ByteBuffer currentPageState = initialPagingState;
+    ImmutablePair<List<Row>, ByteBuffer> page = null;
+    ByteBuffer currentPageState;
+    boolean firstRequest = true;
     do {
+      if (firstRequest) {
+        if (initialPagingState == null) {
+          currentPageState = null;
+        } else {
+          currentPageState = initialPagingState.getPageState();
+        }
+      } else {
+        currentPageState = page.right;
+      }
+
       page =
           searchRows(
               keyspace,
@@ -837,39 +874,40 @@ public class DocumentService {
               null,
               pageSize,
               currentPageState);
-      addRowsToMap(rowsByDoc, page.left);
-      currentPageState = page.right;
-    } while (rowsByDoc.keySet().size() <= limit && currentPageState != null);
+      List<Row> rows = page.left;
+      if (firstRequest) {
+        rows = skipSeenRows(initialPagingState, rows);
+      }
+      addRowsToMap(rowsByDoc, rows);
+      firstRequest = false;
+    } while (rowsByDoc.keySet().size() <= limit && page.right != null);
 
     // Either we've reached the end of all rows in the collection, or we have enough rows
     // in memory to build the final result.
     Set<String> docNames = rowsByDoc.keySet();
     if (docNames.size() > limit) {
-      int totalSize = 0;
       Iterator<Map.Entry<String, List<Row>>> iter = rowsByDoc.entrySet().iterator();
+      String lastIdSeen = null;
       for (int i = 0; i < limit; i++) {
         Map.Entry<String, List<Row>> e = iter.next();
-        totalSize += e.getValue().size();
         List<Row> rows = new ArrayList<>();
         for (Row row : e.getValue()) {
-          if (fields.isEmpty() || fields.contains(row.getString("p0"))) rows.add(row);
+          lastIdSeen = row.getString("key");
+          if (fields.isEmpty() || fields.contains(row.getString("p0"))) {
+            rows.add(row);
+          }
         }
         docsResult.set(e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
       }
-      ByteBuffer finalPagingState =
-          searchRows(
-                  keyspace,
-                  collection,
-                  db,
-                  new ArrayList<>(),
-                  new ArrayList<>(),
-                  new ArrayList<>(),
-                  false,
-                  null,
-                  totalSize,
-                  initialPagingState)
-              .right;
-      return ImmutablePair.of(docsResult, finalPagingState);
+      if (currentPageState != null) {
+        DocumentSearchPageState pageState =
+            new DocumentSearchPageState(lastIdSeen, currentPageState);
+        return ImmutablePair.of(docsResult, pageState);
+      }
+
+      DocumentSearchPageState pageState = new DocumentSearchPageState(lastIdSeen, "");
+      return ImmutablePair.of(docsResult, pageState);
+
     } else {
       Iterator<Map.Entry<String, List<Row>>> iter = rowsByDoc.entrySet().iterator();
       while (iter.hasNext()) {
@@ -890,7 +928,7 @@ public class DocumentService {
    * just the relevant result set, while maintaining page state. This is expected to be even more
    * intensive than getFullDocuments.
    */
-  public ImmutablePair<JsonNode, ByteBuffer> getFullDocumentsFiltered(
+  public ImmutablePair<JsonNode, DocumentSearchPageState> getFullDocumentsFiltered(
       Db dbFactory,
       DocumentDB db,
       String authToken,
@@ -898,14 +936,13 @@ public class DocumentService {
       String collection,
       List<FilterCondition> filters,
       List<String> fields,
-      ByteBuffer initialPagingState,
+      DocumentSearchPageState initialPagingState,
       int pageSize,
       int limit,
       Map<String, String> headers)
       throws UnauthorizedException {
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashSet<String> existsByDoc = new LinkedHashSet<>();
-    LinkedHashMap<String, Integer> countsByDoc = new LinkedHashMap<>();
 
     List<FilterCondition> inCassandraFilters =
         filters.stream()
@@ -928,14 +965,25 @@ public class DocumentService {
       inMemoryFilters = filters;
     }
 
-    ImmutablePair<List<Row>, ByteBuffer> page;
+    ImmutablePair<List<Row>, ByteBuffer> page = null;
     List<Row> leftoverRows = Collections.emptyList();
-    ByteBuffer currentPageState = initialPagingState;
+    ByteBuffer currentPageState;
+    boolean firstRequest = true;
     List<String> path =
         inCassandraFilters.isEmpty()
             ? Collections.emptyList()
             : inCassandraFilters.get(0).getPath();
     do {
+      if (firstRequest) {
+        if (initialPagingState == null) {
+          currentPageState = null;
+        } else {
+          currentPageState = initialPagingState.getPageState();
+        }
+      } else {
+        currentPageState = page.right;
+      }
+
       page =
           searchRows(
               keyspace,
@@ -950,48 +998,38 @@ public class DocumentService {
               currentPageState);
       ArrayList<Row> rowsResult = new ArrayList<>();
       rowsResult.addAll(leftoverRows);
-      rowsResult.addAll(page.left);
+      List<Row> rows = page.left;
+      if (firstRequest) {
+        rows = skipSeenRows(initialPagingState, rows);
+      }
+      rowsResult.addAll(rows);
       leftoverRows =
           updateExistenceForMap(
               existsByDoc,
-              countsByDoc,
               rowsResult,
               inMemoryFilters,
               db.treatBooleansAsNumeric(),
               page.right == null);
-      currentPageState = page.right;
-    } while (existsByDoc.size() <= limit && currentPageState != null);
+      firstRequest = false;
+    } while (existsByDoc.size() <= limit && page.right != null);
 
     // Either we've reached the end of all rows in the collection, or we have enough rows
     // in memory to build the final result.
-    ByteBuffer finalPagingState;
+    DocumentSearchPageState finalPagingState;
     Set<String> docNames = existsByDoc;
     if (existsByDoc.size() > limit) {
-      int totalSize = 0;
       docNames = new HashSet<>();
-      Iterator<Map.Entry<String, Integer>> iter = countsByDoc.entrySet().iterator();
-      int i = 0;
-      while (i < limit) {
-        Map.Entry<String, Integer> e = iter.next();
-        totalSize += e.getValue();
-        if (existsByDoc.contains(e.getKey())) {
-          docNames.add(e.getKey());
-          i++;
-        }
+      Iterator<String> iter = existsByDoc.iterator();
+      String lastSeenId = null;
+      for (int i = 0; i < limit; i++) {
+        lastSeenId = iter.next();
+        docNames.add(lastSeenId);
       }
-      finalPagingState =
-          searchRows(
-                  keyspace,
-                  collection,
-                  db,
-                  inCassandraFilters,
-                  Collections.emptyList(),
-                  path,
-                  false,
-                  null,
-                  totalSize,
-                  initialPagingState)
-              .right;
+      if (currentPageState != null) {
+        finalPagingState = new DocumentSearchPageState(lastSeenId, currentPageState);
+      } else {
+        finalPagingState = new DocumentSearchPageState(lastSeenId, "");
+      }
     } else {
       finalPagingState = null;
     }
