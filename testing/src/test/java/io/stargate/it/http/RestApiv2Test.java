@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assumptions.assumeThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -616,7 +617,12 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         objectMapper.writeValueAsString(indexAdd),
         HttpStatus.SC_CREATED);
 
-    List<Row> rows = session.execute("SELECT * FROM system_schema.indexes;").all();
+    SimpleStatement selectIndexes =
+        SimpleStatement.newInstance(
+            "SELECT * FROM system_schema.indexes WHERE keyspace_name = ? AND table_name = ?",
+            keyspaceName,
+            tableName);
+    List<Row> rows = session.execute(selectIndexes).all();
     assertThat(rows.size()).isEqualTo(1);
 
     String indexName = "test_idx";
@@ -627,7 +633,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             host, keyspaceName, tableName, indexName),
         HttpStatus.SC_NO_CONTENT);
 
-    rows = session.execute("SELECT * FROM system_schema.indexes;").all();
+    rows = session.execute(selectIndexes).all();
     assertThat(rows.size()).isEqualTo(0);
 
     indexName = "invalid_idx";
