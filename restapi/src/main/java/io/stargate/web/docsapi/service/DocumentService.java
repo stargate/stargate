@@ -1049,9 +1049,9 @@ public class DocumentService {
           new HashSet<>(), rows, Collections.emptyList(), db.treatBooleansAsNumeric(), true);
     }
 
-    Set<String> docNames = candidates;
+    LinkedHashSet<String> docNames = candidates;
     if (candidates.size() > limit) {
-      docNames = new HashSet<>();
+      docNames = new LinkedHashSet<>();
       Iterator<String> iter = candidates.iterator();
       int i = 0;
       while (i < limit) {
