@@ -153,4 +153,9 @@ public class DropwizardServer extends Application<Configuration> {
       s.stop();
     }
   }
+
+  @Override
+  protected void bootstrapLogging() {
+    // disable dropwizard logging, it will use external logback
+  }
 }

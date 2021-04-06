@@ -61,7 +61,6 @@ public class AuthApiServerFactory extends SimpleServerFactory {
     final ContextRoutingHandler routingHandler = new ContextRoutingHandler(handlers);
     final Handler gzipHandler = buildGzipHandler(routingHandler);
     server.setHandler(addStatsHandler(addRequestLog(server, gzipHandler, environment.getName())));
-
     return server;
   }
 
