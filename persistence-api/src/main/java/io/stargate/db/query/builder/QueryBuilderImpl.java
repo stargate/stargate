@@ -21,7 +21,6 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
-import com.datastax.oss.driver.shaded.guava.common.base.Joiner;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import com.github.misberner.apcommons.util.AFModifier;
 import com.github.misberner.duzzt.annotations.DSLAction;
@@ -1082,7 +1081,10 @@ public class QueryBuilderImpl {
     if (customIndexClass != null) {
       query.append(" USING").append(format(" '%s'", customIndexClass));
       if (customIndexOptions != null && !customIndexOptions.isEmpty()) {
-        query.append(buildIndexOptions(customIndexOptions));
+        query.append(
+            customIndexOptions.entrySet().stream()
+                .map(e -> format("'%s': '%s'", e.getKey(), e.getValue()))
+                .collect(Collectors.joining(", ", " WITH OPTIONS = { ", " }")));
       }
     }
     return new BuiltOther(valueCodec, executor, query.toString());
@@ -1334,18 +1336,6 @@ public class QueryBuilderImpl {
       default:
         throw new UnsupportedOperationException();
     }
-  }
-
-  private String buildIndexOptions(Map<String, String> indexOptions) {
-    StringBuilder builder = new StringBuilder();
-    String options =
-        Joiner.on(", ")
-            .join(
-                indexOptions.entrySet().stream()
-                    .map(e -> format("'%s': '%s'", e.getKey(), e.getValue()))
-                    .collect(toList()));
-    builder.append(" WITH OPTIONS = { ").append(options).append(" }");
-    return builder.toString();
   }
 
   private BuiltUpdate updateQuery() {

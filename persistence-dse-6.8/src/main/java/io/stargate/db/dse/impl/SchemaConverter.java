@@ -139,8 +139,6 @@ public class SchemaConverter
 
   @Override
   protected Map<String, String> indexOptions(IndexMetadata index) {
-    // TODO: other options to exclude?
-    // TODO: DSE has only those two extra options are C* 4.0?
     return index.options.entrySet().stream()
         .filter(x -> !EXCLUDED_INDEX_OPTIONS.contains(x.getKey()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
