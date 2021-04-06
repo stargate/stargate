@@ -134,7 +134,7 @@ public class SchemaConverter
   @Override
   protected Map<String, String> indexOptions(IndexMetadata index) {
     return index.options.entrySet().stream()
-        .filter(x -> !EXCLUDE_OPTIONS.contains(x.getKey()))
+        .filter(x -> !EXCLUDED_INDEX_OPTIONS.contains(x.getKey()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 

@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  * @param <V> the concrete class for materialized views metadata in the persistence layer.
  */
 public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
-  protected static final Set<String> EXCLUDE_OPTIONS =
+  protected static final Set<String> EXCLUDED_INDEX_OPTIONS =
       ImmutableSet.of(IndexTarget.CUSTOM_INDEX_OPTION_NAME, IndexTarget.TARGET_OPTION_NAME);
   private static final Logger logger =
       LoggerFactory.getLogger(AbstractCassandraSchemaConverter.class);
