@@ -1376,7 +1376,7 @@ public class DocumentServiceTest {
     ImmutablePair<JsonNode, DocumentSearchPageState> result =
         serviceMock.getFullDocuments(
             dbMock, "keyspace", "collection", new ArrayList<>(), null, 100, 1);
-    assertThat(result.right).isNull();
+    assertThat(result.right.getPageState()).isNull();
     assertThat(result.left).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
   }
 

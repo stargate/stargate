@@ -1008,7 +1008,7 @@ public class DocumentService {
     boolean firstRequest = true;
     LinkedHashSet<String> candidates = new LinkedHashSet<>();
     ByteBuffer nextPage = null;
-    ByteBuffer finalPagingState;
+    DocumentSearchPageState finalPagingState;
     List<Row> rows = null;
 
     do {
@@ -1024,7 +1024,15 @@ public class DocumentService {
 
       ImmutablePair<LinkedHashSet<String>, ByteBuffer> candidateResult =
           getCandidatesForPage(
-              db, keyspace, collection, inCassandraFilters, pageSize, currentPageState, candidates);
+              db,
+              keyspace,
+              collection,
+              inCassandraFilters,
+              pageSize,
+              initialPagingState,
+              currentPageState,
+              candidates,
+              firstRequest);
       candidates = candidateResult.left;
       nextPage = candidateResult.right;
 
@@ -1049,15 +1057,20 @@ public class DocumentService {
           new HashSet<>(), rows, Collections.emptyList(), db.treatBooleansAsNumeric(), true);
     }
 
-    LinkedHashSet<String> docNames = candidates;
+    Set<String> docNames = candidates;
     if (candidates.size() > limit) {
-      docNames = new LinkedHashSet<>();
+      docNames = new HashSet<>();
       Iterator<String> iter = candidates.iterator();
-      int i = 0;
-      while (i < limit) {
-        docNames.add(iter.next());
+      String lastSeenId = null;
+      for (int i = 0; i < limit; i++) {
+        lastSeenId = iter.next();
+        docNames.add(lastSeenId);
       }
-      finalPagingState = null; // FIX
+      if (currentPageState != null) {
+        finalPagingState = new DocumentSearchPageState(lastSeenId, currentPageState);
+      } else {
+        finalPagingState = new DocumentSearchPageState(lastSeenId, "");
+      }
     } else {
       finalPagingState = null;
     }
@@ -1080,7 +1093,7 @@ public class DocumentService {
           convertToJsonDoc(entry.getValue(), false, db.treatBooleansAsNumeric()).left);
     }
 
-    return ImmutablePair.of(docsResult, null);
+    return ImmutablePair.of(docsResult, finalPagingState);
   }
 
   private ImmutablePair<LinkedHashSet<String>, ByteBuffer> getCandidatesForPage(
@@ -1089,8 +1102,10 @@ public class DocumentService {
       String collection,
       List<FilterCondition> inCassandraFilters,
       int pageSize,
+      DocumentSearchPageState initialPagingState,
       ByteBuffer pageState,
-      LinkedHashSet currentCandidateKeys)
+      LinkedHashSet currentCandidateKeys,
+      boolean firstRequest)
       throws UnauthorizedException {
     LinkedHashSet<String> candidatesThisPage = new LinkedHashSet<>();
     ImmutablePair<List<Row>, ByteBuffer> firstPage = null;
@@ -1115,7 +1130,11 @@ public class DocumentService {
                 pageState);
         firstPage = page;
         candidatesThisPage = new LinkedHashSet<>();
-        for (Row row : page.left) {
+        List<Row> rows = page.left;
+        if (firstRequest) {
+          rows = skipSeenRows(initialPagingState, rows);
+        }
+        for (Row row : rows) {
           candidatesThisPage.add(row.getString("key"));
         }
       } else {
