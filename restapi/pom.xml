@@ -218,6 +218,7 @@
                             io.stargate.core.*,
                             com.codahale.metrics,
                             com.codahale.metrics.*,
+                            io.micrometer.*,
                             com.datastax.oss.driver.*,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>

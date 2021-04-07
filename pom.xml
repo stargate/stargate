@@ -23,6 +23,9 @@
     <jetty.version>9.4.30.v20200611</jetty.version>
     <slf4j.version>1.7.30</slf4j.version>
     <logback.version>1.2.3</logback.version>
+    <!-- Make sure micrometer and prometheus versions are in sync  -->
+    <micrometer.version>1.6.5</micrometer.version>
+    <prometheus.version>0.9.0</prometheus.version>
     <junit.version>5.7.0</junit.version>
     <mockito.version>3.5.13</mockito.version>
     <jacoco.version>0.8.6</jacoco.version>
@@ -511,6 +514,16 @@
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-core</artifactId>
         <version>${logback.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.micrometer</groupId>
+        <artifactId>micrometer-core</artifactId>
+        <version>${micrometer.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.micrometer</groupId>
+        <artifactId>micrometer-registry-prometheus</artifactId>
+        <version>${micrometer.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.errorprone</groupId>

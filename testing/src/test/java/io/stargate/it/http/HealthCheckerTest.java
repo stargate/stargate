@@ -74,7 +74,8 @@ public class HealthCheckerTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void healthCheck() throws IOException {
-    String body = RestUtils.get("", String.format("%s:8084/healthcheck", host), HttpStatus.SC_OK);
+    String body =
+        RestUtils.get("", String.format("%s:8084/admin/healthcheck", host), HttpStatus.SC_OK);
     @SuppressWarnings("unchecked")
     Map<String, Object> json = OBJECT_MAPPER.readValue(body, Map.class);
     assertThat(json)
@@ -84,5 +85,11 @@ public class HealthCheckerTest extends BaseOsgiIntegrationTest {
         .extracting("graphql", InstanceOfAssertFactories.MAP)
         .containsEntry("healthy", true)
         .containsEntry("message", "Ready to process requests");
+  }
+
+  @Test
+  public void metrics() throws IOException {
+    // we care only for 200
+    RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
   }
 }
