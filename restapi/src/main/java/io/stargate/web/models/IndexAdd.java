@@ -17,6 +17,7 @@ package io.stargate.web.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModelProperty;
+import java.util.Map;
 import javax.validation.constraints.NotNull;
 
 public class IndexAdd {
@@ -24,6 +25,7 @@ public class IndexAdd {
   private String name;
   private String type;
   private IndexKind kind;
+  private Map<String, String> options;
 
   private boolean ifNotExists = false;
 
@@ -75,5 +77,14 @@ public class IndexAdd {
   @ApiModelProperty(value = "The kind (ENTRIES, KEY, VALUES, FULL) of an index")
   public IndexKind getKind() {
     return kind;
+  }
+
+  @ApiModelProperty(value = "Options passed to a custom index")
+  public Map<String, String> getOptions() {
+    return options;
+  }
+
+  public void setOptions(Map<String, String> options) {
+    this.options = options;
   }
 }

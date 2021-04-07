@@ -79,12 +79,12 @@ public class CreateIndexFetcher extends IndexFetcher {
 
     return builder
         .create()
-        .custom(customIndexClass)
         .index(indexName)
         .ifNotExists(ifNotExists)
         .on(keyspaceName, tableName)
         .column(columnName)
         .indexingType(indexingType)
+        .custom(customIndexClass)
         .build();
   }
 }

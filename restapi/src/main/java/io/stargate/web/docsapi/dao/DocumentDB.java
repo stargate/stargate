@@ -302,11 +302,11 @@ public class DocumentDB {
         dataStore
             .queryBuilder()
             .create()
-            .custom("StorageAttachedIndex")
             .index()
             .ifNotExists()
             .on(keyspaceName, tableName)
             .column(name)
+            .custom("StorageAttachedIndex")
             .build()
             .execute()
             .get();

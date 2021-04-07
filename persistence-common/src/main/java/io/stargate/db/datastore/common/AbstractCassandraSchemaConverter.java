@@ -1,5 +1,6 @@
 package io.stargate.db.datastore.common;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.stargate.db.schema.CollectionIndexingType;
 import io.stargate.db.schema.Column;
@@ -17,8 +18,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.cassandra.cql3.statements.IndexTarget;
 import org.apache.cassandra.stargate.utils.Streams;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -40,6 +43,8 @@ import org.slf4j.LoggerFactory;
  * @param <V> the concrete class for materialized views metadata in the persistence layer.
  */
 public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
+  protected static final Set<String> EXCLUDED_INDEX_OPTIONS =
+      ImmutableSet.of(IndexTarget.CUSTOM_INDEX_OPTION_NAME, IndexTarget.TARGET_OPTION_NAME);
   private static final Logger logger =
       LoggerFactory.getLogger(AbstractCassandraSchemaConverter.class);
 
@@ -90,6 +95,12 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
 
   /** Whether the given index is of the "CUSTOM" kind. */
   protected abstract boolean isCustom(I index);
+
+  /** The index class of the given custom index */
+  protected abstract String indexClass(I index);
+
+  /** The index options of the given custom index */
+  protected abstract Map<String, String> indexOptions(I index);
 
   /**
    * Returns the fields of the provided internal user type as columns (of kind {@link
@@ -194,7 +205,12 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
       return null;
     }
     return SecondaryIndex.create(
-        keyspaceName, indexName(index), col.get(), result.getValue1(), isCustom(index));
+        keyspaceName,
+        indexName(index),
+        col.get(),
+        result.getValue1(),
+        indexClass(index),
+        indexOptions(index));
   }
 
   /**
