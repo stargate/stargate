@@ -800,52 +800,20 @@ public class DocumentService {
     return Collections.emptyList();
   }
 
-  private List<Row> filterOutRowsInMemory(
-      List<Row> rows, List<FilterCondition> filters, boolean booleansStoredAsTinyint) {
-    LinkedHashMap<String, List<Row>> documentChunks = new LinkedHashMap<>();
-    for (int i = 0; i < rows.size(); i++) {
-      Row row = rows.get(i);
-      String key = row.getString("key");
-      List<Row> chunk = documentChunks.getOrDefault(key, new ArrayList<>());
-      chunk.add(row);
-      documentChunks.put(key, chunk);
-    }
-
-    List<List<Row>> chunksList = new ArrayList<>(documentChunks.values());
-
-    for (int i = 0; i < chunksList.size(); i++) {
-      List<Row> chunk = chunksList.get(i);
-      List<Row> filteredRows =
-          applyInMemoryFilters(chunk, filters, chunk.size(), booleansStoredAsTinyint);
-      if (filteredRows.isEmpty()) {
-        chunksList.remove(i);
-        i--;
-      }
-    }
-
-    List<Row> filteredResult = new ArrayList<>();
-    for (List<Row> chunk : chunksList) {
-      filteredResult.addAll(chunk);
-    }
-    return filteredResult;
-  }
-
   /**
    * If the DocumentSearchPageState has a defined last seen `documentId`, advance the result set to
    * be just after that ID.
    */
   private List<Row> skipSeenRows(DocumentSearchPageState initialPagingState, List<Row> rows) {
-    if (initialPagingState == null) {
+    String lastSeenId;
+    if (initialPagingState == null
+        || (lastSeenId = initialPagingState.getLastSeenDocId()) == null
+        || initialPagingState.isDoneSkipping()) {
       return rows;
     }
 
-    String lastSeenId = initialPagingState.getLastSeenDocId();
-    if (lastSeenId == null) {
-      return rows;
-    }
-
-    boolean idFound = false;
-    boolean doneSkipping = false;
+    boolean idFound = initialPagingState.isIdFound();
+    boolean doneSkipping = initialPagingState.isDoneSkipping();
     while (!doneSkipping && rows.size() > 0) {
       String docId = rows.get(0).getString("key");
       if (docId.equals(lastSeenId)) {
@@ -857,6 +825,9 @@ public class DocumentService {
         rows.remove(0);
       }
     }
+
+    initialPagingState.setIdFound(idFound);
+    initialPagingState.setDoneSkipping(doneSkipping);
 
     return rows;
   }
@@ -880,16 +851,9 @@ public class DocumentService {
     ImmutablePair<List<Row>, ByteBuffer> page = null;
     ByteBuffer currentPageState;
     boolean firstRequest = true;
+    boolean needsSkip = true;
     do {
-      if (firstRequest) {
-        if (initialPagingState == null) {
-          currentPageState = null;
-        } else {
-          currentPageState = initialPagingState.getPageState();
-        }
-      } else {
-        currentPageState = page.right;
-      }
+      currentPageState = getNextPageState(firstRequest, initialPagingState, page.right);
 
       page =
           searchRows(
@@ -905,9 +869,7 @@ public class DocumentService {
               pageSize,
               currentPageState);
       List<Row> rows = page.left;
-      if (firstRequest) {
-        rows = skipSeenRows(initialPagingState, rows);
-      }
+      skipSeenRows(initialPagingState, rows);
       addRowsToMap(rowsByDoc, rows);
       firstRequest = false;
     } while (rowsByDoc.keySet().size() <= limit && page.right != null);
@@ -929,13 +891,7 @@ public class DocumentService {
         }
         docsResult.set(e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
       }
-      if (currentPageState != null) {
-        DocumentSearchPageState pageState =
-            new DocumentSearchPageState(lastIdSeen, currentPageState);
-        return ImmutablePair.of(docsResult, pageState);
-      }
-
-      DocumentSearchPageState pageState = new DocumentSearchPageState(lastIdSeen, "");
+      DocumentSearchPageState pageState = new DocumentSearchPageState(lastIdSeen, currentPageState);
       return ImmutablePair.of(docsResult, pageState);
     } else {
       Iterator<Map.Entry<String, List<Row>>> iter = rowsByDoc.entrySet().iterator();
@@ -992,6 +948,21 @@ public class DocumentService {
         limit);
   }
 
+  private ByteBuffer getNextPageState(
+      boolean firstRequest,
+      DocumentSearchPageState initialPagingState,
+      ByteBuffer defaultNextPage) {
+    if (firstRequest) {
+      if (initialPagingState == null) {
+        return null;
+      } else {
+        return initialPagingState.getPageState();
+      }
+    } else {
+      return defaultNextPage;
+    }
+  }
+
   private ImmutablePair<JsonNode, DocumentSearchPageState> searchUsingCassandraFilters(
       DocumentDB db,
       String keyspace,
@@ -1012,15 +983,7 @@ public class DocumentService {
     List<Row> rows = null;
 
     do {
-      if (firstRequest) {
-        if (initialPagingState == null) {
-          currentPageState = null;
-        } else {
-          currentPageState = initialPagingState.getPageState();
-        }
-      } else {
-        currentPageState = nextPage;
-      }
+      currentPageState = getNextPageState(firstRequest, initialPagingState, nextPage);
 
       ImmutablePair<LinkedHashSet<String>, ByteBuffer> candidateResult =
           getCandidatesForPage(
@@ -1066,11 +1029,7 @@ public class DocumentService {
         lastSeenId = iter.next();
         docNames.add(lastSeenId);
       }
-      if (currentPageState != null) {
-        finalPagingState = new DocumentSearchPageState(lastSeenId, currentPageState);
-      } else {
-        finalPagingState = new DocumentSearchPageState(lastSeenId, "");
-      }
+      finalPagingState = new DocumentSearchPageState(lastSeenId, currentPageState);
     } else {
       finalPagingState = null;
     }
@@ -1105,7 +1064,7 @@ public class DocumentService {
       DocumentSearchPageState initialPagingState,
       ByteBuffer pageState,
       LinkedHashSet currentCandidateKeys,
-      boolean firstRequest)
+      boolean needsSkip)
       throws UnauthorizedException {
     LinkedHashSet<String> candidatesThisPage = new LinkedHashSet<>();
     ImmutablePair<List<Row>, ByteBuffer> firstPage = null;
@@ -1131,9 +1090,7 @@ public class DocumentService {
         firstPage = page;
         candidatesThisPage = new LinkedHashSet<>();
         List<Row> rows = page.left;
-        if (firstRequest) {
-          rows = skipSeenRows(initialPagingState, rows);
-        }
+        skipSeenRows(initialPagingState, rows);
         for (Row row : rows) {
           candidatesThisPage.add(row.getString("key"));
         }
@@ -1184,15 +1141,7 @@ public class DocumentService {
     LinkedHashSet<String> existsByDoc = new LinkedHashSet<>();
 
     do {
-      if (firstRequest) {
-        if (initialPagingState == null) {
-          currentPageState = null;
-        } else {
-          currentPageState = initialPagingState.getPageState();
-        }
-      } else {
-        currentPageState = page.right;
-      }
+      currentPageState = getNextPageState(firstRequest, initialPagingState, page.right);
 
       page =
           searchRows(
@@ -1210,9 +1159,7 @@ public class DocumentService {
       ArrayList<Row> rowsResult = new ArrayList<>();
       rowsResult.addAll(leftoverRows);
       List<Row> rows = page.left;
-      if (firstRequest) {
-        rows = skipSeenRows(initialPagingState, rows);
-      }
+      skipSeenRows(initialPagingState, rows);
       rowsResult.addAll(rows);
       leftoverRows =
           updateExistenceForMap(
@@ -1236,11 +1183,7 @@ public class DocumentService {
         lastSeenId = iter.next();
         docNames.add(lastSeenId);
       }
-      if (currentPageState != null) {
-        finalPagingState = new DocumentSearchPageState(lastSeenId, currentPageState);
-      } else {
-        finalPagingState = new DocumentSearchPageState(lastSeenId, "");
-      }
+      finalPagingState = new DocumentSearchPageState(lastSeenId, currentPageState);
     } else {
       finalPagingState = null;
     }
