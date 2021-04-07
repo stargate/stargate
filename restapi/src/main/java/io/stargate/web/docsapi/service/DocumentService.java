@@ -851,9 +851,9 @@ public class DocumentService {
     ImmutablePair<List<Row>, ByteBuffer> page = null;
     ByteBuffer currentPageState;
     boolean firstRequest = true;
-    boolean needsSkip = true;
     do {
-      currentPageState = getNextPageState(firstRequest, initialPagingState, page.right);
+      currentPageState =
+          getNextPageState(firstRequest, initialPagingState, page == null ? null : page.right);
 
       page =
           searchRows(
@@ -994,8 +994,7 @@ public class DocumentService {
               pageSize,
               initialPagingState,
               currentPageState,
-              candidates,
-              firstRequest);
+              candidates);
       candidates = candidateResult.left;
       nextPage = candidateResult.right;
 
@@ -1063,8 +1062,7 @@ public class DocumentService {
       int pageSize,
       DocumentSearchPageState initialPagingState,
       ByteBuffer pageState,
-      LinkedHashSet currentCandidateKeys,
-      boolean needsSkip)
+      LinkedHashSet currentCandidateKeys)
       throws UnauthorizedException {
     LinkedHashSet<String> candidatesThisPage = new LinkedHashSet<>();
     ImmutablePair<List<Row>, ByteBuffer> firstPage = null;
