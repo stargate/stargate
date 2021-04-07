@@ -93,16 +93,6 @@
       <artifactId>logback-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-core</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-registry-prometheus</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-logging</artifactId>
     </dependency>
@@ -160,7 +150,7 @@
               org.osgi.framework,
               com.codahale.metrics,
               com.codahale.metrics.*,
-              io.micrometer.*,
+              io.micrometer.core.*,
               io.stargate.core.*,
               io.stargate.db.*,
               org.apache.cassandra.stargate,

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @NotThreadSafe
 public class HealthCheckerTest extends BaseOsgiIntegrationTest {
@@ -87,9 +89,38 @@ public class HealthCheckerTest extends BaseOsgiIntegrationTest {
         .containsEntry("message", "Ready to process requests");
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"authapi", "graphqlapi", "health_checker", "restapi"})
+  public void metricsModule(String module) throws IOException {
+    String[] expectedMetricGroups =
+        new String[] {"TimeBoundHealthCheck", "io_dropwizard_jersey", "org_eclipse_jetty"};
+
+    String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+    String[] lines = result.split(System.getProperty("line.separator"));
+    long foundMetricGroups =
+        Arrays.stream(expectedMetricGroups)
+            .map(
+                metricGroup ->
+                    Arrays.stream(lines)
+                        .anyMatch(line -> line.startsWith(module + "_" + metricGroup)))
+            .filter(Boolean::booleanValue)
+            .count();
+
+    assertThat(foundMetricGroups).isEqualTo(expectedMetricGroups.length);
+  }
+
   @Test
-  public void metrics() throws IOException {
-    // we care only for 200
-    RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+  public void metricsPersistence() throws IOException {
+    String version = backend.clusterVersion().replace('.', '_');
+    String expectedPrefix =
+        (backend.isDse() ? "persistence_dse" : "persistence_cassandra") + "_" + version;
+
+    String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+    String[] lines = result.split(System.getProperty("line.separator"));
+    boolean prefixFound = Arrays.stream(lines).anyMatch(line -> line.startsWith(expectedPrefix));
+
+    assertThat(prefixFound).isTrue();
   }
 }

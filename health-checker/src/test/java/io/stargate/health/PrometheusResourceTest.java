@@ -18,7 +18,7 @@ package io.stargate.health;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import io.micrometer.prometheus.PrometheusMeterRegistry;
+import io.stargate.core.metrics.api.MetricsScraper;
 import javax.ws.rs.core.Response;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -32,7 +32,7 @@ class PrometheusResourceTest {
 
   @InjectMocks PrometheusResource prometheusResource;
 
-  @Mock PrometheusMeterRegistry prometheusMeterRegistry;
+  @Mock MetricsScraper scraper;
 
   @Nested
   class PrometheusEndpoint {
@@ -40,7 +40,7 @@ class PrometheusResourceTest {
     @Test
     public void happyPath() {
       String metrics = "my_metric=1";
-      when(prometheusMeterRegistry.scrape()).thenReturn(metrics);
+      when(scraper.scrape()).thenReturn(metrics);
 
       Response response = prometheusResource.prometheusEndpoint();
 

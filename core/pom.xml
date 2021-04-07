@@ -47,7 +47,6 @@
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient_dropwizard</artifactId>
-            <version>${prometheus.version}</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -91,7 +90,7 @@
                           io.stargate.core.*,
                           com.codahale.metrics,
                           com.codahale.metrics.*,
-                          io.micrometer.*
+                          io.micrometer.core.*
                         ]]></Export-Package>
                         <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
                         <Embed-Transitive>true</Embed-Transitive>

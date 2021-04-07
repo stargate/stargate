@@ -1,7 +1,7 @@
 package io.stargate.core.metrics.api;
 
 import com.codahale.metrics.MetricRegistry;
-import io.micrometer.prometheus.PrometheusMeterRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 /**
  * Entry point to the Stargate metrics.
@@ -35,5 +35,5 @@ public interface Metrics {
    *
    * <p>Note that this registry will warp all the metrics reported via {@link #getRegistry()}.
    */
-  PrometheusMeterRegistry getMeterRegistry();
+  MeterRegistry getMeterRegistry();
 }

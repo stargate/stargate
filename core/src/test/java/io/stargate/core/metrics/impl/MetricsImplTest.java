@@ -31,7 +31,7 @@ class MetricsImplTest {
     metrics.getMeterRegistry().counter("micrometer").increment(2d);
     metrics.getMeterRegistry().counter("micrometer_tags", "tag", "that").increment(3d);
 
-    String scrape = metrics.getMeterRegistry().scrape();
+    String scrape = metrics.scrape();
     assertThat(scrape)
         .contains("dropwizard 1.0")
         .contains("prefix_dropwizard 1.0")

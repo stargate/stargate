@@ -16,6 +16,7 @@
 package io.stargate.health;
 
 import io.micrometer.prometheus.PrometheusMeterRegistry;
+import io.stargate.core.metrics.api.MetricsScraper;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -30,11 +31,11 @@ import javax.ws.rs.core.Response;
 @Path("/metrics")
 public class PrometheusResource {
 
-  @Inject private PrometheusMeterRegistry registry;
+  @Inject private MetricsScraper scraper;
 
   @GET
   @Produces(MediaType.TEXT_PLAIN)
   public Response prometheusEndpoint() {
-    return Response.ok(registry.scrape()).build();
+    return Response.ok(scraper.scrape()).build();
   }
 }
