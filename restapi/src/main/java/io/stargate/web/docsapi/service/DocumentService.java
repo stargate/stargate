@@ -25,7 +25,7 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
 import io.stargate.web.docsapi.dao.DocumentDB;
-import io.stargate.web.docsapi.dao.DocumentSearchPageState;
+import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.exception.DocumentAPIErrorHandlingStrategy;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
@@ -33,11 +33,11 @@ import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.resources.Db;
-import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.PathSegment;
@@ -624,8 +624,7 @@ public class DocumentService {
       List<FilterCondition> filters,
       List<PathSegment> path,
       Boolean recurse,
-      int pageSize,
-      ByteBuffer pageState)
+      Paginator paginator)
       throws ExecutionException, InterruptedException, UnauthorizedException {
     StringBuilder pathStr = new StringBuilder();
 
@@ -633,18 +632,16 @@ public class DocumentService {
         path.stream().map(PathSegment::getPath).collect(Collectors.toList());
     List<Row> rows =
         searchRows(
-                keyspace,
-                collection,
-                db,
-                Collections.emptyList(),
-                filters,
-                new ArrayList<>(),
-                pathSegmentValues,
-                recurse,
-                documentKey,
-                pageSize,
-                pageState)
-            .left;
+            keyspace,
+            collection,
+            db,
+            Collections.emptyList(),
+            filters,
+            new ArrayList<>(),
+            pathSegmentValues,
+            recurse,
+            documentKey,
+            paginator);
 
     if (rows.isEmpty()) return null;
 
@@ -670,20 +667,19 @@ public class DocumentService {
     return docsResult;
   }
 
-  public ImmutablePair<JsonNode, ByteBuffer> searchDocumentsV2(
+  public JsonNode searchDocumentsV2(
       DocumentDB db,
       String keyspace,
       String collection,
       List<FilterCondition> filters,
       List<String> fields,
       String documentId,
-      int pageSize,
-      ByteBuffer pageState)
+      final Paginator paginator)
       throws UnauthorizedException {
     FilterCondition first = filters.get(0);
     List<String> path = first.getPath();
 
-    ImmutablePair<List<Row>, ByteBuffer> searchResult =
+    List<Row> rows =
         searchRows(
             keyspace,
             collection,
@@ -694,10 +690,8 @@ public class DocumentService {
             path,
             false,
             documentId,
-            pageSize,
-            pageState);
-    List<Row> rows = searchResult.left;
-    ByteBuffer newpageState = searchResult.right;
+            paginator);
+
     if (rows.isEmpty()) {
       return null;
     }
@@ -754,7 +748,7 @@ public class DocumentService {
       return null;
     }
 
-    return ImmutablePair.of(docsResult, newpageState);
+    return docsResult;
   }
 
   @VisibleForTesting
@@ -834,64 +828,20 @@ public class DocumentService {
    * If the DocumentSearchPageState has a defined last seen `documentId`, advance the result set to
    * be just after that ID.
    */
-  private List<Row> skipSeenRows(DocumentSearchPageState initialPagingState, List<Row> rows) {
-    if (initialPagingState == null) {
-      return rows;
-    }
-
-    String lastSeenId = initialPagingState.getLastSeenDocId();
-    if (lastSeenId == null) {
-      return rows;
-    }
-
-    boolean idFound = false;
-    boolean doneSkipping = false;
-    while (!doneSkipping && rows.size() > 0) {
-      String docId = rows.get(0).getString("key");
-      if (docId.equals(lastSeenId)) {
-        idFound = true;
-        rows.remove(0);
-      } else if (idFound) {
-        doneSkipping = true;
-      } else {
-        rows.remove(0);
-      }
-    }
-
-    return rows;
-  }
 
   /**
-   * This method gets all the rows for @param limit documents, by fetching result sets sequentially
-   * and stringing them together. This is NOT expected to perform well for large documents.
+   * This method gets all the rows for @param paginator#dbPageSize documents, by fetching result
+   * sets sequentially and stringing them together. This is NOT expected to perform well for large
+   * documents.
    */
-  public ImmutablePair<JsonNode, DocumentSearchPageState> getFullDocuments(
-      DocumentDB db,
-      String keyspace,
-      String collection,
-      List<String> fields,
-      DocumentSearchPageState initialPagingState,
-      int pageSize,
-      int limit)
+  public JsonNode getFullDocuments(
+      DocumentDB db, String keyspace, String collection, List<String> fields, Paginator paginator)
       throws UnauthorizedException {
-    ObjectNode docsResult = mapper.createObjectNode();
+    final ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashMap<String, List<Row>> rowsByDoc = new LinkedHashMap<>();
 
-    ImmutablePair<List<Row>, ByteBuffer> page = null;
-    ByteBuffer currentPageState;
-    boolean firstRequest = true;
     do {
-      if (firstRequest) {
-        if (initialPagingState == null) {
-          currentPageState = null;
-        } else {
-          currentPageState = initialPagingState.getPageState();
-        }
-      } else {
-        currentPageState = page.right;
-      }
-
-      page =
+      List<Row> rows =
           searchRows(
               keyspace,
               collection,
@@ -902,53 +852,46 @@ public class DocumentService {
               new ArrayList<>(),
               false,
               null,
-              pageSize,
-              currentPageState);
-      List<Row> rows = page.left;
-      if (firstRequest) {
-        rows = skipSeenRows(initialPagingState, rows);
-      }
+              paginator);
+      rows = paginator.maybeSkipRows(rows);
       addRowsToMap(rowsByDoc, rows);
-      firstRequest = false;
-    } while (rowsByDoc.keySet().size() <= limit && page.right != null);
+    } while (rowsByDoc.keySet().size() <= paginator.docPageSize && paginator.hasDbPageState());
 
     // Either we've reached the end of all rows in the collection, or we have enough rows
     // in memory to build the final result.
-    Set<String> docNames = rowsByDoc.keySet();
-    if (docNames.size() > limit) {
-      Iterator<Map.Entry<String, List<Row>>> iter = rowsByDoc.entrySet().iterator();
-      String lastIdSeen = null;
-      for (int i = 0; i < limit; i++) {
-        Map.Entry<String, List<Row>> e = iter.next();
-        List<Row> rows = new ArrayList<>();
-        for (Row row : e.getValue()) {
-          lastIdSeen = row.getString("key");
-          if (fields.isEmpty() || fields.contains(row.getString("p0"))) {
-            rows.add(row);
-          }
-        }
-        docsResult.set(e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
-      }
-      if (currentPageState != null) {
-        DocumentSearchPageState pageState =
-            new DocumentSearchPageState(lastIdSeen, currentPageState);
-        return ImmutablePair.of(docsResult, pageState);
-      }
+    if (rowsByDoc.keySet().size() > paginator.docPageSize) {
+      AtomicReference<String> lastIdSeen = new AtomicReference<>();
+      rowsByDoc.entrySet().stream()
+          .limit(paginator.docPageSize)
+          .forEach(
+              e -> {
+                List<Row> rows =
+                    e.getValue().stream()
+                        .filter(
+                            row -> {
+                              lastIdSeen.set(row.getString("key"));
+                              return fields.isEmpty() || fields.contains(row.getString("p0"));
+                            })
+                        .collect(Collectors.toList());
+                docsResult.set(
+                    e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
+              });
 
-      DocumentSearchPageState pageState = new DocumentSearchPageState(lastIdSeen, "");
-      return ImmutablePair.of(docsResult, pageState);
+      paginator.setDocumentPageState(lastIdSeen.get());
     } else {
-      Iterator<Map.Entry<String, List<Row>>> iter = rowsByDoc.entrySet().iterator();
-      while (iter.hasNext()) {
-        Map.Entry<String, List<Row>> e = iter.next();
-        List<Row> rows = new ArrayList<>();
-        for (Row row : e.getValue()) {
-          if (fields.isEmpty() || fields.contains(row.getString("p0"))) rows.add(row);
-        }
-        docsResult.set(e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
-      }
-      return ImmutablePair.of(docsResult, null);
+      rowsByDoc.entrySet().stream()
+          .forEach(
+              e -> {
+                List<Row> rows =
+                    e.getValue().stream()
+                        .filter(row -> fields.isEmpty() || fields.contains(row.getString("p0")))
+                        .collect(Collectors.toList());
+                docsResult.set(
+                    e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
+              });
+      paginator.clearDocumentPageState();
     }
+    return docsResult;
   }
 
   /**
@@ -957,15 +900,13 @@ public class DocumentService {
    * just the relevant result set, while maintaining page state. This is expected to be even more
    * intensive than getFullDocuments.
    */
-  public ImmutablePair<JsonNode, DocumentSearchPageState> getFullDocumentsFiltered(
+  public JsonNode getFullDocumentsFiltered(
       DocumentDB db,
       String keyspace,
       String collection,
       List<FilterCondition> filters,
       List<String> fields,
-      DocumentSearchPageState initialPagingState,
-      int pageSize,
-      int limit)
+      Paginator paginator)
       throws UnauthorizedException {
     List<FilterCondition> inCassandraFilters =
         filters.stream()
@@ -978,63 +919,29 @@ public class DocumentService {
 
     if (inCassandraFilters.isEmpty()) {
       return searchWithOnlyInMemoryFilters(
-          db, keyspace, collection, inMemoryFilters, fields, initialPagingState, pageSize, limit);
+          db, keyspace, collection, inMemoryFilters, fields, paginator);
     }
     return searchUsingCassandraFilters(
-        db,
-        keyspace,
-        collection,
-        inCassandraFilters,
-        inMemoryFilters,
-        fields,
-        initialPagingState,
-        limit * 10,
-        limit);
+        db, keyspace, collection, inCassandraFilters, inMemoryFilters, fields, paginator);
   }
 
-  private ImmutablePair<JsonNode, DocumentSearchPageState> searchUsingCassandraFilters(
+  private JsonNode searchUsingCassandraFilters(
       DocumentDB db,
       String keyspace,
       String collection,
       List<FilterCondition> inCassandraFilters,
       List<FilterCondition> inMemoryFilters,
       List<String> fields,
-      DocumentSearchPageState initialPagingState,
-      int pageSize,
-      int limit)
+      Paginator paginator)
       throws UnauthorizedException {
-    ByteBuffer currentPageState;
     ObjectNode docsResult = mapper.createObjectNode();
-    boolean firstRequest = true;
     LinkedHashSet<String> candidates = new LinkedHashSet<>();
-    ByteBuffer nextPage = null;
-    DocumentSearchPageState finalPagingState;
     List<Row> rows = null;
 
     do {
-      if (firstRequest) {
-        if (initialPagingState == null) {
-          currentPageState = null;
-        } else {
-          currentPageState = initialPagingState.getPageState();
-        }
-      } else {
-        currentPageState = nextPage;
-      }
-
-      ImmutablePair<LinkedHashSet<String>, ByteBuffer> candidateResult =
-          getCandidatesForPage(
-              db,
-              keyspace,
-              collection,
-              inCassandraFilters,
-              pageSize,
-              initialPagingState,
-              currentPageState,
-              candidates,
-              firstRequest);
-      candidates = candidateResult.left;
-      nextPage = candidateResult.right;
+      LinkedHashSet<String> candidateResult =
+          getCandidatesForPage(db, keyspace, collection, inCassandraFilters, candidates, paginator);
+      candidates = candidateResult;
 
       // Do an in-memory filter if there are non-cassandra filters
       if (!inMemoryFilters.isEmpty()) {
@@ -1044,8 +951,7 @@ public class DocumentService {
         candidates.clear();
         updateExistenceForMap(candidates, rows, inMemoryFilters, db.treatBooleansAsNumeric(), true);
       }
-      firstRequest = false;
-    } while (candidates.size() <= limit && nextPage != null);
+    } while (candidates.size() <= paginator.docPageSize && paginator.hasDbPageState());
 
     // Either we've reached the end of all rows in the collection, or we have enough rows
     // in memory to build the final result.
@@ -1058,21 +964,21 @@ public class DocumentService {
     }
 
     Set<String> docNames = candidates;
-    if (candidates.size() > limit) {
+    if (candidates.size() > paginator.docPageSize) {
+
+      //      String lastSeenId = existsByDoc.stream().limit(limit).reduce((x,y) -> y).orElse(null);
+      //      finalPagingState = new DocumentSearchPageState(lastSeenId, currentPageState);
+
       docNames = new HashSet<>();
       Iterator<String> iter = candidates.iterator();
       String lastSeenId = null;
-      for (int i = 0; i < limit; i++) {
+      for (int i = 0; i < paginator.docPageSize; i++) {
         lastSeenId = iter.next();
         docNames.add(lastSeenId);
       }
-      if (currentPageState != null) {
-        finalPagingState = new DocumentSearchPageState(lastSeenId, currentPageState);
-      } else {
-        finalPagingState = new DocumentSearchPageState(lastSeenId, "");
-      }
+      paginator.setDocumentPageState(lastSeenId);
     } else {
-      finalPagingState = null;
+      paginator.clearDocumentPageState();
     }
 
     Map<String, List<Row>> rowsByDoc = new HashMap<>();
@@ -1093,23 +999,19 @@ public class DocumentService {
           convertToJsonDoc(entry.getValue(), false, db.treatBooleansAsNumeric()).left);
     }
 
-    return ImmutablePair.of(docsResult, finalPagingState);
+    return docsResult;
   }
 
-  private ImmutablePair<LinkedHashSet<String>, ByteBuffer> getCandidatesForPage(
+  private LinkedHashSet<String> getCandidatesForPage(
       DocumentDB db,
       String keyspace,
       String collection,
       List<FilterCondition> inCassandraFilters,
-      int pageSize,
-      DocumentSearchPageState initialPagingState,
-      ByteBuffer pageState,
       LinkedHashSet currentCandidateKeys,
-      boolean firstRequest)
+      Paginator paginator)
       throws UnauthorizedException {
     LinkedHashSet<String> candidatesThisPage = new LinkedHashSet<>();
-    ImmutablePair<List<Row>, ByteBuffer> firstPage = null;
-    ImmutablePair<List<Row>, ByteBuffer> page;
+    List<Row> page;
     for (int i = 0; i < inCassandraFilters.size(); i++) {
       FilterCondition condition = inCassandraFilters.get(i);
       List<String> path = condition.getPath();
@@ -1126,14 +1028,10 @@ public class DocumentService {
                 path,
                 false,
                 null,
-                pageSize,
-                pageState);
-        firstPage = page;
+                paginator);
         candidatesThisPage = new LinkedHashSet<>();
-        List<Row> rows = page.left;
-        if (firstRequest) {
-          rows = skipSeenRows(initialPagingState, rows);
-        }
+        List<Row> rows = page;
+        rows = paginator.maybeSkipRows(rows);
         for (Row row : rows) {
           candidatesThisPage.add(row.getString("key"));
         }
@@ -1152,9 +1050,8 @@ public class DocumentService {
                   path,
                   false,
                   null,
-                  pageSize,
-                  pageState);
-          if (!page.left.isEmpty()) {
+                  paginator);
+          if (!page.isEmpty()) {
             tempCandidates.add(candidate);
           }
         }
@@ -1163,38 +1060,24 @@ public class DocumentService {
     }
 
     currentCandidateKeys.addAll(candidatesThisPage);
-    return ImmutablePair.of(currentCandidateKeys, firstPage.right);
+    return currentCandidateKeys;
   }
 
-  private ImmutablePair<JsonNode, DocumentSearchPageState> searchWithOnlyInMemoryFilters(
+  private JsonNode searchWithOnlyInMemoryFilters(
       DocumentDB db,
       String keyspace,
       String collection,
       List<FilterCondition> inMemoryFilters,
       List<String> fields,
-      DocumentSearchPageState initialPagingState,
-      int pageSize,
-      int limit)
+      Paginator paginator)
       throws UnauthorizedException {
-    ImmutablePair<List<Row>, ByteBuffer> page = null;
+
     List<Row> leftoverRows = Collections.emptyList();
-    ByteBuffer currentPageState;
-    boolean firstRequest = true;
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashSet<String> existsByDoc = new LinkedHashSet<>();
 
     do {
-      if (firstRequest) {
-        if (initialPagingState == null) {
-          currentPageState = null;
-        } else {
-          currentPageState = initialPagingState.getPageState();
-        }
-      } else {
-        currentPageState = page.right;
-      }
-
-      page =
+      List<Row> page =
           searchRows(
               keyspace,
               collection,
@@ -1205,14 +1088,11 @@ public class DocumentService {
               Collections.emptyList(),
               false,
               null,
-              pageSize,
-              currentPageState);
+              paginator);
       ArrayList<Row> rowsResult = new ArrayList<>();
       rowsResult.addAll(leftoverRows);
-      List<Row> rows = page.left;
-      if (firstRequest) {
-        rows = skipSeenRows(initialPagingState, rows);
-      }
+      List<Row> rows = page;
+      rows = paginator.maybeSkipRows(rows);
       rowsResult.addAll(rows);
       leftoverRows =
           updateExistenceForMap(
@@ -1220,29 +1100,23 @@ public class DocumentService {
               rowsResult,
               inMemoryFilters,
               db.treatBooleansAsNumeric(),
-              page.right == null);
-      firstRequest = false;
-    } while (existsByDoc.size() <= limit && page.right != null);
+              paginator.hasDbPageState());
+    } while (existsByDoc.size() <= paginator.docPageSize && paginator.hasDbPageState());
 
     // Either we've reached the end of all rows in the collection, or we have enough rows
     // in memory to build the final result.
-    DocumentSearchPageState finalPagingState;
     Set<String> docNames = existsByDoc;
-    if (existsByDoc.size() > limit) {
+    if (existsByDoc.size() > paginator.docPageSize) {
       docNames = new HashSet<>();
       Iterator<String> iter = existsByDoc.iterator();
       String lastSeenId = null;
-      for (int i = 0; i < limit; i++) {
+      for (int i = 0; i < paginator.docPageSize; i++) {
         lastSeenId = iter.next();
         docNames.add(lastSeenId);
       }
-      if (currentPageState != null) {
-        finalPagingState = new DocumentSearchPageState(lastSeenId, currentPageState);
-      } else {
-        finalPagingState = new DocumentSearchPageState(lastSeenId, "");
-      }
+      paginator.setDocumentPageState(lastSeenId);
     } else {
-      finalPagingState = null;
+      paginator.clearDocumentPageState();
     }
 
     List<BuiltCondition> predicate =
@@ -1265,7 +1139,7 @@ public class DocumentService {
           convertToJsonDoc(entry.getValue(), false, db.treatBooleansAsNumeric()).left);
     }
 
-    return ImmutablePair.of(docsResult, finalPagingState);
+    return docsResult;
   }
 
   /**
@@ -1285,14 +1159,13 @@ public class DocumentService {
    * @param path the path in the document that is being searched on
    * @param recurse legacy boolean, only used for v1 of the API
    * @param documentKey filter down to only one document's results
-   * @param pageSize number of rows to return
-   * @param pageState current state of database paging
+   * @param paginator Controls paging for both Docs API and C*
    * @return
    * @throws ExecutionException
    * @throws InterruptedException
    */
   @VisibleForTesting
-  ImmutablePair<List<Row>, ByteBuffer> searchRows(
+  List<Row> searchRows(
       String keyspace,
       String collection,
       DocumentDB db,
@@ -1302,8 +1175,7 @@ public class DocumentService {
       List<String> path,
       Boolean recurse,
       String documentKey,
-      int pageSize,
-      ByteBuffer pageState)
+      Paginator paginator)
       throws UnauthorizedException {
     StringBuilder pathStr = new StringBuilder();
     List<BuiltCondition> predicates = new ArrayList<>();
@@ -1383,13 +1255,24 @@ public class DocumentService {
 
     predicates.addAll(additionalWhereConditions);
     if (!predicates.isEmpty()) {
-      r = db.executeSelect(keyspace, collection, predicates, true, pageSize, pageState);
+      r =
+          db.executeSelect(
+              keyspace,
+              collection,
+              predicates,
+              true,
+              paginator.dbPageSize,
+              paginator.getCurrentDbPageState());
     } else {
-      r = db.executeSelectAll(keyspace, collection, pageSize, pageState);
+      r =
+          db.executeSelectAll(
+              keyspace, collection, paginator.dbPageSize, paginator.getCurrentDbPageState());
     }
 
     List<Row> rows = r.currentPageRows();
-    ByteBuffer newState = r.getPagingState();
+
+    // this is the only place that currently updates C* page state property
+    paginator.setCurrentDbPageState(r.getPagingState());
 
     if (documentKey != null) {
       rows =
@@ -1398,7 +1281,7 @@ public class DocumentService {
               .collect(Collectors.toList());
     }
 
-    if (!inMemoryFilters.isEmpty() && newState != null) {
+    if (!inMemoryFilters.isEmpty() && paginator.hasDbPageState()) {
       throw new DocumentAPIRequestException(
           "The results as requested must fit in one page, try increasing the `page-size` parameter.");
     }
@@ -1408,7 +1291,7 @@ public class DocumentService {
         applyInMemoryFilters(
             rows, inMemoryFilters, Math.max(fields.size(), 1), db.treatBooleansAsNumeric());
 
-    return ImmutablePair.of(rows, newState);
+    return rows;
   }
 
   private String getParentPathFromRow(Row row) {

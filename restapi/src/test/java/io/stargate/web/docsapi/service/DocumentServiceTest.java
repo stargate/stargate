@@ -42,7 +42,7 @@ import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.web.docsapi.dao.DocumentDB;
-import io.stargate.web.docsapi.dao.DocumentSearchPageState;
+import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
@@ -1233,21 +1233,20 @@ public class DocumentServiceTest {
   public void searchDocumentsV2_emptyResult() throws Exception {
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    Mockito.when(
-            serviceMock.searchDocumentsV2(
-                any(), any(), any(), any(), any(), any(), anyInt(), any()))
+    Paginator paginator = Mockito.mock(Paginator.class);
+    Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any(), paginator))
         .thenCallRealMethod();
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
-        .thenReturn(ImmutablePair.of(new ArrayList<>(), null));
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), paginator))
+        .thenReturn(new ArrayList<>());
 
     List<FilterCondition> filters =
         ImmutableList.of(
             new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$eq", "value"));
-    ImmutablePair<JsonNode, ByteBuffer> result =
+    JsonNode result =
         serviceMock.searchDocumentsV2(
-            dbMock, "keyspace", "collection", filters, new ArrayList<>(), null, 100, null);
+            dbMock, "keyspace", "collection", filters, new ArrayList<>(), null, paginator);
     assertThat(result).isNull();
   }
 
@@ -1255,49 +1254,47 @@ public class DocumentServiceTest {
   public void searchDocumentsV2_existingResult() throws Exception {
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    Mockito.when(
-            serviceMock.searchDocumentsV2(
-                any(), any(), any(), any(), any(), any(), anyInt(), any()))
+    Paginator paginator = Mockito.mock(Paginator.class);
+    Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any(), paginator))
         .thenCallRealMethod();
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
-        .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), paginator))
+        .thenReturn(makeInitialRowData());
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
 
     List<FilterCondition> filters =
         ImmutableList.of(
             new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$eq", "value"));
-    ImmutablePair<JsonNode, ByteBuffer> result =
+    JsonNode result =
         serviceMock.searchDocumentsV2(
-            dbMock, "keyspace", "collection", filters, new ArrayList<>(), null, 100, null);
-    assertThat(result.right).isNull();
-    assertThat(result.left).isEqualTo(mapper.readTree("{\"1\":[{\"a\":1},{\"a\":1},{\"a\":1}]}"));
+            dbMock, "keyspace", "collection", filters, new ArrayList<>(), null, paginator);
+    assertThat(paginator.getDocumentPageStateAsString()).isNull();
+    assertThat(result).isEqualTo(mapper.readTree("{\"1\":[{\"a\":1},{\"a\":1},{\"a\":1}]}"));
   }
 
   @Test
   public void searchDocumentsV2_existingResultWithFields() throws Exception {
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    Mockito.when(
-            serviceMock.searchDocumentsV2(
-                any(), any(), any(), any(), any(), any(), anyInt(), any()))
+    Paginator paginator = Mockito.mock(Paginator.class);
+    Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any(), paginator))
         .thenCallRealMethod();
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
-        .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), paginator))
+        .thenReturn(makeInitialRowData());
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
     List<FilterCondition> filters =
         ImmutableList.of(
             new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$exists", true));
-    ImmutablePair<JsonNode, ByteBuffer> result =
+    JsonNode result =
         serviceMock.searchDocumentsV2(
-            dbMock, "keyspace", "collection", filters, ImmutableList.of("field"), null, 100, null);
-    assertThat(result.right).isNull();
-    assertThat(result.left).isEqualTo(mapper.readTree("{\"1\":[{\"a\":1},{\"a\":1},{\"a\":1}]}"));
+            dbMock, "keyspace", "collection", filters, ImmutableList.of("field"), null, paginator);
+    assertThat(paginator.getDocumentPageStateAsString()).isNull();
+    assertThat(result).isEqualTo(mapper.readTree("{\"1\":[{\"a\":1},{\"a\":1},{\"a\":1}]}"));
   }
 
   @Test
@@ -1320,31 +1317,26 @@ public class DocumentServiceTest {
   public void getFullDocuments_lessThanLimit() throws Exception {
     Db dbFactoryMock = Mockito.mock(Db.class);
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
+    Paginator paginator = Mockito.mock(Paginator.class);
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
     Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
-        .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), paginator))
+        .thenReturn(makeInitialRowData());
     Mockito.when(
             serviceMock.getFullDocuments(
-                any(),
-                anyString(),
-                anyString(),
-                anyListOf(String.class),
-                any(),
-                anyInt(),
-                anyInt()))
+                any(), anyString(), anyString(), anyListOf(String.class), paginator))
         .thenCallRealMethod();
     Mockito.doCallRealMethod().when(serviceMock).addRowsToMap(anyMap(), anyList());
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
 
-    ImmutablePair<JsonNode, DocumentSearchPageState> result =
+    JsonNode result =
         serviceMock.getFullDocuments(
-            dbMock, "keyspace", "collection", new ArrayList<>(), null, 100, 1);
-    assertThat(result.right).isNull();
-    assertThat(result.left).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
+            dbMock, "keyspace", "collection", new ArrayList<>(), paginator);
+    assertThat(paginator.getDocumentPageStateAsString()).isNull();
+    assertThat(result).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
   }
 
   @Test
@@ -1352,32 +1344,27 @@ public class DocumentServiceTest {
     Db dbFactoryMock = Mockito.mock(Db.class);
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
+    Paginator paginator = Mockito.mock(Paginator.class);
     List<Row> twoDocsRows = makeInitialRowData();
     twoDocsRows.addAll(makeRowDataForSecondDoc());
     Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
-        .thenReturn(ImmutablePair.of(twoDocsRows, null));
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), paginator))
+        .thenReturn(twoDocsRows);
     Mockito.when(
             serviceMock.getFullDocuments(
-                any(),
-                anyString(),
-                anyString(),
-                anyListOf(String.class),
-                any(),
-                anyInt(),
-                anyInt()))
+                any(), anyString(), anyString(), anyListOf(String.class), paginator))
         .thenCallRealMethod();
     Mockito.doCallRealMethod().when(serviceMock).addRowsToMap(anyMap(), anyList());
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
 
-    ImmutablePair<JsonNode, DocumentSearchPageState> result =
+    JsonNode result =
         serviceMock.getFullDocuments(
-            dbMock, "keyspace", "collection", new ArrayList<>(), null, 100, 1);
-    assertThat(result.right.getPageState()).isNull();
-    assertThat(result.left).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
+            dbMock, "keyspace", "collection", new ArrayList<>(), paginator);
+    assertThat(paginator.getDocumentPageStateAsString()).isNull();
+    assertThat(result).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
   }
 
   @Test

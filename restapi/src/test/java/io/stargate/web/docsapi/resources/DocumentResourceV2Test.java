@@ -1,7 +1,7 @@
 package io.stargate.web.docsapi.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyObject;
 import static org.mockito.Mockito.anyString;
@@ -18,12 +18,15 @@ import com.google.common.collect.ImmutableList;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
+import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.models.Error;
 import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Db;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,7 +36,6 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -210,7 +212,7 @@ public class DocumentResourceV2Test {
 
     Keyspace keyspaceMock = mock(Keyspace.class);
     Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
+    when(dbFactoryMock.getDataStoreForToken(eq(authToken), anyObject()))
         .thenReturn(authenticatedDBMock);
     when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
     when(keyspaceMock.table(collection)).thenReturn(tableMock);
@@ -260,7 +262,7 @@ public class DocumentResourceV2Test {
 
     Keyspace keyspaceMock = mock(Keyspace.class);
     Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
+    when(dbFactoryMock.getDataStoreForToken(eq(authToken), anyObject()))
         .thenReturn(authenticatedDBMock);
     when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
     when(keyspaceMock.table(collection)).thenReturn(tableMock);
@@ -287,8 +289,7 @@ public class DocumentResourceV2Test {
 
   @Test
   public void getDocPath_whereAndFields()
-      throws ExecutionException, InterruptedException, JsonProcessingException,
-          UnauthorizedException {
+      throws ExecutionException, InterruptedException, IOException, UnauthorizedException {
     HttpHeaders headers = mock(HttpHeaders.class);
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
@@ -298,6 +299,7 @@ public class DocumentResourceV2Test {
     String where = "{\"a\": {\"$eq\": \"b\"}}";
     String fields = "[\"a\"]";
     int pageSizeParam = 0;
+    Paginator paginator = new Paginator(null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
     String pageStateParam = null;
     List<PathSegment> path = new ArrayList<>();
 
@@ -312,9 +314,8 @@ public class DocumentResourceV2Test {
                 anyList(),
                 anyList(),
                 anyString(),
-                anyInt(),
-                anyObject()))
-        .thenReturn(ImmutablePair.of(mockedReturn, null));
+                eq(paginator)))
+        .thenReturn(mockedReturn);
 
     Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
         .thenCallRealMethod();
@@ -323,7 +324,7 @@ public class DocumentResourceV2Test {
 
     Keyspace keyspaceMock = mock(Keyspace.class);
     Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
+    when(dbFactoryMock.getDataStoreForToken(eq(authToken), anyObject()))
         .thenReturn(authenticatedDBMock);
     when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
     when(keyspaceMock.table(collection)).thenReturn(tableMock);
@@ -374,7 +375,7 @@ public class DocumentResourceV2Test {
 
     Keyspace keyspaceMock = mock(Keyspace.class);
     Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
+    when(dbFactoryMock.getDataStoreForToken(eq(authToken), anyObject()))
         .thenReturn(authenticatedDBMock);
     when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
     when(keyspaceMock.table(collection)).thenReturn(tableMock);
@@ -424,7 +425,7 @@ public class DocumentResourceV2Test {
 
     Keyspace keyspaceMock = mock(Keyspace.class);
     Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
+    when(dbFactoryMock.getDataStoreForToken(eq(authToken), anyObject()))
         .thenReturn(authenticatedDBMock);
     when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
     when(keyspaceMock.table(collection)).thenReturn(tableMock);
@@ -465,8 +466,7 @@ public class DocumentResourceV2Test {
 
   @Test
   public void searchDoc_whereWithNoFields()
-      throws ExecutionException, InterruptedException, JsonProcessingException,
-          UnauthorizedException {
+      throws ExecutionException, InterruptedException, IOException, UnauthorizedException {
     HttpHeaders headers = mock(HttpHeaders.class);
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
@@ -476,6 +476,7 @@ public class DocumentResourceV2Test {
     String fields = null;
     int pageSizeParam = 0;
     String pageStateParam = null;
+    Paginator paginator = new Paginator(pageStateParam, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
     boolean raw = false;
 
     List<FilterCondition> conditions = new ArrayList<>();
@@ -491,15 +492,8 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
-                anyObject(),
-                anyString(),
-                anyString(),
-                anyList(),
-                anyList(),
-                anyObject(),
-                anyInt(),
-                anyInt()))
-        .thenReturn(ImmutablePair.of(searchResult, null));
+                anyObject(), anyString(), anyString(), anyList(), anyList(), eq(paginator)))
+        .thenReturn(searchResult);
 
     Response r =
         documentResourceV2.searchDoc(
@@ -523,8 +517,7 @@ public class DocumentResourceV2Test {
 
   @Test
   public void searchDoc_whereWithNoFieldsRaw()
-      throws ExecutionException, InterruptedException, JsonProcessingException,
-          UnauthorizedException {
+      throws ExecutionException, InterruptedException, IOException, UnauthorizedException {
     HttpHeaders headers = mock(HttpHeaders.class);
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
@@ -535,6 +528,7 @@ public class DocumentResourceV2Test {
     int pageSizeParam = 0;
     String pageStateParam = null;
     boolean raw = true;
+    Paginator paginator = new Paginator(pageStateParam, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
     List<FilterCondition> conditions = new ArrayList<>();
     conditions.add(
@@ -549,15 +543,8 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
-                anyObject(),
-                anyString(),
-                anyString(),
-                anyList(),
-                anyList(),
-                anyObject(),
-                anyInt(),
-                anyInt()))
-        .thenReturn(ImmutablePair.of(searchResult, null));
+                anyObject(), anyString(), anyString(), anyList(), anyList(), eq(paginator)))
+        .thenReturn(searchResult);
 
     Response r =
         documentResourceV2.searchDoc(
@@ -578,8 +565,7 @@ public class DocumentResourceV2Test {
 
   @Test
   public void searchDoc_whereWithFieldsRaw()
-      throws ExecutionException, InterruptedException, JsonProcessingException,
-          UnauthorizedException {
+      throws ExecutionException, InterruptedException, IOException, UnauthorizedException {
     HttpHeaders headers = mock(HttpHeaders.class);
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
@@ -590,6 +576,7 @@ public class DocumentResourceV2Test {
     int pageSizeParam = 0;
     String pageStateParam = null;
     boolean raw = true;
+    Paginator paginator = new Paginator(pageStateParam, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
     List<FilterCondition> conditions = new ArrayList<>();
     conditions.add(
@@ -607,15 +594,8 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
-                anyObject(),
-                anyString(),
-                anyString(),
-                anyList(),
-                anyList(),
-                anyObject(),
-                anyInt(),
-                anyInt()))
-        .thenReturn(ImmutablePair.of(searchResult, null));
+                anyObject(), anyString(), anyString(), anyList(), anyList(), eq(paginator)))
+        .thenReturn(searchResult);
 
     Response r =
         documentResourceV2.searchDoc(
@@ -714,9 +694,7 @@ public class DocumentResourceV2Test {
   }
 
   @Test
-  public void searchDoc_fullDocuments()
-      throws InterruptedException, ExecutionException, UnauthorizedException,
-          JsonProcessingException {
+  public void searchDoc_fullDocuments() throws UnauthorizedException, IOException {
     HttpHeaders headers = mock(HttpHeaders.class);
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
@@ -727,6 +705,7 @@ public class DocumentResourceV2Test {
     int pageSizeParam = 0;
     String pageStateParam = null;
     boolean raw = true;
+    Paginator paginator = new Paginator(null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
     ObjectNode searchResult = mapper.createObjectNode();
     searchResult.set("id1", mapper.createArrayNode());
@@ -734,8 +713,8 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getFullDocuments(
-                anyObject(), anyString(), anyString(), anyList(), anyObject(), anyInt(), anyInt()))
-        .thenReturn(ImmutablePair.of(searchResult, null));
+                anyObject(), anyString(), anyString(), anyList(), eq(paginator)))
+        .thenReturn(searchResult);
 
     Response r =
         documentResourceV2.searchDoc(
