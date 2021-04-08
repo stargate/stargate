@@ -6,9 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Map;
 import net.jcip.annotations.NotThreadSafe;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeAll;
@@ -98,29 +98,25 @@ public class HealthCheckerTest extends BaseOsgiIntegrationTest {
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
     String[] lines = result.split(System.getProperty("line.separator"));
-    long foundMetricGroups =
-        Arrays.stream(expectedMetricGroups)
-            .map(
-                metricGroup ->
-                    Arrays.stream(lines)
-                        .anyMatch(line -> line.startsWith(module + "_" + metricGroup)))
-            .filter(Boolean::booleanValue)
-            .count();
 
-    assertThat(foundMetricGroups).isEqualTo(expectedMetricGroups.length);
+    for (String metricGroup : expectedMetricGroups) {
+      assertThat(lines).anyMatch(line -> line.startsWith(module + "_" + metricGroup));
+    }
   }
 
   @Test
   public void metricsPersistence() throws IOException {
-    String version = backend.clusterVersion().replace('.', '_');
-    String expectedPrefix =
-        (backend.isDse() ? "persistence_dse" : "persistence_cassandra") + "_" + version;
+    String expectedPrefix;
+    if (backend.isDse()) {
+      expectedPrefix =
+          "persistence_dse_" + StringUtils.remove(backend.clusterVersion(), '.').substring(0, 2);
+    } else {
+      expectedPrefix = "persistence_cassandra_" + backend.clusterVersion().replace('.', '_');
+    }
 
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
     String[] lines = result.split(System.getProperty("line.separator"));
-    boolean prefixFound = Arrays.stream(lines).anyMatch(line -> line.startsWith(expectedPrefix));
-
-    assertThat(prefixFound).isTrue();
+    assertThat(lines).anyMatch(line -> line.startsWith(expectedPrefix));
   }
 }
