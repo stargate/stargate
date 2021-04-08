@@ -8,12 +8,14 @@ import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
 import java.util.Map;
 import net.jcip.annotations.NotThreadSafe;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @NotThreadSafe
 public class HealthCheckerTest extends BaseOsgiIntegrationTest {
@@ -74,7 +76,8 @@ public class HealthCheckerTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void healthCheck() throws IOException {
-    String body = RestUtils.get("", String.format("%s:8084/healthcheck", host), HttpStatus.SC_OK);
+    String body =
+        RestUtils.get("", String.format("%s:8084/admin/healthcheck", host), HttpStatus.SC_OK);
     @SuppressWarnings("unchecked")
     Map<String, Object> json = OBJECT_MAPPER.readValue(body, Map.class);
     assertThat(json)
@@ -84,5 +87,36 @@ public class HealthCheckerTest extends BaseOsgiIntegrationTest {
         .extracting("graphql", InstanceOfAssertFactories.MAP)
         .containsEntry("healthy", true)
         .containsEntry("message", "Ready to process requests");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"authapi", "graphqlapi", "health_checker", "restapi"})
+  public void metricsModule(String module) throws IOException {
+    String[] expectedMetricGroups =
+        new String[] {"TimeBoundHealthCheck", "io_dropwizard_jersey", "org_eclipse_jetty"};
+
+    String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+    String[] lines = result.split(System.getProperty("line.separator"));
+
+    for (String metricGroup : expectedMetricGroups) {
+      assertThat(lines).anyMatch(line -> line.startsWith(module + "_" + metricGroup));
+    }
+  }
+
+  @Test
+  public void metricsPersistence() throws IOException {
+    String expectedPrefix;
+    if (backend.isDse()) {
+      expectedPrefix =
+          "persistence_dse_" + StringUtils.remove(backend.clusterVersion(), '.').substring(0, 2);
+    } else {
+      expectedPrefix = "persistence_cassandra_" + backend.clusterVersion().replace('.', '_');
+    }
+
+    String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+    String[] lines = result.split(System.getProperty("line.separator"));
+    assertThat(lines).anyMatch(line -> line.startsWith(expectedPrefix));
   }
 }

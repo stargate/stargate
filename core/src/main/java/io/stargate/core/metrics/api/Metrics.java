@@ -1,6 +1,7 @@
 package io.stargate.core.metrics.api;
 
 import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 /**
  * Entry point to the Stargate metrics.
@@ -27,4 +28,12 @@ public interface Metrics {
    * automatically added when registering new metrics.
    */
   MetricRegistry getRegistry(String prefix);
+
+  /**
+   * Returns a Micrometer {@link io.micrometer.core.instrument.MeterRegistry} that can be used to
+   * add micrometer styled metrics with tags.
+   *
+   * <p>Note that this registry will warp all the metrics reported via {@link #getRegistry()}.
+   */
+  MeterRegistry getMeterRegistry();
 }

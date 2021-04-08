@@ -3,6 +3,7 @@ package io.stargate.health;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
+import io.stargate.core.metrics.api.MetricsScraper;
 import io.stargate.db.datastore.DataStoreFactory;
 import java.util.Arrays;
 import java.util.List;
@@ -21,6 +22,8 @@ public class HealthCheckerActivator extends BaseActivator {
   public static final String SCHEMA_CHECK_NAME = "schema-agreement";
 
   private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  private ServicePointer<MetricsScraper> metricsScraper =
+      ServicePointer.create(MetricsScraper.class);
   private ServicePointer<DataStoreFactory> dataStoreFactory =
       ServicePointer.create(DataStoreFactory.class);
   private ServicePointer<HealthCheckRegistry> healthCheckRegistry =
@@ -51,7 +54,8 @@ public class HealthCheckerActivator extends BaseActivator {
           .register(STORAGE_CHECK_NAME, new StorageHealthChecker(dataStoreFactory.get()));
       healthCheckRegistry.get().register(SCHEMA_CHECK_NAME, new SchemaAgreementChecker(context));
 
-      WebImpl web = new WebImpl(context, metrics.get(), healthCheckRegistry.get());
+      WebImpl web =
+          new WebImpl(context, metrics.get(), metricsScraper.get(), healthCheckRegistry.get());
       web.start();
       log.info("Started healthchecker....");
     } catch (Exception e) {
@@ -62,6 +66,6 @@ public class HealthCheckerActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(metrics, healthCheckRegistry, dataStoreFactory);
+    return Arrays.asList(metrics, metricsScraper, healthCheckRegistry, dataStoreFactory);
   }
 }
