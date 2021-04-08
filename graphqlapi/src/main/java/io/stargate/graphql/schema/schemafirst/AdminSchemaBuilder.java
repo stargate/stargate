@@ -45,6 +45,7 @@ import io.stargate.graphql.schema.schemafirst.fetchers.admin.AllSchemasFetcher;
 import io.stargate.graphql.schema.schemafirst.fetchers.admin.DeploySchemaFetcher;
 import io.stargate.graphql.schema.schemafirst.fetchers.admin.DeploySchemaFileFetcher;
 import io.stargate.graphql.schema.schemafirst.fetchers.admin.SingleSchemaFetcher;
+import io.stargate.graphql.schema.schemafirst.fetchers.admin.UndeploySchemaFetcher;
 import io.stargate.graphql.schema.schemafirst.migration.MigrationStrategy;
 import io.stargate.graphql.schema.schemafirst.processor.ProcessingLogType;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
@@ -269,6 +270,77 @@ public class AdminSchemaBuilder {
           .field(QUERY_FIELD)
           .build();
 
+  private static final GraphQLFieldDefinition DEPLOY_SCHEMA_MUTATION =
+      deploySchemaStart()
+          .name("deploySchema")
+          .description("Deploys a GraphQL schema to a keyspace.")
+          .argument(
+              newArgument()
+                  .name("schema")
+                  .description("The contents of the schema.")
+                  .type(nonNull(GraphQLString))
+                  .build())
+          .build();
+
+  private static final GraphQLScalarType UPLOAD_SCALAR =
+      newScalar().name("Upload").coercing(new InputStreamCoercing()).build();
+
+  private static final GraphQLFieldDefinition DEPLOY_SCHEMA_FILE_MUTATION =
+      deploySchemaStart()
+          .name("deploySchemaFile")
+          .description(
+              "Deploys a GraphQL schema to a keyspace via a file upload.\n"
+                  + "This mutation must be executed with a [multipart request](https://github.com/jaydenseric/graphql-multipart-request-spec) "
+                  + "(note that your `operations` part **must** declare MIME type `application/json`).")
+          .argument(
+              newArgument()
+                  .name("schemaFile")
+                  .description("The contents of the schema as an UTF-8 encoded file.")
+                  .type(nonNull(UPLOAD_SCALAR))
+                  .build())
+          .build();
+
+  private static final GraphQLFieldDefinition UNDEPLOY_SCHEMA_MUTATION =
+      newFieldDefinition()
+          .name("undeploySchema")
+          .description(
+              "Cancels a previous deployment.\n"
+                  + "The keyspace will revert to the generated, \"CQL-first\" schema. The schema history will be "
+                  + "preserved, but with all versions marked as `current: false`.")
+          .argument(
+              newArgument()
+                  .name("keyspace")
+                  .description("The keyspace to deploy to.")
+                  .type(nonNull(GraphQLString))
+                  .build())
+          .argument(
+              newArgument()
+                  .name("expectedVersion")
+                  .description(
+                      "The current version.\nThis is used to ensure that another user is not deploying concurrently.")
+                  .type(nonNull(GraphQLString))
+                  .build())
+          .argument(
+              newArgument()
+                  .name("force")
+                  .description(
+                      "Proceed even if the previous deployment is still marked as in progress. "
+                          + "This is used to recover manually if a previous deployment failed unexpectedly during the "
+                          + "CQL migration phase.")
+                  .type(nonNull(GraphQLBoolean))
+                  .defaultValue(false)
+                  .build())
+          .type(GraphQLBoolean)
+          .build();
+
+  private static final GraphQLObjectType MUTATION =
+      newObject()
+          .name("Mutation")
+          .field(DEPLOY_SCHEMA_MUTATION)
+          .field(DEPLOY_SCHEMA_FILE_MUTATION)
+          .field(UNDEPLOY_SCHEMA_MUTATION)
+          .build();
+
   private static GraphQLFieldDefinition.Builder deploySchemaStart() {
     return newFieldDefinition()
         .argument(
@@ -317,43 +389,6 @@ public class AdminSchemaBuilder {
         .type(DEPLOY_SCHEMA_TYPE);
   }
 
-  private static final GraphQLFieldDefinition DEPLOY_SCHEMA_MUTATION =
-      deploySchemaStart()
-          .name("deploySchema")
-          .description("Deploys a GraphQL schema to a keyspace.")
-          .argument(
-              newArgument()
-                  .name("schema")
-                  .description("The contents of the schema.")
-                  .type(nonNull(GraphQLString))
-                  .build())
-          .build();
-
-  private static final GraphQLScalarType UPLOAD_SCALAR =
-      newScalar().name("Upload").coercing(new InputStreamCoercing()).build();
-
-  private static final GraphQLFieldDefinition DEPLOY_SCHEMA_FILE_MUTATION =
-      deploySchemaStart()
-          .name("deploySchemaFile")
-          .description(
-              "Deploys a GraphQL schema to a keyspace via a file upload.\n"
-                  + "This mutation must be executed with a [multipart request](https://github.com/jaydenseric/graphql-multipart-request-spec) "
-                  + "(note that your `operations` part **must** declare MIME type `application/json`).")
-          .argument(
-              newArgument()
-                  .name("schemaFile")
-                  .description("The contents of the schema as an UTF-8 encoded file.")
-                  .type(nonNull(UPLOAD_SCALAR))
-                  .build())
-          .build();
-
-  private static final GraphQLObjectType MUTATION =
-      newObject()
-          .name("Mutation")
-          .field(DEPLOY_SCHEMA_MUTATION)
-          .field(DEPLOY_SCHEMA_FILE_MUTATION)
-          .build();
-
   private final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
 
@@ -381,6 +416,9 @@ public class AdminSchemaBuilder {
                 .dataFetcher(
                     coordinates(MUTATION, DEPLOY_SCHEMA_FILE_MUTATION),
                     new DeploySchemaFileFetcher(authorizationService, dataStoreFactory))
+                .dataFetcher(
+                    coordinates(MUTATION, UNDEPLOY_SCHEMA_MUTATION),
+                    new UndeploySchemaFetcher(authorizationService, dataStoreFactory))
                 .build())
         .build();
   }

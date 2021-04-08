@@ -258,25 +258,29 @@ public class SchemaSourceDao {
     ResultSet resultSet = dataStore.execute(updateDeploymentToInProgress).get();
     Row row = resultSet.one();
     if (!row.getBoolean(APPLIED_COLUMN_NAME)) {
-      boolean hasVersion =
-          row.columns().stream().anyMatch(c -> LATEST_VERSION_COLUMN_NAME.equals(c.name()));
-      if (!hasVersion) {
-        throw new IllegalStateException(
-            "You specified expectedVersion but no previous version was found");
-      }
-      UUID actualLatestVersion = row.getUuid(LATEST_VERSION_COLUMN_NAME);
-      if (Objects.equals(actualLatestVersion, expectedLatestVersion)) {
-        assert row.getBoolean(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME);
-        throw new IllegalStateException(
-            "It looks like someone else is deploying a new schema, please check the latest version and try again. "
-                + "This can also happen if a previous deployment failed unexpectedly, in that case you can use the "
-                + "'force' argument to bypass this check.");
-      }
-      throw new IllegalStateException(
-          String.format(
-              "You specified expectedVersion %s, but there is a more recent version %s",
-              expectedLatestVersion, actualLatestVersion));
+      handleFailedDeployLwt(row, expectedLatestVersion);
     }
+  }
+
+  private void handleFailedDeployLwt(Row row, UUID expectedLatestVersion) {
+    boolean hasVersion =
+        row.columns().stream().anyMatch(c -> LATEST_VERSION_COLUMN_NAME.equals(c.name()));
+    if (!hasVersion) {
+      throw new IllegalStateException(
+          "You specified expectedVersion but no previous version was found");
+    }
+    UUID actualLatestVersion = row.getUuid(LATEST_VERSION_COLUMN_NAME);
+    if (Objects.equals(actualLatestVersion, expectedLatestVersion)) {
+      assert row.getBoolean(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME);
+      throw new IllegalStateException(
+          "It looks like someone else is deploying a new schema, please check the latest version and try again. "
+              + "This can also happen if a previous deployment failed unexpectedly, in that case you can use the "
+              + "'force' argument to bypass this check.");
+    }
+    throw new IllegalStateException(
+        String.format(
+            "You specified expectedVersion %s, but there is a more recent version %s",
+            expectedLatestVersion, actualLatestVersion));
   }
 
   public void abortDeployment(String keyspace) throws ExecutionException, InterruptedException {
@@ -289,6 +293,31 @@ public class SchemaSourceDao {
             .build()
             .bind();
     dataStore.execute(updateDeploymentToNotInProgress).get();
+  }
+
+  public void undeploy(String keyspace, UUID expectedLatestVersion, boolean force)
+      throws ExecutionException, InterruptedException {
+    List<BuiltCondition> conditions =
+        force
+            ? ImmutableList.of(
+                BuiltCondition.of(LATEST_VERSION_COLUMN_NAME, Predicate.EQ, expectedLatestVersion))
+            : ImmutableList.of(
+                BuiltCondition.of(LATEST_VERSION_COLUMN_NAME, Predicate.EQ, expectedLatestVersion),
+                BuiltCondition.of(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Predicate.NEQ, true));
+    BoundQuery clearLatestVersion =
+        dataStore
+            .queryBuilder()
+            .update(KEYSPACE_NAME, TABLE_NAME)
+            .value(LATEST_VERSION_COLUMN_NAME, null)
+            .value(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, false)
+            .where(KEYSPACE_COLUMN_NAME, Predicate.EQ, keyspace)
+            .ifs(conditions)
+            .build()
+            .bind();
+    Row row = dataStore.execute(clearLatestVersion).get().one();
+    if (!row.getBoolean(APPLIED_COLUMN_NAME)) {
+      handleFailedDeployLwt(row, expectedLatestVersion);
+    }
   }
 
   public void purgeOldVersions(String keyspace) throws Exception {

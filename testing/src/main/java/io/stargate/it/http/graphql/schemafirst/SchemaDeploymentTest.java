@@ -220,4 +220,143 @@ public class SchemaDeploymentTest extends GraphqlFirstTestBase {
       assertThat(CLIENT.getSchemaFile(keyspace, version.toString())).isNotNull();
     }
   }
+
+  @Test
+  @DisplayName("Should undeploy schema")
+  public void undeploySchema(@TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+    // given
+    String keyspace = keyspaceId.asInternal();
+    UUID version1 = CLIENT.deploySchema(keyspace, SCHEMA_CONTENTS);
+    UUID version2 = CLIENT.deploySchema(keyspace, version1.toString(), SCHEMA_CONTENTS);
+
+    // when
+    CLIENT.undeploySchema(keyspace, version2.toString());
+
+    // then
+    // rows are still here but none is marked as latest
+    List<Row> rows =
+        session
+            .execute(
+                "select * from stargate_graphql.schema_source where keyspace_name = ?", keyspace)
+            .all();
+    assertThat(rows).hasSize(2);
+    assertThat(rows.get(0).getUuid("latest_version")).isNull();
+  }
+
+  @Test
+  @DisplayName("Should redeploy schema after undeployment")
+  public void undeployAndRedeploySchema(
+      @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+    // given
+    String keyspace = keyspaceId.asInternal();
+    UUID version1 = CLIENT.deploySchema(keyspace, SCHEMA_CONTENTS);
+    UUID version2 = CLIENT.deploySchema(keyspace, version1.toString(), SCHEMA_CONTENTS);
+    CLIENT.undeploySchema(keyspace, version2.toString());
+
+    // when
+    // we don't require the previous version here, because it's considered inactive
+    UUID version3 = CLIENT.deploySchema(keyspace, SCHEMA_CONTENTS);
+
+    // then
+    List<Row> rows =
+        session
+            .execute(
+                "select * from stargate_graphql.schema_source where keyspace_name = ?", keyspace)
+            .all();
+    assertThat(rows).hasSize(3);
+    assertThat(rows.get(0).getUuid("latest_version")).isEqualTo(version3);
+  }
+
+  @Test
+  @DisplayName("Should fail to undeploy schema when version doesn't match")
+  public void undeploySchemaWhenVersionMismatch(@TestKeyspace CqlIdentifier keyspaceId) {
+    // given
+    String keyspace = keyspaceId.asInternal();
+    UUID version = CLIENT.deploySchema(keyspace, SCHEMA_CONTENTS);
+    UUID wrongVersion = Uuids.timeBased();
+    assertThat(wrongVersion).isNotEqualTo(version);
+
+    // when
+    String error = CLIENT.getUndeploySchemaError(keyspace, wrongVersion.toString());
+
+    // then
+    assertThat(error)
+        .contains(
+            String.format(
+                "You specified expectedVersion %s, but there is a more recent version %s",
+                wrongVersion, version));
+  }
+
+  @Test
+  @DisplayName("Should fail to undeploy schema when current still in progress")
+  public void undeploySchemaWhenInProgress(
+      @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+    // given
+    String keyspace = keyspaceId.asInternal();
+    UUID version = CLIENT.deploySchema(keyspace, SCHEMA_CONTENTS);
+    session.execute(
+        "UPDATE stargate_graphql.schema_source "
+            + "SET deployment_in_progress = true WHERE keyspace_name = ?",
+        keyspace);
+
+    // when
+    String error = CLIENT.getUndeploySchemaError(keyspace, version.toString());
+
+    // then
+    assertThat(error).contains("It looks like someone else is deploying a new schema");
+  }
+
+  @Test
+  @DisplayName("Should force undeploy schema when current still in progress")
+  public void forceUndeploySchemaWhenInProgress(
+      @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+    // given
+    String keyspace = keyspaceId.asInternal();
+    UUID version = CLIENT.deploySchema(keyspace, SCHEMA_CONTENTS);
+    session.execute(
+        "UPDATE stargate_graphql.schema_source "
+            + "SET deployment_in_progress = true WHERE keyspace_name = ?",
+        keyspace);
+
+    // when
+    CLIENT.undeploySchema(keyspace, version.toString(), true);
+    Row row =
+        session
+            .execute(
+                "SELECT latest_version, deployment_in_progress "
+                    + "FROM stargate_graphql.schema_source "
+                    + "WHERE keyspace_name = ?",
+                keyspace)
+            .one();
+
+    // then
+    assertThat(row).isNotNull();
+    assertThat(row.getUuid("latest_version")).isNull();
+    assertThat(row.getBoolean("deployment_in_progress")).isFalse();
+  }
+
+  @Test
+  @DisplayName("Should fail to force undeploy schema when version doesn't match")
+  public void forceUndeploySchemaWhenVersionMismatch(
+      @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+    // given
+    String keyspace = keyspaceId.asInternal();
+    UUID version = CLIENT.deploySchema(keyspace, SCHEMA_CONTENTS);
+    session.execute(
+        "UPDATE stargate_graphql.schema_source "
+            + "SET deployment_in_progress = true WHERE keyspace_name = ?",
+        keyspace);
+    UUID wrongVersion = Uuids.timeBased();
+    assertThat(wrongVersion).isNotEqualTo(version);
+
+    // when
+    String error = CLIENT.getUndeploySchemaError(keyspace, wrongVersion.toString());
+
+    // then
+    assertThat(error)
+        .contains(
+            String.format(
+                "You specified expectedVersion %s, but there is a more recent version %s",
+                wrongVersion, version));
+  }
 }
