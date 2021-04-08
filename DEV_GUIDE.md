@@ -205,17 +205,6 @@ Integration tests can be started / debugged individually in an IDE.
 If `ccm` is used to manage storage nodes during tests, it should be accessible from the IDE's
 execution environment (`PATH`).
 
-### Using JUnit Console Launcher
-
-JUnit [Console Launcher](https://junit.org/junit5/docs/current/user-guide/#running-tests-console-launcher)
-can also be used for executing (and debugging) integration tests.
-
-For example, execute these commands from the project root:
-```shell
-$ ./mvnw package
-$ java -Dstargate.libdir=stargate-lib -jar junit-platform-console-standalone-1.6.2.jar -cp testing-<VERSION>-all.jar -p io.stargate.it
-```
-
 ### Specifying Storage Backend
 
 When tests are started manually via an IDE or JUnit Console Launcher, the type and version
