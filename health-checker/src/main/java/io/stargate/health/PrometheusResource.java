@@ -15,7 +15,6 @@
  */
 package io.stargate.health;
 
-import io.micrometer.prometheus.PrometheusMeterRegistry;
 import io.stargate.core.metrics.api.MetricsScraper;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -25,7 +24,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 /**
- * Simple Prometheus resource that exposes any {@link PrometheusMeterRegistry} to the <code>
+ * Simple Prometheus resource that exposes any {@link MetricsScraper} to the <code>
  * /metrics</code> endpoint.
  */
 @Path("/metrics")
