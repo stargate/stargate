@@ -95,6 +95,29 @@ public class GraphqlFirstClient extends GraphqlClient {
     return query.append(") { version } }").toString();
   }
 
+  public void undeploySchema(String keyspace, String expectedVersion, boolean force) {
+    getGraphqlData(authToken, adminUri, buildUndeploySchemaQuery(keyspace, expectedVersion, force));
+  }
+
+  public void undeploySchema(String keyspace, String expectedVersion) {
+    undeploySchema(keyspace, expectedVersion, false);
+  }
+
+  public String getUndeploySchemaError(String keyspace, String expectedVersion, boolean force) {
+    return getGraphqlError(
+        authToken, adminUri, buildUndeploySchemaQuery(keyspace, expectedVersion, force));
+  }
+
+  public String getUndeploySchemaError(String keyspace, String expectedVersion) {
+    return getUndeploySchemaError(keyspace, expectedVersion, false);
+  }
+
+  private String buildUndeploySchemaQuery(String keyspace, String expectedVersion, boolean force) {
+    return String.format(
+        "mutation { undeploySchema(keyspace: \"%s\", expectedVersion: \"%s\", force: %b) }",
+        keyspace, expectedVersion, force);
+  }
+
   /** Returns the contents of the static cql_directives.graphql file. */
   public String getCqlDirectivesFile() {
     try {
